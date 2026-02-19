@@ -3,9 +3,6 @@
 Horizon is a minimal graphical toolkit written in C++ and designed to run on Wayland.  
 It is part of the Austral ecosystem and serves as the foundational layer for building native, modern, and fully controlled graphical applications.
 
-Horizon is not intended to compete with large frameworks like Qt or GTK.  
-Instead, it focuses on simplicity, clarity, performance, and full ownership of the graphical stack.
-
 ---
 
 ## Philosophy
@@ -73,7 +70,6 @@ sudo apt install build-essential g++ pkg-config \
                  libegl1-mesa-dev \
                  libgles2-mesa-dev \
                  weston \
-                 weston-tools \
                  wayland-utils
 ```
 ## Compiling
