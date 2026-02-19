@@ -1,19 +1,19 @@
 # Clang-Format configuration for Horizon C++ project
 # This ensures consistent formatting across editors and IDEs
 
-BasedOnStyle: LLVM          # Base style to inherit defaults
-IndentWidth: 4             # Each indentation level = 4 spaces
-AccessModifierOffset: -4   # Align access modifiers with class definition
-TabWidth: 4                # Interpret tabs as 4 spaces
-UseTab: Never              # Never insert real tab characters
+BasedOnStyle: LLVM # Base style to inherit defaults
+IndentWidth: 4 # Each indentation level = 4 spaces
+AccessModifierOffset: -4 # Align access modifiers with class definition
+TabWidth: 4 # Interpret tabs as 4 spaces
+UseTab: Never # Never insert real tab characters
 
-BreakBeforeBraces: Allman  # Place braces on a new line (clear for learning)
-ColumnLimit: 100           # Max line width
+BreakBeforeBraces: Allman # Place braces on a new line (clear for learning)
+ColumnLimit: 100 # Max line width
 
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: false
 
-NamespaceIndentation: All   # Indent inside namespaces
+NamespaceIndentation: All # Indent inside namespaces
 
 # Optional: enforce spaces around operators, after commas, etc.
 SpacesInParentheses: false
