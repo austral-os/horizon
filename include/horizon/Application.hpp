@@ -10,7 +10,7 @@ struct wl_shm;
 namespace horizon
 {
 
-    class Window;
+    class Widget;
 
     class Application
     {
@@ -27,6 +27,7 @@ namespace horizon
         void run();
         void quit();
 
+        void set_root(std::unique_ptr<Widget> root);
         void set_wl_compositor(struct wl_compositor *compositor);
         void set_wl_shm(struct wl_shm *shm);
 
@@ -43,6 +44,6 @@ namespace horizon
 
         bool m_is_running = false;
 
-        std::unique_ptr<Window> m_window;
+        std::unique_ptr<Widget> m_root;
     };
 } // namespace horizon

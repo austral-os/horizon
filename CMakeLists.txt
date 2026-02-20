@@ -37,4 +37,4 @@ add_executable(minimal_app
 target_link_libraries(minimal_app
     PRIVATE
         horizon
-)
+)   

@@ -1,6 +1,7 @@
+#include "horizon/GraphicsContext.hpp"
 #include <cstring>
-#include <horizon/application.hpp>
-#include <horizon/window.hpp>
+#include <horizon/Application.hpp>
+#include <horizon/Window.hpp>
 #include <iostream>
 #include <stdexcept>
 #include <wayland-client-core.h>
@@ -41,7 +42,7 @@ namespace horizon
     Application::Application(Application &&other) noexcept
         : m_display(other.m_display), m_registry(other.m_registry),
           m_compositor(other.m_compositor), m_shm(other.m_shm), m_is_running(other.m_is_running),
-          m_window(std::move(other.m_window))
+          m_root(std::move(other.m_root))
     {
         other.m_display = nullptr;
         other.m_registry = nullptr;
@@ -61,7 +62,7 @@ namespace horizon
             m_compositor = other.m_compositor;
             m_shm = other.m_shm;
             m_is_running = other.m_is_running;
-            m_window = std::move(other.m_window);
+            m_root = std::move(other.m_root);
 
             other.m_display = nullptr;
             other.m_registry = nullptr;
@@ -78,12 +79,24 @@ namespace horizon
         close_wayland();
     }
 
+    void Application::set_root(std::unique_ptr<Widget> root)
+    {
+        m_root = std::move(root);
+    }
+
     void Application::run()
     {
         m_is_running = true;
         // while (m_is_running)
         //{
         dispatch_events();
+
+        if (m_root)
+        {
+            GraphicsContext ctx;
+            m_root->render(ctx);
+        }
+
         //}
         quit();
 
