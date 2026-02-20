@@ -42,3 +42,7 @@
 
 # Build directory
 build/
+
+*.idx
+.cache/*
+.cache/clangd*
