@@ -44,4 +44,5 @@
 build/
 
 *.idx
-/.cache/
+# Cache
+.cache/
