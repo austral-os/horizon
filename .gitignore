@@ -44,5 +44,4 @@
 build/
 
 *.idx
-.cache/*
-.cache/clangd*
+/.cache/
