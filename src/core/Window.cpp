@@ -28,7 +28,8 @@ namespace horizon
         // Dibujar fondo de ventana
         std::cout << "dibujando ventana: w:" << m_width << " h:" << m_height << std::endl;
         gc.setColor(0.2, 0.6, 0.8, 1.0);
-        gc.fillRect(0, 0, m_width, m_height);
+        gc.paint();
+        // gc.fillRect(0, 0, m_width, m_height);
         gc.flush();
         std::cout << "terminando ventana" << std::endl;
     }
