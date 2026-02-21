@@ -1,7 +1,6 @@
 #include <cstring>
 #include <horizon/WaylandSurface.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
-#include <memory>
 #include <stdexcept>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -54,16 +53,7 @@ namespace horizon
 
     WaylandSurface::~WaylandSurface()
     {
-        if (m_xdg_wm_base)
-            xdg_wm_base_destroy(m_xdg_wm_base);
-        if (m_compositor)
-            wl_compositor_destroy(m_compositor);
-        if (m_shm)
-            wl_shm_destroy(m_shm);
-        if (m_registry)
-            wl_registry_destroy(m_registry);
-        if (m_display)
-            wl_display_disconnect(m_display);
+        free();
     }
 
     void WaylandSurface::set_wl_compositor(struct wl_compositor *compositor)
@@ -128,8 +118,7 @@ namespace horizon
         int size = stride * m_height;
         int fd = memfd_create("buffer", MFD_CLOEXEC);
         ftruncate(fd, size);
-        m_data = std::make_unique<void *>(
-            mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0));
+        m_data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
         wl_shm_pool *pool = wl_shm_create_pool(m_shm, fd, size);
         m_buffer =
@@ -140,6 +129,13 @@ namespace horizon
 
     void WaylandSurface::free()
     {
+
+        if (m_data)
+        {
+            munmap(m_data, m_width * m_height * 4);
+            m_data = nullptr;
+        }
+
         if (m_xdg_wm_base)
         {
             xdg_wm_base_destroy(m_xdg_wm_base);
@@ -165,6 +161,30 @@ namespace horizon
             wl_display_disconnect(m_display);
             m_display = nullptr;
         }
+    }
+
+    // Devuelve el puntero a xdg_wm_base
+    struct xdg_wm_base *WaylandSurface::xdg_wm_base() const
+    {
+        return m_xdg_wm_base;
+    }
+
+    // Devuelve el puntero al buffer de memoria
+    void *WaylandSurface::data() const
+    {
+        return m_data;
+    }
+
+    // Devuelve la superficie Wayland
+    struct wl_surface *WaylandSurface::surface() const
+    {
+        return m_surface;
+    }
+
+    // Devuelve el buffer Wayland
+    struct wl_buffer *WaylandSurface::buffer() const
+    {
+        return m_buffer;
     }
 
 } // namespace horizon

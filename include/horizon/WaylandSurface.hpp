@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 struct wl_display;
 struct wl_registry;
 struct wl_compositor;
@@ -40,7 +39,7 @@ namespace horizon
         struct wl_compositor *m_compositor = nullptr;
         struct wl_shm *m_shm = nullptr;
         struct xdg_wm_base *m_xdg_wm_base = nullptr;
-        std::unique_ptr<void> m_data;
+        void *m_data;
         struct wl_surface *m_surface;
         struct wl_buffer *m_buffer;
     };

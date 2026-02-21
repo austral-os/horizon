@@ -28,7 +28,6 @@ namespace horizon
         void quit();
 
     private:
-        void close_wayland();
         void dispatch_events();
 
     private:

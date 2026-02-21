@@ -12,8 +12,10 @@ namespace horizon
 
     CairoGraphicContext::~CairoGraphicContext()
     {
-        cairo_destroy(cr);
-        cairo_surface_destroy(cairo_s);
+        if (cr)
+            cairo_destroy(cr);
+        if (cairo_s)
+            cairo_surface_destroy(cairo_s);
     }
     void CairoGraphicContext::setColor(float r, float g, float b, float a)
     {

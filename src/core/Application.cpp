@@ -29,7 +29,7 @@ namespace horizon
     {
         if (this != &other)
         {
-            close_wayland();
+            m_surface->free();
 
             m_is_running = other.m_is_running;
             m_root = std::move(other.m_root);
@@ -42,7 +42,7 @@ namespace horizon
     Application::~Application()
     {
         // Limpieza
-        close_wayland();
+        m_surface->free();
     }
 
     void Application::set_root(std::unique_ptr<Widget> root)
