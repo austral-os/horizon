@@ -12,6 +12,7 @@ namespace horizon
         CairoGraphicContext(void *data, int w, int h);
         ~CairoGraphicContext();
 
+        void paint();
         void setColor(float r, float g, float b, float a = 1.0f);
         void drawRect(int x, int y, int width, int height);
         void fillRect(int x, int y, int width, int height);

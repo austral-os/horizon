@@ -53,23 +53,22 @@ namespace horizon
     void Application::run()
     {
         m_is_running = true;
-        // while (m_is_running)
-        //{
+
         dispatch_events();
 
-        if (m_root)
-        {
-            CairoGraphicContext ctx(m_surface->data(), m_surface->width(), m_surface->height());
-            m_root->render(ctx);
-        }
+        CairoGraphicContext ctx(m_surface->data(), m_surface->width(), m_surface->height());
+
+        m_root->render(ctx);
 
         wl_surface_attach(m_surface->surface(), m_surface->buffer(), 0, 0);
         wl_surface_damage(m_surface->surface(), 0, 0, m_surface->width(), m_surface->height());
         wl_surface_commit(m_surface->surface());
 
-        getchar();
+        while (wl_display_dispatch(m_surface->display()) != -1)
+        {
+            // El dispatch maneja los eventos del sistema
+        }
 
-        //}
         quit();
 
         std::cout << "Application finished." << std::endl;

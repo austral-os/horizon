@@ -1,5 +1,6 @@
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Window.hpp>
+#include <iostream>
 
 namespace horizon
 {
@@ -25,8 +26,11 @@ namespace horizon
     void Window::draw(GraphicsContext &gc)
     {
         // Dibujar fondo de ventana
-        gc.setColor(0.2, 0.6, 0.8);
+        std::cout << "dibujando ventana: w:" << m_width << " h:" << m_height << std::endl;
+        gc.setColor(0.2, 0.6, 0.8, 1.0);
         gc.fillRect(0, 0, m_width, m_height);
+        gc.flush();
+        std::cout << "terminando ventana" << std::endl;
     }
 
 } // namespace horizon

@@ -24,6 +24,7 @@ namespace horizon
         void *data() const;
         struct wl_surface *surface() const;
         struct wl_buffer *buffer() const;
+        struct wl_display *display() const;
 
         int width() const;
         int height() const;

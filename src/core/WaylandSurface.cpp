@@ -187,4 +187,9 @@ namespace horizon
         return m_buffer;
     }
 
+    struct wl_display *WaylandSurface::display() const
+    {
+        return m_display;
+    }
+
 } // namespace horizon

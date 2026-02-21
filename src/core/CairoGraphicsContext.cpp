@@ -1,4 +1,5 @@
 #include <horizon/CairoGraphicsContext.hpp>
+#include <iostream>
 
 namespace horizon
 {
@@ -12,14 +13,21 @@ namespace horizon
 
     CairoGraphicContext::~CairoGraphicContext()
     {
+        std::cout << "haciendo free" << std::endl;
         if (cr)
             cairo_destroy(cr);
         if (cairo_s)
             cairo_surface_destroy(cairo_s);
+        std::cout << "terminando free" << std::endl;
     }
     void CairoGraphicContext::setColor(float r, float g, float b, float a)
     {
         cairo_set_source_rgba(cr, r, g, b, a);
+    }
+
+    void CairoGraphicContext::paint()
+    {
+        cairo_paint(cr);
     }
 
     void CairoGraphicContext::drawRect(int x, int y, int width, int height)
