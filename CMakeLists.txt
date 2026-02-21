@@ -13,6 +13,8 @@ file(GLOB_RECURSE SOURCES
     src/*.cpp
 )
 
+file(GLOB_RECURSE SOURCES src/*.cpp src/xdg-shell-client-protocol.c)
+
 add_library(horizon STATIC ${SOURCES})
 
 # Headers públicos de tu librería
@@ -30,11 +32,11 @@ target_link_libraries(horizon
         ${CAIRO_LIBRARIES}
 )
 
-add_executable(minimal_app
+add_executable(minimal
     examples/minimal/main.cpp
 )
 
-target_link_libraries(minimal_app
+target_link_libraries(minimal
     PRIVATE
         horizon
 )   

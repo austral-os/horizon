@@ -1,11 +1,7 @@
+#include <horizon/WaylandSurface.hpp>
 #include <memory>
 
 #pragma once // Solo se incluye una vez.
-
-struct wl_display;
-struct wl_registry;
-struct wl_compositor;
-struct wl_shm;
 
 namespace horizon
 {
@@ -15,7 +11,7 @@ namespace horizon
     class Application
     {
     public:
-        explicit Application();
+        explicit Application(int w, int h);
         ~Application();
 
         Application(const Application &) = delete;            // Sin soporte para copias.
@@ -24,24 +20,19 @@ namespace horizon
         Application(Application &&) noexcept; // Puede mover sin gastar recursos extra copiando.
         Application &operator=(Application &&) noexcept;
 
+        void set_root(std::unique_ptr<Widget> root);
+
+        WaylandSurface *w_surface() const;
+
         void run();
         void quit();
 
-        void set_root(std::unique_ptr<Widget> root);
-        void set_wl_compositor(struct wl_compositor *compositor);
-        void set_wl_shm(struct wl_shm *shm);
-
     private:
-        void init_wayland();
         void close_wayland();
         void dispatch_events();
 
     private:
-        struct wl_display *m_display = nullptr;
-        struct wl_registry *m_registry = nullptr;
-        struct wl_compositor *m_compositor = nullptr;
-        struct wl_shm *m_shm = nullptr;
-
+        std::unique_ptr<WaylandSurface> m_surface;
         bool m_is_running = false;
 
         std::unique_ptr<Widget> m_root;

@@ -9,16 +9,16 @@ namespace horizon
     class CairoGraphicContext : public GraphicsContext
     {
     public:
-        CairoGraphicContext(cairo_surface_t *surface);
-        ~CairoGraphicContext() override;
+        CairoGraphicContext(void *data, int w, int h);
+        ~CairoGraphicContext();
 
-        void setColor(float r, float g, float b, float a = 1.0f) override;
-        void drawRect(int x, int y, int width, int height) override;
-        void fillRect(int x, int y, int width, int height) override;
-        void flush() override;
+        void setColor(float r, float g, float b, float a = 1.0f);
+        void drawRect(int x, int y, int width, int height);
+        void fillRect(int x, int y, int width, int height);
+        void flush();
 
     private:
-        cairo_surface_t *m_surface;
-        cairo_t *m_cr;
+        cairo_surface_t *cairo_s;
+        cairo_t *cr;
     };
 } // namespace horizon

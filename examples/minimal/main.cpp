@@ -6,7 +6,7 @@ int main()
 {
     try
     {
-        horizon::Application app;
+        horizon::Application app(800, 600);
 
         auto wnd = std::make_unique<horizon::Window>("Minimal");
         wnd->setSize(800, 600);

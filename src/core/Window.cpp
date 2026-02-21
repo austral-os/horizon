@@ -25,7 +25,8 @@ namespace horizon
     void Window::draw(GraphicsContext &gc)
     {
         // Dibujar fondo de ventana
-        gc.drawRect(0, 0, m_width, m_height);
+        gc.setColor(0.2, 0.6, 0.8);
+        gc.fillRect(0, 0, m_width, m_height);
     }
 
 } // namespace horizon
