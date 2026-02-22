@@ -1,7 +1,6 @@
 #include "horizon/Widget.hpp"
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Window.hpp>
-#include <iostream>
 
 namespace horizon
 {
