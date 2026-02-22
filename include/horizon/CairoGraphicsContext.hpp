@@ -29,6 +29,9 @@ namespace horizon
                                    FontWeight weight) const override;
         void drawText(int x, int y, const char *text) override;
 
+        void drawCircle(int x, int y, int radius, float lineWidth = 1.0f) override;
+        void fillCircle(int x, int y, int radius) override;
+
         void flush() override;
 
     private:

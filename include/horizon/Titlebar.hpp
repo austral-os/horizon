@@ -1,5 +1,6 @@
 #pragma once
 
+#include "horizon/TitlebarCircleButton.hpp"
 #include <horizon/Widget.hpp>
 #include <string>
 
@@ -19,5 +20,9 @@ namespace horizon
 
     private:
         std::string m_title;
+
+        TitlebarCircleButton *m_close_button;
+        TitlebarCircleButton *m_minimize_button;
+        TitlebarCircleButton *m_maximize_button;
     };
 } // namespace horizon

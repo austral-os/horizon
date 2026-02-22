@@ -4,7 +4,11 @@
 namespace horizon
 {
 
-    Widget::Widget() {}
+    Widget::Widget()
+    {
+        m_layout_type = WIDGET_LAYOUT_VERTICAL;
+        m_position_type = FILL;
+    }
 
     Widget::~Widget() {}
 
@@ -248,14 +252,7 @@ namespace horizon
         return m_has_focus;
     }
 
-    void Widget::draw(GraphicsContext &gc)
-    {
-        // Dibujamos a los hijos.
-        for (const auto &child : m_children)
-        {
-            child->draw(gc);
-        }
-    }
+    void Widget::draw(GraphicsContext &) {}
 
     void Widget::on_mouse_enter() {}
     void Widget::on_mouse_leave() {}

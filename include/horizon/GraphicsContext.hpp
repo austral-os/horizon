@@ -64,6 +64,10 @@ namespace horizon
         virtual TextMetrics getTextMetrics(const char *text, const char *font, int size,
                                            FontSlant slant, FontWeight weight) const = 0;
         virtual void drawText(int x, int y, const char *text) {};
+
+        virtual void drawCircle(int x, int y, int radius, float lineWidth = 1.0f) {};
+        virtual void fillCircle(int x, int y, int radius) {};
+
         virtual void flush() {};
     };
 
