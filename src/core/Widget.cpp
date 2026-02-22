@@ -8,16 +8,82 @@ namespace horizon
 
     Widget::~Widget() {}
 
+    void Widget::calculate_layout()
+    {
+        m_free_children_count = 0;
+        m_start_draw_x = m_x + m_padding;
+        m_start_draw_y = m_y + m_padding;
+        m_available_draw_width = m_width - (m_padding * 2);
+        m_available_draw_height = m_height - (m_padding * 2);
+        if (m_layout_type == WIDGET_LAYOUT_VERTICAL)
+        {
+            m_free_space = m_available_draw_height;
+        }
+        else
+        {
+            m_free_space = m_available_draw_width;
+        }
+
+        // recorro los hijos y si tienen fixedSize los resto del espacio disponible
+        for (const auto &child : m_children)
+        {
+            if (child->fixed_size() > 0)
+            {
+                m_free_space -= child->fixed_size();
+            }
+            else
+            {
+                m_free_children_count++;
+            }
+        }
+    }
+
     void Widget::render(GraphicsContext &ctx)
     {
         if (!m_visible)
             return;
 
+        calculate_layout();
+
         draw(ctx);
+
+        int current_x = m_start_draw_x;
+        int current_y = m_start_draw_y;
 
         for (const auto &child : m_children)
         {
-            std::cout << "Rendering child" << std::endl;
+            if (child->fixed_size() > 0)
+            {
+                if (m_layout_type == WIDGET_LAYOUT_VERTICAL)
+                {
+                    child->set_position(current_x, current_y);
+                    child->set_size(m_available_draw_width, child->fixed_size());
+                    current_y += child->fixed_size();
+                }
+                else
+                {
+                    child->set_position(current_x, current_y);
+                    child->set_size(child->fixed_size(), m_available_draw_height);
+                    current_x += child->fixed_size();
+                }
+            }
+            else
+            {
+                if (m_layout_type == WIDGET_LAYOUT_VERTICAL)
+                {
+                    child->set_position(current_x, current_y);
+                    child->set_size(m_available_draw_width, m_free_space / m_free_children_count);
+                    current_y += m_free_space / m_free_children_count;
+                }
+                else
+                {
+                    child->set_position(current_x, current_y);
+                    child->set_size(m_free_space / m_free_children_count, m_available_draw_height);
+                    current_x += m_free_space / m_free_children_count;
+                }
+            }
+
+            // std::cout << "Rendering child" << std::endl;
             child->render(ctx);
         }
     }
@@ -80,6 +146,31 @@ namespace horizon
         m_height = height;
     }
 
+    void Widget::set_fixed_size(int size)
+    {
+        m_fixed_size = size;
+    }
+
+    void Widget::set_padding(int padding)
+    {
+        m_padding = padding;
+    }
+
+    void Widget::set_margin(int margin)
+    {
+        m_margin = margin;
+    }
+
+    void Widget::set_position_type(WidgetPositionTypes position_type)
+    {
+        m_position_type = position_type;
+    }
+
+    void Widget::set_layout_type(WidgetLayoutTypes layout_type)
+    {
+        m_layout_type = layout_type;
+    }
+
     int Widget::x() const
     {
         return m_x;
@@ -95,6 +186,31 @@ namespace horizon
     int Widget::height() const
     {
         return m_height;
+    }
+
+    int Widget::fixed_size() const
+    {
+        return m_fixed_size;
+    }
+
+    int Widget::padding() const
+    {
+        return m_padding;
+    }
+
+    int Widget::margin() const
+    {
+        return m_margin;
+    }
+
+    WidgetPositionTypes Widget::position_type() const
+    {
+        return m_position_type;
+    }
+
+    WidgetLayoutTypes Widget::layout_type() const
+    {
+        return m_layout_type;
     }
 
     void Widget::set_visible(bool visible)
