@@ -25,11 +25,14 @@ namespace horizon
 
     void Window::draw(GraphicsContext &gc)
     {
-        // Dibujar fondo de ventana
+        // Dibujar fondo de ventana con un gradiente
         std::cout << "dibujando ventana: w:" << m_width << " h:" << m_height << std::endl;
-        gc.setColor(0.2, 0.6, 0.8, 1.0);
-        gc.paint();
-        // gc.fillRect(0, 0, m_width, m_height);
+
+        Color darkBlue = {0.0f, 0.0f, 0.0f, 1.0f};
+        Color lightBlue = {0.3f, 0.7f, 0.9f, 1.0f};
+
+        gc.fillLinearGradientRect(0, 0, m_width, m_height, darkBlue, lightBlue, true);
+
         gc.flush();
         std::cout << "terminando ventana" << std::endl;
     }

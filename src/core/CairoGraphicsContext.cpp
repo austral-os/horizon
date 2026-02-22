@@ -39,6 +39,28 @@ namespace horizon
         cairo_fill(cr);
     }
 
+    void CairoGraphicContext::fillLinearGradientRect(int x, int y, int width, int height, Color c1,
+                                                     Color c2, bool vertical)
+    {
+        cairo_pattern_t *pat;
+        if (vertical)
+        {
+            pat = cairo_pattern_create_linear(x, y, x, y + height);
+        }
+        else
+        {
+            pat = cairo_pattern_create_linear(x, y, x + width, y);
+        }
+
+        cairo_pattern_add_color_stop_rgba(pat, 0, c1.r, c1.g, c1.b, c1.a);
+        cairo_pattern_add_color_stop_rgba(pat, 1, c2.r, c2.g, c2.b, c2.a);
+
+        cairo_set_source(cr, pat);
+        cairo_rectangle(cr, x, y, width, height);
+        cairo_fill(cr);
+        cairo_pattern_destroy(pat);
+    }
+
     void CairoGraphicContext::flush()
     {
         cairo_surface_flush(cairo_s);
