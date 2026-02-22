@@ -24,16 +24,16 @@ namespace horizon
         auto minimize_button =
             std::make_unique<TitlebarCircleButton>(Color{1.0f, 0.7f, 0.0f, 0.6f});
         auto maximize_button =
-            std::make_unique<TitlebarCircleButton>(Color{0.6f, 0.9f, 0.29f, 0.9f});
+            std::make_unique<TitlebarCircleButton>(Color{0.6f, 0.9f, 0.29f, 0.6f});
 
-        close_button->set_fixed_size(20);
-        close_button->set_size(20, 20);
+        close_button->set_fixed_size(16);
+        close_button->set_size(16, 16);
 
-        minimize_button->set_fixed_size(20);
-        minimize_button->set_size(20, 20);
+        minimize_button->set_fixed_size(16);
+        minimize_button->set_size(16, 16);
 
-        maximize_button->set_fixed_size(20);
-        maximize_button->set_size(20, 20);
+        maximize_button->set_fixed_size(16);
+        maximize_button->set_size(16, 16);
 
         m_close_button = close_button.get();
         m_minimize_button = minimize_button.get();
