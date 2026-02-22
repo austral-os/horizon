@@ -14,7 +14,7 @@ namespace horizon
 
         titlebar->set_padding(1);
         titlebar->set_position(0, 0);
-        titlebar->set_fixed_size(30);
+        titlebar->set_fixed_size(34);
 
         m_titlebar = titlebar.get(); // guardas puntero no propietario
 

@@ -37,6 +37,78 @@ namespace horizon
         cairo_paint(cr);
     }
 
+    TextMetrics CairoGraphicContext::getTextMetrics(const char *text, const char *font, int size,
+                                                    FontSlant slant, FontWeight weight) const
+    {
+        TextMetrics metrics;
+        cairo_font_slant_t cairo_slant;
+        cairo_font_weight_t cairo_weight;
+        switch (slant)
+        {
+        case FONT_SLANT_NORMAL:
+            cairo_slant = CAIRO_FONT_SLANT_NORMAL;
+            break;
+        case FONT_SLANT_ITALIC:
+            cairo_slant = CAIRO_FONT_SLANT_ITALIC;
+            break;
+        case FONT_SLANT_OBLIQUE:
+            cairo_slant = CAIRO_FONT_SLANT_OBLIQUE;
+            break;
+        }
+        switch (weight)
+        {
+        case FONT_WEIGHT_NORMAL:
+            cairo_weight = CAIRO_FONT_WEIGHT_NORMAL;
+            break;
+        case FONT_WEIGHT_BOLD:
+            cairo_weight = CAIRO_FONT_WEIGHT_BOLD;
+            break;
+        }
+        cairo_select_font_face(cr, font, cairo_slant, cairo_weight);
+        cairo_set_font_size(cr, size);
+        cairo_text_extents_t text_extents;
+        cairo_text_extents(cr, text, &text_extents);
+        metrics.width = text_extents.width;
+        metrics.height = text_extents.height;
+        return metrics;
+    }
+
+    void CairoGraphicContext::setDrawFont(const char *font, int size, FontSlant slant,
+                                          FontWeight weight)
+    {
+        cairo_font_slant_t cairo_slant;
+        cairo_font_weight_t cairo_weight;
+        switch (slant)
+        {
+        case FONT_SLANT_NORMAL:
+            cairo_slant = CAIRO_FONT_SLANT_NORMAL;
+            break;
+        case FONT_SLANT_ITALIC:
+            cairo_slant = CAIRO_FONT_SLANT_ITALIC;
+            break;
+        case FONT_SLANT_OBLIQUE:
+            cairo_slant = CAIRO_FONT_SLANT_OBLIQUE;
+            break;
+        }
+        switch (weight)
+        {
+        case FONT_WEIGHT_NORMAL:
+            cairo_weight = CAIRO_FONT_WEIGHT_NORMAL;
+            break;
+        case FONT_WEIGHT_BOLD:
+            cairo_weight = CAIRO_FONT_WEIGHT_BOLD;
+            break;
+        }
+        cairo_select_font_face(cr, font, cairo_slant, cairo_weight);
+        cairo_set_font_size(cr, size);
+    }
+
+    void CairoGraphicContext::drawText(int x, int y, const char *text)
+    {
+        cairo_move_to(cr, x, y);
+        cairo_show_text(cr, text);
+    }
+
     static void rounded_rectangle(cairo_t *cr, double x, double y, double width, double height,
                                   CornerRadius radius)
     {

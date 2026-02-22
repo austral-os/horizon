@@ -23,6 +23,12 @@ namespace horizon
         void drawLinearGradientRect(int x, int y, int width, int height, Color c1, Color c2,
                                     bool vertical = true, CornerRadius radius = 0,
                                     float lineWidth = 1.0f) override;
+
+        void setDrawFont(const char *font, int size, FontSlant slant, FontWeight weight) override;
+        TextMetrics getTextMetrics(const char *text, const char *font, int size, FontSlant slant,
+                                   FontWeight weight) const override;
+        void drawText(int x, int y, const char *text) override;
+
         void flush() override;
 
     private:
