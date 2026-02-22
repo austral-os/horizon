@@ -21,11 +21,11 @@ namespace horizon
         m_available_draw_height = m_height - (m_padding * 2);
         if (m_layout_type == WIDGET_LAYOUT_VERTICAL)
         {
-            m_free_space = m_available_draw_height;
+            m_free_space = m_available_draw_height - (m_margin * 2);
         }
         else
         {
-            m_free_space = m_available_draw_width;
+            m_free_space = m_available_draw_width - (m_margin * 2);
         }
 
         // recorro los hijos y si tienen fixedSize los resto del espacio disponible
@@ -40,6 +40,8 @@ namespace horizon
                 m_free_children_count++;
             }
         }
+
+        m_free_space -= (m_margin * m_free_children_count);
     }
 
     void Widget::render(GraphicsContext &ctx)
@@ -54,6 +56,11 @@ namespace horizon
         int current_x = m_start_draw_x;
         int current_y = m_start_draw_y;
 
+        if (m_layout_type == WIDGET_LAYOUT_VERTICAL)
+            current_y += m_margin;
+        else
+            current_x += m_margin;
+
         for (const auto &child : m_children)
         {
             if (child->fixed_size() > 0)
@@ -62,13 +69,13 @@ namespace horizon
                 {
                     child->set_position(current_x, current_y);
                     child->set_size(m_available_draw_width, child->fixed_size());
-                    current_y += child->fixed_size();
+                    current_y += child->fixed_size() + m_margin;
                 }
                 else
                 {
                     child->set_position(current_x, current_y);
                     child->set_size(child->fixed_size(), m_available_draw_height);
-                    current_x += child->fixed_size();
+                    current_x += child->fixed_size() + m_margin;
                 }
             }
             else
@@ -77,13 +84,13 @@ namespace horizon
                 {
                     child->set_position(current_x, current_y);
                     child->set_size(m_available_draw_width, m_free_space / m_free_children_count);
-                    current_y += m_free_space / m_free_children_count;
+                    current_y += m_free_space / m_free_children_count + m_margin;
                 }
                 else
                 {
                     child->set_position(current_x, current_y);
                     child->set_size(m_free_space / m_free_children_count, m_available_draw_height);
-                    current_x += m_free_space / m_free_children_count;
+                    current_x += m_free_space / m_free_children_count + m_margin;
                 }
             }
 
