@@ -1,6 +1,10 @@
 #include <cmath>
 #include <horizon/CairoGraphicsContext.hpp>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 namespace horizon
 {
 
@@ -65,6 +69,7 @@ namespace horizon
                                        float lineWidth)
     {
         cairo_set_line_width(cr, lineWidth);
+        cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
         rounded_rectangle(cr, x, y, width, height, radius);
         cairo_stroke(cr);
     }

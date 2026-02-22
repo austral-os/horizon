@@ -53,7 +53,7 @@ namespace horizon
         gc.fillRect(0, 0, m_width, m_height, {10, 10, 0, 0});
 
         gc.setColor(brd);
-        gc.drawRect(0, 0, m_width, m_height, {10, 10, 0, 0}, 1.0f);
+        gc.drawRect(1, 1, m_width - 2, m_height - 2, {10, 10, 0, 0}, 1.0f);
 
         // gc.fillLinearGradientRect(0, 0, m_width, m_height, darkBlue, lightBlue, true, 20);
 
