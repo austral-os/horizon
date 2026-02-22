@@ -1,28 +1,23 @@
 #pragma once
 
-#include "Widget.hpp"
-#include "horizon/Titlebar.hpp"
+#include <horizon/Widget.hpp>
 #include <string>
 
 namespace horizon
 {
-
-    class Window : public Widget
+    class Titlebar : public Widget
     {
     public:
-        explicit Window(std::string title);
+        Titlebar(std::string title);
+        ~Titlebar() = default;
 
-        void set_size(int width, int height);
-
+        void set_title(std::string title);
         const std::string &title() const;
 
         void render(GraphicsContext &gc) override;
-
-    protected:
         void draw(GraphicsContext &gc) override;
 
     private:
-        Titlebar *m_titlebar;
+        std::string m_title;
     };
-
 } // namespace horizon

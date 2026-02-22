@@ -9,7 +9,7 @@ int main()
         horizon::Application app(800, 600);
 
         auto wnd = std::make_unique<horizon::Window>("Minimal");
-        wnd->setSize(800, 600);
+        wnd->set_size(800, 600);
 
         app.set_root(std::move(wnd));
         app.run();

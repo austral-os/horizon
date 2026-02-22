@@ -1,3 +1,4 @@
+#include "horizon/Widget.hpp"
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Window.hpp>
 #include <iostream>
@@ -5,17 +6,31 @@
 namespace horizon
 {
 
-    Window::Window(std::string title) : m_title(std::move(title)) {}
+    Window::Window(std::string title)
+    {
+        set_layout_type(WIDGET_LAYOUT_VERTICAL);
 
-    void Window::setSize(int width, int height)
+        auto titlebar = std::make_unique<Titlebar>(title);
+
+        titlebar->set_size(m_width, 20);
+        titlebar->set_position(0, 0);
+        titlebar->set_fixed_size(30);
+
+        m_titlebar = titlebar.get(); // guardas puntero no propietario
+
+        add_child(std::move(titlebar));
+    }
+
+    void Window::set_size(int width, int height)
     {
         m_width = width;
         m_height = height;
+        m_titlebar->set_size(m_width, 20);
     }
 
     const std::string &Window::title() const
     {
-        return m_title;
+        return m_titlebar->title();
     }
 
     void Window::render(GraphicsContext &gc)
