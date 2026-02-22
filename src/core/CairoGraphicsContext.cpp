@@ -61,8 +61,10 @@ namespace horizon
         cairo_close_path(cr);
     }
 
-    void CairoGraphicContext::drawRect(int x, int y, int width, int height, CornerRadius radius)
+    void CairoGraphicContext::drawRect(int x, int y, int width, int height, CornerRadius radius,
+                                       float lineWidth)
     {
+        cairo_set_line_width(cr, lineWidth);
         rounded_rectangle(cr, x, y, width, height, radius);
         cairo_stroke(cr);
     }
@@ -92,6 +94,30 @@ namespace horizon
         cairo_set_source(cr, pat);
         rounded_rectangle(cr, x, y, width, height, radius);
         cairo_fill(cr);
+        cairo_pattern_destroy(pat);
+    }
+
+    void CairoGraphicContext::drawLinearGradientRect(int x, int y, int width, int height, Color c1,
+                                                     Color c2, bool vertical, CornerRadius radius,
+                                                     float lineWidth)
+    {
+        cairo_pattern_t *pat;
+        if (vertical)
+        {
+            pat = cairo_pattern_create_linear(x, y, x, y + height);
+        }
+        else
+        {
+            pat = cairo_pattern_create_linear(x, y, x + width, y);
+        }
+
+        cairo_pattern_add_color_stop_rgba(pat, 0, c1.r, c1.g, c1.b, c1.a);
+        cairo_pattern_add_color_stop_rgba(pat, 1, c2.r, c2.g, c2.b, c2.a);
+
+        cairo_set_source(cr, pat);
+        cairo_set_line_width(cr, lineWidth);
+        rounded_rectangle(cr, x, y, width, height, radius);
+        cairo_stroke(cr);
         cairo_pattern_destroy(pat);
     }
 
