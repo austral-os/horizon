@@ -9,6 +9,99 @@
 
 namespace horizon
 {
+
+    static void seat_handle_capabilities(void *data, wl_seat *seat, uint32_t caps);
+    static void seat_handle_name(void *data, wl_seat *seat, const char *name);
+    static void pointer_handle_enter(void *data, wl_pointer *pointer, uint32_t serial,
+                                     struct wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy);
+    static void pointer_handle_leave(void *data, wl_pointer *pointer, uint32_t serial,
+                                     struct wl_surface *surface);
+    static void pointer_handle_motion(void *data, wl_pointer *pointer, uint32_t time, wl_fixed_t sx,
+                                      wl_fixed_t sy);
+    static void pointer_handle_button(void *data, wl_pointer *pointer, uint32_t serial,
+                                      uint32_t time, uint32_t button, uint32_t state);
+    static void pointer_handle_axis(void *data, wl_pointer *pointer, uint32_t time, uint32_t axis,
+                                    wl_fixed_t value);
+
+    static const wl_pointer_listener g_pointer_listener = {
+        pointer_handle_enter, pointer_handle_leave, pointer_handle_motion, pointer_handle_button,
+        pointer_handle_axis};
+
+    static const wl_seat_listener g_seat_listener = {seat_handle_capabilities, seat_handle_name};
+
+    static void seat_handle_capabilities(void *data, wl_seat *seat, uint32_t caps)
+    {
+        WaylandSurface *self = static_cast<WaylandSurface *>(data);
+
+        if (caps & WL_SEAT_CAPABILITY_POINTER)
+        {
+            self->set_wl_pointer(static_cast<wl_pointer *>(wl_seat_get_pointer(seat)));
+
+            wl_pointer_add_listener(self->pointer(), &g_pointer_listener, data);
+        }
+    }
+
+    static void pointer_handle_motion(void *data, wl_pointer *, uint32_t, wl_fixed_t sx,
+                                      wl_fixed_t sy)
+    {
+        WaylandSurface *self = static_cast<WaylandSurface *>(data);
+
+        self->set_pointer_x(wl_fixed_to_double(sx));
+        self->set_pointer_y(wl_fixed_to_double(sy));
+
+        if (self->listener())
+        {
+            PointerEvent ev;
+            ev.type = PointerEvent::Type::Move;
+            ev.x = self->pointer_x();
+            ev.y = self->pointer_y();
+            self->listener()->on_pointer_event(ev);
+        }
+    }
+
+    static void pointer_handle_button(void *data, wl_pointer *pointer, uint32_t serial,
+                                      uint32_t time, uint32_t button, uint32_t state)
+    {
+    }
+
+    static void pointer_handle_axis(void *data, wl_pointer *pointer, uint32_t time, uint32_t axis,
+                                    wl_fixed_t value)
+    {
+    }
+
+    static void seat_handle_name(void *data, wl_seat *seat, const char *name) {}
+
+    static void pointer_handle_enter(void *data, wl_pointer *pointer, uint32_t serial,
+                                     struct wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy)
+    {
+        WaylandSurface *self = static_cast<WaylandSurface *>(data);
+
+        self->set_pointer_x(wl_fixed_to_double(sx));
+        self->set_pointer_y(wl_fixed_to_double(sy));
+
+        if (self->listener())
+        {
+            PointerEvent ev;
+            ev.type = PointerEvent::Type::Enter;
+            ev.x = self->pointer_x();
+            ev.y = self->pointer_y();
+            self->listener()->on_pointer_event(ev);
+        }
+    }
+
+    static void pointer_handle_leave(void *data, wl_pointer *pointer, uint32_t serial,
+                                     struct wl_surface *surface)
+    {
+        WaylandSurface *self = static_cast<WaylandSurface *>(data);
+
+        if (self->listener())
+        {
+            PointerEvent ev;
+            ev.type = PointerEvent::Type::Leave;
+            self->listener()->on_pointer_event(ev);
+        }
+    }
+
     static void registry_global(void *data, wl_registry *registry, uint32_t id,
                                 const char *interface, uint32_t version)
     {
@@ -33,6 +126,16 @@ namespace horizon
                 .ping = [](void *, xdg_wm_base *wm, uint32_t ser) { xdg_wm_base_pong(wm, ser); }};
             xdg_wm_base_add_listener(ws->xdg_wm_base(), &wm_list, nullptr);
         }
+        else if (strcmp(interface, "wl_seat") == 0)
+        {
+            ws->set_wl_seat(
+                static_cast<wl_seat *>(wl_registry_bind(registry, id, &wl_seat_interface, 1)));
+        }
+        else if (strcmp(interface, "wl_pointer") == 0)
+        {
+            ws->set_wl_pointer(static_cast<wl_pointer *>(
+                wl_registry_bind(registry, id, &wl_pointer_interface, 1)));
+        }
     }
 
     static void registry_global_remove(void *data, wl_registry *registry, uint32_t id)
@@ -54,6 +157,16 @@ namespace horizon
     WaylandSurface::~WaylandSurface()
     {
         free();
+    }
+
+    void WaylandSurface::set_wl_seat(struct wl_seat *seat)
+    {
+        m_seat = seat;
+    }
+
+    void WaylandSurface::set_wl_pointer(struct wl_pointer *pointer)
+    {
+        m_pointer = pointer;
     }
 
     void WaylandSurface::set_wl_compositor(struct wl_compositor *compositor)
@@ -129,6 +242,16 @@ namespace horizon
 
     void WaylandSurface::free()
     {
+        if (m_pointer)
+        {
+            wl_pointer_destroy(m_pointer);
+            m_pointer = nullptr;
+        }
+        if (m_seat)
+        {
+            wl_seat_destroy(m_seat);
+            m_seat = nullptr;
+        }
 
         if (m_data)
         {
@@ -161,6 +284,46 @@ namespace horizon
             wl_display_disconnect(m_display);
             m_display = nullptr;
         }
+    }
+
+    void WaylandSurface::set_event_listener(WaylandEventListener *listener)
+    {
+        m_listener = listener;
+    }
+
+    WaylandEventListener *WaylandSurface::listener() const
+    {
+        return m_listener;
+    }
+
+    double WaylandSurface::pointer_x() const
+    {
+        return m_pointer_x;
+    }
+
+    double WaylandSurface::pointer_y() const
+    {
+        return m_pointer_y;
+    }
+
+    void WaylandSurface::set_pointer_x(double x)
+    {
+        m_pointer_x = x;
+    }
+
+    void WaylandSurface::set_pointer_y(double y)
+    {
+        m_pointer_y = y;
+    }
+
+    struct wl_pointer *WaylandSurface::pointer() const
+    {
+        return m_pointer;
+    }
+
+    struct wl_seat *WaylandSurface::seat() const
+    {
+        return m_seat;
     }
 
     // Devuelve el puntero a xdg_wm_base

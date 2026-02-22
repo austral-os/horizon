@@ -1,3 +1,4 @@
+#include "horizon/WaylandEventListener.hpp"
 #include <horizon/WaylandSurface.hpp>
 #include <memory>
 
@@ -8,7 +9,7 @@ namespace horizon
 
     class Widget;
 
-    class Application
+    class Application : public WaylandEventListener
     {
     public:
         explicit Application(int w, int h);
@@ -27,6 +28,8 @@ namespace horizon
         void run();
         void quit();
 
+        void on_pointer_event(const PointerEvent &event) override;
+
     private:
         void dispatch_events();
 
@@ -35,5 +38,17 @@ namespace horizon
         bool m_is_running = false;
 
         std::unique_ptr<Widget> m_root;
+
+        // WaylandEventListener
+
+        Widget *m_hovered = nullptr;
+        Widget *m_pressed = nullptr;
+
+        double m_pointer_x = 0.0;
+        double m_pointer_y = 0.0;
+
+        void handle_move(const PointerEvent &event);
+        void handle_press(const PointerEvent &event);
+        void handle_release(const PointerEvent &event);
     };
 } // namespace horizon

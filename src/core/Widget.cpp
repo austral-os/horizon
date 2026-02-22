@@ -22,6 +22,33 @@ namespace horizon
         }
     }
 
+    Widget *Widget::hit_test(int x, int y)
+    {
+        if (!m_visible || !m_enabled)
+            return nullptr;
+
+        // ¿El punto está dentro de este widget?
+        if (x < m_x || y < m_y || x >= m_x + m_width || y >= m_y + m_height)
+        {
+            return nullptr;
+        }
+
+        // Convertimos a coordenadas locales
+        int local_x = x - m_x;
+        int local_y = y - m_y;
+
+        // Recorremos hijos en orden inverso (top-most primero)
+        for (auto it = m_children.rbegin(); it != m_children.rend(); ++it)
+        {
+            Widget *child = it->get();
+            if (Widget *hit = child->hit_test(local_x, local_y))
+                return hit;
+        }
+
+        // Si ningún hijo lo contiene, este widget es el hit
+        return this;
+    }
+
     void Widget::add_child(std::unique_ptr<Widget> child)
     {
         if (!child)
@@ -114,5 +141,7 @@ namespace horizon
     void Widget::on_mouse_release(int) {}
     void Widget::on_key_press(int) {}
     void Widget::on_key_release(int) {}
+    void Widget::on_mouse_drag(int, int) {}
+    void Widget::on_mouse_hover(int, int) {}
 
 } // namespace horizon

@@ -45,6 +45,81 @@ namespace horizon
         m_surface->free();
     }
 
+    void Application::on_pointer_event(const PointerEvent &event)
+    {
+        m_pointer_x = event.x;
+        m_pointer_y = event.y;
+
+        switch (event.type)
+        {
+        case PointerEvent::Type::Move:
+            handle_move(event);
+            break;
+
+        case PointerEvent::Type::Press:
+            handle_press(event);
+            break;
+
+        case PointerEvent::Type::Release:
+            handle_release(event);
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    void Application::handle_move(const PointerEvent &event)
+    {
+        if (!m_root)
+            return;
+
+        Widget *under = m_root->hit_test(event.x, event.y);
+
+        if (under != m_hovered)
+        {
+            if (m_hovered)
+                m_hovered->on_mouse_leave();
+
+            m_hovered = under;
+
+            if (m_hovered)
+                m_hovered->on_mouse_enter();
+        }
+
+        if (m_pressed)
+        {
+            m_pressed->on_mouse_drag(event.x, event.y);
+        }
+        else if (m_hovered)
+        {
+            m_hovered->on_mouse_hover(event.x, event.y);
+        }
+    }
+
+    void Application::handle_press(const PointerEvent &event)
+    {
+        if (!m_root)
+            return;
+
+        Widget *under = m_root->hit_test(event.x, event.y);
+
+        if (under)
+        {
+            m_pressed = under;
+            m_pressed->on_mouse_press(event.button);
+        }
+    }
+
+    void Application::handle_release(const PointerEvent &event)
+    {
+        if (m_pressed)
+        {
+            m_pressed->on_mouse_release(event.button);
+            m_pressed = nullptr;
+        }
+    }
+
     void Application::set_root(std::unique_ptr<Widget> root)
     {
         m_root = std::move(root);

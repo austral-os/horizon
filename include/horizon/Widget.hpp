@@ -6,6 +6,7 @@
 namespace horizon
 {
 
+    class Application;
     class GraphicsContext;
 
     class Widget
@@ -13,6 +14,8 @@ namespace horizon
     public:
         Widget();
         virtual ~Widget();
+
+        friend class Application;
 
         // --- Geometría ---
         void set_position(int x, int y);
@@ -53,8 +56,12 @@ namespace horizon
         virtual void on_mouse_move(int x, int y);
         virtual void on_mouse_press(int button);
         virtual void on_mouse_release(int button);
+        virtual void on_mouse_drag(int x, int y);
+        virtual void on_mouse_hover(int x, int y);
         virtual void on_key_press(int key);
         virtual void on_key_release(int key);
+
+        Widget *hit_test(int x, int y);
 
     protected:
         int m_x{0};
