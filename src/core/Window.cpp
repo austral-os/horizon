@@ -45,13 +45,14 @@ namespace horizon
 
         Color darkBlue = {0.0f, 0.0f, 0.0f, 1.0f};
         Color lightBlue = {0.3f, 0.7f, 0.9f, 1.0f};
+        Color brd = {0.77f, 0.77f, 0.77f, 1.0f};
 
         Color bg = {0.953f, 0.953f, 0.953f, 1.0f};
 
         gc.setColor(bg);
         gc.fillRect(0, 0, m_width, m_height, {10, 10, 0, 0});
 
-        gc.setColor(darkBlue);
+        gc.setColor(brd);
         gc.drawRect(0, 0, m_width, m_height, {10, 10, 0, 0}, 1.0f);
 
         // gc.fillLinearGradientRect(0, 0, m_width, m_height, darkBlue, lightBlue, true, 20);
