@@ -23,6 +23,11 @@ namespace horizon
         cairo_set_source_rgba(cr, r, g, b, a);
     }
 
+    void CairoGraphicContext::setColor(Color color)
+    {
+        cairo_set_source_rgba(cr, color.r, color.g, color.b, color.a);
+    }
+
     void CairoGraphicContext::paint()
     {
         cairo_paint(cr);
