@@ -198,6 +198,51 @@ namespace horizon
         cairo_pattern_destroy(pat);
     }
 
+    static cairo_pattern_t *create_circle_gradient(int x, int y, int radius, Color c1, Color c2,
+                                                   GradientDirection direction)
+    {
+        cairo_pattern_t *pat;
+        switch (direction)
+        {
+        case GradientDirection::Vertical:
+            pat = cairo_pattern_create_linear(x, y - radius, x, y + radius);
+            break;
+        case GradientDirection::Horizontal:
+            pat = cairo_pattern_create_linear(x - radius, y, x + radius, y);
+            break;
+        case GradientDirection::Radial:
+        default:
+            pat = cairo_pattern_create_radial(x, y, 0, x, y, radius);
+            break;
+        }
+
+        cairo_pattern_add_color_stop_rgba(pat, 0, c1.r, c1.g, c1.b, c1.a);
+        cairo_pattern_add_color_stop_rgba(pat, 1, c2.r, c2.g, c2.b, c2.a);
+
+        return pat;
+    }
+
+    void CairoGraphicContext::drawGradientCircle(int x, int y, int radius, Color c1, Color c2,
+                                                 GradientDirection direction, float lineWidth)
+    {
+        cairo_pattern_t *pat = create_circle_gradient(x, y, radius, c1, c2, direction);
+        cairo_set_source(cr, pat);
+        cairo_set_line_width(cr, lineWidth);
+        cairo_arc(cr, x, y, radius, 0, 2 * M_PI);
+        cairo_stroke(cr);
+        cairo_pattern_destroy(pat);
+    }
+
+    void CairoGraphicContext::fillGradientCircle(int x, int y, int radius, Color c1, Color c2,
+                                                 GradientDirection direction)
+    {
+        cairo_pattern_t *pat = create_circle_gradient(x, y, radius, c1, c2, direction);
+        cairo_set_source(cr, pat);
+        cairo_arc(cr, x, y, radius, 0, 2 * M_PI);
+        cairo_fill(cr);
+        cairo_pattern_destroy(pat);
+    }
+
     void CairoGraphicContext::drawCircle(int x, int y, int radius, float lineWidth)
     {
         cairo_new_path(cr); // ← levanta el lápiz

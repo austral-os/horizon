@@ -20,9 +20,11 @@ namespace horizon
         m_layout_type = WIDGET_LAYOUT_HORIZONTAL;
         m_position_type = FILL;
 
-        auto close_button = std::make_unique<TitlebarCircleButton>();
-        auto minimize_button = std::make_unique<TitlebarCircleButton>();
-        auto maximize_button = std::make_unique<TitlebarCircleButton>();
+        auto close_button = std::make_unique<TitlebarCircleButton>(Color{1.0f, 0.0f, 0.0f, 0.6f});
+        auto minimize_button =
+            std::make_unique<TitlebarCircleButton>(Color{1.0f, 0.7f, 0.0f, 0.6f});
+        auto maximize_button =
+            std::make_unique<TitlebarCircleButton>(Color{0.6f, 0.9f, 0.29f, 0.9f});
 
         close_button->set_position(10, 10);
         close_button->set_fixed_size(20);

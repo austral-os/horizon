@@ -44,6 +44,13 @@ namespace horizon
         FONT_WEIGHT_BOLD = 1
     };
 
+    enum class GradientDirection
+    {
+        Vertical,
+        Horizontal,
+        Radial
+    };
+
     class GraphicsContext
     {
     public:
@@ -67,6 +74,12 @@ namespace horizon
 
         virtual void drawCircle(int x, int y, int radius, float lineWidth = 1.0f) {};
         virtual void fillCircle(int x, int y, int radius) {};
+
+        virtual void drawGradientCircle(int x, int y, int radius, Color c1, Color c2,
+                                        GradientDirection direction = GradientDirection::Radial,
+                                        float lineWidth = 1.0f) {};
+        virtual void fillGradientCircle(int x, int y, int radius, Color c1, Color c2,
+                                        GradientDirection direction = GradientDirection::Radial) {};
 
         virtual void flush() {};
     };

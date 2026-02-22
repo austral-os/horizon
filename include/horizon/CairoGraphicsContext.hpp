@@ -32,6 +32,12 @@ namespace horizon
         void drawCircle(int x, int y, int radius, float lineWidth = 1.0f) override;
         void fillCircle(int x, int y, int radius) override;
 
+        void drawGradientCircle(int x, int y, int radius, Color c1, Color c2,
+                                GradientDirection direction = GradientDirection::Radial,
+                                float lineWidth = 1.0f) override;
+        void fillGradientCircle(int x, int y, int radius, Color c1, Color c2,
+                                GradientDirection direction = GradientDirection::Radial) override;
+
         void flush() override;
 
     private:

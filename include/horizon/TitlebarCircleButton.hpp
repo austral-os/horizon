@@ -1,5 +1,6 @@
 #pragma once
 
+#include "horizon/GraphicsContext.hpp"
 #include "horizon/Widget.hpp"
 namespace horizon
 {
@@ -7,9 +8,12 @@ namespace horizon
     class TitlebarCircleButton : public Widget
     {
     public:
-        TitlebarCircleButton();
+        TitlebarCircleButton(Color color);
         ~TitlebarCircleButton();
 
         void draw(GraphicsContext &gc) override;
+
+    private:
+        Color m_bg_color;
     };
 } // namespace horizon
