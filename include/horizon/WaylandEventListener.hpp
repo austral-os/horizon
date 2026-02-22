@@ -78,5 +78,12 @@ namespace horizon
          * @param event The key event details.
          */
         virtual void on_key_event(const KeyEvent &event) = 0;
+
+        /**
+         * @brief Called when the surface is resized by the compositor.
+         * @param width New width of the surface.
+         * @param height New height of the surface.
+         */
+        virtual void on_resize(int width, int height) = 0;
     };
 } // namespace horizon

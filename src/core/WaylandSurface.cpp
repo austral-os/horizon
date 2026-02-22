@@ -1,6 +1,7 @@
 #include <cstring>
 #include <horizon/WaylandSurface.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
+#include <iostream>
 #include <stdexcept>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -368,6 +369,43 @@ namespace horizon
         m_xdg_toplevel = xdg_surface_get_toplevel(xdg_surf);
         xdg_toplevel_set_title(m_xdg_toplevel, "Cairo Wayland Corrected");
 
+        // Listener for toplevel events (configure, close)
+        static const xdg_toplevel_listener toplevel_list = {
+            .configure =
+                [](void *data, xdg_toplevel *, int32_t width, int32_t height,
+                   struct wl_array *states)
+            {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                uint32_t *state;
+                bool maximized = false;
+                for (state = static_cast<uint32_t *>(states->data);
+                     reinterpret_cast<const char *>(state) <
+                     (static_cast<const char *>(states->data) + states->size);
+                     state++)
+                {
+                    if (*state == XDG_TOPLEVEL_STATE_MAXIMIZED)
+                        maximized = true;
+                }
+                self->m_is_maximized = maximized;
+                std::cout << "WaylandSurface configured. Maximized: " << maximized
+                          << " Size: " << width << "x" << height << std::endl;
+
+                if (width > 0 && height > 0)
+                {
+                    self->resize_buffer(width, height);
+                    if (self->m_listener)
+                    {
+                        self->m_listener->on_resize(width, height);
+                    }
+                }
+            },
+            .close =
+                [](void *data, xdg_toplevel *)
+            {
+                // Not implemented here, handled by application loop usually
+            }};
+        xdg_toplevel_add_listener(m_xdg_toplevel, &toplevel_list, this);
+
         // IMPORTANT: Commit the surface so the compositor can start processing it.
         wl_surface_commit(m_surface);
         wl_display_roundtrip(m_display);
@@ -379,6 +417,43 @@ namespace horizon
         if (fd < 0)
         {
             throw std::runtime_error("No se pudo crear el descriptor de archivo para SHM.");
+        }
+        ftruncate(fd, size);
+        m_data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+        wl_shm_pool *pool = wl_shm_create_pool(m_shm, fd, size);
+        m_buffer =
+            wl_shm_pool_create_buffer(pool, 0, m_width, m_height, stride, WL_SHM_FORMAT_ARGB8888);
+        wl_shm_pool_destroy(pool);
+        close(fd);
+    }
+
+    void WaylandSurface::resize_buffer(int width, int height)
+    {
+        if (width == m_width && height == m_height)
+            return;
+
+        // 1. Cleanup old resources
+        if (m_buffer)
+        {
+            wl_buffer_destroy(m_buffer);
+        }
+        if (m_data)
+        {
+            munmap(m_data, m_width * m_height * 4);
+        }
+
+        m_width = width;
+        m_height = height;
+
+        // 2. Reallocate
+        int stride = m_width * 4;
+        int size = stride * m_height;
+        int fd = memfd_create("buffer", MFD_CLOEXEC);
+        if (fd < 0)
+        {
+            throw std::runtime_error(
+                "No se pudo crear el descriptor de archivo para SHM en resize.");
         }
         ftruncate(fd, size);
         m_data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
@@ -452,6 +527,29 @@ namespace horizon
         {
             xdg_toplevel_move(m_xdg_toplevel, m_seat, serial);
         }
+    }
+
+    void WaylandSurface::request_maximize()
+    {
+        std::cout << "WaylandSurface::request_maximize" << std::endl;
+        if (m_xdg_toplevel)
+        {
+            xdg_toplevel_set_maximized(m_xdg_toplevel);
+        }
+    }
+
+    void WaylandSurface::request_restore()
+    {
+        std::cout << "WaylandSurface::request_restore" << std::endl;
+        if (m_xdg_toplevel)
+        {
+            xdg_toplevel_unset_maximized(m_xdg_toplevel);
+        }
+    }
+
+    bool WaylandSurface::is_maximized() const
+    {
+        return m_is_maximized;
     }
 
     void WaylandSurface::set_last_serial(uint32_t serial)

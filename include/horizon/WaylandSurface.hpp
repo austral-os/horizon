@@ -185,6 +185,13 @@ namespace horizon
         void free();
 
         /**
+         * @brief Resizes the underlying buffer and shared memory.
+         * @param width New width.
+         * @param height New height.
+         */
+        void resize_buffer(int width, int height);
+
+        /**
          * @brief Requests the compositor to start a window move (dragging) operation.
          * @param serial The serial of the button press event that initiated the move.
          */
@@ -194,6 +201,21 @@ namespace horizon
          * @return The serial of the last handled input event.
          */
         uint32_t last_serial() const;
+
+        /**
+         * @brief Requests the compositor to maximize the window.
+         */
+        void request_maximize();
+
+        /**
+         * @brief Requests the compositor to restore the window from a maximized state.
+         */
+        void request_restore();
+
+        /**
+         * @return True if the window is currently maximized.
+         */
+        bool is_maximized() const;
 
     private:
         int m_width;  /**< Width of the surface in pixels. */
@@ -221,5 +243,6 @@ namespace horizon
         uint32_t m_last_serial = 0; /**< The last received event serial number. */
         double m_pointer_x = 0;     /**< Last known pointer X position. */
         double m_pointer_y = 0;     /**< Last known pointer Y position. */
+        bool m_is_maximized = false;
     };
 }; // namespace horizon

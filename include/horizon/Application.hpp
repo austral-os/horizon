@@ -78,6 +78,21 @@ namespace horizon
         void request_move();
 
         /**
+         * @brief Requests the window to be maximized.
+         */
+        void maximize();
+
+        /**
+         * @brief Requests the window to be restored from maximized state.
+         */
+        void restore();
+
+        /**
+         * @return True if the window is maximized.
+         */
+        bool is_maximized() const;
+
+        /**
          * @brief Implementation of the WaylandEventListener pointer event callback.
          * @param event The pointer event details.
          */
@@ -88,6 +103,7 @@ namespace horizon
          * @param event The keyboard event details.
          */
         void on_key_event(const KeyEvent &event) override;
+        void on_resize(int width, int height) override;
 
     private:
         /**
@@ -99,6 +115,7 @@ namespace horizon
         std::unique_ptr<WaylandSurface>
             m_surface;             /**< The Wayland surface representing the main window. */
         bool m_is_running = false; /**< Flag indicating if the event loop is active. */
+        bool m_dirty = true;       /**< Flag indicating if the UI needs re-rendering. */
 
         std::unique_ptr<Widget> m_root; /**< The root of the UI widget hierarchy. */
 

@@ -76,6 +76,15 @@ namespace horizon
         }
     }
 
+    void Application::on_resize(int width, int height)
+    {
+        if (m_root)
+        {
+            m_root->set_size(width, height);
+        }
+        m_dirty = true;
+    }
+
     void Application::on_key_event(const KeyEvent &event)
     {
         std::cout << "Key event: " << event.key << std::endl;
@@ -183,19 +192,20 @@ namespace horizon
     {
         m_is_running = true;
 
-        dispatch_events();
-
-        CairoGraphicContext ctx(m_surface->data(), m_surface->width(), m_surface->height());
-
-        m_root->render(ctx);
-
-        wl_surface_attach(m_surface->surface(), m_surface->buffer(), 0, 0);
-        wl_surface_damage(m_surface->surface(), 0, 0, m_surface->width(), m_surface->height());
-        wl_surface_commit(m_surface->surface());
-
         while (m_is_running && wl_display_dispatch(m_surface->display()) != -1)
         {
-            // El dispatch maneja los eventos del sistema
+            if (m_dirty && m_root)
+            {
+                CairoGraphicContext ctx(m_surface->data(), m_surface->width(), m_surface->height());
+                m_root->render(ctx);
+
+                wl_surface_attach(m_surface->surface(), m_surface->buffer(), 0, 0);
+                wl_surface_damage(m_surface->surface(), 0, 0, m_surface->width(),
+                                  m_surface->height());
+                wl_surface_commit(m_surface->surface());
+
+                m_dirty = false;
+            }
         }
 
         quit();
@@ -209,6 +219,27 @@ namespace horizon
         {
             m_surface->request_move(m_last_serial);
         }
+    }
+
+    void Application::maximize()
+    {
+        if (m_surface)
+        {
+            m_surface->request_maximize();
+        }
+    }
+
+    void Application::restore()
+    {
+        if (m_surface)
+        {
+            m_surface->request_restore();
+        }
+    }
+
+    bool Application::is_maximized() const
+    {
+        return m_surface && m_surface->is_maximized();
     }
 
     void Application::quit()

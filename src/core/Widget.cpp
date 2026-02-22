@@ -118,7 +118,7 @@ namespace horizon
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it)
         {
             Widget *child = it->get();
-            if (Widget *hit = child->hit_test(local_x, local_y))
+            if (Widget *hit = child->hit_test(x, y))
                 return hit;
         }
 

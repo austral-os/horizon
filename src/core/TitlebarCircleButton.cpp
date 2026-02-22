@@ -14,7 +14,7 @@ namespace horizon
 
     void TitlebarCircleButton::draw(GraphicsContext &gc)
     {
-        std::cout << "TitlebarCircleButton::draw" << std::endl;
+        // std::cout << "TitlebarCircleButton::draw" << std::endl;
         Color border{0.4f, 0.4f, 0.4f, 1.0f};
         Color border2{0.9f, 0.9f, 0.9f, 1.0f};
 
@@ -41,6 +41,7 @@ namespace horizon
 
     void TitlebarCircleButton::on_mouse_press(int button)
     {
+        std::cout << "TitlebarCircleButton::on_mouse_press" << std::endl;
         if (m_on_click)
         {
             m_on_click();
