@@ -18,7 +18,7 @@ namespace horizon
         Color border2{0.9f, 0.9f, 0.9f, 1.0f};
 
         int radius = m_width / 2;
-        int center_x = m_start_draw_x + m_height / 2;
+        int center_x = m_start_draw_x + m_height / 2 - radius;
         int center_y = m_start_draw_y + m_height / 2;
 
         gc.setColor(border);
