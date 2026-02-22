@@ -4,6 +4,7 @@
 #include <horizon/Application.hpp>
 #include <horizon/Window.hpp>
 #include <iostream>
+#include <linux/input-event-codes.h>
 #include <wayland-client-core.h>
 #include <wayland-client.h>
 
@@ -67,6 +68,48 @@ namespace horizon
         default:
             break;
         }
+    }
+
+    void Application::on_key_event(const KeyEvent &event)
+    {
+        std::cout << "Key event: " << event.key << std::endl;
+
+        switch (event.type)
+        {
+        case KeyEvent::Type::Press:
+            handle_key_press(event);
+            break;
+
+        case KeyEvent::Type::Release:
+            handle_key_release(event);
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    void Application::handle_key_press(const KeyEvent &event)
+    {
+
+        if (event.key == KEY_ESC)
+        {
+            quit();
+            return;
+        }
+
+        if (!m_root)
+            return;
+
+        m_root->on_key_press(event.key);
+    }
+
+    void Application::handle_key_release(const KeyEvent &event)
+    {
+        if (!m_root)
+            return;
+
+        m_root->on_key_release(event.key);
     }
 
     void Application::handle_move(const PointerEvent &event)
@@ -139,7 +182,7 @@ namespace horizon
         wl_surface_damage(m_surface->surface(), 0, 0, m_surface->width(), m_surface->height());
         wl_surface_commit(m_surface->surface());
 
-        while (wl_display_dispatch(m_surface->display()) != -1)
+        while (m_is_running && wl_display_dispatch(m_surface->display()) != -1)
         {
             // El dispatch maneja los eventos del sistema
         }

@@ -23,9 +23,27 @@ namespace horizon
     static void pointer_handle_axis(void *data, wl_pointer *pointer, uint32_t time, uint32_t axis,
                                     wl_fixed_t value);
 
+    static void keyboard_handle_keymap(void *data, wl_keyboard *keyboard, uint32_t format,
+                                       int32_t fd, uint32_t size);
+    static void keyboard_handle_enter(void *data, wl_keyboard *keyboard, uint32_t serial,
+                                      struct wl_surface *surface, struct wl_array *keys);
+    static void keyboard_handle_leave(void *data, wl_keyboard *keyboard, uint32_t serial,
+                                      struct wl_surface *surface);
+    static void keyboard_handle_key(void *data, wl_keyboard *keyboard, uint32_t serial,
+                                    uint32_t time, uint32_t key, uint32_t state);
+    static void keyboard_handle_modifiers(void *data, wl_keyboard *keyboard, uint32_t serial,
+                                          uint32_t mods_depressed, uint32_t mods_latched,
+                                          uint32_t mods_locked, uint32_t group);
+    static void keyboard_handle_repeat_info(void *data, wl_keyboard *keyboard, int32_t rate,
+                                            int32_t delay);
+
     static const wl_pointer_listener g_pointer_listener = {
         pointer_handle_enter, pointer_handle_leave, pointer_handle_motion, pointer_handle_button,
         pointer_handle_axis};
+
+    static const wl_keyboard_listener g_keyboard_listener = {
+        keyboard_handle_keymap, keyboard_handle_enter,     keyboard_handle_leave,
+        keyboard_handle_key,    keyboard_handle_modifiers, keyboard_handle_repeat_info};
 
     static const wl_seat_listener g_seat_listener = {seat_handle_capabilities, seat_handle_name};
 
@@ -100,6 +118,48 @@ namespace horizon
             ev.type = PointerEvent::Type::Leave;
             self->listener()->on_pointer_event(ev);
         }
+    }
+
+    static void keyboard_handle_keymap(void *data, wl_keyboard *keyboard, uint32_t format,
+                                       int32_t fd, uint32_t size)
+    {
+    }
+
+    static void keyboard_handle_enter(void *data, wl_keyboard *keyboard, uint32_t serial,
+                                      struct wl_surface *surface, struct wl_array *keys)
+    {
+    }
+
+    static void keyboard_handle_leave(void *data, wl_keyboard *keyboard, uint32_t serial,
+                                      struct wl_surface *surface)
+    {
+    }
+
+    static void keyboard_handle_key(void *data, wl_keyboard *keyboard, uint32_t serial,
+                                    uint32_t time, uint32_t key, uint32_t state)
+    {
+        WaylandSurface *self = static_cast<WaylandSurface *>(data);
+
+        if (!self->listener())
+            return;
+
+        KeyEvent ev;
+        ev.type = (state == WL_KEYBOARD_KEY_STATE_PRESSED) ? KeyEvent::Type::Press
+                                                           : KeyEvent::Type::Release;
+        ev.key = key;
+
+        self->listener()->on_key_event(ev);
+    }
+
+    static void keyboard_handle_modifiers(void *data, wl_keyboard *keyboard, uint32_t serial,
+                                          uint32_t mods_depressed, uint32_t mods_latched,
+                                          uint32_t mods_locked, uint32_t group)
+    {
+    }
+
+    static void keyboard_handle_repeat_info(void *data, wl_keyboard *keyboard, int32_t rate,
+                                            int32_t delay)
+    {
     }
 
     static void registry_global(void *data, wl_registry *registry, uint32_t id,

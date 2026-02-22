@@ -139,8 +139,14 @@ namespace horizon
     void Widget::on_mouse_move(int, int) {}
     void Widget::on_mouse_press(int) {}
     void Widget::on_mouse_release(int) {}
-    void Widget::on_key_press(int) {}
-    void Widget::on_key_release(int) {}
+    void Widget::on_key_press(int key)
+    {
+        std::cout << "Key pressed: " << key << std::endl;
+    }
+    void Widget::on_key_release(int key)
+    {
+        std::cout << "Key released: " << key << std::endl;
+    }
     void Widget::on_mouse_drag(int, int) {}
     void Widget::on_mouse_hover(int, int) {}
 

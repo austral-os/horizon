@@ -29,6 +29,7 @@ namespace horizon
         void quit();
 
         void on_pointer_event(const PointerEvent &event) override;
+        void on_key_event(const KeyEvent &event) override;
 
     private:
         void dispatch_events();
@@ -50,5 +51,7 @@ namespace horizon
         void handle_move(const PointerEvent &event);
         void handle_press(const PointerEvent &event);
         void handle_release(const PointerEvent &event);
+        void handle_key_press(const KeyEvent &event);
+        void handle_key_release(const KeyEvent &event);
     };
 } // namespace horizon
