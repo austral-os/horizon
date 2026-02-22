@@ -2,7 +2,6 @@
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Titlebar.hpp>
-#include <iostream>
 #include <memory>
 
 namespace horizon
@@ -53,28 +52,33 @@ namespace horizon
                 });
         }
 
+        if (m_minimize_button)
+        {
+            m_minimize_button->set_on_click(
+                [this]()
+                {
+                    if (application())
+                    {
+                        application()->minimize();
+                    }
+                });
+        }
+
         if (m_maximize_button)
         {
             m_maximize_button->set_on_click(
                 [this]()
                 {
-                    std::cout << "Maximize button clicked!" << std::endl;
                     if (application())
                     {
                         if (application()->is_maximized())
                         {
-                            std::cout << "Requesting RESTORE" << std::endl;
                             application()->restore();
                         }
                         else
                         {
-                            std::cout << "Requesting MAXIMIZE" << std::endl;
                             application()->maximize();
                         }
-                    }
-                    else
-                    {
-                        std::cout << "Application is NULL in Titlebar callback!" << std::endl;
                     }
                 });
         }

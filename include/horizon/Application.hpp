@@ -83,6 +83,11 @@ namespace horizon
         void maximize();
 
         /**
+         * @brief Requests the window to be minimized.
+         */
+        void minimize();
+
+        /**
          * @brief Requests the window to be restored from maximized state.
          */
         void restore();

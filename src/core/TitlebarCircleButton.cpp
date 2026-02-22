@@ -1,7 +1,6 @@
 #include "horizon/GraphicsContext.hpp"
 #include "horizon/Widget.hpp"
 #include <horizon/TitlebarCircleButton.hpp>
-#include <iostream>
 
 namespace horizon
 {
@@ -41,7 +40,6 @@ namespace horizon
 
     void TitlebarCircleButton::on_mouse_press(int button)
     {
-        std::cout << "TitlebarCircleButton::on_mouse_press" << std::endl;
         if (m_on_click)
         {
             m_on_click();

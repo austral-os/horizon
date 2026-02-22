@@ -208,6 +208,11 @@ namespace horizon
         void request_maximize();
 
         /**
+         * @brief Requests the compositor to minimize the window.
+         */
+        void request_minimize();
+
+        /**
          * @brief Requests the compositor to restore the window from a maximized state.
          */
         void request_restore();

@@ -229,6 +229,14 @@ namespace horizon
         }
     }
 
+    void Application::minimize()
+    {
+        if (m_surface)
+        {
+            m_surface->request_minimize();
+        }
+    }
+
     void Application::restore()
     {
         if (m_surface)

@@ -387,9 +387,6 @@ namespace horizon
                         maximized = true;
                 }
                 self->m_is_maximized = maximized;
-                std::cout << "WaylandSurface configured. Maximized: " << maximized
-                          << " Size: " << width << "x" << height << std::endl;
-
                 if (width > 0 && height > 0)
                 {
                     self->resize_buffer(width, height);
@@ -531,16 +528,22 @@ namespace horizon
 
     void WaylandSurface::request_maximize()
     {
-        std::cout << "WaylandSurface::request_maximize" << std::endl;
         if (m_xdg_toplevel)
         {
             xdg_toplevel_set_maximized(m_xdg_toplevel);
         }
     }
 
+    void WaylandSurface::request_minimize()
+    {
+        if (m_xdg_toplevel)
+        {
+            xdg_toplevel_set_minimized(m_xdg_toplevel);
+        }
+    }
+
     void WaylandSurface::request_restore()
     {
-        std::cout << "WaylandSurface::request_restore" << std::endl;
         if (m_xdg_toplevel)
         {
             xdg_toplevel_unset_maximized(m_xdg_toplevel);
