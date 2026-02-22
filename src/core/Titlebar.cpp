@@ -24,6 +24,7 @@ namespace horizon
     {
         // Dibujarmos una barra de titulo como la de mac os mountain lion.
 
+        Color brd = {0.77f, 0.77f, 0.77f, 1.0f};
         Color darkGray = {0.847f, 0.847f, 0.847f, 1.0f};
         Color lightGray = {0.98f, 0.98f, 0.98f, 1.0f};
 
@@ -32,5 +33,8 @@ namespace horizon
 
         gc.fillLinearGradientRect(0, 0, m_width, m_height, lightGray, darkGray, true,
                                   CornerRadius(10, 10, 0, 0));
+
+        gc.setColor(brd);
+        gc.drawRect(0, m_height - 1, m_width, 1);
     }
 } // namespace horizon
