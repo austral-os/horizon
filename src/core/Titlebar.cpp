@@ -2,7 +2,6 @@
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Titlebar.hpp>
-#include <iostream>
 #include <memory>
 
 namespace horizon
@@ -86,15 +85,20 @@ namespace horizon
 
     void Titlebar::on_mouse_press(int button)
     {
-        std::cout << "Titlebar::on_mouse_press" << std::endl;
+        m_dragging_requested = false;
     }
 
     void Titlebar::on_mouse_drag(int x, int y)
     {
-        std::cout << "Titlebar::on_mouse_drag x:" << x << " y:" << y << std::endl;
-        if (application())
+        if (!m_dragging_requested && application())
         {
             application()->request_move();
+            m_dragging_requested = true;
         }
+    }
+
+    void Titlebar::on_mouse_release(int button)
+    {
+        m_dragging_requested = false;
     }
 } // namespace horizon

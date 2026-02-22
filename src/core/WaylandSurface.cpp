@@ -1,7 +1,6 @@
 #include <cstring>
 #include <horizon/WaylandSurface.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
-#include <iostream>
 #include <stdexcept>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -147,8 +146,6 @@ namespace horizon
     {
         WaylandSurface *self = static_cast<WaylandSurface *>(data);
         self->set_last_serial(serial);
-        std::cout << "pointer_handle_button serial:" << serial << " button:" << button
-                  << " state:" << state << std::endl;
 
         if (self->listener())
         {
@@ -451,8 +448,6 @@ namespace horizon
 
     void WaylandSurface::request_move(uint32_t serial)
     {
-        std::cout << "WaylandSurface::request_move serial:" << serial
-                  << " xdg_toplevel:" << m_xdg_toplevel << " seat:" << m_seat << std::endl;
         if (m_xdg_toplevel && m_seat)
         {
             xdg_toplevel_move(m_xdg_toplevel, m_seat, serial);

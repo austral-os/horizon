@@ -66,6 +66,11 @@ namespace horizon
             handle_release(event);
             break;
 
+        case PointerEvent::Type::Leave:
+            m_pressed = nullptr;
+            m_hovered = nullptr;
+            break;
+
         default:
             break;
         }
@@ -200,7 +205,6 @@ namespace horizon
 
     void Application::request_move()
     {
-        std::cout << "Application::request_move" << std::endl;
         if (m_surface)
         {
             m_surface->request_move(m_last_serial);
