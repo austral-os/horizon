@@ -54,8 +54,13 @@ namespace horizon
         if (caps & WL_SEAT_CAPABILITY_POINTER)
         {
             self->set_wl_pointer(static_cast<wl_pointer *>(wl_seat_get_pointer(seat)));
-
             wl_pointer_add_listener(self->pointer(), &g_pointer_listener, data);
+        }
+
+        if (caps & WL_SEAT_CAPABILITY_KEYBOARD)
+        {
+            self->set_wl_keyboard(static_cast<wl_keyboard *>(wl_seat_get_keyboard(seat)));
+            wl_keyboard_add_listener(self->keyboard(), &g_keyboard_listener, data);
         }
     }
 
@@ -190,11 +195,7 @@ namespace horizon
         {
             ws->set_wl_seat(
                 static_cast<wl_seat *>(wl_registry_bind(registry, id, &wl_seat_interface, 1)));
-        }
-        else if (strcmp(interface, "wl_pointer") == 0)
-        {
-            ws->set_wl_pointer(static_cast<wl_pointer *>(
-                wl_registry_bind(registry, id, &wl_pointer_interface, 1)));
+            wl_seat_add_listener(ws->seat(), &g_seat_listener, ws);
         }
     }
 
@@ -227,6 +228,11 @@ namespace horizon
     void WaylandSurface::set_wl_pointer(struct wl_pointer *pointer)
     {
         m_pointer = pointer;
+    }
+
+    void WaylandSurface::set_wl_keyboard(struct wl_keyboard *keyboard)
+    {
+        m_keyboard = keyboard;
     }
 
     void WaylandSurface::set_wl_compositor(struct wl_compositor *compositor)
@@ -307,6 +313,11 @@ namespace horizon
             wl_pointer_destroy(m_pointer);
             m_pointer = nullptr;
         }
+        if (m_keyboard)
+        {
+            wl_keyboard_destroy(m_keyboard);
+            m_keyboard = nullptr;
+        }
         if (m_seat)
         {
             wl_seat_destroy(m_seat);
@@ -384,6 +395,11 @@ namespace horizon
     struct wl_seat *WaylandSurface::seat() const
     {
         return m_seat;
+    }
+
+    struct wl_keyboard *WaylandSurface::keyboard() const
+    {
+        return m_keyboard;
     }
 
     // Devuelve el puntero a xdg_wm_base

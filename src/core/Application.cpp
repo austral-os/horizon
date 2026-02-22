@@ -16,6 +16,7 @@ namespace horizon
         // Inicialización del sistema
         m_surface = std::make_unique<WaylandSurface>(w, h);
         m_surface->init();
+        m_surface->set_event_listener(this);
     }
 
     // Constructor de movimiento

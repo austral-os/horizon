@@ -12,6 +12,7 @@ struct xdg_wm_base;
 struct wl_buffer;
 struct wl_seat;
 struct wl_pointer;
+struct wl_keyboard;
 
 namespace horizon
 {
@@ -26,6 +27,7 @@ namespace horizon
         void set_xdg_wm_base(struct xdg_wm_base *xdg_wm_base);
         void set_wl_seat(struct wl_seat *seat);
         void set_wl_pointer(struct wl_pointer *pointer);
+        void set_wl_keyboard(struct wl_keyboard *keyboard);
 
         void set_event_listener(WaylandEventListener *listener);
 
@@ -33,6 +35,7 @@ namespace horizon
         void set_pointer_y(double y);
 
         struct wl_pointer *pointer() const;
+        struct wl_keyboard *keyboard() const;
         struct wl_seat *seat() const;
         struct xdg_wm_base *xdg_wm_base() const;
         void *data() const;
@@ -65,6 +68,7 @@ namespace horizon
 
         struct wl_seat *m_seat = nullptr;
         struct wl_pointer *m_pointer = nullptr;
+        struct wl_keyboard *m_keyboard = nullptr;
 
         uint32_t m_last_serial = 0;
         double m_pointer_x = 0;
