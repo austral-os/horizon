@@ -31,7 +31,7 @@ namespace horizon
         Color darkBlue = {0.0f, 0.0f, 0.0f, 1.0f};
         Color lightBlue = {0.3f, 0.7f, 0.9f, 1.0f};
 
-        gc.fillLinearGradientRect(0, 0, m_width, m_height, darkBlue, lightBlue, true);
+        gc.fillLinearGradientRect(0, 0, m_width, m_height, darkBlue, lightBlue, true, 20);
 
         gc.flush();
         std::cout << "terminando ventana" << std::endl;

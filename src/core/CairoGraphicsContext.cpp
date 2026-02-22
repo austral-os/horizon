@@ -1,3 +1,4 @@
+#include <cmath>
 #include <horizon/CairoGraphicsContext.hpp>
 
 namespace horizon
@@ -27,20 +28,40 @@ namespace horizon
         cairo_paint(cr);
     }
 
-    void CairoGraphicContext::drawRect(int x, int y, int width, int height)
+    static void rounded_rectangle(cairo_t *cr, double x, double y, double width, double height,
+                                  int radius)
     {
-        cairo_rectangle(cr, x, y, width, height);
+        if (radius <= 0)
+        {
+            cairo_rectangle(cr, x, y, width, height);
+            return;
+        }
+
+        double r = static_cast<double>(radius);
+        double degrees = M_PI / 180.0;
+
+        cairo_new_sub_path(cr);
+        cairo_arc(cr, x + width - r, y + r, r, -90 * degrees, 0 * degrees);
+        cairo_arc(cr, x + width - r, y + height - r, r, 0 * degrees, 90 * degrees);
+        cairo_arc(cr, x + r, y + height - r, r, 90 * degrees, 180 * degrees);
+        cairo_arc(cr, x + r, y + r, r, 180 * degrees, 270 * degrees);
+        cairo_close_path(cr);
+    }
+
+    void CairoGraphicContext::drawRect(int x, int y, int width, int height, int radius)
+    {
+        rounded_rectangle(cr, x, y, width, height, radius);
         cairo_stroke(cr);
     }
 
-    void CairoGraphicContext::fillRect(int x, int y, int width, int height)
+    void CairoGraphicContext::fillRect(int x, int y, int width, int height, int radius)
     {
-        cairo_rectangle(cr, x, y, width, height);
+        rounded_rectangle(cr, x, y, width, height, radius);
         cairo_fill(cr);
     }
 
     void CairoGraphicContext::fillLinearGradientRect(int x, int y, int width, int height, Color c1,
-                                                     Color c2, bool vertical)
+                                                     Color c2, bool vertical, int radius)
     {
         cairo_pattern_t *pat;
         if (vertical)
@@ -56,7 +77,7 @@ namespace horizon
         cairo_pattern_add_color_stop_rgba(pat, 1, c2.r, c2.g, c2.b, c2.a);
 
         cairo_set_source(cr, pat);
-        cairo_rectangle(cr, x, y, width, height);
+        rounded_rectangle(cr, x, y, width, height, radius);
         cairo_fill(cr);
         cairo_pattern_destroy(pat);
     }
