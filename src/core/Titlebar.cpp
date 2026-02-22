@@ -29,15 +29,12 @@ namespace horizon
 
         close_button->set_fixed_size(16);
         close_button->set_size(16, 16);
-        close_button->set_cursor_type(CursorType::Pointer);
 
         minimize_button->set_fixed_size(16);
         minimize_button->set_size(16, 16);
-        minimize_button->set_cursor_type(CursorType::Pointer);
 
         maximize_button->set_fixed_size(16);
         maximize_button->set_size(16, 16);
-        maximize_button->set_cursor_type(CursorType::Pointer);
 
         m_close_button = close_button.get();
         m_minimize_button = minimize_button.get();
