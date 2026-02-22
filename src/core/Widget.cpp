@@ -248,7 +248,14 @@ namespace horizon
         return m_has_focus;
     }
 
-    void Widget::draw(GraphicsContext &) {}
+    void Widget::draw(GraphicsContext &gc)
+    {
+        // Dibujamos a los hijos.
+        for (const auto &child : m_children)
+        {
+            child->draw(gc);
+        }
+    }
 
     void Widget::on_mouse_enter() {}
     void Widget::on_mouse_leave() {}

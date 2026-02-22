@@ -1,4 +1,5 @@
 #include "horizon/GraphicsContext.hpp"
+#include "horizon/Widget.hpp"
 #include <horizon/Titlebar.hpp>
 
 namespace horizon
@@ -46,5 +47,8 @@ namespace horizon
         gc.setDrawFont("Lucida Grande", 16, FONT_SLANT_NORMAL, FONT_WEIGHT_BOLD);
         gc.setColor(black);
         gc.drawText(text_x, text_y, m_title.c_str());
+
+        // Dibuja a los hijos...
+        Widget::draw(gc);
     }
 } // namespace horizon
