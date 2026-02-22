@@ -22,16 +22,18 @@ namespace horizon
 
     void Titlebar::draw(GraphicsContext &gc)
     {
+
         // Dibujarmos una barra de titulo como la de mac os mountain lion.
 
-        Color brd = {0.77f, 0.77f, 0.77f, 1.0f};
+        Color brd = {0.67f, 0.67f, 0.67f, 1.0f};
         Color darkGray = {0.847f, 0.847f, 0.847f, 1.0f};
         Color lightGray = {0.98f, 0.98f, 0.98f, 1.0f};
 
-        gc.fillLinearGradientRect(0, 0, m_width, m_height, lightGray, darkGray, true,
+        gc.fillLinearGradientRect(m_start_draw_x, m_start_draw_y, m_available_draw_width,
+                                  m_available_draw_height, lightGray, darkGray, true,
                                   CornerRadius(10, 10, 0, 0));
 
         gc.setColor(brd);
-        gc.drawRect(0, m_height - 1, m_width, 1);
+        gc.drawRect(0, m_height - 1, m_width, 0, 0.7f);
     }
 } // namespace horizon

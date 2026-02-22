@@ -12,7 +12,7 @@ namespace horizon
 
         auto titlebar = std::make_unique<Titlebar>(title);
 
-        titlebar->set_size(m_width, 30);
+        titlebar->set_padding(1);
         titlebar->set_position(0, 0);
         titlebar->set_fixed_size(30);
 
@@ -45,15 +45,16 @@ namespace horizon
 
         Color darkBlue = {0.0f, 0.0f, 0.0f, 1.0f};
         Color lightBlue = {0.3f, 0.7f, 0.9f, 1.0f};
-        Color brd = {0.77f, 0.77f, 0.77f, 1.0f};
+        Color brd = {0.47f, 0.47f, 0.47f, 1.0f};
 
         Color bg = {0.953f, 0.953f, 0.953f, 1.0f};
 
         gc.setColor(bg);
-        gc.fillRect(0, 0, m_width, m_height, {10, 10, 0, 0});
+        gc.fillRect(m_start_draw_x, m_start_draw_y, m_available_draw_width, m_available_draw_height,
+                    {10, 10, 0, 0});
 
         gc.setColor(brd);
-        gc.drawRect(1, 1, m_width - 2, m_height - 2, {10, 10, 0, 0}, 1.0f);
+        gc.drawRect(0, 0, m_width, m_height, {10, 10, 0, 0}, 0.9f);
 
         // gc.fillLinearGradientRect(0, 0, m_width, m_height, darkBlue, lightBlue, true, 20);
 

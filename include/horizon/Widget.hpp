@@ -98,7 +98,6 @@ namespace horizon
         WidgetPositionTypes m_position_type{FREE};
         WidgetLayoutTypes m_layout_type{WIDGET_LAYOUT_HORIZONTAL};
 
-    private:
         bool m_visible{true};
         bool m_enabled{true};
         bool m_focusable{false};
