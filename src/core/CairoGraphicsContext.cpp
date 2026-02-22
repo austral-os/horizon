@@ -200,9 +200,10 @@ namespace horizon
 
     void CairoGraphicContext::drawCircle(int x, int y, int radius, float lineWidth)
     {
+        cairo_new_path(cr); // ← levanta el lápiz
         cairo_set_line_width(cr, lineWidth);
         cairo_arc(cr, x, y, radius, 0, 2 * M_PI);
-        cairo_stroke(cr);
+        cairo_stroke(cr); // limpia el path
     }
 
     void CairoGraphicContext::fillCircle(int x, int y, int radius)
