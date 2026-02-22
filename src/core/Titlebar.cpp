@@ -27,6 +27,7 @@ namespace horizon
         Color darkGray = {0.2f, 0.2f, 0.2f, 1.0f};
         Color lightGray = {0.3f, 0.3f, 0.3f, 1.0f};
 
-        gc.fillLinearGradientRect(0, 0, m_width, m_height, darkGray, lightGray, true);
+        gc.fillLinearGradientRect(0, 0, m_width, m_height, darkGray, lightGray, true,
+                                  CornerRadius(10, 10, 0, 0));
     }
 } // namespace horizon
