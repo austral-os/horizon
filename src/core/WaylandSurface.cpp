@@ -10,41 +10,100 @@
 namespace horizon
 {
 
+    /**
+     * @brief Handler for seat capability changes (pointer, keyboard).
+     */
     static void seat_handle_capabilities(void *data, wl_seat *seat, uint32_t caps);
+
+    /**
+     * @brief Handler for seat name changes.
+     */
     static void seat_handle_name(void *data, wl_seat *seat, const char *name);
+
+    /**
+     * @brief Handler for pointer entering a surface.
+     */
     static void pointer_handle_enter(void *data, wl_pointer *pointer, uint32_t serial,
                                      struct wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy);
+
+    /**
+     * @brief Handler for pointer leaving a surface.
+     */
     static void pointer_handle_leave(void *data, wl_pointer *pointer, uint32_t serial,
                                      struct wl_surface *surface);
+
+    /**
+     * @brief Handler for pointer motion events.
+     */
     static void pointer_handle_motion(void *data, wl_pointer *pointer, uint32_t time, wl_fixed_t sx,
                                       wl_fixed_t sy);
+
+    /**
+     * @brief Handler for pointer button events.
+     */
     static void pointer_handle_button(void *data, wl_pointer *pointer, uint32_t serial,
                                       uint32_t time, uint32_t button, uint32_t state);
+
+    /**
+     * @brief Handler for pointer axis/scroll events.
+     */
     static void pointer_handle_axis(void *data, wl_pointer *pointer, uint32_t time, uint32_t axis,
                                     wl_fixed_t value);
 
+    /**
+     * @brief Handler for keyboard keymap updates.
+     */
     static void keyboard_handle_keymap(void *data, wl_keyboard *keyboard, uint32_t format,
                                        int32_t fd, uint32_t size);
+
+    /**
+     * @brief Handler for keyboard entering a surface (gaining focus).
+     */
     static void keyboard_handle_enter(void *data, wl_keyboard *keyboard, uint32_t serial,
                                       struct wl_surface *surface, struct wl_array *keys);
+
+    /**
+     * @brief Handler for keyboard leaving a surface (losing focus).
+     */
     static void keyboard_handle_leave(void *data, wl_keyboard *keyboard, uint32_t serial,
                                       struct wl_surface *surface);
+
+    /**
+     * @brief Handler for keyboard key press/release events.
+     */
     static void keyboard_handle_key(void *data, wl_keyboard *keyboard, uint32_t serial,
                                     uint32_t time, uint32_t key, uint32_t state);
+
+    /**
+     * @brief Handler for keyboard modifier changes (Shift, Ctrl, etc.).
+     */
     static void keyboard_handle_modifiers(void *data, wl_keyboard *keyboard, uint32_t serial,
                                           uint32_t mods_depressed, uint32_t mods_latched,
                                           uint32_t mods_locked, uint32_t group);
+
+    /**
+     * @brief Handler for keyboard repeat settings.
+     */
     static void keyboard_handle_repeat_info(void *data, wl_keyboard *keyboard, int32_t rate,
                                             int32_t delay);
 
+    /**
+     * @brief Dispatch table for pointer events.
+     */
     static const wl_pointer_listener g_pointer_listener = {
         pointer_handle_enter, pointer_handle_leave, pointer_handle_motion, pointer_handle_button,
         pointer_handle_axis};
 
+    /**
+     * @brief Dispatch table for keyboard events.
+     */
     static const wl_keyboard_listener g_keyboard_listener = {
         keyboard_handle_keymap, keyboard_handle_enter,     keyboard_handle_leave,
         keyboard_handle_key,    keyboard_handle_modifiers, keyboard_handle_repeat_info};
 
+    /**
+     * @brief Dispatch table for seat events.
+     */
     static const wl_seat_listener g_seat_listener = {seat_handle_capabilities, seat_handle_name};
 
     static void seat_handle_capabilities(void *data, wl_seat *seat, uint32_t caps)
@@ -167,6 +226,9 @@ namespace horizon
     {
     }
 
+    /**
+     * @brief Global registry handler. Binds core Wayland interfaces.
+     */
     static void registry_global(void *data, wl_registry *registry, uint32_t id,
                                 const char *interface, uint32_t version)
     {
@@ -199,6 +261,9 @@ namespace horizon
         }
     }
 
+    /**
+     * @brief Handler for removed global objects.
+     */
     static void registry_global_remove(void *data, wl_registry *registry, uint32_t id)
     {
         // not implemented
@@ -252,13 +317,14 @@ namespace horizon
 
     void WaylandSurface::init()
     {
-
+        // Establish connection to the Wayland server.
         m_display = wl_display_connect(nullptr);
         if (!m_display)
         {
             throw std::runtime_error("No se pudo conectar al servidor Wayland.");
         }
 
+        // Get the registry to find available global objects.
         m_registry = wl_display_get_registry(m_display);
         if (!m_registry)
         {
@@ -267,35 +333,39 @@ namespace horizon
             throw std::runtime_error("No se pudo obtener el registro.");
         }
 
-        // Listener del registry
+        // Add registry listener.
         static const wl_registry_listener listener = {registry_global, registry_global_remove};
         wl_registry_add_listener(m_registry, &listener, this);
 
-        // Roundtrip inicial para que los globals estén disponibles
+        // Initial roundtrip to ensure globals are bound and initialized.
         wl_display_roundtrip(m_display);
 
-        // 1. Crear Superficie
+        // 1. Create the fundamental wl_surface.
         m_surface = wl_compositor_create_surface(m_compositor);
 
-        // 2. Configurar XDG Surface (El "cascarón" de la ventana)
+        // 2. Setup XDG Surface (the window "shell").
         xdg_surface *xdg_surf = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
         static const xdg_surface_listener xdg_surf_ptr = {
             .configure = [](void *data, xdg_surface *xdg_s, uint32_t serial)
             { xdg_surface_ack_configure(xdg_s, serial); }};
         xdg_surface_add_listener(xdg_surf, &xdg_surf_ptr, nullptr);
 
-        // 3. Configurar Toplevel (La ventana propiamente dicha)
+        // 3. Setup Toplevel (the actual window).
         xdg_toplevel *toplevel = xdg_surface_get_toplevel(xdg_surf);
         xdg_toplevel_set_title(toplevel, "Cairo Wayland Corrected");
 
-        // IMPORTANTE: Primer commit para que el compositor envíe el evento 'configure'
+        // IMPORTANT: Commit the surface so the compositor can start processing it.
         wl_surface_commit(m_surface);
         wl_display_roundtrip(m_display);
 
-        // 4. Crear Buffer SHM
+        // 4. Create a Shared Memory (SHM) buffer for rendering.
         int stride = m_width * 4;
         int size = stride * m_height;
         int fd = memfd_create("buffer", MFD_CLOEXEC);
+        if (fd < 0)
+        {
+            throw std::runtime_error("No se pudo crear el descriptor de archivo para SHM.");
+        }
         ftruncate(fd, size);
         m_data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 

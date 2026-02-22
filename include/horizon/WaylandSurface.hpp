@@ -16,62 +16,191 @@ struct wl_keyboard;
 
 namespace horizon
 {
+    /**
+     * @class WaylandSurface
+     * @brief Represents a Wayland surface and manages its associated resources.
+     *
+     * This class handles the connection to the Wayland display, creation of the
+     * compositor surface, management of input devices (pointer, keyboard), and
+     * integration with XDG Shell for window management.
+     */
     class WaylandSurface
     {
     public:
+        /**
+         * @brief Constructs a WaylandSurface with the specified width and height.
+         * @param w width of the surface.
+         * @param h height of the surface.
+         */
         explicit WaylandSurface(int w, int h);
+
+        /**
+         * @brief Destructor. Cleans up all Wayland resources.
+         */
         ~WaylandSurface();
 
+        /**
+         * @brief Sets the Wayland compositor object.
+         * @param compositor Pointer to the wl_compositor.
+         */
         void set_wl_compositor(struct wl_compositor *compositor);
+
+        /**
+         * @brief Sets the Wayland SHM object.
+         * @param shm Pointer to the wl_shm.
+         */
         void set_wl_shm(struct wl_shm *shm);
+
+        /**
+         * @brief Sets the XDG WM Base object.
+         * @param xdg_wm_base Pointer to the xdg_wm_base.
+         */
         void set_xdg_wm_base(struct xdg_wm_base *xdg_wm_base);
+
+        /**
+         * @brief Sets the Wayland seat object.
+         * @param seat Pointer to the wl_seat.
+         */
         void set_wl_seat(struct wl_seat *seat);
+
+        /**
+         * @brief Sets the Wayland pointer object.
+         * @param pointer Pointer to the wl_pointer.
+         */
         void set_wl_pointer(struct wl_pointer *pointer);
+
+        /**
+         * @brief Sets the Wayland keyboard object.
+         * @param keyboard Pointer to the wl_keyboard.
+         */
         void set_wl_keyboard(struct wl_keyboard *keyboard);
 
+        /**
+         * @brief Registers an event listener to receive Wayland events.
+         * @param listener Pointer to the WaylandEventListener implementation.
+         */
         void set_event_listener(WaylandEventListener *listener);
 
+        /**
+         * @brief Sets the current pointer X coordinate.
+         * @param x X coordinate in surface-local coordinates.
+         */
         void set_pointer_x(double x);
+
+        /**
+         * @brief Sets the current pointer Y coordinate.
+         * @param y Y coordinate in surface-local coordinates.
+         */
         void set_pointer_y(double y);
 
+        /**
+         * @brief Gets the Wayland pointer object.
+         * @return Pointer to wl_pointer.
+         */
         struct wl_pointer *pointer() const;
+
+        /**
+         * @brief Gets the Wayland keyboard object.
+         * @return Pointer to wl_keyboard.
+         */
         struct wl_keyboard *keyboard() const;
+
+        /**
+         * @brief Gets the Wayland seat object.
+         * @return Pointer to wl_seat.
+         */
         struct wl_seat *seat() const;
+
+        /**
+         * @brief Gets the XDG WM Base object.
+         * @return Pointer to xdg_wm_base.
+         */
         struct xdg_wm_base *xdg_wm_base() const;
+
+        /**
+         * @brief Gets a pointer to the surface's pixel data.
+         * @return Pointer to the raw buffer data.
+         */
         void *data() const;
+
+        /**
+         * @brief Gets the underlying Wayland surface object.
+         * @return Pointer to wl_surface.
+         */
         struct wl_surface *surface() const;
+
+        /**
+         * @brief Gets the current Wayland buffer object.
+         * @return Pointer to wl_buffer.
+         */
         struct wl_buffer *buffer() const;
+
+        /**
+         * @brief Gets the Wayland display object.
+         * @return Pointer to wl_display.
+         */
         struct wl_display *display() const;
+
+        /**
+         * @return Pointer to the registered event listener.
+         */
         WaylandEventListener *listener() const;
+
+        /**
+         * @return Current pointer X coordinate.
+         */
         double pointer_x() const;
+
+        /**
+         * @return Current pointer Y coordinate.
+         */
         double pointer_y() const;
 
+        /**
+         * @return Width of the surface.
+         */
         int width() const;
+
+        /**
+         * @return Height of the surface.
+         */
         int height() const;
 
+        /**
+         * @brief Initializes the Wayland connection and creates resources.
+         * This includes connecting to the display, binding globals, and creating the surface.
+         */
         void init();
+
+        /**
+         * @brief Frees all allocated Wayland resources.
+         */
         void free();
 
     private:
-        int m_width;
-        int m_height;
-        struct wl_display *m_display = nullptr;
-        struct wl_registry *m_registry = nullptr;
-        struct wl_compositor *m_compositor = nullptr;
-        struct wl_shm *m_shm = nullptr;
-        struct xdg_wm_base *m_xdg_wm_base = nullptr;
-        void *m_data;
-        struct wl_surface *m_surface;
-        struct wl_buffer *m_buffer;
+        int m_width;  /**< Width of the surface in pixels. */
+        int m_height; /**< Height of the surface in pixels. */
 
-        WaylandEventListener *m_listener = nullptr;
+        struct wl_display *m_display = nullptr; /**< The connection to the Wayland server. */
+        struct wl_registry *m_registry =
+            nullptr; /**< The Wayland registry for globals exploration. */
+        struct wl_compositor *m_compositor = nullptr; /**< The compositor global. */
+        struct wl_shm *m_shm = nullptr;               /**< The shared memory global for buffers. */
+        struct xdg_wm_base *m_xdg_wm_base = nullptr;  /**< The XDG window management base global. */
 
-        struct wl_seat *m_seat = nullptr;
-        struct wl_pointer *m_pointer = nullptr;
-        struct wl_keyboard *m_keyboard = nullptr;
+        void *m_data = nullptr;                 /**< Pointer to the shared memory data. */
+        struct wl_surface *m_surface = nullptr; /**< The Wayland surface object. */
+        struct wl_buffer *m_buffer = nullptr;   /**< The current buffer attached to the surface. */
 
-        uint32_t m_last_serial = 0;
-        double m_pointer_x = 0;
-        double m_pointer_y = 0;
+        WaylandEventListener *m_listener = nullptr; /**< The interface for forwarding events. */
+
+        struct wl_seat *m_seat =
+            nullptr; /**< The seat object representing a group of input devices. */
+        struct wl_pointer *m_pointer = nullptr;   /**< The pointer input device. */
+        struct wl_keyboard *m_keyboard = nullptr; /**< The keyboard input device. */
+
+        uint32_t m_last_serial = 0; /**< The last received event serial number. */
+        double m_pointer_x = 0;     /**< Last known pointer X position. */
+        double m_pointer_y = 0;     /**< Last known pointer Y position. */
     };
 }; // namespace horizon
