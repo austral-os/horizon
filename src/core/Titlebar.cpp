@@ -34,6 +34,6 @@ namespace horizon
                                   CornerRadius(10, 10, 0, 0));
 
         gc.setColor(brd);
-        gc.drawRect(0, m_height - 1, m_width, 0, 0.7f);
+        gc.drawRect(0, m_height - 1, m_width, 0, 0, 0.7f);
     }
 } // namespace horizon
