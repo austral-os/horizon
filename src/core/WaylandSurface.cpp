@@ -1,12 +1,14 @@
 #include <cstring>
+#include <fcntl.h>
 #include <horizon/WaylandSurface.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
-#include <iostream>
 #include <stdexcept>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <vector>
 #include <wayland-client-core.h>
 #include <wayland-client.h>
+#include <wayland-cursor.h>
 
 namespace horizon
 {
@@ -175,6 +177,7 @@ namespace horizon
 
         self->set_pointer_x(wl_fixed_to_double(sx));
         self->set_pointer_y(wl_fixed_to_double(sy));
+        self->set_last_serial(serial);
 
         if (self->listener())
         {
@@ -182,6 +185,7 @@ namespace horizon
             ev.type = PointerEvent::Type::Enter;
             ev.x = self->pointer_x();
             ev.y = self->pointer_y();
+            ev.serial = serial;
             self->listener()->on_pointer_event(ev);
         }
     }
@@ -190,11 +194,13 @@ namespace horizon
                                      struct wl_surface *surface)
     {
         WaylandSurface *self = static_cast<WaylandSurface *>(data);
+        self->set_last_serial(serial);
 
         if (self->listener())
         {
             PointerEvent ev;
             ev.type = PointerEvent::Type::Leave;
+            ev.serial = serial;
             self->listener()->on_pointer_event(ev);
         }
     }
@@ -407,6 +413,16 @@ namespace horizon
         wl_surface_commit(m_surface);
         wl_display_roundtrip(m_display);
 
+        // Initialize cursor resources
+        if (m_shm)
+        {
+            m_cursor_theme = wl_cursor_theme_load(nullptr, 24, m_shm);
+        }
+        if (m_compositor)
+        {
+            m_cursor_surface = wl_compositor_create_surface(m_compositor);
+        }
+
         // 4. Create a Shared Memory (SHM) buffer for rendering.
         int stride = m_width * 4;
         int size = stride * m_height;
@@ -513,6 +529,16 @@ namespace horizon
         }
         if (m_display)
         {
+            if (m_cursor_theme)
+            {
+                wl_cursor_theme_destroy(m_cursor_theme);
+                m_cursor_theme = nullptr;
+            }
+            if (m_cursor_surface)
+            {
+                wl_surface_destroy(m_cursor_surface);
+                m_cursor_surface = nullptr;
+            }
             wl_display_disconnect(m_display);
             m_display = nullptr;
         }
@@ -548,6 +574,62 @@ namespace horizon
         {
             xdg_toplevel_unset_maximized(m_xdg_toplevel);
         }
+    }
+
+    void WaylandSurface::set_cursor(CursorType type)
+    {
+        if (!m_pointer || !m_cursor_theme || !m_cursor_surface)
+            return;
+
+        std::vector<const char *> names;
+        switch (type)
+        {
+        case CursorType::Default:
+            names = {"left_ptr", "default", "arrow"};
+            break;
+        case CursorType::Pointer:
+            names = {"hand1", "hand2", "pointer", "pointing_hand"};
+            break;
+        case CursorType::Text:
+            names = {"xterm", "text", "ibeam"};
+            break;
+        case CursorType::Move:
+            names = {"fleur", "move", "grabbing", "alias"};
+            break;
+        case CursorType::Wait:
+            names = {"watch", "wait", "left_ptr_watch"};
+            break;
+        case CursorType::Help:
+            names = {"question_arrow", "help", "whats_this"};
+            break;
+        default:
+            names = {"left_ptr"};
+            break;
+        }
+
+        struct wl_cursor *cursor = nullptr;
+        for (const char *name : names)
+        {
+            cursor = wl_cursor_theme_get_cursor(m_cursor_theme, name);
+            if (cursor)
+                break;
+        }
+
+        if (!cursor)
+            return;
+
+        struct wl_cursor_image *image = cursor->images[0];
+        struct wl_buffer *buffer = wl_cursor_image_get_buffer(image);
+        if (!buffer)
+            return;
+
+        wl_pointer_set_cursor(m_pointer, m_last_serial, m_cursor_surface, image->hotspot_x,
+                              image->hotspot_y);
+        wl_surface_attach(m_cursor_surface, buffer, 0, 0);
+        wl_surface_damage(m_cursor_surface, 0, 0, image->width, image->height);
+        wl_surface_commit(m_cursor_surface);
+
+        m_current_cursor_type = type;
     }
 
     bool WaylandSurface::is_maximized() const

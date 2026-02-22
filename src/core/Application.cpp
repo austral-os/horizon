@@ -71,6 +71,10 @@ namespace horizon
             m_hovered = nullptr;
             break;
 
+        case PointerEvent::Type::Enter:
+            handle_move(event);
+            break;
+
         default:
             break;
         }
@@ -142,7 +146,14 @@ namespace horizon
             m_hovered = under;
 
             if (m_hovered)
+            {
                 m_hovered->on_mouse_enter();
+                m_surface->set_cursor(m_hovered->cursor_type());
+            }
+            else
+            {
+                m_surface->set_cursor(CursorType::Default);
+            }
         }
 
         if (m_pressed)

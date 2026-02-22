@@ -1,6 +1,7 @@
 #pragma once
 
 #include "horizon/WaylandEventListener.hpp"
+#include "horizon/Widget.hpp"
 #include <cstdint>
 
 struct wl_display;
@@ -14,6 +15,8 @@ struct wl_buffer;
 struct wl_seat;
 struct wl_pointer;
 struct wl_keyboard;
+struct wl_cursor_theme;
+struct wl_cursor;
 
 namespace horizon
 {
@@ -222,6 +225,12 @@ namespace horizon
          */
         bool is_maximized() const;
 
+        /**
+         * @brief Sets the cursor image based on the specified type.
+         * @param type The desired cursor type.
+         */
+        void set_cursor(CursorType type);
+
     private:
         int m_width;  /**< Width of the surface in pixels. */
         int m_height; /**< Height of the surface in pixels. */
@@ -249,5 +258,9 @@ namespace horizon
         double m_pointer_x = 0;     /**< Last known pointer X position. */
         double m_pointer_y = 0;     /**< Last known pointer Y position. */
         bool m_is_maximized = false;
+
+        struct wl_cursor_theme *m_cursor_theme = nullptr;
+        struct wl_surface *m_cursor_surface = nullptr;
+        CursorType m_current_cursor_type = CursorType::Default;
     };
 }; // namespace horizon

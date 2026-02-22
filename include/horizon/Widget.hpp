@@ -21,6 +21,16 @@ namespace horizon
         WIDGET_LAYOUT_VERTICAL
     };
 
+    enum class CursorType
+    {
+        Default,
+        Pointer,
+        Text,
+        Move,
+        Wait,
+        Help
+    };
+
     class Widget
     {
     public:
@@ -59,6 +69,10 @@ namespace horizon
         bool is_focusable() const;
 
         bool has_focus() const;
+
+        // --- Cursors ---
+        void set_cursor_type(CursorType type);
+        CursorType cursor_type() const;
 
         // --- Árbol ---
         void add_child(std::unique_ptr<Widget> child);
@@ -103,6 +117,7 @@ namespace horizon
         bool m_enabled{true};
         bool m_focusable{false};
         bool m_has_focus{false};
+        CursorType m_cursor_type{CursorType::Default};
 
         int m_start_draw_x{0};          // Posicion inicial x donde se puede comenzar a dibujar.
         int m_start_draw_y{0};          // Posicion inicial y donde se puede comenzar a dibujar.

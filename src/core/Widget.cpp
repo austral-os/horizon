@@ -8,6 +8,7 @@ namespace horizon
     {
         m_layout_type = WIDGET_LAYOUT_VERTICAL;
         m_position_type = FILL;
+        set_cursor_type(CursorType::Default);
     }
 
     Widget::~Widget() {}
@@ -267,6 +268,16 @@ namespace horizon
     bool Widget::has_focus() const
     {
         return m_has_focus;
+    }
+
+    void Widget::set_cursor_type(CursorType type)
+    {
+        m_cursor_type = type;
+    }
+
+    CursorType Widget::cursor_type() const
+    {
+        return m_cursor_type;
     }
 
     void Widget::draw(GraphicsContext &) {}
