@@ -1,6 +1,7 @@
 #include <cstring>
 #include <horizon/WaylandSurface.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
+#include <iostream>
 #include <stdexcept>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -144,6 +145,22 @@ namespace horizon
     static void pointer_handle_button(void *data, wl_pointer *pointer, uint32_t serial,
                                       uint32_t time, uint32_t button, uint32_t state)
     {
+        WaylandSurface *self = static_cast<WaylandSurface *>(data);
+        self->set_last_serial(serial);
+        std::cout << "pointer_handle_button serial:" << serial << " button:" << button
+                  << " state:" << state << std::endl;
+
+        if (self->listener())
+        {
+            PointerEvent ev;
+            ev.type = (state == WL_POINTER_BUTTON_STATE_PRESSED) ? PointerEvent::Type::Press
+                                                                 : PointerEvent::Type::Release;
+            ev.x = self->pointer_x();
+            ev.y = self->pointer_y();
+            ev.button = button;
+            ev.serial = serial;
+            self->listener()->on_pointer_event(ev);
+        }
     }
 
     static void pointer_handle_axis(void *data, wl_pointer *pointer, uint32_t time, uint32_t axis,
@@ -351,8 +368,8 @@ namespace horizon
         xdg_surface_add_listener(xdg_surf, &xdg_surf_ptr, nullptr);
 
         // 3. Setup Toplevel (the actual window).
-        xdg_toplevel *toplevel = xdg_surface_get_toplevel(xdg_surf);
-        xdg_toplevel_set_title(toplevel, "Cairo Wayland Corrected");
+        m_xdg_toplevel = xdg_surface_get_toplevel(xdg_surf);
+        xdg_toplevel_set_title(m_xdg_toplevel, "Cairo Wayland Corrected");
 
         // IMPORTANT: Commit the surface so the compositor can start processing it.
         wl_surface_commit(m_surface);
@@ -420,11 +437,36 @@ namespace horizon
             wl_registry_destroy(m_registry);
             m_registry = nullptr;
         }
+        if (m_xdg_toplevel)
+        {
+            xdg_toplevel_destroy(m_xdg_toplevel);
+            m_xdg_toplevel = nullptr;
+        }
         if (m_display)
         {
             wl_display_disconnect(m_display);
             m_display = nullptr;
         }
+    }
+
+    void WaylandSurface::request_move(uint32_t serial)
+    {
+        std::cout << "WaylandSurface::request_move serial:" << serial
+                  << " xdg_toplevel:" << m_xdg_toplevel << " seat:" << m_seat << std::endl;
+        if (m_xdg_toplevel && m_seat)
+        {
+            xdg_toplevel_move(m_xdg_toplevel, m_seat, serial);
+        }
+    }
+
+    void WaylandSurface::set_last_serial(uint32_t serial)
+    {
+        m_last_serial = serial;
+    }
+
+    uint32_t WaylandSurface::last_serial() const
+    {
+        return m_last_serial;
     }
 
     void WaylandSurface::set_event_listener(WaylandEventListener *listener)

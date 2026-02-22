@@ -29,6 +29,7 @@ namespace horizon
         double y{0.0};         /**< Y coordinate relative to the surface top-left. */
         uint32_t button{
             0}; /**< The button identifier (e.g., BTN_LEFT from <linux/input-event-codes.h>). */
+        uint32_t serial{0}; /**< The Wayland serial of the event. */
     };
 
     /**

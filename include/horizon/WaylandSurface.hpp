@@ -9,6 +9,7 @@ struct wl_compositor;
 struct wl_shm;
 struct wl_surface;
 struct xdg_wm_base;
+struct xdg_toplevel;
 struct wl_buffer;
 struct wl_seat;
 struct wl_pointer;
@@ -173,9 +174,26 @@ namespace horizon
         void init();
 
         /**
+         * @brief Sets the last received serial.
+         * @param serial The serial number.
+         */
+        void set_last_serial(uint32_t serial);
+
+        /**
          * @brief Frees all allocated Wayland resources.
          */
         void free();
+
+        /**
+         * @brief Requests the compositor to start a window move (dragging) operation.
+         * @param serial The serial of the button press event that initiated the move.
+         */
+        void request_move(uint32_t serial);
+
+        /**
+         * @return The serial of the last handled input event.
+         */
+        uint32_t last_serial() const;
 
     private:
         int m_width;  /**< Width of the surface in pixels. */
@@ -187,6 +205,7 @@ namespace horizon
         struct wl_compositor *m_compositor = nullptr; /**< The compositor global. */
         struct wl_shm *m_shm = nullptr;               /**< The shared memory global for buffers. */
         struct xdg_wm_base *m_xdg_wm_base = nullptr;  /**< The XDG window management base global. */
+        struct xdg_toplevel *m_xdg_toplevel = nullptr; /**< The XDG toplevel global. */
 
         void *m_data = nullptr;                 /**< Pointer to the shared memory data. */
         struct wl_surface *m_surface = nullptr; /**< The Wayland surface object. */

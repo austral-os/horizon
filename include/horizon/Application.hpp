@@ -73,6 +73,11 @@ namespace horizon
         void quit();
 
         /**
+         * @brief Requests a window move from the Wayland compositor.
+         */
+        void request_move();
+
+        /**
          * @brief Implementation of the WaylandEventListener pointer event callback.
          * @param event The pointer event details.
          */
@@ -100,8 +105,9 @@ namespace horizon
         Widget *m_hovered = nullptr; /**< The widget currently under the mouse pointer. */
         Widget *m_pressed = nullptr; /**< The widget currently being pressed by a mouse button. */
 
-        double m_pointer_x = 0.0; /**< Last known X position of the pointer. */
-        double m_pointer_y = 0.0; /**< Last known Y position of the pointer. */
+        double m_pointer_x = 0.0;   /**< Last known X position of the pointer. */
+        double m_pointer_y = 0.0;   /**< Last known Y position of the pointer. */
+        uint32_t m_last_serial = 0; /**< Last received Wayland serial. */
 
         /**
          * @brief Internal handler for pointer movement events.

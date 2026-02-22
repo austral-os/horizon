@@ -150,6 +150,7 @@ namespace horizon
 
         if (under)
         {
+            m_last_serial = event.serial;
             m_pressed = under;
             m_pressed->on_mouse_press(event.button);
         }
@@ -167,6 +168,10 @@ namespace horizon
     void Application::set_root(std::unique_ptr<Widget> root)
     {
         m_root = std::move(root);
+        if (m_root)
+        {
+            m_root->m_app = this;
+        }
     }
 
     void Application::run()
@@ -191,6 +196,15 @@ namespace horizon
         quit();
 
         std::cout << "Application finished." << std::endl;
+    }
+
+    void Application::request_move()
+    {
+        std::cout << "Application::request_move" << std::endl;
+        if (m_surface)
+        {
+            m_surface->request_move(m_last_serial);
+        }
     }
 
     void Application::quit()

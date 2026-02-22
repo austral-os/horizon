@@ -132,12 +132,22 @@ namespace horizon
             return;
 
         child->m_parent = this;
+        child->m_app = m_app; // Propage application pointer
         m_children.push_back(std::move(child));
     }
 
     Widget *Widget::parent() const
     {
         return m_parent;
+    }
+
+    Application *Widget::application() const
+    {
+        if (m_app)
+            return m_app;
+        if (m_parent)
+            return m_parent->application();
+        return nullptr;
     }
 
     const std::vector<std::unique_ptr<Widget>> &Widget::children() const

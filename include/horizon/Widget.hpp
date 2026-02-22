@@ -63,6 +63,7 @@ namespace horizon
         // --- Árbol ---
         void add_child(std::unique_ptr<Widget> child);
         Widget *parent() const;
+        Application *application() const;
 
         const std::vector<std::unique_ptr<Widget>> &children() const;
 
@@ -111,6 +112,7 @@ namespace horizon
         int m_free_children_count{0}; // Cantidad de hijos que no tienen fixed_size.
 
         Widget *m_parent{nullptr};
+        Application *m_app{nullptr};
         std::vector<std::unique_ptr<Widget>> m_children;
     };
 

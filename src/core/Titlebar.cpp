@@ -1,6 +1,8 @@
-#include "horizon/GraphicsContext.hpp"
 #include "horizon/Widget.hpp"
+#include <horizon/Application.hpp>
+#include <horizon/GraphicsContext.hpp>
 #include <horizon/Titlebar.hpp>
+#include <iostream>
 #include <memory>
 
 namespace horizon
@@ -80,5 +82,19 @@ namespace horizon
         gc.setDrawFont("Lucida Grande", 16, FONT_SLANT_NORMAL, FONT_WEIGHT_BOLD);
         gc.setColor(black);
         gc.drawText(text_x, text_y, m_title.c_str());
+    }
+
+    void Titlebar::on_mouse_press(int button)
+    {
+        std::cout << "Titlebar::on_mouse_press" << std::endl;
+    }
+
+    void Titlebar::on_mouse_drag(int x, int y)
+    {
+        std::cout << "Titlebar::on_mouse_drag x:" << x << " y:" << y << std::endl;
+        if (application())
+        {
+            application()->request_move();
+        }
     }
 } // namespace horizon
