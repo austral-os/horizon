@@ -40,6 +40,18 @@ namespace horizon
         m_minimize_button = minimize_button.get();
         m_maximize_button = maximize_button.get();
 
+        if (m_close_button)
+        {
+            m_close_button->set_on_click(
+                [this]()
+                {
+                    if (application())
+                    {
+                        application()->quit();
+                    }
+                });
+        }
+
         add_child(std::move(close_button));
         add_child(std::move(minimize_button));
         add_child(std::move(maximize_button));
