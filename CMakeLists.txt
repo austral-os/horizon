@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(PkgConfig REQUIRED)
+find_package(nlohmann_json REQUIRED)
+
 pkg_check_modules(WAYLAND REQUIRED wayland-client wayland-cursor)
 pkg_check_modules(CAIRO REQUIRED cairo)
 
@@ -24,12 +26,14 @@ target_include_directories(horizon
     PRIVATE
         ${WAYLAND_INCLUDE_DIRS}
         ${CAIRO_INCLUDE_DIRS}
+        ${nlohmann_json_INCLUDE_DIRS}
 )
 
 target_link_libraries(horizon
     PRIVATE
         ${WAYLAND_LIBRARIES}
         ${CAIRO_LIBRARIES}
+        ${nlohmann_json_LIBRARIES}
 )
 
 add_executable(minimal

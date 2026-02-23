@@ -23,21 +23,25 @@ Horizon aims to be small, auditable, and educational.
 Horizon is structured in layers:
 
 ### 1. Core
+
 - Application lifecycle management
 - Main event loop
 - Wayland integration
 - Input event handling
 
 ### 2. Renderer
+
 - Initially based on Cairo
 - Surface abstraction
 - Buffer management
 
 ### 3. Widgets
+
 - Basic components: window, button, label, containers
 - Simple layout system
 
 ### 4. Runtime
+
 - Support for `.app` distribution format
 - Resource and asset management
 
@@ -71,7 +75,10 @@ sudo apt install build-essential g++ pkg-config \
                  libgles2-mesa-dev \
                  weston \
                  wayland-utils
+
+                sudo apt install nlohmann-json3-dev
 ```
+
 ## Compiling
 
 ```bash
@@ -79,4 +86,20 @@ mkdir build
 cd build
 cmake -G Ninja ..
 ninja
+```
+
+## Temas
+
+Los temas se guardan en `~/.config/horizon/color-scheme.json`.
+
+```json
+{
+    "colors": {
+        "background": "#000000",
+        "foreground": "#ffffff",
+        "primary": "#00ff00",
+        "secondary": "#0000ff",
+        "accent": "#ff0000"
+    }
+}
 ```
