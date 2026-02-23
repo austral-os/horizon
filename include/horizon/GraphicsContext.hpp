@@ -1,12 +1,8 @@
 #pragma once
 
+#include "horizon/Color.hpp"
 namespace horizon
 {
-
-    struct Color
-    {
-        float r, g, b, a;
-    };
 
     struct CornerRadius
     {

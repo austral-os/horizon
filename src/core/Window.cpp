@@ -41,12 +41,12 @@ namespace horizon
     void Window::draw(GraphicsContext &gc)
     {
 
-        Color darkBlue = {0.0f, 0.0f, 0.0f, 1.0f};
-        Color lightBlue = {0.3f, 0.7f, 0.9f, 1.0f};
-        Color brd = {0.47f, 0.47f, 0.47f, 1.0f};
+        Color darkBlue(0.0f, 0.0f, 0.0f, 1.0f);
+        Color lightBlue(0.3f, 0.7f, 0.9f, 1.0f);
+        Color brd(0.47f, 0.47f, 0.47f, 1.0f);
 
-        Color bg = {0.953f, 0.953f, 0.953f, 1.0f};
-        Color bg2 = {0.94f, 0.94f, 0.94f, 1.0f};
+        Color bg(0.953f, 0.953f, 0.953f, 1.0f);
+        Color bg2(0.94f, 0.94f, 0.94f, 1.0f);
 
         gc.setColor(bg);
         gc.fillRect(m_start_draw_x, m_start_draw_y, m_available_draw_width, m_available_draw_height,
