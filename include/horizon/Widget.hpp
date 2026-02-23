@@ -1,7 +1,7 @@
 #pragma once
 
+#include "horizon/EventsManager.hpp"
 #include <functional>
-#include <map>
 #include <memory>
 #include <vector>
 
@@ -82,10 +82,6 @@ namespace horizon
 
         // --- Events (Universal Multi-Callback) ---
 
-        // Mouse Enter
-        size_t add_on_mouse_enter(std::function<void()> handler);
-        void remove_on_mouse_enter(size_t id);
-
         // Mouse Leave
         size_t add_on_mouse_leave(std::function<void()> handler);
         void remove_on_mouse_leave(size_t id);
@@ -110,14 +106,6 @@ namespace horizon
         size_t add_on_mouse_hover(std::function<void(int x, int y)> handler);
         void remove_on_mouse_hover(size_t id);
 
-        // Key Press
-        size_t add_on_key_press(std::function<void(int key)> handler);
-        void remove_on_key_press(size_t id);
-
-        // Key Release
-        size_t add_on_key_release(std::function<void(int key)> handler);
-        void remove_on_key_release(size_t id);
-
         // Backward compatibility for click
         size_t add_on_click(std::function<void()> handler)
         {
@@ -140,19 +128,18 @@ namespace horizon
         // --- Render ---
         virtual void render(GraphicsContext &ctx);
 
+        EventsManager when_mouse_press;
+        EventsManager when_mouse_enter;
+        EventsManager when_mouse_leave;
+        EventsManager when_mouse_move;
+        EventsManager when_mouse_release;
+        EventsManager when_mouse_drag;
+        EventsManager when_mouse_hover;
+        EventsManager when_key_press;
+        EventsManager when_key_release;
+
     protected:
         virtual void draw(GraphicsContext &ctx);
-
-        // --- Eventos ---
-        virtual void on_mouse_enter();
-        virtual void on_mouse_leave();
-        virtual void on_mouse_move(int x, int y);
-        virtual void on_mouse_press(int button);
-        virtual void on_mouse_release(int button);
-        virtual void on_mouse_drag(int x, int y);
-        virtual void on_mouse_hover(int x, int y);
-        virtual void on_key_press(int key);
-        virtual void on_key_release(int key);
 
         Widget *hit_test(int x, int y);
 
@@ -185,17 +172,6 @@ namespace horizon
         Widget *m_parent{nullptr};
         Application *m_app{nullptr};
         std::vector<std::unique_ptr<Widget>> m_children;
-
-        // Handler maps
-        std::map<size_t, std::function<void()>> m_on_mouse_enter_handlers;
-        std::map<size_t, std::function<void()>> m_on_mouse_leave_handlers;
-        std::map<size_t, std::function<void(int, int)>> m_on_mouse_move_handlers;
-        std::map<size_t, std::function<void(int)>> m_on_mouse_press_handlers;
-        std::map<size_t, std::function<void(int)>> m_on_mouse_release_handlers;
-        std::map<size_t, std::function<void(int, int)>> m_on_mouse_drag_handlers;
-        std::map<size_t, std::function<void(int, int)>> m_on_mouse_hover_handlers;
-        std::map<size_t, std::function<void(int)>> m_on_key_press_handlers;
-        std::map<size_t, std::function<void(int)>> m_on_key_release_handlers;
 
         size_t m_next_handler_id{0};
     };

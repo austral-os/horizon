@@ -1,4 +1,5 @@
 #include "horizon/CairoGraphicsContext.hpp"
+#include "horizon/EventsManager.hpp"
 #include <cstdio>
 #include <cstring>
 #include <horizon/Application.hpp>
@@ -127,7 +128,13 @@ namespace horizon
         if (!m_root)
             return;
 
-        m_root->on_key_press(event.key);
+        EventContext new_ev = {.sender = nullptr,
+                               .type = EventType::KeyPress,
+                               .button = event.key,
+                               .stop_propagation = false,
+                               .data = nullptr,
+                               .key = event.key};
+        m_root->when_key_press.run(new_ev);
     }
 
     void Application::handle_key_release(const KeyEvent &event)
@@ -135,7 +142,13 @@ namespace horizon
         if (!m_root)
             return;
 
-        m_root->on_key_release(event.key);
+        EventContext new_ev = {.sender = nullptr,
+                               .type = EventType::KeyRelease,
+                               .button = event.key,
+                               .stop_propagation = false,
+                               .data = nullptr,
+                               .key = event.key};
+        m_root->when_key_release.run(new_ev);
     }
 
     void Application::handle_move(const PointerEvent &event)
@@ -179,7 +192,12 @@ namespace horizon
         {
             if (m_hovered)
             {
-                m_hovered->on_mouse_leave();
+                EventContext new_ev = {.sender = m_hovered,
+                                       .type = EventType::MouseLeave,
+                                       .button = event.button,
+                                       .stop_propagation = false,
+                                       .data = nullptr};
+                m_hovered->when_mouse_leave.run(new_ev);
                 m_hovered = nullptr;
             }
 
@@ -206,13 +224,25 @@ namespace horizon
             if (under != m_hovered)
             {
                 if (m_hovered)
-                    m_hovered->on_mouse_leave();
+                {
+                    EventContext new_ev = {.sender = m_hovered,
+                                           .type = EventType::MouseLeave,
+                                           .button = event.button,
+                                           .stop_propagation = false,
+                                           .data = nullptr};
+                    m_hovered->when_mouse_leave.run(new_ev);
+                }
 
                 m_hovered = under;
 
                 if (m_hovered)
                 {
-                    m_hovered->on_mouse_enter();
+                    EventContext new_ev = {.sender = m_hovered,
+                                           .type = EventType::MouseEnter,
+                                           .button = event.button,
+                                           .stop_propagation = false,
+                                           .data = nullptr};
+                    m_hovered->when_mouse_enter.run(new_ev);
                     m_surface->set_cursor(m_hovered->cursor_type());
                 }
                 else
@@ -224,11 +254,21 @@ namespace horizon
 
         if (m_pressed)
         {
-            m_pressed->on_mouse_drag(event.x, event.y);
+            EventContext new_ev = {.sender = m_pressed,
+                                   .type = EventType::MouseDrag,
+                                   .button = event.button,
+                                   .stop_propagation = false,
+                                   .data = nullptr};
+            m_pressed->when_mouse_drag.run(new_ev);
         }
         else if (m_hovered)
         {
-            m_hovered->on_mouse_hover(event.x, event.y);
+            EventContext new_ev = {.sender = m_hovered,
+                                   .type = EventType::MouseHover,
+                                   .button = event.button,
+                                   .stop_propagation = false,
+                                   .data = nullptr};
+            m_hovered->when_mouse_hover.run(new_ev);
         }
     }
 
@@ -250,7 +290,15 @@ namespace horizon
         if (under)
         {
             m_pressed = under;
-            m_pressed->on_mouse_press(event.button);
+
+            EventContext new_ev = {.sender = m_pressed,
+                                   .type = EventType::MousePress,
+                                   .button = event.button,
+                                   .stop_propagation = false,
+                                   .data = nullptr};
+
+            m_pressed->when_mouse_press.run(new_ev);
+            // m_pressed->on_mouse_press(event.button);
         }
     }
 
@@ -258,7 +306,13 @@ namespace horizon
     {
         if (m_pressed)
         {
-            m_pressed->on_mouse_release(event.button);
+            EventContext new_ev = {.sender = m_pressed,
+                                   .type = EventType::MouseRelease,
+                                   .button = event.button,
+                                   .stop_propagation = false,
+                                   .data = nullptr};
+
+            m_pressed->when_mouse_release.run(new_ev);
             m_pressed = nullptr;
         }
     }

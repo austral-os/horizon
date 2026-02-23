@@ -1,3 +1,4 @@
+#include "horizon/EventsManager.hpp"
 #include "horizon/Widget.hpp"
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
@@ -42,8 +43,9 @@ namespace horizon
 
         if (m_close_button)
         {
-            m_close_button->set_on_click(
-                [this]()
+
+            m_close_button->when_mouse_press.connect(
+                [this](EventContext &context)
                 {
                     if (application())
                     {
@@ -54,8 +56,8 @@ namespace horizon
 
         if (m_minimize_button)
         {
-            m_minimize_button->set_on_click(
-                [this]()
+            m_minimize_button->when_mouse_press.connect(
+                [this](EventContext &context)
                 {
                     if (application())
                     {
@@ -66,8 +68,9 @@ namespace horizon
 
         if (m_maximize_button)
         {
-            m_maximize_button->set_on_click(
-                [this]()
+
+            m_maximize_button->when_mouse_press.connect(
+                [this](EventContext &context)
                 {
                     if (application())
                     {
@@ -83,9 +86,10 @@ namespace horizon
                 });
         }
 
-        add_on_mouse_press([this](int) { m_dragging_requested = false; });
-        add_on_mouse_drag(
-            [this](int x, int y)
+        when_mouse_press.connect([this](EventContext &context) { m_dragging_requested = false; });
+
+        when_mouse_drag.connect(
+            [this](EventContext &context)
             {
                 if (!m_dragging_requested && application())
                 {
@@ -93,7 +97,8 @@ namespace horizon
                     m_dragging_requested = true;
                 }
             });
-        add_on_mouse_release([this](int) { m_dragging_requested = false; });
+
+        when_mouse_release.connect([this](EventContext &context) { m_dragging_requested = false; });
 
         add_child(std::move(close_button));
         add_child(std::move(minimize_button));

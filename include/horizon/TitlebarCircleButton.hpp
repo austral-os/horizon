@@ -13,7 +13,6 @@ namespace horizon
         ~TitlebarCircleButton();
 
         void draw(GraphicsContext &gc) override;
-        void on_mouse_press(int button) override;
 
     private:
         Color m_bg_color;
