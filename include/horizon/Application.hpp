@@ -1,5 +1,7 @@
 #include "horizon/WaylandEventListener.hpp"
+#include <functional>
 #include <horizon/WaylandSurface.hpp>
+#include <map>
 #include <memory>
 
 #pragma once // Solo se incluye una vez.
@@ -102,13 +104,24 @@ namespace horizon
          * @param event The pointer event details.
          */
         void on_pointer_event(const PointerEvent &event) override;
-
-        /**
-         * @brief Implementation of the WaylandEventListener keyboard event callback.
-         * @param event The keyboard event details.
-         */
         void on_key_event(const KeyEvent &event) override;
         void on_resize(int width, int height) override;
+
+        // --- Application Events (Multi-Callback) ---
+        size_t add_on_start(std::function<void()> handler);
+        void remove_on_start(size_t id);
+
+        size_t add_on_exit(std::function<void()> handler);
+        void remove_on_exit(size_t id);
+
+        size_t add_on_resize(std::function<void(int, int)> handler);
+        void remove_on_resize(size_t id);
+
+        size_t add_on_maximize(std::function<void(bool)> handler);
+        void remove_on_maximize(size_t id);
+
+        size_t add_on_minimize(std::function<void()> handler);
+        void remove_on_minimize(size_t id);
 
     private:
         /**
@@ -158,5 +171,14 @@ namespace horizon
          * @brief Internal handler for keyboard key release events.
          */
         void handle_key_release(const KeyEvent &event);
+
+        // Handler maps
+        std::map<size_t, std::function<void()>> m_on_start_handlers;
+        std::map<size_t, std::function<void()>> m_on_exit_handlers;
+        std::map<size_t, std::function<void(int, int)>> m_on_resize_handlers;
+        std::map<size_t, std::function<void(bool)>> m_on_maximize_handlers;
+        std::map<size_t, std::function<void()>> m_on_minimize_handlers;
+
+        size_t m_next_app_handler_id{0};
     };
 } // namespace horizon

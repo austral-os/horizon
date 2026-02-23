@@ -88,6 +88,12 @@ namespace horizon
             m_root->set_size(width, height);
         }
         m_dirty = true;
+
+        for (auto const &[id, handler] : m_on_resize_handlers)
+        {
+            if (handler)
+                handler(width, height);
+        }
     }
 
     void Application::on_key_event(const KeyEvent &event)
@@ -270,6 +276,12 @@ namespace horizon
     {
         m_is_running = true;
 
+        for (auto const &[id, handler] : m_on_start_handlers)
+        {
+            if (handler)
+                handler();
+        }
+
         while (m_is_running && wl_display_dispatch(m_surface->display()) != -1)
         {
             if (m_dirty && m_root)
@@ -287,8 +299,6 @@ namespace horizon
         }
 
         quit();
-
-        std::cout << "Application finished." << std::endl;
     }
 
     void Application::request_move()
@@ -304,6 +314,11 @@ namespace horizon
         if (m_surface)
         {
             m_surface->request_maximize();
+            for (auto const &[id, handler] : m_on_maximize_handlers)
+            {
+                if (handler)
+                    handler(true);
+            }
         }
     }
 
@@ -312,6 +327,11 @@ namespace horizon
         if (m_surface)
         {
             m_surface->request_minimize();
+            for (auto const &[id, handler] : m_on_minimize_handlers)
+            {
+                if (handler)
+                    handler();
+            }
         }
     }
 
@@ -320,6 +340,11 @@ namespace horizon
         if (m_surface)
         {
             m_surface->request_restore();
+            for (auto const &[id, handler] : m_on_maximize_handlers)
+            {
+                if (handler)
+                    handler(false);
+            }
         }
     }
 
@@ -330,9 +355,72 @@ namespace horizon
 
     void Application::quit()
     {
-        m_is_running = false;
+        if (m_is_running)
+        {
+            m_is_running = false;
+            for (auto const &[id, handler] : m_on_exit_handlers)
+            {
+                if (handler)
+                    handler();
+            }
+        }
     }
 
     void Application::dispatch_events() {}
+
+    size_t Application::add_on_start(std::function<void()> handler)
+    {
+        size_t id = m_next_app_handler_id++;
+        m_on_start_handlers[id] = handler;
+        return id;
+    }
+    void Application::remove_on_start(size_t id)
+    {
+        m_on_start_handlers.erase(id);
+    }
+
+    size_t Application::add_on_exit(std::function<void()> handler)
+    {
+        size_t id = m_next_app_handler_id++;
+        m_on_exit_handlers[id] = handler;
+        return id;
+    }
+    void Application::remove_on_exit(size_t id)
+    {
+        m_on_exit_handlers.erase(id);
+    }
+
+    size_t Application::add_on_resize(std::function<void(int, int)> handler)
+    {
+        size_t id = m_next_app_handler_id++;
+        m_on_resize_handlers[id] = handler;
+        return id;
+    }
+    void Application::remove_on_resize(size_t id)
+    {
+        m_on_resize_handlers.erase(id);
+    }
+
+    size_t Application::add_on_maximize(std::function<void(bool)> handler)
+    {
+        size_t id = m_next_app_handler_id++;
+        m_on_maximize_handlers[id] = handler;
+        return id;
+    }
+    void Application::remove_on_maximize(size_t id)
+    {
+        m_on_maximize_handlers.erase(id);
+    }
+
+    size_t Application::add_on_minimize(std::function<void()> handler)
+    {
+        size_t id = m_next_app_handler_id++;
+        m_on_minimize_handlers[id] = handler;
+        return id;
+    }
+    void Application::remove_on_minimize(size_t id)
+    {
+        m_on_minimize_handlers.erase(id);
+    }
 
 } // namespace horizon
