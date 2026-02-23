@@ -8,7 +8,7 @@ int main()
     {
         horizon::Application app(800, 600);
 
-        auto wnd = std::make_unique<horizon::Window>("Minimal");
+        auto wnd = std::make_unique<horizon::Window>("Horizon Application toolkit demo");
         wnd->set_size(800, 600);
 
         app.set_root(std::move(wnd));
