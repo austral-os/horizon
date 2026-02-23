@@ -552,6 +552,14 @@ namespace horizon
         }
     }
 
+    void WaylandSurface::request_resize(uint32_t serial, uint32_t edge)
+    {
+        if (m_xdg_toplevel && m_seat)
+        {
+            xdg_toplevel_resize(m_xdg_toplevel, m_seat, serial, edge);
+        }
+    }
+
     void WaylandSurface::request_maximize()
     {
         if (m_xdg_toplevel)
@@ -601,6 +609,18 @@ namespace horizon
             break;
         case CursorType::Help:
             names = {"question_arrow", "help", "whats_this"};
+            break;
+        case CursorType::ResizeNS:
+            names = {"n-resize", "s-resize", "v_double_arrow", "ns-resize", "size_ver"};
+            break;
+        case CursorType::ResizeEW:
+            names = {"e-resize", "w-resize", "h_double_arrow", "ew-resize", "size_hor"};
+            break;
+        case CursorType::ResizeNESW:
+            names = {"ne-resize", "sw-resize", "size_bdiag", "nesw-resize"};
+            break;
+        case CursorType::ResizeNWSE:
+            names = {"nw-resize", "se-resize", "size_fdiag", "nwse-resize"};
             break;
         default:
             names = {"left_ptr"};

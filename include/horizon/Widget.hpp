@@ -28,7 +28,11 @@ namespace horizon
         Text,
         Move,
         Wait,
-        Help
+        Help,
+        ResizeNS,
+        ResizeEW,
+        ResizeNESW,
+        ResizeNWSE
     };
 
     class Widget

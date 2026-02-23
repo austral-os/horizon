@@ -201,6 +201,13 @@ namespace horizon
         void request_move(uint32_t serial);
 
         /**
+         * @brief Requests the compositor to start an interactive window resize operation.
+         * @param serial The serial of the button press event that initiated the resize.
+         * @param edge The edge or corner to resize from (see xdg_toplevel_resize_edge).
+         */
+        void request_resize(uint32_t serial, uint32_t edge);
+
+        /**
          * @return The serial of the last handled input event.
          */
         uint32_t last_serial() const;

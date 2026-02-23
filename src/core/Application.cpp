@@ -3,6 +3,7 @@
 #include <cstring>
 #include <horizon/Application.hpp>
 #include <horizon/Window.hpp>
+#include <horizon/xdg-shell-client-protocol.h>
 #include <iostream>
 #include <linux/input-event-codes.h>
 #include <wayland-client-core.h>
@@ -136,23 +137,82 @@ namespace horizon
         if (!m_root)
             return;
 
-        Widget *under = m_root->hit_test(event.x, event.y);
+        m_pointer_x = event.x;
+        m_pointer_y = event.y;
 
-        if (under != m_hovered)
+        // Detectar borde para redimensionado
+        uint32_t edge = XDG_TOPLEVEL_RESIZE_EDGE_NONE;
+        if (!is_maximized())
+        {
+            bool top = event.y < m_resize_proximity;
+            bool bottom = event.y > m_surface->height() - m_resize_proximity;
+            bool left = event.x < m_resize_proximity;
+            bool right = event.x > m_surface->width() - m_resize_proximity;
+
+            if (top && left)
+                edge = XDG_TOPLEVEL_RESIZE_EDGE_TOP_LEFT;
+            else if (top && right)
+                edge = XDG_TOPLEVEL_RESIZE_EDGE_TOP_RIGHT;
+            else if (bottom && left)
+                edge = XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_LEFT;
+            else if (bottom && right)
+                edge = XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_RIGHT;
+            else if (top)
+                edge = XDG_TOPLEVEL_RESIZE_EDGE_TOP;
+            else if (bottom)
+                edge = XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM;
+            else if (left)
+                edge = XDG_TOPLEVEL_RESIZE_EDGE_LEFT;
+            else if (right)
+                edge = XDG_TOPLEVEL_RESIZE_EDGE_RIGHT;
+        }
+
+        m_resize_edge = edge;
+
+        if (m_resize_edge != XDG_TOPLEVEL_RESIZE_EDGE_NONE)
         {
             if (m_hovered)
+            {
                 m_hovered->on_mouse_leave();
-
-            m_hovered = under;
-
-            if (m_hovered)
-            {
-                m_hovered->on_mouse_enter();
-                m_surface->set_cursor(m_hovered->cursor_type());
+                m_hovered = nullptr;
             }
-            else
+
+            CursorType cursor = CursorType::Default;
+            if (m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_TOP ||
+                m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM)
+                cursor = CursorType::ResizeNS;
+            else if (m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_LEFT ||
+                     m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_RIGHT)
+                cursor = CursorType::ResizeEW;
+            else if (m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_TOP_RIGHT ||
+                     m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_LEFT)
+                cursor = CursorType::ResizeNESW;
+            else if (m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_TOP_LEFT ||
+                     m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_RIGHT)
+                cursor = CursorType::ResizeNWSE;
+
+            m_surface->set_cursor(cursor);
+        }
+        else
+        {
+            Widget *under = m_root->hit_test(event.x, event.y);
+
+            if (under != m_hovered)
             {
-                m_surface->set_cursor(CursorType::Default);
+                if (m_hovered)
+                    m_hovered->on_mouse_leave();
+
+                m_hovered = under;
+
+                if (m_hovered)
+                {
+                    m_hovered->on_mouse_enter();
+                    m_surface->set_cursor(m_hovered->cursor_type());
+                }
+                else
+                {
+                    m_surface->set_cursor(CursorType::Default);
+                }
             }
         }
 
@@ -171,11 +231,18 @@ namespace horizon
         if (!m_root)
             return;
 
+        m_last_serial = event.serial;
+
+        if (m_resize_edge != XDG_TOPLEVEL_RESIZE_EDGE_NONE)
+        {
+            m_surface->request_resize(event.serial, m_resize_edge);
+            return;
+        }
+
         Widget *under = m_root->hit_test(event.x, event.y);
 
         if (under)
         {
-            m_last_serial = event.serial;
             m_pressed = under;
             m_pressed->on_mouse_press(event.button);
         }

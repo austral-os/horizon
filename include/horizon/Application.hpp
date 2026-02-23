@@ -131,6 +131,9 @@ namespace horizon
         double m_pointer_y = 0.0;   /**< Last known Y position of the pointer. */
         uint32_t m_last_serial = 0; /**< Last received Wayland serial. */
 
+        uint32_t m_resize_edge = 0;       /**< Current edge being hovered for resize. */
+        const int m_resize_proximity = 8; /**< Distance to edge to trigger resize. */
+
         /**
          * @brief Internal handler for pointer movement events.
          */
