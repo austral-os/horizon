@@ -83,6 +83,18 @@ namespace horizon
                 });
         }
 
+        add_on_mouse_press([this](int) { m_dragging_requested = false; });
+        add_on_mouse_drag(
+            [this](int x, int y)
+            {
+                if (!m_dragging_requested && application())
+                {
+                    application()->request_move();
+                    m_dragging_requested = true;
+                }
+            });
+        add_on_mouse_release([this](int) { m_dragging_requested = false; });
+
         add_child(std::move(close_button));
         add_child(std::move(minimize_button));
         add_child(std::move(maximize_button));
@@ -126,22 +138,4 @@ namespace horizon
         gc.drawText(text_x, text_y, m_title.c_str());
     }
 
-    void Titlebar::on_mouse_press(int button)
-    {
-        m_dragging_requested = false;
-    }
-
-    void Titlebar::on_mouse_drag(int x, int y)
-    {
-        if (!m_dragging_requested && application())
-        {
-            application()->request_move();
-            m_dragging_requested = true;
-        }
-    }
-
-    void Titlebar::on_mouse_release(int button)
-    {
-        m_dragging_requested = false;
-    }
 } // namespace horizon

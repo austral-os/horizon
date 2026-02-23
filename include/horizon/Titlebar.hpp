@@ -18,10 +18,6 @@ namespace horizon
         void render(GraphicsContext &gc) override;
         void draw(GraphicsContext &gc) override;
 
-        void on_mouse_press(int button) override;
-        void on_mouse_drag(int x, int y) override;
-        void on_mouse_release(int button) override;
-
     private:
         std::string m_title;
         bool m_dragging_requested = false;
