@@ -33,17 +33,9 @@ namespace horizon
         // gc.fillGradientCircle(center_x, center_y, radius, m_bg_color, {0.0f, 0.0f, 0.0f, 0.5f});
     }
 
-    void TitlebarCircleButton::set_on_click(std::function<void()> on_click)
-    {
-        m_on_click = on_click;
-    }
-
     void TitlebarCircleButton::on_mouse_press(int button)
     {
-        if (m_on_click)
-        {
-            m_on_click();
-        }
+        Widget::on_mouse_press(button);
     }
 
 } // namespace horizon
