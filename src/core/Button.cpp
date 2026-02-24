@@ -12,7 +12,7 @@ namespace horizon
         int radius = m_height / 2;
 
         // Outer border (gray)
-        Color borderColor(0.2f, 0.2f, 0.2f, 1.0f);
+        Color borderColor(0.1f, 0.1f, 0.1f, 1.0f);
         gc.setColor(borderColor);
         gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height,
                     {radius, radius, radius, radius}, 1.0f);
