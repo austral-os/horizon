@@ -95,11 +95,33 @@ Los temas se guardan en `~/.config/horizon/color-scheme.json`.
 ```json
 {
     "colors": {
-        "background": "#000000",
-        "foreground": "#ffffff",
-        "primary": "#00ff00",
-        "secondary": "#0000ff",
-        "accent": "#ff0000"
+        "light": {
+            "background": "#000000",
+            "foreground": "#ffffff",
+            "primary": "#00ff00",
+            "secondary": "#0000ff",
+            "accent": "#ff0000"
+        },
+        "dark": {
+            "background": "#000000",
+            "foreground": "#ffffff",
+            "primary": "#00ff00",
+            "secondary": "#0000ff",
+            "accent": "#ff0000"
+        }
+    },
+    "variant": "light",
+    "fonts": {
+        "titlebar": {
+            "family": "Sans",
+            "size": 12,
+            "weight": "bold"
+        },
+        "window": {
+            "family": "Sans",
+            "size": 12,
+            "weight": "normal"
+        }
     }
 }
 ```

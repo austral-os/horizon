@@ -1,10 +1,8 @@
-#include <cstdio>
-#include <horizon/ThemeManager.hpp>
-#include <sys/inotify.h>
-#include <unistd.h>
+#include "horizon/ThemeManager.hpp"
 
 #include <chrono>
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <sys/inotify.h>
 #include <unistd.h>
@@ -15,8 +13,11 @@ namespace horizon
 {
     static std::string get_config_path()
     {
-        const char *home = getenv("HOME");
-        return std::string(home) + "/.config/horizon/color-scheme.json";
+        const char *home = std::getenv("HOME");
+        if (!home)
+            return "./config.json";
+
+        return std::string(home) + "/.config/horizon/config.json";
     }
 
     ThemeManager::ThemeManager()
@@ -68,30 +69,58 @@ namespace horizon
     {
         std::lock_guard<std::mutex> lock(mutex);
 
-        auto it = colors.find(role);
-        if (it != colors.end())
-            return it->second;
+        auto scheme_it = color_schemes.find(active_variant);
+        if (scheme_it == color_schemes.end())
+            return Color();
 
-        Color col;
-        col.r = 0;
-        col.g = 0;
-        col.b = 0;
-        col.a = 255;
+        auto role_it = scheme_it->second.find(role);
+        if (role_it == scheme_it->second.end())
+            return Color();
 
-        return col;
+        return role_it->second;
     }
 
     void ThemeManager::set_color(const std::string &role, const Color &value)
     {
         {
             std::lock_guard<std::mutex> lock(mutex);
-            colors[role] = value;
+            color_schemes[active_variant][role] = value;
         }
 
         save();
 
         if (on_theme_changed)
             on_theme_changed();
+    }
+
+    std::string ThemeManager::get_variant() const
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        return active_variant;
+    }
+
+    void ThemeManager::set_variant(const std::string &variant_name)
+    {
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            active_variant = variant_name;
+        }
+
+        save();
+
+        if (on_theme_changed)
+            on_theme_changed();
+    }
+
+    font_definition ThemeManager::get_font(const std::string &role) const
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+
+        auto it = fonts.find(role);
+        if (it != fonts.end())
+            return it->second;
+
+        return font_definition{};
     }
 
     void ThemeManager::set_on_theme_changed(theme_changed_callback cb)
@@ -101,14 +130,41 @@ namespace horizon
 
     bool ThemeManager::parse_json(const json &j)
     {
-        if (!j.contains("colors"))
+        if (!j.contains("colors") || !j.contains("variant"))
             return false;
 
-        colors.clear();
+        color_schemes.clear();
+        fonts.clear();
 
-        for (auto &[key, value] : j["colors"].items())
+        // parse color schemes
+        for (auto &[scheme_name, scheme_value] : j["colors"].items())
         {
-            colors[key] = parse_hex(value.get<std::string>());
+            for (auto &[role, value] : scheme_value.items())
+            {
+                color_schemes[scheme_name][role] = parse_hex(value.get<std::string>());
+            }
+        }
+
+        active_variant = j["variant"].get<std::string>();
+
+        // parse fonts (optional)
+        if (j.contains("fonts"))
+        {
+            for (auto &[role, font_json] : j["fonts"].items())
+            {
+                font_definition fd;
+
+                if (font_json.contains("family"))
+                    fd.family = font_json["family"].get<std::string>();
+
+                if (font_json.contains("size"))
+                    fd.size = font_json["size"].get<int>();
+
+                if (font_json.contains("weight"))
+                    fd.weight = font_json["weight"].get<std::string>();
+
+                fonts[role] = fd;
+            }
         }
 
         if (on_theme_changed)
@@ -120,35 +176,61 @@ namespace horizon
     json ThemeManager::to_json() const
     {
         json j;
-        json color_object;
 
-        for (const auto &[key, value] : colors)
+        json color_root;
+
+        for (const auto &[scheme_name, scheme_map] : color_schemes)
         {
-            color_object[key] = to_hex(value);
+            json scheme_json;
+
+            for (const auto &[role, color] : scheme_map)
+            {
+                scheme_json[role] = to_hex(color);
+            }
+
+            color_root[scheme_name] = scheme_json;
         }
 
-        j["colors"] = color_object;
+        j["colors"] = color_root;
+        j["variant"] = active_variant;
+
+        json fonts_json;
+
+        for (const auto &[role, font] : fonts)
+        {
+            fonts_json[role] = {
+                {"family", font.family}, {"size", font.size}, {"weight", font.weight}};
+        }
+
+        j["fonts"] = fonts_json;
+
         return j;
     }
 
     Color ThemeManager::parse_hex(const std::string &hex)
     {
-        unsigned int r, g, b;
+        unsigned int r = 0, g = 0, b = 0;
+
         std::sscanf(hex.c_str(), "#%02x%02x%02x", &r, &g, &b);
 
         Color col;
-        col.r = static_cast<uint8_t>(r);
-        col.g = static_cast<uint8_t>(g);
-        col.b = static_cast<uint8_t>(b);
-        col.a = 255;
+        col.r = r / 255.0f;
+        col.g = g / 255.0f;
+        col.b = b / 255.0f;
+        col.a = 1.0f;
 
         return col;
     }
 
     std::string ThemeManager::to_hex(const Color &c)
     {
-        char buffer[8];
-        std::snprintf(buffer, sizeof(buffer), "#%02x%02x%02x", (int)c.r, (int)c.g, (int)c.b);
+        int r = static_cast<int>(c.r * 255.0f);
+        int g = static_cast<int>(c.g * 255.0f);
+        int b = static_cast<int>(c.b * 255.0f);
+
+        char buffer[16];
+        std::snprintf(buffer, sizeof(buffer), "#%02x%02x%02x", r, g, b);
+
         return std::string(buffer);
     }
 
@@ -162,6 +244,7 @@ namespace horizon
                                      IN_CLOSE_WRITE | IN_MOVED_TO | IN_DELETE_SELF);
 
         running = true;
+
         watcher_thread = std::thread(&ThemeManager::watch_loop, this);
     }
 
@@ -190,6 +273,7 @@ namespace horizon
             if (length > 0)
             {
                 std::this_thread::sleep_for(std::chrono::milliseconds(150));
+
                 load();
             }
         }

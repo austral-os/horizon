@@ -41,8 +41,6 @@ namespace horizon
     void Window::draw(GraphicsContext &gc)
     {
 
-        Color darkBlue(0.0f, 0.0f, 0.0f, 1.0f);
-        Color lightBlue(0.3f, 0.7f, 0.9f, 1.0f);
         Color brd(0.47f, 0.47f, 0.47f, 1.0f);
 
         Color bg(0.953f, 0.953f, 0.953f, 1.0f);

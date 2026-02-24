@@ -1,0 +1,35 @@
+{
+    "colors": {
+        "light": {
+            "titlebar_bg1": "#d8d8d8",
+            "titlebar_bg2" : "#fafafa",
+            "titlebar_fg" : "#000000",
+            "titlebar_border" : "#787878",
+            "window_bg1" : "#f3f3f3",
+            "window_bg2" : "#f0f0f0",
+            "window_border" : "#787878"
+        },
+        "dark": {
+            "titlebar_bg1": "#1e1e1e",
+            "titlebar_bg2" : "#252526",
+            "titlebar_fg" : "#ffffff",
+            "titlebar_border" : "#787878",
+            "window_bg1" : "#1e1e1e",
+            "window_bg2" : "#252526",
+            "window_border" : "#787878"
+        }
+    },
+    "variant": "light",
+    "fonts": {
+        "titlebar": {
+            "family": "Lucida Grande",
+            "size": 12,
+            "weight": "bold"
+        },
+        "window": {
+            "family": "Lucida Grande",
+            "size": 12,
+            "weight": "normal"
+        }
+    }
+}

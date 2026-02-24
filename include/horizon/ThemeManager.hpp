@@ -12,6 +12,13 @@
 
 namespace horizon
 {
+    struct font_definition
+    {
+        std::string family;
+        int size = 12;
+        std::string weight;
+    };
+
     class ThemeManager
     {
     public:
@@ -26,12 +33,23 @@ namespace horizon
         Color get_color(const std::string &role) const;
         void set_color(const std::string &role, const Color &value);
 
+        std::string get_variant() const;
+        void set_variant(const std::string &variant_name);
+
+        font_definition get_font(const std::string &role) const;
+
         void set_on_theme_changed(theme_changed_callback cb);
 
     private:
         std::string config_path;
 
-        std::unordered_map<std::string, Color> colors;
+        // scheme_name -> (role -> color)
+        std::unordered_map<std::string, std::unordered_map<std::string, Color>> color_schemes;
+
+        // role -> font
+        std::unordered_map<std::string, font_definition> fonts;
+
+        std::string active_variant;
 
         theme_changed_callback on_theme_changed;
 
