@@ -23,10 +23,10 @@ int main()
         auto btn = std::make_unique<horizon::Button>();
         auto btn2 = std::make_unique<horizon::Button>();
 
-        btn->set_text("Click me");
-        btn->set_fixed_size(50);
-        btn2->set_text("Click me");
-        btn2->set_fixed_size(50);
+        btn->set_text("Aceptar");
+        btn->set_fixed_size(40);
+        btn2->set_text("Cancelar");
+        btn2->set_fixed_size(40);
 
         container->add_child(std::move(spacer1));
         container->add_child(std::move(btn));

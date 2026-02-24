@@ -11,10 +11,16 @@ namespace horizon
     {
         int radius = m_height / 2;
 
-        // Outer border (gray)
-        Color borderColor(0.1f, 0.1f, 0.1f, 1.0f);
-        gc.setColor(borderColor);
+        // Borde exterior adicional (sombra inferior, color más claro que el negro)
+        Color shadowColor(0.4f, 0.4f, 0.4f, 1.0f);
+        gc.setColor(shadowColor);
         gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height,
+                    {radius, radius, radius, radius}, 1.0f);
+
+        // Outer border (gray/black)
+        Color borderColor(0.3f, 0.3f, 0.3f, 1.0f);
+        gc.setColor(borderColor);
+        gc.drawRect(m_start_draw_x, m_start_draw_y - 1, m_width, m_height - 1,
                     {radius, radius, radius, radius}, 1.0f);
 
         // Top half: gradient from white to very light gray (creates a glass reflection effect)
@@ -28,7 +34,7 @@ namespace horizon
         Color bot1(0.8f, 0.8f, 0.8f, 1.0f);
         Color bot2(0.97f, 0.97f, 0.97f, 1.0f);
         gc.fillLinearGradientRect(m_start_draw_x + 1, m_start_draw_y + 1 + halfHeight, m_width - 2,
-                                  m_height - 2 - halfHeight, bot1, bot2, true,
+                                  m_height - 4 - halfHeight, bot1, bot2, true,
                                   {0, 0, radius - 1, radius - 1});
 
         // Inner top highlight (simulates strong light reflection on top of the glass)
@@ -49,7 +55,7 @@ namespace horizon
                                                 FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
 
         int text_x = m_start_draw_x + (m_width / 2) - (metrics.width / 2);
-        int text_y = m_start_draw_y + (m_height / 2) + (metrics.height / 2) - 1;
+        int text_y = m_start_draw_y + (m_height / 2) + (metrics.height / 2) - 3;
 
         // Draw the text
         gc.setDrawFont("Lucida Grande", 20, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
