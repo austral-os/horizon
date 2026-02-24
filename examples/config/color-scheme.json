@@ -23,7 +23,7 @@
     "fonts": {
         "titlebar": {
             "family": "Lucida Grande",
-            "size": 12,
+            "size": 16,
             "weight": "bold"
         },
         "window": {

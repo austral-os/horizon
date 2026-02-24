@@ -42,15 +42,13 @@ namespace horizon
     void Window::draw(GraphicsContext &gc)
     {
 
-        Color test = application()->theme_manager->get_color("titlebar_bg1");
+        Color bg = application()->theme_manager->get_color("window_bg1");
+        Color bg2 = application()->theme_manager->get_color("window_bg2");
+        Color brd = application()->theme_manager->get_color("window_border");
 
-        printf("Color: %s\n", test.to_hex().c_str());
-        printf("variant: %s\n", application()->theme_manager->get_variant().c_str());
-
-        Color brd(0.47f, 0.47f, 0.47f, 1.0f);
-
-        Color bg(0.953f, 0.953f, 0.953f, 1.0f);
-        Color bg2(0.94f, 0.94f, 0.94f, 1.0f);
+        // Color brd(0.47f, 0.47f, 0.47f, 1.0f);
+        // Color bg(0.953f, 0.953f, 0.953f, 1.0f);
+        // Color bg2(0.94f, 0.94f, 0.94f, 1.0f);
 
         gc.setColor(bg);
         gc.fillRect(m_start_draw_x, m_start_draw_y, m_available_draw_width, m_available_draw_height,
