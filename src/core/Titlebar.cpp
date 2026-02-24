@@ -139,7 +139,7 @@ namespace horizon
                                                 FONT_SLANT_NORMAL, FONT_WEIGHT_BOLD);
 
         int text_x = (m_width / 2) - (metrics.width / 2);
-        int text_y = (m_height / 2) + (metrics.height / 2);
+        int text_y = (m_height / 2) + (metrics.height / 2) - 1;
 
         gc.setDrawFont(font.family.c_str(), font.size, FONT_SLANT_NORMAL, FONT_WEIGHT_BOLD);
         gc.setColor(title_fg);
