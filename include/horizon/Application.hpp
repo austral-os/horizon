@@ -1,3 +1,4 @@
+#include "horizon/ThemeManager.hpp"
 #include "horizon/WaylandEventListener.hpp"
 #include <functional>
 #include <horizon/WaylandSurface.hpp>
@@ -50,6 +51,8 @@ namespace horizon
          * @return Reference to this application.
          */
         Application &operator=(Application &&) noexcept;
+
+        std::unique_ptr<ThemeManager> theme_manager;
 
         /**
          * @brief Sets the root widget of the application's widget tree.

@@ -1,3 +1,4 @@
+#include "horizon/Application.hpp"
 #include "horizon/Widget.hpp"
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Window.hpp>
@@ -40,6 +41,11 @@ namespace horizon
 
     void Window::draw(GraphicsContext &gc)
     {
+
+        Color test = application()->theme_manager->get_color("titlebar_bg1");
+
+        printf("Color: %s\n", test.to_hex().c_str());
+        printf("variant: %s\n", application()->theme_manager->get_variant().c_str());
 
         Color brd(0.47f, 0.47f, 0.47f, 1.0f);
 

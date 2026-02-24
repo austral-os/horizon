@@ -29,7 +29,10 @@ namespace horizon
         AppExit,
         AppResize,
         AppMaximize,
-        AppMinimize
+        AppMinimize,
+
+        // Theme Events
+        ThemeChanged,
     };
 
     /**

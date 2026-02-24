@@ -1,4 +1,5 @@
 #include "horizon/ThemeManager.hpp"
+#include "horizon/EventsManager.hpp"
 
 #include <chrono>
 #include <cstdio>
@@ -89,8 +90,11 @@ namespace horizon
 
         save();
 
-        if (on_theme_changed)
-            on_theme_changed();
+        EventContext ev = {
+            .type = EventType::ThemeChanged,
+        };
+
+        when_change.run(ev);
     }
 
     std::string ThemeManager::get_variant() const
@@ -108,8 +112,11 @@ namespace horizon
 
         save();
 
-        if (on_theme_changed)
-            on_theme_changed();
+        EventContext ev = {
+            .type = EventType::ThemeChanged,
+        };
+
+        when_change.run(ev);
     }
 
     font_definition ThemeManager::get_font(const std::string &role) const
@@ -121,11 +128,6 @@ namespace horizon
             return it->second;
 
         return font_definition{};
-    }
-
-    void ThemeManager::set_on_theme_changed(theme_changed_callback cb)
-    {
-        on_theme_changed = cb;
     }
 
     bool ThemeManager::parse_json(const json &j)
@@ -167,8 +169,11 @@ namespace horizon
             }
         }
 
-        if (on_theme_changed)
-            on_theme_changed();
+        EventContext ev = {
+            .type = EventType::ThemeChanged,
+        };
+
+        when_change.run(ev);
 
         return true;
     }

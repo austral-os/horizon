@@ -1,6 +1,7 @@
 #pragma once
 
 #include "horizon/Color.hpp"
+#include "horizon/EventsManager.hpp"
 #include <atomic>
 #include <functional>
 #include <mutex>
@@ -38,7 +39,7 @@ namespace horizon
 
         font_definition get_font(const std::string &role) const;
 
-        void set_on_theme_changed(theme_changed_callback cb);
+        EventsManager when_change;
 
     private:
         std::string config_path;
@@ -50,8 +51,6 @@ namespace horizon
         std::unordered_map<std::string, font_definition> fonts;
 
         std::string active_variant;
-
-        theme_changed_callback on_theme_changed;
 
         int inotify_fd = -1;
         int watch_fd = -1;
