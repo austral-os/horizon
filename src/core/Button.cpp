@@ -12,7 +12,7 @@ namespace horizon
         int radius = m_height / 2;
 
         // Outer border (gray)
-        Color borderColor(0.4f, 0.4f, 0.4f, 1.0f);
+        Color borderColor(0.2f, 0.2f, 0.2f, 1.0f);
         gc.setColor(borderColor);
         gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height,
                     {radius, radius, radius, radius}, 1.0f);
@@ -31,15 +31,28 @@ namespace horizon
                                   m_height - 2 - halfHeight, bot1, bot2, true,
                                   {0, 0, radius - 1, radius - 1});
 
+        // Inner top highlight (simulates strong light reflection on top of the glass)
+        int h_margin_x = radius / 4; // Margen a los lados para que el brillo sea más chico
+        int h_width = m_width - (h_margin_x * 2);
+        int h_height = halfHeight - 2;       // Un poco más chico que la altura de la mitad superior
+        int h_radius_top = radius - 2;       // El radio superior se adapta al botón
+        int h_radius_bot = h_radius_top / 2; // El radio inferior es mucho más curvo/chico
+
+        Color highlight(1.0f, 1.0f, 1.0f, 0.7f); // Blanco puro con un poco de transparencia
+        gc.fillLinearGradientRect(m_start_draw_x + h_margin_x, m_start_draw_y + 2, h_width,
+                                  h_height, Color(1.0f, 1.0f, 1.0f, 1.0f), // Blanco sólido arriba
+                                  Color(1.0f, 1.0f, 1.0f, 0.1f), // Blanco casi transparente abajo
+                                  true, {h_radius_top, h_radius_top, h_radius_bot, h_radius_bot});
+
         // Center the text
-        TextMetrics metrics = gc.getTextMetrics(m_text.c_str(), "Lucida Grande", 18,
-                                                FONT_SLANT_NORMAL, FONT_WEIGHT_BOLD);
+        TextMetrics metrics = gc.getTextMetrics(m_text.c_str(), "Lucida Grande", 20,
+                                                FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
 
         int text_x = m_start_draw_x + (m_width / 2) - (metrics.width / 2);
         int text_y = m_start_draw_y + (m_height / 2) + (metrics.height / 2) - 1;
 
         // Draw the text
-        gc.setDrawFont("Lucida Grande", 18, FONT_SLANT_NORMAL, FONT_WEIGHT_BOLD);
+        gc.setDrawFont("Lucida Grande", 20, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
         gc.setColor(Color(0.1f, 0.1f, 0.1f, 1.0f));
         gc.drawText(text_x, text_y, m_text.c_str());
     }
