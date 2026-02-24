@@ -1,5 +1,6 @@
 #include "horizon/ThemeManager.hpp"
 #include "horizon/WaylandEventListener.hpp"
+#include <atomic>
 #include <functional>
 #include <horizon/WaylandSurface.hpp>
 #include <map>
@@ -78,6 +79,11 @@ namespace horizon
         void quit();
 
         /**
+         * @brief Signals the application to wake up its event loop (e.g. from another thread).
+         */
+        void wakeup();
+
+        /**
          * @brief Requests a window move from the Wayland compositor.
          */
         void request_move();
@@ -134,9 +140,10 @@ namespace horizon
 
     private:
         std::unique_ptr<WaylandSurface>
-            m_surface;             /**< The Wayland surface representing the main window. */
-        bool m_is_running = false; /**< Flag indicating if the event loop is active. */
-        bool m_dirty = true;       /**< Flag indicating if the UI needs re-rendering. */
+            m_surface;                   /**< The Wayland surface representing the main window. */
+        bool m_is_running = false;       /**< Flag indicating if the event loop is active. */
+        std::atomic<bool> m_dirty{true}; /**< Flag indicating if the UI needs re-rendering. */
+        int m_wakeup_fd{-1};             /**< File descriptor for waking up the event loop. */
 
         std::unique_ptr<Widget> m_root; /**< The root of the UI widget hierarchy. */
 

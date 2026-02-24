@@ -8,6 +8,9 @@
 #include <horizon/xdg-shell-client-protocol.h>
 #include <iostream>
 #include <linux/input-event-codes.h>
+#include <poll.h>
+#include <sys/eventfd.h>
+#include <unistd.h>
 #include <wayland-client-core.h>
 #include <wayland-client-protocol.h>
 #include <wayland-client.h>
@@ -17,6 +20,8 @@ namespace horizon
 
     Application::Application(int w, int h)
     {
+        m_wakeup_fd = eventfd(0, EFD_NONBLOCK);
+
         // Inicialización del sistema
         m_surface = std::make_unique<WaylandSurface>(w, h);
         m_surface->init();
@@ -29,6 +34,7 @@ namespace horizon
             {
                 std::cout << "Theme changed" << std::endl;
                 m_dirty = true;
+                this->wakeup();
             });
     }
 
@@ -36,6 +42,8 @@ namespace horizon
     Application::Application(Application &&other) noexcept
         : m_is_running(other.m_is_running), m_root(std::move(other.m_root))
     {
+        m_wakeup_fd = other.m_wakeup_fd;
+        other.m_wakeup_fd = -1;
         other.m_is_running = false;
     }
 
@@ -45,11 +53,15 @@ namespace horizon
         if (this != &other)
         {
             m_surface->free();
+            if (m_wakeup_fd >= 0)
+                close(m_wakeup_fd);
 
             m_is_running = other.m_is_running;
             m_root = std::move(other.m_root);
+            m_wakeup_fd = other.m_wakeup_fd;
 
             other.m_is_running = false;
+            other.m_wakeup_fd = -1;
         }
         return *this;
     }
@@ -58,6 +70,10 @@ namespace horizon
     {
         // Limpieza
         m_surface->free();
+        if (m_wakeup_fd >= 0)
+        {
+            close(m_wakeup_fd);
+        }
     }
 
     void Application::on_pointer_event(const PointerEvent &event)
@@ -347,8 +363,16 @@ namespace horizon
                 handler();
         }
 
-        while (m_is_running && wl_display_dispatch(m_surface->display()) != -1)
+        struct pollfd fds[2];
+        fds[0].fd = wl_display_get_fd(m_surface->display());
+        fds[0].events = POLLIN;
+        fds[1].fd = m_wakeup_fd;
+        fds[1].events = POLLIN;
+
+        while (m_is_running)
         {
+            wl_display_dispatch_pending(m_surface->display());
+
             if (m_dirty && m_root)
             {
                 CairoGraphicContext ctx(m_surface->data(), m_surface->width(), m_surface->height());
@@ -361,9 +385,40 @@ namespace horizon
 
                 m_dirty = false;
             }
+
+            wl_display_flush(m_surface->display());
+
+            int ret = poll(fds, 2, -1);
+            if (ret > 0)
+            {
+                if (fds[0].revents & POLLIN)
+                {
+                    wl_display_dispatch(m_surface->display());
+                }
+                if (fds[1].revents & POLLIN)
+                {
+                    uint64_t val;
+                    if (read(m_wakeup_fd, &val, sizeof(val)) < 0)
+                    {
+                        // ignore error
+                    }
+                }
+            }
         }
 
         quit();
+    }
+
+    void Application::wakeup()
+    {
+        if (m_wakeup_fd >= 0)
+        {
+            uint64_t val = 1;
+            if (write(m_wakeup_fd, &val, sizeof(val)) < 0)
+            {
+                // ignore error
+            }
+        }
     }
 
     void Application::request_move()
