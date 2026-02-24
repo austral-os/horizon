@@ -13,10 +13,10 @@
             "titlebar_bg1": "#1e1e1e",
             "titlebar_bg2" : "#252526",
             "titlebar_fg" : "#ffffff",
-            "titlebar_border" : "#787878",
+            "titlebar_border" : "#585858",
             "window_bg1" : "#1e1e1e",
-            "window_bg2" : "#252526",
-            "window_border" : "#787878"
+            "window_bg2" : "#191919",
+            "window_border" : "#585858"
         }
     },
     "variant": "light",

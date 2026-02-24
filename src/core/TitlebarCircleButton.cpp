@@ -1,3 +1,4 @@
+#include "horizon/Application.hpp"
 #include "horizon/GraphicsContext.hpp"
 #include "horizon/Widget.hpp"
 #include <horizon/TitlebarCircleButton.hpp>
@@ -14,8 +15,13 @@ namespace horizon
     void TitlebarCircleButton::draw(GraphicsContext &gc)
     {
         // std::cout << "TitlebarCircleButton::draw" << std::endl;
-        Color border(0.4f, 0.4f, 0.4f, 1.0f);
-        Color border2(0.9f, 0.9f, 0.9f, 1.0f);
+
+        auto *tm = application()->theme_manager.get();
+        auto variant = tm->get_variant();
+
+        Color border = variant == "dark" ? tm->get_color("titlebar_border").darker(20.0f)
+                                         : tm->get_color("titlebar_border");
+        Color border2 = variant == "dark" ? border.lighter(20.0f) : border.lighter(90.0f);
 
         int radius = m_width / 2;
         int center_x = m_start_draw_x + m_height / 2 - radius;
