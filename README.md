@@ -125,3 +125,10 @@ Los temas se guardan en `~/.config/horizon/color-scheme.json`.
     }
 }
 ```
+
+## Ejecucion en modo DEBUG
+
+```bash
+    cd build
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-DDEBUG" .. && ninja && ./minimal
+```
