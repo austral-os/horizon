@@ -12,21 +12,21 @@ namespace horizon
         int radius = m_height / 2;
 
         // Outer border (gray)
-        Color borderColor(0.6f, 0.6f, 0.6f, 1.0f);
+        Color borderColor(0.4f, 0.4f, 0.4f, 1.0f);
         gc.setColor(borderColor);
         gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height,
                     {radius, radius, radius, radius}, 1.0f);
 
         // Top half: gradient from white to very light gray (creates a glass reflection effect)
-        Color top1(1.0f, 1.0f, 1.0f, 1.0f);
-        Color top2(0.92f, 0.92f, 0.92f, 1.0f);
+        Color top1(0.85f, 0.85f, 0.85f, 1.0f);
+        Color top2(0.8f, 0.8f, 0.8f, 1.0f);
         int halfHeight = m_height / 2;
         gc.fillLinearGradientRect(m_start_draw_x + 1, m_start_draw_y + 1, m_width - 2, halfHeight,
                                   top1, top2, true, {radius - 1, radius - 1, 0, 0});
 
         // Bottom half: gradient starting slightly darker and lightening towards the bottom
-        Color bot1(0.85f, 0.85f, 0.85f, 1.0f);
-        Color bot2(0.94f, 0.94f, 0.94f, 1.0f);
+        Color bot1(0.8f, 0.8f, 0.8f, 1.0f);
+        Color bot2(0.97f, 0.97f, 0.97f, 1.0f);
         gc.fillLinearGradientRect(m_start_draw_x + 1, m_start_draw_y + 1 + halfHeight, m_width - 2,
                                   m_height - 2 - halfHeight, bot1, bot2, true,
                                   {0, 0, radius - 1, radius - 1});

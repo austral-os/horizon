@@ -43,4 +43,12 @@ add_executable(minimal
 target_link_libraries(minimal
     PRIVATE
         horizon
-)   
+)
+
+# Agregamos un target "run" para compilar y ejecutar de una vez
+add_custom_target(run
+    COMMAND $<TARGET_FILE:minimal>
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    DEPENDS minimal
+    COMMENT "Ejecutando la demo minimal..."
+)
