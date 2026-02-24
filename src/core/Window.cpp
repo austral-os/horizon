@@ -42,13 +42,9 @@ namespace horizon
     void Window::draw(GraphicsContext &gc)
     {
 
-        Color bg = application()->theme_manager->get_color("window_bg1");
-        Color bg2 = application()->theme_manager->get_color("window_bg2");
+        Color bg = application()->theme_manager->get_color("window_bg");
+        Color bg2 = bg.lighter(1.0f);
         Color brd = application()->theme_manager->get_color("window_border");
-
-        // Color brd(0.47f, 0.47f, 0.47f, 1.0f);
-        // Color bg(0.953f, 0.953f, 0.953f, 1.0f);
-        // Color bg2(0.94f, 0.94f, 0.94f, 1.0f);
 
         gc.setColor(bg);
         gc.fillRect(m_start_draw_x, m_start_draw_y, m_available_draw_width, m_available_draw_height,
@@ -59,7 +55,7 @@ namespace horizon
 
         // Dibujamos rectangulos horizontales oscuros cada 10 pixeles
         int titlebar_height = 30;
-        int pattern_size = 5;
+        int pattern_size = 4;
         int pattern_count = (m_height - titlebar_height) / (pattern_size * 2);
         int pattern_y = titlebar_height;
 
