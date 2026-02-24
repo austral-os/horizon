@@ -87,6 +87,10 @@ namespace horizon
 */
         int radius = m_height / 2;
 
+        // clear background
+        gc.setColor(window_bg);
+        gc.fillRect(m_x, m_y, m_width, m_height);
+
         // Borde exterior adicional (sombra inferior, color más claro que el negro)
         gc.setColor(shadow_color);
         gc.drawRect(m_start_draw_x, m_start_draw_y - 1, m_width, m_height,
