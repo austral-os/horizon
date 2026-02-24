@@ -1,11 +1,11 @@
 #pragma once
-#include <horizon/Widget.hpp>
+#include <horizon/AquaObject.hpp>
 #include <string>
 
 namespace horizon
 {
 
-    class Button : public Widget
+    class Button : public AquaObject
     {
     public:
         Button();
