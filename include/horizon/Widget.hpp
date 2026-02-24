@@ -37,6 +37,17 @@ namespace horizon
         ResizeNWSE
     };
 
+    enum class WidgetAccentColor
+    {
+        Default,
+        Primary,
+        Secondary,
+        Success,
+        Warning,
+        Error,
+        Info
+    };
+
     class Widget
     {
     public:
@@ -53,6 +64,7 @@ namespace horizon
         void set_margin(int margin);
         void set_position_type(WidgetPositionTypes position_type);
         void set_layout_type(WidgetLayoutTypes layout_type);
+        void set_accent_color(WidgetAccentColor accent_color);
 
         int x() const;
         int y() const;
@@ -63,6 +75,7 @@ namespace horizon
         int margin() const;
         WidgetPositionTypes position_type() const;
         WidgetLayoutTypes layout_type() const;
+        WidgetAccentColor accent_color() const;
 
         // --- Estado ---
         void set_visible(bool visible);
@@ -165,6 +178,7 @@ namespace horizon
         int m_margin{0};
         WidgetPositionTypes m_position_type{FREE};
         WidgetLayoutTypes m_layout_type{WIDGET_LAYOUT_HORIZONTAL};
+        WidgetAccentColor m_accent_color{WidgetAccentColor::Default};
 
         bool m_visible{true};
         bool m_enabled{true};

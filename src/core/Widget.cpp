@@ -11,6 +11,7 @@ namespace horizon
         m_layout_type = WIDGET_LAYOUT_VERTICAL;
         m_position_type = FILL;
         set_cursor_type(CursorType::Default);
+        set_accent_color(WidgetAccentColor::Default);
 
         // Gestión de estados de interacción
         when_mouse_enter.connect(
@@ -221,6 +222,11 @@ namespace horizon
         m_layout_type = layout_type;
     }
 
+    void Widget::set_accent_color(WidgetAccentColor accent_color)
+    {
+        m_accent_color = accent_color;
+    }
+
     int Widget::x() const
     {
         return m_x;
@@ -261,6 +267,11 @@ namespace horizon
     WidgetLayoutTypes Widget::layout_type() const
     {
         return m_layout_type;
+    }
+
+    WidgetAccentColor Widget::accent_color() const
+    {
+        return m_accent_color;
     }
 
     void Widget::set_visible(bool visible)

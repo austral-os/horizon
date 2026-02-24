@@ -25,8 +25,11 @@ int main()
 
         btn->set_text("Aceptar");
         btn->set_fixed_size(40);
+        btn->set_accent_color(horizon::WidgetAccentColor::Primary);
+
         btn2->set_text("Cancelar");
         btn2->set_fixed_size(40);
+        btn2->set_accent_color(horizon::WidgetAccentColor::Default);
 
         container->add_child(std::move(spacer1));
         container->add_child(std::move(btn));
