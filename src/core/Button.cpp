@@ -29,18 +29,23 @@ namespace horizon
         auto *tm = application()->theme_manager.get();
         auto font = tm->get_font("window");
 
-        Color window_bg = tm->get_color("primary");
+        Color window_bg = tm->get_color("window_bg");
+        Color primary1 = tm->get_color("primary1");
+        Color primary2 = tm->get_color("primary2");
         Color window_fg = tm->get_color("window_fg");
         Color shadow_color = tm->get_color("window_border");
         Color border_color = shadow_color.darker(50.0f);
 
-        Color top1 = window_bg;
-        Color top2 = top1.lighter(50.f);
+        Color top1 = primary1;
+        Color top2 = primary2;
         Color bot1 = top2;
-        Color bot2 = window_bg.lighter(10.0f);
+        Color bot2 = primary2.lighter(10.0f);
         Color highlight = window_bg;
-        Color highlight2 = highlight.with_alpha(50.0f);
+        Color highlight2 = highlight.with_alpha(0.5f);
         Color text_color = window_fg;
+
+        printf("h1: %s\n", highlight.to_hex().c_str());
+        printf("h2: %s\n", highlight2.to_hex().c_str());
 
         int radius = m_height / 2;
 
@@ -54,11 +59,11 @@ namespace horizon
         gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height - 3,
                     {radius, radius, radius, radius}, 1.5f);
 
-        if (is_hovered())
+        /*if (is_hovered())
         {
             highlight = highlight.lighter(100.0f);
             highlight2 = highlight.with_alpha(50.0f);
-        }
+        }*/
 
         // Top half: gradient from white to very light gray (creates a glass reflection effect)
         int halfHeight = m_height / 2;
@@ -77,12 +82,11 @@ namespace horizon
         int h_radius_top = radius - 2;       // El radio superior se adapta al botón
         int h_radius_bot = h_radius_top / 2; // El radio inferior es mucho más curvo/chico
 
-        /* gc.fillLinearGradientRect(m_start_draw_x + h_margin_x, m_start_draw_y + 2, h_width,
-                                       h_height, highlight, // Blanco sólido arriba
-                                       highlight2,          // Blanco casi transparente abajo
-                                       true,
-                                       {h_radius_top, h_radius_top, h_radius_bot, h_radius_bot});
-        */
+        gc.fillLinearGradientRect(m_start_draw_x + h_margin_x, m_start_draw_y + 2, h_width,
+                                  h_height, highlight, // Blanco sólido arriba
+                                  highlight2,          // Blanco casi transparente abajo
+                                  true, {h_radius_top, h_radius_top, h_radius_bot, h_radius_bot});
+
         // Center the text
         TextMetrics metrics = gc.getTextMetrics(m_text.c_str(), font.family.c_str(), font.size,
                                                 FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);

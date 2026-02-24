@@ -8,7 +8,8 @@
             "window_bg" : "#f3f3f3",
             "window_fg" : "#212121",
             "window_border" : "#787878",
-            "primary" : "#2256ea"
+            "primary1" : "#1e4ce1",
+            "primary2" : "#61aff5"
         },
         "dark": {
             "titlebar_bg1": "#1e1e1e",

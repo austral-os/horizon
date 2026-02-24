@@ -74,8 +74,11 @@ namespace horizon
     {
         float h, s, v;
         to_hsv(h, s, v);
-        v += v * (percent / 100.f);
-        v = std::min(v, 1.f);
+
+        float factor = percent / 100.f;
+        v = v + (1.f - v) * factor;
+        s = s * (1.f - factor);
+
         float nr, ng, nb;
         hsv_to_rgb(h, s, v, nr, ng, nb);
         return Color(nr, ng, nb, a);
