@@ -76,6 +76,9 @@ namespace horizon
 
         bool has_focus() const;
 
+        bool is_hovered() const;
+        bool is_pressed() const;
+
         // --- Cursors ---
         void set_cursor_type(CursorType type);
         CursorType cursor_type() const;
@@ -128,6 +131,11 @@ namespace horizon
         // --- Render ---
         virtual void render(GraphicsContext &ctx);
 
+        /**
+         * @brief Invalidates this widget, requesting a selective repaint.
+         */
+        void invalidate();
+
         EventsManager when_mouse_press;
         EventsManager when_mouse_enter;
         EventsManager when_mouse_leave;
@@ -140,6 +148,8 @@ namespace horizon
 
     protected:
         virtual void draw(GraphicsContext &ctx);
+
+        void set_application_recursive(Application *app);
 
         Widget *hit_test(int x, int y);
 
@@ -160,6 +170,8 @@ namespace horizon
         bool m_enabled{true};
         bool m_focusable{false};
         bool m_has_focus{false};
+        bool m_is_hovered{false};
+        bool m_is_pressed{false};
         CursorType m_cursor_type{CursorType::Default};
 
         int m_start_draw_x{0};          // Posicion inicial x donde se puede comenzar a dibujar.

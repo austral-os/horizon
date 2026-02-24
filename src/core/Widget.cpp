@@ -1,4 +1,6 @@
+#include <horizon/Application.hpp>
 #include <horizon/Widget.hpp>
+#include <iostream>
 #include <linux/input-event-codes.h>
 
 namespace horizon
@@ -9,6 +11,32 @@ namespace horizon
         m_layout_type = WIDGET_LAYOUT_VERTICAL;
         m_position_type = FILL;
         set_cursor_type(CursorType::Default);
+
+        // Gestión de estados de interacción
+        when_mouse_enter.connect(
+            [this](EventContext &)
+            {
+                m_is_hovered = true;
+                // invalidate(); //redibuja el widget
+            });
+        when_mouse_leave.connect(
+            [this](EventContext &)
+            {
+                m_is_hovered = false;
+                // invalidate();
+            });
+        when_mouse_press.connect(
+            [this](EventContext &)
+            {
+                m_is_pressed = true;
+                // invalidate();
+            });
+        when_mouse_release.connect(
+            [this](EventContext &)
+            {
+                m_is_pressed = false;
+                // invalidate();
+            });
     }
 
     Widget::~Widget() {}
@@ -133,7 +161,7 @@ namespace horizon
             return;
 
         child->m_parent = this;
-        child->m_app = m_app; // Propage application pointer
+        child->set_application_recursive(m_app);
         m_children.push_back(std::move(child));
     }
 
@@ -270,6 +298,16 @@ namespace horizon
         return m_has_focus;
     }
 
+    bool Widget::is_hovered() const
+    {
+        return m_is_hovered;
+    }
+
+    bool Widget::is_pressed() const
+    {
+        return m_is_pressed;
+    }
+
     void Widget::set_cursor_type(CursorType type)
     {
         m_cursor_type = type;
@@ -281,5 +319,23 @@ namespace horizon
     }
 
     void Widget::draw(GraphicsContext &) {}
+
+    void Widget::set_application_recursive(Application *app)
+    {
+        m_app = app;
+        for (auto &child : m_children)
+        {
+            child->set_application_recursive(app);
+        }
+    }
+
+    void Widget::invalidate()
+    {
+        Application *app = application();
+        if (app)
+        {
+            app->invalidate(this);
+        }
+    }
 
 } // namespace horizon

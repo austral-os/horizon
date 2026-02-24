@@ -30,6 +30,7 @@ namespace horizon
         // generacion de variantes
         Color lighter(float percent) const; // 0-100
         Color darker(float percent) const;
+        Color with_alpha(float alpha) const; // 0-1
 
     private:
         static void hsv_to_rgb(float h, float s, float v, float &r, float &g, float &b);

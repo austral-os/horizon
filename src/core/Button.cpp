@@ -2,13 +2,33 @@
 #include <horizon/Button.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Widget.hpp>
+#include <iostream>
 
 namespace horizon
 {
-    Button::Button() : Widget() {}
+    Button::Button() : Widget()
+    {
+        when_mouse_enter.connect(
+            [this](EventContext &)
+            {
+                // Redibuja el widget
+                invalidate();
+            });
+        when_mouse_leave.connect(
+            [this](EventContext &)
+            {
+                // Redibuja el widget
+                invalidate();
+            });
+    }
 
     void Button::draw(GraphicsContext &gc)
     {
+        std::cout << "Drawing button" << std::endl;
+
+        Color highlight(0.95f, 0.95f, 0.95f, 1.0f);
+        Color highlight2 = highlight.with_alpha(50.0f);
+
         int radius = m_height / 2;
 
         // Borde exterior adicional (sombra inferior, color más claro que el negro)
@@ -26,6 +46,17 @@ namespace horizon
         // Top half: gradient from white to very light gray (creates a glass reflection effect)
         Color top1(0.85f, 0.85f, 0.85f, 1.0f);
         Color top2(0.8f, 0.8f, 0.8f, 1.0f);
+
+        if (is_hovered())
+        {
+            std::cout << "Hovered" << std::endl;
+            // top1 = top1.lighter(50.0f);
+            // top2 = top2.lighter(50.0f);
+
+            highlight = highlight.lighter(100.0f);
+            highlight2 = highlight.with_alpha(50.0f);
+        }
+
         int halfHeight = m_height / 2;
         gc.fillLinearGradientRect(m_start_draw_x + 1, m_start_draw_y + 1, m_width - 2, halfHeight,
                                   top1, top2, true, {radius - 1, radius - 1, 0, 0});
@@ -44,10 +75,9 @@ namespace horizon
         int h_radius_top = radius - 2;       // El radio superior se adapta al botón
         int h_radius_bot = h_radius_top / 2; // El radio inferior es mucho más curvo/chico
 
-        Color highlight(1.0f, 1.0f, 1.0f, 0.7f); // Blanco puro con un poco de transparencia
         gc.fillLinearGradientRect(m_start_draw_x + h_margin_x, m_start_draw_y + 2, h_width,
-                                  h_height, Color(1.0f, 1.0f, 1.0f, 1.0f), // Blanco sólido arriba
-                                  Color(1.0f, 1.0f, 1.0f, 0.5f), // Blanco casi transparente abajo
+                                  h_height, highlight, // Blanco sólido arriba
+                                  highlight2,          // Blanco casi transparente abajo
                                   true, {h_radius_top, h_radius_top, h_radius_bot, h_radius_bot});
 
         // Center the text

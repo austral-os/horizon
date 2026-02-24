@@ -93,6 +93,12 @@ namespace horizon
         return Color(nr, ng, nb, a);
     }
 
+    // with_alpha
+    Color Color::with_alpha(float alpha) const
+    {
+        return Color(r, g, b, clamp(alpha));
+    }
+
     // HSV -> RGB
     void Color::hsv_to_rgb(float h, float s, float v, float &out_r, float &out_g, float &out_b)
     {

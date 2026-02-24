@@ -1,6 +1,7 @@
 #include "horizon/CairoGraphicsContext.hpp"
 #include "horizon/EventsManager.hpp"
 #include "horizon/Widget.hpp"
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <horizon/Application.hpp>
@@ -33,8 +34,7 @@ namespace horizon
             [this](EventContext &p)
             {
                 std::cout << "Theme changed" << std::endl;
-                m_dirty = true;
-                this->wakeup();
+                this->invalidate();
             });
     }
 
@@ -115,7 +115,7 @@ namespace horizon
         {
             m_root->set_size(width, height);
         }
-        m_dirty = true;
+        invalidate();
 
         for (auto const &[id, handler] : m_on_resize_handlers)
         {
@@ -219,12 +219,17 @@ namespace horizon
         {
             if (m_hovered)
             {
-                EventContext new_ev = {.sender = m_hovered,
-                                       .type = EventType::MouseLeave,
-                                       .button = event.button,
-                                       .stop_propagation = false,
-                                       .data = nullptr};
-                m_hovered->when_mouse_leave.run(new_ev);
+                Widget *temp = m_hovered;
+                while (temp)
+                {
+                    EventContext new_ev = {.sender = temp,
+                                           .type = EventType::MouseLeave,
+                                           .button = event.button,
+                                           .stop_propagation = false,
+                                           .data = nullptr};
+                    temp->when_mouse_leave.run(new_ev);
+                    temp = temp->parent();
+                }
                 m_hovered = nullptr;
             }
 
@@ -250,26 +255,55 @@ namespace horizon
 
             if (under != m_hovered)
             {
-                if (m_hovered)
+                std::vector<Widget *> old_path;
+                Widget *temp = m_hovered;
+                while (temp)
                 {
-                    EventContext new_ev = {.sender = m_hovered,
-                                           .type = EventType::MouseLeave,
-                                           .button = event.button,
-                                           .stop_propagation = false,
-                                           .data = nullptr};
-                    m_hovered->when_mouse_leave.run(new_ev);
+                    old_path.push_back(temp);
+                    temp = temp->parent();
+                }
+
+                std::vector<Widget *> new_path;
+                temp = under;
+                while (temp)
+                {
+                    new_path.push_back(temp);
+                    temp = temp->parent();
+                }
+
+                // Send MouseLeave to widgets in old path that are NOT in new path
+                for (Widget *w : old_path)
+                {
+                    if (std::find(new_path.begin(), new_path.end(), w) == new_path.end())
+                    {
+                        EventContext leave_ev = {.sender = w,
+                                                 .type = EventType::MouseLeave,
+                                                 .button = event.button,
+                                                 .stop_propagation = false,
+                                                 .data = nullptr};
+                        w->when_mouse_leave.run(leave_ev);
+                    }
+                }
+
+                // Send MouseEnter to widgets in new path that were NOT in old path
+                for (auto it = new_path.rbegin(); it != new_path.rend(); ++it)
+                {
+                    Widget *w = *it;
+                    if (std::find(old_path.begin(), old_path.end(), w) == old_path.end())
+                    {
+                        EventContext enter_ev = {.sender = w,
+                                                 .type = EventType::MouseEnter,
+                                                 .button = event.button,
+                                                 .stop_propagation = false,
+                                                 .data = nullptr};
+                        w->when_mouse_enter.run(enter_ev);
+                    }
                 }
 
                 m_hovered = under;
 
                 if (m_hovered)
                 {
-                    EventContext new_ev = {.sender = m_hovered,
-                                           .type = EventType::MouseEnter,
-                                           .button = event.button,
-                                           .stop_propagation = false,
-                                           .data = nullptr};
-                    m_hovered->when_mouse_enter.run(new_ev);
                     m_surface->set_cursor(m_hovered->cursor_type());
                 }
                 else
@@ -349,7 +383,7 @@ namespace horizon
         m_root = std::move(root);
         if (m_root)
         {
-            m_root->m_app = this;
+            m_root->set_application_recursive(this);
         }
     }
 
@@ -373,7 +407,7 @@ namespace horizon
         {
             wl_display_dispatch_pending(m_surface->display());
 
-            if (m_dirty && m_root)
+            if (m_full_repaint && m_root)
             {
                 CairoGraphicContext ctx(m_surface->data(), m_surface->width(), m_surface->height());
                 m_root->render(ctx);
@@ -383,7 +417,25 @@ namespace horizon
                                   m_surface->height());
                 wl_surface_commit(m_surface->surface());
 
-                m_dirty = false;
+                m_full_repaint = false;
+                m_dirty_widgets.clear();
+            }
+            else if (!m_dirty_widgets.empty() && m_root)
+            {
+                CairoGraphicContext ctx(m_surface->data(), m_surface->width(), m_surface->height());
+
+                for (Widget *w : m_dirty_widgets)
+                {
+                    // Repintamos el widget (esto asume que el widget sabe su posición global)
+                    w->render(ctx);
+                    wl_surface_damage(m_surface->surface(), w->x(), w->y(), w->width(),
+                                      w->height());
+                }
+
+                ctx.flush();
+                wl_surface_attach(m_surface->surface(), m_surface->buffer(), 0, 0);
+                wl_surface_commit(m_surface->surface());
+                m_dirty_widgets.clear();
             }
 
             wl_display_flush(m_surface->display());
@@ -407,6 +459,23 @@ namespace horizon
         }
 
         quit();
+    }
+
+    void Application::invalidate(Widget *widget)
+    {
+        if (!widget)
+        {
+            m_full_repaint = true;
+        }
+        else
+        {
+            if (std::find(m_dirty_widgets.begin(), m_dirty_widgets.end(), widget) ==
+                m_dirty_widgets.end())
+            {
+                m_dirty_widgets.push_back(widget);
+            }
+        }
+        wakeup();
     }
 
     void Application::wakeup()

@@ -1,10 +1,10 @@
 #include "horizon/ThemeManager.hpp"
 #include "horizon/WaylandEventListener.hpp"
-#include <atomic>
 #include <functional>
 #include <horizon/WaylandSurface.hpp>
 #include <map>
 #include <memory>
+#include <vector>
 
 #pragma once // Solo se incluye una vez.
 
@@ -84,6 +84,12 @@ namespace horizon
         void wakeup();
 
         /**
+         * @brief Invalidates the entire application or a specific widget.
+         * @param widget The widget to invalidate. If nullptr, the entire window is repainted.
+         */
+        void invalidate(Widget *widget = nullptr);
+
+        /**
          * @brief Requests a window move from the Wayland compositor.
          */
         void request_move();
@@ -140,10 +146,13 @@ namespace horizon
 
     private:
         std::unique_ptr<WaylandSurface>
-            m_surface;                   /**< The Wayland surface representing the main window. */
-        bool m_is_running = false;       /**< Flag indicating if the event loop is active. */
-        std::atomic<bool> m_dirty{true}; /**< Flag indicating if the UI needs re-rendering. */
-        int m_wakeup_fd{-1};             /**< File descriptor for waking up the event loop. */
+            m_surface;             /**< The Wayland surface representing the main window. */
+        bool m_is_running = false; /**< Flag indicating if the event loop is active. */
+
+        bool m_full_repaint = true; /**< Flag indicating if the entire UI needs re-rendering. */
+        std::vector<Widget *> m_dirty_widgets; /**< List of widgets that need re-rendering. */
+
+        int m_wakeup_fd{-1}; /**< File descriptor for waking up the event loop. */
 
         std::unique_ptr<Widget> m_root; /**< The root of the UI widget hierarchy. */
 

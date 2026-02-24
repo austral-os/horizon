@@ -6,7 +6,8 @@
             "titlebar_fg" : "#212121",
             "titlebar_border" : "#787878",
             "window_bg" : "#f3f3f3",
-            "window_border" : "#787878"
+            "window_border" : "#787878",
+            "primary" : "#0078d4"
         },
         "dark": {
             "titlebar_bg1": "#1e1e1e",
@@ -14,7 +15,8 @@
             "titlebar_fg" : "#ffffff",
             "titlebar_border" : "#585858",
             "window_bg" : "#1e1e1e",
-            "window_border" : "#585858"
+            "window_border" : "#585858",
+            "primary" : "#0078d4"
         }
     },
     "variant": "light",
