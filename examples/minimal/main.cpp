@@ -22,6 +22,10 @@ int main()
 
         auto btn = std::make_unique<horizon::Button>();
         auto btn2 = std::make_unique<horizon::Button>();
+        auto btn3 = std::make_unique<horizon::Button>();
+        auto btn4 = std::make_unique<horizon::Button>();
+        auto btn5 = std::make_unique<horizon::Button>();
+        auto btn6 = std::make_unique<horizon::Button>();
 
         btn->set_text("Aceptar");
         btn->set_fixed_size(40);
@@ -31,9 +35,29 @@ int main()
         btn2->set_fixed_size(40);
         btn2->set_accent_color(horizon::WidgetAccentColor::Default);
 
+        btn3->set_text("Cancelar");
+        btn3->set_fixed_size(40);
+        btn3->set_accent_color(horizon::WidgetAccentColor::Success);
+
+        btn4->set_text("Cancelar");
+        btn4->set_fixed_size(40);
+        btn4->set_accent_color(horizon::WidgetAccentColor::Error);
+
+        btn5->set_text("Cancelar");
+        btn5->set_fixed_size(40);
+        btn5->set_accent_color(horizon::WidgetAccentColor::Info);
+
+        btn6->set_text("Cancelar");
+        btn6->set_fixed_size(40);
+        btn6->set_accent_color(horizon::WidgetAccentColor::Warning);
+
         container->add_child(std::move(spacer1));
         container->add_child(std::move(btn));
         container->add_child(std::move(btn2));
+        container->add_child(std::move(btn3));
+        container->add_child(std::move(btn4));
+        container->add_child(std::move(btn5));
+        container->add_child(std::move(btn6));
         container->add_child(std::move(spacer2));
 
         wnd->add_child(std::move(container));

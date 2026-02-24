@@ -14,14 +14,14 @@
             "primary2" : "#61aff5",
             "secondary1" : "#61aff5",
             "secondary2" : "#1e4ce1",
-            "success1" : "#61aff5",
-            "success2" : "#1e4ce1",
-            "warning1" : "#61aff5",
-            "warning2" : "#1e4ce1",
-            "error1" : "#61aff5",
-            "error2" : "#1e4ce1",
-            "info1" : "#61aff5",
-            "info2" : "#1e4ce1"
+            "success1" : "#1ee176",
+            "success2" : "#61f5a3",
+            "warning1" : "#e16b1e",
+            "warning2" : "#f59f61",
+            "error1" : "#e11e41",
+            "error2" : "#f5617f",
+            "info1" : "#e1d31e",
+            "info2" : "#f5de61"
         },
         "dark": {
             "titlebar_bg1": "#1e1e1e",
@@ -37,17 +37,17 @@
             "primary2" : "#3685cc",
             "secondary1" : "#61aff5",
             "secondary2" : "#1e4ce1",
-            "success1" : "#61aff5",
-            "success2" : "#1e4ce1",
-            "warning1" : "#61aff5",
-            "warning2" : "#1e4ce1",
-            "error1" : "#61aff5",
-            "error2" : "#1e4ce1",
-            "info1" : "#61aff5",
-            "info2" : "#1e4ce1"
+            "success1" : "#1ee176",
+            "success2" : "#61f5a3",
+            "warning1" : "#e16b1e",
+            "warning2" : "#f59f61",
+            "error1" : "#e11e41",
+            "error2" : "#f5617f",
+            "info1" : "#e1d31e",
+            "info2" : "#f5de61"
         }
     },
-    "variant": "light",
+    "variant": "dark",
     "fonts": {  
         "titlebar": {
             "family": "Lucida Grande",
