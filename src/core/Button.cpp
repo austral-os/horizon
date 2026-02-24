@@ -14,14 +14,14 @@ namespace horizon
         // Borde exterior adicional (sombra inferior, color más claro que el negro)
         Color shadowColor(0.4f, 0.4f, 0.4f, 1.0f);
         gc.setColor(shadowColor);
-        gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height,
+        gc.drawRect(m_start_draw_x, m_start_draw_y - 1, m_width, m_height,
                     {radius, radius, radius, radius}, 1.0f);
 
         // Outer border (gray/black)
-        Color borderColor(0.3f, 0.3f, 0.3f, 1.0f);
+        Color borderColor(0.35f, 0.35f, 0.35f, 1.0f);
         gc.setColor(borderColor);
-        gc.drawRect(m_start_draw_x, m_start_draw_y - 1, m_width, m_height - 1,
-                    {radius, radius, radius, radius}, 1.0f);
+        gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height - 3,
+                    {radius, radius, radius, radius}, 1.5f);
 
         // Top half: gradient from white to very light gray (creates a glass reflection effect)
         Color top1(0.85f, 0.85f, 0.85f, 1.0f);
@@ -33,7 +33,7 @@ namespace horizon
         // Bottom half: gradient starting slightly darker and lightening towards the bottom
         Color bot1(0.8f, 0.8f, 0.8f, 1.0f);
         Color bot2(0.97f, 0.97f, 0.97f, 1.0f);
-        gc.fillLinearGradientRect(m_start_draw_x + 1, m_start_draw_y + 1 + halfHeight, m_width - 2,
+        gc.fillLinearGradientRect(m_start_draw_x + 1, m_start_draw_y + halfHeight, m_width - 2,
                                   m_height - 4 - halfHeight, bot1, bot2, true,
                                   {0, 0, radius - 1, radius - 1});
 
@@ -47,7 +47,7 @@ namespace horizon
         Color highlight(1.0f, 1.0f, 1.0f, 0.7f); // Blanco puro con un poco de transparencia
         gc.fillLinearGradientRect(m_start_draw_x + h_margin_x, m_start_draw_y + 2, h_width,
                                   h_height, Color(1.0f, 1.0f, 1.0f, 1.0f), // Blanco sólido arriba
-                                  Color(1.0f, 1.0f, 1.0f, 0.1f), // Blanco casi transparente abajo
+                                  Color(1.0f, 1.0f, 1.0f, 0.5f), // Blanco casi transparente abajo
                                   true, {h_radius_top, h_radius_top, h_radius_bot, h_radius_bot});
 
         // Center the text
