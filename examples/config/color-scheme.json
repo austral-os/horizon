@@ -3,7 +3,7 @@
         "light": {
             "titlebar_bg1": "#d8d8d8",
             "titlebar_bg2" : "#fafafa",
-            "titlebar_fg" : "#000000",
+            "titlebar_fg" : "#212121",
             "titlebar_border" : "#787878",
             "window_bg1" : "#f3f3f3",
             "window_bg2" : "#f0f0f0",
