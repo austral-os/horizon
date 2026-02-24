@@ -1,5 +1,6 @@
 #include "horizon/CairoGraphicsContext.hpp"
 #include "horizon/EventsManager.hpp"
+#include "horizon/Widget.hpp"
 #include <cstdio>
 #include <cstring>
 #include <horizon/Application.hpp>
@@ -8,6 +9,7 @@
 #include <iostream>
 #include <linux/input-event-codes.h>
 #include <wayland-client-core.h>
+#include <wayland-client-protocol.h>
 #include <wayland-client.h>
 
 namespace horizon
@@ -21,6 +23,13 @@ namespace horizon
         m_surface->set_event_listener(this);
 
         theme_manager = std::make_unique<ThemeManager>();
+
+        theme_manager->when_change.connect(
+            [this](EventContext &p)
+            {
+                std::cout << "Theme changed" << std::endl;
+                m_dirty = true;
+            });
     }
 
     // Constructor de movimiento

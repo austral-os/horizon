@@ -20,7 +20,7 @@
         }
     },
     "variant": "light",
-    "fonts": {
+    "fonts": {  
         "titlebar": {
             "family": "Lucida Grande",
             "size": 16,
