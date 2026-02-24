@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <poll.h>
 #include <sys/inotify.h>
 #include <unistd.h>
 
@@ -270,16 +271,22 @@ namespace horizon
     void ThemeManager::watch_loop()
     {
         char buffer[1024];
+        struct pollfd pfd = {inotify_fd, POLLIN, 0};
 
         while (running)
         {
-            int length = read(inotify_fd, buffer, sizeof(buffer));
+            int ret = poll(&pfd, 1, 100); // 100 ms timeout
 
-            if (length > 0)
+            if (ret > 0 && (pfd.revents & POLLIN))
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(150));
+                int length = read(inotify_fd, buffer, sizeof(buffer));
 
-                load();
+                if (length > 0)
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+
+                    load();
+                }
             }
         }
     }
