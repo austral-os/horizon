@@ -33,6 +33,12 @@ namespace horizon
             auto *tm = this->application()->theme_manager.get();
             auto font = tm->get_font("window");
 
+            FontWeight weight = FONT_WEIGHT_NORMAL;
+            if (font.weight == "bold")
+            {
+                weight = FONT_WEIGHT_BOLD;
+            }
+
             Color window_fg = tm->get_color("window_fg");
             Color text_color = window_fg;
 
@@ -46,8 +52,8 @@ namespace horizon
             int text_y = this->m_start_draw_y + (this->m_height / 2) + (metrics.height / 2) - 3;
 
             // Draw the text
-            gc.setDrawFont(font.family.c_str(), font.size, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
-            gc.setColor(text_color);
+            gc.setDrawFont(font.family.c_str(), font.size, FONT_SLANT_NORMAL, weight);
+            gc.setColor(text_color.with_alpha(0.8f));
             gc.drawText(text_x, text_y, m_text.c_str());
         }
 
