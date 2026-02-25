@@ -43,7 +43,7 @@ namespace horizon
     {
 
         Color bg = application()->theme_manager->get_color("window_bg");
-        Color bg2 = bg.lighter(1.0f);
+        Color bg2 = bg.lighter(10.0f);
         Color brd = application()->theme_manager->get_color("window_border");
 
         gc.setColor(bg);

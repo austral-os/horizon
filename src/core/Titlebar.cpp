@@ -133,9 +133,9 @@ namespace horizon
         Color title_bg1 = tm->get_color("titlebar_bg1");
         Color title_bg2 = tm->get_color("titlebar_bg2");
 
-        gc.fillLinearGradientRect(m_start_draw_x, m_start_draw_y, m_available_draw_width,
-                                  m_available_draw_height, title_bg2, title_bg1, true,
-                                  CornerRadius(10, 10, 0, 0));
+        gc.fillLinearGradientRect(m_start_draw_x + 1, m_start_draw_y + 1,
+                                  m_available_draw_width - 2, m_available_draw_height, title_bg2,
+                                  title_bg1, true, CornerRadius(10, 10, 0, 0));
 
         gc.setColor(title_brd);
         gc.drawRect(0, m_height - 1, m_width, 0, 0, 0.8f);
