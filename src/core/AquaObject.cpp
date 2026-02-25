@@ -12,6 +12,10 @@ namespace horizon
 {
     AquaObject::AquaObject() : Widget()
     {
+
+        m_border_config = BorderConfig();
+        m_corner_radius = CornerRadius();
+
         when_mouse_enter.connect(
             [this](EventContext &)
             {
@@ -24,6 +28,26 @@ namespace horizon
                 // Redibuja el widget
                 invalidate();
             });
+    }
+
+    void AquaObject::set_border_config(BorderConfig config)
+    {
+        m_border_config = config;
+    }
+
+    BorderConfig AquaObject::border_config() const
+    {
+        return m_border_config;
+    }
+
+    void AquaObject::set_corner_radius(CornerRadius radius)
+    {
+        m_corner_radius = radius;
+    }
+
+    CornerRadius AquaObject::corner_radius() const
+    {
+        return m_corner_radius;
     }
 
     void AquaObject::draw(GraphicsContext &gc)

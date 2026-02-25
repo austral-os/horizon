@@ -1,57 +1,64 @@
 #include "horizon/AquaObject.hpp"
-#include "horizon/SolidObject.hpp"
 #include "horizon/Widget.hpp"
 #include <horizon/Application.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Window.hpp>
 #include <iostream>
 
+using horizon::Application;
+using horizon::AquaObject;
+using horizon::Button;
+using horizon::Widget;
+using horizon::WidgetAccentColor;
+using horizon::Window;
+
 int main()
 {
     try
     {
-        horizon::Application app(800, 600);
+        Application app(800, 600);
 
-        auto wnd = std::make_unique<horizon::Window>("Horizon Application toolkit demo");
+        auto wnd = std::make_unique<Window>("Horizon Application toolkit demo");
         wnd->set_size(800, 600);
 
-        auto container = std::make_unique<horizon::Widget>();
+        auto container = std::make_unique<Widget>();
         container->set_margin(10);
         container->set_padding(10);
 
-        auto spacer1 = std::make_unique<horizon::Widget>();
-        auto spacer2 = std::make_unique<horizon::Widget>();
+        auto spacer1 = std::make_unique<Widget>();
+        auto spacer2 = std::make_unique<Widget>();
 
-        auto btn = std::make_unique<horizon::Button<horizon::SolidObject>>();
-        auto btn2 = std::make_unique<horizon::Button<horizon::AquaObject>>();
-        auto btn3 = std::make_unique<horizon::Button<horizon::AquaObject>>();
-        auto btn4 = std::make_unique<horizon::Button<horizon::AquaObject>>();
-        auto btn5 = std::make_unique<horizon::Button<horizon::AquaObject>>();
-        auto btn6 = std::make_unique<horizon::Button<horizon::AquaObject>>();
+        auto btn = std::make_unique<Button<AquaObject>>();
+        auto btn2 = std::make_unique<Button<AquaObject>>();
+        auto btn3 = std::make_unique<Button<AquaObject>>();
+        auto btn4 = std::make_unique<Button<AquaObject>>();
+        auto btn5 = std::make_unique<Button<AquaObject>>();
+        auto btn6 = std::make_unique<Button<AquaObject>>();
 
         btn->set_text("Aceptar");
+        btn->set_corner_radius({10, 10, 0, 0});
         btn->set_fixed_size(40);
-        btn->set_accent_color(horizon::WidgetAccentColor::Primary);
+        btn->set_accent_color(WidgetAccentColor::Primary);
 
         btn2->set_text("Cancelar");
         btn2->set_fixed_size(40);
-        btn2->set_accent_color(horizon::WidgetAccentColor::Default);
+        btn2->set_accent_color(WidgetAccentColor::Default);
 
         btn3->set_text("Cancelar");
         btn3->set_fixed_size(40);
-        btn3->set_accent_color(horizon::WidgetAccentColor::Success);
+        btn3->set_accent_color(WidgetAccentColor::Success);
 
         btn4->set_text("Cancelar");
         btn4->set_fixed_size(40);
-        btn4->set_accent_color(horizon::WidgetAccentColor::Error);
+        btn4->set_accent_color(WidgetAccentColor::Error);
 
         btn5->set_text("Cancelar");
         btn5->set_fixed_size(40);
-        btn5->set_accent_color(horizon::WidgetAccentColor::Info);
+        btn5->set_accent_color(WidgetAccentColor::Info);
 
         btn6->set_text("Cancelar");
         btn6->set_fixed_size(40);
-        btn6->set_accent_color(horizon::WidgetAccentColor::Warning);
+        btn6->set_accent_color(WidgetAccentColor::Warning);
 
         container->add_child(std::move(spacer1));
         container->add_child(std::move(btn));
