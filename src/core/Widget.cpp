@@ -45,17 +45,17 @@ namespace horizon
     void Widget::calculate_layout()
     {
         m_free_children_count = 0;
-        m_start_draw_x = m_x + m_padding;
-        m_start_draw_y = m_y + m_padding;
-        m_available_draw_width = m_width - (m_padding * 2);
-        m_available_draw_height = m_height - (m_padding * 2);
+        m_start_draw_x = m_x + m_margin;
+        m_start_draw_y = m_y + m_margin;
+        m_available_draw_width = m_width - (m_margin * 2);
+        m_available_draw_height = m_height - (m_margin * 2);
         if (m_layout_type == WIDGET_LAYOUT_VERTICAL)
         {
-            m_free_space = m_available_draw_height - (m_margin * 2);
+            m_free_space = m_available_draw_height;
         }
         else
         {
-            m_free_space = m_available_draw_width - (m_margin * 2);
+            m_free_space = m_available_draw_width;
         }
 
         // recorro los hijos y si tienen fixedSize los resto del espacio disponible
@@ -71,7 +71,10 @@ namespace horizon
             }
         }
 
-        m_free_space -= (m_margin * m_free_children_count);
+        if (m_children.size() > 1)
+        {
+            m_free_space -= (m_spacing * (m_children.size() - 1));
+        }
     }
 
     void Widget::render(GraphicsContext &ctx)
@@ -86,11 +89,6 @@ namespace horizon
         int current_x = m_start_draw_x;
         int current_y = m_start_draw_y;
 
-        if (m_layout_type == WIDGET_LAYOUT_VERTICAL)
-            current_y += m_margin;
-        else
-            current_x += m_margin;
-
         for (const auto &child : m_children)
         {
             if (child->fixed_size() > 0)
@@ -99,13 +97,13 @@ namespace horizon
                 {
                     child->set_position(current_x, current_y);
                     child->set_size(m_available_draw_width, child->fixed_size());
-                    current_y += child->fixed_size() + m_margin;
+                    current_y += child->fixed_size() + m_spacing;
                 }
                 else
                 {
                     child->set_position(current_x, current_y);
                     child->set_size(child->fixed_size(), m_available_draw_height);
-                    current_x += child->fixed_size() + m_margin;
+                    current_x += child->fixed_size() + m_spacing;
                 }
             }
             else
@@ -114,13 +112,13 @@ namespace horizon
                 {
                     child->set_position(current_x, current_y);
                     child->set_size(m_available_draw_width, m_free_space / m_free_children_count);
-                    current_y += m_free_space / m_free_children_count + m_margin;
+                    current_y += m_free_space / m_free_children_count + m_spacing;
                 }
                 else
                 {
                     child->set_position(current_x, current_y);
                     child->set_size(m_free_space / m_free_children_count, m_available_draw_height);
-                    current_x += m_free_space / m_free_children_count + m_margin;
+                    current_x += m_free_space / m_free_children_count + m_spacing;
                 }
             }
 
@@ -202,9 +200,9 @@ namespace horizon
         m_fixed_size = size;
     }
 
-    void Widget::set_padding(int padding)
+    void Widget::set_spacing(int spacing)
     {
-        m_padding = padding;
+        m_spacing = spacing;
     }
 
     void Widget::set_margin(int margin)
@@ -249,9 +247,9 @@ namespace horizon
         return m_fixed_size;
     }
 
-    int Widget::padding() const
+    int Widget::spacing() const
     {
-        return m_padding;
+        return m_spacing;
     }
 
     int Widget::margin() const

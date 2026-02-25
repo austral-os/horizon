@@ -60,7 +60,7 @@ namespace horizon
         void set_position(int x, int y);
         void set_size(int width, int height);
         void set_fixed_size(int size);
-        void set_padding(int padding);
+        void set_spacing(int spacing);
         void set_margin(int margin);
         void set_position_type(WidgetPositionTypes position_type);
         void set_layout_type(WidgetLayoutTypes layout_type);
@@ -71,7 +71,7 @@ namespace horizon
         int width() const;
         int height() const;
         int fixed_size() const;
-        int padding() const;
+        int spacing() const;
         int margin() const;
         WidgetPositionTypes position_type() const;
         WidgetLayoutTypes layout_type() const;
@@ -174,7 +174,7 @@ namespace horizon
         int m_width{0};
         int m_height{0};
         int m_fixed_size{-1};
-        int m_padding{0};
+        int m_spacing{0};
         int m_margin{0};
         WidgetPositionTypes m_position_type{FREE};
         WidgetLayoutTypes m_layout_type{WIDGET_LAYOUT_HORIZONTAL};

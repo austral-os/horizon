@@ -24,7 +24,7 @@ int main()
 
         auto container = std::make_unique<Widget>();
         container->set_margin(10);
-        container->set_padding(10);
+        container->set_spacing(10);
 
         auto spacer1 = std::make_unique<Widget>();
         auto spacer2 = std::make_unique<Widget>();

@@ -12,8 +12,8 @@ namespace horizon
 
         auto titlebar = std::make_unique<Titlebar>(title);
 
-        titlebar->set_padding(1);
-        titlebar->set_margin(6);
+        titlebar->set_spacing(1);
+        titlebar->set_spacing(8);
         titlebar->set_position(0, 0);
         titlebar->set_fixed_size(34);
 

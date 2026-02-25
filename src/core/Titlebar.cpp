@@ -22,6 +22,10 @@ namespace horizon
         m_layout_type = WIDGET_LAYOUT_HORIZONTAL;
         m_position_type = FILL;
 
+        auto spacer = std::make_unique<Widget>();
+        spacer->set_position_type(FILL);
+        spacer->set_fixed_size(4);
+
         auto close_button = std::make_unique<TitlebarCircleButton>(Color{1.0f, 0.0f, 0.0f, 0.6f});
         auto minimize_button =
             std::make_unique<TitlebarCircleButton>(Color{1.0f, 0.7f, 0.0f, 0.6f});
@@ -100,6 +104,7 @@ namespace horizon
 
         when_mouse_release.connect([this](EventContext &context) { m_dragging_requested = false; });
 
+        add_child(std::move(spacer));
         add_child(std::move(close_button));
         add_child(std::move(minimize_button));
         add_child(std::move(maximize_button));
