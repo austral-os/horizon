@@ -1,4 +1,5 @@
 #pragma once
+#include "horizon/AquaObject.hpp"
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/SolidObject.hpp>
@@ -16,7 +17,14 @@ namespace horizon
             this->when_mouse_enter.connect([this](EventContext &) { this->invalidate(); });
             this->when_mouse_leave.connect([this](EventContext &) { this->invalidate(); });
 
-            this->set_corner_radius({10, 10, 10, 10});
+            if (std::is_same<T, AquaObject>::value)
+            {
+                this->set_corner_radius({10, 10, 10, 10});
+            }
+            else if (std::is_same<T, SolidObject>::value)
+            {
+                this->set_corner_radius({6, 6, 6, 6});
+            }
         }
         ~Button() = default;
 

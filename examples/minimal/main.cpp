@@ -1,4 +1,5 @@
 #include "horizon/AquaObject.hpp"
+#include "horizon/SolidObject.hpp"
 #include "horizon/Widget.hpp"
 #include <horizon/Application.hpp>
 #include <horizon/Button.hpp>
@@ -29,7 +30,7 @@ int main()
         auto spacer2 = std::make_unique<Widget>();
 
         auto btn = std::make_unique<Button<AquaObject>>();
-        auto btn2 = std::make_unique<Button<AquaObject>>();
+        auto btn2 = std::make_unique<Button<horizon::SolidObject>>();
         auto btn3 = std::make_unique<Button<AquaObject>>();
         auto btn4 = std::make_unique<Button<AquaObject>>();
         auto btn5 = std::make_unique<Button<AquaObject>>();
@@ -41,6 +42,7 @@ int main()
         btn->set_accent_color(WidgetAccentColor::Primary);
 
         btn2->set_text("Cancelar");
+        // btn2->set_corner_radius({0, 20, 20, 0});
         btn2->set_fixed_size(40);
         btn2->set_accent_color(WidgetAccentColor::Default);
 

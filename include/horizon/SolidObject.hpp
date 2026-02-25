@@ -1,4 +1,5 @@
 #pragma once
+#include <horizon/GraphicsContext.hpp>
 #include <horizon/Widget.hpp>
 
 namespace horizon
@@ -11,6 +12,11 @@ namespace horizon
         ~SolidObject() = default;
 
         void draw(GraphicsContext &gc) override;
+        void set_corner_radius(CornerRadius radius);
+        CornerRadius corner_radius() const;
+
+    protected:
+        CornerRadius m_corner_radius;
     };
 
 } // namespace horizon

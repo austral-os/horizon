@@ -12,6 +12,8 @@ namespace horizon
 {
     SolidObject::SolidObject() : Widget()
     {
+        m_corner_radius = CornerRadius();
+
         when_mouse_enter.connect(
             [this](EventContext &)
             {
@@ -24,6 +26,16 @@ namespace horizon
                 // Redibuja el widget
                 invalidate();
             });
+    }
+
+    void SolidObject::set_corner_radius(CornerRadius radius)
+    {
+        m_corner_radius = radius;
+    }
+
+    CornerRadius SolidObject::corner_radius() const
+    {
+        return m_corner_radius;
     }
 
     void SolidObject::draw(GraphicsContext &gc)
@@ -53,16 +65,13 @@ namespace horizon
         printf("text_color: %s\n", text_color.to_hex().c_str());
 
 #endif
-        int radius = 6;
-
         // clear background
         gc.setColor(window_bg);
-        gc.fillRect(m_x, m_y, m_width, m_height);
+        gc.fillRect(m_x, m_y, m_width, m_height, m_corner_radius);
 
         // Outer border (gray/black)
         gc.setColor(border_color);
-        gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height - 3,
-                    {radius, radius, radius, radius}, 1.0f);
+        gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height - 3, m_corner_radius, 1.0f);
 
         if (is_hovered())
         {
@@ -74,17 +83,18 @@ namespace horizon
         int halfHeight = m_height / 2;
         gc.fillLinearGradientRect(m_start_draw_x + 1, m_start_draw_y + 1, m_width - 2, halfHeight,
                                   top1.darker(2.f), top1.darker(10.f), true,
-                                  {radius - 1, radius - 1, 0, 0});
+                                  {m_corner_radius.top_left, m_corner_radius.top_right, 0, 0});
 
         // Bottom half: gradient starting slightly darker and lightening towards the bottom
-        gc.fillLinearGradientRect(m_start_draw_x + 1, m_start_draw_y + halfHeight, m_width - 2,
-                                  m_height - 4 - halfHeight, top1.darker(10.f), top1.darker(10.f),
-                                  true, {0, 0, radius - 1, radius - 1});
+        gc.fillLinearGradientRect(
+            m_start_draw_x + 1, m_start_draw_y + halfHeight, m_width - 2, m_height - 4 - halfHeight,
+            top1.darker(10.f), top1.darker(10.f), true,
+            {0, 0, m_corner_radius.bottom_right, m_corner_radius.bottom_left});
 
         // Borde inferior
         gc.setColor(border_color.lighter(80.f));
-        gc.fillRect(m_x + radius, m_start_draw_y + m_available_draw_height - 2,
-                    m_width - radius * 2, 2);
+        gc.fillRect(m_x + m_corner_radius.bottom_left, m_start_draw_y + m_available_draw_height - 2,
+                    m_width - m_corner_radius.bottom_left - m_corner_radius.bottom_right, 2);
     }
 
 } // namespace horizon
