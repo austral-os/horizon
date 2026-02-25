@@ -1,3 +1,5 @@
+#include "horizon/AquaObject.hpp"
+#include "horizon/SolidObject.hpp"
 #include "horizon/Widget.hpp"
 #include <horizon/Application.hpp>
 #include <horizon/Button.hpp>
@@ -20,12 +22,12 @@ int main()
         auto spacer1 = std::make_unique<horizon::Widget>();
         auto spacer2 = std::make_unique<horizon::Widget>();
 
-        auto btn = std::make_unique<horizon::Button>();
-        auto btn2 = std::make_unique<horizon::Button>();
-        auto btn3 = std::make_unique<horizon::Button>();
-        auto btn4 = std::make_unique<horizon::Button>();
-        auto btn5 = std::make_unique<horizon::Button>();
-        auto btn6 = std::make_unique<horizon::Button>();
+        auto btn = std::make_unique<horizon::Button<horizon::SolidObject>>();
+        auto btn2 = std::make_unique<horizon::Button<horizon::AquaObject>>();
+        auto btn3 = std::make_unique<horizon::Button<horizon::AquaObject>>();
+        auto btn4 = std::make_unique<horizon::Button<horizon::AquaObject>>();
+        auto btn5 = std::make_unique<horizon::Button<horizon::AquaObject>>();
+        auto btn6 = std::make_unique<horizon::Button<horizon::AquaObject>>();
 
         btn->set_text("Aceptar");
         btn->set_fixed_size(40);
