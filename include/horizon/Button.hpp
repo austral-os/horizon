@@ -15,6 +15,8 @@ namespace horizon
         {
             this->when_mouse_enter.connect([this](EventContext &) { this->invalidate(); });
             this->when_mouse_leave.connect([this](EventContext &) { this->invalidate(); });
+
+            this->set_corner_radius({10, 10, 10, 10});
         }
         ~Button() = default;
 
