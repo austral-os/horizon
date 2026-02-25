@@ -153,11 +153,11 @@ namespace horizon
         int h_radius_top = std::max(0, h_radius_val - 2); // El radio superior se adapta al botón
         int h_radius_bot = h_radius_top / 2; // El radio inferior es mucho más curvo/chico
 
-        gc.fillLinearGradientRect(m_start_draw_x + h_margin_x, m_start_draw_y + 2, h_width,
-                                  h_height,
-                                  highlight,  // Blanco sólido arriba
-                                  highlight2, // Blanco casi transparente abajo
-                                  true, {h_radius_top, h_radius_top, h_radius_bot, h_radius_bot});
+        gc.fillLinearGradientRect(
+            m_start_draw_x + h_margin_x, m_start_draw_y + 2, h_width, h_height,
+            highlight,  // Blanco sólido arriba
+            highlight2, // Blanco casi transparente abajo
+            true, {h_radius_top, m_corner_radius.top_right, h_radius_bot, h_radius_bot});
     }
 
 } // namespace horizon

@@ -36,7 +36,7 @@ int main()
         auto btn6 = std::make_unique<Button<AquaObject>>();
 
         btn->set_text("Aceptar");
-        btn->set_corner_radius({10, 0, 0, 10});
+        btn->set_corner_radius({0, 20, 20, 0});
         btn->set_fixed_size(40);
         btn->set_accent_color(WidgetAccentColor::Primary);
 
