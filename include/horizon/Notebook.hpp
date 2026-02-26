@@ -35,6 +35,8 @@ namespace horizon
 
         void add_tab(NotebookPage page);
 
+        void set_current_tab(int index);
+
     private:
         void configure_header();
 
@@ -42,5 +44,7 @@ namespace horizon
         Widget *m_margin_top;
         Widget *m_header;
         Frame *m_body;
+
+        int m_current_tab{-1};
     };
 } // namespace horizon

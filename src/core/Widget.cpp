@@ -106,6 +106,9 @@ namespace horizon
                 continue;
             }
 
+            if (!child->is_visible())
+                continue;
+
             if (child->fixed_size() > 0)
             {
                 if (m_layout_type == WIDGET_LAYOUT_VERTICAL)

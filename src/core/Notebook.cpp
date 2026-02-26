@@ -51,6 +51,11 @@ namespace horizon
 
         m_header->set_position(m_x, m_y + m_margin_top->fixed_size());
         m_header->set_size(width(), 40);
+
+        if (m_current_tab < 0 && m_body->children().size() > 0)
+        {
+            set_current_tab(0);
+        }
     }
 
     void Notebook::draw(GraphicsContext &ctx)
@@ -75,7 +80,6 @@ namespace horizon
                     if (index == 0)
                     {
                         button->set_corner_radius({10, 0, 0, 10});
-                        button->set_accent_color(WidgetAccentColor::Primary);
                     }
                     else if (index == count_tabs - 1)
                     {
@@ -85,6 +89,13 @@ namespace horizon
                     {
                         button->set_corner_radius({0, 0, 0, 0});
                     }
+
+                    button->set_accent_color(WidgetAccentColor::Default);
+
+                    if (index == m_current_tab)
+                    {
+                        button->set_accent_color(WidgetAccentColor::Primary);
+                    }
                 }
 
                 index++;
@@ -92,19 +103,45 @@ namespace horizon
         }
     }
 
+    void Notebook::set_current_tab(int index)
+    {
+
+        if (index < 0 || index >= m_body->children().size())
+            return;
+
+        if (m_current_tab == index)
+            return;
+
+        if (m_current_tab >= 0)
+        {
+            m_body->children()[m_current_tab]->set_visible(false);
+        }
+
+        m_body->children()[index]->set_visible(true);
+        m_body->children()[index]->invalidate();
+        m_current_tab = index;
+    }
+
     void Notebook::add_tab(NotebookPage page)
     {
+
+        page.body->set_visible(false);
+
         m_body->add_child(std::move(page.body));
 
         auto button = std::make_unique<Button<AquaObject>>();
         button->set_text(page.label);
 
-        button->when_mouse_press.connect([this](EventContext &context)
-                                         { std::cout << "Tab clicked clicked" << std::endl; });
-
         auto &children = m_header->children();
 
         int index = children.size() - 1;
+
+        button->when_mouse_press.connect(
+            [this, index](EventContext &context)
+            {
+                this->set_current_tab(index - 1);
+                this->invalidate();
+            });
 
         m_header->add_child_at(index, std::move(button));
     }
