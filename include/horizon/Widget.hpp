@@ -135,7 +135,8 @@ namespace horizon
         void set_on_click(std::function<void()> handler);
 
         // --- Árbol ---
-        void add_child(std::unique_ptr<Widget> child);
+        virtual void add_child(std::unique_ptr<Widget> child);
+        virtual void add_child_at(int index, std::unique_ptr<Widget> child);
         Widget *parent() const;
         Application *application() const;
 
@@ -176,6 +177,7 @@ namespace horizon
         int m_fixed_size{-1};
         int m_spacing{0};
         int m_margin{0};
+
         WidgetPositionTypes m_position_type{FREE};
         WidgetLayoutTypes m_layout_type{WIDGET_LAYOUT_HORIZONTAL};
         WidgetAccentColor m_accent_color{WidgetAccentColor::Default};

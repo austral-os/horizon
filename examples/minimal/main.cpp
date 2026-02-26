@@ -4,6 +4,7 @@
 #include <horizon/Application.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Frame.hpp>
+#include <horizon/Notebook.hpp>
 #include <horizon/Window.hpp>
 #include <iostream>
 
@@ -11,6 +12,8 @@ using horizon::Application;
 using horizon::AquaObject;
 using horizon::Button;
 using horizon::Frame;
+using horizon::Notebook;
+using horizon::NotebookPage;
 using horizon::Widget;
 using horizon::WidgetAccentColor;
 using horizon::Window;
@@ -24,8 +27,7 @@ int main()
         auto wnd = std::make_unique<Window>("Horizon Application toolkit demo");
         wnd->set_size(800, 600);
 
-        auto frame = std::make_unique<Frame>();
-        frame->set_margin(40);
+        auto notebook = std::make_unique<Notebook>();
 
         auto container = std::make_unique<Widget>();
         container->set_margin(10);
@@ -76,9 +78,11 @@ int main()
         container->add_child(std::move(btn6));
         container->add_child(std::move(spacer2));
 
-        frame->add_child(std::move(container));
+        notebook->add_tab(NotebookPage("Tab 3", "Icon 3", std::move(container)));
+        notebook->add_tab(NotebookPage("Tab 1", "Icon 1", std::make_unique<Widget>()));
+        notebook->add_tab(NotebookPage("Tab 2", "Icon 2", std::make_unique<Widget>()));
 
-        wnd->add_child(std::move(frame));
+        wnd->add_child(std::move(notebook));
 
         app.set_root(std::move(wnd));
         app.run();

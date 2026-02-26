@@ -44,6 +44,7 @@ namespace horizon
 
     void Widget::calculate_layout()
     {
+        int count_non_free = 0;
         m_free_children_count = 0;
         m_start_draw_x = m_x + m_margin;
         m_start_draw_y = m_y + m_margin;
@@ -61,6 +62,13 @@ namespace horizon
         // recorro los hijos y si tienen fixedSize los resto del espacio disponible
         for (const auto &child : m_children)
         {
+
+            if (!child->is_visible())
+                continue;
+
+            if (child->position_type() == FREE)
+                continue;
+
             if (child->fixed_size() > 0)
             {
                 m_free_space -= child->fixed_size();
@@ -69,11 +77,13 @@ namespace horizon
             {
                 m_free_children_count++;
             }
+
+            count_non_free++; // Cuenta los widgets del tipo FILL
         }
 
-        if (m_children.size() > 1)
+        if (count_non_free > 1)
         {
-            m_free_space -= (m_spacing * (m_children.size() - 1));
+            m_free_space -= (m_spacing * (count_non_free - 1));
         }
     }
 
@@ -91,6 +101,11 @@ namespace horizon
 
         for (const auto &child : m_children)
         {
+            if (child->position_type() == FREE)
+            {
+                continue;
+            }
+
             if (child->fixed_size() > 0)
             {
                 if (m_layout_type == WIDGET_LAYOUT_VERTICAL)
@@ -124,6 +139,14 @@ namespace horizon
 
             // std::cout << "Rendering child" << std::endl;
             child->render(ctx);
+        }
+
+        for (const auto &child : m_children)
+        {
+            if (child->position_type() == FREE)
+            {
+                child->render(ctx);
+            }
         }
     }
 
@@ -162,6 +185,16 @@ namespace horizon
         child->m_parent = this;
         child->set_application_recursive(m_app);
         m_children.push_back(std::move(child));
+    }
+
+    void Widget::add_child_at(int index, std::unique_ptr<Widget> child)
+    {
+        if (!child)
+            return;
+
+        child->m_parent = this;
+        child->set_application_recursive(m_app);
+        m_children.insert(m_children.begin() + index, std::move(child));
     }
 
     Widget *Widget::parent() const
