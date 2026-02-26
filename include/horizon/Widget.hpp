@@ -87,6 +87,7 @@ namespace horizon
         void set_focusable(bool focusable);
         bool is_focusable() const;
 
+        void set_focus(bool focus);
         bool has_focus() const;
 
         bool is_hovered() const;

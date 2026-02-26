@@ -5,6 +5,7 @@
 #include <horizon/Button.hpp>
 #include <horizon/Frame.hpp>
 #include <horizon/Notebook.hpp>
+#include <horizon/TextBox.hpp>
 #include <horizon/Window.hpp>
 #include <iostream>
 
@@ -14,6 +15,7 @@ using horizon::Button;
 using horizon::Frame;
 using horizon::Notebook;
 using horizon::NotebookPage;
+using horizon::TextBox;
 using horizon::Widget;
 using horizon::WidgetAccentColor;
 using horizon::Window;
@@ -81,6 +83,15 @@ int main()
         notebook->add_tab(NotebookPage("Tab 3", "Icon 3", std::move(container)));
         notebook->add_tab(NotebookPage("Tab 1", "Icon 1", std::make_unique<Widget>()));
         notebook->add_tab(NotebookPage("Tab 2", "Icon 2", std::make_unique<Widget>()));
+
+        auto tb_container = std::make_unique<Widget>();
+        tb_container->set_margin(40);
+        auto textbox = std::make_unique<TextBox>();
+        textbox->set_placeholder("Text field");
+        textbox->set_text("");
+        tb_container->add_child(std::move(textbox));
+
+        notebook->add_tab(NotebookPage("TextBox", std::move(tb_container)));
 
         wnd->add_child(std::move(notebook));
 

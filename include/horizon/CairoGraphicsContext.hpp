@@ -40,6 +40,10 @@ namespace horizon
 
         void flush() override;
 
+        void save() override;
+        void restore() override;
+        void clip(int x, int y, int width, int height) override;
+
     private:
         cairo_surface_t *cairo_s;
         cairo_t *cr;

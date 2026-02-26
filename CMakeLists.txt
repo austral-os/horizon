@@ -13,6 +13,7 @@ pkg_check_modules(CAIRO REQUIRED cairo)
 
 file(GLOB_RECURSE SOURCES
     src/*.cpp
+    include/horizon/*.hpp
 )
 
 file(GLOB_RECURSE SOURCES src/*.cpp src/xdg-shell-client-protocol.c)

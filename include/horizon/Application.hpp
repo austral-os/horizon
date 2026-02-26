@@ -158,6 +158,7 @@ namespace horizon
 
         Widget *m_hovered = nullptr; /**< The widget currently under the mouse pointer. */
         Widget *m_pressed = nullptr; /**< The widget currently being pressed by a mouse button. */
+        Widget *m_focused = nullptr; /**< The widget currently having keyboard focus. */
 
         double m_pointer_x = 0.0;   /**< Last known X position of the pointer. */
         double m_pointer_y = 0.0;   /**< Last known Y position of the pointer. */
@@ -165,6 +166,14 @@ namespace horizon
 
         uint32_t m_resize_edge = 0;       /**< Current edge being hovered for resize. */
         const int m_resize_proximity = 8; /**< Distance to edge to trigger resize. */
+
+        // Key repeat tracking
+        uint32_t m_repeat_key = 0;
+        uint64_t m_repeat_delay = 500; // ms
+        uint64_t m_repeat_rate = 100;  // ms
+        uint64_t m_repeat_start_time = 0;
+        uint64_t m_repeat_last_time = 0;
+        bool m_is_repeating = false;
 
         /**
          * @brief Internal handler for pointer movement events.

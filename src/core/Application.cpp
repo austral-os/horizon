@@ -2,6 +2,7 @@
 #include "horizon/EventsManager.hpp"
 #include "horizon/Widget.hpp"
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstring>
 #include <horizon/Application.hpp>
@@ -152,8 +153,7 @@ namespace horizon
             return;
         }
 
-        if (!m_root)
-            return;
+        Widget *target = m_focused ? m_focused : m_root.get();
 
         EventContext new_ev = {.sender = nullptr,
                                .type = EventType::KeyPress,
@@ -161,7 +161,7 @@ namespace horizon
                                .stop_propagation = false,
                                .data = nullptr,
                                .key = event.key};
-        m_root->when_key_press.run(new_ev);
+        target->when_key_press.run(new_ev);
     }
 
     void Application::handle_key_release(const KeyEvent &event)
@@ -169,13 +169,15 @@ namespace horizon
         if (!m_root)
             return;
 
+        Widget *target = m_focused ? m_focused : m_root.get();
+
         EventContext new_ev = {.sender = nullptr,
                                .type = EventType::KeyRelease,
                                .button = event.key,
                                .stop_propagation = false,
                                .data = nullptr,
                                .key = event.key};
-        m_root->when_key_release.run(new_ev);
+        target->when_key_release.run(new_ev);
     }
 
     void Application::handle_move(const PointerEvent &event)
@@ -352,6 +354,15 @@ namespace horizon
         {
             m_pressed = under;
 
+            // Update focus
+            if (m_focused != under)
+            {
+                if (m_focused)
+                    m_focused->set_focus(false);
+                m_focused = under;
+                m_focused->set_focus(true);
+            }
+
             EventContext new_ev = {.sender = m_pressed,
                                    .type = EventType::MousePress,
                                    .button = event.button,
@@ -360,6 +371,14 @@ namespace horizon
 
             m_pressed->when_mouse_press.run(new_ev);
             // m_pressed->on_mouse_press(event.button);
+        }
+        else
+        {
+            if (m_focused)
+            {
+                m_focused->set_focus(false);
+                m_focused = nullptr;
+            }
         }
     }
 
@@ -440,7 +459,27 @@ namespace horizon
 
             wl_display_flush(m_surface->display());
 
-            int ret = poll(fds, 2, -1);
+            int timeout = m_is_repeating ? 10 : -1;
+            int ret = poll(fds, 2, timeout);
+
+            if (m_is_repeating)
+            {
+                uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                   std::chrono::steady_clock::now().time_since_epoch())
+                                   .count();
+                if (now - m_repeat_start_time >= m_repeat_delay)
+                {
+                    if (now - m_repeat_last_time >= m_repeat_rate)
+                    {
+                        KeyEvent ev;
+                        ev.type = KeyEvent::Type::Press;
+                        ev.key = m_repeat_key;
+                        handle_key_press(ev);
+                        m_repeat_last_time = now;
+                    }
+                }
+            }
+
             if (ret > 0)
             {
                 if (fds[0].revents & POLLIN)

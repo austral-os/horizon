@@ -78,6 +78,10 @@ namespace horizon
                                         GradientDirection direction = GradientDirection::Radial) {};
 
         virtual void flush() {};
+
+        virtual void save() {};
+        virtual void restore() {};
+        virtual void clip(int x, int y, int width, int height) {};
     };
 
 } // namespace horizon

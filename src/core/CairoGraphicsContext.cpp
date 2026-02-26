@@ -258,4 +258,20 @@ namespace horizon
         cairo_surface_flush(cairo_s);
     }
 
+    void CairoGraphicContext::save()
+    {
+        cairo_save(cr);
+    }
+
+    void CairoGraphicContext::restore()
+    {
+        cairo_restore(cr);
+    }
+
+    void CairoGraphicContext::clip(int x, int y, int width, int height)
+    {
+        cairo_rectangle(cr, x, y, width, height);
+        cairo_clip(cr);
+    }
+
 } // namespace horizon

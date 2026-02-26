@@ -343,6 +343,15 @@ namespace horizon
         return m_has_focus;
     }
 
+    void Widget::set_focus(bool focus)
+    {
+        if (m_has_focus != focus)
+        {
+            m_has_focus = focus;
+            invalidate();
+        }
+    }
+
     bool Widget::is_hovered() const
     {
         return m_is_hovered;
