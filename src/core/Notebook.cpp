@@ -38,8 +38,8 @@ namespace horizon
         m_body = body.get();
 
         add_child(std::move(margin_top));
+        add_child(std::move(body)); // Body added before header so header is on top
         add_child(std::move(header));
-        add_child(std::move(body));
     }
 
     Notebook::~Notebook() {}
@@ -47,10 +47,11 @@ namespace horizon
     void Notebook::render(GraphicsContext &ctx)
     {
         configure_header();
-        Widget::render(ctx);
 
         m_header->set_position(m_x, m_y + m_margin_top->fixed_size());
         m_header->set_size(width(), 40);
+
+        Widget::render(ctx);
 
         if (m_current_tab < 0 && m_body->children().size() > 0)
         {
@@ -120,6 +121,11 @@ namespace horizon
         m_body->children()[index]->set_visible(true);
         m_body->children()[index]->invalidate();
         m_current_tab = index;
+
+        // Invalidate self and parent to ensure background is redrawn if transparent
+        this->invalidate();
+        if (parent())
+            parent()->invalidate();
     }
 
     void Notebook::add_tab(NotebookPage page)
