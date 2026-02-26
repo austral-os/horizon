@@ -321,7 +321,9 @@ namespace horizon
                                    .type = EventType::MouseDrag,
                                    .button = event.button,
                                    .stop_propagation = false,
-                                   .data = nullptr};
+                                   .data = nullptr,
+                                   .eventX = (double)event.x,
+                                   .eventY = (double)event.y};
             m_pressed->when_mouse_drag.run(new_ev);
         }
         else if (m_hovered)
@@ -330,7 +332,9 @@ namespace horizon
                                    .type = EventType::MouseHover,
                                    .button = event.button,
                                    .stop_propagation = false,
-                                   .data = nullptr};
+                                   .data = nullptr,
+                                   .eventX = (double)event.x,
+                                   .eventY = (double)event.y};
             m_hovered->when_mouse_hover.run(new_ev);
         }
     }
@@ -367,7 +371,9 @@ namespace horizon
                                    .type = EventType::MousePress,
                                    .button = event.button,
                                    .stop_propagation = false,
-                                   .data = nullptr};
+                                   .data = nullptr,
+                                   .eventX = (double)event.x,
+                                   .eventY = (double)event.y};
 
             m_pressed->when_mouse_press.run(new_ev);
             // m_pressed->on_mouse_press(event.button);
@@ -390,7 +396,9 @@ namespace horizon
                                    .type = EventType::MouseRelease,
                                    .button = event.button,
                                    .stop_propagation = false,
-                                   .data = nullptr};
+                                   .data = nullptr,
+                                   .eventX = (double)event.x,
+                                   .eventY = (double)event.y};
 
             m_pressed->when_mouse_release.run(new_ev);
             m_pressed = nullptr;
@@ -428,6 +436,9 @@ namespace horizon
 
             if (m_full_repaint && m_root)
             {
+                m_full_repaint = false;
+                m_dirty_widgets.clear();
+
                 CairoGraphicContext ctx(m_surface->data(), m_surface->width(), m_surface->height());
                 m_root->render(ctx);
 
@@ -435,15 +446,15 @@ namespace horizon
                 wl_surface_damage(m_surface->surface(), 0, 0, m_surface->width(),
                                   m_surface->height());
                 wl_surface_commit(m_surface->surface());
-
-                m_full_repaint = false;
-                m_dirty_widgets.clear();
             }
             else if (!m_dirty_widgets.empty() && m_root)
             {
+                std::vector<Widget *> current_dirty;
+                std::swap(current_dirty, m_dirty_widgets);
+
                 CairoGraphicContext ctx(m_surface->data(), m_surface->width(), m_surface->height());
 
-                for (Widget *w : m_dirty_widgets)
+                for (Widget *w : current_dirty)
                 {
                     // Repintamos el widget (esto asume que el widget sabe su posición global)
                     w->render(ctx);
@@ -454,13 +465,22 @@ namespace horizon
                 ctx.flush();
                 wl_surface_attach(m_surface->surface(), m_surface->buffer(), 0, 0);
                 wl_surface_commit(m_surface->surface());
-                m_dirty_widgets.clear();
             }
 
             wl_display_flush(m_surface->display());
 
-            int timeout = m_is_repeating ? 10 : -1;
+            int timeout = -1;
+            if (m_is_repeating)
+                timeout = 10;
+            else if (m_focused)
+                timeout = 250; // Heartbeat for blinking
+
             int ret = poll(fds, 2, timeout);
+
+            if (ret == 0 && m_focused)
+            {
+                m_focused->invalidate();
+            }
 
             if (m_is_repeating)
             {

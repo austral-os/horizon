@@ -22,6 +22,17 @@ namespace horizon
     {
         set_fixed_size(40);
         set_cursor_type(CursorType::Text);
+        set_focusable(true);
+
+        m_last_blink_time = std::chrono::steady_clock::now();
+
+        when_mouse_press.connect(
+            [this](EventContext &ev)
+            {
+                m_has_pending_click = true;
+                m_pending_click_x = (int)ev.eventX;
+                invalidate();
+            });
 
         when_key_press.connect(
             [this](EventContext &ev)
@@ -29,20 +40,59 @@ namespace horizon
                 if (!has_focus())
                     return;
 
+                m_cursor_visible = true;
+                m_last_blink_time = std::chrono::steady_clock::now();
+
                 if (ev.key == KEY_BACKSPACE)
                 {
-                    if (!m_text.empty())
+                    if (m_cursor_pos > 0 && !m_text.empty())
                     {
-                        m_text.pop_back();
+                        m_text.erase(m_cursor_pos - 1, 1);
+                        m_cursor_pos--;
                         invalidate();
                     }
+                }
+                else if (ev.key == KEY_DELETE)
+                {
+                    if (m_cursor_pos < (int)m_text.length())
+                    {
+                        m_text.erase(m_cursor_pos, 1);
+                        invalidate();
+                    }
+                }
+                else if (ev.key == KEY_LEFT)
+                {
+                    if (m_cursor_pos > 0)
+                    {
+                        m_cursor_pos--;
+                        invalidate();
+                    }
+                }
+                else if (ev.key == KEY_RIGHT)
+                {
+                    if (m_cursor_pos < (int)m_text.length())
+                    {
+                        m_cursor_pos++;
+                        invalidate();
+                    }
+                }
+                else if (ev.key == KEY_HOME)
+                {
+                    m_cursor_pos = 0;
+                    invalidate();
+                }
+                else if (ev.key == KEY_END)
+                {
+                    m_cursor_pos = m_text.length();
+                    invalidate();
                 }
                 else
                 {
                     auto it = KEY_MAP.find(ev.key);
                     if (it != KEY_MAP.end())
                     {
-                        m_text += it->second;
+                        m_text.insert(m_cursor_pos, 1, it->second);
+                        m_cursor_pos++;
                         invalidate();
                     }
                 }
@@ -71,67 +121,114 @@ namespace horizon
 
         int radius = 0; // Tiger has sharp 90-degree corners per user request
 
-        // 1. Main Background
+        // 1. Cursor Blinking Logic
+        if (has_focus())
+        {
+            auto now = std::chrono::steady_clock::now();
+            auto elapsed =
+                std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_blink_time)
+                    .count();
+            if (elapsed >= 500)
+            {
+                m_cursor_visible = !m_cursor_visible;
+                m_last_blink_time = now;
+            }
+        }
+        else
+        {
+            m_cursor_visible = false;
+        }
+
+        // 2. Main Background
         gc.setColor(bg_color);
         gc.fillRect(m_x, m_y, m_width, m_height, {radius});
 
-        // 2. Focus Ring
+        // 3. Focus Ring
         if (has_focus())
         {
             gc.setColor(focus_color);
             // Draw inset by half the border width (3px) to stay within bounds and avoid ghosting
-            gc.drawRect(m_x + 3, m_y + 3, m_width - 6, m_height - 6, {radius}, 6.0f);
+            gc.drawRect(m_x + 1, m_y + 1, m_width - 3, m_height - 3, {radius}, 4.0f);
         }
         else
         {
-            // 3. Normal Border
+            // 4. Normal Border
             gc.setColor(border_color);
             gc.drawRect(m_x, m_y, m_width, m_height, {radius}, 1.0f);
         }
 
-        // 4. Inset Shadow (More subtle for Tiger)
+        // 5. Inset Shadow (More subtle for Tiger)
         gc.fillLinearGradientRect(m_x + 1, m_y + 1, m_width - 2, 4, Color(0.0f, 0.0f, 0.0f, 0.15f),
                                   Color(0.0f, 0.0f, 0.0f, 0.0f), true, {radius, radius, 0, 0});
 
-        // 5. Text (with scrolling and placeholder)
+        // 6. Text (with scrolling and placeholder)
         gc.save();
         gc.clip(m_x + 5, m_y + 5, m_width - 10, m_height - 10);
 
         int text_x_base = m_x + 8;
         int text_y = m_y + (m_height / 2) + (font.size * 0.4) - 2;
 
+        gc.setDrawFont(font.family.c_str(), font.size * 0.8, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+
         if (m_text.empty() && !m_placeholder.empty())
         {
             gc.setColor(0.6f, 0.6f, 0.6f, 1.0f); // Placeholder color
-            gc.setDrawFont(font.family.c_str(), font.size * 0.8, FONT_SLANT_NORMAL,
-                           FONT_WEIGHT_NORMAL);
             gc.drawText(text_x_base, text_y, m_placeholder.c_str());
         }
         else
         {
             gc.setColor(0.0f, 0.0f, 0.0f, 1.0f);
-            gc.setDrawFont(font.family.c_str(), font.size * 0.8, FONT_SLANT_NORMAL,
-                           FONT_WEIGHT_NORMAL);
 
-            TextMetrics metrics =
+            TextMetrics total_metrics =
                 gc.getTextMetrics(m_text.c_str(), font.family.c_str(), font.size * 0.8,
                                   FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
 
             int available_width = m_width - 16;
             int scroll_offset = 0;
-            if (metrics.width > available_width)
+            if (total_metrics.width > available_width)
             {
-                scroll_offset = metrics.width - available_width;
+                scroll_offset = total_metrics.width - available_width;
             }
 
             int draw_text_x = text_x_base - scroll_offset;
             gc.drawText(draw_text_x, text_y, m_text.c_str());
 
-            // 6. Cursor (if focused)
-            if (has_focus())
+            // 7. Click handling
+            if (m_has_pending_click)
             {
-                int cursor_x = draw_text_x + metrics.width + 1;
-                gc.setColor(0.0f, 0.0f, 0.0f, 1.0f); // Match text color per user request
+                int local_x = m_pending_click_x - draw_text_x;
+                int best_index = 0;
+                int min_dist = 999999;
+
+                for (size_t i = 0; i <= m_text.length(); ++i)
+                {
+                    std::string sub = m_text.substr(0, i);
+                    TextMetrics sub_metrics =
+                        gc.getTextMetrics(sub.c_str(), font.family.c_str(), font.size * 0.8,
+                                          FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+                    int dist = std::abs(sub_metrics.width - local_x);
+                    if (dist < min_dist)
+                    {
+                        min_dist = dist;
+                        best_index = i;
+                    }
+                }
+                m_cursor_pos = best_index;
+                m_has_pending_click = false;
+                m_cursor_visible = true;
+                m_last_blink_time = std::chrono::steady_clock::now();
+            }
+
+            // 8. Cursor (if focused and visible)
+            if (has_focus() && m_cursor_visible)
+            {
+                std::string lead_text = m_text.substr(0, m_cursor_pos);
+                TextMetrics cursor_metrics =
+                    gc.getTextMetrics(lead_text.c_str(), font.family.c_str(), font.size * 0.8,
+                                      FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+
+                int cursor_x = draw_text_x + cursor_metrics.width;
+                gc.setColor(0.0f, 0.0f, 0.0f, 1.0f);
                 gc.fillRect(cursor_x, m_y + 8, 2, m_height - 16);
             }
         }
@@ -141,6 +238,7 @@ namespace horizon
     void TextBox::set_text(const std::string &text)
     {
         m_text = text;
+        m_cursor_pos = text.length();
         invalidate();
     }
     const std::string &TextBox::text() const

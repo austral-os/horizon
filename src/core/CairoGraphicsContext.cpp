@@ -64,7 +64,7 @@ namespace horizon
         cairo_set_font_size(cr, size);
         cairo_text_extents_t text_extents;
         cairo_text_extents(cr, text, &text_extents);
-        metrics.width = text_extents.width;
+        metrics.width = text_extents.x_advance;
         metrics.height = text_extents.height;
         return metrics;
     }
