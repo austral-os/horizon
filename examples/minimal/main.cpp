@@ -1,18 +1,17 @@
-#include "horizon/AquaObject.hpp"
-#include "horizon/SolidObject.hpp"
-#include "horizon/Widget.hpp"
 #include <horizon/Application.hpp>
+#include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Frame.hpp>
 #include <horizon/Notebook.hpp>
+#include <horizon/SolidObject.hpp>
 #include <horizon/TextBox.hpp>
+#include <horizon/Widget.hpp>
 #include <horizon/Window.hpp>
 #include <iostream>
 
 using horizon::Application;
 using horizon::AquaObject;
 using horizon::Button;
-using horizon::Frame;
 using horizon::Notebook;
 using horizon::NotebookPage;
 using horizon::TextBox;
