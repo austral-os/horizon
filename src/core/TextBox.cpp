@@ -18,6 +18,16 @@ namespace horizon
         {KEY_X, 'x'}, {KEY_C, 'c'},     {KEY_V, 'v'},   {KEY_B, 'b'},     {KEY_N, 'n'},
         {KEY_M, 'm'}, {KEY_SPACE, ' '}, {KEY_DOT, '.'}, {KEY_COMMA, ','}, {KEY_MINUS, '-'}};
 
+    static const std::unordered_map<uint32_t, char> SHIFT_KEY_MAP = {
+        {KEY_1, '!'}, {KEY_2, '@'},     {KEY_3, '#'},   {KEY_4, '$'},     {KEY_5, '%'},
+        {KEY_6, '^'}, {KEY_7, '&'},     {KEY_8, '*'},   {KEY_9, '('},     {KEY_0, ')'},
+        {KEY_Q, 'Q'}, {KEY_W, 'W'},     {KEY_E, 'E'},   {KEY_R, 'R'},     {KEY_T, 'T'},
+        {KEY_Y, 'Y'}, {KEY_U, 'U'},     {KEY_I, 'I'},   {KEY_O, 'O'},     {KEY_P, 'P'},
+        {KEY_A, 'A'}, {KEY_S, 'S'},     {KEY_D, 'D'},   {KEY_F, 'F'},     {KEY_G, 'G'},
+        {KEY_H, 'H'}, {KEY_J, 'J'},     {KEY_K, 'K'},   {KEY_L, 'L'},     {KEY_Z, 'z'},
+        {KEY_X, 'X'}, {KEY_C, 'C'},     {KEY_V, 'V'},   {KEY_B, 'B'},     {KEY_N, 'N'},
+        {KEY_M, 'M'}, {KEY_SPACE, ' '}, {KEY_DOT, '>'}, {KEY_COMMA, '<'}, {KEY_MINUS, '_'}};
+
     TextBox::TextBox() : Widget()
     {
         set_fixed_size(40);
@@ -139,8 +149,9 @@ namespace horizon
                          ev.key != KEY_LEFTCTRL && ev.key != KEY_RIGHTCTRL &&
                          ev.key != KEY_LEFTALT && ev.key != KEY_RIGHTALT)
                 {
-                    auto it = KEY_MAP.find(ev.key);
-                    if (it != KEY_MAP.end())
+                    const auto &map = shift ? SHIFT_KEY_MAP : KEY_MAP;
+                    auto it = map.find(ev.key);
+                    if (it != map.end())
                     {
                         delete_selection();
                         m_text.insert(m_cursor_pos, 1, it->second);
