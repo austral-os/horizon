@@ -257,6 +257,44 @@ namespace horizon
 
         gc.setDrawFont(font.family.c_str(), font.size * 0.8, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
 
+        gc.setColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+        TextMetrics total_metrics =
+            gc.getTextMetrics(m_text.c_str(), font.family.c_str(), font.size * 0.8,
+                              FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+
+        std::string lead_to_cursor = m_text.substr(0, m_cursor_pos);
+        TextMetrics cursor_metrics =
+            gc.getTextMetrics(lead_to_cursor.c_str(), font.family.c_str(), font.size * 0.8,
+                              FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+
+        int visible_width = m_width - 16;
+        int cursor_x_rel = cursor_metrics.width;
+
+        // Adjust scroll offset to keep cursor visible
+        if (cursor_x_rel < m_scroll_offset)
+        {
+            m_scroll_offset = cursor_x_rel;
+        }
+        else if (cursor_x_rel > m_scroll_offset + visible_width)
+        {
+            m_scroll_offset = cursor_x_rel - visible_width;
+        }
+
+        // Also ensure we don't have unnecessary whitespace at the end if the text is short
+        if (total_metrics.width > visible_width)
+        {
+            if (m_scroll_offset > total_metrics.width - visible_width)
+                m_scroll_offset = total_metrics.width - visible_width;
+        }
+        else
+        {
+            m_scroll_offset = 0;
+        }
+
+        int draw_text_x = text_x_base - m_scroll_offset;
+
+        // 6. Draw Placeholder OR Text
         if (m_text.empty() && !m_placeholder.empty())
         {
             gc.setColor(0.6f, 0.6f, 0.6f, 1.0f); // Placeholder color
@@ -264,43 +302,6 @@ namespace horizon
         }
         else
         {
-            gc.setColor(0.0f, 0.0f, 0.0f, 1.0f);
-
-            TextMetrics total_metrics =
-                gc.getTextMetrics(m_text.c_str(), font.family.c_str(), font.size * 0.8,
-                                  FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
-
-            std::string lead_to_cursor = m_text.substr(0, m_cursor_pos);
-            TextMetrics cursor_metrics =
-                gc.getTextMetrics(lead_to_cursor.c_str(), font.family.c_str(), font.size * 0.8,
-                                  FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
-
-            int visible_width = m_width - 16;
-            int cursor_x_rel = cursor_metrics.width;
-
-            // Adjust scroll offset to keep cursor visible
-            if (cursor_x_rel < m_scroll_offset)
-            {
-                m_scroll_offset = cursor_x_rel;
-            }
-            else if (cursor_x_rel > m_scroll_offset + visible_width)
-            {
-                m_scroll_offset = cursor_x_rel - visible_width;
-            }
-
-            // Also ensure we don't have unnecessary whitespace at the end if the text is short
-            if (total_metrics.width > visible_width)
-            {
-                if (m_scroll_offset > total_metrics.width - visible_width)
-                    m_scroll_offset = total_metrics.width - visible_width;
-            }
-            else
-            {
-                m_scroll_offset = 0;
-            }
-
-            int draw_text_x = text_x_base - m_scroll_offset;
-
             // 6.5. Selection highlight
             if (has_focus() && m_selection_anchor != -1 && m_selection_anchor != m_cursor_pos)
             {
@@ -310,15 +311,15 @@ namespace horizon
                 std::string lead_text = m_text.substr(0, sel_start_idx);
                 std::string sel_text = m_text.substr(0, sel_end_idx);
 
-                TextMetrics lead_metrics =
+                TextMetrics lead_m =
                     gc.getTextMetrics(lead_text.c_str(), font.family.c_str(), font.size * 0.8,
                                       FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
-                TextMetrics sel_metrics =
+                TextMetrics sel_m =
                     gc.getTextMetrics(sel_text.c_str(), font.family.c_str(), font.size * 0.8,
                                       FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
 
-                int sel_x = draw_text_x + lead_metrics.width;
-                int sel_w = sel_metrics.width - lead_metrics.width;
+                int sel_x = draw_text_x + lead_m.width;
+                int sel_w = sel_m.width - lead_m.width;
 
                 gc.setColor(0.4f, 0.7f, 1.0f, 0.4f); // Tiger/Aqua selection blue
                 gc.fillRect(sel_x, m_y + 6, sel_w, m_height - 12);
@@ -326,51 +327,46 @@ namespace horizon
 
             gc.setColor(0.0f, 0.0f, 0.0f, 1.0f);
             gc.drawText(draw_text_x, text_y, m_text.c_str());
+        }
 
-            // 7. Click & Selection handling
-            if (m_has_pending_click)
+        // 7. Click & Selection handling
+        if (m_has_pending_click)
+        {
+            int local_x = m_pending_click_x - draw_text_x;
+            int best_index = 0;
+            int min_dist = 999999;
+
+            for (size_t i = 0; i <= m_text.length(); ++i)
             {
-                int local_x = m_pending_click_x - draw_text_x;
-                int best_index = 0;
-                int min_dist = 999999;
-
-                for (size_t i = 0; i <= m_text.length(); ++i)
-                {
-                    std::string sub = m_text.substr(0, i);
-                    TextMetrics sub_metrics =
-                        gc.getTextMetrics(sub.c_str(), font.family.c_str(), font.size * 0.8,
-                                          FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
-                    int dist = std::abs(sub_metrics.width - local_x);
-                    if (dist < min_dist)
-                    {
-                        min_dist = dist;
-                        best_index = i;
-                    }
-                }
-
-                if (m_selection_anchor == -1)
-                {
-                    m_selection_anchor = best_index;
-                }
-
-                m_cursor_pos = best_index;
-                m_has_pending_click = false;
-                m_cursor_visible = true;
-                m_last_blink_time = std::chrono::steady_clock::now();
-            }
-
-            // 8. Cursor (if focused and visible)
-            if (has_focus() && m_cursor_visible)
-            {
-                std::string lead_text = m_text.substr(0, m_cursor_pos);
-                TextMetrics cursor_metrics =
-                    gc.getTextMetrics(lead_text.c_str(), font.family.c_str(), font.size * 0.8,
+                std::string sub = m_text.substr(0, i);
+                TextMetrics sub_metrics =
+                    gc.getTextMetrics(sub.c_str(), font.family.c_str(), font.size * 0.8,
                                       FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
-
-                int cursor_x = draw_text_x + cursor_metrics.width;
-                gc.setColor(0.0f, 0.0f, 0.0f, 1.0f);
-                gc.fillRect(cursor_x, m_y + 8, 2, m_height - 16);
+                int dist = std::abs(sub_metrics.width - local_x);
+                if (dist < min_dist)
+                {
+                    min_dist = dist;
+                    best_index = i;
+                }
             }
+
+            if (m_selection_anchor == -1)
+            {
+                m_selection_anchor = best_index;
+            }
+
+            m_cursor_pos = best_index;
+            m_has_pending_click = false;
+            m_cursor_visible = true;
+            m_last_blink_time = std::chrono::steady_clock::now();
+        }
+
+        // 8. Cursor (if focused and visible)
+        if (has_focus() && m_cursor_visible)
+        {
+            int cursor_x = draw_text_x + cursor_metrics.width;
+            gc.setColor(0.0f, 0.0f, 0.0f, 1.0f);
+            gc.fillRect(cursor_x, m_y + 8, 2, m_height - 16);
         }
         gc.restore();
     }
