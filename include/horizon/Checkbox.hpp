@@ -45,7 +45,7 @@ namespace horizon
             Color window_fg = tm->get_color("window_fg");
 
             int marker_size = 20;
-            int margin_y = (this->m_height - marker_size) / 2;
+            int margin_y = (this->m_height - marker_size);
             int marker_x = this->m_start_draw_x + 10;
             int marker_y = this->m_start_draw_y + margin_y;
 
@@ -109,8 +109,9 @@ namespace horizon
             int label_w = this->m_width - (label_x - this->m_x) - 10;
 
             m_label->set_application_recursive(this->application());
-            m_label->set_position(label_x, this->m_y + (this->m_height / 2) -
-                                               10); // Simple vertical centering
+            m_label->set_position(label_x,
+                                  this->m_y + (this->m_height / 2) -
+                                      5); // Simple vertical centering
             m_label->set_size(label_w, this->m_height);
             m_label->draw(gc);
         }

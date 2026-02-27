@@ -141,9 +141,17 @@ int main()
         lbl3->set_alignment(TextAlignment::Right);
         lbl3->set_font_slant(FONT_SLANT_ITALIC);
 
+        auto lbl4 = std::make_unique<Label>(
+            "Este texto es extremadamente largo y deberia ser truncado con puntos suspensivos "
+            "porque el widget tiene una altura fija que solo permite dos o tres lineas de texto. "
+            "Estamos probando que la logica de calculate_lines detecte el exceso de altura y "
+            "añada los puntos correspondientes al final de la ultima linea visible.");
+        lbl4->set_fixed_size(40); // Restrict height to ~2 lines (size=14, spacing=4)
+
         label_container->add_child(std::move(lbl1));
         label_container->add_child(std::move(lbl2));
         label_container->add_child(std::move(lbl3));
+        label_container->add_child(std::move(lbl4));
 
         notebook->add_tab(NotebookPage("Label", std::move(label_container)));
 

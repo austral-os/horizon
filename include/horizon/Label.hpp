@@ -54,7 +54,8 @@ namespace horizon
         }
 
     private:
-        std::vector<std::string> calculate_lines(GraphicsContext &gc, int max_width);
+        std::vector<std::string> calculate_lines(GraphicsContext &gc, int max_width, int max_height,
+                                                 int line_height);
 
         std::string m_text;
         TextAlignment m_alignment{TextAlignment::Left};
