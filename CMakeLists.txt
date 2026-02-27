@@ -11,6 +11,7 @@ find_package(nlohmann_json REQUIRED)
 pkg_check_modules(WAYLAND REQUIRED wayland-client wayland-cursor)
 pkg_check_modules(CAIRO REQUIRED cairo)
 pkg_check_modules(XKBCOMMON REQUIRED xkbcommon)
+pkg_check_modules(RSVG REQUIRED librsvg-2.0)
 
 file(GLOB_RECURSE SOURCES
     src/*.cpp
@@ -30,6 +31,7 @@ target_include_directories(horizon
         ${CAIRO_INCLUDE_DIRS}
         ${XKBCOMMON_INCLUDE_DIRS}
         ${nlohmann_json_INCLUDE_DIRS}
+        ${RSVG_INCLUDE_DIRS}
 )
 
 target_link_libraries(horizon
@@ -38,6 +40,7 @@ target_link_libraries(horizon
         ${CAIRO_LIBRARIES}
         ${XKBCOMMON_LIBRARIES}
         ${nlohmann_json_LIBRARIES}
+        ${RSVG_LIBRARIES}
 )
 
 add_executable(minimal

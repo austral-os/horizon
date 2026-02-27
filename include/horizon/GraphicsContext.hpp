@@ -1,6 +1,7 @@
 #pragma once
 
 #include "horizon/Color.hpp"
+#include <string>
 namespace horizon
 {
 
@@ -67,6 +68,8 @@ namespace horizon
         virtual TextMetrics getTextMetrics(const char *text, const char *font, int size,
                                            FontSlant slant, FontWeight weight) const = 0;
         virtual void drawText(int x, int y, const char *text) {};
+
+        virtual void drawImage(const std::string &path, int x, int y, int w, int h) {};
 
         virtual void drawCircle(int x, int y, int radius, float lineWidth = 1.0f) {};
         virtual void fillCircle(int x, int y, int radius) {};

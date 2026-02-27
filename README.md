@@ -57,6 +57,7 @@ To build Horizon on Debian (Wayland + Weston environment):
 - libwayland-dev
 - libxkbcommon-dev
 - libcairo2-dev
+- librsvg2-dev (SVG icon rendering)
 - wayland-protocols
 - weston (for testing)
 
@@ -70,13 +71,13 @@ sudo apt install build-essential g++ pkg-config \
                  wayland-protocols \
                  libxkbcommon-dev \
                  libcairo2-dev \
+                 librsvg2-dev \
                  libpixman-1-dev \
                  libegl1-mesa-dev \
                  libgles2-mesa-dev \
+                 nlohmann-json3-dev \
                  weston \
                  wayland-utils
-
-                sudo apt install nlohmann-json3-dev
 ```
 
 ## Compiling

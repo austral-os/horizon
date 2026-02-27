@@ -2,6 +2,7 @@
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Frame.hpp>
+#include <horizon/Icon.hpp>
 #include <horizon/Notebook.hpp>
 #include <horizon/SolidObject.hpp>
 #include <horizon/TextBox.hpp>
@@ -80,7 +81,31 @@ int main()
         container->add_child(std::move(spacer2));
 
         notebook->add_tab(NotebookPage("Tab 3", "Icon 3", std::move(container)));
-        notebook->add_tab(NotebookPage("Tab 1", "Icon 1", std::make_unique<Widget>()));
+        // Tab 1: Icon test
+        auto icon_container = std::make_unique<Widget>();
+        icon_container->set_margin(20);
+        icon_container->set_spacing(10);
+
+        auto icon1 = std::make_unique<horizon::Icon>();
+        icon1->set_icon_name("folder");
+        icon1->set_icon_size(48);
+        icon1->set_fixed_size(60);
+
+        auto icon2 = std::make_unique<horizon::Icon>();
+        icon2->set_icon_name("firefox");
+        icon2->set_icon_size(48);
+        icon2->set_fixed_size(60);
+
+        auto icon3 = std::make_unique<horizon::Icon>();
+        icon3->set_icon_name("utilities-terminal");
+        icon3->set_icon_size(48);
+        icon3->set_fixed_size(60);
+
+        icon_container->add_child(std::move(icon1));
+        icon_container->add_child(std::move(icon2));
+        icon_container->add_child(std::move(icon3));
+
+        notebook->add_tab(NotebookPage("Icons", std::move(icon_container)));
         notebook->add_tab(NotebookPage("Tab 2", "Icon 2", std::make_unique<Widget>()));
 
         auto tb_container = std::make_unique<Widget>();

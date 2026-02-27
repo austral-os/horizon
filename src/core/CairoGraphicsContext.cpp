@@ -1,5 +1,7 @@
 #include <cmath>
 #include <horizon/CairoGraphicsContext.hpp>
+#include <librsvg/rsvg.h>
+#include <string>
 
 namespace horizon
 {
@@ -103,6 +105,77 @@ namespace horizon
     {
         cairo_move_to(cr, x, y);
         cairo_show_text(cr, text);
+    }
+
+    void CairoGraphicContext::drawImage(const std::string &path, int x, int y, int w, int h)
+    {
+        if (path.empty() || w <= 0 || h <= 0)
+            return;
+
+        cairo_save(cr);
+
+        // Determine file type by extension
+        bool is_svg = false;
+        auto dot_pos = path.rfind('.');
+        if (dot_pos != std::string::npos)
+        {
+            std::string ext = path.substr(dot_pos + 1);
+            is_svg = (ext == "svg" || ext == "SVG");
+        }
+
+        if (is_svg)
+        {
+            // --- SVG rendering via librsvg ---
+            GError *error = nullptr;
+            GFile *gfile = g_file_new_for_path(path.c_str());
+            RsvgHandle *handle =
+                rsvg_handle_new_from_gfile_sync(gfile, RSVG_HANDLE_FLAGS_NONE, nullptr, &error);
+            g_object_unref(gfile);
+
+            if (!handle)
+            {
+                if (error)
+                    g_error_free(error);
+                cairo_restore(cr);
+                return;
+            }
+
+            RsvgRectangle viewport = {static_cast<double>(x), static_cast<double>(y),
+                                      static_cast<double>(w), static_cast<double>(h)};
+
+            rsvg_handle_render_document(handle, cr, &viewport, nullptr);
+
+            g_object_unref(handle);
+        }
+        else
+        {
+            // --- PNG rendering via cairo ---
+            cairo_surface_t *img = cairo_image_surface_create_from_png(path.c_str());
+            if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS)
+            {
+                cairo_surface_destroy(img);
+                cairo_restore(cr);
+                return;
+            }
+
+            int img_w = cairo_image_surface_get_width(img);
+            int img_h = cairo_image_surface_get_height(img);
+
+            if (img_w > 0 && img_h > 0)
+            {
+                double sx = static_cast<double>(w) / img_w;
+                double sy = static_cast<double>(h) / img_h;
+
+                cairo_translate(cr, x, y);
+                cairo_scale(cr, sx, sy);
+                cairo_set_source_surface(cr, img, 0, 0);
+                cairo_paint(cr);
+            }
+
+            cairo_surface_destroy(img);
+        }
+
+        cairo_restore(cr);
     }
 
     static void rounded_rectangle(cairo_t *cr, double x, double y, double width, double height,
