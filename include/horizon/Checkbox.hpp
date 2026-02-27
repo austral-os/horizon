@@ -44,7 +44,7 @@ namespace horizon
             auto *tm = this->application()->theme_manager.get();
             Color window_fg = tm->get_color("window_fg");
 
-            int marker_size = 20;
+            int marker_size = 22;
             int margin_y = (this->m_height - marker_size);
             int marker_x = this->m_start_draw_x + 10;
             int marker_y = this->m_start_draw_y + margin_y;
@@ -95,8 +95,8 @@ namespace horizon
                 // Start: (2, 8) -> Mid: (7, 13) -> End: (14, 2)
                 int x1 = marker_x + 4;
                 int y1 = marker_y + 8;
-                int x2 = marker_x + 7;
-                int y2 = marker_y + 13;
+                int x2 = marker_x + 9;
+                int y2 = marker_y + 16;
                 int x3 = marker_x + 18;
                 int y3 = marker_y + 2;
 

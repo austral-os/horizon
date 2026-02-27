@@ -44,10 +44,14 @@ namespace horizon
             auto *tm = this->application()->theme_manager.get();
             Color window_fg = tm->get_color("window_fg");
 
-            int marker_radius = 9;
+            int marker_radius = 12;
             int margin_y = (this->m_height) / 2;
             int marker_x = this->m_start_draw_x + 10 + marker_radius;
             int marker_y = this->m_start_draw_y + margin_y;
+
+            // Update accent color based on state
+            this->set_accent_color(m_selected ? WidgetAccentColor::Primary
+                                              : WidgetAccentColor::Default);
 
             // --- Temporary Geometry Override ---
             // We save original values so T::draw (Aqua/Solid) only paints the marker
@@ -87,7 +91,7 @@ namespace horizon
             {
                 gc.setColor(window_fg);
                 // Draw a simple inner circle for selection
-                gc.fillCircle(marker_x, marker_y, marker_radius - 4);
+                gc.fillCircle(marker_x, marker_y, marker_radius / 3);
             }
 
             // Draw label
@@ -95,7 +99,7 @@ namespace horizon
             int label_w = this->m_width - (label_x - this->m_x) - 10;
 
             m_label->set_application_recursive(this->application());
-            m_label->set_position(label_x, this->m_y + (this->m_height / 2) - 10);
+            m_label->set_position(label_x, this->m_y + (this->m_height / 2) - marker_radius);
             m_label->set_size(label_w, this->m_height);
             m_label->draw(gc);
         }
