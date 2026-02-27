@@ -231,6 +231,18 @@ namespace horizon
         cairo_fill(cr);
     }
 
+    void CairoGraphicContext::drawLine(int x1, int y1, int x2, int y2, float lineWidth)
+    {
+        cairo_save(cr);
+        cairo_set_line_width(cr, (double)lineWidth);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+        cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+        cairo_move_to(cr, (double)x1, (double)y1);
+        cairo_line_to(cr, (double)x2, (double)y2);
+        cairo_stroke(cr);
+        cairo_restore(cr);
+    }
+
     void CairoGraphicContext::fillLinearGradientRect(int x, int y, int width, int height, Color c1,
                                                      Color c2, bool vertical, CornerRadius radius)
     {

@@ -60,6 +60,7 @@ namespace horizon
         virtual void drawRect(int x, int y, int width, int height, CornerRadius radius = 0,
                               float lineWidth = 1.0f) {};
         virtual void fillRect(int x, int y, int width, int height, CornerRadius radius = 0) {};
+        virtual void drawLine(int x1, int y1, int x2, int y2, float lineWidth = 1.0f) {};
         virtual void fillLinearGradientRect(int x, int y, int width, int height, Color c1, Color c2,
                                             bool vertical = true, CornerRadius radius = 0) {};
         virtual void drawLinearGradientRect(int x, int y, int width, int height, Color c1, Color c2,

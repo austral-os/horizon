@@ -89,9 +89,19 @@ namespace horizon
             if (m_checked)
             {
                 gc.setColor(window_fg);
-                // Draw a simple check marker (filled rect for now)
-                gc.fillRect(marker_x + 5, marker_y + 5, marker_size - 10, marker_size - 10,
-                            {2, 2, 2, 2});
+
+                // Draw a checkmark using the new drawLine method
+                // Relative points in the 16x16 marker:
+                // Start: (2, 8) -> Mid: (7, 13) -> End: (14, 2)
+                int x1 = marker_x + 4;
+                int y1 = marker_y + 8;
+                int x2 = marker_x + 7;
+                int y2 = marker_y + 13;
+                int x3 = marker_x + 18;
+                int y3 = marker_y + 2;
+
+                gc.drawLine(x1, y1, x2, y2, 3.0f);
+                gc.drawLine(x2, y2, x3, y3, 2.0f);
             }
 
             // Draw label
