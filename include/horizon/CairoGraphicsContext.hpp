@@ -15,6 +15,7 @@ namespace horizon
         void paint() override;
         void setColor(float r, float g, float b, float a = 1.0f) override;
         void setColor(Color color) override;
+        void clearRect(int x, int y, int width, int height, CornerRadius radius = 0) override;
         void drawRect(int x, int y, int width, int height, CornerRadius radius = 0,
                       float lineWidth = 1.0f) override;
         void fillRect(int x, int y, int width, int height, CornerRadius radius = 0) override;

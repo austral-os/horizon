@@ -20,6 +20,35 @@ namespace horizon
         if (cairo_s)
             cairo_surface_destroy(cairo_s);
     }
+
+    static void rounded_rectangle(cairo_t *cr, double x, double y, double width, double height,
+                                  CornerRadius radius)
+    {
+        if (radius.top_left <= 0 && radius.top_right <= 0 && radius.bottom_right <= 0 &&
+            radius.bottom_left <= 0)
+        {
+            cairo_rectangle(cr, x, y, width, height);
+            return;
+        }
+
+        double degrees = M_PI / 180.0;
+
+        cairo_new_sub_path(cr);
+        // Top right
+        cairo_arc(cr, x + width - radius.top_right, y + radius.top_right, radius.top_right,
+                  -90 * degrees, 0 * degrees);
+        // Bottom right
+        cairo_arc(cr, x + width - radius.bottom_right, y + height - radius.bottom_right,
+                  radius.bottom_right, 0 * degrees, 90 * degrees);
+        // Bottom left
+        cairo_arc(cr, x + radius.bottom_left, y + height - radius.bottom_left, radius.bottom_left,
+                  90 * degrees, 180 * degrees);
+        // Top left
+        cairo_arc(cr, x + radius.top_left, y + radius.top_left, radius.top_left, 180 * degrees,
+                  270 * degrees);
+        cairo_close_path(cr);
+    }
+
     void CairoGraphicContext::setColor(float r, float g, float b, float a)
     {
         cairo_set_source_rgba(cr, r, g, b, a);
@@ -28,6 +57,15 @@ namespace horizon
     void CairoGraphicContext::setColor(Color color)
     {
         cairo_set_source_rgba(cr, color.r, color.g, color.b, color.a);
+    }
+
+    void CairoGraphicContext::clearRect(int x, int y, int w, int h, CornerRadius radius)
+    {
+        cairo_save(cr);
+        cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+        rounded_rectangle(cr, x, y, (double)w, (double)h, radius);
+        cairo_fill(cr);
+        cairo_restore(cr);
     }
 
     void CairoGraphicContext::paint()
@@ -176,34 +214,6 @@ namespace horizon
         }
 
         cairo_restore(cr);
-    }
-
-    static void rounded_rectangle(cairo_t *cr, double x, double y, double width, double height,
-                                  CornerRadius radius)
-    {
-        if (radius.top_left <= 0 && radius.top_right <= 0 && radius.bottom_right <= 0 &&
-            radius.bottom_left <= 0)
-        {
-            cairo_rectangle(cr, x, y, width, height);
-            return;
-        }
-
-        double degrees = M_PI / 180.0;
-
-        cairo_new_sub_path(cr);
-        // Top right
-        cairo_arc(cr, x + width - radius.top_right, y + radius.top_right, radius.top_right,
-                  -90 * degrees, 0 * degrees);
-        // Bottom right
-        cairo_arc(cr, x + width - radius.bottom_right, y + height - radius.bottom_right,
-                  radius.bottom_right, 0 * degrees, 90 * degrees);
-        // Bottom left
-        cairo_arc(cr, x + radius.bottom_left, y + height - radius.bottom_left, radius.bottom_left,
-                  90 * degrees, 180 * degrees);
-        // Top left
-        cairo_arc(cr, x + radius.top_left, y + radius.top_left, radius.top_left, 180 * degrees,
-                  270 * degrees);
-        cairo_close_path(cr);
     }
 
     void CairoGraphicContext::drawRect(int x, int y, int width, int height, CornerRadius radius,

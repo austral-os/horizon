@@ -527,8 +527,11 @@ namespace horizon
 
                 for (Widget *w : current_dirty)
                 {
-                    // Repintamos el widget (esto asume que el widget sabe su posición global)
-                    w->render(ctx);
+                    ctx.save();
+                    ctx.clip(w->x(), w->y(), w->width(), w->height());
+                    m_root->render(ctx);
+                    ctx.restore();
+
                     wl_surface_damage(m_surface->surface(), w->x(), w->y(), w->width(),
                                       w->height());
                 }

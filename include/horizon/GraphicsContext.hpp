@@ -56,6 +56,7 @@ namespace horizon
         virtual void paint() {};
         virtual void setColor(float r, float g, float b, float a = 1.0f) {};
         virtual void setColor(Color color) {};
+        virtual void clearRect(int x, int y, int width, int height, CornerRadius radius = 0) {};
         virtual void drawRect(int x, int y, int width, int height, CornerRadius radius = 0,
                               float lineWidth = 1.0f) {};
         virtual void fillRect(int x, int y, int width, int height, CornerRadius radius = 0) {};

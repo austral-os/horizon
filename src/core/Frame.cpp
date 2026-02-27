@@ -15,6 +15,7 @@ namespace horizon
         int radius = 10;
 
         Color bg = tm->get_color("window_bg").darker(50.f).with_alpha(0.08f);
+
         Color border = tm->get_color("window_border").lighter(40.f);
 
         gc.setColor(bg.lighter(100.f));
