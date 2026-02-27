@@ -162,7 +162,8 @@ namespace horizon
         if (event.key == KEY_CAPSLOCK)
             m_modifiers ^= CAPSLOCK;
 
-        // Key repeat management
+        // Key repeat management — only reset if this is a NEW key being pressed (not a synthetic
+        // repeat)
         uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
                            std::chrono::steady_clock::now().time_since_epoch())
                            .count();
@@ -170,6 +171,7 @@ namespace horizon
         if (m_repeat_key != event.key)
         {
             m_repeat_key = event.key;
+            m_repeat_event = event; // Store full event (keysym, text, etc.) for replay
             m_repeat_start_time = now;
             m_repeat_last_time = now;
             m_is_repeating = true;
@@ -547,25 +549,37 @@ namespace horizon
                                std::chrono::steady_clock::now().time_since_epoch())
                                .count();
 
+            // Calculate poll() timeout — take the minimum of: repeating, timer expiry, blink
+            // heartbeat
             int timeout = -1;
             if (m_is_repeating)
-                timeout = 10;
-            else if (!m_timers.empty())
             {
-                uint64_t next_expiry = 0;
-                for (const auto &[id, timer] : m_timers)
+                timeout = 10;
+            }
+            else
+            {
+                // Check nearest timer expiry
+                if (!m_timers.empty())
                 {
-                    if (next_expiry == 0 || timer.next_expiry < next_expiry)
-                        next_expiry = timer.next_expiry;
+                    uint64_t next_expiry = 0;
+                    for (const auto &[id, timer] : m_timers)
+                    {
+                        if (next_expiry == 0 || timer.next_expiry < next_expiry)
+                            next_expiry = timer.next_expiry;
+                    }
+                    int timer_ms = (next_expiry <= now) ? 0 : (int)(next_expiry - now);
+                    timeout = (timeout == -1) ? timer_ms : std::min(timeout, timer_ms);
                 }
 
-                if (next_expiry <= now)
-                    timeout = 0;
-                else
-                    timeout = (int)(next_expiry - now);
+                // Cursor blink heartbeat: always needed when something is focused
+                if (m_focused)
+                {
+                    int blink_ms = 500 - (int)(now - m_blink_last_time);
+                    if (blink_ms < 0)
+                        blink_ms = 0;
+                    timeout = (timeout == -1) ? blink_ms : std::min(timeout, blink_ms);
+                }
             }
-            else if (m_focused)
-                timeout = 250; // Heartbeat for blinking
 
             int ret = poll(fds, 2, timeout);
 
@@ -578,9 +592,7 @@ namespace horizon
             for (auto const &[id, timer] : m_timers)
             {
                 if (now >= timer.next_expiry)
-                {
                     to_run.push_back(id);
-                }
             }
 
             for (size_t id : to_run)
@@ -590,37 +602,22 @@ namespace horizon
                     // Copy callback to avoid use-after-free if callback removes the timer
                     auto callback = m_timers[id].callback;
                     m_timers[id].next_expiry = now + m_timers[id].interval_ms;
-
                     if (callback)
                         callback();
                 }
             }
 
-            if (ret == 0 && m_focused && !m_is_repeating && m_timers.empty())
+            // Trigger cursor blink independently of timers
+            if (m_focused && !m_is_repeating && (now - m_blink_last_time >= 500))
             {
+                m_blink_last_time = now;
                 m_focused->invalidate();
-            }
-
-            if (m_is_repeating)
-            {
-                uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
-                                   std::chrono::steady_clock::now().time_since_epoch())
-                                   .count();
-                if (now - m_repeat_start_time >= m_repeat_delay)
-                {
-                    if (now - m_repeat_last_time >= m_repeat_rate)
-                    {
-                        KeyEvent ev;
-                        ev.type = KeyEvent::Type::Press;
-                        ev.key = m_repeat_key;
-                        handle_key_press(ev);
-                        m_repeat_last_time = now;
-                    }
-                }
             }
 
             if (ret > 0)
             {
+                // Always dispatch Wayland events FIRST, before anything else,
+                // so physical key events update m_is_repeating state before the repeat check.
                 if (fds[0].revents & POLLIN)
                 {
                     wl_display_dispatch(m_surface->display());
@@ -631,6 +628,23 @@ namespace horizon
                     if (read(m_wakeup_fd, &val, sizeof(val)) < 0)
                     {
                         // ignore error
+                    }
+                }
+            }
+
+            // Key repeat check — runs on every loop iteration when a key is held
+            if (m_is_repeating)
+            {
+                now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                          std::chrono::steady_clock::now().time_since_epoch())
+                          .count();
+                if (now - m_repeat_start_time >= m_repeat_delay)
+                {
+                    if (now - m_repeat_last_time >= m_repeat_rate)
+                    {
+                        // Replay the full stored event so keysym/text are correct
+                        handle_key_press(m_repeat_event);
+                        m_repeat_last_time = now;
                     }
                 }
             }
@@ -811,6 +825,24 @@ namespace horizon
     void Application::stop_timer(size_t id)
     {
         m_timers.erase(id);
+    }
+
+    void Application::unregister_widget(Widget *widget)
+    {
+        if (!widget)
+            return;
+
+        // Remove from dirty list
+        m_dirty_widgets.erase(std::remove(m_dirty_widgets.begin(), m_dirty_widgets.end(), widget),
+                              m_dirty_widgets.end());
+
+        // Clear focused/hovered/pressed if this widget is going away
+        if (m_focused == widget)
+            m_focused = nullptr;
+        if (m_hovered == widget)
+            m_hovered = nullptr;
+        if (m_pressed == widget)
+            m_pressed = nullptr;
     }
 
 } // namespace horizon

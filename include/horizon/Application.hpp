@@ -141,6 +141,12 @@ namespace horizon
         size_t add_timer(int ms, std::function<void()> callback);
         void stop_timer(size_t id);
 
+        /**
+         * @brief Unregisters a widget from internal application state (e.g. dirty lists, focus).
+         * Called when a widget is destroyed.
+         */
+        void unregister_widget(Widget *widget);
+
     private:
         /**
          * @brief Internal event dispatcher.
@@ -156,8 +162,6 @@ namespace horizon
         std::vector<Widget *> m_dirty_widgets; /**< List of widgets that need re-rendering. */
 
         int m_wakeup_fd{-1}; /**< File descriptor for waking up the event loop. */
-
-        std::unique_ptr<Widget> m_root; /**< The root of the UI widget hierarchy. */
 
         Widget *m_hovered = nullptr; /**< The widget currently under the mouse pointer. */
         Widget *m_pressed = nullptr; /**< The widget currently being pressed by a mouse button. */
@@ -180,6 +184,8 @@ namespace horizon
         };
         uint32_t m_modifiers{0};
 
+        uint64_t m_blink_last_time{0}; /**< Last time the focused widget was blinked. */
+
         // Key repeat tracking
         uint32_t m_repeat_key = 0;
         uint64_t m_repeat_delay = 500; // ms
@@ -187,6 +193,7 @@ namespace horizon
         uint64_t m_repeat_start_time = 0;
         uint64_t m_repeat_last_time = 0;
         bool m_is_repeating = false;
+        KeyEvent m_repeat_event; /**< Full last key event (keysym, text) used for repeats. */
 
         /**
          * @brief Internal handler for pointer movement events.
@@ -231,5 +238,9 @@ namespace horizon
         };
         std::map<size_t, Timer> m_timers;
         size_t m_next_timer_id{1};
+
+        // m_root is last: destroyed FIRST so widget dtors can safely call
+        // stop_timer/unregister_widget
+        std::unique_ptr<Widget> m_root; /**< The root of the UI widget hierarchy. */
     };
 } // namespace horizon

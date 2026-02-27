@@ -40,7 +40,13 @@ namespace horizon
             });
     }
 
-    Widget::~Widget() {}
+    Widget::~Widget()
+    {
+        if (m_app)
+        {
+            m_app->unregister_widget(this);
+        }
+    }
 
     void Widget::calculate_layout()
     {
