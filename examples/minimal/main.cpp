@@ -1,9 +1,12 @@
 #include <horizon/Application.hpp>
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
+#include <horizon/Checkbox.hpp>
 #include <horizon/Frame.hpp>
 #include <horizon/Icon.hpp>
+#include <horizon/Label.hpp>
 #include <horizon/Notebook.hpp>
+#include <horizon/RadioButton.hpp>
 #include <horizon/SolidObject.hpp>
 #include <horizon/TextBox.hpp>
 #include <horizon/Widget.hpp>
@@ -13,8 +16,15 @@
 using horizon::Application;
 using horizon::AquaObject;
 using horizon::Button;
+using horizon::Checkbox;
+using horizon::FONT_SLANT_ITALIC;
+using horizon::FONT_WEIGHT_BOLD;
+using horizon::Label;
 using horizon::Notebook;
 using horizon::NotebookPage;
+using horizon::RadioButton;
+using horizon::SolidObject;
+using horizon::TextAlignment;
 using horizon::TextBox;
 using horizon::Widget;
 using horizon::WidgetAccentColor;
@@ -113,6 +123,67 @@ int main()
         tb_container->add_child(std::move(textbox));
 
         notebook->add_tab(NotebookPage("TextBox", std::move(tb_container)));
+
+        // --- New Tab for Label demo ---
+        auto label_container = std::make_unique<Widget>();
+        label_container->set_margin(30);
+        label_container->set_spacing(10);
+
+        auto lbl1 = std::make_unique<Label>("Este es un Label normal con alineacion por defecto.");
+
+        auto lbl2 = std::make_unique<Label>("Este es un Label en negrita y centrado.");
+        lbl2->set_alignment(TextAlignment::Center);
+        lbl2->set_font_weight(FONT_WEIGHT_BOLD);
+
+        auto lbl3 = std::make_unique<Label>(
+            "Este es un Label en cursiva y alineado a la derecha con un texto bastante largo para "
+            "probar el ajuste de linea automatico (word wrap) que implementamos.");
+        lbl3->set_alignment(TextAlignment::Right);
+        lbl3->set_font_slant(FONT_SLANT_ITALIC);
+
+        label_container->add_child(std::move(lbl1));
+        label_container->add_child(std::move(lbl2));
+        label_container->add_child(std::move(lbl3));
+
+        notebook->add_tab(NotebookPage("Label", std::move(label_container)));
+
+        // --- New Tab for Checkboxes & Radios ---
+        auto widgets_container = std::make_unique<Widget>();
+        widgets_container->set_margin(20);
+        widgets_container->set_spacing(10);
+
+        auto cb_aqua = std::make_unique<Checkbox<AquaObject>>();
+        cb_aqua->set_text("Aqua Checkbox");
+        cb_aqua->set_checked(true);
+
+        auto cb_solid = std::make_unique<Checkbox<SolidObject>>();
+        cb_solid->set_text(
+            "Solid Checkbox con un texto extremadamente largo diseñado específicamente para probar "
+            "que el nuevo sistema de Label interno funciona correctamente y divide el texto en "
+            "varias líneas si es necesario.");
+
+        auto rb_aqua1 = std::make_unique<RadioButton<AquaObject>>();
+        rb_aqua1->set_text("Aqua Radio 1");
+        rb_aqua1->set_selected(true);
+
+        auto rb_aqua2 = std::make_unique<RadioButton<AquaObject>>();
+        rb_aqua2->set_text(
+            "Aqua Radio 2 con un texto que también debería ajustarse automáticamente si el espacio "
+            "horizontal es insuficiente para mostrarlo en una sola línea.");
+
+        auto rb_aqua1_ptr = rb_aqua1.get();
+        auto rb_aqua2_ptr = rb_aqua2.get();
+
+        // Simple manual grouping logic
+        rb_aqua1_ptr->set_on_select([rb_aqua2_ptr]() { rb_aqua2_ptr->set_selected(false); });
+        rb_aqua2_ptr->set_on_select([rb_aqua1_ptr]() { rb_aqua1_ptr->set_selected(false); });
+
+        widgets_container->add_child(std::move(cb_aqua));
+        widgets_container->add_child(std::move(cb_solid));
+        widgets_container->add_child(std::move(rb_aqua1));
+        widgets_container->add_child(std::move(rb_aqua2));
+
+        notebook->add_tab(NotebookPage("Check/Radio", std::move(widgets_container)));
 
         wnd->add_child(std::move(notebook));
 

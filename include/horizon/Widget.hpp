@@ -161,10 +161,10 @@ namespace horizon
         EventsManager when_key_press;
         EventsManager when_key_release;
 
+        void set_application_recursive(Application *app);
+
     protected:
         virtual void draw(GraphicsContext &ctx);
-
-        void set_application_recursive(Application *app);
 
         Widget *hit_test(int x, int y);
 
