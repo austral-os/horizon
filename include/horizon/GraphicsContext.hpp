@@ -82,6 +82,9 @@ namespace horizon
         virtual void save() {};
         virtual void restore() {};
         virtual void clip(int x, int y, int width, int height) {};
+
+        virtual void pushGroup() {};
+        virtual void popGroup() {};
     };
 
 } // namespace horizon

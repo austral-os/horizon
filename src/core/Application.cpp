@@ -146,11 +146,23 @@ namespace horizon
 
     void Application::handle_key_press(const KeyEvent &event)
     {
-
         if (event.key == KEY_ESC)
         {
             quit();
             return;
+        }
+
+        // Key repeat management
+        uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                           std::chrono::steady_clock::now().time_since_epoch())
+                           .count();
+
+        if (m_repeat_key != event.key)
+        {
+            m_repeat_key = event.key;
+            m_repeat_start_time = now;
+            m_repeat_last_time = now;
+            m_is_repeating = true;
         }
 
         Widget *target = m_focused ? m_focused : m_root.get();
@@ -168,6 +180,12 @@ namespace horizon
     {
         if (!m_root)
             return;
+
+        if (event.key == m_repeat_key)
+        {
+            m_is_repeating = false;
+            m_repeat_key = 0;
+        }
 
         Widget *target = m_focused ? m_focused : m_root.get();
 
@@ -477,7 +495,7 @@ namespace horizon
 
             int ret = poll(fds, 2, timeout);
 
-            if (ret == 0 && m_focused)
+            if (ret == 0 && m_focused && !m_is_repeating)
             {
                 m_focused->invalidate();
             }

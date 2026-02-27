@@ -1,6 +1,6 @@
 #include <horizon/Application.hpp>
+#include <horizon/GraphicsContext.hpp>
 #include <horizon/Widget.hpp>
-#include <iostream>
 #include <linux/input-event-codes.h>
 
 namespace horizon
@@ -94,7 +94,9 @@ namespace horizon
 
         calculate_layout();
 
+        ctx.pushGroup();
         draw(ctx);
+        ctx.popGroup();
 
         int current_x = m_start_draw_x;
         int current_y = m_start_draw_y;

@@ -274,4 +274,15 @@ namespace horizon
         cairo_clip(cr);
     }
 
+    void CairoGraphicContext::pushGroup()
+    {
+        cairo_push_group(cr);
+    }
+
+    void CairoGraphicContext::popGroup()
+    {
+        cairo_pop_group_to_source(cr);
+        cairo_paint(cr);
+    }
+
 } // namespace horizon
