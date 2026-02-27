@@ -8,6 +8,7 @@
 #include <horizon/Notebook.hpp>
 #include <horizon/ProgressBar.hpp>
 #include <horizon/RadioButton.hpp>
+#include <horizon/Slider.hpp>
 #include <horizon/SolidObject.hpp>
 #include <horizon/TextBox.hpp>
 #include <horizon/Widget.hpp>
@@ -25,6 +26,7 @@ using horizon::Notebook;
 using horizon::NotebookPage;
 using horizon::ProgressBar;
 using horizon::RadioButton;
+using horizon::Slider;
 using horizon::SolidObject;
 using horizon::TextAlignment;
 using horizon::TextBox;
@@ -129,6 +131,14 @@ int main()
         pb->set_margin(10);
         pb->set_fixed_size(30);
         tb_container->add_child(std::move(pb));
+
+        // Horizontal slider with tick marks
+        auto slider_h = std::make_unique<horizon::Slider>();
+        slider_h->set_value(0.35f);
+        slider_h->set_tick_count(5);
+        slider_h->set_margin(10);
+        slider_h->set_fixed_size(46);
+        tb_container->add_child(std::move(slider_h));
 
         notebook->add_tab(NotebookPage("TextBox", std::move(tb_container)));
 
