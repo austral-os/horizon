@@ -2,6 +2,7 @@
 
 #include "horizon/Color.hpp"
 #include <string>
+#include <vector>
 namespace horizon
 {
 
@@ -20,6 +21,15 @@ namespace horizon
             : top_left(tl), top_right(tr), bottom_right(br), bottom_left(bl)
         {
         }
+    };
+
+    struct PolygonPoint
+    {
+        int x;
+        int y;
+        int radius;
+
+        PolygonPoint(int x = 0, int y = 0, int radius = 0) : x(x), y(y), radius(radius) {}
     };
 
     struct TextMetrics
@@ -90,6 +100,12 @@ namespace horizon
 
         virtual void pushGroup() {};
         virtual void popGroup() {};
+
+        virtual void fillPolygon(const std::vector<PolygonPoint> &points) {};
+        virtual void drawPolygon(const std::vector<PolygonPoint> &points, float lineWidth = 1.0f) {
+        };
+        virtual void fillLinearGradientPolygon(const std::vector<PolygonPoint> &points, Color c1,
+                                               Color c2, bool vertical = true) {};
     };
 
 } // namespace horizon

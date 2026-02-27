@@ -49,6 +49,113 @@ namespace horizon
         cairo_close_path(cr);
     }
 
+    static void rounded_polygon_path(cairo_t *cr, const std::vector<PolygonPoint> &points)
+    {
+        if (points.empty())
+            return;
+        if (points.size() == 1)
+        {
+            cairo_move_to(cr, points[0].x, points[0].y);
+            return;
+        }
+
+        cairo_new_path(cr);
+        size_t n = points.size();
+
+        for (size_t i = 0; i < n; ++i)
+        {
+            const auto &p1 = points[(i + n - 1) % n];
+            const auto &p2 = points[i];
+            const auto &p3 = points[(i + 1) % n];
+
+            if (p2.radius <= 0)
+            {
+                if (i == 0)
+                    cairo_move_to(cr, p2.x, p2.y);
+                else
+                    cairo_line_to(cr, p2.x, p2.y);
+                continue;
+            }
+
+            double dx1 = p1.x - p2.x;
+            double dy1 = p1.y - p2.y;
+            double len1 = std::sqrt(dx1 * dx1 + dy1 * dy1);
+
+            double dx2 = p3.x - p2.x;
+            double dy2 = p3.y - p2.y;
+            double len2 = std::sqrt(dx2 * dx2 + dy2 * dy2);
+
+            if (len1 < 0.001 || len2 < 0.001)
+            {
+                if (i == 0)
+                    cairo_move_to(cr, p2.x, p2.y);
+                else
+                    cairo_line_to(cr, p2.x, p2.y);
+                continue;
+            }
+
+            dx1 /= len1;
+            dy1 /= len1;
+            dx2 /= len2;
+            dy2 /= len2;
+
+            double dot = dx1 * dx2 + dy1 * dy2;
+            double cross = dx1 * dy2 - dy1 * dx2;
+            double angle = std::acos(std::max(-1.0, std::min(1.0, dot)));
+
+            // If angle is 0 or PI, it's a flat line or a fold-back
+            if (angle < 0.001 || angle > M_PI - 0.001)
+            {
+                if (i == 0)
+                    cairo_move_to(cr, p2.x, p2.y);
+                else
+                    cairo_line_to(cr, p2.x, p2.y);
+                continue;
+            }
+
+            double tan_len = p2.radius / std::tan(angle / 2.0);
+            tan_len = std::min(tan_len, std::min(len1, len2) / 2.0);
+            double effective_radius = tan_len * std::tan(angle / 2.0);
+
+            double tx1 = p2.x + dx1 * tan_len;
+            double ty1 = p2.y + dy1 * tan_len;
+            double tx2 = p2.x + dx2 * tan_len;
+            double ty2 = p2.y + dy2 * tan_len;
+
+            if (i == 0)
+                cairo_move_to(cr, tx1, ty1);
+            else
+                cairo_line_to(cr, tx1, ty1);
+
+            double bx = dx1 + dx2;
+            double by = dy1 + dy2;
+            double blen = std::sqrt(bx * bx + by * by);
+
+            if (blen < 0.001)
+            {
+                cairo_line_to(cr, p2.x, p2.y);
+            }
+            else
+            {
+                bx /= blen;
+                by /= blen;
+                double dist_to_center = effective_radius / std::sin(angle / 2.0);
+                double cx = p2.x + bx * dist_to_center;
+                double cy = p2.y + by * dist_to_center;
+
+                double start_angle = std::atan2(ty1 - cy, tx1 - cx);
+                double end_angle = std::atan2(ty2 - cy, tx2 - cx);
+
+                // Reversed the condition: cross < 0 -> CW turn -> cairo_arc
+                if (cross < 0)
+                    cairo_arc(cr, cx, cy, effective_radius, start_angle, end_angle);
+                else
+                    cairo_arc_negative(cr, cx, cy, effective_radius, start_angle, end_angle);
+            }
+        }
+        cairo_close_path(cr);
+    }
+
     void CairoGraphicContext::setColor(float r, float g, float b, float a)
     {
         cairo_set_source_rgba(cr, r, g, b, a);
@@ -385,6 +492,56 @@ namespace horizon
     {
         cairo_pop_group_to_source(cr);
         cairo_paint(cr);
+    }
+
+    void CairoGraphicContext::fillPolygon(const std::vector<PolygonPoint> &points)
+    {
+        rounded_polygon_path(cr, points);
+        cairo_fill(cr);
+    }
+
+    void CairoGraphicContext::drawPolygon(const std::vector<PolygonPoint> &points, float lineWidth)
+    {
+        cairo_set_line_width(cr, lineWidth);
+        cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+        rounded_polygon_path(cr, points);
+        cairo_stroke(cr);
+    }
+
+    void CairoGraphicContext::fillLinearGradientPolygon(const std::vector<PolygonPoint> &points,
+                                                        Color c1, Color c2, bool vertical)
+    {
+        if (points.empty())
+            return;
+
+        // Find bounding box for gradient
+        int min_x = points[0].x, max_x = points[0].x;
+        int min_y = points[0].y, max_y = points[0].y;
+        for (const auto &p : points)
+        {
+            min_x = std::min(min_x, p.x);
+            max_x = std::max(max_x, p.x);
+            min_y = std::min(min_y, p.y);
+            max_y = std::max(max_y, p.y);
+        }
+
+        cairo_pattern_t *pat;
+        if (vertical)
+        {
+            pat = cairo_pattern_create_linear(min_x, min_y, min_x, max_y);
+        }
+        else
+        {
+            pat = cairo_pattern_create_linear(min_x, min_y, max_x, min_y);
+        }
+
+        cairo_pattern_add_color_stop_rgba(pat, 0, c1.r, c1.g, c1.b, c1.a);
+        cairo_pattern_add_color_stop_rgba(pat, 1, c2.r, c2.g, c2.b, c2.a);
+
+        cairo_set_source(cr, pat);
+        rounded_polygon_path(cr, points);
+        cairo_fill(cr);
+        cairo_pattern_destroy(pat);
     }
 
 } // namespace horizon

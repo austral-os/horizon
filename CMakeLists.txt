@@ -52,6 +52,15 @@ target_link_libraries(minimal
         horizon
 )
 
+add_executable(polygon_demo
+    examples/polygon_demo.cpp
+)
+
+target_link_libraries(polygon_demo
+    PRIVATE
+        horizon
+)
+
 # Agregamos un target "run" para compilar y ejecutar de una vez
 add_custom_target(run
     COMMAND $<TARGET_FILE:minimal>
