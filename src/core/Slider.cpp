@@ -144,12 +144,7 @@ namespace horizon
         const bool horiz = (m_orientation == SliderOrientation::Horizontal);
 
         // ── Layout ──────────────────────────────────────────────────────────
-        // For horizontal: track is a thin bar vertically centred (above tick area)
-        // For vertical:   track is a thin bar horizontally centred
-
         int track_x, track_y, track_w, track_h;
-        int center_x = m_x + m_width / 2;
-        int center_y = m_y + m_height / 2;
 
         if (horiz)
         {

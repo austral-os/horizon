@@ -185,6 +185,8 @@ namespace horizon
         uint32_t m_modifiers{0};
 
         uint64_t m_blink_last_time{0}; /**< Last time the focused widget was blinked. */
+        uint64_t m_last_commit_time{
+            0}; /**< Timestamp of last wl_surface_commit (for frame limiter). */
 
         // Key repeat tracking
         uint32_t m_repeat_key = 0;

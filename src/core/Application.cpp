@@ -507,40 +507,55 @@ namespace horizon
         {
             wl_display_dispatch_pending(m_surface->display());
 
-            if (m_full_repaint && m_root)
+            // Frame rate limiter: compute current time and skip rendering if
+            // less than 16ms (~60fps) has elapsed since the last Wayland commit.
+            // Without this, rapid drag events generate 100+ commits/sec which
+            // causes the compositor to see the buffer being written while it's
+            // still reading it → flicker.
             {
-                m_full_repaint = false;
-                m_dirty_widgets.clear();
+                uint64_t frame_now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                         std::chrono::steady_clock::now().time_since_epoch())
+                                         .count();
+                static constexpr uint64_t FRAME_MS = 16; // ~60fps cap
 
-                CairoGraphicContext ctx(m_surface->data(), m_surface->width(), m_surface->height());
-                m_root->render(ctx);
+                bool has_pending = m_full_repaint || !m_dirty_widgets.empty();
 
-                wl_surface_attach(m_surface->surface(), m_surface->buffer(), 0, 0);
-                wl_surface_damage(m_surface->surface(), 0, 0, m_surface->width(),
-                                  m_surface->height());
-                wl_surface_commit(m_surface->surface());
-            }
-            else if (!m_dirty_widgets.empty() && m_root)
-            {
-                std::vector<Widget *> current_dirty;
-                std::swap(current_dirty, m_dirty_widgets);
-
-                CairoGraphicContext ctx(m_surface->data(), m_surface->width(), m_surface->height());
-
-                for (Widget *w : current_dirty)
+                if (has_pending && (frame_now - m_last_commit_time) >= FRAME_MS)
                 {
-                    ctx.save();
-                    ctx.clip(w->x(), w->y(), w->width(), w->height());
-                    m_root->render(ctx);
-                    ctx.restore();
-
-                    wl_surface_damage(m_surface->surface(), w->x(), w->y(), w->width(),
-                                      w->height());
+                    if (m_full_repaint && m_root)
+                    {
+                        m_full_repaint = false;
+                        m_dirty_widgets.clear();
+                        CairoGraphicContext ctx(m_surface->data(), m_surface->width(),
+                                                m_surface->height());
+                        m_root->render(ctx);
+                        wl_surface_attach(m_surface->surface(), m_surface->buffer(), 0, 0);
+                        wl_surface_damage(m_surface->surface(), 0, 0, m_surface->width(),
+                                          m_surface->height());
+                        wl_surface_commit(m_surface->surface());
+                        m_last_commit_time = frame_now;
+                    }
+                    else if (!m_dirty_widgets.empty() && m_root)
+                    {
+                        std::vector<Widget *> current_dirty;
+                        std::swap(current_dirty, m_dirty_widgets);
+                        CairoGraphicContext ctx(m_surface->data(), m_surface->width(),
+                                                m_surface->height());
+                        for (Widget *w : current_dirty)
+                        {
+                            ctx.save();
+                            ctx.clip(w->x(), w->y(), w->width(), w->height());
+                            m_root->render(ctx);
+                            ctx.restore();
+                            wl_surface_damage(m_surface->surface(), w->x(), w->y(), w->width(),
+                                              w->height());
+                        }
+                        ctx.flush();
+                        wl_surface_attach(m_surface->surface(), m_surface->buffer(), 0, 0);
+                        wl_surface_commit(m_surface->surface());
+                        m_last_commit_time = frame_now;
+                    }
                 }
-
-                ctx.flush();
-                wl_surface_attach(m_surface->surface(), m_surface->buffer(), 0, 0);
-                wl_surface_commit(m_surface->surface());
             }
 
             wl_display_flush(m_surface->display());
