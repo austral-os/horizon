@@ -90,7 +90,7 @@ int main()
         container->add_child(std::move(btn6));
         container->add_child(std::move(spacer2));
 
-        notebook->add_tab(NotebookPage("Tab 3", "Icon 3", std::move(container)));
+        notebook->add_tab(NotebookPage("Buttons", "", std::move(container)));
         // Tab 1: Icon test
         auto icon_container = std::make_unique<Widget>();
         icon_container->set_margin(20);
@@ -113,7 +113,6 @@ int main()
         icon_container->add_child(std::move(icon3));
 
         notebook->add_tab(NotebookPage("Icons", std::move(icon_container)));
-        notebook->add_tab(NotebookPage("Tab 2", "Icon 2", std::make_unique<Widget>()));
 
         auto tb_container = std::make_unique<Widget>();
         tb_container->set_margin(40);
