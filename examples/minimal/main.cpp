@@ -86,7 +86,7 @@ int main()
         auto tb_container = std::make_unique<Widget>();
         tb_container->set_margin(40);
         auto textbox = std::make_unique<TextBox>();
-        textbox->set_placeholder("Text field");
+        textbox->set_placeholder("Nombre");
         textbox->set_text("");
         tb_container->add_child(std::move(textbox));
 
