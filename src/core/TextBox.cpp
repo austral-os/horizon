@@ -206,7 +206,7 @@ namespace horizon
         gc.clip(m_x + 5, m_y + 5, m_width - 10, m_height - 10);
 
         int text_x_base = m_x + 8;
-        int text_y = m_y + (m_height / 2) + (font.size * 0.4) - 2;
+        int text_y = m_y + (m_height / 2.0f) + (font.size * 0.4f) - 2;
 
         gc.setDrawFont(font.family.c_str(), font.size * 0.8, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
 
