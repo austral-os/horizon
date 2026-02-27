@@ -101,25 +101,57 @@ namespace horizon
     void Slider::update_value_from_pos(int x, int y)
     {
         float t;
+        int track_len = 0;
+        int cursor_px = 0; // cursor position along the track axis in pixels
+
         if (m_orientation == SliderOrientation::Horizontal)
         {
             int track_start = m_x + TRACK_PAD;
             int track_end = m_x + m_width - TRACK_PAD;
-            int track_len = track_end - track_start;
+            track_len = track_end - track_start;
             if (track_len <= 0)
                 return;
-            t = (float)(x - track_start) / (float)track_len;
+            cursor_px = x - track_start;
+            t = (float)cursor_px / (float)track_len;
         }
         else
         {
             int track_start = m_y + TRACK_PAD;
             int track_end = m_y + m_height - TRACK_PAD;
-            int track_len = track_end - track_start;
+            track_len = track_end - track_start;
             if (track_len <= 0)
                 return;
-            t = 1.0f - (float)(y - track_start) / (float)track_len;
+            cursor_px = y - track_start;
+            t = 1.0f - (float)cursor_px / (float)track_len;
         }
         t = std::max(0.0f, std::min(1.0f, t));
+
+        // ── Tick-mark snapping (magnet behaviour) ───────────────────────────
+        // Work entirely in pixel space so the snap radius is consistent
+        // regardless of the value range.
+        static constexpr int SNAP_PX = 10; // pixels within which snapping activates
+
+        if (m_tick_count > 1)
+        {
+            // For vertical we inverted t above, so convert cursor_px back to
+            // a comparable direction by using (track_len - cursor_px) for vert.
+            int px = (m_orientation == SliderOrientation::Horizontal)
+                         ? cursor_px
+                         : (track_len - cursor_px); // ascending = upward
+
+            for (int i = 0; i < m_tick_count; ++i)
+            {
+                float t_i = (float)i / (float)(m_tick_count - 1);
+                int tick_px = (int)(t_i * track_len);
+                int dist = std::abs(px - tick_px);
+                if (dist <= SNAP_PX)
+                {
+                    t = t_i; // snap!
+                    break;
+                }
+            }
+        }
+
         set_value(m_min + t * (m_max - m_min));
     }
 
