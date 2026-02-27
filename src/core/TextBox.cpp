@@ -43,56 +43,94 @@ namespace horizon
                 m_cursor_visible = true;
                 m_last_blink_time = std::chrono::steady_clock::now();
 
+                bool shift = ev.modifiers & 0x1; // Application::SHIFT is 1
+
+                auto delete_selection = [this]() -> bool
+                {
+                    if (m_selection_anchor != -1 && m_selection_anchor != m_cursor_pos)
+                    {
+                        int start = std::min(m_selection_anchor, m_cursor_pos);
+                        int end = std::max(m_selection_anchor, m_cursor_pos);
+                        m_text.erase(start, end - start);
+                        m_cursor_pos = start;
+                        m_selection_anchor = -1;
+                        return true;
+                    }
+                    return false;
+                };
+
                 if (ev.key == KEY_BACKSPACE)
                 {
-                    if (m_cursor_pos > 0 && !m_text.empty())
+                    if (!delete_selection())
                     {
-                        m_text.erase(m_cursor_pos - 1, 1);
-                        m_cursor_pos--;
-                        invalidate();
+                        if (m_cursor_pos > 0 && !m_text.empty())
+                        {
+                            m_text.erase(m_cursor_pos - 1, 1);
+                            m_cursor_pos--;
+                        }
                     }
+                    invalidate();
                 }
                 else if (ev.key == KEY_DELETE)
                 {
-                    if (m_cursor_pos < (int)m_text.length())
+                    if (!delete_selection())
                     {
-                        m_text.erase(m_cursor_pos, 1);
-                        invalidate();
+                        if (m_cursor_pos < (int)m_text.length())
+                        {
+                            m_text.erase(m_cursor_pos, 1);
+                        }
                     }
+                    invalidate();
                 }
                 else if (ev.key == KEY_LEFT)
                 {
+                    if (shift && m_selection_anchor == -1)
+                        m_selection_anchor = m_cursor_pos;
                     if (m_cursor_pos > 0)
-                    {
                         m_cursor_pos--;
-                        invalidate();
-                    }
+                    if (!shift)
+                        m_selection_anchor = -1;
+                    invalidate();
                 }
                 else if (ev.key == KEY_RIGHT)
                 {
+                    if (shift && m_selection_anchor == -1)
+                        m_selection_anchor = m_cursor_pos;
                     if (m_cursor_pos < (int)m_text.length())
-                    {
                         m_cursor_pos++;
-                        invalidate();
-                    }
+                    if (!shift)
+                        m_selection_anchor = -1;
+                    invalidate();
                 }
                 else if (ev.key == KEY_HOME)
                 {
+                    if (shift && m_selection_anchor == -1)
+                        m_selection_anchor = m_cursor_pos;
                     m_cursor_pos = 0;
+                    if (!shift)
+                        m_selection_anchor = -1;
                     invalidate();
                 }
                 else if (ev.key == KEY_END)
                 {
+                    if (shift && m_selection_anchor == -1)
+                        m_selection_anchor = m_cursor_pos;
                     m_cursor_pos = m_text.length();
+                    if (!shift)
+                        m_selection_anchor = -1;
                     invalidate();
                 }
-                else
+                else if (ev.key != KEY_LEFTSHIFT && ev.key != KEY_RIGHTSHIFT &&
+                         ev.key != KEY_LEFTCTRL && ev.key != KEY_RIGHTCTRL &&
+                         ev.key != KEY_LEFTALT && ev.key != KEY_RIGHTALT)
                 {
                     auto it = KEY_MAP.find(ev.key);
                     if (it != KEY_MAP.end())
                     {
+                        delete_selection();
                         m_text.insert(m_cursor_pos, 1, it->second);
                         m_cursor_pos++;
+                        m_selection_anchor = -1;
                         invalidate();
                     }
                 }
@@ -191,6 +229,31 @@ namespace horizon
             }
 
             int draw_text_x = text_x_base - scroll_offset;
+
+            // 6.5. Selection highlight
+            if (has_focus() && m_selection_anchor != -1 && m_selection_anchor != m_cursor_pos)
+            {
+                int sel_start_idx = std::min(m_selection_anchor, m_cursor_pos);
+                int sel_end_idx = std::max(m_selection_anchor, m_cursor_pos);
+
+                std::string lead_text = m_text.substr(0, sel_start_idx);
+                std::string sel_text = m_text.substr(0, sel_end_idx);
+
+                TextMetrics lead_metrics =
+                    gc.getTextMetrics(lead_text.c_str(), font.family.c_str(), font.size * 0.8,
+                                      FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+                TextMetrics sel_metrics =
+                    gc.getTextMetrics(sel_text.c_str(), font.family.c_str(), font.size * 0.8,
+                                      FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+
+                int sel_x = draw_text_x + lead_metrics.width;
+                int sel_w = sel_metrics.width - lead_metrics.width;
+
+                gc.setColor(0.4f, 0.7f, 1.0f, 0.4f); // Tiger/Aqua selection blue
+                gc.fillRect(sel_x, m_y + 6, sel_w, m_height - 12);
+            }
+
+            gc.setColor(0.0f, 0.0f, 0.0f, 1.0f);
             gc.drawText(draw_text_x, text_y, m_text.c_str());
 
             // 7. Click handling

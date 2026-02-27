@@ -22,6 +22,7 @@ namespace horizon
         std::string m_text{""};
         std::string m_placeholder{""};
         int m_cursor_pos{0};
+        int m_selection_anchor{-1}; // -1 means no selection
         bool m_cursor_visible{true};
         std::chrono::steady_clock::time_point m_last_blink_time;
         int m_pending_click_x{-1};

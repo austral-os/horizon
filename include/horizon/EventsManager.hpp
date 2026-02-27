@@ -48,6 +48,7 @@ namespace horizon
         double eventX{0};
         double eventY{0};
         uint32_t key{0};
+        uint32_t modifiers{0};
     };
 
     /**

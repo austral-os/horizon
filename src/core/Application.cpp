@@ -152,6 +152,14 @@ namespace horizon
             return;
         }
 
+        // Modifiers
+        if (event.key == KEY_LEFTSHIFT || event.key == KEY_RIGHTSHIFT)
+            m_modifiers |= SHIFT;
+        if (event.key == KEY_LEFTCTRL || event.key == KEY_RIGHTCTRL)
+            m_modifiers |= CTRL;
+        if (event.key == KEY_LEFTALT || event.key == KEY_RIGHTALT)
+            m_modifiers |= ALT;
+
         // Key repeat management
         uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
                            std::chrono::steady_clock::now().time_since_epoch())
@@ -172,7 +180,10 @@ namespace horizon
                                .button = event.key,
                                .stop_propagation = false,
                                .data = nullptr,
-                               .key = event.key};
+                               .eventX = 0,
+                               .eventY = 0,
+                               .key = event.key,
+                               .modifiers = m_modifiers};
         target->when_key_press.run(new_ev);
     }
 
@@ -180,6 +191,14 @@ namespace horizon
     {
         if (!m_root)
             return;
+
+        // Modifiers
+        if (event.key == KEY_LEFTSHIFT || event.key == KEY_RIGHTSHIFT)
+            m_modifiers &= ~SHIFT;
+        if (event.key == KEY_LEFTCTRL || event.key == KEY_RIGHTCTRL)
+            m_modifiers &= ~CTRL;
+        if (event.key == KEY_LEFTALT || event.key == KEY_RIGHTALT)
+            m_modifiers &= ~ALT;
 
         if (event.key == m_repeat_key)
         {
@@ -194,7 +213,10 @@ namespace horizon
                                .button = event.key,
                                .stop_propagation = false,
                                .data = nullptr,
-                               .key = event.key};
+                               .eventX = 0,
+                               .eventY = 0,
+                               .key = event.key,
+                               .modifiers = m_modifiers};
         target->when_key_release.run(new_ev);
     }
 
@@ -246,7 +268,11 @@ namespace horizon
                                            .type = EventType::MouseLeave,
                                            .button = event.button,
                                            .stop_propagation = false,
-                                           .data = nullptr};
+                                           .data = nullptr,
+                                           .eventX = m_pointer_x,
+                                           .eventY = m_pointer_y,
+                                           .key = 0,
+                                           .modifiers = m_modifiers};
                     temp->when_mouse_leave.run(new_ev);
                     temp = temp->parent();
                 }
@@ -300,7 +326,11 @@ namespace horizon
                                                  .type = EventType::MouseLeave,
                                                  .button = event.button,
                                                  .stop_propagation = false,
-                                                 .data = nullptr};
+                                                 .data = nullptr,
+                                                 .eventX = m_pointer_x,
+                                                 .eventY = m_pointer_y,
+                                                 .key = 0,
+                                                 .modifiers = m_modifiers};
                         w->when_mouse_leave.run(leave_ev);
                     }
                 }
@@ -315,7 +345,11 @@ namespace horizon
                                                  .type = EventType::MouseEnter,
                                                  .button = event.button,
                                                  .stop_propagation = false,
-                                                 .data = nullptr};
+                                                 .data = nullptr,
+                                                 .eventX = m_pointer_x,
+                                                 .eventY = m_pointer_y,
+                                                 .key = 0,
+                                                 .modifiers = m_modifiers};
                         w->when_mouse_enter.run(enter_ev);
                     }
                 }
@@ -341,7 +375,9 @@ namespace horizon
                                    .stop_propagation = false,
                                    .data = nullptr,
                                    .eventX = (double)event.x,
-                                   .eventY = (double)event.y};
+                                   .eventY = (double)event.y,
+                                   .key = 0,
+                                   .modifiers = m_modifiers};
             m_pressed->when_mouse_drag.run(new_ev);
         }
         else if (m_hovered)
@@ -352,7 +388,9 @@ namespace horizon
                                    .stop_propagation = false,
                                    .data = nullptr,
                                    .eventX = (double)event.x,
-                                   .eventY = (double)event.y};
+                                   .eventY = (double)event.y,
+                                   .key = 0,
+                                   .modifiers = m_modifiers};
             m_hovered->when_mouse_hover.run(new_ev);
         }
     }
@@ -391,7 +429,9 @@ namespace horizon
                                    .stop_propagation = false,
                                    .data = nullptr,
                                    .eventX = (double)event.x,
-                                   .eventY = (double)event.y};
+                                   .eventY = (double)event.y,
+                                   .key = 0,
+                                   .modifiers = m_modifiers};
 
             m_pressed->when_mouse_press.run(new_ev);
             // m_pressed->on_mouse_press(event.button);
@@ -416,7 +456,9 @@ namespace horizon
                                    .stop_propagation = false,
                                    .data = nullptr,
                                    .eventX = (double)event.x,
-                                   .eventY = (double)event.y};
+                                   .eventY = (double)event.y,
+                                   .key = 0,
+                                   .modifiers = m_modifiers};
 
             m_pressed->when_mouse_release.run(new_ev);
             m_pressed = nullptr;

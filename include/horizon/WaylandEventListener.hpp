@@ -50,6 +50,7 @@ namespace horizon
 
         Type type{Type::Press}; /**< The type of the key event. */
         uint32_t key{0};        /**< The hardware key code. */
+        uint32_t modifiers{0};  /**< Modifier keys bitmask. */
     };
 
     /**
