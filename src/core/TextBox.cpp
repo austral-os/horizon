@@ -29,10 +29,25 @@ namespace horizon
         when_mouse_press.connect(
             [this](EventContext &ev)
             {
+                m_selection_anchor = -1; // Reset to force new anchor in draw()
+                m_is_dragging = true;
                 m_has_pending_click = true;
                 m_pending_click_x = (int)ev.eventX;
                 invalidate();
             });
+
+        when_mouse_drag.connect(
+            [this](EventContext &ev)
+            {
+                if (m_is_dragging)
+                {
+                    m_has_pending_click = true;
+                    m_pending_click_x = (int)ev.eventX;
+                    invalidate();
+                }
+            });
+
+        when_mouse_release.connect([this](EventContext &ev) { m_is_dragging = false; });
 
         when_key_press.connect(
             [this](EventContext &ev)
@@ -256,7 +271,7 @@ namespace horizon
             gc.setColor(0.0f, 0.0f, 0.0f, 1.0f);
             gc.drawText(draw_text_x, text_y, m_text.c_str());
 
-            // 7. Click handling
+            // 7. Click & Selection handling
             if (m_has_pending_click)
             {
                 int local_x = m_pending_click_x - draw_text_x;
@@ -276,6 +291,12 @@ namespace horizon
                         best_index = i;
                     }
                 }
+
+                if (m_selection_anchor == -1)
+                {
+                    m_selection_anchor = best_index;
+                }
+
                 m_cursor_pos = best_index;
                 m_has_pending_click = false;
                 m_cursor_visible = true;
