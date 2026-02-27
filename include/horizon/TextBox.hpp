@@ -23,6 +23,7 @@ namespace horizon
         std::string m_placeholder{""};
         int m_cursor_pos{0};
         int m_selection_anchor{-1}; // -1 means no selection
+        int m_scroll_offset{0};
         bool m_cursor_visible{true};
         bool m_is_dragging{false};
         std::chrono::steady_clock::time_point m_last_blink_time;

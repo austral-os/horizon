@@ -236,14 +236,36 @@ namespace horizon
                 gc.getTextMetrics(m_text.c_str(), font.family.c_str(), font.size * 0.8,
                                   FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
 
-            int available_width = m_width - 16;
-            int scroll_offset = 0;
-            if (total_metrics.width > available_width)
+            std::string lead_to_cursor = m_text.substr(0, m_cursor_pos);
+            TextMetrics cursor_metrics =
+                gc.getTextMetrics(lead_to_cursor.c_str(), font.family.c_str(), font.size * 0.8,
+                                  FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+
+            int visible_width = m_width - 16;
+            int cursor_x_rel = cursor_metrics.width;
+
+            // Adjust scroll offset to keep cursor visible
+            if (cursor_x_rel < m_scroll_offset)
             {
-                scroll_offset = total_metrics.width - available_width;
+                m_scroll_offset = cursor_x_rel;
+            }
+            else if (cursor_x_rel > m_scroll_offset + visible_width)
+            {
+                m_scroll_offset = cursor_x_rel - visible_width;
             }
 
-            int draw_text_x = text_x_base - scroll_offset;
+            // Also ensure we don't have unnecessary whitespace at the end if the text is short
+            if (total_metrics.width > visible_width)
+            {
+                if (m_scroll_offset > total_metrics.width - visible_width)
+                    m_scroll_offset = total_metrics.width - visible_width;
+            }
+            else
+            {
+                m_scroll_offset = 0;
+            }
+
+            int draw_text_x = text_x_base - m_scroll_offset;
 
             // 6.5. Selection highlight
             if (has_focus() && m_selection_anchor != -1 && m_selection_anchor != m_cursor_pos)
