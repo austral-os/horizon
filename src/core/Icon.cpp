@@ -4,7 +4,10 @@
 namespace horizon
 {
 
-    Icon::Icon() : Widget() {}
+    Icon::Icon() : Widget()
+    {
+        set_fixed_size(m_icon_size);
+    }
 
     Icon::~Icon() = default;
 
@@ -29,6 +32,7 @@ namespace horizon
             return;
 
         m_icon_size = size;
+        set_fixed_size(size);
         resolve_icon();
         invalidate();
     }
@@ -59,14 +63,8 @@ namespace horizon
         if (m_resolved_path.empty())
             return;
 
-        // Center the icon within the widget
+        // Use the requested icon size
         int draw_size = m_icon_size;
-
-        // Clamp to widget bounds
-        if (draw_size > m_width)
-            draw_size = m_width;
-        if (draw_size > m_height)
-            draw_size = m_height;
 
         int icon_x = m_start_draw_x + (m_width - draw_size) / 2;
         int icon_y = m_start_draw_y + (m_height - draw_size) / 2;

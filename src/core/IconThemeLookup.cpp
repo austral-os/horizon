@@ -309,21 +309,9 @@ namespace horizon
 
         ThemeInfo info = parse_index_theme(theme_dir);
 
-        // Step 1: Look for exact size match
-        for (const auto &dir : info.directories)
-        {
-            if (directory_matches_size(dir, size))
-            {
-                std::string base_path = theme_dir + "/" + dir.path + "/" + icon_name;
-                std::string result = try_file_extensions(base_path);
-                if (!result.empty())
-                    return result;
-            }
-        }
-
-        // Step 2: Find the closest size match
+        // Step 1: Find the directory with the minimum distance
         int min_distance = INT_MAX;
-        std::string closest_path;
+        std::string best_path;
 
         for (const auto &dir : info.directories)
         {
@@ -335,13 +323,17 @@ namespace horizon
                 if (dist < min_distance)
                 {
                     min_distance = dist;
-                    closest_path = result;
+                    best_path = result;
                 }
+
+                // If we found a perfect match (distance 0), we can stop
+                if (min_distance == 0)
+                    return best_path;
             }
         }
 
-        if (!closest_path.empty())
-            return closest_path;
+        if (!best_path.empty())
+            return best_path;
 
         // Step 3: Try parent themes (Inherits)
         for (const auto &parent : info.parents)

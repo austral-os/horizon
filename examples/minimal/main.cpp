@@ -89,17 +89,14 @@ int main()
         auto icon1 = std::make_unique<horizon::Icon>();
         icon1->set_icon_name("folder");
         icon1->set_icon_size(48);
-        icon1->set_fixed_size(60);
 
         auto icon2 = std::make_unique<horizon::Icon>();
-        icon2->set_icon_name("firefox");
-        icon2->set_icon_size(48);
-        icon2->set_fixed_size(60);
+        icon2->set_icon_name("kwrite");
+        icon2->set_icon_size(128);
 
         auto icon3 = std::make_unique<horizon::Icon>();
         icon3->set_icon_name("utilities-terminal");
-        icon3->set_icon_size(48);
-        icon3->set_fixed_size(60);
+        icon3->set_icon_size(64);
 
         icon_container->add_child(std::move(icon1));
         icon_container->add_child(std::move(icon2));
