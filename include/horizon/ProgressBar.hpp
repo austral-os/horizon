@@ -11,9 +11,10 @@ namespace horizon
     {
     public:
         ProgressBar();
-        ~ProgressBar() = default;
+        ~ProgressBar();
 
         void draw(GraphicsContext &gc) override;
+        void set_application_recursive(Application *app) override;
 
         /**
          * @brief Set the current progress (0.0 to 1.0).
@@ -27,5 +28,7 @@ namespace horizon
 
     private:
         float m_progress{0.0f};
+        float m_animation_offset{0.0f};
+        size_t m_timer_id{0};
     };
 } // namespace horizon

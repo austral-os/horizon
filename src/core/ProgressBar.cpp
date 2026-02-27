@@ -12,6 +12,38 @@ namespace horizon
         m_height = 20;
     }
 
+    ProgressBar::~ProgressBar()
+    {
+        if (m_app && m_timer_id != 0)
+        {
+            m_app->stop_timer(m_timer_id);
+        }
+    }
+
+    void ProgressBar::set_application_recursive(Application *app)
+    {
+        if (m_app && m_timer_id != 0)
+        {
+            m_app->stop_timer(m_timer_id);
+            m_timer_id = 0;
+        }
+
+        Widget::set_application_recursive(app);
+
+        if (m_app)
+        {
+            m_timer_id =
+                m_app->add_timer(60,
+                                 [this]()
+                                 {
+                                     m_animation_offset += 2.0f;
+                                     if (m_animation_offset >= 25.0f) // Matches stripe_spacing
+                                         m_animation_offset = 0.0f;
+                                     invalidate();
+                                 });
+        }
+    }
+
     void ProgressBar::draw(GraphicsContext &gc)
     {
         auto *tm = application()->theme_manager.get();
@@ -82,9 +114,10 @@ namespace horizon
             // 2. Diagonal Stripes (Mac OS Tiger style)
             gc.setColor(Color(1, 1, 1, 0.15f));
             int stripe_spacing = 25;
-            for (int dx = -m_height; dx < progress_width + m_height; dx += stripe_spacing)
+            for (float dx = -m_height + m_animation_offset; dx < progress_width + m_height;
+                 dx += (float)stripe_spacing)
             {
-                gc.drawLine(m_x + dx, m_y + m_height, m_x + dx + m_height, m_y, 8.0f);
+                gc.drawLine(m_x + (int)dx, m_y + m_height, m_x + (int)dx + m_height, m_y, 8.0f);
             }
 
             // 3. Double Gloss / Glassy Effect

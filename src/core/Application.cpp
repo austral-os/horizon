@@ -543,15 +543,60 @@ namespace horizon
 
             wl_display_flush(m_surface->display());
 
+            uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                               std::chrono::steady_clock::now().time_since_epoch())
+                               .count();
+
             int timeout = -1;
             if (m_is_repeating)
                 timeout = 10;
+            else if (!m_timers.empty())
+            {
+                uint64_t next_expiry = 0;
+                for (const auto &[id, timer] : m_timers)
+                {
+                    if (next_expiry == 0 || timer.next_expiry < next_expiry)
+                        next_expiry = timer.next_expiry;
+                }
+
+                if (next_expiry <= now)
+                    timeout = 0;
+                else
+                    timeout = (int)(next_expiry - now);
+            }
             else if (m_focused)
                 timeout = 250; // Heartbeat for blinking
 
             int ret = poll(fds, 2, timeout);
 
-            if (ret == 0 && m_focused && !m_is_repeating)
+            now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                      std::chrono::steady_clock::now().time_since_epoch())
+                      .count();
+
+            // Handle timers
+            std::vector<size_t> to_run;
+            for (auto const &[id, timer] : m_timers)
+            {
+                if (now >= timer.next_expiry)
+                {
+                    to_run.push_back(id);
+                }
+            }
+
+            for (size_t id : to_run)
+            {
+                if (m_timers.count(id))
+                {
+                    // Copy callback to avoid use-after-free if callback removes the timer
+                    auto callback = m_timers[id].callback;
+                    m_timers[id].next_expiry = now + m_timers[id].interval_ms;
+
+                    if (callback)
+                        callback();
+                }
+            }
+
+            if (ret == 0 && m_focused && !m_is_repeating && m_timers.empty())
             {
                 m_focused->invalidate();
             }
@@ -743,6 +788,29 @@ namespace horizon
     void Application::remove_on_minimize(size_t id)
     {
         m_on_minimize_handlers.erase(id);
+    }
+
+    size_t Application::add_timer(int ms, std::function<void()> callback)
+    {
+        size_t id = m_next_timer_id++;
+        uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                           std::chrono::steady_clock::now().time_since_epoch())
+                           .count();
+
+        Timer t;
+        t.id = id;
+        t.interval_ms = ms;
+        t.next_expiry = now + ms;
+        t.callback = callback;
+
+        m_timers[id] = t;
+        wakeup(); // Wake up the loop to reconsider timeout
+        return id;
+    }
+
+    void Application::stop_timer(size_t id)
+    {
+        m_timers.erase(id);
     }
 
 } // namespace horizon

@@ -138,6 +138,9 @@ namespace horizon
         size_t add_on_minimize(std::function<void()> handler);
         void remove_on_minimize(size_t id);
 
+        size_t add_timer(int ms, std::function<void()> callback);
+        void stop_timer(size_t id);
+
     private:
         /**
          * @brief Internal event dispatcher.
@@ -218,5 +221,15 @@ namespace horizon
         std::map<size_t, std::function<void()>> m_on_minimize_handlers;
 
         size_t m_next_app_handler_id{0};
+
+        struct Timer
+        {
+            size_t id;
+            int interval_ms;
+            uint64_t next_expiry;
+            std::function<void()> callback;
+        };
+        std::map<size_t, Timer> m_timers;
+        size_t m_next_timer_id{1};
     };
 } // namespace horizon
