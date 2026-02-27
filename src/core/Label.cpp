@@ -63,14 +63,49 @@ namespace horizon
         std::string family = theme_font.family;
         int size = (m_font_size > 0) ? m_font_size : theme_font.size;
 
+        int available_lines = max_height / line_height;
+        if (available_lines <= 0)
+            return {};
+
         std::vector<std::string> result;
         std::stringstream ss(m_text);
         std::string word;
         std::string current_line;
 
-        int available_lines = max_height / line_height;
-        if (available_lines <= 0)
-            return {};
+        auto truncate_with_ellipsis = [&](std::string line) -> std::string
+        {
+            std::string ellipsis = "...";
+            TextMetrics em = gc.getTextMetrics(ellipsis.c_str(), family.c_str(), size, m_font_slant,
+                                               m_font_weight);
+            if (em.width > max_width)
+                return ""; // Can't even fit "..."
+
+            while (!line.empty())
+            {
+                std::string test = line + ellipsis;
+                TextMetrics m = gc.getTextMetrics(test.c_str(), family.c_str(), size, m_font_slant,
+                                                  m_font_weight);
+                if (m.width <= max_width)
+                    return test;
+
+                if (line.back() == ' ')
+                {
+                    line.pop_back();
+                    continue;
+                }
+
+                size_t last_space = line.find_last_of(" ");
+                if (last_space != std::string::npos && last_space > 0)
+                {
+                    line = line.substr(0, last_space);
+                }
+                else
+                {
+                    line.pop_back();
+                }
+            }
+            return ellipsis;
+        };
 
         while (ss >> word)
         {
@@ -78,40 +113,44 @@ namespace horizon
             TextMetrics metrics = gc.getTextMetrics(test_line.c_str(), family.c_str(), size,
                                                     m_font_slant, m_font_weight);
 
-            if (metrics.width > max_width && !current_line.empty())
+            if (metrics.width > max_width)
             {
-                if (result.size() + 1 >= (size_t)available_lines)
+                if (!current_line.empty())
                 {
-                    // This was the last available line, and we still have more words.
-                    // We need to add ellipsis to current_line.
-                    std::string ellipsis = "...";
-                    while (!current_line.empty())
+                    if (result.size() + 1 >= (size_t)available_lines)
                     {
-                        std::string truncated = current_line + ellipsis;
-                        TextMetrics tm_trunc = gc.getTextMetrics(truncated.c_str(), family.c_str(),
-                                                                 size, m_font_slant, m_font_weight);
-                        if (tm_trunc.width <= max_width)
+                        result.push_back(truncate_with_ellipsis(current_line));
+                        return result;
+                    }
+
+                    result.push_back(current_line);
+                    current_line = word;
+
+                    // If the word itself is too long for a fresh line
+                    TextMetrics word_m = gc.getTextMetrics(current_line.c_str(), family.c_str(),
+                                                           size, m_font_slant, m_font_weight);
+                    if (word_m.width > max_width)
+                    {
+                        if (result.size() + 1 >= (size_t)available_lines)
                         {
-                            result.push_back(truncated);
+                            result.push_back(truncate_with_ellipsis(current_line));
                             return result;
                         }
-                        // Remove last word/char and try again
-                        size_t last_space = current_line.find_last_of(" ");
-                        if (last_space != std::string::npos)
-                        {
-                            current_line = current_line.substr(0, last_space);
-                        }
-                        else
-                        {
-                            current_line = "";
-                        }
+                        result.push_back(truncate_with_ellipsis(current_line));
+                        current_line = "";
                     }
-                    result.push_back(ellipsis);
-                    return result;
                 }
-
-                result.push_back(current_line);
-                current_line = word;
+                else
+                {
+                    // Even a single word is too long for an empty line
+                    if (result.size() + 1 >= (size_t)available_lines)
+                    {
+                        result.push_back(truncate_with_ellipsis(word));
+                        return result;
+                    }
+                    result.push_back(truncate_with_ellipsis(word));
+                    current_line = "";
+                }
             }
             else
             {
@@ -121,7 +160,16 @@ namespace horizon
 
         if (!current_line.empty())
         {
-            result.push_back(current_line);
+            TextMetrics final_m = gc.getTextMetrics(current_line.c_str(), family.c_str(), size,
+                                                    m_font_slant, m_font_weight);
+            if (final_m.width > max_width)
+            {
+                result.push_back(truncate_with_ellipsis(current_line));
+            }
+            else
+            {
+                result.push_back(current_line);
+            }
         }
 
         return result;

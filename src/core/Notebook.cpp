@@ -137,6 +137,7 @@ namespace horizon
 
         auto button = std::make_unique<Button<AquaObject>>();
         button->set_text(page.label);
+        button->set_font_weight(FontWeight::FONT_WEIGHT_BOLD);
 
         auto &children = m_header->children();
 

@@ -2,8 +2,10 @@
 #include "horizon/AquaObject.hpp"
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
+#include <horizon/Label.hpp>
 #include <horizon/SolidObject.hpp>
 #include <horizon/Widget.hpp>
+#include <memory>
 #include <string>
 
 namespace horizon
@@ -25,49 +27,49 @@ namespace horizon
             {
                 this->set_corner_radius({6, 6, 6, 6});
             }
+
+            m_label = std::make_unique<Label>();
+            m_label->set_alignment(TextAlignment::Center);
         }
         ~Button() = default;
 
+        void set_size(int width, int height)
+        {
+            T::set_size(width, height);
+            m_label->set_size(width - 10, height - 10);
+            this->invalidate();
+        }
+
         void draw(GraphicsContext &gc) override
         {
-            auto *tm = this->application()->theme_manager.get();
-            auto font = tm->get_font("window");
-
-            FontWeight weight = FONT_WEIGHT_NORMAL;
-            if (font.weight == "bold")
-            {
-                weight = FONT_WEIGHT_BOLD;
-            }
-
-            Color window_fg = tm->get_color("window_fg");
-            Color text_color = window_fg;
-
             T::draw(gc);
 
-            // Center the text
-            TextMetrics metrics = gc.getTextMetrics(m_text.c_str(), font.family.c_str(), font.size,
-                                                    FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+            // Center the label within the button
+            int margin = 5;
+            m_label->set_application_recursive(this->application());
+            m_label->set_position(this->m_start_draw_x + margin, this->m_start_draw_y + margin);
+            m_label->set_size(this->m_width - (margin * 2), this->m_height - (margin * 2));
 
-            int text_x = this->m_start_draw_x + (this->m_width / 2) - (metrics.width / 2);
-            int text_y = this->m_start_draw_y + (this->m_height / 2) + (metrics.height / 2) - 3;
-
-            // Draw the text
-            gc.setDrawFont(font.family.c_str(), font.size, FONT_SLANT_NORMAL, weight);
-            gc.setColor(text_color.with_alpha(0.8f));
-            gc.drawText(text_x, text_y, m_text.c_str());
+            m_label->draw(gc);
         }
 
         void set_text(std::string text)
         {
-            m_text = std::move(text);
+            m_label->set_text(std::move(text));
         }
+
+        void set_font_weight(FontWeight weight)
+        {
+            m_label->set_font_weight(weight);
+        }
+
         const std::string &text() const
         {
-            return m_text;
+            return m_label->text();
         }
 
     private:
-        std::string m_text;
+        std::unique_ptr<Label> m_label;
     };
 
 } // namespace horizon
