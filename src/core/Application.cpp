@@ -185,7 +185,12 @@ namespace horizon
                                .eventX = 0,
                                .eventY = 0,
                                .key = event.key,
-                               .modifiers = m_modifiers};
+                               .modifiers = event.modifiers, // Use xkb-populated modifiers
+                               .keysym = event.keysym,
+                               .text = event.text};
+
+        // Also update internal m_modifiers for backward compatibility/internal logic
+        m_modifiers = event.modifiers;
         target->when_key_press.run(new_ev);
     }
 
@@ -208,6 +213,8 @@ namespace horizon
             m_repeat_key = 0;
         }
 
+        m_modifiers = event.modifiers;
+
         Widget *target = m_focused ? m_focused : m_root.get();
 
         EventContext new_ev = {.sender = nullptr,
@@ -218,7 +225,9 @@ namespace horizon
                                .eventX = 0,
                                .eventY = 0,
                                .key = event.key,
-                               .modifiers = m_modifiers};
+                               .modifiers = event.modifiers,
+                               .keysym = event.keysym,
+                               .text = event.text};
         target->when_key_release.run(new_ev);
     }
 

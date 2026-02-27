@@ -3,6 +3,7 @@
 #include "horizon/WaylandEventListener.hpp"
 #include "horizon/Widget.hpp"
 #include <cstdint>
+#include <xkbcommon/xkbcommon.h>
 
 struct wl_display;
 struct wl_registry;
@@ -208,6 +209,22 @@ namespace horizon
         void request_resize(uint32_t serial, uint32_t edge);
 
         /**
+         * @brief Updates the XKB keymap from the compositor.
+         */
+        void update_xkb_keymap(uint32_t format, int32_t fd, uint32_t size);
+
+        /**
+         * @brief Updates the XKB modifiers state.
+         */
+        void update_xkb_modifiers(uint32_t mods_depressed, uint32_t mods_latched,
+                                  uint32_t mods_locked, uint32_t group);
+
+        /**
+         * @brief Processes a raw key event using XKB.
+         */
+        void process_key(uint32_t key, uint32_t state, KeyEvent &ev);
+
+        /**
          * @return The serial of the last handled input event.
          */
         uint32_t last_serial() const;
@@ -269,5 +286,9 @@ namespace horizon
         struct wl_cursor_theme *m_cursor_theme = nullptr;
         struct wl_surface *m_cursor_surface = nullptr;
         CursorType m_current_cursor_type = CursorType::Default;
+
+        struct xkb_context *m_xkb_context = nullptr;
+        struct xkb_keymap *m_xkb_keymap = nullptr;
+        struct xkb_state *m_xkb_state = nullptr;
     };
 }; // namespace horizon

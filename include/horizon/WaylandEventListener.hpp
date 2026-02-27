@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
+
 namespace horizon
 {
 
@@ -51,6 +53,8 @@ namespace horizon
         Type type{Type::Press}; /**< The type of the key event. */
         uint32_t key{0};        /**< The hardware key code. */
         uint32_t modifiers{0};  /**< Modifier keys bitmask. */
+        uint32_t keysym{0};     /**< The XKB keysym. */
+        std::string text;       /**< The UTF-8 text associated with the key. */
     };
 
     /**

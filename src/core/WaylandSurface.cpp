@@ -208,6 +208,8 @@ namespace horizon
     static void keyboard_handle_keymap(void *data, wl_keyboard *keyboard, uint32_t format,
                                        int32_t fd, uint32_t size)
     {
+        WaylandSurface *self = static_cast<WaylandSurface *>(data);
+        self->update_xkb_keymap(format, fd, size);
     }
 
     static void keyboard_handle_enter(void *data, wl_keyboard *keyboard, uint32_t serial,
@@ -233,6 +235,8 @@ namespace horizon
                                                            : KeyEvent::Type::Release;
         ev.key = key;
 
+        self->process_key(key, state, ev);
+
         self->listener()->on_key_event(ev);
     }
 
@@ -240,6 +244,8 @@ namespace horizon
                                           uint32_t mods_depressed, uint32_t mods_latched,
                                           uint32_t mods_locked, uint32_t group)
     {
+        WaylandSurface *self = static_cast<WaylandSurface *>(data);
+        self->update_xkb_modifiers(mods_depressed, mods_latched, mods_locked, group);
     }
 
     static void keyboard_handle_repeat_info(void *data, wl_keyboard *keyboard, int32_t rate,
@@ -290,7 +296,89 @@ namespace horizon
         // not implemented
     }
 
-    WaylandSurface::WaylandSurface(int w, int h) : m_width(w), m_height(h) {}
+    void WaylandSurface::update_xkb_keymap(uint32_t format, int32_t fd, uint32_t size)
+    {
+        if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1)
+        {
+            close(fd);
+            return;
+        }
+
+        char *map_str = static_cast<char *>(mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0));
+        if (map_str == MAP_FAILED)
+        {
+            close(fd);
+            return;
+        }
+
+        struct xkb_keymap *keymap = xkb_keymap_new_from_string(
+            m_xkb_context, map_str, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        munmap(map_str, size);
+        close(fd);
+
+        if (!keymap)
+            return;
+
+        struct xkb_state *state = xkb_state_new(keymap);
+        if (!state)
+        {
+            xkb_keymap_unref(keymap);
+            return;
+        }
+
+        if (m_xkb_state)
+            xkb_state_unref(m_xkb_state);
+        if (m_xkb_keymap)
+            xkb_keymap_unref(m_xkb_keymap);
+
+        m_xkb_keymap = keymap;
+        m_xkb_state = state;
+    }
+
+    void WaylandSurface::update_xkb_modifiers(uint32_t mods_depressed, uint32_t mods_latched,
+                                              uint32_t mods_locked, uint32_t group)
+    {
+        if (!m_xkb_state)
+            return;
+
+        xkb_state_update_mask(m_xkb_state, mods_depressed, mods_latched, mods_locked, 0, 0, group);
+    }
+
+    void WaylandSurface::process_key(uint32_t key, uint32_t state, KeyEvent &ev)
+    {
+        if (!m_xkb_state)
+            return;
+
+        xkb_keycode_t keycode = key + 8;
+        xkb_keysym_t sym = xkb_state_key_get_one_sym(m_xkb_state, keycode);
+        ev.keysym = sym;
+
+        if (state == WL_KEYBOARD_KEY_STATE_PRESSED)
+        {
+            char buffer[64];
+            int size = xkb_state_key_get_utf8(m_xkb_state, keycode, buffer, sizeof(buffer));
+            if (size > 0)
+            {
+                ev.text = std::string(buffer, size);
+            }
+        }
+
+        // Populate modifiers bitmask from XKB state
+        // 0x1: Shift, 0x2: Ctrl, 0x4: Alt, 0x8: CapsLock
+        if (xkb_state_mod_name_is_active(m_xkb_state, XKB_MOD_NAME_SHIFT, XKB_STATE_MODS_EFFECTIVE))
+            ev.modifiers |= 0x1;
+        if (xkb_state_mod_name_is_active(m_xkb_state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_EFFECTIVE))
+            ev.modifiers |= 0x2;
+        if (xkb_state_mod_name_is_active(m_xkb_state, XKB_MOD_NAME_ALT, XKB_STATE_MODS_EFFECTIVE))
+            ev.modifiers |= 0x4;
+        if (xkb_state_mod_name_is_active(m_xkb_state, XKB_MOD_NAME_CAPS, XKB_STATE_MODS_EFFECTIVE))
+            ev.modifiers |= 0x8;
+    }
+
+    WaylandSurface::WaylandSurface(int w, int h) : m_width(w), m_height(h)
+    {
+        m_xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    }
 
     int WaylandSurface::width() const
     {
@@ -304,6 +392,12 @@ namespace horizon
     WaylandSurface::~WaylandSurface()
     {
         free();
+        if (m_xkb_state)
+            xkb_state_unref(m_xkb_state);
+        if (m_xkb_keymap)
+            xkb_keymap_unref(m_xkb_keymap);
+        if (m_xkb_context)
+            xkb_context_unref(m_xkb_context);
     }
 
     void WaylandSurface::set_wl_seat(struct wl_seat *seat)

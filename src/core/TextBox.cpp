@@ -2,48 +2,10 @@
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/TextBox.hpp>
 #include <linux/input-event-codes.h>
-#include <unordered_map>
+#include <xkbcommon/xkbcommon-keysyms.h>
 
 namespace horizon
 {
-    // A simple mapping from Linux keycodes to ASCII characters.
-    // In a real application, this would be handled by a library like xkbcommon.
-    static const std::unordered_map<uint32_t, char> KEY_MAP = {
-        {KEY_1, '1'},          {KEY_2, '2'},          {KEY_3, '3'},         {KEY_4, '4'},
-        {KEY_5, '5'},          {KEY_6, '6'},          {KEY_7, '7'},         {KEY_8, '8'},
-        {KEY_9, '9'},          {KEY_0, '0'},          {KEY_Q, 'q'},         {KEY_W, 'w'},
-        {KEY_E, 'e'},          {KEY_R, 'r'},          {KEY_T, 't'},         {KEY_Y, 'y'},
-        {KEY_U, 'u'},          {KEY_I, 'i'},          {KEY_O, 'o'},         {KEY_P, 'p'},
-        {KEY_A, 'a'},          {KEY_S, 's'},          {KEY_D, 'd'},         {KEY_F, 'f'},
-        {KEY_G, 'g'},          {KEY_H, 'h'},          {KEY_J, 'j'},         {KEY_K, 'k'},
-        {KEY_L, 'l'},          {KEY_Z, 'z'},          {KEY_X, 'x'},         {KEY_C, 'c'},
-        {KEY_V, 'v'},          {KEY_B, 'b'},          {KEY_N, 'n'},         {KEY_M, 'm'},
-        {KEY_SPACE, ' '},      {KEY_DOT, '.'},        {KEY_COMMA, ','},     {KEY_MINUS, '-'},
-        {KEY_SLASH, '-'},      {KEY_EQUAL, '='},      {KEY_SEMICOLON, ';'}, {KEY_APOSTROPHE, '\''},
-        {KEY_GRAVE, '`'},      {KEY_BACKSLASH, '\\'}, {KEY_LEFTBRACE, '['}, {KEY_RIGHTBRACE, ']'},
-        {KEY_KP0, '0'},        {KEY_KP1, '1'},        {KEY_KP2, '2'},       {KEY_KP3, '3'},
-        {KEY_KP4, '4'},        {KEY_KP5, '5'},        {KEY_KP6, '6'},       {KEY_KP7, '7'},
-        {KEY_KP8, '8'},        {KEY_KP9, '9'},        {KEY_KPDOT, '.'},     {KEY_KPSLASH, '/'},
-        {KEY_KPASTERISK, '*'}, {KEY_KPMINUS, '-'},    {KEY_KPPLUS, '+'}};
-
-    static const std::unordered_map<uint32_t, char> SHIFT_KEY_MAP = {
-        {KEY_1, '!'},          {KEY_2, '@'},         {KEY_3, '#'},         {KEY_4, '$'},
-        {KEY_5, '%'},          {KEY_6, '^'},         {KEY_7, '&'},         {KEY_8, '*'},
-        {KEY_9, '('},          {KEY_0, ')'},         {KEY_Q, 'Q'},         {KEY_W, 'W'},
-        {KEY_E, 'E'},          {KEY_R, 'R'},         {KEY_T, 'T'},         {KEY_Y, 'Y'},
-        {KEY_U, 'U'},          {KEY_I, 'I'},         {KEY_O, 'O'},         {KEY_P, 'P'},
-        {KEY_A, 'A'},          {KEY_S, 'S'},         {KEY_D, 'D'},         {KEY_F, 'F'},
-        {KEY_G, 'G'},          {KEY_H, 'H'},         {KEY_J, 'J'},         {KEY_K, 'K'},
-        {KEY_L, 'L'},          {KEY_Z, 'Z'},         {KEY_X, 'X'},         {KEY_C, 'C'},
-        {KEY_V, 'V'},          {KEY_B, 'B'},         {KEY_N, 'N'},         {KEY_M, 'M'},
-        {KEY_SPACE, ' '},      {KEY_DOT, '>'},       {KEY_COMMA, '<'},     {KEY_MINUS, '_'},
-        {KEY_SLASH, '_'},      {KEY_EQUAL, '+'},     {KEY_SEMICOLON, ':'}, {KEY_APOSTROPHE, '"'},
-        {KEY_GRAVE, '~'},      {KEY_BACKSLASH, '|'}, {KEY_LEFTBRACE, '{'}, {KEY_RIGHTBRACE, '}'},
-        {KEY_KP0, '0'},        {KEY_KP1, '1'},       {KEY_KP2, '2'},       {KEY_KP3, '3'},
-        {KEY_KP4, '4'},        {KEY_KP5, '5'},       {KEY_KP6, '6'},       {KEY_KP7, '7'},
-        {KEY_KP8, '8'},        {KEY_KP9, '9'},       {KEY_KPDOT, '.'},     {KEY_KPSLASH, '/'},
-        {KEY_KPASTERISK, '*'}, {KEY_KPMINUS, '-'},   {KEY_KPPLUS, '+'}};
-
     TextBox::TextBox() : Widget()
     {
         set_fixed_size(40);
@@ -100,7 +62,7 @@ namespace horizon
                     return false;
                 };
 
-                if (ev.key == KEY_BACKSPACE)
+                if (ev.keysym == XKB_KEY_BackSpace)
                 {
                     if (!delete_selection())
                     {
@@ -112,7 +74,7 @@ namespace horizon
                     }
                     invalidate();
                 }
-                else if (ev.key == KEY_DELETE)
+                else if (ev.keysym == XKB_KEY_Delete)
                 {
                     if (!delete_selection())
                     {
@@ -123,7 +85,7 @@ namespace horizon
                     }
                     invalidate();
                 }
-                else if (ev.key == KEY_LEFT)
+                else if (ev.keysym == XKB_KEY_Left || ev.keysym == XKB_KEY_KP_Left)
                 {
                     if (shift && m_selection_anchor == -1)
                         m_selection_anchor = m_cursor_pos;
@@ -133,7 +95,7 @@ namespace horizon
                         m_selection_anchor = -1;
                     invalidate();
                 }
-                else if (ev.key == KEY_RIGHT)
+                else if (ev.keysym == XKB_KEY_Right || ev.keysym == XKB_KEY_KP_Right)
                 {
                     if (shift && m_selection_anchor == -1)
                         m_selection_anchor = m_cursor_pos;
@@ -143,7 +105,7 @@ namespace horizon
                         m_selection_anchor = -1;
                     invalidate();
                 }
-                else if (ev.key == KEY_HOME)
+                else if (ev.keysym == XKB_KEY_Home || ev.keysym == XKB_KEY_KP_Home)
                 {
                     if (shift && m_selection_anchor == -1)
                         m_selection_anchor = m_cursor_pos;
@@ -152,7 +114,7 @@ namespace horizon
                         m_selection_anchor = -1;
                     invalidate();
                 }
-                else if (ev.key == KEY_END)
+                else if (ev.keysym == XKB_KEY_End || ev.keysym == XKB_KEY_KP_End)
                 {
                     if (shift && m_selection_anchor == -1)
                         m_selection_anchor = m_cursor_pos;
@@ -161,24 +123,15 @@ namespace horizon
                         m_selection_anchor = -1;
                     invalidate();
                 }
-                else if (ev.key != KEY_LEFTSHIFT && ev.key != KEY_RIGHTSHIFT &&
-                         ev.key != KEY_LEFTCTRL && ev.key != KEY_RIGHTCTRL &&
-                         ev.key != KEY_LEFTALT && ev.key != KEY_RIGHTALT && ev.key != KEY_CAPSLOCK)
+                else if (!ev.text.empty())
                 {
-                    bool caps = ev.modifiers & 0x8; // Application::CAPSLOCK is bit 3
-                    bool is_alpha = (ev.key >= KEY_Q && ev.key <= KEY_P) ||
-                                    (ev.key >= KEY_A && ev.key <= KEY_L) ||
-                                    (ev.key >= KEY_Z && ev.key <= KEY_M);
-
-                    bool use_shift_map = is_alpha ? (shift ^ caps) : shift;
-
-                    const auto &map = use_shift_map ? SHIFT_KEY_MAP : KEY_MAP;
-                    auto it = map.find(ev.key);
-                    if (it != map.end())
+                    // Filter out non-printable control characters if any (though xkb_utf8 usually
+                    // only gives printables)
+                    if (ev.text[0] >= 32 || ev.text[0] == '\t')
                     {
                         delete_selection();
-                        m_text.insert(m_cursor_pos, 1, it->second);
-                        m_cursor_pos++;
+                        m_text.insert(m_cursor_pos, ev.text);
+                        m_cursor_pos += ev.text.length();
                         m_selection_anchor = -1;
                         invalidate();
                     }

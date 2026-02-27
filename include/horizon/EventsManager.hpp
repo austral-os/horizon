@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <string>
 #include <vector>
 
 namespace horizon
@@ -49,6 +50,8 @@ namespace horizon
         double eventY{0};
         uint32_t key{0};
         uint32_t modifiers{0};
+        uint32_t keysym{0};
+        std::string text;
     };
 
     /**

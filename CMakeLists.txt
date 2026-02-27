@@ -10,6 +10,7 @@ find_package(nlohmann_json REQUIRED)
 
 pkg_check_modules(WAYLAND REQUIRED wayland-client wayland-cursor)
 pkg_check_modules(CAIRO REQUIRED cairo)
+pkg_check_modules(XKBCOMMON REQUIRED xkbcommon)
 
 file(GLOB_RECURSE SOURCES
     src/*.cpp
@@ -27,6 +28,7 @@ target_include_directories(horizon
     PRIVATE
         ${WAYLAND_INCLUDE_DIRS}
         ${CAIRO_INCLUDE_DIRS}
+        ${XKBCOMMON_INCLUDE_DIRS}
         ${nlohmann_json_INCLUDE_DIRS}
 )
 
@@ -34,6 +36,7 @@ target_link_libraries(horizon
     PRIVATE
         ${WAYLAND_LIBRARIES}
         ${CAIRO_LIBRARIES}
+        ${XKBCOMMON_LIBRARIES}
         ${nlohmann_json_LIBRARIES}
 )
 
