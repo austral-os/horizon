@@ -544,4 +544,10 @@ namespace horizon
         cairo_pattern_destroy(pat);
     }
 
+    void CairoGraphicContext::clipPolygon(const std::vector<PolygonPoint> &points)
+    {
+        rounded_polygon_path(cr, points);
+        cairo_clip(cr);
+    }
+
 } // namespace horizon

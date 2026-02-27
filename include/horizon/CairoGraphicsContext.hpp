@@ -56,6 +56,7 @@ namespace horizon
         void drawPolygon(const std::vector<PolygonPoint> &points, float lineWidth = 1.0f) override;
         void fillLinearGradientPolygon(const std::vector<PolygonPoint> &points, Color c1, Color c2,
                                        bool vertical = true) override;
+        void clipPolygon(const std::vector<PolygonPoint> &points) override;
 
     private:
         cairo_surface_t *cairo_s;

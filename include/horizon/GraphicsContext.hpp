@@ -106,6 +106,7 @@ namespace horizon
         };
         virtual void fillLinearGradientPolygon(const std::vector<PolygonPoint> &points, Color c1,
                                                Color c2, bool vertical = true) {};
+        virtual void clipPolygon(const std::vector<PolygonPoint> &points) {};
     };
 
 } // namespace horizon

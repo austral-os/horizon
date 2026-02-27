@@ -96,17 +96,23 @@ namespace horizon
 
         // Adjust points to widget position
         std::vector<PolygonPoint> absolute_points = m_points;
+        int min_x = 1e9, max_x = -1e9;
         int min_y = 1e9, max_y = -1e9;
         for (auto &p : absolute_points)
         {
             p.x += m_start_draw_x;
             p.y += m_start_draw_y;
+            min_x = std::min(min_x, p.x);
+            max_x = std::max(max_x, p.x);
             min_y = std::min(min_y, p.y);
             max_y = std::max(max_y, p.y);
         }
 
+        int poly_width = max_x - min_x;
         int poly_height = max_y - min_y;
         int half_height = poly_height / 2;
+        int center_x = (min_x + max_x) / 2;
+        int center_y = (min_y + max_y) / 2;
 
         // 1. Draw background/shadow if border enabled
         if (m_has_border)
@@ -123,12 +129,54 @@ namespace horizon
             gc.drawPolygon(absolute_points, m_border_size);
         }
 
-        // 2. Fill background
+        // 2. Fill background (clears the shape)
         gc.setColor(window_bg);
         gc.fillPolygon(absolute_points);
 
-        // 3. Aqua Gradient (Main effect)
-        gc.fillLinearGradientPolygon(absolute_points, top1, bot2, true);
-    }
+        // 3. Aqua Style Gradients (Top and Bottom halves)
+        gc.save();
+        gc.clipPolygon(absolute_points);
 
+        // --- Top half: top1 -> top2 ---
+        // We draw a gradient rectangle exactly on the top half.
+        // Because we are clipped to the polygon, it only shows inside.
+        gc.fillLinearGradientRect(min_x, min_y, poly_width, half_height, top1, top2, true, 0);
+
+        // --- Bottom half: bot1 -> bot2 ---
+        // We draw a gradient rectangle exactly on the bottom half.
+        int rem_height = poly_height - half_height;
+        gc.fillLinearGradientRect(min_x, min_y + half_height, poly_width, rem_height, bot1, bot2,
+                                  true, 0);
+
+        gc.restore();
+
+        // 4. Inner top highlight (The "Glass" reflection)
+        // We shrink the polygon slightly to create an inner reflection area.
+        std::vector<PolygonPoint> inner_highlight_points;
+        for (const auto &p : absolute_points)
+        {
+            int nx = p.x;
+            int ny = p.y;
+
+            // Move 3px towards center
+            if (nx < center_x)
+                nx += 3;
+            else if (nx > center_x)
+                nx -= 3;
+            if (ny < center_y)
+                ny += 3;
+            else if (ny > center_y)
+                ny -= 3;
+
+            inner_highlight_points.push_back({nx, ny, std::max(0, p.radius - 3)});
+        }
+
+        gc.save();
+        gc.clipPolygon(inner_highlight_points);
+        // Bright reflection usually spans about 80% of the top half
+        int h_height = static_cast<int>(half_height * 0.8);
+        gc.fillLinearGradientRect(min_x, min_y + 2, poly_width, h_height, highlight, highlight2,
+                                  true, 0);
+        gc.restore();
+    }
 } // namespace horizon
