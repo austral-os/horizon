@@ -6,6 +6,7 @@
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Notebook.hpp>
+#include <horizon/ProgressBar.hpp>
 #include <horizon/RadioButton.hpp>
 #include <horizon/SolidObject.hpp>
 #include <horizon/TextBox.hpp>
@@ -22,6 +23,7 @@ using horizon::FONT_WEIGHT_BOLD;
 using horizon::Label;
 using horizon::Notebook;
 using horizon::NotebookPage;
+using horizon::ProgressBar;
 using horizon::RadioButton;
 using horizon::SolidObject;
 using horizon::TextAlignment;
@@ -116,10 +118,17 @@ int main()
 
         auto tb_container = std::make_unique<Widget>();
         tb_container->set_margin(40);
+        tb_container->set_spacing(10);
         auto textbox = std::make_unique<TextBox>();
         textbox->set_placeholder("Nombre");
         textbox->set_text("");
         tb_container->add_child(std::move(textbox));
+
+        auto pb = std::make_unique<ProgressBar>();
+        pb->set_progress(0.65f);
+        pb->set_margin(10);
+        pb->set_fixed_size(30);
+        tb_container->add_child(std::move(pb));
 
         notebook->add_tab(NotebookPage("TextBox", std::move(tb_container)));
 

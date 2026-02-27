@@ -23,8 +23,8 @@ namespace horizon
         void fillLinearGradientRect(int x, int y, int width, int height, Color c1, Color c2,
                                     bool vertical = true, CornerRadius radius = 0) override;
         void drawLinearGradientRect(int x, int y, int width, int height, Color c1, Color c2,
-                                    bool vertical = true, CornerRadius radius = 0,
-                                    float lineWidth = 1.0f) override;
+                                    float lineWidth = 1.0f, bool vertical = true,
+                                    CornerRadius radius = 0) override;
 
         void setDrawFont(const char *font, int size, FontSlant slant, FontWeight weight) override;
         TextMetrics getTextMetrics(const char *text, const char *font, int size, FontSlant slant,
@@ -47,6 +47,7 @@ namespace horizon
         void save() override;
         void restore() override;
         void clip(int x, int y, int width, int height) override;
+        void clipRoundedRect(int x, int y, int width, int height, CornerRadius radius) override;
 
         void pushGroup() override;
         void popGroup() override;

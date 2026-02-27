@@ -64,8 +64,12 @@ namespace horizon
         virtual void fillLinearGradientRect(int x, int y, int width, int height, Color c1, Color c2,
                                             bool vertical = true, CornerRadius radius = 0) {};
         virtual void drawLinearGradientRect(int x, int y, int width, int height, Color c1, Color c2,
-                                            bool vertical = true, CornerRadius radius = 0,
-                                            float lineWidth = 1.0f) {};
+                                            float lineWidth = 1.0f, bool vertical = true,
+                                            CornerRadius radius = 0) {};
+        virtual void save() {};
+        virtual void restore() {};
+        virtual void clip(int x, int y, int width, int height) {};
+        virtual void clipRoundedRect(int x, int y, int width, int height, CornerRadius radius) {};
         virtual void setDrawFont(const char *font, int size, FontSlant slant, FontWeight weight) {};
         virtual TextMetrics getTextMetrics(const char *text, const char *font, int size,
                                            FontSlant slant, FontWeight weight) const = 0;
@@ -83,10 +87,6 @@ namespace horizon
                                         GradientDirection direction = GradientDirection::Radial) {};
 
         virtual void flush() {};
-
-        virtual void save() {};
-        virtual void restore() {};
-        virtual void clip(int x, int y, int width, int height) {};
 
         virtual void pushGroup() {};
         virtual void popGroup() {};

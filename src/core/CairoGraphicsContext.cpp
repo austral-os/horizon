@@ -266,8 +266,8 @@ namespace horizon
     }
 
     void CairoGraphicContext::drawLinearGradientRect(int x, int y, int width, int height, Color c1,
-                                                     Color c2, bool vertical, CornerRadius radius,
-                                                     float lineWidth)
+                                                     Color c2, float lineWidth, bool vertical,
+                                                     CornerRadius radius)
     {
         cairo_pattern_t *pat;
         if (vertical)
@@ -366,6 +366,13 @@ namespace horizon
     void CairoGraphicContext::clip(int x, int y, int width, int height)
     {
         cairo_rectangle(cr, x, y, width, height);
+        cairo_clip(cr);
+    }
+
+    void CairoGraphicContext::clipRoundedRect(int x, int y, int width, int height,
+                                              CornerRadius radius)
+    {
+        rounded_rectangle(cr, (double)x, (double)y, (double)width, (double)height, radius);
         cairo_clip(cr);
     }
 
