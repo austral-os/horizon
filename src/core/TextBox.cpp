@@ -163,9 +163,16 @@ namespace horizon
                 }
                 else if (ev.key != KEY_LEFTSHIFT && ev.key != KEY_RIGHTSHIFT &&
                          ev.key != KEY_LEFTCTRL && ev.key != KEY_RIGHTCTRL &&
-                         ev.key != KEY_LEFTALT && ev.key != KEY_RIGHTALT)
+                         ev.key != KEY_LEFTALT && ev.key != KEY_RIGHTALT && ev.key != KEY_CAPSLOCK)
                 {
-                    const auto &map = shift ? SHIFT_KEY_MAP : KEY_MAP;
+                    bool caps = ev.modifiers & 0x8; // Application::CAPSLOCK is bit 3
+                    bool is_alpha = (ev.key >= KEY_Q && ev.key <= KEY_P) ||
+                                    (ev.key >= KEY_A && ev.key <= KEY_L) ||
+                                    (ev.key >= KEY_Z && ev.key <= KEY_M);
+
+                    bool use_shift_map = is_alpha ? (shift ^ caps) : shift;
+
+                    const auto &map = use_shift_map ? SHIFT_KEY_MAP : KEY_MAP;
                     auto it = map.find(ev.key);
                     if (it != map.end())
                     {

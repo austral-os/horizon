@@ -159,6 +159,8 @@ namespace horizon
             m_modifiers |= CTRL;
         if (event.key == KEY_LEFTALT || event.key == KEY_RIGHTALT)
             m_modifiers |= ALT;
+        if (event.key == KEY_CAPSLOCK)
+            m_modifiers ^= CAPSLOCK;
 
         // Key repeat management
         uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(

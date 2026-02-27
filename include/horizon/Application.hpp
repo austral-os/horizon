@@ -172,7 +172,8 @@ namespace horizon
         {
             SHIFT = (1 << 0),
             CTRL = (1 << 1),
-            ALT = (1 << 2)
+            ALT = (1 << 2),
+            CAPSLOCK = (1 << 3)
         };
         uint32_t m_modifiers{0};
 
