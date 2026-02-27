@@ -137,7 +137,8 @@ int main()
         slider_h->set_value(0.35f);
         slider_h->set_tick_count(5);
         slider_h->set_margin(10);
-        slider_h->set_fixed_size(46);
+        // slider_h->set_fixed_size(46);
+        slider_h->set_orientation(horizon::SliderOrientation::Vertical);
         tb_container->add_child(std::move(slider_h));
 
         notebook->add_tab(NotebookPage("TextBox", std::move(tb_container)));

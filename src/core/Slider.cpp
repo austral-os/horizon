@@ -167,19 +167,25 @@ namespace horizon
         }
 
         // ── 1. Track (recessed groove) ───────────────────────────────────
-        // Outer sunken fill — dark grey bottom, lighter top (inner shadow illusion)
-        gc.fillLinearGradientRect(
-            track_x, track_y, track_w, track_h, Color(0.40f, 0.40f, 0.42f, 1.0f),
-            Color(0.70f, 0.70f, 0.72f, 1.0f), true, CornerRadius(track_h / 2));
+        // Corner radius = half the THIN side of the track bar (produces pill ends)
+        int track_r = std::min(track_w, track_h) / 2;
 
-        // Bright highlight at absolute top (1px)
+        // Outer sunken fill — dark → light gradient
+        gc.fillLinearGradientRect(track_x, track_y, track_w, track_h,
+                                  Color(0.40f, 0.40f, 0.42f, 1.0f),
+                                  Color(0.70f, 0.70f, 0.72f, 1.0f), !horiz, CornerRadius(track_r));
+
+        // Bright highlight (1px line inside the top/left edge of the track)
         gc.setColor(Color(0.90f, 0.90f, 0.92f, 0.8f));
-        gc.fillRect(track_x + track_h / 2, track_y, track_w - track_h, 1);
+        if (horiz)
+            gc.fillRect(track_x + track_r, track_y, track_w - track_r * 2, 1);
+        else
+            gc.fillRect(track_x, track_y + track_r, 1, track_h - track_r * 2);
 
         // Track border
         gc.drawLinearGradientRect(
             track_x, track_y, track_w, track_h, Color(0.28f, 0.28f, 0.30f, 1.0f),
-            Color(0.55f, 0.55f, 0.58f, 1.0f), 1.0f, true, CornerRadius(track_h / 2));
+            Color(0.55f, 0.55f, 0.58f, 1.0f), 1.0f, !horiz, CornerRadius(track_r));
 
         // ── 2. Tick marks ────────────────────────────────────────────────
         if (m_tick_count > 1)
@@ -210,75 +216,127 @@ namespace horizon
         // ── 3. Thumb (Aqua diamond / teardrop) ──────────────────────────
         int tc = thumb_center();
 
-        int tx, ty; // top-left of thumb bounding box
+        // ── 3.a HORIZONTAL thumb: pill on top, tip pointing DOWN ──────────
         if (horiz)
         {
-            tx = tc - THUMB_W / 2;
-            ty = track_y + track_h / 2 - THUMB_H / 2;
-        }
-        else
-        {
-            tx = track_x + track_w / 2 - THUMB_W / 2;
-            ty = tc - THUMB_H / 2;
-        }
+            int tx = tc - THUMB_W / 2;
+            int ty = track_y + track_h / 2 - THUMB_H / 2;
 
-        // Shadow
-        gc.setColor(Color(0.0f, 0.0f, 0.0f, 0.25f));
-        gc.fillRect(tx + 2, ty + THUMB_H - 4, THUMB_W - 2, 6, CornerRadius(3));
+            // Shadow
+            gc.setColor(Color(0.0f, 0.0f, 0.0f, 0.22f));
+            gc.fillRect(tx + 2, ty + THUMB_H - 3, THUMB_W - 4, 5, CornerRadius(3));
 
-        // Thumb body: blue Aqua gradient (top highlight → deep blue bottom)
-        Color top_col(0.60f, 0.78f, 1.00f, 1.0f);
-        Color bot_col(0.08f, 0.38f, 0.85f, 1.0f);
+            Color top_col(0.62f, 0.80f, 1.00f, 1.0f);
+            Color bot_col(0.08f, 0.38f, 0.85f, 1.0f);
 
-        // Main body (pill upper part)
-        int pill_h = THUMB_H - 8; // flat-bottomed diamond; pointed tip is drawn separately
-        gc.fillLinearGradientRect(tx, ty, THUMB_W, pill_h, top_col, bot_col, true,
-                                  CornerRadius(THUMB_W / 2, THUMB_W / 2, 0, 0));
+            int pill_h = THUMB_H - 8;
 
-        // Pointed bottom — simple filled triangle using fillRect trick: draw shrinking rects
-        {
-            int base_y = ty + pill_h;
-            int steps = 8;
-            for (int s = 0; s < steps; ++s)
+            // Pill fill
+            gc.fillLinearGradientRect(tx, ty, THUMB_W, pill_h, top_col, bot_col, true,
+                                      CornerRadius(THUMB_W / 2, THUMB_W / 2, 0, 0));
+
+            // Pointed bottom (shrinking horizontal rects downward)
             {
-                float ratio = (float)s / (float)steps;
-                float inv = 1.0f - ratio;
-                int rect_w = (int)(THUMB_W * inv);
-                int rect_x = tx + (THUMB_W - rect_w) / 2;
-                // Blend gradient
-                Color c(bot_col.r * inv + 0.04f * ratio, bot_col.g * inv + 0.22f * ratio,
-                        bot_col.b * inv + 0.50f * ratio, 1.0f);
-                gc.setColor(c);
-                gc.fillRect(rect_x, base_y + s, rect_w, 1);
+                int base_y = ty + pill_h;
+                int steps = 8;
+                for (int s = 0; s < steps; ++s)
+                {
+                    float inv = 1.0f - (float)s / (float)steps;
+                    int rect_w = (int)(THUMB_W * inv);
+                    int rect_x = tx + (THUMB_W - rect_w) / 2;
+                    Color c(bot_col.r * inv + 0.04f * (1 - inv),
+                            bot_col.g * inv + 0.22f * (1 - inv),
+                            bot_col.b * inv + 0.50f * (1 - inv), 1.0f);
+                    gc.setColor(c);
+                    gc.fillRect(rect_x, base_y + s, rect_w, 1);
+                }
             }
-        }
 
-        // Inner top gloss (semi-transparent white)
-        gc.fillLinearGradientRect(tx + 3, ty + 2, THUMB_W - 6, pill_h / 2,
-                                  Color(1.0f, 1.0f, 1.0f, 0.55f), Color(1.0f, 1.0f, 1.0f, 0.0f),
-                                  true, CornerRadius(THUMB_W / 2, THUMB_W / 2, 0, 0));
+            // Gloss
+            gc.fillLinearGradientRect(tx + 3, ty + 2, THUMB_W - 6, pill_h / 2,
+                                      Color(1.0f, 1.0f, 1.0f, 0.55f), Color(1.0f, 1.0f, 1.0f, 0.0f),
+                                      true, CornerRadius(THUMB_W / 2, THUMB_W / 2, 0, 0));
 
-        // Thumb border (pill / rounded top)
-        gc.drawLinearGradientRect(tx, ty, THUMB_W, pill_h, Color(0.20f, 0.45f, 0.85f, 1.0f),
-                                  Color(0.05f, 0.22f, 0.65f, 1.0f), 1.5f, true,
-                                  CornerRadius(THUMB_W / 2, THUMB_W / 2, 0, 0));
+            // Pill border
+            gc.drawLinearGradientRect(tx, ty, THUMB_W, pill_h, Color(0.20f, 0.45f, 0.85f, 1.0f),
+                                      Color(0.05f, 0.22f, 0.65f, 1.0f), 1.5f, true,
+                                      CornerRadius(THUMB_W / 2, THUMB_W / 2, 0, 0));
 
-        // Erase the unwanted flat bottom stroke of the pill border by overpainting with fill color
-        gc.setColor(bot_col);
-        gc.fillRect(tx + 1, ty + pill_h - 2, THUMB_W - 2, 4);
+            // Erase flat bottom edge of pill border
+            gc.setColor(bot_col);
+            gc.fillRect(tx + 1, ty + pill_h - 2, THUMB_W - 2, 4);
 
-        // Pointed-tip border: two diagonal lines from the pill's bottom corners to the tip
-        {
+            // Diagonal tip border
             Color tip_border(0.05f, 0.22f, 0.65f, 1.0f);
             gc.setColor(tip_border);
-            int tip_steps = 8;
             int base_y = ty + pill_h;
             int tip_x = tx + THUMB_W / 2;
-            int tip_y = base_y + tip_steps - 1;
-            // Left side: from (tx, base_y) → (tip_x, tip_y)
+            int tip_y = base_y + 7;
             gc.drawLine(tx, base_y, tip_x, tip_y, 1.5f);
-            // Right side: from (tx + THUMB_W, base_y) → (tip_x, tip_y)
             gc.drawLine(tx + THUMB_W, base_y, tip_x, tip_y, 1.5f);
+        }
+        // ── 3.b VERTICAL thumb: pill on left, tip pointing RIGHT ──────────
+        else
+        {
+            // Thumb bounding box: total width = THUMB_H, height = THUMB_W
+            // (rotated 90° CW from horizontal)
+            int thumb_total_w = THUMB_H; // total extent along track-perpendicular axis
+            int thumb_h = THUMB_W;       // extent along track axis
+            int tx = track_x + track_w / 2 - thumb_total_w / 2;
+            int ty = tc - thumb_h / 2;
+
+            int pill_w = THUMB_H - 8; // width of the pill (left) part
+
+            Color top_col(0.62f, 0.80f, 1.00f, 1.0f); // light blue (left/top of gradient)
+            Color bot_col(0.08f, 0.38f, 0.85f, 1.0f); // deep blue  (right/bottom)
+
+            // Shadow
+            gc.setColor(Color(0.0f, 0.0f, 0.0f, 0.22f));
+            gc.fillRect(tx + thumb_total_w - 3, ty + 2, 5, thumb_h - 4, CornerRadius(3));
+
+            // Pill fill — horizontal gradient (left=light, right=dark), rounded LEFT corners
+            gc.fillLinearGradientRect(tx, ty, pill_w, thumb_h, top_col, bot_col, false,
+                                      CornerRadius(thumb_h / 2, 0, 0, thumb_h / 2));
+
+            // Pointed tip — shrinking vertical rects extending to the RIGHT
+            {
+                int base_x = tx + pill_w;
+                int steps = 8;
+                for (int s = 0; s < steps; ++s)
+                {
+                    float inv = 1.0f - (float)s / (float)steps;
+                    int rect_h = (int)(thumb_h * inv);
+                    int rect_y = ty + (thumb_h - rect_h) / 2;
+                    Color c(bot_col.r * inv + 0.04f * (1 - inv),
+                            bot_col.g * inv + 0.22f * (1 - inv),
+                            bot_col.b * inv + 0.50f * (1 - inv), 1.0f);
+                    gc.setColor(c);
+                    gc.fillRect(base_x + s, rect_y, 1, rect_h);
+                }
+            }
+
+            // Gloss (left half of pill, top portion)
+            gc.fillLinearGradientRect(tx + 2, ty + 3, pill_w / 2, thumb_h - 6,
+                                      Color(1.0f, 1.0f, 1.0f, 0.55f), Color(1.0f, 1.0f, 1.0f, 0.0f),
+                                      false, CornerRadius(thumb_h / 2, 0, 0, thumb_h / 2));
+
+            // Pill border — rounded LEFT corners
+            gc.drawLinearGradientRect(tx, ty, pill_w, thumb_h, Color(0.20f, 0.45f, 0.85f, 1.0f),
+                                      Color(0.05f, 0.22f, 0.65f, 1.0f), 1.5f, false,
+                                      CornerRadius(thumb_h / 2, 0, 0, thumb_h / 2));
+
+            // Erase flat RIGHT edge of pill border (junction with tip)
+            gc.setColor(bot_col);
+            gc.fillRect(tx + pill_w - 2, ty + 1, 4, thumb_h - 2);
+
+            // Diagonal tip border lines from pill's right corners to the tip point
+            Color tip_border(0.05f, 0.22f, 0.65f, 1.0f);
+            gc.setColor(tip_border);
+            int base_x = tx + pill_w;
+            int tip_x = base_x + 7;
+            int tip_y = ty + thumb_h / 2;
+            gc.drawLine(base_x, ty, tip_x, tip_y, 1.5f);
+            gc.drawLine(base_x, ty + thumb_h, tip_x, tip_y, 1.5f);
         }
     }
 
