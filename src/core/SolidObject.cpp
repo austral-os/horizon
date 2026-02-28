@@ -4,10 +4,6 @@
 #include <horizon/SolidObject.hpp>
 #include <horizon/Widget.hpp>
 
-#ifdef DEBUG
-#include <iostream>
-#endif
-
 namespace horizon
 {
     SolidObject::SolidObject() : Widget()
@@ -45,11 +41,36 @@ namespace horizon
         auto font = tm->get_font("window");
 
         Color window_bg = tm->get_color("window_bg");
-        Color c1 = tm->get_color("window_bg").lighter(10.f);
+        Color c1 = tm->get_color("default1").lighter(85.f);
 
         Color window_fg = tm->get_color("window_fg");
         Color shadow_color = tm->get_color("window_border");
         Color border_color = shadow_color.darker(40.0f);
+
+        switch (m_accent_color)
+        {
+        case WidgetAccentColor::Default:
+            c1 = tm->get_color("default1").lighter(85.f);
+            break;
+        case WidgetAccentColor::Primary:
+            c1 = tm->get_color("primary1").lighter(80.f);
+            break;
+        case WidgetAccentColor::Secondary:
+            c1 = tm->get_color("secondary1").lighter(80.f);
+            break;
+        case WidgetAccentColor::Success:
+            c1 = tm->get_color("success1").lighter(80.f);
+            break;
+        case WidgetAccentColor::Warning:
+            c1 = tm->get_color("warning1").lighter(80.f);
+            break;
+        case WidgetAccentColor::Error:
+            c1 = tm->get_color("error1").lighter(80.f);
+            break;
+        case WidgetAccentColor::Info:
+            c1 = tm->get_color("info1").lighter(80.f);
+            break;
+        }
 
         Color top1 = c1;
 
@@ -57,14 +78,6 @@ namespace horizon
         Color highlight2 = highlight.with_alpha(0.3f);
         Color text_color = window_fg;
 
-#ifdef DEBUG
-
-        printf("top1: %s\n", top1.to_hex().c_str());
-        printf("highlight: %s\n", highlight.to_hex().c_str());
-        printf("highlight2: %s\n", highlight2.to_hex().c_str());
-        printf("text_color: %s\n", text_color.to_hex().c_str());
-
-#endif
         // clear background
         gc.setColor(window_bg);
         gc.fillRect(m_x, m_y, m_width, m_height, m_corner_radius);
@@ -75,6 +88,7 @@ namespace horizon
 
         if (is_hovered())
         {
+            printf("se ha hecho hovered\n");
             highlight = highlight.lighter(100.0f);
             highlight2 = highlight.with_alpha(0.5f);
         }
@@ -82,7 +96,7 @@ namespace horizon
         // Top half: gradient from white to very light gray (creates a glass reflection effect)
         int halfHeight = m_height / 2;
         gc.fillLinearGradientRect(m_start_draw_x + 1, m_start_draw_y + 1, m_width - 2, halfHeight,
-                                  top1.darker(2.f), top1.darker(10.f), true,
+                                  highlight.darker(2.f), highlight.darker(10.f), true,
                                   {m_corner_radius.top_left, m_corner_radius.top_right, 0, 0});
 
         // Bottom half: gradient starting slightly darker and lightening towards the bottom

@@ -2,8 +2,8 @@
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Notebook.hpp>
+#include <horizon/SolidObject.hpp>
 #include <horizon/Widget.hpp>
-#include <iostream>
 #include <memory>
 
 namespace horizon
@@ -71,6 +71,7 @@ namespace horizon
 
         for (const auto &item : m_header->children())
         {
+
             // si item es de la clase Button<AquaObject>
             if (auto button = dynamic_cast<Button<AquaObject> *>(item.get()))
             {

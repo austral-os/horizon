@@ -67,7 +67,7 @@ int main()
         btn2->set_text("Cancelar");
         // btn2->set_corner_radius({0, 20, 20, 0});
         btn2->set_fixed_size(40);
-        btn2->set_accent_color(WidgetAccentColor::Default);
+        btn2->set_accent_color(WidgetAccentColor::Primary);
 
         btn3->set_text("Cancelar");
         btn3->set_fixed_size(40);

@@ -4,10 +4,6 @@
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Widget.hpp>
 
-#ifdef DEBUG
-#include <iostream>
-#endif
-
 namespace horizon
 {
     AquaObject::AquaObject() : Widget()
@@ -92,17 +88,6 @@ namespace horizon
         Color highlight2 = highlight.with_alpha(0.3f);
         Color text_color = window_fg;
 
-#ifdef DEBUG
-
-        printf("top1: %s\n", top1.to_hex().c_str());
-        printf("top2: %s\n", top2.to_hex().c_str());
-        printf("bot1: %s\n", bot1.to_hex().c_str());
-        printf("bot2: %s\n", bot2.to_hex().c_str());
-        printf("highlight: %s\n", highlight.to_hex().c_str());
-        printf("highlight2: %s\n", highlight2.to_hex().c_str());
-        printf("text_color: %s\n", text_color.to_hex().c_str());
-
-#endif
         // clear background
         gc.setColor(window_bg);
         gc.fillRect(m_x, m_y, m_width, m_height, m_corner_radius);
