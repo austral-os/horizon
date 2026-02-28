@@ -142,9 +142,12 @@ int main()
         slider_h->set_orientation(horizon::SliderOrientation::Horizontal);
         tb_container->add_child(std::move(slider_h));
 
+        auto icnFolder = std::make_unique<horizon::Icon>();
+        icnFolder->set_icon_name("folder");
+        icnFolder->set_icon_size(24);
         auto group_button = std::make_unique<horizon::GroupButton>();
         group_button->add_item("Item 1");
-        group_button->add_item("Item 2");
+        group_button->add_item(std::move(icnFolder));
         group_button->add_item("Item 3");
         group_button->set_fixed_size(40);
         tb_container->add_child(std::move(group_button));
