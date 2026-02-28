@@ -1,9 +1,9 @@
-#include "horizon/GroupButton.hpp"
 #include <horizon/Application.hpp>
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Checkbox.hpp>
 #include <horizon/Frame.hpp>
+#include <horizon/GroupButton.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Notebook.hpp>

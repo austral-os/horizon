@@ -1,8 +1,8 @@
 #pragma once
 
-#include "horizon/Icon.hpp"
 #include <horizon/Frame.hpp>
 #include <horizon/GraphicsContext.hpp>
+#include <horizon/Icon.hpp>
 #include <horizon/Widget.hpp>
 #include <memory>
 #include <string>
