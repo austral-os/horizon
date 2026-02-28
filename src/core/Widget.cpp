@@ -12,6 +12,12 @@ namespace horizon
         m_position_type = FILL;
         set_cursor_type(CursorType::Default);
         set_accent_color(WidgetAccentColor::Default);
+        set_draw_state(WidgetDrawState::NORMAL);
+
+        map_draw_state(WidgetEvent::MOUSE_ENTER, WidgetDrawState::HOVERED);
+        map_draw_state(WidgetEvent::MOUSE_LEAVE, WidgetDrawState::NORMAL);
+        map_draw_state(WidgetEvent::MOUSE_PRESS, WidgetDrawState::PRESSED);
+        map_draw_state(WidgetEvent::MOUSE_RELEASE, WidgetDrawState::HOVERED);
 
         // Gestión de estados de interacción
         when_mouse_enter.connect(
@@ -225,6 +231,26 @@ namespace horizon
     const std::vector<std::unique_ptr<Widget>> &Widget::children() const
     {
         return m_children;
+    }
+
+    WidgetDrawState Widget::get_draw_state() const
+    {
+        return m_draw_state;
+    }
+
+    WidgetDrawState Widget::get_draw_state(WidgetEvent event) const
+    {
+        return m_draw_state_map.at(event);
+    }
+
+    void Widget::set_draw_state(WidgetDrawState draw_state)
+    {
+        m_draw_state = draw_state;
+    }
+
+    void Widget::map_draw_state(WidgetEvent event, WidgetDrawState draw_state)
+    {
+        m_draw_state_map[event] = draw_state;
     }
 
     void Widget::set_position(int x, int y)

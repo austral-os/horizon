@@ -2,6 +2,7 @@
 
 #include "horizon/EventsManager.hpp"
 #include <functional>
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -46,6 +47,45 @@ namespace horizon
         Warning,
         Error,
         Info
+    };
+
+    /*
+     * Eventos que puede disparar un widget.
+     * Se utilizan para mapear eventos a formas de dibujarse.
+     */
+    enum class WidgetEvent
+    {
+        MOUSE_ENTER,
+        MOUSE_LEAVE,
+        MOUSE_MOVE,
+        MOUSE_PRESS,
+        MOUSE_RELEASE,
+        MOUSE_DRAG,
+        MOUSE_HOVER,
+        KEY_PRESS,
+        KEY_RELEASE
+    };
+
+    /*
+     * Distintos estilos en los que puede dibujarse un widget.
+     */
+    enum class WidgetDrawState
+    {
+        NORMAL,
+        HOVERED,
+        PRESSED,
+        FOCUSED,
+        DISABLED,
+        CUSTOM_1,
+        CUSTOM_2,
+        CUSTOM_3,
+        CUSTOM_4,
+        CUSTOM_5,
+        CUSTOM_6,
+        CUSTOM_7,
+        CUSTOM_8,
+        CUSTOM_9,
+        CUSTOM_10
     };
 
     class Widget
@@ -163,12 +203,17 @@ namespace horizon
 
         virtual void set_application_recursive(Application *app);
 
+        void map_draw_state(WidgetEvent event, WidgetDrawState draw_state);
+
     protected:
         virtual void draw(GraphicsContext &ctx);
 
         Widget *hit_test(int x, int y);
+        WidgetDrawState get_draw_state() const;
+        WidgetDrawState get_draw_state(WidgetEvent event) const;
 
         void calculate_layout();
+        void set_draw_state(WidgetDrawState draw_state);
 
     protected:
         int m_x{0};
@@ -182,6 +227,21 @@ namespace horizon
         WidgetPositionTypes m_position_type{FREE};
         WidgetLayoutTypes m_layout_type{WIDGET_LAYOUT_HORIZONTAL};
         WidgetAccentColor m_accent_color{WidgetAccentColor::Default};
+
+        /*
+         * m_widget_draw_state indica al metodo draw como debe dibujar el widget.
+         * Esta propiedad puede ser especificada por parametro y no depender de los eventos.
+         * Por defecto es NORMAL.
+         * Si se establece en HOVERED, el widget se dibujara como si estuviera hovereado.
+         * Si se establece en PRESSED, el widget se dibujara como si estuviera presionado.
+         * Si se establece en DISABLED, el widget se dibujara como si estuviera deshabilitado.
+         * Si se establece en FOCUSED, el widget se dibujara como si estuviera enfocado.
+         * todo esto sin depender de los eventos.
+         * Quizas podriamos especificar, opcionalmente en cada widget, en cual de estos estados
+         * debe dibujarse segun el evento que ocurra. Seria mapear eventos a formas de dibujarse.
+         */
+        std::map<WidgetEvent, WidgetDrawState> m_draw_state_map;
+        WidgetDrawState m_draw_state{WidgetDrawState::NORMAL};
 
         bool m_visible{true};
         bool m_enabled{true};
