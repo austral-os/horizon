@@ -88,7 +88,6 @@ namespace horizon
 
         if (is_hovered())
         {
-            printf("se ha hecho hovered\n");
             highlight = highlight.lighter(100.0f);
             highlight2 = highlight.with_alpha(0.5f);
         }
