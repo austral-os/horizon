@@ -123,12 +123,6 @@ namespace horizon
             gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height - 3, m_corner_radius,
                         1.5f);
 
-            /*if (is_hovered())
-            {
-                highlight = highlight.lighter(100.0f);
-                highlight2 = highlight.with_alpha(0.5f);
-            }*/
-
             // Top half: gradient from white to very light gray (creates a glass reflection effect)
             int halfHeight = m_height / 2;
             CornerRadius top_radius(std::max(0, m_corner_radius.top_left - 1),
@@ -182,11 +176,6 @@ namespace horizon
             gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height - 3, m_corner_radius,
                         1.5f);
 
-            /*if (is_hovered())
-{
-    highlight = highlight.lighter(100.0f);
-    highlight2 = highlight.with_alpha(0.5f);
-}*/
             highlight = highlight.lighter(100.0f);
             highlight2 = highlight.with_alpha(0.5f);
 
