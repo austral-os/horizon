@@ -66,8 +66,8 @@ namespace horizon
         // Use the requested icon size
         int draw_size = m_icon_size;
 
-        int icon_x = m_start_draw_x + (m_width - draw_size) / 2;
-        int icon_y = m_start_draw_y + (m_height - draw_size) / 2;
+        int icon_x = m_start_draw_x + (m_available_draw_width - draw_size) / 2;
+        int icon_y = m_start_draw_y + (m_available_draw_height - draw_size) / 2;
 
         ctx.drawImage(m_resolved_path, icon_x, icon_y, draw_size, draw_size);
     }

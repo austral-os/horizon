@@ -78,6 +78,7 @@ namespace horizon
     {
 
         auto button = std::make_unique<Button<SolidObject>>();
+        icon->set_fixed_size(m_available_draw_height);
         button->add_child(std::move(icon));
 
         add_child(std::move(button));
