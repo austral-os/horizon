@@ -562,7 +562,10 @@ namespace horizon
                         m_dirty_widgets.clear();
                         CairoGraphicContext ctx(m_surface->data(), m_surface->width(),
                                                 m_surface->height());
-                        m_root->render(ctx, true);
+                        ctx.pushGroup();
+                        m_root->render(ctx, 0, 0, m_surface->width(), m_surface->height(), true);
+                        ctx.popGroup();
+
                         wl_surface_damage(m_surface->surface(), 0, 0, m_surface->width(),
                                           m_surface->height());
                         wl_surface_attach(m_surface->surface(), m_surface->buffer(), 0, 0);
@@ -574,29 +577,27 @@ namespace horizon
                         std::vector<Widget *> current_dirty;
                         std::swap(current_dirty, m_dirty_widgets);
 
-                        // Calculate bounding box of all dirty widgets
-                        int min_x = m_surface->width(), min_y = m_surface->height();
-                        int max_x = 0, max_y = 0;
-                        for (Widget *w : current_dirty)
-                        {
-                            min_x = std::min(min_x, w->x());
-                            min_y = std::min(min_y, w->y());
-                            max_x = std::max(max_x, w->x() + w->width());
-                            max_y = std::max(max_y, w->y() + w->height());
-                        }
-
-                        // Damage the entire bounding box
-                        wl_surface_damage(m_surface->surface(), min_x, min_y, max_x - min_x,
-                                          max_y - min_y);
-
                         CairoGraphicContext ctx(m_surface->data(), m_surface->width(),
                                                 m_surface->height());
-                        ctx.save();
-                        ctx.clip(min_x, min_y, max_x - min_x, max_y - min_y);
-                        m_root->render(ctx, false);
-                        ctx.restore();
-                        ctx.flush();
 
+                        for (Widget *w : current_dirty)
+                        {
+                            // 1. Precise damage reporting
+                            wl_surface_damage(m_surface->surface(), w->x(), w->y(), w->width(),
+                                              w->height());
+
+                            // 2. Individual rendering pass with absolute clip and force=true
+                            // Force is necessary to ensure parent clears background for the dirty
+                            // widget area.
+                            ctx.save();
+                            ctx.clip(w->x(), w->y(), w->width(), w->height());
+                            ctx.pushGroup();
+                            m_root->render(ctx, w->x(), w->y(), w->width(), w->height(), true);
+                            ctx.popGroup();
+                            ctx.restore();
+                        }
+
+                        ctx.flush();
                         wl_surface_attach(m_surface->surface(), m_surface->buffer(), 0, 0);
                         wl_surface_commit(m_surface->surface());
                         m_last_commit_time = frame_now;

@@ -184,7 +184,8 @@ namespace horizon
         const std::vector<std::unique_ptr<Widget>> &children() const;
 
         // --- Render ---
-        virtual void render(GraphicsContext &ctx, bool force = false);
+        virtual void render(GraphicsContext &ctx, int cx, int cy, int cw, int ch,
+                            bool force = false);
 
         /**
          * @brief Invalidates this widget, requesting a selective repaint.

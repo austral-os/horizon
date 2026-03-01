@@ -99,15 +99,18 @@ namespace horizon
         }
     }
 
-    void Widget::render(GraphicsContext &ctx, bool force)
+    void Widget::render(GraphicsContext &ctx, int cx, int cy, int cw, int ch, bool force)
     {
         if (!m_visible)
             return;
 
-        bool should_draw = m_dirty || force;
-
-        if (!should_draw && !m_child_dirty)
+        // Absolute gate: if we don't intersect the dirty region, we don't draw or recurse.
+        bool intersects =
+            !(m_x >= cx + cw || m_x + m_width <= cx || m_y >= cy + ch || m_y + m_height <= cy);
+        if (!intersects)
             return;
+
+        bool should_draw = m_dirty || force || m_child_dirty;
 
         calculate_layout();
 
@@ -123,7 +126,7 @@ namespace horizon
         {
             if (child->position_type() == FREE)
             {
-                child->render(ctx, should_draw);
+                child->render(ctx, cx, cy, cw, ch, should_draw);
                 continue;
             }
 
@@ -161,7 +164,7 @@ namespace horizon
                 }
             }
 
-            child->render(ctx, should_draw);
+            child->render(ctx, cx, cy, cw, ch, should_draw);
         }
 
         m_dirty = false;

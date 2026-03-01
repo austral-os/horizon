@@ -30,7 +30,8 @@ namespace horizon
         Notebook();
         ~Notebook();
 
-        void render(GraphicsContext &ctx, bool force = false) override;
+        void render(GraphicsContext &ctx, int cx, int cy, int cw, int ch,
+                    bool force = false) override;
         void draw(GraphicsContext &ctx) override;
 
         void add_tab(NotebookPage page);

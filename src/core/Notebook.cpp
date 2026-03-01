@@ -44,14 +44,14 @@ namespace horizon
 
     Notebook::~Notebook() {}
 
-    void Notebook::render(GraphicsContext &ctx, bool force)
+    void Notebook::render(GraphicsContext &ctx, int cx, int cy, int cw, int ch, bool force)
     {
         configure_header();
 
         m_header->set_position(m_x, m_y + m_margin_top->fixed_size());
         m_header->set_size(width(), 40);
 
-        Widget::render(ctx, force);
+        Widget::render(ctx, cx, cy, cw, ch, force);
 
         if (m_current_tab < 0 && m_body->children().size() > 0)
         {

@@ -18,11 +18,11 @@ namespace horizon
 
     GroupButton::~GroupButton() {}
 
-    void GroupButton::render(GraphicsContext &ctx, bool force)
+    void GroupButton::render(GraphicsContext &ctx, int cx, int cy, int cw, int ch, bool force)
     {
         configure();
 
-        Widget::render(ctx, force);
+        Widget::render(ctx, cx, cy, cw, ch, force);
     }
 
     void GroupButton::draw(GraphicsContext &ctx)

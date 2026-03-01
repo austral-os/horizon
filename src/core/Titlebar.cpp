@@ -115,9 +115,9 @@ namespace horizon
         return m_title;
     }
 
-    void Titlebar::render(GraphicsContext &gc, bool force)
+    void Titlebar::render(GraphicsContext &gc, int cx, int cy, int cw, int ch, bool force)
     {
-        Widget::render(gc, force);
+        Widget::render(gc, cx, cy, cw, ch, force);
     }
 
     void Titlebar::draw(GraphicsContext &gc)
