@@ -391,7 +391,16 @@ namespace horizon
                                    .eventY = (double)event.y,
                                    .key = 0,
                                    .modifiers = m_modifiers};
-            m_pressed->when_mouse_drag.run(new_ev);
+
+            Widget *temp = m_pressed;
+            while (temp)
+            {
+                new_ev.sender = temp;
+                temp->when_mouse_drag.run(new_ev);
+                if (new_ev.stop_propagation)
+                    break;
+                temp = temp->parent();
+            }
         }
         else if (m_hovered)
         {
@@ -404,7 +413,16 @@ namespace horizon
                                    .eventY = (double)event.y,
                                    .key = 0,
                                    .modifiers = m_modifiers};
-            m_hovered->when_mouse_hover.run(new_ev);
+
+            Widget *temp = m_hovered;
+            while (temp)
+            {
+                new_ev.sender = temp;
+                temp->when_mouse_hover.run(new_ev);
+                if (new_ev.stop_propagation)
+                    break;
+                temp = temp->parent();
+            }
         }
     }
 
@@ -446,8 +464,15 @@ namespace horizon
                                    .key = 0,
                                    .modifiers = m_modifiers};
 
-            m_pressed->when_mouse_press.run(new_ev);
-            // m_pressed->on_mouse_press(event.button);
+            Widget *temp = m_pressed;
+            while (temp)
+            {
+                new_ev.sender = temp;
+                temp->when_mouse_press.run(new_ev);
+                if (new_ev.stop_propagation)
+                    break;
+                temp = temp->parent();
+            }
         }
         else
         {
@@ -473,7 +498,15 @@ namespace horizon
                                    .key = 0,
                                    .modifiers = m_modifiers};
 
-            m_pressed->when_mouse_release.run(new_ev);
+            Widget *temp = m_pressed;
+            while (temp)
+            {
+                new_ev.sender = temp;
+                temp->when_mouse_release.run(new_ev);
+                if (new_ev.stop_propagation)
+                    break;
+                temp = temp->parent();
+            }
             m_pressed = nullptr;
         }
     }
