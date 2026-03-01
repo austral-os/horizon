@@ -16,7 +16,7 @@ namespace horizon
         GroupButton();
         ~GroupButton();
 
-        void render(GraphicsContext &ctx) override;
+        void render(GraphicsContext &ctx, bool force = false) override;
         void draw(GraphicsContext &ctx) override;
 
         void add_item(std::string text);

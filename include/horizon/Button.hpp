@@ -42,6 +42,12 @@ namespace horizon
 
         void draw(GraphicsContext &gc) override
         {
+            auto *tm = T::application()->theme_manager.get();
+            auto theme_font = tm->get_font("window");
+
+            std::string family = theme_font.family;
+            int size = theme_font.size;
+
             T::draw(gc);
 
             // Center the label within the button
@@ -49,6 +55,15 @@ namespace horizon
             m_label->set_application_recursive(this->application());
             m_label->set_position(this->m_start_draw_x + margin, this->m_start_draw_y + margin);
             m_label->set_size(this->m_width - (margin * 2), this->m_height - (margin * 2));
+
+            if (T::m_draw_state == WidgetDrawState::PRESSED)
+            {
+                m_label->set_font_size(size - 1);
+            }
+            else
+            {
+                m_label->set_font_size(size);
+            }
 
             m_label->draw(gc);
         }

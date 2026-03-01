@@ -15,7 +15,7 @@ namespace horizon
         void set_title(std::string title);
         const std::string &title() const;
 
-        void render(GraphicsContext &gc) override;
+        void render(GraphicsContext &gc, bool force = false) override;
         void draw(GraphicsContext &gc) override;
 
     private:

@@ -34,9 +34,9 @@ namespace horizon
         return m_titlebar->title();
     }
 
-    void Window::render(GraphicsContext &gc)
+    void Window::render(GraphicsContext &gc, bool force)
     {
-        Widget::render(gc);
+        Widget::render(gc, force);
     }
 
     void Window::draw(GraphicsContext &gc)

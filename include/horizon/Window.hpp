@@ -16,7 +16,7 @@ namespace horizon
 
         const std::string &title() const;
 
-        void render(GraphicsContext &gc) override;
+        void render(GraphicsContext &gc, bool force = false) override;
 
     protected:
         void draw(GraphicsContext &gc) override;

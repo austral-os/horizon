@@ -99,16 +99,22 @@ namespace horizon
         }
     }
 
-    void Widget::render(GraphicsContext &ctx)
+    void Widget::render(GraphicsContext &ctx, bool force)
     {
         if (!m_visible)
             return;
 
+        bool should_draw = m_dirty || force;
+
+        if (!should_draw && !m_child_dirty)
+            return;
+
         calculate_layout();
 
-        ctx.pushGroup();
-        draw(ctx);
-        ctx.popGroup();
+        if (should_draw)
+        {
+            draw(ctx);
+        }
 
         int current_x = m_start_draw_x;
         int current_y = m_start_draw_y;
@@ -117,6 +123,7 @@ namespace horizon
         {
             if (child->position_type() == FREE)
             {
+                child->render(ctx, should_draw);
                 continue;
             }
 
@@ -154,17 +161,11 @@ namespace horizon
                 }
             }
 
-            // std::cout << "Rendering child" << std::endl;
-            child->render(ctx);
+            child->render(ctx, should_draw);
         }
 
-        for (const auto &child : m_children)
-        {
-            if (child->position_type() == FREE)
-            {
-                child->render(ctx);
-            }
-        }
+        m_dirty = false;
+        m_child_dirty = false;
     }
 
     Widget *Widget::hit_test(int x, int y)
@@ -419,6 +420,16 @@ namespace horizon
 
     void Widget::invalidate()
     {
+        m_dirty = true;
+        Widget *p = m_parent;
+        while (p)
+        {
+            if (p->m_child_dirty)
+                break;
+            p->m_child_dirty = true;
+            p = p->m_parent;
+        }
+
         Application *app = application();
         if (app)
         {

@@ -184,7 +184,7 @@ namespace horizon
         const std::vector<std::unique_ptr<Widget>> &children() const;
 
         // --- Render ---
-        virtual void render(GraphicsContext &ctx);
+        virtual void render(GraphicsContext &ctx, bool force = false);
 
         /**
          * @brief Invalidates this widget, requesting a selective repaint.
@@ -263,6 +263,8 @@ namespace horizon
         std::vector<std::unique_ptr<Widget>> m_children;
 
         size_t m_next_handler_id{0};
+        bool m_dirty{true};
+        bool m_child_dirty{true};
     };
 
 } // namespace horizon
