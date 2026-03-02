@@ -1,7 +1,9 @@
 #pragma once
 
+#include <horizon/Application.hpp>
 #include <horizon/Color.hpp>
 #include <horizon/GraphicsContext.hpp>
+#include <horizon/ThemeManager.hpp>
 #include <horizon/Widget.hpp>
 
 namespace horizon
@@ -21,26 +23,39 @@ namespace horizon
             m_margin = 0;
         }
 
-        void set_background_color(Color c)
+        void set_alternate(bool alt)
         {
-            m_bg_color = c;
-            m_has_bg = true;
+            m_is_alternate = alt;
+            invalidate();
+        }
+
+        void set_selected(bool sel)
+        {
+            m_is_selected = sel;
             invalidate();
         }
 
     protected:
         void draw(GraphicsContext &gc) override
         {
-            if (m_has_bg)
-            {
-                gc.setColor(m_bg_color);
-                gc.fillRect(m_x, m_y, m_width, m_height);
-            }
+            auto *tm = application()->theme_manager.get();
+            Color bg;
+
+            if (m_is_selected)
+                bg = tm->get_color("table_row_selected");
+            else if (m_is_alternate)
+                bg = tm->get_color("table_row_alternate");
+            else
+                bg = tm->get_color("table_row");
+
+            gc.setColor(bg);
+            gc.fillRect(m_x, m_y, m_width, m_height);
+
             Widget::draw(gc);
         }
 
     private:
-        Color m_bg_color;
-        bool m_has_bg{false};
+        bool m_is_alternate{false};
+        bool m_is_selected{false};
     };
 } // namespace horizon

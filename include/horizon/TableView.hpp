@@ -67,7 +67,6 @@ namespace horizon
         void set_application_recursive(Application *app) override
         {
             Widget::set_application_recursive(app);
-            // Rebuild since we now have m_app
             rebuild_header();
             rebuild_content();
         }
@@ -93,10 +92,9 @@ namespace horizon
 
         void set_alternate_colors(Color c1, Color c2)
         {
-            m_row_color1 = c1;
-            m_row_color2 = c2;
-            m_use_alternate_colors = true;
-            rebuild_content(); // Backgrounds are set during rebuild
+            // Keeping for backward compatibility but marking as potentially deprecated
+            // if we want full themed enforcement.
+            rebuild_content();
         }
 
         void set_header_visible(bool visible)
@@ -154,12 +152,16 @@ namespace horizon
     protected:
         void draw(GraphicsContext &gc) override
         {
+            auto *tm = application()->theme_manager.get();
+            Color border_color = tm->get_color("window_border");
+            Color bg_color = tm->get_color("window_bg");
+
             // Table background (Square)
-            gc.setColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
+            gc.setColor(bg_color);
             gc.fillRect(m_x, m_y, m_width, m_height, 0);
 
             // Subtle border (Square)
-            gc.setColor(Color(0.5f, 0.5f, 0.5f, 1.0f));
+            gc.setColor(border_color);
             gc.drawRect(m_x, m_y, m_width, m_height, 0);
         }
 
@@ -284,9 +286,25 @@ namespace horizon
 
                 if (m_use_alternate_colors)
                 {
-                    row_widget->set_background_color((row_idx % 2 == 0) ? m_row_color1
-                                                                        : m_row_color2);
+                    row_widget->set_alternate(row_idx % 2 != 0);
                 }
+
+                if (m_selected_row == (int)row_idx)
+                {
+                    row_widget->set_selected(true);
+                }
+
+                row_widget->when_mouse_press.connect(
+                    [this, row_idx](EventContext &ctx)
+                    {
+                        if (ctx.button == 0x110) // Left click
+                        {
+                            m_selected_row = (int)row_idx;
+                            rebuild_content();
+                            if (m_on_row_selected)
+                                m_on_row_selected(m_data[row_idx]);
+                        }
+                    });
 
                 for (size_t col_idx = 0; col_idx < m_columns.size(); ++col_idx)
                 {
@@ -355,8 +373,9 @@ namespace horizon
         int m_sort_column{-1};
         bool m_sort_ascending{true};
 
-        bool m_use_alternate_colors{false};
-        Color m_row_color1{Color(1.0f, 1.0f, 1.0f, 1.0f)};
-        Color m_row_color2{Color(0.96f, 0.98f, 1.0f, 1.0f)}; // Light blueish aqua alternative
+        bool m_use_alternate_colors{true};
+
+        int m_selected_row{-1};
+        std::function<void(const T &)> m_on_row_selected;
     };
 } // namespace horizon

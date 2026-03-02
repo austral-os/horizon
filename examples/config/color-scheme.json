@@ -21,7 +21,10 @@
             "error1" : "#e11e41",
             "error2" : "#f5617f",
             "info1" : "#e1d31e",
-            "info2" : "#f5de61"
+            "info2" : "#f5de61",
+            "table_row" : "#ffffff",
+            "table_row_alternate" : "#f3f8ff",
+            "table_row_selected" : "#1e4ce1"
         },
         "dark": {
             "titlebar_bg1": "#1e1e1e",
@@ -44,7 +47,10 @@
             "error1" : "#e11e41",
             "error2" : "#f5617f",
             "info1" : "#e1d31e",
-            "info2" : "#f5de61"
+            "info2" : "#f5de61",
+            "table_row" : "#ffffff",
+            "table_row_alternate" : "#f3f8ff",
+            "table_row_selected" : "#1e4ce1"
         }
     },
     "variant": "light",
