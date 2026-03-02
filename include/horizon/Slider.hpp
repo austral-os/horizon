@@ -1,8 +1,7 @@
 #pragma once
 
-#include <functional>
+#include <horizon/EventsManager.hpp>
 #include <horizon/Widget.hpp>
-#include <string>
 
 namespace horizon
 {
@@ -12,22 +11,35 @@ namespace horizon
         Vertical
     };
 
+    enum class ThumbShape
+    {
+        Marker,
+        Circle
+    };
+
     /**
      * @brief An Aqua Tiger-style slider widget.
      *
-     * Renders a recessed track with a diamond-shaped blue thumb.
+     * Renders a recessed track with a diamond-shaped or circular blue thumb.
      * Supports horizontal and vertical orientations.
      * Optional tick marks can be shown below/right of the track.
+     *
+     * Value changes are notified via when_value_changed. The current float
+     * value is passed as ev.data (reinterpret_cast<float*>(ev.data)).
      */
+    class AquaPolygon;
     class Slider : public Widget
     {
     public:
         Slider();
+        virtual ~Slider();
+
+        void set_application_recursive(Application *app) override;
 
         void draw(GraphicsContext &gc) override;
 
         // --- Value ---
-        void set_value(float value); // 0.0 – 1.0
+        void set_value(float value); // 0.0 - 1.0
         float value() const;
 
         // --- Range ---
@@ -40,9 +52,15 @@ namespace horizon
 
         // --- Ticks ---
         void set_tick_count(int count); // 0 = no ticks
+        void set_show_ticks(bool show);
+        bool show_ticks() const;
 
-        // --- Callback ---
-        void set_on_value_changed(std::function<void(float)> cb);
+        // --- Thumb ---
+        void set_thumb_shape(ThumbShape shape);
+        ThumbShape thumb_shape() const;
+
+        // --- Events ---
+        EventsManager when_value_changed; // ev.data = reinterpret_cast<float*>(&value)
 
     private:
         // Helpers
@@ -50,14 +68,17 @@ namespace horizon
         void handle_mouse_drag(EventContext &ev);
         void update_value_from_pos(int x, int y);
         int thumb_center() const; // pixel offset of thumb along track axis
+        void update_thumb_polygon();
 
         float m_value{0.5f};
         float m_min{0.0f};
         float m_max{1.0f};
         SliderOrientation m_orientation{SliderOrientation::Horizontal};
         int m_tick_count{0};
+        bool m_show_ticks{true};
+        ThumbShape m_thumb_shape{ThumbShape::Marker};
         bool m_dragging{false};
 
-        std::function<void(float)> m_on_value_changed;
+        std::unique_ptr<AquaPolygon> m_thumb_poly;
     };
 } // namespace horizon

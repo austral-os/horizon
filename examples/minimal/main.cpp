@@ -133,14 +133,25 @@ int main()
         pb->set_fixed_size(30);
         tb_container->add_child(std::move(pb));
 
-        // Horizontal slider with tick marks
-        auto slider_h = std::make_unique<horizon::Slider>();
-        slider_h->set_value(0.35f);
-        slider_h->set_tick_count(5);
-        slider_h->set_margin(10);
-        slider_h->set_fixed_size(46);
-        slider_h->set_orientation(horizon::SliderOrientation::Horizontal);
-        tb_container->add_child(std::move(slider_h));
+        // Slider 1: Horizontal, Marker shape, show ticks (Magnet)
+        auto slider_h1 = std::make_unique<horizon::Slider>();
+        slider_h1->set_value(0.35f);
+        slider_h1->set_tick_count(5);
+        slider_h1->set_show_ticks(true);
+        slider_h1->set_thumb_shape(horizon::ThumbShape::Marker);
+        slider_h1->set_margin(10);
+        slider_h1->set_fixed_size(46);
+        tb_container->add_child(std::move(slider_h1));
+
+        // Slider 2: Horizontal, Circle shape, hide ticks (snapping still works)
+        auto slider_h2 = std::make_unique<horizon::Slider>();
+        slider_h2->set_value(0.75f);
+        slider_h2->set_tick_count(11);
+        slider_h2->set_show_ticks(false);
+        slider_h2->set_thumb_shape(horizon::ThumbShape::Circle);
+        slider_h2->set_margin(10);
+        slider_h2->set_fixed_size(46);
+        tb_container->add_child(std::move(slider_h2));
 
         auto icnFolder = std::make_unique<horizon::Icon>();
         icnFolder->set_icon_name("folder");

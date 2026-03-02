@@ -1,5 +1,6 @@
 #include <cmath>
 #include <horizon/Application.hpp>
+#include <horizon/AquaPolygon.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Slider.hpp>
 #include <horizon/ThemeManager.hpp>
@@ -16,14 +17,29 @@ namespace horizon
     // Tick mark dimensions
     static constexpr int TICK_H = 5;
     static constexpr int TICK_W = 1;
+    static constexpr float PI = 3.14159265358979323846f;
 
     Slider::Slider() : Widget()
     {
         m_height = 40; // default fixed height for horizontal
 
+        m_thumb_poly = std::make_unique<AquaPolygon>();
+        m_thumb_poly->set_accent_color(WidgetAccentColor::Primary);
+        m_thumb_poly->set_has_border(true);
+        m_thumb_poly->set_border_size(1.0f);
+
         when_mouse_press.connect([this](EventContext &ev) { handle_mouse_press(ev); });
         when_mouse_drag.connect([this](EventContext &ev) { handle_mouse_drag(ev); });
         when_mouse_release.connect([this](EventContext &) { m_dragging = false; });
+    }
+
+    Slider::~Slider() = default;
+
+    void Slider::set_application_recursive(Application *app)
+    {
+        Widget::set_application_recursive(app);
+        if (m_thumb_poly)
+            m_thumb_poly->set_application_recursive(app);
     }
 
     void Slider::set_value(float v)
@@ -32,8 +48,12 @@ namespace horizon
         if (v != m_value)
         {
             m_value = v;
-            if (m_on_value_changed)
-                m_on_value_changed(m_value);
+            update_thumb_polygon();
+            EventContext ev;
+            ev.type = EventType::MouseMove; // generic event type for value changes
+            ev.sender = this;
+            ev.data = &m_value;
+            when_value_changed.run(ev);
             invalidate();
         }
     }
@@ -57,6 +77,7 @@ namespace horizon
     void Slider::set_orientation(SliderOrientation o)
     {
         m_orientation = o;
+        update_thumb_polygon();
         invalidate();
     }
 
@@ -71,14 +92,28 @@ namespace horizon
         invalidate();
     }
 
-    void Slider::set_on_value_changed(std::function<void(float)> cb)
+    void Slider::set_show_ticks(bool show)
     {
-        m_on_value_changed = std::move(cb);
+        m_show_ticks = show;
+        invalidate();
     }
 
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
+    bool Slider::show_ticks() const
+    {
+        return m_show_ticks;
+    }
+
+    void Slider::set_thumb_shape(ThumbShape shape)
+    {
+        m_thumb_shape = shape;
+        update_thumb_polygon();
+        invalidate();
+    }
+
+    ThumbShape Slider::thumb_shape() const
+    {
+        return m_thumb_shape;
+    }
 
     int Slider::thumb_center() const
     {
@@ -96,6 +131,114 @@ namespace horizon
             // vertical: top = max
             return track_end - (int)(t * (track_end - track_start));
         }
+    }
+
+    void Slider::update_thumb_polygon()
+    {
+        if (!m_thumb_poly)
+            return;
+
+        const bool horiz = (m_orientation == SliderOrientation::Horizontal);
+        int tc = thumb_center();
+
+        std::vector<PolygonPoint> pts;
+
+        if (m_thumb_shape == ThumbShape::Marker)
+        {
+            if (horiz)
+            {
+                // Points DOWN
+                int tx = tc - THUMB_W / 2;
+                // Center vertically on track
+                int track_y;
+                if (m_tick_count > 0 && m_show_ticks)
+                {
+                    int ticks_area = TICK_H + 6;
+                    int usable_h = m_height - ticks_area;
+                    track_y = m_y + (usable_h - TRACK_H) / 2;
+                }
+                else
+                {
+                    track_y = m_y + (m_height - TRACK_H) / 2;
+                }
+
+                int ty = track_y + TRACK_H / 2 - THUMB_H / 2;
+
+                int pill_h = THUMB_H - 8;
+                pts.push_back({tx, ty, THUMB_W / 2});               // Top-left
+                pts.push_back({tx + THUMB_W, ty, THUMB_W / 2});     // Top-right
+                pts.push_back({tx + THUMB_W, ty + pill_h, 0});      // Bottom-right base
+                pts.push_back({tx + THUMB_W / 2, ty + THUMB_H, 0}); // Tip
+                pts.push_back({tx, ty + pill_h, 0});                // Bottom-left base
+            }
+            else
+            {
+                // Points RIGHT
+                int ty = tc - THUMB_W / 2;
+                int track_x;
+                if (m_tick_count > 0 && m_show_ticks)
+                {
+                    int ticks_area = TICK_H + 6;
+                    int usable_w = m_width - ticks_area;
+                    track_x = m_x + (usable_w - TRACK_H) / 2;
+                }
+                else
+                {
+                    track_x = m_x + (m_width - TRACK_H) / 2;
+                }
+
+                int tx = track_x + TRACK_H / 2 - THUMB_H / 2;
+
+                int pill_w = THUMB_H - 8;
+                pts.push_back({tx, ty, THUMB_W / 2});               // Top-left
+                pts.push_back({tx + pill_w, ty, 0});                // Top-right base
+                pts.push_back({tx + THUMB_H, ty + THUMB_W / 2, 0}); // Tip
+                pts.push_back({tx + pill_w, ty + THUMB_W, 0});      // Bottom-right base
+                pts.push_back({tx, ty + THUMB_W, THUMB_W / 2});     // Bottom-left
+            }
+        }
+        else // Circle
+        {
+            int size = std::min(THUMB_W, THUMB_H) * 1.5;
+            int r = size / 2;
+
+            int track_x, track_y;
+            if (horiz)
+            {
+                int ticks_area = (m_tick_count > 0 && m_show_ticks) ? (TICK_H + 6) : 0;
+                int usable_h = m_height - ticks_area;
+                track_y = m_y + (usable_h - TRACK_H) / 2;
+                int tx = tc;
+                int ty = track_y + TRACK_H / 2;
+
+                // Simple octagon to approximate circle for AquaPolygon
+                float angle_step = PI / 2.0;
+                for (int i = 0; i < 4; ++i)
+                {
+                    float angle = i * angle_step;
+                    pts.push_back(
+                        {(int)(tx + r * std::cos(angle)), (int)(ty + r * std::sin(angle)), r});
+                }
+            }
+            else
+            {
+                int ticks_area = (m_tick_count > 0 && m_show_ticks) ? (TICK_H + 6) : 0;
+                int usable_w = m_width - ticks_area;
+                track_x = m_x + (usable_w - TRACK_H) / 2;
+                int tx = track_x + TRACK_H / 2;
+                int ty = tc;
+
+                float angle_step = M_PI / 2.0;
+                for (int i = 0; i < 4; ++i)
+                {
+                    float angle = i * angle_step;
+                    pts.push_back(
+                        {(int)(tx + r * std::cos(angle)), (int)(ty + r * std::sin(angle)), r});
+                }
+            }
+        }
+
+        m_thumb_poly->set_points(pts);
     }
 
     void Slider::update_value_from_pos(int x, int y)
@@ -181,7 +324,7 @@ namespace horizon
         if (horiz)
         {
             // Leave a few pixels below for tick marks
-            int ticks_area = (m_tick_count > 0) ? (TICK_H + 6) : 0;
+            int ticks_area = (m_tick_count > 0 && m_show_ticks) ? (TICK_H + 6) : 0;
             int usable_h = m_height - ticks_area;
             track_x = m_x + TRACK_PAD;
             track_y = m_y + (usable_h - TRACK_H) / 2;
@@ -190,7 +333,7 @@ namespace horizon
         }
         else
         {
-            int ticks_area = (m_tick_count > 0) ? (TICK_H + 6) : 0;
+            int ticks_area = (m_tick_count > 0 && m_show_ticks) ? (TICK_H + 6) : 0;
             int usable_w = m_width - ticks_area;
             track_y = m_y + TRACK_PAD;
             track_x = m_x + (usable_w - TRACK_H) / 2;
@@ -220,7 +363,7 @@ namespace horizon
             Color(0.55f, 0.55f, 0.58f, 1.0f), 1.0f, !horiz, CornerRadius(track_r));
 
         // ── 2. Tick marks ────────────────────────────────────────────────
-        if (m_tick_count > 1)
+        if (m_tick_count > 1 && m_show_ticks)
         {
             gc.setColor(Color(0.5f, 0.5f, 0.5f, 0.9f));
             if (horiz)
@@ -245,131 +388,9 @@ namespace horizon
             }
         }
 
-        // ── 3. Thumb (Aqua diamond / teardrop) ──────────────────────────
-        int tc = thumb_center();
-
-        // ── 3.a HORIZONTAL thumb: pill on top, tip pointing DOWN ──────────
-        if (horiz)
-        {
-            int tx = tc - THUMB_W / 2;
-            int ty = track_y + track_h / 2 - THUMB_H / 2;
-
-            // Shadow
-            gc.setColor(Color(0.0f, 0.0f, 0.0f, 0.22f));
-            gc.fillRect(tx + 2, ty + THUMB_H - 3, THUMB_W - 4, 5, CornerRadius(3));
-
-            Color top_col(0.62f, 0.80f, 1.00f, 1.0f);
-            Color bot_col(0.08f, 0.38f, 0.85f, 1.0f);
-
-            int pill_h = THUMB_H - 8;
-
-            // Pill fill
-            gc.fillLinearGradientRect(tx, ty, THUMB_W, pill_h, top_col, bot_col, true,
-                                      CornerRadius(THUMB_W / 2, THUMB_W / 2, 0, 0));
-
-            // Pointed bottom (shrinking horizontal rects downward)
-            {
-                int base_y = ty + pill_h;
-                int steps = 8;
-                for (int s = 0; s < steps; ++s)
-                {
-                    float inv = 1.0f - (float)s / (float)steps;
-                    int rect_w = (int)(THUMB_W * inv);
-                    int rect_x = tx + (THUMB_W - rect_w) / 2;
-                    Color c(bot_col.r * inv + 0.04f * (1 - inv),
-                            bot_col.g * inv + 0.22f * (1 - inv),
-                            bot_col.b * inv + 0.50f * (1 - inv), 1.0f);
-                    gc.setColor(c);
-                    gc.fillRect(rect_x, base_y + s, rect_w, 1);
-                }
-            }
-
-            // Gloss
-            gc.fillLinearGradientRect(tx + 3, ty + 2, THUMB_W - 6, pill_h / 2,
-                                      Color(1.0f, 1.0f, 1.0f, 0.55f), Color(1.0f, 1.0f, 1.0f, 0.0f),
-                                      true, CornerRadius(THUMB_W / 2, THUMB_W / 2, 0, 0));
-
-            // Pill border
-            gc.drawLinearGradientRect(tx, ty, THUMB_W, pill_h, Color(0.20f, 0.45f, 0.85f, 1.0f),
-                                      Color(0.05f, 0.22f, 0.65f, 1.0f), 1.5f, true,
-                                      CornerRadius(THUMB_W / 2, THUMB_W / 2, 0, 0));
-
-            // Erase flat bottom edge of pill border
-            gc.setColor(bot_col);
-            gc.fillRect(tx + 1, ty + pill_h - 2, THUMB_W - 2, 4);
-
-            // Diagonal tip border
-            Color tip_border(0.05f, 0.22f, 0.65f, 1.0f);
-            gc.setColor(tip_border);
-            int base_y = ty + pill_h;
-            int tip_x = tx + THUMB_W / 2;
-            int tip_y = base_y + 7;
-            gc.drawLine(tx, base_y, tip_x, tip_y, 1.5f);
-            gc.drawLine(tx + THUMB_W, base_y, tip_x, tip_y, 1.5f);
-        }
-        // ── 3.b VERTICAL thumb: pill on left, tip pointing RIGHT ──────────
-        else
-        {
-            // Thumb bounding box: total width = THUMB_H, height = THUMB_W
-            // (rotated 90° CW from horizontal)
-            int thumb_total_w = THUMB_H; // total extent along track-perpendicular axis
-            int thumb_h = THUMB_W;       // extent along track axis
-            int tx = track_x + track_w / 2 - thumb_total_w / 2;
-            int ty = tc - thumb_h / 2;
-
-            int pill_w = THUMB_H - 8; // width of the pill (left) part
-
-            Color top_col(0.62f, 0.80f, 1.00f, 1.0f); // light blue (left/top of gradient)
-            Color bot_col(0.08f, 0.38f, 0.85f, 1.0f); // deep blue  (right/bottom)
-
-            // Shadow
-            gc.setColor(Color(0.0f, 0.0f, 0.0f, 0.22f));
-            gc.fillRect(tx + thumb_total_w - 3, ty + 2, 5, thumb_h - 4, CornerRadius(3));
-
-            // Pill fill — horizontal gradient (left=light, right=dark), rounded LEFT corners
-            gc.fillLinearGradientRect(tx, ty, pill_w, thumb_h, top_col, bot_col, false,
-                                      CornerRadius(thumb_h / 2, 0, 0, thumb_h / 2));
-
-            // Pointed tip — shrinking vertical rects extending to the RIGHT
-            {
-                int base_x = tx + pill_w;
-                int steps = 8;
-                for (int s = 0; s < steps; ++s)
-                {
-                    float inv = 1.0f - (float)s / (float)steps;
-                    int rect_h = (int)(thumb_h * inv);
-                    int rect_y = ty + (thumb_h - rect_h) / 2;
-                    Color c(bot_col.r * inv + 0.04f * (1 - inv),
-                            bot_col.g * inv + 0.22f * (1 - inv),
-                            bot_col.b * inv + 0.50f * (1 - inv), 1.0f);
-                    gc.setColor(c);
-                    gc.fillRect(base_x + s, rect_y, 1, rect_h);
-                }
-            }
-
-            // Gloss (left half of pill, top portion)
-            gc.fillLinearGradientRect(tx + 2, ty + 3, pill_w / 2, thumb_h - 6,
-                                      Color(1.0f, 1.0f, 1.0f, 0.55f), Color(1.0f, 1.0f, 1.0f, 0.0f),
-                                      false, CornerRadius(thumb_h / 2, 0, 0, thumb_h / 2));
-
-            // Pill border — rounded LEFT corners
-            gc.drawLinearGradientRect(tx, ty, pill_w, thumb_h, Color(0.20f, 0.45f, 0.85f, 1.0f),
-                                      Color(0.05f, 0.22f, 0.65f, 1.0f), 1.5f, false,
-                                      CornerRadius(thumb_h / 2, 0, 0, thumb_h / 2));
-
-            // Erase flat RIGHT edge of pill border (junction with tip)
-            gc.setColor(bot_col);
-            gc.fillRect(tx + pill_w - 2, ty + 1, 4, thumb_h - 2);
-
-            // Diagonal tip border lines from pill's right corners to the tip point
-            Color tip_border(0.05f, 0.22f, 0.65f, 1.0f);
-            gc.setColor(tip_border);
-            int base_x = tx + pill_w;
-            int tip_x = base_x + 7;
-            int tip_y = ty + thumb_h / 2;
-            gc.drawLine(base_x, ty, tip_x, tip_y, 1.5f);
-            gc.drawLine(base_x, ty + thumb_h, tip_x, tip_y, 1.5f);
-        }
+        // ── 3. Thumb (AquaPolygon) ──────────────────────────────────────
+        update_thumb_polygon();
+        m_thumb_poly->draw(gc);
     }
 
 } // namespace horizon
