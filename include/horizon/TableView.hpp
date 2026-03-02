@@ -154,13 +154,13 @@ namespace horizon
     protected:
         void draw(GraphicsContext &gc) override
         {
-            // Table background
+            // Table background (Square)
             gc.setColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
-            gc.fillRect(m_x, m_y, m_width, m_height);
+            gc.fillRect(m_x, m_y, m_width, m_height, 0);
 
-            // Subtle border
-            gc.setColor(Color(0.8f, 0.8f, 0.8f, 1.0f));
-            gc.drawRect(m_x, m_y, m_width, m_height);
+            // Subtle border (Square)
+            gc.setColor(Color(0.5f, 0.5f, 0.5f, 1.0f));
+            gc.drawRect(m_x, m_y, m_width, m_height, 0);
         }
 
         void calculate_internal_layout()
