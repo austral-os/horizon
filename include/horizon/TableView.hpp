@@ -8,6 +8,7 @@
 #include <horizon/TableColumn.hpp>
 #include <horizon/TableRow.hpp>
 #include <horizon/Widget.hpp>
+#include <memory>
 #include <vector>
 
 namespace horizon
@@ -200,7 +201,22 @@ namespace horizon
                     total_height = (int)m_data.size() * m_row_height;
                 }
                 content->set_size(table_width, total_height);
-                // content position is set by ScrollArea::render
+            }
+
+            // Update filler header width
+            if (!header->children().empty())
+            {
+                Widget *filler = header->children().back().get();
+                int filler_width = table_width - total_col_width;
+                if (filler_width > 0)
+                {
+                    filler->set_visible(true);
+                    filler->set_fixed_size(filler_width);
+                }
+                else
+                {
+                    filler->set_visible(false);
+                }
             }
         }
 
@@ -241,6 +257,13 @@ namespace horizon
 
                 header->add_child(std::move(btn));
             }
+
+            // Cosmetic filler header
+            auto filler = std::make_unique<Button<AquaObject>>();
+            filler->set_text("");
+            filler->set_corner_radius({0, 0, 0, 0});
+            filler->set_enabled(false); // No interaction
+            header->add_child(std::move(filler));
         }
 
         void rebuild_content()
