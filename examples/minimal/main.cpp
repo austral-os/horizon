@@ -9,6 +9,7 @@
 #include <horizon/Notebook.hpp>
 #include <horizon/ProgressBar.hpp>
 #include <horizon/RadioButton.hpp>
+#include <horizon/ScrollArea.hpp>
 #include <horizon/Slider.hpp>
 #include <horizon/SolidObject.hpp>
 #include <horizon/TextBox.hpp>
@@ -233,6 +234,32 @@ int main()
         widgets_container->add_child(std::move(rb_aqua2));
 
         notebook->add_tab(NotebookPage("Check/Radio", std::move(widgets_container)));
+
+        // --- New Tab for ScrollArea demo ---
+        auto scroll_area = std::make_unique<horizon::ScrollArea>();
+        auto large_content = std::make_unique<Widget>();
+        large_content->set_position_type(horizon::FREE);
+        large_content->set_size(1200, 1000);
+
+        auto scroll_lbl1 = std::make_unique<Label>("Scrolling test - Top Left");
+        scroll_lbl1->set_position(20, 20);
+        scroll_lbl1->set_size(200, 30);
+        large_content->add_child(std::move(scroll_lbl1));
+
+        auto scroll_lbl2 = std::make_unique<Label>("Bottom Right corner reached!");
+        scroll_lbl2->set_position(1000, 950);
+        scroll_lbl2->set_size(200, 30);
+        large_content->add_child(std::move(scroll_lbl2));
+
+        // Add a colored object for visibility
+        auto color_rect = std::make_unique<horizon::SolidObject>();
+        color_rect->set_position(400, 400);
+        color_rect->set_size(400, 200);
+        color_rect->set_accent_color(WidgetAccentColor::Primary);
+        large_content->add_child(std::move(color_rect));
+
+        scroll_area->set_content(std::move(large_content));
+        notebook->add_tab(NotebookPage("Scroll", std::move(scroll_area)));
 
         wnd->add_child(std::move(notebook));
 

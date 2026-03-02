@@ -94,6 +94,11 @@ namespace horizon
         Widget();
         virtual ~Widget();
 
+        /**
+         * @brief Performs a hit test to find the widget at the given coordinates.
+         */
+        virtual Widget *hit_test(int x, int y);
+
         friend class Application;
 
         // --- Geometría ---
@@ -209,7 +214,6 @@ namespace horizon
     protected:
         virtual void draw(GraphicsContext &ctx);
 
-        Widget *hit_test(int x, int y);
         WidgetDrawState get_draw_state() const;
         WidgetDrawState get_draw_state(WidgetEvent event) const;
 

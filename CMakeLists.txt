@@ -13,12 +13,11 @@ pkg_check_modules(CAIRO REQUIRED cairo)
 pkg_check_modules(XKBCOMMON REQUIRED xkbcommon)
 pkg_check_modules(RSVG REQUIRED librsvg-2.0)
 
-file(GLOB_RECURSE SOURCES
-    src/*.cpp
-    include/horizon/*.hpp
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS 
+    "src/*.cpp" 
+    "src/*.c"
+    "include/horizon/*.hpp"
 )
-
-file(GLOB_RECURSE SOURCES src/*.cpp src/xdg-shell-client-protocol.c)
 
 add_library(horizon STATIC ${SOURCES})
 
