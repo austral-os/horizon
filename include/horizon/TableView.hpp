@@ -190,6 +190,7 @@ namespace horizon
                 btn->set_text(m_columns[i].title);
                 btn->set_corner_radius({0, 0, 0, 0});
                 btn->set_fixed_size(m_columns[i].width);
+                btn->set_font_weight(FONT_WEIGHT_BOLD);
 
                 if (m_columns[i].sortable)
                 {

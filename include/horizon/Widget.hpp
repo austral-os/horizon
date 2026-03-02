@@ -110,6 +110,7 @@ namespace horizon
         void set_position_type(WidgetPositionTypes position_type);
         void set_layout_type(WidgetLayoutTypes layout_type);
         void set_accent_color(WidgetAccentColor accent_color);
+        void calculate_layout();
 
         int x() const;
         int y() const;
@@ -218,7 +219,6 @@ namespace horizon
         WidgetDrawState get_draw_state() const;
         WidgetDrawState get_draw_state(WidgetEvent event) const;
 
-        void calculate_layout();
         void set_draw_state(WidgetDrawState draw_state);
 
     protected:

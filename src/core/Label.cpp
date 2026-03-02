@@ -30,149 +30,40 @@ namespace horizon
         gc.setDrawFont(family.c_str(), size, m_font_slant, m_font_weight);
         gc.setColor(text_color);
 
-        int line_height = size + 4; // Add some spacing between lines
-        std::vector<std::string> lines = calculate_lines(gc, m_width, m_height, line_height);
+        int line_height = size + 4;
 
-        int current_y = m_y + size; // Initial Y (baseline)
+        auto lines =
+            calculate_lines(gc, m_available_draw_width, m_available_draw_height, line_height);
 
-        for (const auto &line : lines)
+        int total_height = lines.size() * line_height;
+        int start_y = m_y;
+
+        if (m_height > total_height)
         {
-            TextMetrics metrics =
-                gc.getTextMetrics(line.c_str(), family.c_str(), size, m_font_slant, m_font_weight);
-
-            int draw_x = m_x;
-            if (m_alignment == TextAlignment::Center)
-            {
-                draw_x = m_x + (m_width / 2) - (metrics.width / 2);
-            }
-            else if (m_alignment == TextAlignment::Right)
-            {
-                draw_x = m_x + m_width - metrics.width;
-            }
-
-            gc.drawText(draw_x, current_y, line.c_str());
-            current_y += line_height;
+            start_y += (m_height - total_height) / 2;
         }
-    }
 
-    std::vector<std::string> Label::calculate_lines(GraphicsContext &gc, int max_width,
-                                                    int max_height, int line_height)
-    {
-        auto *tm = application()->theme_manager.get();
-        auto theme_font = tm->get_font("window");
-        std::string family = theme_font.family;
-        int size = (m_font_size > 0) ? m_font_size : theme_font.size;
-
-        int available_lines = max_height / line_height;
-        if (available_lines <= 0)
-            return {};
-
-        std::vector<std::string> result;
-        std::stringstream ss(m_text);
-        std::string word;
-        std::string current_line;
-
-        auto truncate_with_ellipsis = [&](std::string line) -> std::string
+        for (size_t i = 0; i < lines.size(); ++i)
         {
-            std::string ellipsis = "...";
-            TextMetrics em = gc.getTextMetrics(ellipsis.c_str(), family.c_str(), size, m_font_slant,
-                                               m_font_weight);
-            if (em.width > max_width)
-                return ""; // Can't even fit "..."
+            int current_y = start_y + (i * line_height) + size;
+            int text_x = m_x;
 
-            while (!line.empty())
+            if (m_alignment == TextAlignment::Center || m_alignment == TextAlignment::Right)
             {
-                std::string test = line + ellipsis;
-                TextMetrics m = gc.getTextMetrics(test.c_str(), family.c_str(), size, m_font_slant,
-                                                  m_font_weight);
-                if (m.width <= max_width)
-                    return test;
-
-                if (line.back() == ' ')
+                auto metrics = gc.getTextMetrics(lines[i].c_str(), family.c_str(), size,
+                                                 m_font_slant, m_font_weight);
+                if (m_alignment == TextAlignment::Center)
                 {
-                    line.pop_back();
-                    continue;
-                }
-
-                size_t last_space = line.find_last_of(" ");
-                if (last_space != std::string::npos && last_space > 0)
-                {
-                    line = line.substr(0, last_space);
+                    text_x += (m_width - metrics.width) / 2;
                 }
                 else
                 {
-                    line.pop_back();
+                    text_x += (m_width - metrics.width);
                 }
             }
-            return ellipsis;
-        };
 
-        while (ss >> word)
-        {
-            std::string test_line = current_line.empty() ? word : current_line + " " + word;
-            TextMetrics metrics = gc.getTextMetrics(test_line.c_str(), family.c_str(), size,
-                                                    m_font_slant, m_font_weight);
-
-            if (metrics.width > max_width)
-            {
-                if (!current_line.empty())
-                {
-                    if (result.size() + 1 >= (size_t)available_lines)
-                    {
-                        result.push_back(truncate_with_ellipsis(current_line));
-                        return result;
-                    }
-
-                    result.push_back(current_line);
-                    current_line = word;
-
-                    // If the word itself is too long for a fresh line
-                    TextMetrics word_m = gc.getTextMetrics(current_line.c_str(), family.c_str(),
-                                                           size, m_font_slant, m_font_weight);
-                    if (word_m.width > max_width)
-                    {
-                        if (result.size() + 1 >= (size_t)available_lines)
-                        {
-                            result.push_back(truncate_with_ellipsis(current_line));
-                            return result;
-                        }
-                        result.push_back(truncate_with_ellipsis(current_line));
-                        current_line = "";
-                    }
-                }
-                else
-                {
-                    // Even a single word is too long for an empty line
-                    if (result.size() + 1 >= (size_t)available_lines)
-                    {
-                        result.push_back(truncate_with_ellipsis(word));
-                        return result;
-                    }
-                    result.push_back(truncate_with_ellipsis(word));
-                    current_line = "";
-                }
-            }
-            else
-            {
-                current_line = test_line;
-            }
+            gc.drawText(text_x, current_y, lines[i].c_str());
         }
-
-        if (!current_line.empty())
-        {
-            TextMetrics final_m = gc.getTextMetrics(current_line.c_str(), family.c_str(), size,
-                                                    m_font_slant, m_font_weight);
-            if (final_m.width > max_width)
-            {
-                result.push_back(truncate_with_ellipsis(current_line));
-            }
-            else
-            {
-                result.push_back(current_line);
-            }
-        }
-
-        return result;
     }
 
     void Label::set_text(const std::string &text)
@@ -229,6 +120,54 @@ namespace horizon
     {
         m_text_color = color;
         invalidate();
+    }
+
+    std::vector<std::string> Label::calculate_lines(GraphicsContext &gc, int max_width,
+                                                    int max_height, int line_height)
+    {
+        if (m_text.empty() || max_width <= 0)
+            return {};
+
+        std::vector<std::string> lines;
+        std::stringstream ss(m_text);
+        std::string line;
+
+        auto theme_font = application()->theme_manager->get_font("window");
+        int font_size = (m_font_size > 0) ? m_font_size : theme_font.size;
+
+        while (std::getline(ss, line))
+        {
+            std::string current_line;
+            std::stringstream words(line);
+            std::string word;
+
+            while (words >> word)
+            {
+                std::string test_line = current_line.empty() ? word : current_line + " " + word;
+                auto metrics = gc.getTextMetrics(test_line.c_str(), theme_font.family.c_str(),
+                                                 font_size, m_font_slant, m_font_weight);
+
+                if (metrics.width > max_width && !current_line.empty())
+                {
+                    lines.push_back(current_line);
+                    current_line = word;
+                }
+                else
+                {
+                    current_line = test_line;
+                }
+            }
+            if (!current_line.empty())
+                lines.push_back(current_line);
+        }
+
+        int available_lines = max_height / line_height;
+        if (available_lines > 0 && lines.size() > (size_t)available_lines)
+        {
+            lines.resize(available_lines);
+        }
+
+        return lines;
     }
 
 } // namespace horizon
