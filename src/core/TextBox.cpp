@@ -73,6 +73,7 @@ namespace horizon
                         }
                     }
                     invalidate();
+                    when_text_changed.run(ev);
                 }
                 else if (ev.keysym == XKB_KEY_Delete)
                 {
@@ -84,6 +85,7 @@ namespace horizon
                         }
                     }
                     invalidate();
+                    when_text_changed.run(ev);
                 }
                 else if (ev.keysym == XKB_KEY_Left || ev.keysym == XKB_KEY_KP_Left)
                 {

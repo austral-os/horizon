@@ -209,6 +209,104 @@ namespace horizon
                 m_color.to_hsv(h, s, v);
                 set_color(Color(h, s, m_v_slider->value(), true));
             });
+
+        // Connect RGB textboxes
+        auto connect_rgb_box = [&](TextBox *box, int comp)
+        {
+            box->when_text_changed.connect(
+                [this, box, comp](EventContext &)
+                {
+                    try
+                    {
+                        float val = std::stof(box->text()) / 255.0f;
+                        val = std::clamp(val, 0.0f, 1.0f);
+                        Color c = m_color;
+                        if (comp == 0)
+                            c.r = val;
+                        else if (comp == 1)
+                            c.g = val;
+                        else if (comp == 2)
+                            c.b = val;
+                        set_color(c);
+                    }
+                    catch (...)
+                    {
+                    } // ignore invalid input while typing
+                });
+        };
+        connect_rgb_box(m_r_box, 0);
+        connect_rgb_box(m_g_box, 1);
+        connect_rgb_box(m_b_box, 2);
+
+        // Connect HSV textboxes
+        m_h_box->when_text_changed.connect(
+            [this](EventContext &)
+            {
+                try
+                {
+                    float h = std::stof(m_h_box->text()); // degrees 0-360
+                    float hs, s, v;
+                    m_color.to_hsv(hs, s, v);
+                    set_color(Color(std::clamp(h, 0.0f, 360.0f), s, v, true));
+                }
+                catch (...)
+                {
+                }
+            });
+
+        m_s_box->when_text_changed.connect(
+            [this](EventContext &)
+            {
+                try
+                {
+                    float s = std::stof(m_s_box->text()) / 100.0f; // 0-100
+                    float h, sv, v;
+                    m_color.to_hsv(h, sv, v);
+                    set_color(Color(h, std::clamp(s, 0.0f, 1.0f), v, true));
+                }
+                catch (...)
+                {
+                }
+            });
+
+        m_v_box->when_text_changed.connect(
+            [this](EventContext &)
+            {
+                try
+                {
+                    float v = std::stof(m_v_box->text()) / 100.0f; // 0-100
+                    float h, s, sv;
+                    m_color.to_hsv(h, s, sv);
+                    set_color(Color(h, s, std::clamp(v, 0.0f, 1.0f), true));
+                }
+                catch (...)
+                {
+                }
+            });
+
+        // Connect Hex textbox
+        m_hex_box->when_text_changed.connect(
+            [this](EventContext &)
+            {
+                std::string text = m_hex_box->text();
+                // Basic check to avoid immediate exceptions on empty/short strings
+                if (text.length() >= 4)
+                {
+                    if (text[0] != '#')
+                        text = "#" + text;
+
+                    if (text.length() == 7 || text.length() == 9 || text.length() == 4)
+                    {
+                        try
+                        {
+                            set_color(Color(text));
+                        }
+                        catch (...)
+                        {
+                        }
+                    }
+                }
+            });
     }
 
     void ColorPicker::set_color(const Color &color)
