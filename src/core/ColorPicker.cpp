@@ -184,6 +184,31 @@ namespace horizon
         connect_rgb(m_r_slider, 0);
         connect_rgb(m_g_slider, 1);
         connect_rgb(m_b_slider, 2);
+
+        // Connect HSV sliders
+        m_h_slider->when_value_changed.connect(
+            [this](EventContext &)
+            {
+                float h, s, v;
+                m_color.to_hsv(h, s, v);
+                set_color(Color(m_h_slider->value() * 360.0f, s, v, true));
+            });
+
+        m_s_slider->when_value_changed.connect(
+            [this](EventContext &)
+            {
+                float h, s, v;
+                m_color.to_hsv(h, s, v);
+                set_color(Color(h, m_s_slider->value(), v, true));
+            });
+
+        m_v_slider->when_value_changed.connect(
+            [this](EventContext &)
+            {
+                float h, s, v;
+                m_color.to_hsv(h, s, v);
+                set_color(Color(h, s, m_v_slider->value(), true));
+            });
     }
 
     void ColorPicker::set_color(const Color &color)

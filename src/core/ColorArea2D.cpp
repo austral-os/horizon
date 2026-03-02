@@ -79,8 +79,11 @@ namespace horizon
 
     void ColorArea2D::update_values_from_pos(int x, int y)
     {
-        m_val_x = std::clamp((float)x / width(), 0.0f, 1.0f);
-        m_val_y = std::clamp((float)y / height(), 0.0f, 1.0f);
+        // x,y are window-absolute. Subtract widget's position for local coords.
+        float local_x = (float)(x - m_x);
+        float local_y = (float)(y - m_y);
+        m_val_x = std::clamp(local_x / (float)m_width, 0.0f, 1.0f);
+        m_val_y = std::clamp(local_y / (float)m_height, 0.0f, 1.0f);
 
         EventContext ev;
         ev.data = this;

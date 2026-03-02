@@ -135,10 +135,11 @@ namespace horizon
     void GradientBar::update_value_from_pos(int x, int y)
     {
         float old_value = m_value;
+        // x,y are window-absolute. Subtract widget's position for local coords.
         if (m_vertical)
-            m_value = std::clamp((float)y / m_height, 0.0f, 1.0f);
+            m_value = std::clamp((float)(y - m_y) / (float)m_height, 0.0f, 1.0f);
         else
-            m_value = std::clamp((float)x / m_width, 0.0f, 1.0f);
+            m_value = std::clamp((float)(x - m_x) / (float)m_width, 0.0f, 1.0f);
 
         if (m_value != old_value)
         {
