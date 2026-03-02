@@ -134,6 +134,9 @@ namespace horizon
                         m_cursor_pos += ev.text.length();
                         m_selection_anchor = -1;
                         invalidate();
+                        EventContext ctx = ev;
+                        // ctx.type remains as is or we can just run with the original
+                        when_text_changed.run(ctx);
                     }
                 }
             });

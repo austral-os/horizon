@@ -1,3 +1,4 @@
+#pragma once
 #include <chrono>
 #include <horizon/Widget.hpp>
 #include <string>
@@ -17,6 +18,8 @@ namespace horizon
 
         void set_placeholder(const std::string &placeholder);
         const std::string &placeholder() const;
+
+        EventsManager when_text_changed;
 
     protected:
         std::string m_text{""};

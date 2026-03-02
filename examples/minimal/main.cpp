@@ -2,6 +2,7 @@
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Checkbox.hpp>
+#include <horizon/ColorPicker.hpp>
 #include <horizon/Frame.hpp>
 #include <horizon/GroupButton.hpp>
 #include <horizon/Icon.hpp>
@@ -337,7 +338,14 @@ int main()
 
         notebook->add_tab(NotebookPage("Table", std::move(table_container)));
 
-        notebook->set_current_tab(6);
+        // --- New Tab for ColorPicker demo ---
+        auto color_container = std::make_unique<Widget>();
+        color_container->set_margin(20);
+        auto cp = std::make_unique<horizon::ColorPicker>();
+        color_container->add_child(std::move(cp));
+        notebook->add_tab(NotebookPage("Color", std::move(color_container)));
+
+        notebook->set_current_tab(7);
 
         wnd->add_child(std::move(notebook));
 
