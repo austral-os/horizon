@@ -192,6 +192,11 @@ namespace horizon
                 btn->set_fixed_size(m_columns[i].width);
                 btn->set_font_weight(FONT_WEIGHT_BOLD);
 
+                if (m_sort_column == (int)i)
+                {
+                    btn->set_accent_color(WidgetAccentColor::Primary);
+                }
+
                 if (m_columns[i].sortable)
                 {
                     btn->when_mouse_press.connect([this, i](EventContext &) { sort_by_column(i); });
@@ -270,6 +275,7 @@ namespace horizon
                                   return m_columns[col_idx].sort_predicate(b, a);
                           });
 
+                rebuild_header();
                 rebuild_content();
             }
         }
