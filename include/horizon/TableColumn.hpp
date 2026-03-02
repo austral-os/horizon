@@ -33,5 +33,11 @@ namespace horizon
          * Default implementation returns a Label with the string representation of the data.
          */
         std::function<std::unique_ptr<Widget>(const T &)> cell_factory;
+
+        /**
+         * @brief Function to compare two objects for sorting based on this column.
+         * Should return true if a < b for ascending sort.
+         */
+        std::function<bool(const T &, const T &)> sort_predicate;
     };
 } // namespace horizon

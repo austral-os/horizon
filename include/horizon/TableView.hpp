@@ -246,9 +246,32 @@ namespace horizon
 
         virtual void sort_by_column(size_t col_idx)
         {
-            // This is meant to be overridden or T should have a generic way to sort.
-            // For now, it's a placeholder. T needs comparability or a lambda.
-            invalidate();
+            if (col_idx >= m_columns.size() || !m_columns[col_idx].sortable)
+                return;
+
+            if (m_columns[col_idx].sort_predicate)
+            {
+                if (m_sort_column == (int)col_idx)
+                {
+                    m_sort_ascending = !m_sort_ascending;
+                }
+                else
+                {
+                    m_sort_column = (int)col_idx;
+                    m_sort_ascending = true;
+                }
+
+                std::sort(m_data.begin(), m_data.end(),
+                          [this, col_idx](const T &a, const T &b)
+                          {
+                              if (m_sort_ascending)
+                                  return m_columns[col_idx].sort_predicate(a, b);
+                              else
+                                  return m_columns[col_idx].sort_predicate(b, a);
+                          });
+
+                rebuild_content();
+            }
         }
 
     protected:
@@ -262,6 +285,9 @@ namespace horizon
         TableViewWidthMode m_width_mode{TableViewWidthMode::Fill};
         bool m_header_visible{true};
         int m_row_height{28};
+
+        int m_sort_column{-1};
+        bool m_sort_ascending{true};
 
         bool m_use_alternate_colors{false};
         Color m_row_color1{Color(1.0f, 1.0f, 1.0f, 1.0f)};

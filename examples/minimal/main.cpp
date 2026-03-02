@@ -279,6 +279,7 @@ int main()
         col_id.width = 60;
         col_id.cell_factory = [](const Person &p)
         { return std::make_unique<Label>(std::to_string(p.id)); };
+        col_id.sort_predicate = [](const Person &a, const Person &b) { return a.id < b.id; };
 
         horizon::TableColumn<Person> col_name;
         col_name.id = "name";
@@ -290,12 +291,15 @@ int main()
             lbl->set_font_weight(FONT_WEIGHT_BOLD);
             return lbl;
         };
+        col_name.sort_predicate = [](const Person &a, const Person &b) { return a.name < b.name; };
 
         horizon::TableColumn<Person> col_email;
         col_email.id = "email";
         col_email.title = "Email";
         col_email.width = 250;
         col_email.cell_factory = [](const Person &p) { return std::make_unique<Label>(p.email); };
+        col_email.sort_predicate = [](const Person &a, const Person &b)
+        { return a.email < b.email; };
 
         horizon::TableColumn<Person> col_role;
         col_role.id = "role";
@@ -308,6 +312,7 @@ int main()
                 lbl->set_accent_color(WidgetAccentColor::Error);
             return lbl;
         };
+        col_role.sort_predicate = [](const Person &a, const Person &b) { return a.role < b.role; };
 
         table_view->add_column(col_id);
         table_view->add_column(col_name);
