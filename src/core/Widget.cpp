@@ -107,8 +107,11 @@ namespace horizon
         // Absolute gate: if we don't intersect the dirty region, we don't draw or recurse.
         bool intersects =
             !(m_x >= cx + cw || m_x + m_width <= cx || m_y >= cy + ch || m_y + m_height <= cy);
+
         if (!intersects)
+        {
             return;
+        }
 
         bool should_draw = m_dirty || force || m_child_dirty;
 
@@ -216,6 +219,12 @@ namespace horizon
         child->m_parent = this;
         child->set_application_recursive(m_app);
         m_children.insert(m_children.begin() + index, std::move(child));
+    }
+
+    void Widget::clear_children()
+    {
+        m_children.clear();
+        invalidate();
     }
 
     Widget *Widget::parent() const

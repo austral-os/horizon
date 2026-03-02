@@ -12,6 +12,7 @@
 #include <horizon/ScrollArea.hpp>
 #include <horizon/Slider.hpp>
 #include <horizon/SolidObject.hpp>
+#include <horizon/TableView.hpp>
 #include <horizon/TextBox.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/Window.hpp>
@@ -260,6 +261,78 @@ int main()
 
         scroll_area->set_content(std::move(large_content));
         notebook->add_tab(NotebookPage("Scroll", std::move(scroll_area)));
+
+        // --- New Tab for TableView demo ---
+        struct Person
+        {
+            int id;
+            std::string name;
+            std::string email;
+            std::string role;
+        };
+
+        auto table_view = std::make_unique<horizon::TableView<Person>>();
+
+        horizon::TableColumn<Person> col_id;
+        col_id.id = "id";
+        col_id.title = "ID";
+        col_id.width = 60;
+        col_id.cell_factory = [](const Person &p)
+        { return std::make_unique<Label>(std::to_string(p.id)); };
+
+        horizon::TableColumn<Person> col_name;
+        col_name.id = "name";
+        col_name.title = "Nombre";
+        col_name.width = 200;
+        col_name.cell_factory = [](const Person &p)
+        {
+            auto lbl = std::make_unique<Label>(p.name);
+            lbl->set_font_weight(FONT_WEIGHT_BOLD);
+            return lbl;
+        };
+
+        horizon::TableColumn<Person> col_email;
+        col_email.id = "email";
+        col_email.title = "Email";
+        col_email.width = 250;
+        col_email.cell_factory = [](const Person &p) { return std::make_unique<Label>(p.email); };
+
+        horizon::TableColumn<Person> col_role;
+        col_role.id = "role";
+        col_role.title = "Rol";
+        col_role.width = 120;
+        col_role.cell_factory = [](const Person &p)
+        {
+            auto lbl = std::make_unique<Label>(p.role);
+            if (p.role == "Admin")
+                lbl->set_accent_color(WidgetAccentColor::Error);
+            return lbl;
+        };
+
+        table_view->add_column(col_id);
+        table_view->add_column(col_name);
+        table_view->add_column(col_email);
+        table_view->add_column(col_role);
+
+        std::vector<Person> people;
+        for (int i = 1; i <= 70; ++i)
+        {
+            people.push_back({i, "Usuario " + std::to_string(i),
+                              "user" + std::to_string(i) + "@example.com",
+                              (i % 5 == 0) ? "Admin" : "User"});
+        }
+        table_view->set_data(std::move(people));
+        table_view->set_alternate_colors(horizon::Color(1.0f, 1.0f, 1.0f, 1.0f),
+                                         horizon::Color(0.95f, 0.97f, 1.0f, 1.0f));
+        table_view->set_width_mode(horizon::TableViewWidthMode::Unbounded);
+
+        auto table_container = std::make_unique<Widget>();
+        table_container->set_margin(30);
+        table_container->add_child(std::move(table_view));
+
+        notebook->add_tab(NotebookPage("Table", std::move(table_container)));
+
+        notebook->set_current_tab(6);
 
         wnd->add_child(std::move(notebook));
 

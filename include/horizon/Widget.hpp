@@ -187,6 +187,7 @@ namespace horizon
         Application *application() const;
 
         const std::vector<std::unique_ptr<Widget>> &children() const;
+        void clear_children();
 
         // --- Render ---
         virtual void render(GraphicsContext &ctx, int cx, int cy, int cw, int ch,
