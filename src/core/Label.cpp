@@ -35,17 +35,26 @@ namespace horizon
         auto lines =
             calculate_lines(gc, m_available_draw_width, m_available_draw_height, line_height);
 
-        int total_height = lines.size() * line_height;
+        int total_height = 0;
+        if (!lines.empty())
+        {
+            total_height = lines.size() * line_height - 4; // Subtract trailing padding
+        }
+
         int start_y = m_y;
 
-        if (m_height > total_height)
+        if (m_vertical_alignment == VerticalAlignment::Middle && m_height > total_height)
         {
             start_y += (m_height - total_height) / 2;
+        }
+        else if (m_vertical_alignment == VerticalAlignment::Bottom && m_height > total_height)
+        {
+            start_y += (m_height - total_height);
         }
 
         for (size_t i = 0; i < lines.size(); ++i)
         {
-            int current_y = start_y + (i * line_height) + size;
+            int current_y = start_y + (i * line_height) + size - 3;
             int text_x = m_x;
 
             if (m_alignment == TextAlignment::Center || m_alignment == TextAlignment::Right)
@@ -86,6 +95,17 @@ namespace horizon
     TextAlignment Label::alignment() const
     {
         return m_alignment;
+    }
+
+    void Label::set_vertical_alignment(VerticalAlignment alignment)
+    {
+        m_vertical_alignment = alignment;
+        invalidate();
+    }
+
+    VerticalAlignment Label::vertical_alignment() const
+    {
+        return m_vertical_alignment;
     }
 
     void Label::set_font_weight(FontWeight weight)

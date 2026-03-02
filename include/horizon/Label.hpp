@@ -18,6 +18,16 @@ namespace horizon
     };
 
     /**
+     * @brief Vertical alignment options for the Label widget.
+     */
+    enum class VerticalAlignment
+    {
+        Top,
+        Middle,
+        Bottom
+    };
+
+    /**
      * @brief A widget that displays multi-line, styled text.
      */
     class Label : public Widget
@@ -34,6 +44,9 @@ namespace horizon
 
         void set_alignment(TextAlignment alignment);
         TextAlignment alignment() const;
+
+        void set_vertical_alignment(VerticalAlignment alignment);
+        VerticalAlignment vertical_alignment() const;
 
         void set_font_weight(FontWeight weight);
         FontWeight font_weight() const;
@@ -59,6 +72,7 @@ namespace horizon
 
         std::string m_text;
         TextAlignment m_alignment{TextAlignment::Left};
+        VerticalAlignment m_vertical_alignment{VerticalAlignment::Middle};
         FontWeight m_font_weight{FONT_WEIGHT_NORMAL};
         FontSlant m_font_slant{FONT_SLANT_NORMAL};
         int m_font_size{-1};                         // -1 means use theme default

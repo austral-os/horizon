@@ -54,7 +54,7 @@ namespace horizon
             int margin = 5;
             m_label->set_application_recursive(this->application());
             m_label->set_position(this->m_start_draw_x + margin, this->m_start_draw_y + margin);
-            m_label->set_size(this->m_width - (margin * 2), this->m_height - (margin * 2));
+            m_label->set_size(this->m_width - (margin * 2), this->m_height - (margin * 2) - 3);
             m_label->calculate_layout();
 
             if (T::m_draw_state == WidgetDrawState::PRESSED)
