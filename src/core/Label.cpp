@@ -154,6 +154,7 @@ namespace horizon
 
         auto theme_font = application()->theme_manager->get_font("window");
         int font_size = (m_font_size > 0) ? m_font_size : theme_font.size;
+        const char *font_family = theme_font.family.c_str();
 
         while (std::getline(ss, line))
         {
@@ -164,8 +165,8 @@ namespace horizon
             while (words >> word)
             {
                 std::string test_line = current_line.empty() ? word : current_line + " " + word;
-                auto metrics = gc.getTextMetrics(test_line.c_str(), theme_font.family.c_str(),
-                                                 font_size, m_font_slant, m_font_weight);
+                auto metrics = gc.getTextMetrics(test_line.c_str(), font_family, font_size,
+                                                 m_font_slant, m_font_weight);
 
                 if (metrics.width > max_width && !current_line.empty())
                 {
@@ -182,9 +183,43 @@ namespace horizon
         }
 
         int available_lines = max_height / line_height;
-        if (available_lines > 0 && lines.size() > (size_t)available_lines)
+        if (available_lines <= 0 && max_height > 0)
+            available_lines = 1;
+
+        if (available_lines <= 0)
+            return {};
+
+        bool needs_ellipsis_due_to_height = lines.size() > (size_t)available_lines;
+        if (needs_ellipsis_due_to_height)
         {
             lines.resize(available_lines);
+        }
+
+        // Apply ellipsis to lines that exceed width or the last line if height-truncated
+        for (size_t i = 0; i < lines.size(); ++i)
+        {
+            bool is_last = (i == lines.size() - 1);
+            auto metrics = gc.getTextMetrics(lines[i].c_str(), font_family, font_size, m_font_slant,
+                                             m_font_weight);
+
+            if (metrics.width > max_width || (is_last && needs_ellipsis_due_to_height))
+            {
+                std::string text = lines[i];
+                while (text.length() > 0)
+                {
+                    std::string test_text = text + "...";
+                    auto m = gc.getTextMetrics(test_text.c_str(), font_family, font_size,
+                                               m_font_slant, m_font_weight);
+                    if (m.width <= max_width)
+                    {
+                        lines[i] = test_text;
+                        break;
+                    }
+                    text.pop_back();
+                }
+                if (text.empty())
+                    lines[i] = "...";
+            }
         }
 
         return lines;
