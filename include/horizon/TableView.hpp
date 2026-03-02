@@ -109,8 +109,45 @@ namespace horizon
         void render(GraphicsContext &gc, int cx, int cy, int cw, int ch,
                     bool force = false) override
         {
+            if (!m_visible)
+                return;
+
             calculate_internal_layout();
-            Widget::render(gc, cx, cy, cw, ch, force);
+
+            // Intersects check (dirty region)
+            bool intersects =
+                !(m_x >= cx + cw || m_x + m_width <= cx || m_y >= cy + ch || m_y + m_height <= cy);
+
+            if (!intersects)
+                return;
+
+            bool should_draw = m_dirty || force || m_child_dirty;
+            if (should_draw)
+                draw(gc);
+
+            int header_h = m_header_visible ? 32 : 0;
+
+            // Render children manually to apply clipping to header
+            if (!children().empty())
+            {
+                if (m_header_visible)
+                {
+                    gc.save();
+                    // Clip to table's horizontal bounds and header's vertical area
+                    gc.clip(m_x, m_y, m_width, header_h);
+                    children()[0]->render(gc, cx, cy, cw, ch, force);
+                    gc.restore();
+                }
+
+                if (children().size() > 1)
+                {
+                    // ScrollArea handles its own clipping
+                    children()[1]->render(gc, cx, cy, cw, ch, force);
+                }
+            }
+
+            m_dirty = false;
+            m_child_dirty = false;
         }
 
     protected:
