@@ -85,6 +85,12 @@ namespace horizon
         virtual void on_key_event(const KeyEvent &event) = 0;
 
         /**
+         * @brief Called when keyboard modifiers (Shift, Ctrl, etc.) change.
+         * @param modifiers The new modifiers bitmask.
+         */
+        virtual void on_modifiers_event(uint32_t modifiers) = 0;
+
+        /**
          * @brief Called when the surface is resized by the compositor.
          * @param width New width of the surface.
          * @param height New height of the surface.

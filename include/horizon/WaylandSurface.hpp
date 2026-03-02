@@ -255,6 +255,14 @@ namespace horizon
          */
         void set_cursor(CursorType type);
 
+        /**
+         * @return The current XKB state.
+         */
+        struct xkb_state *xkb_state() const
+        {
+            return m_xkb_state;
+        }
+
     private:
         int m_width;  /**< Width of the surface in pixels. */
         int m_height; /**< Height of the surface in pixels. */

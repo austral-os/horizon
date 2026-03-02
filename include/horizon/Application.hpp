@@ -120,6 +120,7 @@ namespace horizon
          */
         void on_pointer_event(const PointerEvent &event) override;
         void on_key_event(const KeyEvent &event) override;
+        void on_modifiers_event(uint32_t modifiers) override;
         void on_resize(int width, int height) override;
 
         // --- Application Events (Multi-Callback) ---
@@ -146,6 +147,15 @@ namespace horizon
          * Called when a widget is destroyed.
          */
         void unregister_widget(Widget *widget);
+
+        // Modifiers
+        enum Modifier
+        {
+            SHIFT = (1 << 0),
+            CTRL = (1 << 1),
+            ALT = (1 << 2),
+            CAPSLOCK = (1 << 3)
+        };
 
     private:
         /**
@@ -174,14 +184,6 @@ namespace horizon
         uint32_t m_resize_edge = 0;       /**< Current edge being hovered for resize. */
         const int m_resize_proximity = 8; /**< Distance to edge to trigger resize. */
 
-        // Modifiers
-        enum Modifier
-        {
-            SHIFT = (1 << 0),
-            CTRL = (1 << 1),
-            ALT = (1 << 2),
-            CAPSLOCK = (1 << 3)
-        };
         uint32_t m_modifiers{0};
 
         uint64_t m_blink_last_time{0}; /**< Last time the focused widget was blinked. */

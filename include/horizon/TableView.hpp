@@ -8,7 +8,9 @@
 #include <horizon/TableColumn.hpp>
 #include <horizon/TableRow.hpp>
 #include <horizon/Widget.hpp>
+#include <iostream>
 #include <memory>
+#include <set>
 #include <vector>
 
 namespace horizon
@@ -289,7 +291,7 @@ namespace horizon
                     row_widget->set_alternate(row_idx % 2 != 0);
                 }
 
-                if (m_selected_row == (int)row_idx)
+                if (m_selected_rows.count((int)row_idx) > 0)
                 {
                     row_widget->set_selected(true);
                 }
@@ -299,7 +301,23 @@ namespace horizon
                     {
                         if (ctx.button == 0x110) // Left click
                         {
-                            m_selected_row = (int)row_idx;
+                            bool ctrl_pressed = (ctx.modifiers & Application::Modifier::CTRL);
+                            std::cout << "[DEBUG] TableView click row_idx=" << row_idx
+                                      << " modifiers=" << ctx.modifiers
+                                      << " ctrl_pressed=" << ctrl_pressed << std::endl;
+
+                            if (ctrl_pressed)
+                            {
+                                // Add to selection
+                                m_selected_rows.insert((int)row_idx);
+                            }
+                            else
+                            {
+                                // Single selection
+                                m_selected_rows.clear();
+                                m_selected_rows.insert((int)row_idx);
+                            }
+
                             rebuild_content();
                             if (m_on_row_selected)
                                 m_on_row_selected(m_data[row_idx]);
@@ -375,7 +393,7 @@ namespace horizon
 
         bool m_use_alternate_colors{true};
 
-        int m_selected_row{-1};
+        std::set<int> m_selected_rows;
         std::function<void(const T &)> m_on_row_selected;
     };
 } // namespace horizon

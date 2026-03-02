@@ -128,8 +128,6 @@ namespace horizon
 
     void Application::on_key_event(const KeyEvent &event)
     {
-        std::cout << "Key event: " << event.key << std::endl;
-
         switch (event.type)
         {
         case KeyEvent::Type::Press:
@@ -145,6 +143,13 @@ namespace horizon
         }
     }
 
+    void Application::on_modifiers_event(uint32_t modifiers)
+    {
+        if (m_modifiers != modifiers)
+            std::cout << "Modifiers changed: " << modifiers << std::endl;
+        m_modifiers = modifiers;
+    }
+
     void Application::handle_key_press(const KeyEvent &event)
     {
         if (event.key == KEY_ESC)
@@ -152,16 +157,6 @@ namespace horizon
             quit();
             return;
         }
-
-        // Modifiers
-        if (event.key == KEY_LEFTSHIFT || event.key == KEY_RIGHTSHIFT)
-            m_modifiers |= SHIFT;
-        if (event.key == KEY_LEFTCTRL || event.key == KEY_RIGHTCTRL)
-            m_modifiers |= CTRL;
-        if (event.key == KEY_LEFTALT || event.key == KEY_RIGHTALT)
-            m_modifiers |= ALT;
-        if (event.key == KEY_CAPSLOCK)
-            m_modifiers ^= CAPSLOCK;
 
         // Key repeat management — only reset if this is a NEW key being pressed (not a synthetic
         // repeat)
@@ -192,8 +187,7 @@ namespace horizon
                                .keysym = event.keysym,
                                .text = event.text};
 
-        // Also update internal m_modifiers for backward compatibility/internal logic
-        m_modifiers = event.modifiers;
+        // We no longer update m_modifiers here; on_modifiers_event is the sole source of truth
         target->when_key_press.run(new_ev);
     }
 
@@ -202,21 +196,11 @@ namespace horizon
         if (!m_root)
             return;
 
-        // Modifiers
-        if (event.key == KEY_LEFTSHIFT || event.key == KEY_RIGHTSHIFT)
-            m_modifiers &= ~SHIFT;
-        if (event.key == KEY_LEFTCTRL || event.key == KEY_RIGHTCTRL)
-            m_modifiers &= ~CTRL;
-        if (event.key == KEY_LEFTALT || event.key == KEY_RIGHTALT)
-            m_modifiers &= ~ALT;
-
         if (event.key == m_repeat_key)
         {
             m_is_repeating = false;
             m_repeat_key = 0;
         }
-
-        m_modifiers = event.modifiers;
 
         Widget *target = m_focused ? m_focused : m_root.get();
 
@@ -704,8 +688,10 @@ namespace horizon
                 {
                     if (now - m_repeat_last_time >= m_repeat_rate)
                     {
-                        // Replay the full stored event so keysym/text are correct
-                        handle_key_press(m_repeat_event);
+                        // Replay the full stored event but use CURRENT modifiers
+                        KeyEvent repeat_ev = m_repeat_event;
+                        repeat_ev.modifiers = m_modifiers;
+                        handle_key_press(repeat_ev);
                         m_repeat_last_time = now;
                     }
                 }

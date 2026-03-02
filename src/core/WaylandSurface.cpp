@@ -246,6 +246,25 @@ namespace horizon
     {
         WaylandSurface *self = static_cast<WaylandSurface *>(data);
         self->update_xkb_modifiers(mods_depressed, mods_latched, mods_locked, group);
+
+        if (self->listener())
+        {
+            uint32_t modifiers = 0;
+            if (xkb_state_mod_name_is_active(self->xkb_state(), XKB_MOD_NAME_SHIFT,
+                                             XKB_STATE_MODS_EFFECTIVE))
+                modifiers |= 0x1;
+            if (xkb_state_mod_name_is_active(self->xkb_state(), XKB_MOD_NAME_CTRL,
+                                             XKB_STATE_MODS_EFFECTIVE))
+                modifiers |= 0x2;
+            if (xkb_state_mod_name_is_active(self->xkb_state(), XKB_MOD_NAME_ALT,
+                                             XKB_STATE_MODS_EFFECTIVE))
+                modifiers |= 0x4;
+            if (xkb_state_mod_name_is_active(self->xkb_state(), XKB_MOD_NAME_CAPS,
+                                             XKB_STATE_MODS_EFFECTIVE))
+                modifiers |= 0x8;
+
+            self->listener()->on_modifiers_event(modifiers);
+        }
     }
 
     static void keyboard_handle_repeat_info(void *data, wl_keyboard *keyboard, int32_t rate,
