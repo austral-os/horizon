@@ -145,8 +145,6 @@ namespace horizon
 
     void Application::on_modifiers_event(uint32_t modifiers)
     {
-        if (m_modifiers != modifiers)
-            std::cout << "Modifiers changed: " << modifiers << std::endl;
         m_modifiers = modifiers;
     }
 

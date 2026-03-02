@@ -8,7 +8,6 @@
 #include <horizon/TableColumn.hpp>
 #include <horizon/TableRow.hpp>
 #include <horizon/Widget.hpp>
-#include <iostream>
 #include <memory>
 #include <set>
 #include <vector>
@@ -270,6 +269,23 @@ namespace horizon
             header->add_child(std::move(filler));
         }
 
+        /**
+         * @brief Returns the items currently selected in the table.
+         * @return A vector of data items of type T.
+         */
+        std::vector<T> get_selected_items() const
+        {
+            std::vector<T> selected_items;
+            for (int idx : m_selected_rows)
+            {
+                if (idx >= 0 && (size_t)idx < m_data.size())
+                {
+                    selected_items.push_back(m_data[idx]);
+                }
+            }
+            return selected_items;
+        }
+
         void rebuild_content()
         {
             if (children().size() < 2)
@@ -302,9 +318,6 @@ namespace horizon
                         if (ctx.button == 0x110) // Left click
                         {
                             bool ctrl_pressed = (ctx.modifiers & Application::Modifier::CTRL);
-                            std::cout << "[DEBUG] TableView click row_idx=" << row_idx
-                                      << " modifiers=" << ctx.modifiers
-                                      << " ctrl_pressed=" << ctrl_pressed << std::endl;
 
                             if (ctrl_pressed)
                             {
