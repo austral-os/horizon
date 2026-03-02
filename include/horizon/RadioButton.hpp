@@ -99,8 +99,10 @@ namespace horizon
             int label_w = this->m_width - (label_x - this->m_x) - 10;
 
             m_label->set_application_recursive(this->application());
-            m_label->set_position(label_x, this->m_y + (this->m_height / 2) - marker_radius);
+            m_label->set_position(label_x, this->m_y);
             m_label->set_size(label_w, this->m_height);
+            m_label->set_vertical_alignment(VerticalAlignment::Middle);
+            m_label->calculate_layout();
             m_label->draw(gc);
         }
 
