@@ -1,6 +1,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <horizon/WaylandSurface.hpp>
+#include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <horizon/xdg-shell-client-protocol.h>
 #include <stdexcept>
 #include <sys/mman.h>
@@ -294,10 +295,14 @@ namespace horizon
         {
             ws->set_xdg_wm_base(static_cast<xdg_wm_base *>(
                 wl_registry_bind(registry, id, &xdg_wm_base_interface, 1)));
-            // Listener para responder al PING del servidor
             static const xdg_wm_base_listener wm_list = {
                 .ping = [](void *, xdg_wm_base *wm, uint32_t ser) { xdg_wm_base_pong(wm, ser); }};
             xdg_wm_base_add_listener(ws->xdg_wm_base(), &wm_list, nullptr);
+        }
+        else if (strcmp(interface, "zwlr_layer_shell_v1") == 0)
+        {
+            ws->set_zwlr_layer_shell(static_cast<zwlr_layer_shell_v1 *>(
+                wl_registry_bind(registry, id, &zwlr_layer_shell_v1_interface, 1)));
         }
         else if (strcmp(interface, "wl_seat") == 0)
         {
@@ -449,46 +454,44 @@ namespace horizon
         m_xdg_wm_base = xdg_wm_base;
     }
 
-    void WaylandSurface::init()
+    void WaylandSurface::set_zwlr_layer_shell(struct zwlr_layer_shell_v1 *layer_shell)
     {
-        // Establish connection to the Wayland server.
+        m_layer_shell = layer_shell;
+    }
+
+    struct zwlr_layer_shell_v1 *WaylandSurface::layer_shell() const
+    {
+        return m_layer_shell;
+    }
+
+    void WaylandSurface::init_display()
+    {
         m_display = wl_display_connect(nullptr);
         if (!m_display)
-        {
-            throw std::runtime_error("No se pudo conectar al servidor Wayland.");
-        }
+            throw std::runtime_error("Failed to connect to Wayland display");
 
-        // Get the registry to find available global objects.
         m_registry = wl_display_get_registry(m_display);
-        if (!m_registry)
-        {
-            wl_display_disconnect(m_display);
-            m_display = nullptr;
-            throw std::runtime_error("No se pudo obtener el registro.");
-        }
-
-        // Add registry listener.
         static const wl_registry_listener listener = {registry_global, registry_global_remove};
         wl_registry_add_listener(m_registry, &listener, this);
 
-        // Initial roundtrip to ensure globals are bound and initialized.
         wl_display_roundtrip(m_display);
+    }
 
-        // 1. Create the fundamental wl_surface.
+    void WaylandSurface::setup_xdg_toplevel(const std::string &title, const std::string &app_id)
+    {
+        m_role = Role::XdgToplevel;
         m_surface = wl_compositor_create_surface(m_compositor);
 
-        // 2. Setup XDG Surface (the window "shell").
-        xdg_surface *xdg_surf = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
+        m_xdg_surface = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
         static const xdg_surface_listener xdg_surf_ptr = {
             .configure = [](void *data, xdg_surface *xdg_s, uint32_t serial)
             { xdg_surface_ack_configure(xdg_s, serial); }};
-        xdg_surface_add_listener(xdg_surf, &xdg_surf_ptr, nullptr);
+        xdg_surface_add_listener(m_xdg_surface, &xdg_surf_ptr, nullptr);
 
-        // 3. Setup Toplevel (the actual window).
-        m_xdg_toplevel = xdg_surface_get_toplevel(xdg_surf);
-        xdg_toplevel_set_title(m_xdg_toplevel, "Cairo Wayland Corrected");
+        m_xdg_toplevel = xdg_surface_get_toplevel(m_xdg_surface);
+        xdg_toplevel_set_title(m_xdg_toplevel, title.c_str());
+        xdg_toplevel_set_app_id(m_xdg_toplevel, app_id.c_str());
 
-        // Listener for toplevel events (configure, close)
         static const xdg_toplevel_listener toplevel_list = {
             .configure =
                 [](void *data, xdg_toplevel *, int32_t width, int32_t height,
@@ -510,53 +513,112 @@ namespace horizon
                 {
                     self->resize_buffer(width, height);
                     if (self->m_listener)
-                    {
                         self->m_listener->on_resize(width, height);
-                    }
                 }
             },
-            .close =
-                [](void *data, xdg_toplevel *)
-            {
-                // Not implemented here, handled by application loop usually
-            }};
+            .close = [](void *, xdg_toplevel *) {}};
         xdg_toplevel_add_listener(m_xdg_toplevel, &toplevel_list, this);
 
-        // IMPORTANT: Commit the surface so the compositor can start processing it.
         wl_surface_commit(m_surface);
         wl_display_roundtrip(m_display);
 
-        // Initialize cursor resources
+        // Cursor setup
         if (m_shm)
-        {
             m_cursor_theme = wl_cursor_theme_load(nullptr, 24, m_shm);
-        }
         if (m_compositor)
-        {
             m_cursor_surface = wl_compositor_create_surface(m_compositor);
-        }
 
-        // 4. Create a Shared Memory (SHM) buffer for rendering.
-        int stride = m_width * 4;
-        int size = stride * m_height;
-        int fd = memfd_create("buffer", MFD_CLOEXEC);
-        if (fd < 0)
+        resize_buffer(m_width, m_height);
+    }
+
+    void WaylandSurface::setup_layer_surface(uint32_t layer, const std::string &namespace_id)
+    {
+        m_role = Role::LayerShell;
+        m_surface = wl_compositor_create_surface(m_compositor);
+
+        if (!m_layer_shell)
+            throw std::runtime_error("Compositor does not support wlr-layer-shell");
+
+        m_layer_surface = zwlr_layer_shell_v1_get_layer_surface(m_layer_shell, m_surface, nullptr,
+                                                                layer, namespace_id.c_str());
+
+        static const zwlr_layer_surface_v1_listener layer_surface_listener = {
+            .configure =
+                [](void *data, zwlr_layer_surface_v1 *layer_surface, uint32_t serial,
+                   uint32_t width, uint32_t height)
+            {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                zwlr_layer_surface_v1_ack_configure(layer_surface, serial);
+
+                if (width > 0 && height > 0)
+                {
+                    self->resize_buffer(width, height);
+                    if (self->m_listener)
+                        self->m_listener->on_resize(width, height);
+                }
+            },
+            .closed = [](void *, zwlr_layer_surface_v1 *) {}};
+
+        zwlr_layer_surface_v1_add_listener(m_layer_surface, &layer_surface_listener, this);
+
+        wl_surface_commit(m_surface);
+        wl_display_roundtrip(m_display);
+
+        resize_buffer(m_width, m_height);
+    }
+
+    void WaylandSurface::set_layer_anchor(uint32_t anchor)
+    {
+        if (m_layer_surface)
         {
-            throw std::runtime_error("No se pudo crear el descriptor de archivo para SHM.");
+            zwlr_layer_surface_v1_set_anchor(m_layer_surface, anchor);
         }
-        ftruncate(fd, size);
-        m_data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    }
 
-        wl_shm_pool *pool = wl_shm_create_pool(m_shm, fd, size);
-        m_buffer =
-            wl_shm_pool_create_buffer(pool, 0, m_width, m_height, stride, WL_SHM_FORMAT_ARGB8888);
-        wl_shm_pool_destroy(pool);
-        close(fd);
+    void WaylandSurface::set_layer_exclusive_zone(int32_t zone)
+    {
+        if (m_layer_surface)
+        {
+            zwlr_layer_surface_v1_set_exclusive_zone(m_layer_surface, zone);
+        }
+    }
+
+    void WaylandSurface::set_layer_keyboard_interactivity(uint32_t interactivity)
+    {
+        if (m_layer_surface)
+        {
+            zwlr_layer_surface_v1_set_keyboard_interactivity(m_layer_surface, interactivity);
+        }
+    }
+
+    void WaylandSurface::set_layer_size(uint32_t width, uint32_t height)
+    {
+        if (m_layer_surface)
+        {
+            zwlr_layer_surface_v1_set_size(m_layer_surface, width, height);
+        }
+    }
+
+    void WaylandSurface::commit()
+    {
+        if (m_surface)
+        {
+            wl_surface_commit(m_surface);
+        }
+    }
+
+    void WaylandSurface::init()
+    {
+        init_display();
+        setup_xdg_toplevel("Horizon Application", "horizon");
     }
 
     void WaylandSurface::resize_buffer(int width, int height)
     {
-        if (width == m_width && height == m_height)
+        if (width <= 0 || height <= 0)
+            return;
+
+        if (m_buffer && width == m_width && height == m_height)
             return;
 
         // 1. Cleanup old resources
@@ -620,6 +682,13 @@ namespace horizon
             xdg_wm_base_destroy(m_xdg_wm_base);
             m_xdg_wm_base = nullptr;
         }
+
+        if (m_layer_shell)
+        {
+            zwlr_layer_shell_v1_destroy(m_layer_shell);
+            m_layer_shell = nullptr;
+        }
+
         if (m_compositor)
         {
             wl_compositor_destroy(m_compositor);
@@ -635,10 +704,23 @@ namespace horizon
             wl_registry_destroy(m_registry);
             m_registry = nullptr;
         }
+
         if (m_xdg_toplevel)
         {
             xdg_toplevel_destroy(m_xdg_toplevel);
             m_xdg_toplevel = nullptr;
+        }
+
+        if (m_xdg_surface)
+        {
+            xdg_surface_destroy(m_xdg_surface);
+            m_xdg_surface = nullptr;
+        }
+
+        if (m_layer_surface)
+        {
+            zwlr_layer_surface_v1_destroy(m_layer_surface);
+            m_layer_surface = nullptr;
         }
         if (m_display)
         {

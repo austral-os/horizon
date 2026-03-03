@@ -157,6 +157,12 @@ namespace horizon
             CAPSLOCK = (1 << 3)
         };
 
+    protected:
+        /**
+         * @brief Protected constructor for derived classes that need custom initialization.
+         */
+        Application(int w, int h, bool defer_init);
+
     private:
         /**
          * @brief Internal event dispatcher.

@@ -20,13 +20,18 @@
 namespace horizon
 {
 
-    Application::Application(int w, int h)
+    Application::Application(int w, int h) : Application(w, h, false) {}
+
+    Application::Application(int w, int h, bool defer_init)
     {
         m_wakeup_fd = eventfd(0, EFD_NONBLOCK);
 
         // Inicialización del sistema
         m_surface = std::make_unique<WaylandSurface>(w, h);
-        m_surface->init();
+        if (!defer_init)
+        {
+            m_surface->init();
+        }
         m_surface->set_event_listener(this);
 
         theme_manager = std::make_unique<ThemeManager>();
@@ -520,6 +525,9 @@ namespace horizon
         if (m_root)
         {
             m_root->set_application_recursive(this);
+            m_root->set_size(m_surface->width(), m_surface->height());
+            m_full_repaint = true;
+            invalidate();
         }
     }
 
@@ -556,7 +564,8 @@ namespace horizon
 
                 bool has_pending = m_full_repaint || !m_dirty_widgets.empty();
 
-                if (has_pending && (frame_now - m_last_commit_time) >= FRAME_MS)
+                if (has_pending && m_surface->buffer() &&
+                    (frame_now - m_last_commit_time) >= FRAME_MS)
                 {
                     if (m_full_repaint && m_root)
                     {
@@ -793,6 +802,11 @@ namespace horizon
                     handler(false);
             }
         }
+    }
+
+    WaylandSurface *Application::w_surface() const
+    {
+        return m_surface.get();
     }
 
     bool Application::is_maximized() const

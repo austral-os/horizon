@@ -276,6 +276,18 @@ namespace horizon
     void Widget::set_accent_color(WidgetAccentColor accent_color)
     {
         m_accent_color = accent_color;
+        invalidate();
+    }
+
+    void Widget::set_background_color(const Color &color)
+    {
+        m_background_color = color;
+        invalidate();
+    }
+
+    Color Widget::background_color() const
+    {
+        return m_background_color;
     }
 
     int Widget::x() const
@@ -385,7 +397,14 @@ namespace horizon
         return m_cursor_type;
     }
 
-    void Widget::draw(GraphicsContext &) {}
+    void Widget::draw(GraphicsContext &gc)
+    {
+        if (m_background_color.a > 0.001f)
+        {
+            gc.setColor(m_background_color);
+            gc.fillRect(m_x, m_y, m_width, m_height);
+        }
+    }
 
     void Widget::set_application_recursive(Application *app)
     {

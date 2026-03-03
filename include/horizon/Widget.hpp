@@ -1,5 +1,6 @@
 #pragma once
 
+#include "horizon/Color.hpp"
 #include "horizon/EventsManager.hpp"
 #include <functional>
 #include <map>
@@ -110,6 +111,7 @@ namespace horizon
         void set_position_type(WidgetPositionTypes position_type);
         void set_layout_type(WidgetLayoutTypes layout_type);
         void set_accent_color(WidgetAccentColor accent_color);
+        void set_background_color(const Color &color);
         virtual void calculate_layout();
 
         int x() const;
@@ -122,6 +124,7 @@ namespace horizon
         WidgetPositionTypes position_type() const;
         WidgetLayoutTypes layout_type() const;
         WidgetAccentColor accent_color() const;
+        Color background_color() const;
 
         // --- Estado ---
         void set_visible(bool visible);
@@ -235,6 +238,7 @@ namespace horizon
         WidgetPositionTypes m_position_type{FREE};
         WidgetLayoutTypes m_layout_type{WIDGET_LAYOUT_HORIZONTAL};
         WidgetAccentColor m_accent_color{WidgetAccentColor::Default};
+        Color m_background_color{0.0f, 0.0f, 0.0f, 0.0f}; // Default transparent
 
         std::map<WidgetEvent, WidgetDrawState> m_draw_state_map;
         WidgetDrawState m_draw_state{WidgetDrawState::NORMAL};
