@@ -286,6 +286,25 @@ namespace horizon
             return selected_items;
         }
 
+        void update_selection_visuals()
+        {
+            if (children().size() < 2)
+                return;
+            ScrollArea *scroll = static_cast<ScrollArea *>(children()[1].get());
+            if (scroll->children().empty())
+                return;
+
+            Widget *content = scroll->children()[0].get();
+            auto &rows = content->children();
+            for (int i = 0; i < (int)rows.size(); ++i)
+            {
+                if (auto *row = dynamic_cast<TableRow *>(rows[i].get()))
+                {
+                    row->set_selected(m_selected_rows.count(i) > 0);
+                }
+            }
+        }
+
         void rebuild_content()
         {
             if (children().size() < 2)
@@ -321,17 +340,19 @@ namespace horizon
 
                             if (ctrl_pressed)
                             {
-                                // Add to selection
-                                m_selected_rows.insert((int)row_idx);
+                                if (m_selected_rows.count((int)row_idx))
+                                    m_selected_rows.erase((int)row_idx);
+                                else
+                                    m_selected_rows.insert((int)row_idx);
                             }
                             else
                             {
-                                // Single selection
                                 m_selected_rows.clear();
                                 m_selected_rows.insert((int)row_idx);
                             }
 
-                            rebuild_content();
+                            update_selection_visuals();
+
                             if (m_on_row_selected)
                                 m_on_row_selected(m_data[row_idx]);
                         }
@@ -385,7 +406,16 @@ namespace horizon
                           });
 
                 rebuild_header();
-                rebuild_content();
+
+                // Defer rebuild to avoid destroying the clicked button while in handler
+                if (auto *app = application())
+                {
+                    app->add_timer(0, [this]() { rebuild_content(); });
+                }
+                else
+                {
+                    rebuild_content();
+                }
             }
         }
 

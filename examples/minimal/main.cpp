@@ -383,11 +383,77 @@ int main()
                                              "drive-harddisk", "Disk " + std::to_string(i)));
         }
 
-        auto right_side = std::make_unique<horizon::SolidObject>();
-        right_side->set_accent_color(horizon::WidgetAccentColor::Secondary);
+        struct FileEntry
+        {
+            std::string name;
+            std::string size;
+            bool is_folder;
+        };
+
+        auto file_table = std::make_unique<horizon::TableView<FileEntry>>();
+        file_table->set_width_mode(horizon::TableViewWidthMode::Fill);
+
+        horizon::TableColumn<FileEntry> col_file_icon;
+        col_file_icon.id = "icon";
+        col_file_icon.title = "";
+        col_file_icon.width = 32;
+        col_file_icon.cell_factory = [](const FileEntry &f)
+        {
+            auto icon = std::make_unique<horizon::Icon>();
+            icon->set_icon_name(f.is_folder ? "folder" : "text-x-generic");
+            icon->set_icon_size(24);
+            return icon;
+        };
+
+        horizon::TableColumn<FileEntry> col_file_name;
+        col_file_name.id = "name";
+        col_file_name.title = "Nombre";
+        col_file_name.width = 300;
+        col_file_name.cell_factory = [](const FileEntry &f)
+        {
+            auto lbl = std::make_unique<Label>(f.name);
+            if (f.is_folder)
+                lbl->set_font_weight(FONT_WEIGHT_BOLD);
+            return lbl;
+        };
+
+        horizon::TableColumn<FileEntry> col_file_size;
+        col_file_size.id = "size";
+        col_file_size.title = "Tamaño";
+        col_file_size.width = 100;
+        col_file_size.cell_factory = [](const FileEntry &f)
+        { return std::make_unique<Label>(f.size); };
+
+        file_table->add_column(col_file_icon);
+        file_table->add_column(col_file_name);
+        file_table->add_column(col_file_size);
+
+        std::vector<FileEntry> files;
+        files.push_back({"Documents", "---", true});
+        files.push_back({"Downloads", "---", true});
+        files.push_back({"Photos", "---", true});
+        files.push_back({"report.pdf", "2.4 MB", false});
+        files.push_back({"vacation.jpg", "4.1 MB", false});
+        files.push_back({"notes.txt", "12 KB", false});
+        files.push_back({"Work", "---", true});
+        files.push_back({"Presentation.pptx", "15.0 MB", false});
+        files.push_back({"Budget.xlsx", "850 KB", false});
+        files.push_back({"Projects", "---", true});
+        files.push_back({"script.py", "5 KB", false});
+        files.push_back({"todo.md", "1 KB", false});
+        files.push_back({"Movies", "---", true});
+        files.push_back({"avatar.png", "250 KB", false});
+        files.push_back({"backup.zip", "1.2 GB", false});
+        files.push_back({"Source", "---", true});
+        files.push_back({"main.cpp", "45 KB", false});
+        files.push_back({"README", "2 KB", false});
+        files.push_back({"Music", "---", true});
+        files.push_back({"song.mp3", "8 MB", false});
+
+        file_table->set_data(std::move(files));
 
         vpanel->add_child(std::move(sidebar));
-        vpanel->add_child(std::move(right_side));
+        vpanel->add_child(std::move(file_table));
 
         vpanel_container->add_child(std::move(vpanel));
         notebook->add_tab(NotebookPage("VPanel", std::move(vpanel_container)));
