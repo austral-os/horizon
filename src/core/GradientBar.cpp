@@ -10,7 +10,7 @@ namespace horizon
         set_size(200, 20);
 
         when_mouse_press.connect([this](EventContext &ev) { handle_mouse_press(ev); });
-        when_mouse_move.connect([this](EventContext &ev) { handle_mouse_drag(ev); });
+        when_mouse_drag.connect([this](EventContext &ev) { handle_mouse_drag(ev); });
         when_mouse_release.connect([this](EventContext &) { m_dragging = false; });
     }
 
