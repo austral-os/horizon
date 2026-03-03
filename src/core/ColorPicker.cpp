@@ -102,6 +102,7 @@ namespace horizon
         create_slider_row("R", &m_r_slider, &m_r_box);
         create_slider_row("G", &m_g_slider, &m_g_box);
         create_slider_row("B", &m_b_slider, &m_b_box);
+        create_slider_row("A", &m_a_slider, &m_a_box);
 
         // Spacer for HSV
         auto spacer = std::make_unique<Widget>();
@@ -185,6 +186,14 @@ namespace horizon
         connect_rgb(m_g_slider, 1);
         connect_rgb(m_b_slider, 2);
 
+        m_a_slider->when_value_changed.connect(
+            [this](EventContext &)
+            {
+                Color c = m_color;
+                c.a = m_a_slider->value();
+                set_color(c);
+            });
+
         // Connect HSV sliders
         m_h_slider->when_value_changed.connect(
             [this](EventContext &)
@@ -239,6 +248,24 @@ namespace horizon
         connect_rgb_box(m_r_box, 0);
         connect_rgb_box(m_g_box, 1);
         connect_rgb_box(m_b_box, 2);
+
+        m_a_box->when_text_changed.connect(
+            [this](EventContext &)
+            {
+                try
+                {
+                    float val = std::stof(m_a_box->text()) / 255.0f;
+                    val = std::clamp(val, 0.0f, 1.0f);
+                    Color c = m_color;
+                    c.a = val;
+                    m_active_input = m_a_box;
+                    set_color(c);
+                    m_active_input = nullptr;
+                }
+                catch (...)
+                {
+                }
+            });
 
         // Connect HSV textboxes
         m_h_box->when_text_changed.connect(
@@ -346,6 +373,10 @@ namespace horizon
         m_r_slider->set_stops({Color(0, m_color.g, m_color.b), Color(1, m_color.g, m_color.b)});
         m_g_slider->set_stops({Color(m_color.r, 0, m_color.b), Color(m_color.r, 1, m_color.b)});
         m_b_slider->set_stops({Color(m_color.r, m_color.g, 0), Color(m_color.r, m_color.g, 1)});
+        m_a_slider->set_stops({Color(m_color.r, m_color.g, m_color.b, 0.0f),
+                               Color(m_color.r, m_color.g, m_color.b, 1.0f)});
+
+        m_a_slider->set_value(m_color.a);
 
         // HSV
         m_h_slider->set_value(h / 360.0f);
@@ -371,6 +402,8 @@ namespace horizon
             m_g_box->set_text(std::to_string((int)(m_color.g * 255)));
         if (m_active_input != m_b_box)
             m_b_box->set_text(std::to_string((int)(m_color.b * 255)));
+        if (m_active_input != m_a_box)
+            m_a_box->set_text(std::to_string((int)(m_color.a * 255)));
 
         if (m_active_input != m_h_box)
             m_h_box->set_text(to_string_dec(h));
