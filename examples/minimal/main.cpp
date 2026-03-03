@@ -18,6 +18,7 @@
 #include <horizon/SolidObject.hpp>
 #include <horizon/TableView.hpp>
 #include <horizon/TextBox.hpp>
+#include <horizon/Textarea.hpp>
 #include <horizon/VPanel.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/Window.hpp>
@@ -391,7 +392,20 @@ int main()
         vpanel_container->add_child(std::move(vpanel));
         notebook->add_tab(NotebookPage("VPanel", std::move(vpanel_container)));
 
-        notebook->set_current_tab(8);
+        // --- New Tab for Textarea demo ---
+        auto textarea_container = std::make_unique<Widget>();
+        textarea_container->set_margin(30);
+        textarea_container->set_spacing(15);
+
+        auto textarea = std::make_unique<horizon::Textarea>();
+        textarea->set_placeholder("Escribe aquí tu texto multilínea...");
+        textarea->set_text("Este es un ejemplo de Textarea.\nSoporta múltiples líneas.\nPuedes "
+                           "navegar con las flechas.\nIncluso moverte arriba y abajo!");
+
+        textarea_container->add_child(std::move(textarea));
+        notebook->add_tab(NotebookPage("Textarea", std::move(textarea_container)));
+
+        notebook->set_current_tab(9);
 
         wnd->add_child(std::move(notebook));
 
