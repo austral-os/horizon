@@ -7,7 +7,7 @@ namespace horizon
 {
 
     const int TOOLBAR_TOP_HEIGHT = 34;
-    const int TOOLBAR_BOTTOM_HEIGHT = 54;
+    const int TOOLBAR_BOTTOM_HEIGHT = 48;
     const int TOOLBAR_HEIGHT = TOOLBAR_TOP_HEIGHT + TOOLBAR_BOTTOM_HEIGHT;
 
     Toolbar::Toolbar(std::string title) : Titlebar(std::move(title))
