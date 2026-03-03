@@ -16,6 +16,7 @@
 #include <horizon/SolidObject.hpp>
 #include <horizon/TableView.hpp>
 #include <horizon/TextBox.hpp>
+#include <horizon/VPanel.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/Window.hpp>
 #include <iostream>
@@ -350,7 +351,24 @@ int main()
         color_container->add_child(std::move(cp));
         notebook->add_tab(NotebookPage("Color", std::move(color_container)));
 
-        notebook->set_current_tab(7);
+        // --- New Tab for VPanel demo ---
+        auto tab_vpanel = std::make_unique<Widget>();
+        tab_vpanel->set_margin(10);
+        auto vpanel = std::make_unique<horizon::VPanel>();
+
+        auto left_side = std::make_unique<horizon::SolidObject>();
+        left_side->set_accent_color(horizon::WidgetAccentColor::Primary);
+
+        auto right_side = std::make_unique<horizon::SolidObject>();
+        right_side->set_accent_color(horizon::WidgetAccentColor::Secondary);
+
+        vpanel->add_child(std::move(left_side));
+        vpanel->add_child(std::move(right_side));
+
+        tab_vpanel->add_child(std::move(vpanel));
+        notebook->add_tab(NotebookPage("VPanel", std::move(tab_vpanel)));
+
+        notebook->set_current_tab(8);
 
         wnd->add_child(std::move(notebook));
 
