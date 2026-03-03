@@ -17,6 +17,7 @@ namespace horizon
         ~SidebarItem() = default;
 
         void draw(GraphicsContext &gc) override;
+        Widget *hit_test(int x, int y) override;
 
     private:
         Icon *m_icon_ptr{nullptr};

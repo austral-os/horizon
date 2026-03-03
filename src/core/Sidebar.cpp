@@ -17,7 +17,7 @@ namespace horizon
         auto content = std::make_unique<Widget>();
         content->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         content->set_spacing(0);
-        content->set_margin(10);
+        content->set_margin(0); // REMOVED MARGIN for edge-to-edge selection
         m_content_container = content.get();
 
         m_scroll_area->set_content(std::move(content));
@@ -37,8 +37,9 @@ namespace horizon
         header->set_font_size(11);
         header->set_font_weight(FONT_WEIGHT_BOLD);
         header->set_text_color(Color(0.5f, 0.5f, 0.5f, 1.0f));
-        header->set_margin(5);
+        header->set_margin(15); // Re-enabled margin-based indentation
         header->set_fixed_size(25);
+        header->set_vertical_alignment(VerticalAlignment::Middle);
 
         m_groups[name] = group_container.get();
 
@@ -100,7 +101,7 @@ namespace horizon
 
             // FIX: Set fixed_size so parent layout (VPanel) knows how much space to give
             group->set_fixed_size(group_height);
-            group->set_size(width - m_content_container->margin() * 2, group_height);
+            group->set_size(width, group_height); // Using full width
 
             total_height += group_height + m_content_container->spacing();
         }
@@ -117,8 +118,8 @@ namespace horizon
 
     void Sidebar::draw(GraphicsContext &gc)
     {
-        // Slight background for the sidebar
-        gc.setColor(0.95f, 0.95f, 0.95f, 1.0f);
+        // Slight blueish background for the sidebar (Source List look)
+        gc.setColor(0.875f, 0.902f, 0.933f, 1.0f);
         gc.fillRect(m_x, m_y, m_width, m_height);
 
         // Vertical separator line on the right
