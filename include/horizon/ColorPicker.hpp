@@ -50,13 +50,13 @@ namespace horizon
 
         // RGB Sliders
         GradientBar *m_r_slider, *m_g_slider, *m_b_slider, *m_a_slider;
-        TextBox *m_r_box, *m_g_box, *m_b_box, *m_a_box;
+        TextBox<IntegerPolicy> *m_r_box, *m_g_box, *m_b_box, *m_a_box;
 
         // HSV Sliders (can reuse LCh/etc based on logic)
         GradientBar *m_h_slider, *m_s_slider, *m_v_slider;
-        TextBox *m_h_box, *m_s_box, *m_v_box;
+        TextBox<DoublePolicy> *m_h_box, *m_s_box, *m_v_box;
 
-        TextBox *m_hex_box;
+        TextBox<TextPolicy> *m_hex_box;
         Widget *m_active_input = nullptr;
 
         // Preview widget (custom inner widget or just a colored frame)

@@ -1,8 +1,12 @@
 #include <horizon/ColorPicker.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/ThemeManager.hpp>
+#include <horizon/Widget.hpp>
 #include <iomanip>
+#include <iostream>
+#include <memory>
 #include <sstream>
+#include <type_traits>
 
 namespace horizon
 {
@@ -73,8 +77,11 @@ namespace horizon
 
         // Helper for creating slider rows
         auto create_slider_row =
-            [&](const std::string &label_text, GradientBar **bar_out, TextBox **box_out)
+            [&](const std::string &label_text, GradientBar **bar_out, auto **box_out)
         {
+            using ActualTextBox =
+                typename std::remove_pointer<typename std::decay<decltype(*box_out)>::type>::type;
+
             auto row = std::make_unique<Widget>();
             row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
             row->set_spacing(5);
@@ -91,7 +98,7 @@ namespace horizon
             (*bar_out)->set_position_type(FILL);
             row->add_child(std::move(bar));
 
-            auto box = std::make_unique<TextBox>();
+            auto box = std::make_unique<ActualTextBox>();
             *box_out = box.get();
             (*box_out)->set_fixed_size(60);
             row->add_child(std::move(box));
@@ -140,7 +147,7 @@ namespace horizon
         hex_box_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         hex_box_container->set_fixed_size(30);
 
-        auto hex_box = std::make_unique<TextBox>();
+        auto hex_box = std::make_unique<TextBox<TextPolicy>>();
         m_hex_box = hex_box.get();
         m_hex_box->set_fixed_size(150);
         hex_box_container->add_child(std::move(hex_box));
@@ -220,7 +227,7 @@ namespace horizon
             });
 
         // Connect RGB textboxes
-        auto connect_rgb_box = [&](TextBox *box, int comp)
+        auto connect_rgb_box = [&](TextBoxBase *box, int comp)
         {
             box->when_text_changed.connect(
                 [this, box, comp](EventContext &)
@@ -408,9 +415,9 @@ namespace horizon
         if (m_active_input != m_h_box)
             m_h_box->set_text(to_string_dec(h));
         if (m_active_input != m_s_box)
-            m_s_box->set_text(to_string_dec(s * 100));
+            m_s_box->set_text(to_string_dec(s * 100.0f));
         if (m_active_input != m_v_box)
-            m_v_box->set_text(to_string_dec(v * 100));
+            m_v_box->set_text(to_string_dec(v * 100.0f));
 
         invalidate();
     }

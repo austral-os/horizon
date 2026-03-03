@@ -125,7 +125,7 @@ int main()
         auto tb_container = std::make_unique<Widget>();
         tb_container->set_margin(40);
         tb_container->set_spacing(10);
-        auto textbox = std::make_unique<TextBox>();
+        auto textbox = std::make_unique<TextBox<horizon::TextPolicy>>();
         textbox->set_placeholder("Nombre");
         textbox->set_text("");
         tb_container->add_child(std::move(textbox));
