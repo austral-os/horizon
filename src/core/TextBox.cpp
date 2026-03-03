@@ -14,6 +14,21 @@ namespace horizon
 
         m_last_blink_time = std::chrono::steady_clock::now();
 
+        when_focus.connect(
+            [this](EventContext &)
+            {
+                m_cursor_visible = true;
+                m_last_blink_time = std::chrono::steady_clock::now();
+                invalidate();
+            });
+
+        when_blur.connect(
+            [this](EventContext &)
+            {
+                m_cursor_visible = false;
+                invalidate();
+            });
+
         when_mouse_press.connect(
             [this](EventContext &ev)
             {
@@ -40,9 +55,6 @@ namespace horizon
         when_key_press.connect(
             [this](EventContext &ev)
             {
-                if (!has_focus())
-                    return;
-
                 m_cursor_visible = true;
                 m_last_blink_time = std::chrono::steady_clock::now();
 

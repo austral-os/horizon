@@ -101,6 +101,17 @@ namespace horizon
             auto box = std::make_unique<ActualTextBox>();
             *box_out = box.get();
             (*box_out)->set_fixed_size(60);
+
+            // Focus management for active input
+            (*box_out)->when_focus.connect([this, box_ptr = (*box_out)](EventContext &)
+                                           { m_active_input = box_ptr; });
+            (*box_out)->when_blur.connect(
+                [this, box_ptr = (*box_out)](EventContext &)
+                {
+                    if (m_active_input == box_ptr)
+                        m_active_input = nullptr;
+                });
+
             row->add_child(std::move(box));
 
             right_panel->add_child(std::move(row));
@@ -150,6 +161,17 @@ namespace horizon
         auto hex_box = std::make_unique<TextBox<TextPolicy>>();
         m_hex_box = hex_box.get();
         m_hex_box->set_fixed_size(150);
+
+        // Focus management for HEX input
+        m_hex_box->when_focus.connect([this, hb_ptr = m_hex_box](EventContext &)
+                                      { m_active_input = hb_ptr; });
+        m_hex_box->when_blur.connect(
+            [this, hb_ptr = m_hex_box](EventContext &)
+            {
+                if (m_active_input == hb_ptr)
+                    m_active_input = nullptr;
+            });
+
         hex_box_container->add_child(std::move(hex_box));
 
         hex_panel->add_child(std::move(hex_box_container));
@@ -243,9 +265,7 @@ namespace horizon
                             c.g = val;
                         else if (comp == 2)
                             c.b = val;
-                        m_active_input = box;
                         set_color(c);
-                        m_active_input = nullptr;
                     }
                     catch (...)
                     {
@@ -265,9 +285,7 @@ namespace horizon
                     val = std::clamp(val, 0.0f, 1.0f);
                     Color c = m_color;
                     c.a = val;
-                    m_active_input = m_a_box;
                     set_color(c);
-                    m_active_input = nullptr;
                 }
                 catch (...)
                 {
@@ -283,9 +301,7 @@ namespace horizon
                     float h = std::stof(m_h_box->text()); // degrees 0-360
                     float hs, s, v;
                     m_color.to_hsv(hs, s, v);
-                    m_active_input = m_h_box;
                     set_color(Color(std::clamp(h, 0.0f, 360.0f), s, v, true));
-                    m_active_input = nullptr;
                 }
                 catch (...)
                 {
@@ -300,9 +316,7 @@ namespace horizon
                     float s = std::stof(m_s_box->text()) / 100.0f; // 0-100
                     float h, sv, v;
                     m_color.to_hsv(h, sv, v);
-                    m_active_input = m_s_box;
                     set_color(Color(h, std::clamp(s, 0.0f, 1.0f), v, true));
-                    m_active_input = nullptr;
                 }
                 catch (...)
                 {
@@ -317,9 +331,7 @@ namespace horizon
                     float v = std::stof(m_v_box->text()) / 100.0f; // 0-100
                     float h, s, sv;
                     m_color.to_hsv(h, s, sv);
-                    m_active_input = m_v_box;
                     set_color(Color(h, s, std::clamp(v, 0.0f, 1.0f), true));
-                    m_active_input = nullptr;
                 }
                 catch (...)
                 {
@@ -341,9 +353,7 @@ namespace horizon
                     {
                         try
                         {
-                            m_active_input = m_hex_box;
                             set_color(Color(text));
-                            m_active_input = nullptr;
                         }
                         catch (...)
                         {
