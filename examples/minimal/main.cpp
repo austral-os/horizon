@@ -12,6 +12,8 @@
 #include <horizon/RadioButton.hpp>
 #include <horizon/ScrollArea.hpp>
 #include <horizon/SearchBox.hpp>
+#include <horizon/Sidebar.hpp>
+#include <horizon/SidebarItem.hpp>
 #include <horizon/Slider.hpp>
 #include <horizon/SolidObject.hpp>
 #include <horizon/TableView.hpp>
@@ -355,14 +357,33 @@ int main()
         auto tab_vpanel = std::make_unique<Widget>();
         tab_vpanel->set_margin(10);
         auto vpanel = std::make_unique<horizon::VPanel>();
+        vpanel->set_left_width(180);
 
-        auto left_side = std::make_unique<horizon::SolidObject>();
-        left_side->set_accent_color(horizon::WidgetAccentColor::Primary);
+        auto sidebar = std::make_unique<horizon::Sidebar>();
+        sidebar->add_group("Favorites");
+        sidebar->add_item("Favorites",
+                          std::make_unique<horizon::SidebarItem>("user-home", "All My Files"));
+        sidebar->add_item("Favorites",
+                          std::make_unique<horizon::SidebarItem>("folder-remote", "iCloud Drive"));
+        sidebar->add_item("Favorites",
+                          std::make_unique<horizon::SidebarItem>("system-run", "Aplicaciones"));
+        sidebar->add_item("Favorites",
+                          std::make_unique<horizon::SidebarItem>("user-desktop", "Desktop"));
+        sidebar->add_item("Favorites",
+                          std::make_unique<horizon::SidebarItem>("folder-documents", "Documents"));
+        sidebar->add_item("Favorites",
+                          std::make_unique<horizon::SidebarItem>("folder-download", "Downloads"));
+
+        sidebar->add_group("Devices");
+        sidebar->add_item("Devices",
+                          std::make_unique<horizon::SidebarItem>("drive-harddisk", "Macintosh HD"));
+        sidebar->add_item("Devices",
+                          std::make_unique<horizon::SidebarItem>("network-workgroup", "Network"));
 
         auto right_side = std::make_unique<horizon::SolidObject>();
         right_side->set_accent_color(horizon::WidgetAccentColor::Secondary);
 
-        vpanel->add_child(std::move(left_side));
+        vpanel->add_child(std::move(sidebar));
         vpanel->add_child(std::move(right_side));
 
         tab_vpanel->add_child(std::move(vpanel));
