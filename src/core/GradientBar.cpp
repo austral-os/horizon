@@ -89,23 +89,33 @@ namespace horizon
             else
                 marker_pos = x + (int)(m_value * w);
 
-            gc.setColor(1.0f, 1.0f, 1.0f, 0.9f);
+            gc.setColor(0.0f, 0.0f, 0.0f);
             if (m_vertical)
             {
-                // Simple horizontal line for now, or triangle markers
-                gc.drawLine(x - 2, marker_pos, x + w + 2, marker_pos, 2.0f);
+                // Triangle markers left and right
+                std::vector<PolygonPoint> left_tri = {{(int)x, marker_pos, 0},
+                                                      {(int)x + 5, marker_pos - 5, 0},
+                                                      {(int)x + 5, marker_pos + 5, 0}};
+                std::vector<PolygonPoint> right_tri = {{(int)x + w, marker_pos, 0},
+                                                       {(int)x + w - 5, marker_pos - 5, 0},
+                                                       {(int)x + w - 5, marker_pos + 5, 0}};
+
+                gc.fillPolygon(left_tri);
+                gc.fillPolygon(right_tri);
+                gc.setColor(1.0f, 1.0f, 1.0f);
+                gc.drawPolygon(left_tri, 1.0f);
+                gc.drawPolygon(right_tri, 1.0f);
             }
             else
             {
                 // Triangle markers top and bottom
-                std::vector<PolygonPoint> top_tri = {{(int)marker_pos, y - 2, 0},
-                                                     {(int)marker_pos - 4, y - 6, 0},
-                                                     {(int)marker_pos + 4, y - 6, 0}};
-                std::vector<PolygonPoint> bot_tri = {{(int)marker_pos, y + h + 2, 0},
-                                                     {(int)marker_pos - 4, y + h + 6, 0},
-                                                     {(int)marker_pos + 4, y + h + 6, 0}};
+                std::vector<PolygonPoint> top_tri = {{(int)marker_pos, y, 0},
+                                                     {(int)marker_pos - 5, y + 5, 0},
+                                                     {(int)marker_pos + 5, y + 5, 0}};
+                std::vector<PolygonPoint> bot_tri = {{(int)marker_pos, y + h, 0},
+                                                     {(int)marker_pos - 5, y + h - 5, 0},
+                                                     {(int)marker_pos + 5, y + h - 5, 0}};
 
-                gc.setColor(0.0f, 0.0f, 0.0f);
                 gc.fillPolygon(top_tri);
                 gc.fillPolygon(bot_tri);
                 gc.setColor(1.0f, 1.0f, 1.0f);
