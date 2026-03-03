@@ -5,6 +5,11 @@
 
 namespace horizon
 {
+
+    const int TOOLBAR_TOP_HEIGHT = 34;
+    const int TOOLBAR_BOTTOM_HEIGHT = 54;
+    const int TOOLBAR_HEIGHT = TOOLBAR_TOP_HEIGHT + TOOLBAR_BOTTOM_HEIGHT;
+
     Toolbar::Toolbar(std::string title) : Titlebar(std::move(title))
     {
         // 1. Capture existing children (standard titlebar buttons and spacer)
@@ -18,13 +23,13 @@ namespace horizon
 
         // 2. Configure Toolbar itself as Vertical
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        set_fixed_size(68); // 34 (top) + 34 (bottom)
+        set_fixed_size(TOOLBAR_HEIGHT);
 
         // 3. Create Top Row (for standard buttons/spacer)
         auto top_row = std::make_unique<Widget>();
         top_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         top_row->set_position_type(FILL);
-        top_row->set_fixed_size(34);
+        top_row->set_fixed_size(TOOLBAR_TOP_HEIGHT);
         top_row->set_margin(9); // Centra los botones de 16px en la fila de 34px
         top_row->set_spacing(8);
         m_top_row = top_row.get();
@@ -39,7 +44,7 @@ namespace horizon
         auto bottom_row = std::make_unique<Widget>();
         bottom_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         bottom_row->set_position_type(FILL);
-        bottom_row->set_fixed_size(34);
+        bottom_row->set_fixed_size(TOOLBAR_BOTTOM_HEIGHT);
         bottom_row->set_margin(4); // Pequeño margen para los widgets de la toolbar
         bottom_row->set_spacing(6);
         m_bottom_row = bottom_row.get();
