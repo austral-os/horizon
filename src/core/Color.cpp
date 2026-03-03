@@ -25,6 +25,15 @@ namespace horizon
         {
             std::sscanf(hex.c_str(), "#%02x%02x%02x%02x", &ri, &gi, &bi, &ai);
         }
+        else if (hex.size() == 4)
+        {
+            // Case #RGB: expand to #RRGGBB
+            std::sscanf(hex.c_str(), "#%1x%1x%1x", &ri, &gi, &bi);
+            ri = (ri << 4) | ri;
+            gi = (gi << 4) | gi;
+            bi = (bi << 4) | bi;
+            ai = 255;
+        }
         r = ri / 255.f;
         g = gi / 255.f;
         b = bi / 255.f;

@@ -227,7 +227,9 @@ namespace horizon
                             c.g = val;
                         else if (comp == 2)
                             c.b = val;
+                        m_active_input = box;
                         set_color(c);
+                        m_active_input = nullptr;
                     }
                     catch (...)
                     {
@@ -247,7 +249,9 @@ namespace horizon
                     float h = std::stof(m_h_box->text()); // degrees 0-360
                     float hs, s, v;
                     m_color.to_hsv(hs, s, v);
+                    m_active_input = m_h_box;
                     set_color(Color(std::clamp(h, 0.0f, 360.0f), s, v, true));
+                    m_active_input = nullptr;
                 }
                 catch (...)
                 {
@@ -262,7 +266,9 @@ namespace horizon
                     float s = std::stof(m_s_box->text()) / 100.0f; // 0-100
                     float h, sv, v;
                     m_color.to_hsv(h, sv, v);
+                    m_active_input = m_s_box;
                     set_color(Color(h, std::clamp(s, 0.0f, 1.0f), v, true));
+                    m_active_input = nullptr;
                 }
                 catch (...)
                 {
@@ -277,7 +283,9 @@ namespace horizon
                     float v = std::stof(m_v_box->text()) / 100.0f; // 0-100
                     float h, s, sv;
                     m_color.to_hsv(h, s, sv);
+                    m_active_input = m_v_box;
                     set_color(Color(h, s, std::clamp(v, 0.0f, 1.0f), true));
+                    m_active_input = nullptr;
                 }
                 catch (...)
                 {
@@ -299,7 +307,9 @@ namespace horizon
                     {
                         try
                         {
+                            m_active_input = m_hex_box;
                             set_color(Color(text));
+                            m_active_input = nullptr;
                         }
                         catch (...)
                         {
@@ -345,7 +355,8 @@ namespace horizon
         m_preview->current = m_color;
         m_preview->previous = m_previous_color;
 
-        m_hex_box->set_text(m_color.to_hex().substr(0, 7)); // Just #RRGGBB
+        if (m_active_input != m_hex_box)
+            m_hex_box->set_text(m_color.to_hex().substr(0, 7)); // Just #RRGGBB
 
         auto to_string_dec = [](float f, int prec = 1)
         {
@@ -354,13 +365,19 @@ namespace horizon
             return ss.str();
         };
 
-        m_r_box->set_text(std::to_string((int)(m_color.r * 255)));
-        m_g_box->set_text(std::to_string((int)(m_color.g * 255)));
-        m_b_box->set_text(std::to_string((int)(m_color.b * 255)));
+        if (m_active_input != m_r_box)
+            m_r_box->set_text(std::to_string((int)(m_color.r * 255)));
+        if (m_active_input != m_g_box)
+            m_g_box->set_text(std::to_string((int)(m_color.g * 255)));
+        if (m_active_input != m_b_box)
+            m_b_box->set_text(std::to_string((int)(m_color.b * 255)));
 
-        m_h_box->set_text(to_string_dec(h));
-        m_s_box->set_text(to_string_dec(s * 100));
-        m_v_box->set_text(to_string_dec(v * 100));
+        if (m_active_input != m_h_box)
+            m_h_box->set_text(to_string_dec(h));
+        if (m_active_input != m_s_box)
+            m_s_box->set_text(to_string_dec(s * 100));
+        if (m_active_input != m_v_box)
+            m_v_box->set_text(to_string_dec(v * 100));
 
         invalidate();
     }

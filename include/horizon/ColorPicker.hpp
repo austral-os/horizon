@@ -57,6 +57,7 @@ namespace horizon
         TextBox *m_h_box, *m_s_box, *m_v_box;
 
         TextBox *m_hex_box;
+        Widget *m_active_input = nullptr;
 
         // Preview widget (custom inner widget or just a colored frame)
         class ColorPreview : public Widget
