@@ -208,6 +208,8 @@ namespace horizon
         EventsManager when_mouse_hover;
         EventsManager when_key_press;
         EventsManager when_key_release;
+        EventsManager when_focus;
+        EventsManager when_blur;
 
         virtual void set_application_recursive(Application *app);
 
@@ -234,18 +236,6 @@ namespace horizon
         WidgetLayoutTypes m_layout_type{WIDGET_LAYOUT_HORIZONTAL};
         WidgetAccentColor m_accent_color{WidgetAccentColor::Default};
 
-        /*
-         * m_widget_draw_state indica al metodo draw como debe dibujar el widget.
-         * Esta propiedad puede ser especificada por parametro y no depender de los eventos.
-         * Por defecto es NORMAL.
-         * Si se establece en HOVERED, el widget se dibujara como si estuviera hovereado.
-         * Si se establece en PRESSED, el widget se dibujara como si estuviera presionado.
-         * Si se establece en DISABLED, el widget se dibujara como si estuviera deshabilitado.
-         * Si se establece en FOCUSED, el widget se dibujara como si estuviera enfocado.
-         * todo esto sin depender de los eventos.
-         * Quizas podriamos especificar, opcionalmente en cada widget, en cual de estos estados
-         * debe dibujarse segun el evento que ocurra. Seria mapear eventos a formas de dibujarse.
-         */
         std::map<WidgetEvent, WidgetDrawState> m_draw_state_map;
         WidgetDrawState m_draw_state{WidgetDrawState::NORMAL};
 
@@ -257,12 +247,12 @@ namespace horizon
         bool m_is_pressed{false};
         CursorType m_cursor_type{CursorType::Default};
 
-        int m_start_draw_x{0};          // Posicion inicial x donde se puede comenzar a dibujar.
-        int m_start_draw_y{0};          // Posicion inicial y donde se puede comenzar a dibujar.
-        int m_available_draw_width{0};  // Ancho disponible para dibujar.
-        int m_available_draw_height{0}; // Alto disponible para dibujar.
-        int m_free_space{0};          // Espacio disponible para los hijos que no tienen fixed_size.
-        int m_free_children_count{0}; // Cantidad de hijos que no tienen fixed_size.
+        int m_start_draw_x{0};
+        int m_start_draw_y{0};
+        int m_available_draw_width{0};
+        int m_available_draw_height{0};
+        int m_free_space{0};
+        int m_free_children_count{0};
 
         Widget *m_parent{nullptr};
         Application *m_app{nullptr};

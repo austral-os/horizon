@@ -20,30 +20,10 @@ namespace horizon
         map_draw_state(WidgetEvent::MOUSE_RELEASE, WidgetDrawState::HOVERED);
 
         // Gestión de estados de interacción
-        when_mouse_enter.connect(
-            [this](EventContext &)
-            {
-                m_is_hovered = true;
-                // invalidate(); //redibuja el widget
-            });
-        when_mouse_leave.connect(
-            [this](EventContext &)
-            {
-                m_is_hovered = false;
-                // invalidate();
-            });
-        when_mouse_press.connect(
-            [this](EventContext &)
-            {
-                m_is_pressed = true;
-                // invalidate();
-            });
-        when_mouse_release.connect(
-            [this](EventContext &)
-            {
-                m_is_pressed = false;
-                // invalidate();
-            });
+        when_mouse_enter.connect([this](EventContext &) { m_is_hovered = true; });
+        when_mouse_leave.connect([this](EventContext &) { m_is_hovered = false; });
+        when_mouse_press.connect([this](EventContext &) { m_is_pressed = true; });
+        when_mouse_release.connect([this](EventContext &) { m_is_pressed = false; });
     }
 
     Widget::~Widget()
@@ -71,10 +51,8 @@ namespace horizon
             m_free_space = m_available_draw_width;
         }
 
-        // recorro los hijos y si tienen fixedSize los resto del espacio disponible
         for (const auto &child : m_children)
         {
-
             if (!child->is_visible())
                 continue;
 
@@ -90,7 +68,7 @@ namespace horizon
                 m_free_children_count++;
             }
 
-            count_non_free++; // Cuenta los widgets del tipo FILL
+            count_non_free++;
         }
 
         if (count_non_free > 1)
@@ -104,7 +82,6 @@ namespace horizon
         if (!m_visible)
             return;
 
-        // Absolute gate: if we don't intersect the dirty region, we don't draw or recurse.
         bool intersects =
             !(m_x >= cx + cw || m_x + m_width <= cx || m_y >= cy + ch || m_y + m_height <= cy);
 
@@ -179,17 +156,11 @@ namespace horizon
         if (!m_visible || !m_enabled)
             return nullptr;
 
-        // ¿El punto está dentro de este widget?
         if (x < m_x || y < m_y || x >= m_x + m_width || y >= m_y + m_height)
         {
             return nullptr;
         }
 
-        // Convertimos a coordenadas locales
-        int local_x = x - m_x;
-        int local_y = y - m_y;
-
-        // Recorremos hijos en orden inverso (top-most primero)
         for (auto it = m_children.rbegin(); it != m_children.rend(); ++it)
         {
             Widget *child = it->get();
@@ -197,7 +168,6 @@ namespace horizon
                 return hit;
         }
 
-        // Si ningún hijo lo contiene, este widget es el hit
         return this;
     }
 
@@ -324,32 +294,26 @@ namespace horizon
     {
         return m_height;
     }
-
     int Widget::fixed_size() const
     {
         return m_fixed_size;
     }
-
     int Widget::spacing() const
     {
         return m_spacing;
     }
-
     int Widget::margin() const
     {
         return m_margin;
     }
-
     WidgetPositionTypes Widget::position_type() const
     {
         return m_position_type;
     }
-
     WidgetLayoutTypes Widget::layout_type() const
     {
         return m_layout_type;
     }
-
     WidgetAccentColor Widget::accent_color() const
     {
         return m_accent_color;
@@ -359,32 +323,26 @@ namespace horizon
     {
         m_visible = visible;
     }
-
     bool Widget::is_visible() const
     {
         return m_visible;
     }
-
     void Widget::set_enabled(bool enabled)
     {
         m_enabled = enabled;
     }
-
     bool Widget::is_enabled() const
     {
         return m_enabled;
     }
-
     void Widget::set_focusable(bool focusable)
     {
         m_focusable = focusable;
     }
-
     bool Widget::is_focusable() const
     {
         return m_focusable;
     }
-
     bool Widget::has_focus() const
     {
         return m_has_focus;
@@ -395,6 +353,16 @@ namespace horizon
         if (m_has_focus != focus)
         {
             m_has_focus = focus;
+            EventContext ev;
+            ev.sender = this;
+            if (m_has_focus)
+            {
+                when_focus.run(ev);
+            }
+            else
+            {
+                when_blur.run(ev);
+            }
             invalidate();
         }
     }
@@ -403,7 +371,6 @@ namespace horizon
     {
         return m_is_hovered;
     }
-
     bool Widget::is_pressed() const
     {
         return m_is_pressed;
@@ -413,7 +380,6 @@ namespace horizon
     {
         m_cursor_type = type;
     }
-
     CursorType Widget::cursor_type() const
     {
         return m_cursor_type;
@@ -447,6 +413,73 @@ namespace horizon
         {
             app->invalidate(this);
         }
+    }
+
+    size_t Widget::add_on_mouse_leave(std::function<void()> handler)
+    {
+        return when_mouse_leave.connect([handler](EventContext &) { handler(); });
+    }
+    void Widget::remove_on_mouse_leave(size_t id)
+    {
+        when_mouse_leave.disconnect(id);
+    }
+
+    size_t Widget::add_on_mouse_move(std::function<void(int, int)> handler)
+    {
+        return when_mouse_move.connect([handler](EventContext &ev)
+                                       { handler((int)ev.eventX, (int)ev.eventY); });
+    }
+    void Widget::remove_on_mouse_move(size_t id)
+    {
+        when_mouse_move.disconnect(id);
+    }
+
+    size_t Widget::add_on_mouse_press(std::function<void(int)> handler)
+    {
+        return when_mouse_press.connect([handler](EventContext &ev) { handler(ev.button); });
+    }
+    void Widget::remove_on_mouse_press(size_t id)
+    {
+        when_mouse_press.disconnect(id);
+    }
+
+    size_t Widget::add_on_mouse_release(std::function<void(int)> handler)
+    {
+        return when_mouse_release.connect([handler](EventContext &ev) { handler(ev.button); });
+    }
+    void Widget::remove_on_mouse_release(size_t id)
+    {
+        when_mouse_release.disconnect(id);
+    }
+
+    size_t Widget::add_on_mouse_drag(std::function<void(int, int)> handler)
+    {
+        return when_mouse_drag.connect([handler](EventContext &ev)
+                                       { handler((int)ev.eventX, (int)ev.eventY); });
+    }
+    void Widget::remove_on_mouse_drag(size_t id)
+    {
+        when_mouse_drag.disconnect(id);
+    }
+
+    size_t Widget::add_on_mouse_hover(std::function<void(int, int)> handler)
+    {
+        return when_mouse_hover.connect([handler](EventContext &ev)
+                                        { handler((int)ev.eventX, (int)ev.eventY); });
+    }
+    void Widget::remove_on_mouse_hover(size_t id)
+    {
+        when_mouse_hover.disconnect(id);
+    }
+
+    void Widget::set_on_click(std::function<void()> handler)
+    {
+        when_mouse_press.connect(
+            [handler](EventContext &ev)
+            {
+                if (ev.button == 0x110)
+                    handler();
+            });
     }
 
 } // namespace horizon
