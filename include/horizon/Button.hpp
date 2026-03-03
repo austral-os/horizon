@@ -50,11 +50,25 @@ namespace horizon
 
             T::draw(gc);
 
-            // Center the label within the button
+            // Center the label within the button, accounting for children (like icons)
             int margin = 5;
+            int label_offset = 0;
+
+            // If we have children (e.g. an icon at the beginning),
+            // we should offset the label to the right.
+            if (!this->m_children.empty())
+            {
+                // Approximate width of children + spacing
+                // For a 16px icon + 4px spacing, we offset by 20.
+                label_offset = 24;
+            }
+
             m_label->set_application_recursive(this->application());
-            m_label->set_position(this->m_start_draw_x + margin, this->m_start_draw_y + margin);
-            m_label->set_size(this->m_width - (margin * 2), this->m_height - (margin * 2) - 3);
+            m_label->set_position(this->m_start_draw_x + margin + label_offset,
+                                  this->m_start_draw_y + margin);
+            m_label->set_size(this->m_width - (margin * 2) - label_offset,
+                              this->m_height - (margin * 2) - 3);
+            m_label->set_alignment(label_offset > 0 ? TextAlignment::Left : TextAlignment::Center);
             m_label->calculate_layout();
 
             if (T::m_draw_state == WidgetDrawState::PRESSED)

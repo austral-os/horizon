@@ -22,6 +22,13 @@ namespace horizon
         add_child(std::move(titlebar));
     }
 
+    Window::Window(std::unique_ptr<Titlebar> custom_titlebar)
+    {
+        set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        m_titlebar = custom_titlebar.get();
+        add_child(std::move(custom_titlebar));
+    }
+
     void Window::set_size(int width, int height)
     {
         m_width = width;

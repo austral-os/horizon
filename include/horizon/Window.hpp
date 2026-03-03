@@ -20,9 +20,9 @@ namespace horizon
                     bool force = false) override;
 
     protected:
-        void draw(GraphicsContext &gc) override;
+        explicit Window(std::unique_ptr<Titlebar> custom_titlebar);
 
-    private:
+        void draw(GraphicsContext &gc) override;
         Titlebar *m_titlebar;
     };
 

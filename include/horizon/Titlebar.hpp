@@ -19,7 +19,7 @@ namespace horizon
                     bool force = false) override;
         void draw(GraphicsContext &gc) override;
 
-    private:
+    protected:
         std::string m_title;
         bool m_dragging_requested = false;
 
