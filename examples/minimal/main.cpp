@@ -404,6 +404,8 @@ int main()
             icon->set_icon_size(24);
             return icon;
         };
+        col_file_icon.sort_predicate = [](const FileEntry &a, const FileEntry &b)
+        { return a.is_folder && !b.is_folder; };
 
         horizon::TableColumn<FileEntry> col_file_name;
         col_file_name.id = "name";
@@ -416,6 +418,8 @@ int main()
                 lbl->set_font_weight(FONT_WEIGHT_BOLD);
             return lbl;
         };
+        col_file_name.sort_predicate = [](const FileEntry &a, const FileEntry &b)
+        { return a.name < b.name; };
 
         horizon::TableColumn<FileEntry> col_file_size;
         col_file_size.id = "size";
@@ -423,6 +427,8 @@ int main()
         col_file_size.width = 100;
         col_file_size.cell_factory = [](const FileEntry &f)
         { return std::make_unique<Label>(f.size); };
+        col_file_size.sort_predicate = [](const FileEntry &a, const FileEntry &b)
+        { return a.size < b.size; };
 
         file_table->add_column(col_file_icon);
         file_table->add_column(col_file_name);
