@@ -7,7 +7,7 @@ namespace horizon
     SearchBox::SearchBox() : TextBox<TextPolicy>()
     {
         m_padding_left = 32;
-        m_padding_right = 32;
+        m_padding_right = 40; // More space for the clear icon
         m_corner_radius = 16;
 
         auto search_icon = std::make_unique<Icon>();
@@ -47,17 +47,20 @@ namespace horizon
                 int icon_x = m_clear_ptr->x();
                 int icon_y = m_clear_ptr->y();
 
-                if (ev.eventX >= icon_x && ev.eventX <= icon_x + 16 && ev.eventY >= icon_y &&
-                    ev.eventY <= icon_y + 16)
+                // Hit test for clear icon (with a bit of extra padding for easier clicking)
+                if (ev.eventX >= icon_x - 4 && ev.eventX <= icon_x + 20 &&
+                    ev.eventY >= icon_y - 4 && ev.eventY <= icon_y + 20)
                 {
                     set_text("");
                     m_cursor_pos = 0;
-                    EventContext dummy;
-                    when_text_changed.run(dummy);
-                    invalidate();
+                    m_has_pending_click = false; // Prevent TextBoxBase from moving cursor
 
-                    // Stop propagation? EventContext has stop_propagation
+                    EventContext dummy;
+                    dummy.sender = this;
+                    when_text_changed.run(dummy);
+
                     ev.stop_propagation = true;
+                    invalidate();
                 }
             });
     }
@@ -74,7 +77,8 @@ namespace horizon
 
         if (m_clear_ptr)
         {
-            m_clear_ptr->set_position(m_x + m_width - 24, m_y + (m_height - 16) / 2);
+            // Margin of 16px from the right edge
+            m_clear_ptr->set_position(m_x + m_width - 32, m_y + (m_height - 16) / 2);
             m_clear_ptr->set_size(16, 16);
         }
     }
