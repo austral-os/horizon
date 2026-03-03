@@ -376,7 +376,7 @@ int main()
                           std::make_unique<horizon::SidebarItem>("folder-download", "Downloads"));
 
         sidebar->add_group("Devices");
-        for (int i = 1; i <= 10; ++i)
+        for (int i = 1; i <= 3; ++i)
         {
             sidebar->add_item("Devices", std::make_unique<horizon::SidebarItem>(
                                              "drive-harddisk", "Disk " + std::to_string(i)));

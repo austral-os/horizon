@@ -98,13 +98,20 @@ namespace horizon
             if (count > 0)
                 group_height -= group->spacing();
 
+            // FIX: Set fixed_size so parent layout (VPanel) knows how much space to give
+            group->set_fixed_size(group_height);
             group->set_size(width - m_content_container->margin() * 2, group_height);
+
             total_height += group_height + m_content_container->spacing();
         }
 
         if (!m_content_container->children().empty())
             total_height -= m_content_container->spacing();
 
+        // Include content container margins
+        total_height += m_content_container->margin() * 2;
+
+        m_content_container->set_fixed_size(total_height);
         m_content_container->set_size(width, total_height);
     }
 
