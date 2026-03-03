@@ -261,7 +261,7 @@ namespace horizon
             std::string hard_line = m_text.substr(last_pos, next_pos - last_pos);
 
             // Apply soft-wrap to this hard line
-            if (width_limit > 20)
+            if (width_limit > 20 && !hard_line.empty())
             {
                 std::string current_soft_line;
                 int soft_line_start_idx = last_pos;
@@ -316,7 +316,7 @@ namespace horizon
 
         // Last segment (trailing line)
         std::string hard_line = m_text.substr(last_pos);
-        if (width_limit > 20)
+        if (width_limit > 20 && !hard_line.empty())
         {
             std::string current_soft_line;
             int soft_line_start_idx = last_pos;
