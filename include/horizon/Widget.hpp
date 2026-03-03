@@ -110,7 +110,7 @@ namespace horizon
         void set_position_type(WidgetPositionTypes position_type);
         void set_layout_type(WidgetLayoutTypes layout_type);
         void set_accent_color(WidgetAccentColor accent_color);
-        void calculate_layout();
+        virtual void calculate_layout();
 
         int x() const;
         int y() const;

@@ -184,31 +184,33 @@ namespace horizon
         }
 
         gc.setColor(bg_color);
-        gc.fillRect(m_x, m_y, m_width, m_height, {radius});
+        gc.fillRect(m_x, m_y, m_width, m_height, {m_corner_radius});
 
         if (!valid)
         {
             gc.setColor(invalid_color);
-            gc.drawRect(m_x, m_y, m_width, m_height, {radius}, 2.0f);
+            gc.drawRect(m_x, m_y, m_width, m_height, {m_corner_radius}, 2.0f);
         }
         else if (has_focus())
         {
             gc.setColor(focus_color);
-            gc.drawRect(m_x + 1, m_y + 1, m_width - 3, m_height - 3, {radius}, 4.0f);
+            gc.drawRect(m_x + 1, m_y + 1, m_width - 3, m_height - 3, {m_corner_radius}, 4.0f);
         }
         else
         {
             gc.setColor(border_color);
-            gc.drawRect(m_x, m_y, m_width, m_height, {radius}, 1.0f);
+            gc.drawRect(m_x, m_y, m_width, m_height, {m_corner_radius}, 1.0f);
         }
 
         gc.fillLinearGradientRect(m_x + 1, m_y + 1, m_width - 2, 4, Color(0.0f, 0.0f, 0.0f, 0.15f),
-                                  Color(0.0f, 0.0f, 0.0f, 0.0f), true, {radius, radius, 0, 0});
+                                  Color(0.0f, 0.0f, 0.0f, 0.0f), true,
+                                  {m_corner_radius, m_corner_radius, 0, 0});
 
         gc.save();
-        gc.clip(m_x + 5, m_y + 5, m_width - 10, m_height - 10);
+        gc.clip(m_x + m_padding_left - 3, m_y + 5, m_width - (m_padding_left + m_padding_right) + 6,
+                m_height - 10);
 
-        int text_x_base = m_x + 8;
+        int text_x_base = m_x + m_padding_left;
         int text_y = m_y + (m_height / 2.0f) + (font.size * 0.4f) - 2;
 
         gc.setDrawFont(font.family.c_str(), font.size * 0.8, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
@@ -224,7 +226,7 @@ namespace horizon
             gc.getTextMetrics(lead_to_cursor.c_str(), font.family.c_str(), font.size * 0.8,
                               FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
 
-        int visible_width = m_width - 16;
+        int visible_width = m_width - (m_padding_left + m_padding_right);
         int cursor_x_rel = cursor_metrics.width;
 
         if (cursor_x_rel < m_scroll_offset)

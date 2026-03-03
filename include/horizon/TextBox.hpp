@@ -40,6 +40,11 @@ namespace horizon
         std::chrono::steady_clock::time_point m_last_blink_time;
         int m_pending_click_x{-1};
         bool m_has_pending_click{false};
+
+        // UI Customization
+        int m_padding_left{8};
+        int m_padding_right{8};
+        int m_corner_radius{0};
     };
 
     template <typename Policy = TextPolicy> class TextBox : public TextBoxBase

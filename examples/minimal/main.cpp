@@ -11,6 +11,7 @@
 #include <horizon/ProgressBar.hpp>
 #include <horizon/RadioButton.hpp>
 #include <horizon/ScrollArea.hpp>
+#include <horizon/SearchBox.hpp>
 #include <horizon/Slider.hpp>
 #include <horizon/SolidObject.hpp>
 #include <horizon/TableView.hpp>
@@ -129,6 +130,10 @@ int main()
         textbox->set_placeholder("Nombre");
         textbox->set_text("");
         tb_container->add_child(std::move(textbox));
+
+        auto searchbox = std::make_unique<horizon::SearchBox>();
+        searchbox->set_placeholder("Buscar...");
+        tb_container->add_child(std::move(searchbox));
 
         auto pb = std::make_unique<ProgressBar>();
         pb->set_progress(0.65f);
