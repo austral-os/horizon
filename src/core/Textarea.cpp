@@ -3,7 +3,6 @@
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Textarea.hpp>
 #include <linux/input-event-codes.h>
-#include <sstream>
 #include <xkbcommon/xkbcommon-keysyms.h>
 
 namespace horizon
@@ -401,7 +400,13 @@ namespace horizon
         int font_size = font.size * 0.8;
         gc.setDrawFont(font.family.c_str(), font_size, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
 
-        m_cached_lines = layout_text(gc, m_width - m_padding_left - m_padding_right);
+        int width_limit = m_width - m_padding_left - m_padding_right;
+        if (m_last_width_limit != width_limit || m_last_text_layout != m_text)
+        {
+            m_cached_lines = layout_text(gc, width_limit);
+            m_last_width_limit = width_limit;
+            m_last_text_layout = m_text;
+        }
         const auto &lines = m_cached_lines;
 
         if (m_has_pending_click)

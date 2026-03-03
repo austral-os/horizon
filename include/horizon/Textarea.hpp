@@ -50,6 +50,8 @@ namespace horizon
         bool m_has_pending_click{false};
 
         std::vector<LineInfo> m_cached_lines;
+        int m_last_width_limit{-1};
+        std::string m_last_text_layout{""};
 
         // UI Customization
         int m_padding_left{8};

@@ -1,7 +1,6 @@
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Label.hpp>
-#include <sstream>
 
 namespace horizon
 {
@@ -32,13 +31,26 @@ namespace horizon
 
         int line_height = size + 4;
 
-        auto lines =
-            calculate_lines(gc, m_available_draw_width, m_available_draw_height, line_height);
+        // Cache-based layout
+        if (m_last_width != m_available_draw_width || m_last_height != m_available_draw_height ||
+            m_last_text != m_text || m_last_font_weight != m_font_weight ||
+            m_last_font_size != size)
+        {
+            m_cached_lines =
+                calculate_lines(gc, m_available_draw_width, m_available_draw_height, line_height);
+            m_last_width = m_available_draw_width;
+            m_last_height = m_available_draw_height;
+            m_last_text = m_text;
+            m_last_font_weight = m_font_weight;
+            m_last_font_size = size;
+        }
+
+        const auto &lines = m_cached_lines;
 
         int total_height = 0;
         if (!lines.empty())
         {
-            total_height = lines.size() * line_height - 4; // Subtract trailing padding
+            total_height = (int)lines.size() * line_height - 4; // Subtract trailing padding
         }
 
         int start_y = m_y;
@@ -149,50 +161,74 @@ namespace horizon
             return {};
 
         std::vector<std::string> lines;
-        std::stringstream ss(m_text);
-        std::string line;
-
         auto theme_font = application()->theme_manager->get_font("window");
         int font_size = (m_font_size > 0) ? m_font_size : theme_font.size;
         const char *font_family = theme_font.family.c_str();
 
-        while (std::getline(ss, line))
+        // Split by hard newlines first
+        size_t start = 0;
+        size_t end = m_text.find('\n');
+        while (true)
         {
-            std::string current_line;
-            std::stringstream words(line);
-            std::string word;
+            std::string hard_line = m_text.substr(start, end - start);
 
-            while (words >> word)
+            // Soft wrap this hard line
+            if (hard_line.empty())
             {
-                std::string test_line = current_line.empty() ? word : current_line + " " + word;
-                auto metrics = gc.getTextMetrics(test_line.c_str(), font_family, font_size,
-                                                 m_font_slant, m_font_weight);
-
-                if (metrics.width > max_width && !current_line.empty())
-                {
-                    lines.push_back(current_line);
-                    current_line = word;
-                }
-                else
-                {
-                    current_line = test_line;
-                }
+                lines.push_back("");
             }
-            if (!current_line.empty())
-                lines.push_back(current_line);
+            else
+            {
+                std::vector<std::string> words;
+                size_t w_start = 0;
+                size_t w_end = hard_line.find(' ');
+                while (true)
+                {
+                    words.push_back(hard_line.substr(w_start, w_end - w_start));
+                    if (w_end == std::string::npos)
+                        break;
+                    w_start = w_end + 1;
+                    w_end = hard_line.find(' ', w_start);
+                }
+
+                std::string current_line;
+                for (const auto &word : words)
+                {
+                    if (word.empty())
+                        continue;
+                    std::string test_line = current_line.empty() ? word : current_line + " " + word;
+                    auto metrics = gc.getTextMetrics(test_line.c_str(), font_family, font_size,
+                                                     m_font_slant, m_font_weight);
+
+                    if (metrics.width > max_width && !current_line.empty())
+                    {
+                        lines.push_back(current_line);
+                        current_line = word;
+                    }
+                    else
+                    {
+                        current_line = test_line;
+                    }
+                }
+                if (!current_line.empty())
+                    lines.push_back(current_line);
+            }
+
+            if (end == std::string::npos)
+                break;
+            start = end + 1;
+            end = m_text.find('\n', start);
         }
 
         int available_lines = max_height / line_height;
         if (available_lines <= 0 && max_height > 0)
             available_lines = 1;
 
-        if (available_lines <= 0)
-            return {};
-
-        bool needs_ellipsis_due_to_height = lines.size() > (size_t)available_lines;
-        if (needs_ellipsis_due_to_height)
+        bool height_truncated = false;
+        if (available_lines > 0 && lines.size() > (size_t)available_lines)
         {
             lines.resize(available_lines);
+            height_truncated = true;
         }
 
         // Apply ellipsis to lines that exceed width or the last line if height-truncated
@@ -202,23 +238,27 @@ namespace horizon
             auto metrics = gc.getTextMetrics(lines[i].c_str(), font_family, font_size, m_font_slant,
                                              m_font_weight);
 
-            if (metrics.width > max_width || (is_last && needs_ellipsis_due_to_height))
+            if (metrics.width > max_width || (is_last && height_truncated))
             {
-                std::string text = lines[i];
-                while (text.length() > 0)
+                std::string &text = lines[i];
+                text += "...";
+                while (text.length() > 3)
                 {
-                    std::string test_text = text + "...";
-                    auto m = gc.getTextMetrics(test_text.c_str(), font_family, font_size,
-                                               m_font_slant, m_font_weight);
+                    auto m = gc.getTextMetrics(text.c_str(), font_family, font_size, m_font_slant,
+                                               m_font_weight);
                     if (m.width <= max_width)
-                    {
-                        lines[i] = test_text;
                         break;
-                    }
-                    text.pop_back();
+                    // Remove character before ellipsis (the character at pos length-4)
+                    text.erase(text.length() - 4, 1);
                 }
-                if (text.empty())
-                    lines[i] = "...";
+                if (text == "...")
+                {
+                    // If even the ellipsis doesn't fit, well...
+                    auto m = gc.getTextMetrics("...", font_family, font_size, m_font_slant,
+                                               m_font_weight);
+                    if (m.width > max_width)
+                        text = "";
+                }
             }
         }
 
