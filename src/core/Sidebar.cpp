@@ -9,7 +9,19 @@ namespace horizon
     {
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_spacing(0);
-        set_margin(10);
+        set_margin(0);
+
+        auto scroll_area = std::make_unique<ScrollArea>();
+        m_scroll_area = scroll_area.get();
+
+        auto content = std::make_unique<Widget>();
+        content->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        content->set_spacing(0);
+        content->set_margin(10);
+        m_content_container = content.get();
+
+        m_scroll_area->set_content(std::move(content));
+        add_child(std::move(scroll_area));
     }
 
     void Sidebar::add_group(const std::string &name)
@@ -31,7 +43,7 @@ namespace horizon
         m_groups[name] = group_container.get();
 
         group_container->add_child(std::move(header));
-        add_child(std::move(group_container));
+        m_content_container->add_child(std::move(group_container));
     }
 
     void Sidebar::add_item(const std::string &group_name, std::unique_ptr<Widget> item)
@@ -41,6 +53,59 @@ namespace horizon
         {
             it->second->add_child(std::move(item));
         }
+        invalidate();
+    }
+
+    void Sidebar::render(GraphicsContext &gc, int cx, int cy, int cw, int ch, bool force)
+    {
+        if (!m_visible)
+            return;
+
+        calculate_internal_layout();
+        Widget::render(gc, cx, cy, cw, ch, force);
+    }
+
+    void Sidebar::calculate_internal_layout()
+    {
+        if (!m_content_container || !m_scroll_area)
+            return;
+
+        // Ensure ScrollArea fills the Sidebar
+        m_scroll_area->set_position(m_x, m_y);
+        m_scroll_area->set_size(m_width, m_height);
+
+        int total_height = 0;
+        int width = m_width;
+
+        // Calculate height based on children
+        for (const auto &group : m_content_container->children())
+        {
+            if (!group->is_visible())
+                continue;
+
+            int group_height = 0;
+            int count = 0;
+            for (const auto &item : group->children())
+            {
+                if (!item->is_visible())
+                    continue;
+                if (item->fixed_size() > 0)
+                {
+                    group_height += item->fixed_size() + group->spacing();
+                    count++;
+                }
+            }
+            if (count > 0)
+                group_height -= group->spacing();
+
+            group->set_size(width - m_content_container->margin() * 2, group_height);
+            total_height += group_height + m_content_container->spacing();
+        }
+
+        if (!m_content_container->children().empty())
+            total_height -= m_content_container->spacing();
+
+        m_content_container->set_size(width, total_height);
     }
 
     void Sidebar::draw(GraphicsContext &gc)

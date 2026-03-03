@@ -348,16 +348,17 @@ int main()
 
         // --- New Tab for ColorPicker demo ---
         auto color_container = std::make_unique<Widget>();
-        color_container->set_margin(20);
+        color_container->set_margin(30);
         auto cp = std::make_unique<horizon::ColorPicker>();
         color_container->add_child(std::move(cp));
         notebook->add_tab(NotebookPage("Color", std::move(color_container)));
 
         // --- New Tab for VPanel demo ---
-        auto tab_vpanel = std::make_unique<Widget>();
-        tab_vpanel->set_margin(10);
+        auto vpanel_container = std::make_unique<Widget>();
+        vpanel_container->set_margin(30);
+
         auto vpanel = std::make_unique<horizon::VPanel>();
-        vpanel->set_left_width(180);
+        vpanel->set_spacing(10);
 
         auto sidebar = std::make_unique<horizon::Sidebar>();
         sidebar->add_group("Favorites");
@@ -375,10 +376,11 @@ int main()
                           std::make_unique<horizon::SidebarItem>("folder-download", "Downloads"));
 
         sidebar->add_group("Devices");
-        sidebar->add_item("Devices",
-                          std::make_unique<horizon::SidebarItem>("drive-harddisk", "Macintosh HD"));
-        sidebar->add_item("Devices",
-                          std::make_unique<horizon::SidebarItem>("network-workgroup", "Network"));
+        for (int i = 1; i <= 10; ++i)
+        {
+            sidebar->add_item("Devices", std::make_unique<horizon::SidebarItem>(
+                                             "drive-harddisk", "Disk " + std::to_string(i)));
+        }
 
         auto right_side = std::make_unique<horizon::SolidObject>();
         right_side->set_accent_color(horizon::WidgetAccentColor::Secondary);
@@ -386,8 +388,8 @@ int main()
         vpanel->add_child(std::move(sidebar));
         vpanel->add_child(std::move(right_side));
 
-        tab_vpanel->add_child(std::move(vpanel));
-        notebook->add_tab(NotebookPage("VPanel", std::move(tab_vpanel)));
+        vpanel_container->add_child(std::move(vpanel));
+        notebook->add_tab(NotebookPage("VPanel", std::move(vpanel_container)));
 
         notebook->set_current_tab(8);
 
