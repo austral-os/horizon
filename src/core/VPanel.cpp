@@ -8,6 +8,7 @@ namespace horizon
     VPanel::VPanel() : Widget()
     {
         set_focusable(true);
+        m_divider_width = 2;
 
         when_mouse_move.connect(
             [this](EventContext &ev)
@@ -80,6 +81,19 @@ namespace horizon
         Widget::add_child(std::move(child));
     }
 
+    Widget *VPanel::hit_test(int x, int y)
+    {
+        if (!m_visible || !m_enabled)
+            return nullptr;
+        if (x < m_x || y < m_y || x >= m_x + m_width || y >= m_y + m_height)
+            return nullptr;
+
+        if (is_over_divider(x, y))
+            return this;
+
+        return Widget::hit_test(x, y);
+    }
+
     void VPanel::calculate_layout()
     {
         int divider_x = m_x + m_left_width;
@@ -102,25 +116,13 @@ namespace horizon
     {
         gc.setColor(0.9f, 0.9f, 0.9f, 1.0f);
         gc.fillRect(m_x, m_y, m_width, m_height);
-
-        int divider_center_x = m_x + m_left_width;
-        int divider_draw_x = divider_center_x - (m_divider_width / 2);
-
-        gc.setColor(0.7f, 0.7f, 0.7f, 1.0f);
-        gc.fillRect(divider_draw_x, m_y, m_divider_width, m_height);
-
-        gc.setColor(0.5f, 0.5f, 0.5f, 1.0f);
-        int handle_y = m_y + m_height / 2;
-        gc.fillCircle(divider_center_x, handle_y - 10, 2);
-        gc.fillCircle(divider_center_x, handle_y, 2);
-        gc.fillCircle(divider_center_x, handle_y + 10, 2);
     }
 
     bool VPanel::is_over_divider(int cursor_x, int cursor_y) const
     {
         int divider_center_x = m_x + m_left_width;
-        int x_min = divider_center_x - (m_divider_width / 2) - 2;
-        int x_max = divider_center_x + (m_divider_width / 2) + 2;
+        int x_min = divider_center_x - (m_divider_width / 2) - 4;
+        int x_max = divider_center_x + (m_divider_width / 2) + 4;
 
         return (cursor_x >= x_min && cursor_x <= x_max && cursor_y >= m_y &&
                 cursor_y <= m_y + m_height);

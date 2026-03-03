@@ -351,15 +351,6 @@ namespace horizon
                 }
 
                 m_hovered = under;
-
-                if (m_hovered)
-                {
-                    m_surface->set_cursor(m_hovered->cursor_type());
-                }
-                else
-                {
-                    m_surface->set_cursor(CursorType::Default);
-                }
             }
         }
 
@@ -402,10 +393,39 @@ namespace horizon
             {
                 new_ev.sender = temp;
                 temp->when_mouse_hover.run(new_ev);
+                temp->when_mouse_move.run(new_ev);
                 if (new_ev.stop_propagation)
                     break;
                 temp = temp->parent();
             }
+        }
+
+        // Push final cursor state to surface
+        if (m_resize_edge != 0)
+        {
+            CursorType cursor = CursorType::Default;
+            if (m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_TOP ||
+                m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM)
+                cursor = CursorType::ResizeNS;
+            else if (m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_LEFT ||
+                     m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_RIGHT)
+                cursor = CursorType::ResizeEW;
+            else if (m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_TOP_RIGHT ||
+                     m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_LEFT)
+                cursor = CursorType::ResizeNESW;
+            else if (m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_TOP_LEFT ||
+                     m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_BOTTOM_RIGHT)
+                cursor = CursorType::ResizeNWSE;
+
+            m_surface->set_cursor(cursor);
+        }
+        else if (m_hovered)
+        {
+            m_surface->set_cursor(m_hovered->cursor_type());
+        }
+        else
+        {
+            m_surface->set_cursor(CursorType::Default);
         }
     }
 

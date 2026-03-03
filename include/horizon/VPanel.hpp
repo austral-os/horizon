@@ -15,6 +15,7 @@ namespace horizon
 
         void draw(GraphicsContext &gc) override;
         void calculate_layout() override;
+        Widget *hit_test(int x, int y) override;
 
         /**
          * @brief Override add_child to ensure we only have two widgets and track them.
