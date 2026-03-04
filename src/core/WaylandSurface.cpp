@@ -3,6 +3,7 @@
 #include <horizon/WaylandSurface.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <horizon/xdg-shell-client-protocol.h>
+#include <iostream>
 #include <stdexcept>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -310,6 +311,12 @@ namespace horizon
                 static_cast<wl_seat *>(wl_registry_bind(registry, id, &wl_seat_interface, 1)));
             wl_seat_add_listener(ws->seat(), &g_seat_listener, ws);
         }
+        else if (strcmp(interface, "wl_output") == 0)
+        {
+            struct wl_output *output =
+                static_cast<wl_output *>(wl_registry_bind(registry, id, &wl_output_interface, 1));
+            ws->add_wl_output(output);
+        }
     }
 
     /**
@@ -534,6 +541,8 @@ namespace horizon
     void WaylandSurface::setup_layer_surface(uint32_t layer, const std::string &namespace_id)
     {
         m_role = Role::LayerShell;
+        m_layer_num = layer;
+        m_layer_namespace = namespace_id;
         m_surface = wl_compositor_create_surface(m_compositor);
 
         if (!m_layer_shell)
@@ -548,6 +557,7 @@ namespace horizon
                    uint32_t width, uint32_t height)
             {
                 WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                self->m_configured = true;
                 zwlr_layer_surface_v1_ack_configure(layer_surface, serial);
 
                 if (width > 0 && height > 0)
@@ -575,6 +585,7 @@ namespace horizon
 
     void WaylandSurface::set_layer_anchor(uint32_t anchor)
     {
+        m_anchor = anchor;
         if (m_layer_surface)
         {
             zwlr_layer_surface_v1_set_anchor(m_layer_surface, anchor);
@@ -583,6 +594,7 @@ namespace horizon
 
     void WaylandSurface::set_layer_exclusive_zone(int32_t zone)
     {
+        m_exclusive_zone = zone;
         if (m_layer_surface)
         {
             zwlr_layer_surface_v1_set_exclusive_zone(m_layer_surface, zone);
@@ -591,6 +603,7 @@ namespace horizon
 
     void WaylandSurface::set_layer_keyboard_interactivity(uint32_t interactivity)
     {
+        m_interactivity = interactivity;
         if (m_layer_surface)
         {
             zwlr_layer_surface_v1_set_keyboard_interactivity(m_layer_surface, interactivity);
@@ -648,8 +661,13 @@ namespace horizon
         if (width <= 0 || height <= 0)
             return;
 
+        // If buffer exists and size is same, just re-attach to current m_surface
         if (m_buffer && width == m_width && height == m_height)
+        {
+            wl_surface_attach(m_surface, m_buffer, 0, 0);
+            wl_surface_damage(m_surface, 0, 0, width, height);
             return;
+        }
 
         // 1. Cleanup old resources
         if (m_buffer)
@@ -681,6 +699,10 @@ namespace horizon
             wl_shm_pool_create_buffer(pool, 0, m_width, m_height, stride, WL_SHM_FORMAT_ARGB8888);
         wl_shm_pool_destroy(pool);
         close(fd);
+
+        // Always attach and damage on resize
+        wl_surface_attach(m_surface, m_buffer, 0, 0);
+        wl_surface_damage(m_surface, 0, 0, width, height);
     }
 
     void WaylandSurface::free()
@@ -964,6 +986,73 @@ namespace horizon
     struct wl_display *WaylandSurface::display() const
     {
         return m_display;
+    }
+
+    void WaylandSurface::move_layer_to_monitor(struct wl_output *output)
+    {
+        if (m_role != Role::LayerShell || !m_layer_surface)
+        {
+            std::cout << "move_layer_to_monitor: Ignored (Role: " << (int)m_role
+                      << ", Surface: " << m_layer_surface << ")" << std::endl;
+            return;
+        }
+
+        std::cout << "move_layer_to_monitor: Moving to output " << output
+                  << " (Layer: " << m_layer_num << ", NS: " << m_layer_namespace << ")"
+                  << std::endl;
+
+        // 1. Reset configuration state
+        m_configured = false;
+
+        // 2. Clean up OLD surface and layer surface
+        zwlr_layer_surface_v1_destroy(m_layer_surface);
+        wl_surface_destroy(m_surface);
+
+        // 3. Recreate EVERYTHING for the new output
+        m_surface = wl_compositor_create_surface(m_compositor);
+        m_layer_surface = zwlr_layer_shell_v1_get_layer_surface(
+            m_layer_shell, m_surface, output, m_layer_num, m_layer_namespace.c_str());
+
+        if (!m_layer_surface)
+        {
+            std::cout << "move_layer_to_monitor: FAILED to create new layer surface!" << std::endl;
+            return;
+        }
+
+        // 4. Re-apply listeners and state
+        static const zwlr_layer_surface_v1_listener listener = {
+            .configure =
+                [](void *data, zwlr_layer_surface_v1 *ls, uint32_t ser, uint32_t w, uint32_t h)
+            {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                self->m_configured = true;
+                zwlr_layer_surface_v1_ack_configure(ls, ser);
+                if (w > 0 && h > 0)
+                {
+                    self->resize_buffer(w, h); // This will attach m_buffer to NEW m_surface
+                    if (self->m_listener)
+                        self->m_listener->on_resize(w, h);
+                }
+                wl_surface_commit(self->m_surface);
+            },
+            .closed = [](void *, zwlr_layer_surface_v1 *) {}};
+
+        zwlr_layer_surface_v1_add_listener(m_layer_surface, &listener, this);
+        zwlr_layer_surface_v1_set_anchor(m_layer_surface, m_anchor);
+        zwlr_layer_surface_v1_set_exclusive_zone(m_layer_surface, m_exclusive_zone);
+        zwlr_layer_surface_v1_set_keyboard_interactivity(m_layer_surface, m_interactivity);
+        zwlr_layer_surface_v1_set_size(m_layer_surface, (uint32_t)m_width, (uint32_t)m_height);
+
+        // 5. Initial commit (WITHOUT buffer) to trigger the first configure
+        wl_surface_commit(m_surface);
+        wl_display_roundtrip(m_display);
+    }
+
+    void WaylandSurface::add_wl_output(struct wl_output *output)
+    {
+        std::cout << "Added Wayland output: " << output << " (Total: " << m_outputs.size() + 1
+                  << ")" << std::endl;
+        m_outputs.push_back(output);
     }
 
 } // namespace horizon

@@ -25,6 +25,7 @@ if __name__ == "__main__":
         "request_id": "complex_test_001",
         "x": 100,
         "y": 100,
+        "monitor": 1, # Change this to 1, 2, etc. to test different monitors
         "menu": {
             "id": "main_menu",
             "title": "Horizon Complex Menu",

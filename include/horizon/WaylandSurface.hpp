@@ -22,6 +22,7 @@ struct wl_cursor_theme;
 struct wl_cursor;
 struct zwlr_layer_shell_v1;
 struct zwlr_layer_surface_v1;
+struct wl_output;
 
 namespace horizon
 {
@@ -66,7 +67,24 @@ namespace horizon
         struct wl_surface *surface() const;
         struct wl_buffer *buffer() const;
         struct wl_display *display() const;
+        const std::vector<struct wl_output *> &monitors() const
+        {
+            return m_outputs;
+        }
+        struct wl_output *get_monitor(size_t index) const
+        {
+            if (index < m_outputs.size())
+                return m_outputs[index];
+            return nullptr;
+        }
+
+        void move_layer_to_monitor(struct wl_output *output);
+        void add_wl_output(struct wl_output *output);
         WaylandEventListener *listener() const;
+        bool is_configured() const
+        {
+            return m_configured;
+        }
         double pointer_x() const;
         double pointer_y() const;
         int width() const;
@@ -172,6 +190,7 @@ namespace horizon
         struct wl_seat *m_seat = nullptr;
         struct wl_pointer *m_pointer = nullptr;
         struct wl_keyboard *m_keyboard = nullptr;
+        std::vector<struct wl_output *> m_outputs;
 
         uint32_t m_last_serial = 0;
         double m_pointer_x = 0;
@@ -185,5 +204,13 @@ namespace horizon
         struct xkb_context *m_xkb_context = nullptr;
         struct xkb_keymap *m_xkb_keymap = nullptr;
         struct xkb_state *m_xkb_state = nullptr;
+
+        // Layer Shell State tracking
+        uint32_t m_layer_num = 0;
+        std::string m_layer_namespace;
+        uint32_t m_anchor = 0;
+        int32_t m_exclusive_zone = 0;
+        uint32_t m_interactivity = 0;
+        bool m_configured = false;
     };
 } // namespace horizon

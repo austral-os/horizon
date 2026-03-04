@@ -564,7 +564,7 @@ namespace horizon
 
                 bool has_pending = m_full_repaint || !m_dirty_widgets.empty();
 
-                if (has_pending && m_surface->buffer() &&
+                if (has_pending && m_surface->buffer() && m_surface->is_configured() &&
                     (frame_now - m_last_commit_time) >= FRAME_MS)
                 {
                     if (m_full_repaint && m_root)

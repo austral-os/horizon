@@ -109,6 +109,7 @@ int main(int argc, char *argv[])
                                                int x = json_msg.value("x", 0);
                                                int y = json_msg.value("y", 0);
                                                root_menu_ptr->set_position(x, y);
+                                                if (json_msg.contains("monitor")) { app->move_to_monitor(json_msg["monitor"]); }
                                                std::cout << "Positioning menu at (" << x << ", "
                                                          << y << ")" << std::endl;
                                            }

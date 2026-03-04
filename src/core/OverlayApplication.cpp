@@ -52,4 +52,17 @@ namespace horizon
             set_keyboard_interactivity(ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
         }
     }
+    int OverlayApplication::get_monitor_count() const
+    {
+        return w_surface()->monitors().size();
+    }
+
+    void OverlayApplication::move_to_monitor(int index)
+    {
+        auto *output = w_surface()->get_monitor(index);
+        if (output)
+        {
+            w_surface()->move_layer_to_monitor(output);
+        }
+    }
 } // namespace horizon

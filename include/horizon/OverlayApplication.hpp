@@ -39,6 +39,9 @@ namespace horizon
         void set_keyboard_interactivity(uint32_t interactivity);
         void set_size(uint32_t width, uint32_t height);
 
+        int get_monitor_count() const;
+        void move_to_monitor(int index);
+
         /**
          * @brief Shows or hides the overlay.
          */
