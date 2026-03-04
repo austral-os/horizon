@@ -44,6 +44,11 @@ namespace horizon
          */
         void set_visible(bool visible);
 
+        bool is_transparent_surface() const override
+        {
+            return true;
+        }
+
     private:
         std::string m_namespace;
         uint32_t m_layer;

@@ -90,6 +90,15 @@ namespace horizon
         void invalidate(Widget *widget = nullptr);
 
         /**
+         * @brief Returns whether this application uses a transparent surface.
+         * @return true for OverlayApplication, false for regular applications.
+         */
+        virtual bool is_transparent_surface() const
+        {
+            return false;
+        }
+
+        /**
          * @brief Requests a window move from the Wayland compositor.
          */
         void request_move();

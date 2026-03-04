@@ -150,14 +150,18 @@ namespace horizon
         {
             if (m_was_visible)
             {
-                // Request a full repaint of the entire surface.
-                // This is necessary because Cairo's pushGroup/popGroup prevents
-                // CLEAR operations from reaching the actual surface buffer.
-                // A full repaint re-renders everything from scratch, naturally
-                // omitting the hidden menu.
                 if (application())
                 {
-                    application()->invalidate(nullptr);
+                    // Only force full repaint for transparent surfaces (OverlayApplication).
+                    // Regular applications have opaque backgrounds that naturally cover old pixels.
+                    if (application()->is_transparent_surface())
+                    {
+                        application()->invalidate(nullptr); // Full surface repaint
+                    }
+                    else
+                    {
+                        invalidate(); // Normal selective repaint
+                    }
                 }
                 m_was_visible = false;
             }
