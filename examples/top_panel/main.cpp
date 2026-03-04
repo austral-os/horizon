@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
     try
     {
         // Create an overlay application
-        auto app = std::make_unique<OverlayApplication>("menu_manager",
+        auto app = std::make_unique<OverlayApplication>("top_panel",
                                                         3); // 3 = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
 
         // Anchor to TOP, LEFT, RIGHT to occupy the top of the screen
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
         root->add_child(std::move(menu));
         app->set_root(std::move(root));
 
-        std::cout << "Menu Manager started as a Top Bar (40px)." << std::endl;
+        std::cout << "Top Panel started (32px)." << std::endl;
 
         app->run();
     }

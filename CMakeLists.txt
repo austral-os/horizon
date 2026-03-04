@@ -69,11 +69,11 @@ target_link_libraries(main_window
         horizon
 )
 
-add_executable(menu_manager
-    examples/menu_manager/main.cpp
+add_executable(top_panel
+    examples/top_panel/main.cpp
 )
 
-target_link_libraries(menu_manager
+target_link_libraries(top_panel
     PRIVATE
         horizon
 )
