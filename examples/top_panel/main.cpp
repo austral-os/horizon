@@ -1,3 +1,4 @@
+#include "horizon/ClientMenu.hpp"
 #include "horizon/Menu.hpp"
 #include "horizon/MenuBar.hpp"
 #include "horizon/OverlayApplication.hpp"
@@ -29,6 +30,9 @@ int main(int argc, char *argv[])
         // Enable keyboard interactivity to catch the Escape key
         app->set_keyboard_interactivity(
             1); // 1 = ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE
+
+        // IPC client for communicating with horizon_menu_manager_d
+        ClientMenu client_menu;
 
         // Root widget
         auto root = std::make_unique<Widget>();
@@ -75,6 +79,15 @@ int main(int argc, char *argv[])
         helpMenu->set_title("Help");
         helpMenu->add_item("About Austral OS");
         helpMenu->add_item("Documentation");
+
+        // Wire up click callback: send menu to daemon for display
+        menubar->set_on_menu_click(
+            [&client_menu](Menu *menu, int x, int y)
+            {
+                std::cout << "MenuBar click: " << menu->title() << " at (" << x << ", " << y << ")"
+                          << std::endl;
+                client_menu.show_menu(menu, x, y);
+            });
 
         menubar->add_menu(std::move(fileMenu));
         menubar->add_menu(std::move(editMenu));

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <horizon/Label.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/Widget.hpp>
@@ -23,10 +24,14 @@ namespace horizon
 
         void calculate_layout() override;
 
+        // Callback when a menu title is clicked: receives (Menu*, x, y) of the item
+        void set_on_menu_click(std::function<void(Menu *, int x, int y)> callback);
+
     private:
         void update_selection(MenuBarItem *selected_item);
 
         std::vector<std::unique_ptr<Menu>> m_menus;
+        std::function<void(Menu *, int x, int y)> m_on_menu_click;
     };
 
     class MenuBarItem : public Label
