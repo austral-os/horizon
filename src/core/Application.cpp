@@ -584,6 +584,7 @@ namespace horizon
                         ctx.pushGroup();
                         m_root->render(ctx, 0, 0, m_surface->width(), m_surface->height(), true);
                         ctx.popGroup();
+                        ctx.flush();
 
                         wl_surface_damage(m_surface->surface(), 0, 0, m_surface->width(),
                                           m_surface->height());

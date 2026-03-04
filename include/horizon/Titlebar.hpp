@@ -1,12 +1,12 @@
 #pragma once
 
 #include "horizon/TitlebarCircleButton.hpp"
-#include <horizon/Widget.hpp>
+#include <horizon/Panel.hpp>
 #include <string>
 
 namespace horizon
 {
-    class Titlebar : public Widget
+    class Titlebar : public Panel
     {
     public:
         Titlebar(std::string title);

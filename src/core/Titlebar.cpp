@@ -122,23 +122,18 @@ namespace horizon
 
     void Titlebar::draw(GraphicsContext &gc)
     {
-
         // Dibujarmos una barra de titulo como la de mac os mountain lion.
-
         auto *tm = application()->theme_manager.get();
         auto font = tm->get_font("titlebar");
 
+        set_background_colors(tm->get_color("titlebar_bg1"), tm->get_color("titlebar_bg2"));
+        set_border_color(tm->get_color("titlebar_border"));
+        set_corner_radius(CornerRadius(10, 10, 0, 0));
+
+        // Let Panel handle the background and border
+        Panel::draw(gc);
+
         Color title_fg = tm->get_color("titlebar_fg");
-        Color title_brd = tm->get_color("titlebar_border");
-        Color title_bg1 = tm->get_color("titlebar_bg1");
-        Color title_bg2 = tm->get_color("titlebar_bg2");
-
-        gc.fillLinearGradientRect(m_start_draw_x + 1, m_start_draw_y + 1,
-                                  m_available_draw_width - 2, m_available_draw_height, title_bg2,
-                                  title_bg1, true, CornerRadius(10, 10, 0, 0));
-
-        gc.setColor(title_brd);
-        gc.drawRect(0, m_height - 1, m_width, 0, 0, 0.8f);
 
         TextMetrics metrics = gc.getTextMetrics(m_title.c_str(), font.family.c_str(), font.size,
                                                 FONT_SLANT_NORMAL, FONT_WEIGHT_BOLD);

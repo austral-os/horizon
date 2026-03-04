@@ -492,8 +492,12 @@ namespace horizon
         m_xdg_surface = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
         static const xdg_surface_listener xdg_surf_ptr = {
             .configure = [](void *data, xdg_surface *xdg_s, uint32_t serial)
-            { xdg_surface_ack_configure(xdg_s, serial); }};
-        xdg_surface_add_listener(m_xdg_surface, &xdg_surf_ptr, nullptr);
+            {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                self->m_configured = true;
+                xdg_surface_ack_configure(xdg_s, serial);
+            }};
+        xdg_surface_add_listener(m_xdg_surface, &xdg_surf_ptr, this);
 
         m_xdg_toplevel = xdg_surface_get_toplevel(m_xdg_surface);
         xdg_toplevel_set_title(m_xdg_toplevel, title.c_str());
@@ -505,6 +509,7 @@ namespace horizon
                    struct wl_array *states)
             {
                 WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                self->m_configured = true;
                 uint32_t *state;
                 bool maximized = false;
                 for (state = static_cast<uint32_t *>(states->data);
