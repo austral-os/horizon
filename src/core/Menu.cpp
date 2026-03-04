@@ -47,13 +47,35 @@ namespace horizon
         int current_y = 1 + padding_top; // 1px border + padding
         int max_w = m_min_width;
 
+        // Detect if any MenuItem has an icon (for consistent left margin)
+        bool any_has_icon = false;
+        for (const auto &child : m_children)
+        {
+            if (auto *item = dynamic_cast<MenuItem *>(child.get()))
+            {
+                if (item->has_icon())
+                {
+                    any_has_icon = true;
+                    break;
+                }
+            }
+        }
+
+        // Propagate icon space reservation to all items
+        for (const auto &child : m_children)
+        {
+            if (auto *item = dynamic_cast<MenuItem *>(child.get()))
+            {
+                item->set_reserve_icon_space(any_has_icon);
+            }
+        }
+
         // First pass: Determine max width needed based on actual content
         for (const auto &child : m_children)
         {
             if (auto *item = dynamic_cast<MenuItem *>(child.get()))
             {
-                // Use content-based preferred width (includes text, shortcut, padding)
-                max_w = std::max(max_w, item->preferred_width() + 2); // +2 for 1px border each side
+                max_w = std::max(max_w, item->preferred_width() + 2);
             }
             else
             {

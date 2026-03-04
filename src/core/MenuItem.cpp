@@ -73,6 +73,7 @@ namespace horizon
         m_icon = icon.get();
         m_icon->set_icon_name(icon_path);
         m_icon->set_icon_size(16);
+        m_icon->set_position_type(FREE);
         add_child(std::move(icon));
     }
 
@@ -116,7 +117,7 @@ namespace horizon
         unsigned char tmp_buf[4] = {0};
         CairoGraphicContext measure_ctx(tmp_buf, 1, 1);
 
-        int icon_width = m_icon ? 24 : 0;
+        int icon_width = (m_icon || m_reserve_icon_space) ? 24 : 0;
         int arrow_width = m_has_submenu ? 20 : 0;
         int padding = 10;                           // Left + right padding
         int gap = m_shortcut_text.empty() ? 0 : 15; // Gap between label and shortcut
@@ -156,13 +157,19 @@ namespace horizon
             m_shortcut_text.empty() ? 0 : 15; // Minimum space between label and shortcut
         int padding = 10;
 
+        // Reserve space for icon if this item has one OR if any sibling does
         int content_x = padding;
         if (m_icon)
         {
-            m_icon->set_position(m_start_draw_x + padding + (icon_width - 16) / 2,
-                                 m_start_draw_y + (m_height - 16) / 2);
+            m_icon->set_position(m_start_draw_x + padding, m_start_draw_y + (m_height - 16) / 2);
+            m_icon->set_size(16, 16);
             content_x += icon_width;
             m_icon->calculate_layout();
+        }
+        else if (m_reserve_icon_space)
+        {
+            // No icon, but reserve the space for consistent alignment
+            content_x += icon_width;
         }
 
         int available_content_width = m_width - content_x - shortcut_gap - shortcut_width -

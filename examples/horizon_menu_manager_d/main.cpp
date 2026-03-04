@@ -37,21 +37,27 @@ int main(int argc, char *argv[])
 
         // Submenu 1: Settings
         auto settings_menu = std::make_unique<Menu>();
-        settings_menu->add_item("Display", "Cmd+D");
-        settings_menu->add_item("Sound", "Cmd+S");
-        settings_menu->add_item("Network", "Cmd+Option+N");
+        auto *display_item = settings_menu->add_item("Display", "Cmd+D");
+        display_item->set_icon("video-display");
+        auto *sound_item = settings_menu->add_item("Sound", "Cmd+S");
+        sound_item->set_icon("audio-volume-high");
+        auto *network_item = settings_menu->add_item("Network", "Cmd+Option+N");
+        network_item->set_icon("network-wired");
 
         // Submenu 2: Preferences
         auto prefs_menu = std::make_unique<Menu>();
         prefs_menu->add_item("General");
         prefs_menu->add_item("Appearance");
-        prefs_menu->add_item("Privacy");
+        auto *privacy_item = prefs_menu->add_item("Privacy");
+        privacy_item->set_icon("security-high");
 
         // Submenu 3: Applications (Inside Settings)
         auto apps_menu = std::make_unique<Menu>();
         apps_menu->add_item("App Store");
-        apps_menu->add_item("Chrome");
-        apps_menu->add_item("Terminator");
+        auto *chrome_item = apps_menu->add_item("Chrome");
+        chrome_item->set_icon("web-browser");
+        auto *term_item = apps_menu->add_item("Terminator");
+        term_item->set_icon("utilities-terminal");
 
         // Nested level: Applications inside Settings
         auto *settings_apps_item = settings_menu->add_item("Developer Apps");
@@ -62,13 +68,16 @@ int main(int argc, char *argv[])
         main_menu->add_separator();
 
         auto *settings_item = main_menu->add_item("System Settings");
+        settings_item->set_icon("preferences-system");
         settings_item->set_submenu(settings_menu.get());
 
         auto *prefs_item = main_menu->add_item("Preferences");
+        prefs_item->set_icon("preferences-desktop");
         prefs_item->set_submenu(prefs_menu.get());
 
         main_menu->add_separator();
-        main_menu->add_item("Lock Screen", "Cmd+L");
+        auto *lock_item = main_menu->add_item("Lock Screen", "Cmd+L");
+        lock_item->set_icon("system-lock-screen");
         main_menu->add_item("Log Out...", "Shift+Cmd+Q");
 
         // Keep submenus alive by adding them as children to root (hidden by default)

@@ -49,6 +49,15 @@ namespace horizon
         // Returns the minimum width needed to display this item without truncation
         int preferred_width() const;
 
+        bool has_icon() const
+        {
+            return m_icon != nullptr;
+        }
+        void set_reserve_icon_space(bool reserve)
+        {
+            m_reserve_icon_space = reserve;
+        }
+
     private:
         Icon *m_icon = nullptr;
         Widget *m_content = nullptr; // Usually a Label
@@ -58,6 +67,7 @@ namespace horizon
         Menu *m_submenu = nullptr;
         bool m_has_submenu = false;
         bool m_selected = false;
+        bool m_reserve_icon_space = false;
 
         void calculate_layout() override;
     };
