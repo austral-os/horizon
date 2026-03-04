@@ -63,6 +63,12 @@ namespace horizon
             {
                 for (const auto &item_json : json["items"])
                 {
+                    if (item_json.value("type", "") == "separator")
+                    {
+                        menu->add_separator();
+                        continue;
+                    }
+
                     const std::string item_id = item_json.value("id", "");
                     const std::string text = item_json.value("text", "");
                     const std::string shortcut = item_json.value("shortcut", "");
