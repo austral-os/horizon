@@ -16,6 +16,10 @@ namespace horizon
             m_menu = std::make_unique<Menu>();
             m_menu->set_position(100, 100); // Default position, can be adjusted
             m_menu->set_position_type(FREE);
+            if (menu_json.contains("max_width"))
+            {
+                m_menu->set_max_width(menu_json["max_width"]);
+            }
 
             build_menu(m_menu.get(), menu_json);
         }
@@ -78,6 +82,10 @@ namespace horizon
                         auto submenu = std::make_unique<Menu>();
                         submenu->set_visible(false);
                         submenu->set_position_type(FREE);
+                        if (item_json["submenu"].contains("max_width"))
+                        {
+                            submenu->set_max_width(item_json["submenu"]["max_width"]);
+                        }
                         build_menu(submenu.get(), item_json["submenu"]);
 
                         item->set_submenu(submenu.get());

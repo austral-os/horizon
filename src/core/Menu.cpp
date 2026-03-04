@@ -86,6 +86,12 @@ namespace horizon
             }
         }
 
+        // Apply max_width constraint if set
+        if (m_max_width > 0)
+        {
+            max_w = std::min(max_w, m_max_width);
+        }
+
         // Second pass: Layout children using absolute coordinates
         for (auto &child : m_children)
         {

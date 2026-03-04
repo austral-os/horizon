@@ -28,6 +28,7 @@ if __name__ == "__main__":
         "menu": {
             "id": "main_menu",
             "title": "Horizon Complex Menu",
+            "max_width": 300,
             "items": [
                 {"id": "new", "text": "New File", "icon": "document-new", "shortcut": "Ctrl+N"},
                 {"id": "open", "text": "Open Project...", "icon": "document-open", "shortcut": "Ctrl+O"},
@@ -80,6 +81,7 @@ if __name__ == "__main__":
                                 "text": "Appearance",
                                 "submenu": {
                                     "id": "sub_appr",
+                                    "max_width": 180,
                                     "items": [
                                         {"id": "full_screen", "text": "Toggle Full Screen", "shortcut": "F11"},
                                         {"id": "zen_mode", "text": "Zen Mode", "shortcut": "Ctrl+K Z"},

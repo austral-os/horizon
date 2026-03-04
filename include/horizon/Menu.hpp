@@ -27,6 +27,15 @@ namespace horizon
         void close_submenus();
         void set_active_submenu(Menu *menu);
 
+        void set_max_width(int max_width)
+        {
+            m_max_width = max_width;
+        }
+        int max_width() const
+        {
+            return m_max_width;
+        }
+
     protected:
         void draw(GraphicsContext &gc) override;
 
@@ -34,6 +43,7 @@ namespace horizon
         Menu *m_active_submenu = nullptr;
         int m_item_height = 24;
         int m_min_width = 240;
+        int m_max_width = -1;       // -1 means no maximum
         bool m_was_visible = false; // Track visibility transitions for clearing
     };
 
