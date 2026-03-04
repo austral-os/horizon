@@ -47,9 +47,10 @@ namespace horizon
         int max_w = m_min_width;
 
         // First pass: Determine max width needed
+        // Add 2 to compensate for the 1px border subtracted in the second pass
         for (const auto &child : m_children)
         {
-            max_w = std::max(max_w, child->width());
+            max_w = std::max(max_w, child->width() + 2);
         }
 
         // Second pass: Layout children using absolute coordinates
@@ -61,11 +62,9 @@ namespace horizon
             current_y += child->height();
         }
 
-        // Update size without triggering a full recalculation loop if possible
-        m_width = max_w;
-        m_height =
-            current_y + padding_bottom; // Removed +1 because padding_bottom already handles it
-        // Re-call base to refresh draw area after size change
+        // Update size through set_size to trigger invalidation if changed
+        set_size(max_w, current_y + padding_bottom);
+        // Base coordinate refresh is handled within set_size -> invalidate or explicitly
         Widget::calculate_layout();
     }
 

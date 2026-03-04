@@ -82,6 +82,10 @@ namespace horizon
         if (!m_visible)
             return;
 
+        // 1. Finalize layout before any rendering decisions
+        calculate_layout();
+
+        // 2. Check intersection with the dirty region using updated geometry
         bool intersects =
             !(m_x >= cx + cw || m_x + m_width <= cx || m_y >= cy + ch || m_y + m_height <= cy);
 
@@ -90,9 +94,8 @@ namespace horizon
             return;
         }
 
+        // 3. Determine if we need to draw based on finalized dirty state
         bool should_draw = m_dirty || force || m_child_dirty;
-
-        calculate_layout();
 
         if (should_draw)
         {
@@ -238,24 +241,14 @@ namespace horizon
 
     void Widget::set_position(int x, int y)
     {
-        if (m_x != x || m_y != y)
-        {
-            invalidate(); // Invalidate old position
-            m_x = x;
-            m_y = y;
-            invalidate(); // Invalidate new position
-        }
+        m_x = x;
+        m_y = y;
     }
 
     void Widget::set_size(int width, int height)
     {
-        if (m_width != width || m_height != height)
-        {
-            invalidate(); // Invalidate old size area
-            m_width = width;
-            m_height = height;
-            invalidate(); // Invalidate new size area
-        }
+        m_width = width;
+        m_height = height;
     }
 
     void Widget::set_fixed_size(int size)

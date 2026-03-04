@@ -6,19 +6,9 @@
 
 using namespace horizon;
 
-class MenuWidget : public Widget
-{
-public:
-    MenuWidget() : Widget()
-    {
-        set_background_color({0.0f, 0.0f, 0.0f, 0.0f}); // Fully transparent
-
-        auto label = std::make_unique<Label>("System Menu");
-        label->set_text_color({1.0f, 1.0f, 1.0f, 1.0f});
-        label->set_margin(15);
-        add_child(std::move(label));
-    }
-};
+#include <horizon/Menu.hpp>
+#include <horizon/MenuItem.hpp>
+#include <horizon/MenuSeparator.hpp>
 
 int main(int argc, char *argv[])
 {
@@ -38,15 +28,63 @@ int main(int argc, char *argv[])
         app->set_keyboard_interactivity(1); // 1 = EXCLUSIVE
 
         auto root = std::make_unique<Widget>();
-        root->set_background_color({0.0f, 0.0f, 0.0f, 0.0f}); // COMPLETELY TRANSPARENT ROOT
+        root->set_background_color({0.0f, 0.0f, 0.0f, 0.0f});
 
-        // Add a mock menu at a specific position
-        auto menu = std::make_unique<MenuWidget>();
-        menu->set_position(100, 100);
-        menu->set_size(250, 200);
-        menu->set_position_type(FREE);
+        // --- Complex Menu Structure ---
+        auto main_menu = std::make_unique<Menu>();
+        main_menu->set_position(50, 50);
+        main_menu->set_position_type(FREE);
 
-        root->add_child(std::move(menu));
+        // Submenu 1: Settings
+        auto settings_menu = std::make_unique<Menu>();
+        settings_menu->add_item("Display", "Cmd+D");
+        settings_menu->add_item("Sound", "Cmd+S");
+        settings_menu->add_item("Network", "Cmd+Option+N");
+
+        // Submenu 2: Preferences
+        auto prefs_menu = std::make_unique<Menu>();
+        prefs_menu->add_item("General");
+        prefs_menu->add_item("Appearance");
+        prefs_menu->add_item("Privacy");
+
+        // Submenu 3: Applications (Inside Settings)
+        auto apps_menu = std::make_unique<Menu>();
+        apps_menu->add_item("App Store");
+        apps_menu->add_item("Chrome");
+        apps_menu->add_item("Terminator");
+
+        // Nested level: Applications inside Settings
+        auto *settings_apps_item = settings_menu->add_item("Developer Apps");
+        settings_apps_item->set_submenu(apps_menu.get());
+
+        // Add items to main menu
+        main_menu->add_item("About This Horizon");
+        main_menu->add_separator();
+
+        auto *settings_item = main_menu->add_item("System Settings");
+        settings_item->set_submenu(settings_menu.get());
+
+        auto *prefs_item = main_menu->add_item("Preferences");
+        prefs_item->set_submenu(prefs_menu.get());
+
+        main_menu->add_separator();
+        main_menu->add_item("Lock Screen", "Cmd+L");
+        main_menu->add_item("Log Out...", "Shift+Cmd+Q");
+
+        // Keep submenus alive by adding them as children to root (hidden by default)
+        apps_menu->set_visible(false);
+        apps_menu->set_position_type(FREE);
+        settings_menu->set_visible(false);
+        settings_menu->set_position_type(FREE);
+        prefs_menu->set_visible(false);
+        prefs_menu->set_position_type(FREE);
+
+        // Add everything to root
+        root->add_child(std::move(main_menu));
+        root->add_child(std::move(settings_menu));
+        root->add_child(std::move(prefs_menu));
+        root->add_child(std::move(apps_menu));
+
         app->set_root(std::move(root));
 
         std::cout << "Horizon Menu Manager Daemon started (Fullscreen Overlay)." << std::endl;
