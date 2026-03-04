@@ -1,6 +1,7 @@
 #include <cmath>
 #include <horizon/Application.hpp>
 #include <horizon/AquaPolygon.hpp>
+#include <horizon/Menu.hpp>
 #include <horizon/Window.hpp>
 #include <vector>
 
@@ -75,6 +76,20 @@ int main(int argc, char **argv)
     window->add_child(std::move(star));
 
     app.set_root(std::move(window));
+
+    auto polygon_menu = new horizon::Menu();
+    polygon_menu->set_title("Polygon");
+    polygon_menu->add_item("Add Triangle", "Ctrl+T");
+    polygon_menu->add_item("Add Hexagon", "Ctrl+H");
+    polygon_menu->add_separator();
+    polygon_menu->add_item("Clear All", "Ctrl+Shift+C");
+
+    auto view_menu = new horizon::Menu();
+    view_menu->set_title("View");
+    view_menu->add_item("Zoom In", "Ctrl++");
+    view_menu->add_item("Zoom Out", "Ctrl+-");
+
+    app.set_global_menu({polygon_menu, view_menu});
 
     app.run();
     return 0;

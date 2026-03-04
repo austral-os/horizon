@@ -540,6 +540,24 @@ int main()
                                        exit(0);
                                    });
 
+        auto app_menu = new horizon::Menu();
+        app_menu->set_title("MinimalApp");
+        app_menu->add_item("Preferences", "Ctrl+,");
+        app_menu->add_separator();
+        app_menu->add_item("Quit", "Ctrl+Q");
+
+        auto window_menu = new horizon::Menu();
+        window_menu->set_title("Window");
+        window_menu->add_item("Minimize", "Ctrl+M");
+        window_menu->add_item("Maximize", "Ctrl+Shift+M");
+
+        auto help_menu = new horizon::Menu();
+        help_menu->set_title("Help");
+        help_menu->add_item("Documentation", "F1");
+        help_menu->add_item("About MinimalApp");
+
+        app.set_global_menu({app_menu, window_menu, help_menu});
+
         app.run();
     }
     catch (std::exception &e)
