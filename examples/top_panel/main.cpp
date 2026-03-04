@@ -84,9 +84,10 @@ int main(int argc, char *argv[])
         menubar->set_on_menu_click(
             [&client_menu](Menu *menu, int x, int y)
             {
-                std::cout << "MenuBar click: " << menu->title() << " at (" << x << ", " << y << ")"
-                          << std::endl;
-                client_menu.show_menu(menu, x, y);
+                // y=0 because the menu manager overlay starts right below the
+                // top_panel's exclusive zone, so y=0 is already at the panel bottom.
+                std::cout << "MenuBar click: " << menu->title() << " at x=" << x << std::endl;
+                client_menu.show_menu(menu, x, 0);
             });
 
         menubar->add_menu(std::move(fileMenu));

@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
         server.start();
 
         // Initially hidden
+        bool menu_visible = false;
         app->set_visible(false);
 
         // Hide when clicking the background (root widget)
@@ -66,6 +67,7 @@ int main(int argc, char *argv[])
                 {
                     child->set_visible(false);
                 }
+                menu_visible = false;
                 app->set_visible(false);
             });
 
@@ -98,6 +100,18 @@ int main(int argc, char *argv[])
                                        if (!menus.empty())
                                        {
                                            // Clear old menus before showing new ones
+                                           // If already visible, force a full repaint to
+                                           // clear remnants from the transparent surface
+                                           if (menu_visible)
+                                           {
+                                               // Hide first so the old menu area gets cleared
+                                               for (auto &child : root_ptr->children())
+                                               {
+                                                   child->set_visible(false);
+                                               }
+                                               app->invalidate(nullptr); // Full surface repaint
+                                           }
+
                                            root_ptr->clear_children();
 
                                            Menu *root_menu_ptr = menus[0].get();
@@ -109,7 +123,10 @@ int main(int argc, char *argv[])
                                                int x = json_msg.value("x", 0);
                                                int y = json_msg.value("y", 0);
                                                root_menu_ptr->set_position(x, y);
-                                                if (json_msg.contains("monitor")) { app->move_to_monitor(json_msg["monitor"]); }
+                                               if (json_msg.contains("monitor"))
+                                               {
+                                                   app->move_to_monitor(json_msg["monitor"]);
+                                               }
                                                std::cout << "Positioning menu at (" << x << ", "
                                                          << y << ")" << std::endl;
                                            }
@@ -128,6 +145,7 @@ int main(int argc, char *argv[])
                                            // Ensure layout is calculated before showing
                                            root_menu_ptr->calculate_layout();
                                            root_menu_ptr->set_visible(true);
+                                           menu_visible = true;
                                            app->set_visible(true);
                                            root_ptr->invalidate();
                                        }
