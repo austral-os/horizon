@@ -78,6 +78,15 @@ target_link_libraries(top_panel
         horizon
 )
 
+add_executable(horizon_menu_manager_d
+    examples/horizon_menu_manager_d/main.cpp
+)
+
+target_link_libraries(horizon_menu_manager_d
+    PRIVATE
+        horizon
+)
+
 # Agregamos un target "run" para compilar y ejecutar de una vez
 add_custom_target(run
     COMMAND $<TARGET_FILE:minimal>
