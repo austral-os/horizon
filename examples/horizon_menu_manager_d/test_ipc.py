@@ -22,6 +22,8 @@ if __name__ == "__main__":
     test_request = {
         "type": "create_menu",
         "request_id": "abc123",
+        "x": 300,
+        "y": 500,
         "menu": {
             "id": "file_menu",
             "title": "File",

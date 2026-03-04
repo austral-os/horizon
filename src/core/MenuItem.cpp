@@ -1,3 +1,4 @@
+#include <cmath>
 #include <horizon/Application.hpp>
 #include <horizon/CairoGraphicsContext.hpp>
 #include <horizon/GraphicsContext.hpp>
@@ -131,7 +132,7 @@ namespace horizon
             auto metrics =
                 measure_ctx.getTextMetrics(label->text().c_str(), font.family.c_str(), font.size,
                                            FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
-            label_w = static_cast<int>(metrics.width);
+            label_w = static_cast<int>(std::ceil(metrics.width));
         }
 
         // Measure shortcut text width
@@ -141,7 +142,7 @@ namespace horizon
             auto metrics =
                 measure_ctx.getTextMetrics(m_shortcut_text.c_str(), font.family.c_str(), font.size,
                                            FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
-            shortcut_w = static_cast<int>(metrics.width);
+            shortcut_w = static_cast<int>(std::ceil(metrics.width));
         }
 
         return padding + icon_width + label_w + gap + shortcut_w + arrow_width + padding;
@@ -152,12 +153,23 @@ namespace horizon
         // Essential: Refresh m_start_draw_x/y from parent
         Widget::calculate_layout();
 
-        int icon_width = 24;
+        int icon_width = (m_icon || m_reserve_icon_space) ? 24 : 0;
         int arrow_width = 20;
-        int shortcut_width = m_shortcut_text.empty() ? 0 : 120;
-        int shortcut_gap =
-            m_shortcut_text.empty() ? 0 : 15; // Minimum space between label and shortcut
         int padding = 10;
+        int shortcut_gap = m_shortcut_text.empty() ? 0 : 15;
+
+        // Calculate dynamic shortcut width
+        int shortcut_width = 0;
+        if (!m_shortcut_text.empty() && application() && application()->theme_manager)
+        {
+            auto font = application()->theme_manager->get_font("window");
+            unsigned char tmp_buf[4] = {0};
+            CairoGraphicContext measure_ctx(tmp_buf, 1, 1);
+            auto metrics =
+                measure_ctx.getTextMetrics(m_shortcut_text.c_str(), font.family.c_str(), font.size,
+                                           FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+            shortcut_width = static_cast<int>(std::ceil(metrics.width));
+        }
 
         // Reserve space for icon if this item has one OR if any sibling does
         int content_x = padding;
@@ -165,20 +177,26 @@ namespace horizon
         {
             m_icon->set_position(m_start_draw_x + padding, m_start_draw_y + (m_height - 16) / 2);
             m_icon->set_size(16, 16);
-            content_x += icon_width;
+            content_x += 24; // Standard icon slot
             m_icon->calculate_layout();
         }
         else if (m_reserve_icon_space)
         {
-            // No icon, but reserve the space for consistent alignment
-            content_x += icon_width;
+            content_x += 24;
         }
 
         int available_content_width = m_width - content_x - shortcut_gap - shortcut_width -
-                                      (m_has_submenu ? arrow_width : 0) - padding;
+                                      (m_has_submenu ? arrow_width : 0) - padding +
+                                      2; // +2 safety buffer
 
         m_content->set_position(m_start_draw_x + content_x, m_start_draw_y);
         m_content->set_size(available_content_width, m_height);
+        m_content->set_application_recursive(application());
+        if (m_shortcut_label)
+            m_shortcut_label->set_application_recursive(application());
+        if (m_icon)
+            m_icon->set_application_recursive(application());
+
         m_content->calculate_layout();
 
         if (!m_shortcut_text.empty() && m_shortcut_label)
@@ -188,12 +206,6 @@ namespace horizon
             m_shortcut_label->set_size(shortcut_width, m_height);
             m_shortcut_label->calculate_layout();
         }
-
-        m_content->set_application_recursive(application());
-        if (m_shortcut_label)
-            m_shortcut_label->set_application_recursive(application());
-        if (m_icon)
-            m_icon->set_application_recursive(application());
     }
 
     void MenuItem::draw(GraphicsContext &gc)

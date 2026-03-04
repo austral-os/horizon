@@ -102,6 +102,21 @@ int main(int argc, char *argv[])
 
                                            Menu *root_menu_ptr = menus[0].get();
 
+                                           // Parse position if provided
+                                           try
+                                           {
+                                               auto json_msg = nlohmann::json::parse(msg);
+                                               int x = json_msg.value("x", 0);
+                                               int y = json_msg.value("y", 0);
+                                               root_menu_ptr->set_position(x, y);
+                                               std::cout << "Positioning menu at (" << x << ", "
+                                                         << y << ")" << std::endl;
+                                           }
+                                           catch (...)
+                                           {
+                                               root_menu_ptr->set_position(0, 0);
+                                           }
+
                                            // Add and show all menus (root and submenus)
                                            for (auto &menu : menus)
                                            {
