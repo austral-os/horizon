@@ -1,10 +1,12 @@
 #include "horizon/SignalManager.hpp"
 #include "horizon/ThemeManager.hpp"
 #include "horizon/WaylandEventListener.hpp"
+#include <deque>
 #include <functional>
 #include <horizon/WaylandSurface.hpp>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <vector>
 
 #pragma once // Solo se incluye una vez.
@@ -103,6 +105,13 @@ namespace horizon
          * @param widget The widget to invalidate. If nullptr, the entire window is repainted.
          */
         void invalidate(Widget *widget = nullptr);
+
+        /**
+         * @brief Posts a task to be executed on the main application thread.
+         * This method is thread-safe.
+         * @param task The function to execute.
+         */
+        void post_task(std::function<void()> task);
 
         /**
          * @brief Returns whether this application uses a transparent surface.
@@ -337,6 +346,9 @@ namespace horizon
         std::string m_icon_name{"system-run"};
         bool m_show_in_dock{true};
         bool m_show_in_system_tray{false};
+
+        std::deque<std::function<void()>> m_task_queue;
+        std::mutex m_task_mutex;
 
         // m_root is last: destroyed FIRST so widget dtors can safely call
         // stop_timer/unregister_widget

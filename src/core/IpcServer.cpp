@@ -99,16 +99,58 @@ namespace horizon
         }
     }
 
+    void IpcServer::broadcast(const std::string &msg)
+    {
+        std::lock_guard<std::mutex> lock(m_subscribers_mutex);
+        for (auto it = m_subscribers.begin(); it != m_subscribers.end();)
+        {
+            ssize_t n = write(*it, msg.c_str(), msg.length());
+            if (n == -1)
+            {
+                // Subscriber likely disconnected
+                close(*it);
+                it = m_subscribers.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+
     void IpcServer::handle_client(int client_fd)
     {
         char buffer[4096];
-        ssize_t n = read(client_fd, buffer, sizeof(buffer) - 1);
-        if (n > 0)
+        while (m_running)
         {
+            ssize_t n = read(client_fd, buffer, sizeof(buffer) - 1);
+            if (n <= 0)
+                break;
+
             buffer[n] = '\0';
             std::string request(buffer);
             std::string response = m_message_handler(request);
+
+            if (response == "SUBSCRIBE")
+            {
+                // Add to subscribers and STOP handling standard request/response loop here
+                // but keep the socket open for broadcasts.
+                {
+                    std::lock_guard<std::mutex> lock(m_subscribers_mutex);
+                    m_subscribers.push_back(client_fd);
+                }
+                // Send an initial OK so the client knows it's subscribed
+                std::string ok = "{\"status\": \"subscribed\"}";
+                write(client_fd, ok.c_str(), ok.length());
+                return; // Return so the thread can finish, but the FD stays in m_subscribers
+            }
+
             write(client_fd, response.c_str(), response.length());
+
+            // If it's a one-shot request (most cases), break after first interaction
+            // unless we want to support long-lived command sessions.
+            // For now, let's keep it simple: one shot or subscribe.
+            break;
         }
         close(client_fd);
     }

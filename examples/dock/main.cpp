@@ -1,10 +1,12 @@
 #include <cmath>
 #include <horizon/Icon.hpp>
+#include <horizon/IpcClient.hpp>
 #include <horizon/OverlayApplication.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <iostream>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <vector>
 
 using namespace horizon;
@@ -122,6 +124,8 @@ int main(int argc, char *argv[])
         app->set_anchor(2 | 4 | 8); // BOTTOM | LEFT | RIGHT
         app->set_size(0, 100);
         app->set_exclusive_zone(100);
+        app->set_show_in_dock(false);
+        app->set_show_in_system_tray(false);
 
         // 2. Root Window
         auto root = std::make_unique<Widget>();
@@ -135,22 +139,8 @@ int main(int argc, char *argv[])
         // 3. The Dock Shelf
         auto shelf = std::make_unique<DockShelf>();
 
-        // 4. Populate with icons
-        std::vector<std::string> mock_icons = {
-            "user-home",  "system-file-manager", "utilities-terminal", "applications-internet",
-            "system-run", "preferences-system",  "trash-empty"};
-
-        for (const auto &icon_name : mock_icons)
-        {
-            auto icn = std::make_unique<Icon>();
-            icn->set_icon_name(icon_name);
-            icn->set_icon_size(48);
-
-            // Allow icons to be centered vertically somewhat
-            icn->set_margin(5);
-
-            shelf->add_child(std::move(icn));
-        }
+        // Capture raw pointer to shelf before it's moved
+        DockShelf *shelf_ptr = shelf.get();
 
         // Add shelf to root. We use a spacer approach to center the shelf properly
         // because standard layout alignment doesn't strictly center horizontally in horizontal
@@ -163,6 +153,47 @@ int main(int argc, char *argv[])
         root->add_child(std::move(right_spacer));
 
         app->set_root(std::move(root));
+
+        // 5. Subscribe to App Manager
+        IpcClient client("/tmp/horizon_apps.sock");
+        client.subscribe(
+            "{\"type\": \"subscribe\"}",
+            [&app, shelf_ptr](const std::string &msg)
+            {
+                try
+                {
+                    auto j = nlohmann::json::parse(msg);
+                    if (j.value("type", "") == "app_list_updated")
+                    {
+                        auto apps = j.at("apps");
+                        // Update UI on the main thread
+                        app->post_task(
+                            [shelf_ptr, apps]()
+                            {
+                                std::cout << "Updating Dock icons from App Manager..." << std::endl;
+                                shelf_ptr->clear_children();
+                                for (const auto &app_j : apps)
+                                {
+                                    if (app_j.value("show_in_dock", false))
+                                    {
+                                        auto icn = std::make_unique<Icon>();
+                                        icn->set_icon_name(
+                                            app_j.value("icon", "application-x-executable"));
+                                        icn->set_icon_size(48);
+                                        icn->set_margin(5);
+                                        shelf_ptr->add_child(std::move(icn));
+                                    }
+                                }
+                                shelf_ptr->calculate_layout();
+                                shelf_ptr->invalidate();
+                            });
+                    }
+                }
+                catch (const std::exception &e)
+                {
+                    std::cerr << "Dock: Error parsing broadcast: " << e.what() << std::endl;
+                }
+            });
 
         std::cout << "Starting Mountain Lion OS X Dock Overlay..." << std::endl;
         app->run();

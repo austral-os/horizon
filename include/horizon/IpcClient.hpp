@@ -1,6 +1,7 @@
 #pragma once
-
+#include <functional>
 #include <string>
+#include <thread>
 
 namespace horizon
 {
@@ -11,7 +12,7 @@ namespace horizon
     {
     public:
         explicit IpcClient(const std::string &socket_path);
-        ~IpcClient() = default;
+        ~IpcClient();
 
         /**
          * @brief Sends a message and receives a response.
@@ -26,8 +27,20 @@ namespace horizon
          */
         bool send(const std::string &message);
 
+        /**
+         * @brief Subscribes to messages from the server.
+         * @param message The message to send to initiate subscription (e.g., "{"type":
+         * "subscribe"}").
+         * @param callback Callback to invoke for each message received from the server.
+         */
+        void subscribe(const std::string &message,
+                       std::function<void(const std::string &)> callback);
+
     private:
         std::string m_socket_path;
+        std::thread m_subscription_thread;
+        bool m_stop_subscription = false;
+        int m_subscription_fd = -1;
     };
 
 } // namespace horizon

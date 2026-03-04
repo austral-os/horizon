@@ -773,6 +773,20 @@ namespace horizon
                 }
             }
 
+            // Execute posted tasks
+            {
+                std::deque<std::function<void()>> tasks;
+                {
+                    std::lock_guard<std::mutex> lock(m_task_mutex);
+                    std::swap(tasks, m_task_queue);
+                }
+                for (auto &task : tasks)
+                {
+                    if (task)
+                        task();
+                }
+            }
+
             // Key repeat check — runs on every loop iteration when a key is held
             if (m_is_repeating)
             {
@@ -809,6 +823,15 @@ namespace horizon
             {
                 m_dirty_widgets.push_back(widget);
             }
+        }
+        wakeup();
+    }
+
+    void Application::post_task(std::function<void()> task)
+    {
+        {
+            std::lock_guard<std::mutex> lock(m_task_mutex);
+            m_task_queue.push_back(std::move(task));
         }
         wakeup();
     }

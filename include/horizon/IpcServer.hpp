@@ -1,6 +1,7 @@
 #pragma once
 #include <atomic>
 #include <functional>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -18,6 +19,11 @@ namespace horizon
         void start();
         void stop();
 
+        /**
+         * @brief Sends a message to all persistent subscribers.
+         */
+        void broadcast(const std::string &msg);
+
     private:
         void listen_loop();
         void handle_client(int client_fd);
@@ -28,5 +34,8 @@ namespace horizon
         std::atomic<bool> m_running{false};
         std::thread m_listen_thread;
         std::vector<std::thread> m_client_threads;
+
+        std::mutex m_subscribers_mutex;
+        std::vector<int> m_subscribers;
     };
 } // namespace horizon
