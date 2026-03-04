@@ -656,6 +656,16 @@ namespace horizon
                             // widget area.
                             ctx.save();
                             ctx.clip(w->x(), w->y(), w->width(), w->height());
+
+                            // For transparent surfaces, we must clear the destination region
+                            // before compositing the new widget tree,
+                            // otherwise old pixels remain underneath
+                            if (is_transparent_surface())
+                            {
+                                ctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+                                ctx.clearRect(w->x(), w->y(), w->width(), w->height());
+                            }
+
                             ctx.pushGroup();
                             m_root->render(ctx, w->x(), w->y(), w->width(), w->height(), true);
                             ctx.popGroup();
