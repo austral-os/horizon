@@ -88,6 +88,10 @@ public:
 int main(int argc, char **argv)
 {
     Application app(800, 600);
+    app.set_app_id("horizon.toolbar_demo");
+    app.set_name("Toolbar Demo");
+    app.set_icon_name("folder");
+    app.set_show_in_dock(true);
 
     auto window = std::make_unique<ApplicationWindow>("Horizon Toolbar Demo");
     window->set_size(800, 600);

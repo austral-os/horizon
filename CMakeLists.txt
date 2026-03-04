@@ -105,6 +105,15 @@ target_link_libraries(dock
         horizon
 )
 
+add_executable(app_manager
+    examples/app_manager/main.cpp
+)
+
+target_link_libraries(app_manager
+    PRIVATE
+        horizon
+)
+
 # Agregamos un target "run" para compilar y ejecutar de una vez
 add_custom_target(run
     COMMAND $<TARGET_FILE:minimal>

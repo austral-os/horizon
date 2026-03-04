@@ -174,6 +174,52 @@ namespace horizon
          */
         void unregister_widget(Widget *widget);
 
+        // --- Application Metadata ---
+        void set_app_id(const std::string &id)
+        {
+            m_app_id = id;
+        }
+        const std::string &app_id() const
+        {
+            return m_app_id;
+        }
+
+        void set_name(const std::string &name)
+        {
+            m_name = name;
+        }
+        const std::string &name() const
+        {
+            return m_name;
+        }
+
+        void set_icon_name(const std::string &icon_name)
+        {
+            m_icon_name = icon_name;
+        }
+        const std::string &icon_name() const
+        {
+            return m_icon_name;
+        }
+
+        void set_show_in_dock(bool show)
+        {
+            m_show_in_dock = show;
+        }
+        bool show_in_dock() const
+        {
+            return m_show_in_dock;
+        }
+
+        void set_show_in_system_tray(bool show)
+        {
+            m_show_in_system_tray = show;
+        }
+        bool show_in_system_tray() const
+        {
+            return m_show_in_system_tray;
+        }
+
         // Modifiers
         enum Modifier
         {
@@ -194,6 +240,12 @@ namespace horizon
          * @brief Internal event dispatcher.
          */
         void dispatch_events();
+
+        /**
+         * @brief Notifies the application manager about lifecycle events.
+         * @param type Event type (e.g., "app_started", "app_stopped").
+         */
+        void notify_app_manager(const std::string &type);
 
     private:
         std::unique_ptr<WaylandSurface>
@@ -278,6 +330,13 @@ namespace horizon
         };
         std::map<size_t, Timer> m_timers;
         size_t m_next_timer_id{1};
+
+        // Application Metadata
+        std::string m_app_id{"horizon.app"};
+        std::string m_name{"Horizon Application"};
+        std::string m_icon_name{"system-run"};
+        bool m_show_in_dock{true};
+        bool m_show_in_system_tray{false};
 
         // m_root is last: destroyed FIRST so widget dtors can safely call
         // stop_timer/unregister_widget

@@ -7,11 +7,13 @@
 #include <cstring>
 #include <horizon/Application.hpp>
 #include <horizon/ClientMenu.hpp>
+#include <horizon/IpcClient.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/Window.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
 #include <iostream>
 #include <linux/input-event-codes.h>
+#include <nlohmann/json.hpp>
 #include <poll.h>
 #include <sys/eventfd.h>
 #include <unistd.h>
@@ -586,6 +588,8 @@ namespace horizon
                 handler();
         }
 
+        notify_app_manager("app_started");
+
         struct pollfd fds[2];
         fds[0].fd = wl_display_get_fd(m_surface->display());
         fds[0].events = POLLIN;
@@ -888,6 +892,29 @@ namespace horizon
                 if (handler)
                     handler();
             }
+            notify_app_manager("app_stopped");
+        }
+    }
+
+    void Application::notify_app_manager(const std::string &type)
+    {
+        try
+        {
+            nlohmann::json msg;
+            msg["type"] = type;
+            msg["app_id"] = m_app_id;
+            msg["name"] = m_name;
+            msg["icon"] = m_icon_name;
+            msg["show_in_dock"] = m_show_in_dock;
+            msg["show_in_system_tray"] = m_show_in_system_tray;
+            msg["pid"] = getpid();
+
+            IpcClient client("/tmp/horizon_apps.sock");
+            client.send(msg.dump());
+        }
+        catch (...)
+        {
+            // Silently ignore IPC errors to not crash the application
         }
     }
 

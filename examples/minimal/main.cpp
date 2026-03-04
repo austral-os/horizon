@@ -52,6 +52,10 @@ int main()
     try
     {
         Application app(800, 600);
+        app.set_app_id("horizon.minimal");
+        app.set_name("Minimal Demo");
+        app.set_icon_name("system-help");
+        app.set_show_in_dock(true);
 
         auto wnd = std::make_unique<Window>("Horizon Application toolkit demo");
         wnd->set_size(800, 600);
