@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Menu.hpp>
 
@@ -115,8 +116,26 @@ namespace horizon
 
     void Menu::render(GraphicsContext &ctx, int cx, int cy, int cw, int ch, bool force)
     {
+        // Handle visibility transition: if was visible but now hidden, clear the area
         if (!m_visible)
+        {
+            if (m_was_visible)
+            {
+                // Request a full repaint of the entire surface.
+                // This is necessary because Cairo's pushGroup/popGroup prevents
+                // CLEAR operations from reaching the actual surface buffer.
+                // A full repaint re-renders everything from scratch, naturally
+                // omitting the hidden menu.
+                if (application())
+                {
+                    application()->invalidate(nullptr);
+                }
+                m_was_visible = false;
+            }
             return;
+        }
+
+        m_was_visible = true;
 
         // 1. Ensure layout is calculated before anything else
         calculate_layout();
@@ -143,7 +162,6 @@ namespace horizon
         {
             if (child->is_visible())
             {
-                // Pass should_draw to children to ensure they propagate the dirty state correctly
                 child->render(ctx, cx, cy, cw, ch, should_draw);
             }
         }

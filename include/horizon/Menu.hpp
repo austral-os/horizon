@@ -34,6 +34,7 @@ namespace horizon
         Menu *m_active_submenu = nullptr;
         int m_item_height = 24;
         int m_min_width = 160;
+        bool m_was_visible = false; // Track visibility transitions for clearing
     };
 
 } // namespace horizon

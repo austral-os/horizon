@@ -573,6 +573,11 @@ namespace horizon
                         m_dirty_widgets.clear();
                         CairoGraphicContext ctx(m_surface->data(), m_surface->width(),
                                                 m_surface->height());
+                        // Clear the entire surface first to remove any stale pixels
+                        // (e.g., from previously visible menus on transparent overlays).
+                        // Without this, popGroup's OVER compositing preserves old pixels.
+                        ctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+                        ctx.clearRect(0, 0, m_surface->width(), m_surface->height());
                         ctx.pushGroup();
                         m_root->render(ctx, 0, 0, m_surface->width(), m_surface->height(), true);
                         ctx.popGroup();
