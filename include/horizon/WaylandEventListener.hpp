@@ -102,5 +102,6 @@ namespace horizon
          * @param active True if activated, false if deactivated.
          */
         virtual void on_activated(bool active) = 0;
+        virtual void on_close() {}
     };
 } // namespace horizon

@@ -53,7 +53,7 @@ namespace horizon
                 {
                     if (application())
                     {
-                        application()->quit();
+                        application()->on_close();
                     }
                 });
         }

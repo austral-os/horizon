@@ -541,7 +541,15 @@ namespace horizon
                         self->m_listener->on_resize(width, height);
                 }
             },
-            .close = [](void *, xdg_toplevel *) {}};
+            .close =
+                [](void *data, xdg_toplevel *)
+            {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                if (self->m_listener)
+                {
+                    self->m_listener->on_close();
+                }
+            }};
         xdg_toplevel_add_listener(m_xdg_toplevel, &toplevel_list, this);
 
         wl_surface_commit(m_surface);
@@ -585,7 +593,15 @@ namespace horizon
                         self->m_listener->on_resize(width, height);
                 }
             },
-            .closed = [](void *, zwlr_layer_surface_v1 *) {}};
+            .closed =
+                [](void *data, zwlr_layer_surface_v1 *)
+            {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                if (self->m_listener)
+                {
+                    self->m_listener->on_close();
+                }
+            }};
 
         zwlr_layer_surface_v1_add_listener(m_layer_surface, &layer_surface_listener, this);
 

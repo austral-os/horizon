@@ -989,4 +989,22 @@ namespace horizon
             m_pressed = nullptr;
     }
 
+    void Application::on_close()
+    {
+        EventContext ev;
+        ev.sender = this;
+        ev.type = EventType::AppExit;
+
+        when_close.run(ev);
+
+        if (!ev.stop_propagation)
+        {
+            if (m_client_menu)
+            {
+                m_client_menu->set_global_menu({}); // Clear global menu before exit
+            }
+            quit();
+        }
+    }
+
 } // namespace horizon

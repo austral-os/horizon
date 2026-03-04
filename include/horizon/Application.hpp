@@ -61,6 +61,7 @@ namespace horizon
 
         EventsManager when_activated;
         EventsManager when_deactivated;
+        EventsManager when_close;
 
         /**
          * @brief Sets the global menu for the application.
@@ -146,6 +147,7 @@ namespace horizon
         void on_modifiers_event(uint32_t modifiers) override;
         void on_resize(int width, int height) override;
         void on_activated(bool active) override;
+        void on_close() override;
 
         // --- Application Events (Multi-Callback) ---
         size_t add_on_start(std::function<void()> handler);
