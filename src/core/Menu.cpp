@@ -57,12 +57,14 @@ namespace horizon
         {
             child->set_position(m_start_draw_x + 1, m_start_draw_y + current_y);
             child->set_size(max_w - 2, child->height());
+            child->calculate_layout(); // Explicit recursive call for stable positioning
             current_y += child->height();
         }
 
         // Update size without triggering a full recalculation loop if possible
         m_width = max_w;
-        m_height = current_y + 1 + padding_bottom;
+        m_height =
+            current_y + padding_bottom; // Removed +1 because padding_bottom already handles it
         // Re-call base to refresh draw area after size change
         Widget::calculate_layout();
     }
@@ -112,6 +114,47 @@ namespace horizon
         }
     }
 
+    void Menu::render(GraphicsContext &ctx, int cx, int cy, int cw, int ch, bool force)
+    {
+        if (!m_visible)
+            return;
+
+        // 1. Ensure layout is calculated before anything else
+        calculate_layout();
+
+        bool intersects =
+            !(m_x >= cx + cw || m_x + m_width <= cx || m_y >= cy + ch || m_y + m_height <= cy);
+        if (!intersects)
+            return;
+
+        bool should_draw = m_dirty || force || m_child_dirty;
+
+        // 2. Draw the menu container (background and border)
+        if (should_draw)
+        {
+            draw(ctx);
+        }
+
+        // 3. Draw children with clipping
+        CornerRadius radius(0, 0, 10, 10);
+        ctx.save();
+        ctx.clipRoundedRect(m_start_draw_x, m_start_draw_y, m_width, m_height, radius);
+
+        for (const auto &child : m_children)
+        {
+            if (child->is_visible())
+            {
+                // Pass should_draw to children to ensure they propagate the dirty state correctly
+                child->render(ctx, cx, cy, cw, ch, should_draw);
+            }
+        }
+
+        ctx.restore();
+
+        m_dirty = false;
+        m_child_dirty = false;
+    }
+
     void Menu::draw(GraphicsContext &gc)
     {
         // macOS Menu style
@@ -125,15 +168,6 @@ namespace horizon
         // Fill background
         gc.setColor(background_color());
         gc.fillRect(m_start_draw_x + 1, m_start_draw_y + 1, m_width - 2, m_height - 2, radius);
-
-        // Clip children to follow the rounded corners
-        gc.save();
-        gc.clipRoundedRect(m_start_draw_x, m_start_draw_y, m_width, m_height, radius);
-
-        // Draw children (items)
-        Widget::draw(gc);
-
-        gc.restore();
     }
 
 } // namespace horizon

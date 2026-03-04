@@ -238,14 +238,24 @@ namespace horizon
 
     void Widget::set_position(int x, int y)
     {
-        m_x = x;
-        m_y = y;
+        if (m_x != x || m_y != y)
+        {
+            invalidate(); // Invalidate old position
+            m_x = x;
+            m_y = y;
+            invalidate(); // Invalidate new position
+        }
     }
 
     void Widget::set_size(int width, int height)
     {
-        m_width = width;
-        m_height = height;
+        if (m_width != width || m_height != height)
+        {
+            invalidate(); // Invalidate old size area
+            m_width = width;
+            m_height = height;
+            invalidate(); // Invalidate new size area
+        }
     }
 
     void Widget::set_fixed_size(int size)

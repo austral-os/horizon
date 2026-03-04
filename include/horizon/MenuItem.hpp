@@ -56,7 +56,7 @@ namespace horizon
         bool m_has_submenu = false;
         bool m_selected = false;
 
-        void update_layout();
+        void calculate_layout() override;
     };
 
 } // namespace horizon

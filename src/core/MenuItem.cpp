@@ -104,9 +104,9 @@ namespace horizon
         set_has_submenu(submenu != nullptr);
     }
 
-    void MenuItem::update_layout()
+    void MenuItem::calculate_layout()
     {
-        // Essential: Refresh m_start_draw_x/y
+        // Essential: Refresh m_start_draw_x/y from parent
         Widget::calculate_layout();
 
         int icon_width = 24;
@@ -120,6 +120,7 @@ namespace horizon
             m_icon->set_position(m_start_draw_x + padding + (icon_width - 16) / 2,
                                  m_start_draw_y + (m_height - 16) / 2);
             content_x += icon_width;
+            m_icon->calculate_layout();
         }
 
         int available_content_width =
@@ -127,12 +128,14 @@ namespace horizon
 
         m_content->set_position(m_start_draw_x + content_x, m_start_draw_y);
         m_content->set_size(available_content_width, m_height);
+        m_content->calculate_layout();
 
         if (!m_shortcut_text.empty() && m_shortcut_label)
         {
             m_shortcut_label->set_position(
                 m_start_draw_x + m_width - arrow_width - shortcut_width - padding, m_start_draw_y);
             m_shortcut_label->set_size(shortcut_width, m_height);
+            m_shortcut_label->calculate_layout();
         }
 
         m_content->set_application_recursive(application());
@@ -144,7 +147,6 @@ namespace horizon
 
     void MenuItem::draw(GraphicsContext &gc)
     {
-        update_layout();
 
         if (m_selected)
         {
