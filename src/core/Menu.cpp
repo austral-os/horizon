@@ -41,7 +41,9 @@ namespace horizon
         // Update m_start_draw_x/y based on current m_x/y
         Widget::calculate_layout();
 
-        int current_y = 1; // 1px border
+        int padding_top = 10;
+        int padding_bottom = 10;
+        int current_y = 1 + padding_top; // 1px border + padding
         int max_w = m_min_width;
 
         // First pass: Determine max width needed
@@ -60,7 +62,7 @@ namespace horizon
 
         // Update size without triggering a full recalculation loop if possible
         m_width = max_w;
-        m_height = current_y + 1;
+        m_height = current_y + 1 + padding_bottom;
         // Re-call base to refresh draw area after size change
         Widget::calculate_layout();
     }
