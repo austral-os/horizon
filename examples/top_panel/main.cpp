@@ -57,10 +57,30 @@ int main(int argc, char *argv[])
         // Keep a raw pointer to menubar to update it from the timer
         MenuBar *menubar_ptr = menubar.get();
 
+        // State for managing global menu locking (preventing blink on focus loss)
+        bool menu_daemon_visible = false;
+        bool has_cached_menu_request = false;
+        nlohmann::json cached_menu_request;
+        size_t apply_cache_timer_id = 0;
+
+        auto apply_global_menu_fn = [menubar_ptr](const nlohmann::json &request)
+        {
+            auto new_menus = GlobalMenuMessage::parse(request);
+            menubar_ptr->clear_menus();
+            for (auto &menu : new_menus)
+            {
+                menubar_ptr->add_menu(std::move(menu));
+            }
+            menubar_ptr->invalidate();
+        };
+
         // Wire up click callback: send menu to daemon for display
         menubar->set_on_menu_click(
-            [&client_menu](Menu *menu, int x, int y)
+            [&client_menu, &menu_daemon_visible](Menu *menu, int x, int y)
             {
+                // Synchronously assume daemon is visible to prevent race conditions
+                menu_daemon_visible = true;
+
                 // y=0 because the menu manager overlay starts right below the
                 // top_panel's exclusive zone, so y=0 is already at the panel bottom.
                 std::cout << "MenuBar click: " << menu->title() << " at x=" << x << std::endl;
@@ -72,30 +92,72 @@ int main(int argc, char *argv[])
         RequestRouter router(message_manager);
 
         router.register_handler("set_global_menu",
-                                [menubar_ptr, &app](const std::string &request_id,
-                                                    const nlohmann::json &request,
-                                                    MessageManager &mgr) -> nlohmann::json
+                                [&menu_daemon_visible, &has_cached_menu_request,
+                                 &cached_menu_request, &apply_cache_timer_id, apply_global_menu_fn,
+                                 &app](const std::string &request_id, const nlohmann::json &request,
+                                       MessageManager &mgr) -> nlohmann::json
                                 {
                                     std::cout << "Updating global menu..." << std::endl;
 
-                                    // Parse the JSON into a vector of Menu objects
-                                    auto new_menus = GlobalMenuMessage::parse(request);
-
-                                    // Update the MenuBar
-                                    menubar_ptr->clear_menus();
-                                    for (auto &menu : new_menus)
+                                    if (menu_daemon_visible)
                                     {
-                                        menubar_ptr->add_menu(std::move(menu));
+                                        std::cout << "Menu daemon is visible, caching request."
+                                                  << std::endl;
+                                        has_cached_menu_request = true;
+                                        cached_menu_request = request;
                                     }
-
-                                    // Force layout recalculation and repaint
-                                    menubar_ptr->invalidate();
+                                    else
+                                    {
+                                        if (apply_cache_timer_id)
+                                        {
+                                            app->stop_timer(apply_cache_timer_id);
+                                            apply_cache_timer_id = 0;
+                                        }
+                                        has_cached_menu_request = false;
+                                        apply_global_menu_fn(request);
+                                    }
 
                                     nlohmann::json response;
                                     response["status"] = "ok";
                                     response["request_id"] = request_id;
                                     return response;
                                 });
+
+        router.register_handler(
+            "menu_daemon_status",
+            [&menu_daemon_visible, &has_cached_menu_request, &cached_menu_request,
+             &apply_cache_timer_id, apply_global_menu_fn,
+             &app](const std::string &request_id, const nlohmann::json &request,
+                   MessageManager &mgr) -> nlohmann::json
+            {
+                menu_daemon_visible = request.value("visible", false);
+                std::cout << "Menu daemon status updated: " << menu_daemon_visible << std::endl;
+
+                if (!menu_daemon_visible && has_cached_menu_request && !apply_cache_timer_id)
+                {
+                    // Wait 150ms to allow the previous focused app to regain focus
+                    // and send a fresh global menu (overwriting the cache).
+                    apply_cache_timer_id = app->add_timer(
+                        150,
+                        [apply_global_menu_fn, &apply_cache_timer_id, &has_cached_menu_request,
+                         &cached_menu_request]()
+                        {
+                            if (has_cached_menu_request)
+                            {
+                                std::cout << "Applying cached menu request after unlock timer."
+                                          << std::endl;
+                                apply_global_menu_fn(cached_menu_request);
+                                has_cached_menu_request = false;
+                            }
+                            apply_cache_timer_id = 0;
+                        });
+                }
+
+                nlohmann::json response;
+                response["status"] = "ok";
+                response["request_id"] = request_id;
+                return response;
+            });
 
         std::mutex queue_mutex;
         std::vector<std::string> pending_messages;

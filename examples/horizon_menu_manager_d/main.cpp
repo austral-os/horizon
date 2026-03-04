@@ -1,3 +1,4 @@
+#include <horizon/IpcClient.hpp>
 #include <horizon/IpcServer.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/MessageManager.hpp>
@@ -5,6 +6,7 @@
 #include <horizon/RequestRouter.hpp>
 #include <horizon/Widget.hpp>
 #include <iostream>
+#include <linux/input-event-codes.h>
 #include <memory>
 #include <nlohmann/json.hpp>
 
@@ -98,87 +100,117 @@ int main(int argc, char *argv[])
                 }
                 menu_visible = false;
                 app->set_visible(false);
+
+                IpcClient global_menu_client("/tmp/horizon_global_menu.sock");
+                global_menu_client.send(
+                    nlohmann::json{{"type", "menu_daemon_status"}, {"visible", false}}.dump());
+            });
+
+        // Hide when escape key is pressed to prevent the daemon from quitting entirely
+        root_ptr->when_key_press.connect(
+            [&](EventContext &ev)
+            {
+                if (ev.key == KEY_ESC)
+                {
+                    std::cout << "Escape pressed, hiding menu manager." << std::endl;
+                    for (auto &child : root_ptr->children())
+                    {
+                        child->set_visible(false);
+                    }
+                    menu_visible = false;
+                    app->set_visible(false);
+
+                    IpcClient global_menu_client("/tmp/horizon_global_menu.sock");
+                    global_menu_client.send(
+                        nlohmann::json{{"type", "menu_daemon_status"}, {"visible", false}}.dump());
+                    ev.stop_propagation = true;
+                }
             });
 
         // Timer to process new messages in the main thread
-        app->add_timer(50,
-                       [&]()
-                       {
-                           std::vector<std::string> to_process;
-                           {
-                               std::lock_guard<std::mutex> lock(queue_mutex);
-                               to_process = std::move(pending_messages);
-                               pending_messages.clear();
-                           }
+        app->add_timer(
+            50,
+            [&]()
+            {
+                std::vector<std::string> to_process;
+                {
+                    std::lock_guard<std::mutex> lock(queue_mutex);
+                    to_process = std::move(pending_messages);
+                    pending_messages.clear();
+                }
 
-                           for (const auto &msg : to_process)
-                           {
-                               std::cout << "Processing message in main thread: " << msg
-                                         << std::endl;
-                               auto response = router.route(msg);
+                for (const auto &msg : to_process)
+                {
+                    std::cout << "Processing message in main thread: " << msg << std::endl;
+                    auto response = router.route(msg);
 
-                               if (response.contains("message_id"))
-                               {
-                                   std::string id = response["message_id"];
-                                   Message *message = message_manager.get_message(id);
-                                   if (message)
-                                   {
-                                       auto *menu_msg = static_cast<MenuMessage *>(message);
-                                       auto menus = menu_msg->release_all_menus();
+                    if (response.contains("message_id"))
+                    {
+                        std::string id = response["message_id"];
+                        Message *message = message_manager.get_message(id);
+                        if (message)
+                        {
+                            auto *menu_msg = static_cast<MenuMessage *>(message);
+                            auto menus = menu_msg->release_all_menus();
 
-                                       if (!menus.empty())
-                                       {
-                                           // Clear old menus before showing new ones
-                                           if (menu_visible)
-                                           {
-                                               for (auto &child : root_ptr->children())
-                                               {
-                                                   child->set_visible(false);
-                                               }
-                                               app->invalidate(nullptr);
-                                           }
+                            if (!menus.empty())
+                            {
+                                // Clear old menus before showing new ones
+                                if (menu_visible)
+                                {
+                                    for (auto &child : root_ptr->children())
+                                    {
+                                        child->set_visible(false);
+                                    }
+                                    app->invalidate(nullptr);
+                                }
 
-                                           root_ptr->clear_children();
+                                root_ptr->clear_children();
 
-                                           Menu *root_menu_ptr = menus[0].get();
+                                Menu *root_menu_ptr = menus[0].get();
 
-                                           // Parse position if provided
-                                           try
-                                           {
-                                               auto json_msg = nlohmann::json::parse(msg);
-                                               int x = json_msg.value("x", 0);
-                                               int y = json_msg.value("y", 0);
-                                               root_menu_ptr->set_position(x, y);
-                                               if (json_msg.contains("monitor"))
-                                               {
-                                                   app->move_to_monitor(json_msg["monitor"]);
-                                               }
-                                               std::cout << "Positioning menu at (" << x << ", "
-                                                         << y << ")" << std::endl;
-                                           }
-                                           catch (...)
-                                           {
-                                               root_menu_ptr->set_position(0, 0);
-                                           }
+                                // Parse position if provided
+                                try
+                                {
+                                    auto json_msg = nlohmann::json::parse(msg);
+                                    int x = json_msg.value("x", 0);
+                                    int y = json_msg.value("y", 0);
+                                    root_menu_ptr->set_position(x, y);
+                                    if (json_msg.contains("monitor"))
+                                    {
+                                        app->move_to_monitor(json_msg["monitor"]);
+                                    }
+                                    std::cout << "Positioning menu at (" << x << ", " << y << ")"
+                                              << std::endl;
+                                }
+                                catch (...)
+                                {
+                                    root_menu_ptr->set_position(0, 0);
+                                }
 
-                                           // Add and show all menus (root and submenus)
-                                           for (auto &menu : menus)
-                                           {
-                                               menu->set_visible(false); // Submenus start hidden
-                                               root_ptr->add_child(std::move(menu));
-                                           }
+                                // Add and show all menus (root and submenus)
+                                for (auto &menu : menus)
+                                {
+                                    menu->set_visible(false); // Submenus start hidden
+                                    root_ptr->add_child(std::move(menu));
+                                }
 
-                                           // Ensure layout is calculated before showing
-                                           root_menu_ptr->calculate_layout();
-                                           root_menu_ptr->set_visible(true);
-                                           menu_visible = true;
-                                           app->set_visible(true);
-                                           root_ptr->invalidate();
-                                       }
-                                   }
-                               }
-                           }
-                       });
+                                // Ensure layout is calculated before showing
+                                root_menu_ptr->calculate_layout();
+                                root_menu_ptr->set_visible(true);
+                                menu_visible = true;
+                                app->set_visible(true);
+                                root_ptr->invalidate();
+
+                                IpcClient global_menu_client("/tmp/horizon_global_menu.sock");
+                                global_menu_client.send(nlohmann::json{
+                                    {"type", "menu_daemon_status"},
+                                    {"visible", true}}.dump());
+                            }
+                        }
+                    }
+                }
+            });
 
         app->set_root(std::move(root));
 
