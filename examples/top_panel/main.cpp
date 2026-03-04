@@ -91,44 +91,44 @@ int main(int argc, char *argv[])
         MessageManager message_manager; // We don't store messages, but router needs it
         RequestRouter router(message_manager);
 
-        router.register_handler("set_global_menu",
-                                [&menu_daemon_visible, &has_cached_menu_request,
-                                 &cached_menu_request, &apply_cache_timer_id, apply_global_menu_fn,
-                                 &app](const std::string &request_id, const nlohmann::json &request,
-                                       MessageManager &mgr) -> nlohmann::json
-                                {
-                                    std::cout << "Updating global menu..." << std::endl;
+        router.register_handler(
+            "set_global_menu",
+            [&menu_daemon_visible, &has_cached_menu_request, &cached_menu_request,
+             &apply_cache_timer_id, apply_global_menu_fn, &app,
+             menubar_ptr](const std::string &request_id, const nlohmann::json &request,
+                          MessageManager &mgr) -> nlohmann::json
+            {
+                std::cout << "Updating global menu..." << std::endl;
 
-                                    if (menu_daemon_visible)
-                                    {
-                                        std::cout << "Menu daemon is visible, caching request."
-                                                  << std::endl;
-                                        has_cached_menu_request = true;
-                                        cached_menu_request = request;
-                                    }
-                                    else
-                                    {
-                                        if (apply_cache_timer_id)
-                                        {
-                                            app->stop_timer(apply_cache_timer_id);
-                                            apply_cache_timer_id = 0;
-                                        }
-                                        has_cached_menu_request = false;
-                                        apply_global_menu_fn(request);
-                                    }
+                if (menu_daemon_visible)
+                {
+                    std::cout << "Menu daemon is visible, caching request." << std::endl;
+                    has_cached_menu_request = true;
+                    cached_menu_request = request;
+                }
+                else
+                {
+                    if (apply_cache_timer_id)
+                    {
+                        app->stop_timer(apply_cache_timer_id);
+                        apply_cache_timer_id = 0;
+                    }
+                    has_cached_menu_request = false;
+                    apply_global_menu_fn(request);
+                }
 
-                                    nlohmann::json response;
-                                    response["status"] = "ok";
-                                    response["request_id"] = request_id;
-                                    return response;
-                                });
+                nlohmann::json response;
+                response["status"] = "ok";
+                response["request_id"] = request_id;
+                return response;
+            });
 
         router.register_handler(
             "menu_daemon_status",
             [&menu_daemon_visible, &has_cached_menu_request, &cached_menu_request,
-             &apply_cache_timer_id, apply_global_menu_fn,
-             &app](const std::string &request_id, const nlohmann::json &request,
-                   MessageManager &mgr) -> nlohmann::json
+             &apply_cache_timer_id, apply_global_menu_fn, &app,
+             menubar_ptr](const std::string &request_id, const nlohmann::json &request,
+                          MessageManager &mgr) -> nlohmann::json
             {
                 menu_daemon_visible = request.value("visible", false);
                 std::cout << "Menu daemon status updated: " << menu_daemon_visible << std::endl;
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
                     apply_cache_timer_id = app->add_timer(
                         150,
                         [apply_global_menu_fn, &apply_cache_timer_id, &has_cached_menu_request,
-                         &cached_menu_request]()
+                         &cached_menu_request, menubar_ptr]()
                         {
                             if (has_cached_menu_request)
                             {
@@ -149,8 +149,13 @@ int main(int argc, char *argv[])
                                 apply_global_menu_fn(cached_menu_request);
                                 has_cached_menu_request = false;
                             }
+                            menubar_ptr->set_menu_open(false);
                             apply_cache_timer_id = 0;
                         });
+                }
+                else
+                {
+                    menubar_ptr->set_menu_open(menu_daemon_visible);
                 }
 
                 nlohmann::json response;

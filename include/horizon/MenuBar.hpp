@@ -26,12 +26,18 @@ namespace horizon
 
         // Callback when a menu title is clicked: receives (Menu*, x, y) of the item
         void set_on_menu_click(std::function<void(Menu *, int x, int y)> callback);
+        void set_menu_open(bool open);
+        bool menu_open() const
+        {
+            return m_menu_open;
+        }
 
     private:
         void update_selection(MenuBarItem *selected_item);
 
         std::vector<std::unique_ptr<Menu>> m_menus;
         std::function<void(Menu *, int x, int y)> m_on_menu_click;
+        bool m_menu_open = false;
     };
 
     class MenuBarItem : public Label

@@ -22,6 +22,14 @@ namespace horizon
                     update_selection(item_ptr);
                 }
             });
+        item->when_mouse_enter.connect(
+            [this, item_ptr = item.get()](EventContext &)
+            {
+                if (m_menu_open)
+                {
+                    update_selection(item_ptr);
+                }
+            });
         m_menus.push_back(std::move(menu));
         add_child(std::move(item));
         invalidate();
@@ -35,6 +43,14 @@ namespace horizon
             [this, item_ptr = item.get()](EventContext &ctx)
             {
                 if (ctx.button == 0x110) // Left click
+                {
+                    update_selection(item_ptr);
+                }
+            });
+        item->when_mouse_enter.connect(
+            [this, item_ptr = item.get()](EventContext &)
+            {
+                if (m_menu_open)
                 {
                     update_selection(item_ptr);
                 }
@@ -85,6 +101,11 @@ namespace horizon
             }
         }
 
+        if (selected_item)
+        {
+            m_menu_open = true;
+        }
+
         if (m_on_menu_click && selected_item)
         {
             // Pass the menu and the bottom-left corner of the clicked item
@@ -96,6 +117,15 @@ namespace horizon
     void MenuBar::set_on_menu_click(std::function<void(Menu *, int x, int y)> callback)
     {
         m_on_menu_click = std::move(callback);
+    }
+
+    void MenuBar::set_menu_open(bool open)
+    {
+        m_menu_open = open;
+        if (!open)
+        {
+            update_selection(nullptr);
+        }
     }
 
     // --- MenuBarItem ---
