@@ -1,3 +1,4 @@
+#include "horizon/SignalManager.hpp"
 #include "horizon/ThemeManager.hpp"
 #include "horizon/WaylandEventListener.hpp"
 #include <functional>
@@ -54,6 +55,7 @@ namespace horizon
         Application &operator=(Application &&) noexcept;
 
         std::unique_ptr<ThemeManager> theme_manager;
+        SignalManager signal_manager;
 
         /**
          * @brief Sets the root widget of the application's widget tree.
