@@ -89,7 +89,6 @@ target_link_libraries(menubar_demo
 
 add_executable(horizon_menu_manager_d
     examples/horizon_menu_manager_d/main.cpp
-    examples/horizon_menu_manager_d/IpcServer.cpp
 )
 
 target_link_libraries(horizon_menu_manager_d

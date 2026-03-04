@@ -1,16 +1,10 @@
 #include <horizon/ClientMenu.hpp>
-#include <horizon/MenuItem.hpp>
 #include <horizon/MenuSeparator.hpp>
-
-#include <iostream>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
 
 namespace horizon
 {
 
-    ClientMenu::ClientMenu(const std::string &socket_path) : m_socket_path(socket_path) {}
+    ClientMenu::ClientMenu(const std::string &socket_path) : m_client(socket_path) {}
 
     bool ClientMenu::show_menu(Menu *menu, int x, int y, int monitor)
     {
@@ -27,7 +21,7 @@ namespace horizon
 
         request["menu"] = menu_to_json(menu);
 
-        return send_request(request);
+        return m_client.send(request.dump());
     }
 
     nlohmann::json ClientMenu::menu_to_json(Menu *menu)
@@ -45,14 +39,12 @@ namespace horizon
 
         for (const auto &child : menu->children())
         {
-            // Check if it's a separator
             if (dynamic_cast<MenuSeparator *>(child.get()))
             {
                 items.push_back({{"type", "separator"}});
                 continue;
             }
 
-            // Check if it's a MenuItem
             auto *item = dynamic_cast<MenuItem *>(child.get());
             if (item)
             {
@@ -75,53 +67,7 @@ namespace horizon
             j["shortcut"] = item->shortcut();
         }
 
-        // Note: submenu serialization would require access to the submenu Menu*.
-        // For now, we handle flat menus. Submenus can be added later.
-
         return j;
-    }
-
-    bool ClientMenu::send_request(const nlohmann::json &request)
-    {
-        int sock = socket(AF_UNIX, SOCK_STREAM, 0);
-        if (sock < 0)
-        {
-            std::cerr << "ClientMenu: Failed to create socket." << std::endl;
-            return false;
-        }
-
-        struct sockaddr_un addr;
-        memset(&addr, 0, sizeof(addr));
-        addr.sun_family = AF_UNIX;
-        strncpy(addr.sun_path, m_socket_path.c_str(), sizeof(addr.sun_path) - 1);
-
-        if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-        {
-            std::cerr << "ClientMenu: Failed to connect to " << m_socket_path << std::endl;
-            close(sock);
-            return false;
-        }
-
-        std::string data = request.dump();
-        ssize_t sent = write(sock, data.c_str(), data.size());
-        if (sent < 0)
-        {
-            std::cerr << "ClientMenu: Failed to send data." << std::endl;
-            close(sock);
-            return false;
-        }
-
-        // Read response (optional)
-        char buf[4096];
-        ssize_t n = read(sock, buf, sizeof(buf) - 1);
-        if (n > 0)
-        {
-            buf[n] = '\0';
-            // Could parse response here if needed
-        }
-
-        close(sock);
-        return true;
     }
 
 } // namespace horizon

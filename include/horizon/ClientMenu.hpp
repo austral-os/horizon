@@ -1,6 +1,8 @@
 #pragma once
 
+#include <horizon/IpcClient.hpp>
 #include <horizon/Menu.hpp>
+#include <horizon/MenuItem.hpp>
 #include <nlohmann/json.hpp>
 #include <string>
 
@@ -29,9 +31,8 @@ namespace horizon
     private:
         nlohmann::json menu_to_json(Menu *menu);
         nlohmann::json menu_item_to_json(MenuItem *item);
-        bool send_request(const nlohmann::json &request);
 
-        std::string m_socket_path;
+        IpcClient m_client;
     };
 
 } // namespace horizon

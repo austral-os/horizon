@@ -1,16 +1,16 @@
 #pragma once
-#include "Dialog.hpp"
 #include <horizon/Menu.hpp>
 #include <horizon/MenuItem.hpp>
+#include <horizon/Message.hpp>
 #include <memory>
 #include <nlohmann/json.hpp>
 
 namespace horizon
 {
-    class MenuDialog : public Dialog
+    class MenuMessage : public Message
     {
     public:
-        MenuDialog(const nlohmann::json &menu_json)
+        MenuMessage(const nlohmann::json &menu_json)
         {
             m_id = menu_json.value("id", "unknown");
             m_menu = std::make_unique<Menu>();
@@ -73,9 +73,6 @@ namespace horizon
                     {
                         item->set_icon(icon);
                     }
-
-                    // Store the ID as a property or handle it via signals
-                    // For now, we just have it in the structure.
 
                     if (item_json.contains("submenu") && item_json["submenu"].is_object())
                     {

@@ -4,10 +4,14 @@
 
 namespace horizon
 {
-    class Dialog
+    /**
+     * @brief Base interface for IPC messages that produce UI elements.
+     *        Renamed from Dialog for generality.
+     */
+    class Message
     {
     public:
-        virtual ~Dialog() = default;
+        virtual ~Message() = default;
 
         virtual const std::string &id() const = 0;
         virtual Widget *root_widget() = 0;

@@ -1,13 +1,14 @@
+#include <horizon/IpcServer.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/MessageManager.hpp>
 #include <horizon/OverlayApplication.hpp>
+#include <horizon/RequestRouter.hpp>
 #include <horizon/Widget.hpp>
 #include <iostream>
 #include <memory>
 #include <nlohmann/json.hpp>
 
-#include "DialogManager.hpp"
-#include "IpcServer.hpp"
-#include "RequestRouter.hpp"
+#include "MenuMessage.hpp"
 
 using namespace horizon;
 
@@ -34,8 +35,36 @@ int main(int argc, char *argv[])
         // Use a raw pointer for callbacks since ownership of 'root' will be moved
         Widget *root_ptr = root.get();
 
-        DialogManager dialog_manager;
-        RequestRouter router(dialog_manager);
+        MessageManager message_manager;
+        RequestRouter router(message_manager);
+
+        // Register the "create_menu" handler
+        router.register_handler("create_menu",
+                                [](const std::string &request_id, const nlohmann::json &request,
+                                   MessageManager &mgr) -> nlohmann::json
+                                {
+                                    if (!request.contains("menu") || !request["menu"].is_object())
+                                    {
+                                        nlohmann::json err;
+                                        err["status"] = "error";
+                                        err["request_id"] = request_id;
+                                        err["message"] =
+                                            "Missing 'menu' object in create_menu request";
+                                        return err;
+                                    }
+
+                                    auto menu_message =
+                                        std::make_unique<MenuMessage>(request["menu"]);
+                                    std::string message_id = menu_message->id();
+
+                                    mgr.add_message(std::move(menu_message));
+
+                                    nlohmann::json response;
+                                    response["status"] = "ok";
+                                    response["request_id"] = request_id;
+                                    response["message_id"] = message_id;
+                                    return response;
+                                });
 
         std::mutex queue_mutex;
         std::vector<std::string> pending_messages;
@@ -71,7 +100,7 @@ int main(int argc, char *argv[])
                 app->set_visible(false);
             });
 
-        // Timer to process new dialogs in the main thread
+        // Timer to process new messages in the main thread
         app->add_timer(50,
                        [&]()
                        {
@@ -88,28 +117,25 @@ int main(int argc, char *argv[])
                                          << std::endl;
                                auto response = router.route(msg);
 
-                               if (response.contains("dialog_id"))
+                               if (response.contains("message_id"))
                                {
-                                   std::string id = response["dialog_id"];
-                                   Dialog *dialog = dialog_manager.get_dialog(id);
-                                   if (dialog)
+                                   std::string id = response["message_id"];
+                                   Message *message = message_manager.get_message(id);
+                                   if (message)
                                    {
-                                       auto *menu_dialog = static_cast<MenuDialog *>(dialog);
-                                       auto menus = menu_dialog->release_all_menus();
+                                       auto *menu_msg = static_cast<MenuMessage *>(message);
+                                       auto menus = menu_msg->release_all_menus();
 
                                        if (!menus.empty())
                                        {
                                            // Clear old menus before showing new ones
-                                           // If already visible, force a full repaint to
-                                           // clear remnants from the transparent surface
                                            if (menu_visible)
                                            {
-                                               // Hide first so the old menu area gets cleared
                                                for (auto &child : root_ptr->children())
                                                {
                                                    child->set_visible(false);
                                                }
-                                               app->invalidate(nullptr); // Full surface repaint
+                                               app->invalidate(nullptr);
                                            }
 
                                            root_ptr->clear_children();
