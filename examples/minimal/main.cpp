@@ -17,6 +17,7 @@
 #include <horizon/SearchBox.hpp>
 #include <horizon/Sidebar.hpp>
 #include <horizon/SidebarItem.hpp>
+#include <horizon/SignalManager.hpp>
 #include <horizon/Slider.hpp>
 #include <horizon/SolidObject.hpp>
 #include <horizon/TableView.hpp>
@@ -75,6 +76,10 @@ int main()
         btn->set_corner_radius({0, 20, 20, 0});
         btn->set_fixed_size(40);
         btn->set_accent_color(WidgetAccentColor::Primary);
+
+        // Emit "on_exit" signal when this button is clicked
+        btn->when_mouse_press.connect([&app](horizon::EventContext &)
+                                      { app.signal_manager.emit("on_exit", &app); });
 
         btn2->set_text("Cancelar");
         // btn2->set_corner_radius({0, 20, 20, 0});
@@ -524,6 +529,17 @@ int main()
         wnd->add_child(std::move(notebook));
 
         app.set_root(std::move(wnd));
+
+        // Register handler for "on_exit" signal
+        app.signal_manager.connect("on_exit",
+                                   [](horizon::SignalContext &ctx)
+                                   {
+                                       std::cout
+                                           << "Signal 'on_exit' received. Closing application."
+                                           << std::endl;
+                                       exit(0);
+                                   });
+
         app.run();
     }
     catch (std::exception &e)
