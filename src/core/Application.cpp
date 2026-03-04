@@ -956,24 +956,18 @@ namespace horizon
                 m_surface->activate(token);
             }
 
-            // On many Wayland compositors (like KWin), request_maximize is needed
-            // to unminimize and bring the window to the front reliably.
-            m_surface->request_maximize();
-            wl_display_flush(m_surface->display());
-
-            // If it WASN'T maximized before minimizing, schedule a revert to normal size
-            // after a short delay to allow the compositor to handle the unminimize first.
-            if (!m_was_maximized_before_minimize)
+            // If it was maximized before, request maximize again.
+            // Otherwise, just request restore (unminimize).
+            if (m_was_maximized_before_minimize)
             {
-                add_timer(
-                    100,
-                    [this]()
-                    {
-                        this->m_surface->request_restore();
-                        wl_display_flush(this->m_surface->display());
-                    },
-                    false); // repeat = false
+                m_surface->request_maximize();
             }
+            else
+            {
+                m_surface->request_restore();
+            }
+
+            wl_display_flush(m_surface->display());
 
             m_is_minimized = false;
             notify_app_manager("app_started"); // Notify state change
