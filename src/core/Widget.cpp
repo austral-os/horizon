@@ -133,17 +133,19 @@ namespace horizon
             }
             else
             {
+                int child_size =
+                    (m_free_children_count > 0) ? (m_free_space / m_free_children_count) : 0;
                 if (m_layout_type == WIDGET_LAYOUT_VERTICAL)
                 {
                     child->set_position(current_x, current_y);
-                    child->set_size(m_available_draw_width, m_free_space / m_free_children_count);
-                    current_y += m_free_space / m_free_children_count + m_spacing;
+                    child->set_size(m_available_draw_width, child_size);
+                    current_y += child_size + m_spacing;
                 }
                 else
                 {
                     child->set_position(current_x, current_y);
-                    child->set_size(m_free_space / m_free_children_count, m_available_draw_height);
-                    current_x += m_free_space / m_free_children_count + m_spacing;
+                    child->set_size(child_size, m_available_draw_height);
+                    current_x += child_size + m_spacing;
                 }
             }
 
@@ -198,6 +200,28 @@ namespace horizon
     {
         m_children.clear();
         invalidate();
+    }
+
+    void Widget::remove_child(Widget *child)
+    {
+        for (auto it = m_children.begin(); it != m_children.end(); ++it)
+        {
+            if (it->get() == child)
+            {
+                m_children.erase(it);
+                break;
+            }
+        }
+        invalidate();
+    }
+
+    void Widget::remove_child_at(int index)
+    {
+        if (index >= 0 && index < (int)m_children.size())
+        {
+            m_children.erase(m_children.begin() + index);
+            invalidate();
+        }
     }
 
     Widget *Widget::parent() const

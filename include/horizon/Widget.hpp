@@ -105,6 +105,14 @@ namespace horizon
         // --- Geometría ---
         void set_position(int x, int y);
         void set_size(int width, int height);
+        void set_width(int width)
+        {
+            m_width = width;
+        }
+        void set_height(int height)
+        {
+            m_height = height;
+        }
         void set_fixed_size(int size);
         void set_spacing(int spacing);
         void set_margin(int margin);
@@ -187,6 +195,8 @@ namespace horizon
         // --- Árbol ---
         virtual void add_child(std::unique_ptr<Widget> child);
         virtual void add_child_at(int index, std::unique_ptr<Widget> child);
+        void remove_child(Widget *child);
+        void remove_child_at(int index);
         Widget *parent() const;
         Application *application() const;
 

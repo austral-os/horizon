@@ -19,6 +19,15 @@ namespace horizon
         void render(GraphicsContext &ctx, int cx, int cy, int cw, int ch,
                     bool force = false) override;
 
+        void set_title(const std::string &title)
+        {
+            m_title = title;
+        }
+        const std::string &title() const
+        {
+            return m_title;
+        }
+
         // Helper to add a text item directly
         MenuItem *add_item(const std::string &text, const std::string &shortcut = "");
 
@@ -45,6 +54,7 @@ namespace horizon
         int m_min_width = 240;
         int m_max_width = -1;       // -1 means no maximum
         bool m_was_visible = false; // Track visibility transitions for clearing
+        std::string m_title;
     };
 
 } // namespace horizon

@@ -78,6 +78,15 @@ target_link_libraries(top_panel
         horizon
 )
 
+add_executable(menubar_demo
+    examples/menubar_demo.cpp
+)
+
+target_link_libraries(menubar_demo
+    PRIVATE
+        horizon
+)
+
 add_executable(horizon_menu_manager_d
     examples/horizon_menu_manager_d/main.cpp
     examples/horizon_menu_manager_d/IpcServer.cpp
