@@ -141,7 +141,7 @@ namespace horizon
         /**
          * @brief Requests the window to be restored from maximized state.
          */
-        void restore();
+        void restore(const std::string &token = "");
 
         /**
          * @return True if the window is maximized.

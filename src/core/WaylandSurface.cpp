@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <horizon/WaylandSurface.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
+#include <horizon/xdg-activation-v1-client-protocol.h>
 #include <horizon/xdg-shell-client-protocol.h>
 #include <iostream>
 #include <stdexcept>
@@ -305,6 +306,11 @@ namespace horizon
             ws->set_zwlr_layer_shell(static_cast<zwlr_layer_shell_v1 *>(
                 wl_registry_bind(registry, id, &zwlr_layer_shell_v1_interface, 1)));
         }
+        else if (strcmp(interface, "xdg_activation_v1") == 0)
+        {
+            ws->set_xdg_activation(static_cast<xdg_activation_v1 *>(
+                wl_registry_bind(registry, id, &xdg_activation_v1_interface, 1)));
+        }
         else if (strcmp(interface, "wl_seat") == 0)
         {
             ws->set_wl_seat(
@@ -449,6 +455,11 @@ namespace horizon
     void WaylandSurface::set_wl_compositor(struct wl_compositor *compositor)
     {
         m_compositor = compositor;
+    }
+
+    void WaylandSurface::set_xdg_activation(struct xdg_activation_v1 *activation)
+    {
+        m_activation = activation;
     }
 
     void WaylandSurface::set_wl_shm(struct wl_shm *shm)
@@ -1117,6 +1128,57 @@ namespace horizon
         std::cout << "Added Wayland output: " << output << " (Total: " << m_outputs.size() + 1
                   << ")" << std::endl;
         m_outputs.push_back(output);
+    }
+
+    struct ActivationData
+    {
+        std::function<void(const std::string &)> callback;
+        xdg_activation_token_v1 *token_obj;
+    };
+
+    static void token_handle_done(void *data, struct xdg_activation_token_v1 *token_obj,
+                                  const char *token)
+    {
+        auto *act_data = static_cast<ActivationData *>(data);
+        if (act_data->callback)
+        {
+            act_data->callback(token ? token : "");
+        }
+        xdg_activation_token_v1_destroy(token_obj);
+        delete act_data;
+    }
+
+    static const struct xdg_activation_token_v1_listener token_listener = {
+        .done = token_handle_done,
+    };
+
+    void WaylandSurface::request_activation_token(std::function<void(const std::string &)> callback)
+    {
+        if (!m_activation)
+        {
+            if (callback)
+                callback("");
+            return;
+        }
+
+        auto *act_data = new ActivationData();
+        act_data->callback = callback;
+        act_data->token_obj = xdg_activation_v1_get_activation_token(m_activation);
+
+        xdg_activation_token_v1_add_listener(act_data->token_obj, &token_listener, act_data);
+        xdg_activation_token_v1_set_serial(act_data->token_obj, m_last_serial, m_seat);
+        xdg_activation_token_v1_set_surface(act_data->token_obj, m_surface);
+        xdg_activation_token_v1_commit(act_data->token_obj);
+
+        wl_display_flush(m_display);
+    }
+
+    void WaylandSurface::activate(const std::string &token)
+    {
+        if (!m_activation || token.empty())
+            return;
+        xdg_activation_v1_activate(m_activation, token.c_str(), m_surface);
+        wl_display_flush(m_display);
     }
 
 } // namespace horizon

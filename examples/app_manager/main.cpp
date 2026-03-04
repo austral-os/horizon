@@ -86,6 +86,10 @@ int main(int argc, char *argv[])
                                  signal_msg["type"] = "app_signal";
                                  signal_msg["target_pid"] = target_pid;
                                  signal_msg["signal"] = signal;
+                                 if (j.contains("token"))
+                                 {
+                                     signal_msg["token"] = j["token"];
+                                 }
 
                                  std::cout << "[SIGNAL] Sending " << signal << " to PID "
                                            << target_pid << std::endl;

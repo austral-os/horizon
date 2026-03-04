@@ -23,6 +23,8 @@ struct wl_cursor;
 struct zwlr_layer_shell_v1;
 struct zwlr_layer_surface_v1;
 struct wl_output;
+struct xdg_activation_v1;
+struct xdg_activation_token_v1;
 
 namespace horizon
 {
@@ -51,6 +53,7 @@ namespace horizon
         void set_wl_seat(struct wl_seat *seat);
         void set_wl_pointer(struct wl_pointer *pointer);
         void set_wl_keyboard(struct wl_keyboard *keyboard);
+        void set_xdg_activation(struct xdg_activation_v1 *activation);
 
         void set_event_listener(WaylandEventListener *listener);
 
@@ -159,6 +162,8 @@ namespace horizon
         void request_unfullscreen();
         bool is_maximized() const;
         bool is_fullscreen() const;
+        void request_activation_token(std::function<void(const std::string &)> callback);
+        void activate(const std::string &token);
 
         void set_cursor(CursorType type);
 
@@ -178,6 +183,7 @@ namespace horizon
         struct wl_shm *m_shm = nullptr;
         struct xdg_wm_base *m_xdg_wm_base = nullptr;
         struct zwlr_layer_shell_v1 *m_layer_shell = nullptr;
+        struct xdg_activation_v1 *m_activation = nullptr;
 
         // Role specific objects
         struct xdg_surface *m_xdg_surface = nullptr;

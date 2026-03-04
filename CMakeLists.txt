@@ -16,6 +16,7 @@ pkg_check_modules(RSVG REQUIRED librsvg-2.0)
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS 
     "src/*.cpp" 
     "src/*.c"
+    "src/xdg-activation-v1-protocol.c"
     "include/horizon/*.hpp"
 )
 

@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
                         auto apps = j.at("apps");
                         // Update UI on the main thread
                         app->post_task(
-                            [shelf_ptr, apps]()
+                            [app_ptr = app.get(), shelf_ptr, apps]()
                             {
                                 std::cout << "Updating Dock icons from App Manager..." << std::endl;
                                 shelf_ptr->clear_children();
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
                                         int pid = app_j.value("pid", -1);
                                         bool is_minimized = app_j.value("is_minimized", false);
                                         icn->when_mouse_press.connect(
-                                            [pid, is_minimized](EventContext &)
+                                            [app_ptr, pid, is_minimized](EventContext &)
                                             {
                                                 if (pid == -1)
                                                     return;
@@ -197,19 +197,43 @@ int main(int argc, char *argv[])
                                                     << (is_minimized ? "minimized" : "visible")
                                                     << ")" << std::endl;
 
-                                                try
+                                                auto send_sig = [pid](const std::string &sig_name,
+                                                                      const std::string &token = "")
                                                 {
-                                                    nlohmann::json sig;
-                                                    sig["type"] = "send_signal";
-                                                    sig["target_pid"] = pid;
-                                                    sig["signal"] =
-                                                        is_minimized ? "restore" : "minimize";
+                                                    try
+                                                    {
+                                                        nlohmann::json sig;
+                                                        sig["type"] = "send_signal";
+                                                        sig["target_pid"] = pid;
+                                                        sig["signal"] = sig_name;
+                                                        if (!token.empty())
+                                                            sig["token"] = token;
 
-                                                    IpcClient client("/tmp/horizon_apps.sock");
-                                                    client.send(sig.dump());
-                                                }
-                                                catch (...)
+                                                        IpcClient client("/tmp/horizon_apps.sock");
+                                                        client.send(sig.dump());
+                                                    }
+                                                    catch (...)
+                                                    {
+                                                    }
+                                                };
+
+                                                if (is_minimized)
                                                 {
+                                                    // Request activation token before restoring
+                                                    app_ptr->w_surface()->request_activation_token(
+                                                        [send_sig](const std::string &token)
+                                                        {
+                                                            std::cout
+                                                                << "[DOCK] Got activation "
+                                                                   "token: "
+                                                                << (token.empty() ? "EMPTY" : token)
+                                                                << ", sending restore" << std::endl;
+                                                            send_sig("restore", token);
+                                                        });
+                                                }
+                                                else
+                                                {
+                                                    send_sig("minimize");
                                                 }
                                             });
 

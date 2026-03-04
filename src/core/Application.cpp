@@ -614,18 +614,19 @@ namespace horizon
                                 if (target_pid == getpid())
                                 {
                                     std::string signal = j.value("signal", "unknown");
+                                    std::string token = j.value("token", "");
                                     std::cout << "[APP] Received remote signal: " << signal
-                                              << " (posting task)" << std::endl;
+                                              << " (token: " << (token.empty() ? "none" : "present")
+                                              << ", posting task)" << std::endl;
                                     this->post_task(
-                                        // ...
-                                        [this, signal]()
+                                        [this, signal, token]()
                                         {
                                             if (signal == "maximize")
                                                 this->maximize();
                                             else if (signal == "minimize")
                                                 this->minimize();
                                             else if (signal == "restore")
-                                                this->restore();
+                                                this->restore(token);
                                             else if (signal == "close")
                                                 this->on_close();
                                             else if (signal == "fullscreen")
@@ -945,10 +946,16 @@ namespace horizon
         }
     }
 
-    void Application::restore()
+    void Application::restore(const std::string &token)
     {
         if (m_surface)
         {
+            if (!token.empty())
+            {
+                std::cout << "[APP] Using activation token for restore" << std::endl;
+                m_surface->activate(token);
+            }
+
             // On many Wayland compositors (like KWin), request_maximize is needed
             // to unminimize and bring the window to the front reliably.
             m_surface->request_maximize();
