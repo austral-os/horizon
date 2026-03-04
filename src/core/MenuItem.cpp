@@ -123,7 +123,8 @@ namespace horizon
         int icon_width = (m_icon || m_reserve_icon_space) ? 24 : 0;
         int arrow_width = m_has_submenu ? 20 : 0;
         int padding = 10;                           // Left + right padding
-        int gap = m_shortcut_text.empty() ? 0 : 15; // Gap between label and shortcut
+        int gap = m_shortcut_text.empty() ? 0 : 20; // Increased gap
+        int slack = 15;                             // Extra room for safety
 
         // Measure label text width
         int label_w = 0;
@@ -145,7 +146,7 @@ namespace horizon
             shortcut_w = static_cast<int>(std::ceil(metrics.width));
         }
 
-        return padding + icon_width + label_w + gap + shortcut_w + arrow_width + padding;
+        return padding + icon_width + label_w + gap + shortcut_w + arrow_width + padding + slack;
     }
 
     void MenuItem::calculate_layout()
@@ -154,9 +155,9 @@ namespace horizon
         Widget::calculate_layout();
 
         int icon_width = (m_icon || m_reserve_icon_space) ? 24 : 0;
-        int arrow_width = 20;
-        int padding = 10;
-        int shortcut_gap = m_shortcut_text.empty() ? 0 : 15;
+        int arrow_width = m_has_submenu ? 20 : 0; // Fix: only subtract if we have an arrow
+        int padding = 12;                         // Increased padding
+        int shortcut_gap = m_shortcut_text.empty() ? 0 : 20; // Increased gap
 
         // Calculate dynamic shortcut width
         int shortcut_width = 0;
@@ -186,8 +187,7 @@ namespace horizon
         }
 
         int available_content_width = m_width - content_x - shortcut_gap - shortcut_width -
-                                      (m_has_submenu ? arrow_width : 0) - padding +
-                                      2; // +2 safety buffer
+                                      arrow_width - padding + 5; // +5 safety buffer
 
         m_content->set_position(m_start_draw_x + content_x, m_start_draw_y);
         m_content->set_size(available_content_width, m_height);
