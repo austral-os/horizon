@@ -599,6 +599,30 @@ namespace horizon
         }
     }
 
+    void WaylandSurface::set_input_region(int x, int y, int w, int h)
+    {
+        if (!m_surface || !m_compositor)
+            return;
+
+        struct wl_region *region = wl_compositor_create_region(m_compositor);
+        wl_region_add(region, x, y, w, h);
+        wl_surface_set_input_region(m_surface, region);
+        wl_region_destroy(region);
+        wl_surface_commit(m_surface);
+    }
+
+    void WaylandSurface::clear_input_region()
+    {
+        if (!m_surface || !m_compositor)
+            return;
+
+        // Setting an empty region makes it click-through
+        struct wl_region *region = wl_compositor_create_region(m_compositor);
+        wl_surface_set_input_region(m_surface, region);
+        wl_region_destroy(region);
+        wl_surface_commit(m_surface);
+    }
+
     void WaylandSurface::commit()
     {
         if (m_surface)

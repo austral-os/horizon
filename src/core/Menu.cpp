@@ -10,6 +10,9 @@ namespace horizon
     {
         // Default appearance - Solid white-ish as requested
         set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+
+        // Stop propagation of mouse events to prevent background clicks
+        when_mouse_press.connect([](EventContext &ev) { ev.stop_propagation = true; });
     }
 
     void Menu::add_item(std::unique_ptr<MenuItem> item)

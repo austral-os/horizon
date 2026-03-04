@@ -38,7 +38,18 @@ namespace horizon
 
     void OverlayApplication::set_visible(bool visible)
     {
-        // For layer shell, hiding usually means unmapping
-        // This is a bit more complex, currently we just support showing it
+        if (visible)
+        {
+            // Restore full input region (or whatever makes sense for the overlay)
+            // For now, allow clicks on the whole surface when visible
+            w_surface()->set_input_region(0, 0, w_surface()->width(), w_surface()->height());
+            set_keyboard_interactivity(ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND);
+        }
+        else
+        {
+            // Clear input region to make it click-through
+            w_surface()->clear_input_region();
+            set_keyboard_interactivity(ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+        }
     }
 } // namespace horizon

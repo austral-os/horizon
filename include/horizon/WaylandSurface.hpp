@@ -102,6 +102,18 @@ namespace horizon
         void set_layer_size(uint32_t width, uint32_t height);
 
         /**
+         * @brief Sets the input region for the surface.
+         * Only clicks within this region will be handled by the surface.
+         * If the region is empty, the surface will be click-through.
+         */
+        void set_input_region(int x, int y, int w, int h);
+
+        /**
+         * @brief Clears the input region, making the entire surface click-through.
+         */
+        void clear_input_region();
+
+        /**
          * @brief Compatibility init (defaults to xdg_toplevel).
          */
         void init();

@@ -3,12 +3,13 @@
 #include <horizon/Widget.hpp>
 #include <iostream>
 #include <memory>
+#include <nlohmann/json.hpp>
+
+#include "DialogManager.hpp"
+#include "IpcServer.hpp"
+#include "RequestRouter.hpp"
 
 using namespace horizon;
-
-#include <horizon/Menu.hpp>
-#include <horizon/MenuItem.hpp>
-#include <horizon/MenuSeparator.hpp>
 
 int main(int argc, char *argv[])
 {
@@ -30,76 +31,104 @@ int main(int argc, char *argv[])
         auto root = std::make_unique<Widget>();
         root->set_background_color({0.0f, 0.0f, 0.0f, 0.0f});
 
-        // --- Complex Menu Structure ---
-        auto main_menu = std::make_unique<Menu>();
-        main_menu->set_position(50, 50);
-        main_menu->set_position_type(FREE);
+        // Use a raw pointer for callbacks since ownership of 'root' will be moved
+        Widget *root_ptr = root.get();
 
-        // Submenu 1: Settings
-        auto settings_menu = std::make_unique<Menu>();
-        auto *display_item = settings_menu->add_item("Display", "Cmd+D");
-        display_item->set_icon("video-display");
-        auto *sound_item = settings_menu->add_item("Sound", "Cmd+S");
-        sound_item->set_icon("audio-volume-high");
-        auto *network_item = settings_menu->add_item("Network", "Cmd+Option+N");
-        network_item->set_icon("network-wired");
+        DialogManager dialog_manager;
+        RequestRouter router(dialog_manager);
 
-        // Submenu 2: Preferences
-        auto prefs_menu = std::make_unique<Menu>();
-        prefs_menu->add_item("General");
-        prefs_menu->add_item("Appearance");
-        auto *privacy_item = prefs_menu->add_item("Privacy");
-        privacy_item->set_icon("security-high");
+        std::mutex queue_mutex;
+        std::vector<std::string> pending_messages;
 
-        // Submenu 3: Applications (Inside Settings)
-        auto apps_menu = std::make_unique<Menu>();
-        apps_menu->add_item("App Store");
-        auto *chrome_item = apps_menu->add_item("Chrome");
-        chrome_item->set_icon("web-browser");
-        auto *term_item = apps_menu->add_item("Terminator");
-        term_item->set_icon("utilities-terminal");
+        // Set up IPC Server
+        IpcServer server("/tmp/horizon_menu.sock",
+                         [&](const std::string &msg)
+                         {
+                             std::lock_guard<std::mutex> lock(queue_mutex);
+                             pending_messages.push_back(msg);
 
-        // Nested level: Applications inside Settings
-        auto *settings_apps_item = settings_menu->add_item("Developer Apps");
-        settings_apps_item->set_submenu(apps_menu.get());
+                             // Return a placeholder response. Real response will be asynchronous
+                             // but for this protocol, "ok" is enough to acknowledge receipt.
+                             return "{\"status\": \"received\"}";
+                         });
 
-        // Add items to main menu
-        main_menu->add_item("About This Horizon");
-        main_menu->add_separator();
+        server.start();
 
-        auto *settings_item = main_menu->add_item("System Settings");
-        settings_item->set_icon("preferences-system");
-        settings_item->set_submenu(settings_menu.get());
+        // Initially hidden
+        app->set_visible(false);
 
-        auto *prefs_item = main_menu->add_item("Preferences");
-        prefs_item->set_icon("preferences-desktop");
-        prefs_item->set_submenu(prefs_menu.get());
+        // Hide when clicking the background (root widget)
+        root_ptr->add_on_mouse_press(
+            [&](int btn)
+            {
+                std::cout << "Click on background, hiding menu manager." << std::endl;
+                for (auto &child : root_ptr->children())
+                {
+                    child->set_visible(false);
+                }
+                app->set_visible(false);
+            });
 
-        main_menu->add_separator();
-        auto *lock_item = main_menu->add_item("Lock Screen", "Cmd+L");
-        lock_item->set_icon("system-lock-screen");
-        main_menu->add_item("Log Out...", "Shift+Cmd+Q");
+        // Timer to process new dialogs in the main thread
+        app->add_timer(50,
+                       [&]()
+                       {
+                           std::vector<std::string> to_process;
+                           {
+                               std::lock_guard<std::mutex> lock(queue_mutex);
+                               to_process = std::move(pending_messages);
+                               pending_messages.clear();
+                           }
 
-        // Keep submenus alive by adding them as children to root (hidden by default)
-        apps_menu->set_visible(false);
-        apps_menu->set_position_type(FREE);
-        settings_menu->set_visible(false);
-        settings_menu->set_position_type(FREE);
-        prefs_menu->set_visible(false);
-        prefs_menu->set_position_type(FREE);
+                           for (const auto &msg : to_process)
+                           {
+                               std::cout << "Processing message in main thread: " << msg
+                                         << std::endl;
+                               auto response = router.route(msg);
 
-        // Add everything to root
-        root->add_child(std::move(main_menu));
-        root->add_child(std::move(settings_menu));
-        root->add_child(std::move(prefs_menu));
-        root->add_child(std::move(apps_menu));
+                               if (response.contains("dialog_id"))
+                               {
+                                   std::string id = response["dialog_id"];
+                                   Dialog *dialog = dialog_manager.get_dialog(id);
+                                   if (dialog)
+                                   {
+                                       auto *menu_dialog = static_cast<MenuDialog *>(dialog);
+                                       auto menus = menu_dialog->release_all_menus();
+
+                                       if (!menus.empty())
+                                       {
+                                           // Clear old menus before showing new ones
+                                           root_ptr->clear_children();
+
+                                           Menu *root_menu_ptr = menus[0].get();
+
+                                           // Add and show all menus (root and submenus)
+                                           for (auto &menu : menus)
+                                           {
+                                               menu->set_visible(false); // Submenus start hidden
+                                               root_ptr->add_child(std::move(menu));
+                                           }
+
+                                           // Ensure layout is calculated before showing
+                                           root_menu_ptr->calculate_layout();
+                                           root_menu_ptr->set_visible(true);
+                                           app->set_visible(true);
+                                           root_ptr->invalidate();
+                                       }
+                                   }
+                               }
+                           }
+                       });
 
         app->set_root(std::move(root));
 
-        std::cout << "Horizon Menu Manager Daemon started (Fullscreen Overlay)." << std::endl;
-        std::cout << "Root is transparent. Press Escape to quit." << std::endl;
+        std::cout << "Horizon Menu Manager Daemon started." << std::endl;
+        std::cout << "IPC Server: /tmp/horizon_menu.sock" << std::endl;
+        std::cout << "Application is hidden and waiting for requests." << std::endl;
 
         app->run();
+
+        server.stop();
     }
     catch (const std::exception &e)
     {
