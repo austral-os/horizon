@@ -207,9 +207,6 @@ int main(int argc, char **argv)
 
     app.set_root(std::move(window));
 
-    // Global Menu IPC testing
-    auto client_menu = std::make_shared<horizon::ClientMenu>();
-
     auto file_menu = new horizon::Menu();
     file_menu->set_title("File");
     file_menu->add_item("New...", "Ctrl+N");
@@ -223,14 +220,7 @@ int main(int argc, char **argv)
 
     std::vector<Menu *> menus = {file_menu, edit_menu};
 
-    app.when_activated.connect([client_menu, menus](horizon::EventContext &)
-                               { client_menu->set_global_menu(menus); });
-
-    app.when_deactivated.connect(
-        [client_menu](horizon::EventContext &)
-        {
-            client_menu->set_global_menu({}); // Clear global menu when losing focus
-        });
+    app.set_global_menu(menus);
 
     app.run();
     return 0;

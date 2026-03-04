@@ -6,6 +6,8 @@
 #include <cstdio>
 #include <cstring>
 #include <horizon/Application.hpp>
+#include <horizon/ClientMenu.hpp>
+#include <horizon/Menu.hpp>
 #include <horizon/Window.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
 #include <iostream>
@@ -133,6 +135,20 @@ namespace horizon
 
     void Application::on_activated(bool active)
     {
+        m_is_activated = active;
+
+        if (m_client_menu)
+        {
+            if (active)
+            {
+                m_client_menu->set_global_menu(m_global_menus);
+            }
+            else
+            {
+                m_client_menu->set_global_menu({});
+            }
+        }
+
         EventContext ev;
         ev.sender = this;
         ev.type = active ? EventType::AppActivated : EventType::AppDeactivated;
@@ -143,6 +159,20 @@ namespace horizon
         else
         {
             when_deactivated.run(ev);
+        }
+    }
+
+    void Application::set_global_menu(const std::vector<Menu *> &menus)
+    {
+        m_global_menus = menus;
+        if (!m_client_menu)
+        {
+            m_client_menu = std::make_shared<ClientMenu>();
+        }
+
+        if (m_is_activated)
+        {
+            m_client_menu->set_global_menu(m_global_menus);
         }
     }
 

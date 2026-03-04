@@ -13,6 +13,8 @@ namespace horizon
 {
 
     class Widget;
+    class Menu;
+    class ClientMenu;
 
     /**
      * @class Application
@@ -59,6 +61,13 @@ namespace horizon
 
         EventsManager when_activated;
         EventsManager when_deactivated;
+
+        /**
+         * @brief Sets the global menu for the application.
+         * The menus will be automatically provided to the system when the app gains focus.
+         * @param menus A list of root menus.
+         */
+        void set_global_menu(const std::vector<Menu *> &menus);
 
         /**
          * @brief Sets the root widget of the application's widget tree.
@@ -186,8 +195,12 @@ namespace horizon
 
     private:
         std::unique_ptr<WaylandSurface>
-            m_surface;             /**< The Wayland surface representing the main window. */
-        bool m_is_running = false; /**< Flag indicating if the event loop is active. */
+            m_surface;               /**< The Wayland surface representing the main window. */
+        bool m_is_running = false;   /**< Flag indicating if the event loop is active. */
+        bool m_is_activated = false; /**< Flag indicating if the application is currently active. */
+
+        std::vector<Menu *> m_global_menus;
+        std::shared_ptr<ClientMenu> m_client_menu;
 
         bool m_full_repaint = true; /**< Flag indicating if the entire UI needs re-rendering. */
         std::vector<Widget *> m_dirty_widgets; /**< List of widgets that need re-rendering. */
