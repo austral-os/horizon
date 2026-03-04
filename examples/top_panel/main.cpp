@@ -36,6 +36,8 @@ int main(int argc, char *argv[])
         // Disable keyboard interactivity to prevent focus stealing
         app->set_keyboard_interactivity(0); // 0 = NONE
 
+        app->set_show_in_dock(false);
+
         // IPC client for communicating with horizon_menu_manager_d
         ClientMenu client_menu;
 
