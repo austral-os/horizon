@@ -1,4 +1,5 @@
 #include <horizon/Application.hpp>
+#include <horizon/CairoGraphicsContext.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/MenuItem.hpp>
@@ -104,6 +105,45 @@ namespace horizon
         set_has_submenu(submenu != nullptr);
     }
 
+    int MenuItem::preferred_width() const
+    {
+        if (!application() || !application()->theme_manager)
+            return 200; // Fallback
+
+        auto font = application()->theme_manager->get_font("window");
+
+        // Create a temporary context just for measuring text (4 bytes for 1x1 ARGB pixel)
+        unsigned char tmp_buf[4] = {0};
+        CairoGraphicContext measure_ctx(tmp_buf, 1, 1);
+
+        int icon_width = m_icon ? 24 : 0;
+        int arrow_width = m_has_submenu ? 20 : 0;
+        int padding = 10;                           // Left + right padding
+        int gap = m_shortcut_text.empty() ? 0 : 15; // Gap between label and shortcut
+
+        // Measure label text width
+        int label_w = 0;
+        if (auto *label = dynamic_cast<Label *>(m_content))
+        {
+            auto metrics =
+                measure_ctx.getTextMetrics(label->text().c_str(), font.family.c_str(), font.size,
+                                           FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+            label_w = static_cast<int>(metrics.width);
+        }
+
+        // Measure shortcut text width
+        int shortcut_w = 0;
+        if (!m_shortcut_text.empty())
+        {
+            auto metrics =
+                measure_ctx.getTextMetrics(m_shortcut_text.c_str(), font.family.c_str(), font.size,
+                                           FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+            shortcut_w = static_cast<int>(metrics.width);
+        }
+
+        return padding + icon_width + label_w + gap + shortcut_w + arrow_width + padding;
+    }
+
     void MenuItem::calculate_layout()
     {
         // Essential: Refresh m_start_draw_x/y from parent
@@ -111,7 +151,9 @@ namespace horizon
 
         int icon_width = 24;
         int arrow_width = 20;
-        int shortcut_width = m_shortcut_text.empty() ? 0 : 60;
+        int shortcut_width = m_shortcut_text.empty() ? 0 : 120;
+        int shortcut_gap =
+            m_shortcut_text.empty() ? 0 : 15; // Minimum space between label and shortcut
         int padding = 10;
 
         int content_x = padding;
@@ -123,8 +165,8 @@ namespace horizon
             m_icon->calculate_layout();
         }
 
-        int available_content_width =
-            m_width - content_x - shortcut_width - (m_has_submenu ? arrow_width : 0) - padding;
+        int available_content_width = m_width - content_x - shortcut_gap - shortcut_width -
+                                      (m_has_submenu ? arrow_width : 0) - padding;
 
         m_content->set_position(m_start_draw_x + content_x, m_start_draw_y);
         m_content->set_size(available_content_width, m_height);

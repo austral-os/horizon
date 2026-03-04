@@ -46,6 +46,9 @@ namespace horizon
 
         void set_submenu(Menu *submenu);
 
+        // Returns the minimum width needed to display this item without truncation
+        int preferred_width() const;
+
     private:
         Icon *m_icon = nullptr;
         Widget *m_content = nullptr; // Usually a Label

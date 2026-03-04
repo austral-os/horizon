@@ -47,11 +47,18 @@ namespace horizon
         int current_y = 1 + padding_top; // 1px border + padding
         int max_w = m_min_width;
 
-        // First pass: Determine max width needed
-        // Add 2 to compensate for the 1px border subtracted in the second pass
+        // First pass: Determine max width needed based on actual content
         for (const auto &child : m_children)
         {
-            max_w = std::max(max_w, child->width() + 2);
+            if (auto *item = dynamic_cast<MenuItem *>(child.get()))
+            {
+                // Use content-based preferred width (includes text, shortcut, padding)
+                max_w = std::max(max_w, item->preferred_width() + 2); // +2 for 1px border each side
+            }
+            else
+            {
+                max_w = std::max(max_w, child->width() + 2);
+            }
         }
 
         // Second pass: Layout children using absolute coordinates
