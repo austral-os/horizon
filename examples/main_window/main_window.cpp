@@ -2,9 +2,12 @@
 #include <horizon/Application.hpp>
 #include <horizon/ApplicationWindow.hpp>
 #include <horizon/Button.hpp>
+#include <horizon/ClientMenu.hpp>
 #include <horizon/GroupButton.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/Menu.hpp>
+#include <horizon/MenuItem.hpp>
 #include <horizon/SearchBox.hpp>
 #include <horizon/Sidebar.hpp>
 #include <horizon/SidebarItem.hpp>
@@ -203,6 +206,31 @@ int main(int argc, char **argv)
     window->add_child(std::move(vpanel_container));
 
     app.set_root(std::move(window));
+
+    // Global Menu IPC testing
+    auto client_menu = std::make_shared<horizon::ClientMenu>();
+
+    auto file_menu = new horizon::Menu();
+    file_menu->set_title("File");
+    file_menu->add_item("New...", "Ctrl+N");
+    file_menu->add_separator();
+    file_menu->add_item("Exit", "Ctrl+Q");
+
+    auto edit_menu = new horizon::Menu();
+    edit_menu->set_title("Edit");
+    edit_menu->add_item("Copy", "Ctrl+C");
+    edit_menu->add_item("Paste", "Ctrl+V");
+
+    std::vector<Menu *> menus = {file_menu, edit_menu};
+
+    app.when_activated.connect([client_menu, menus](horizon::EventContext &)
+                               { client_menu->set_global_menu(menus); });
+
+    app.when_deactivated.connect(
+        [client_menu](horizon::EventContext &)
+        {
+            client_menu->set_global_menu({}); // Clear global menu when losing focus
+        });
 
     app.run();
     return 0;

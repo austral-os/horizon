@@ -31,6 +31,8 @@ namespace horizon
         AppResize,
         AppMaximize,
         AppMinimize,
+        AppActivated,
+        AppDeactivated,
 
         // Theme Events
         ThemeChanged,

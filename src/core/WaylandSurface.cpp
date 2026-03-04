@@ -512,6 +512,7 @@ namespace horizon
                 self->m_configured = true;
                 uint32_t *state;
                 bool maximized = false;
+                bool activated = false;
                 for (state = static_cast<uint32_t *>(states->data);
                      reinterpret_cast<const char *>(state) <
                      (static_cast<const char *>(states->data) + states->size);
@@ -519,8 +520,20 @@ namespace horizon
                 {
                     if (*state == XDG_TOPLEVEL_STATE_MAXIMIZED)
                         maximized = true;
+                    if (*state == XDG_TOPLEVEL_STATE_ACTIVATED)
+                        activated = true;
                 }
                 self->m_is_maximized = maximized;
+
+                if (self->m_is_activated != activated)
+                {
+                    self->m_is_activated = activated;
+                    if (self->m_listener)
+                    {
+                        self->m_listener->on_activated(activated);
+                    }
+                }
+
                 if (width > 0 && height > 0)
                 {
                     self->resize_buffer(width, height);

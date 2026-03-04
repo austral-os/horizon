@@ -28,6 +28,13 @@ namespace horizon
          */
         bool show_menu(Menu *menu, int x, int y, int monitor = -1);
 
+        /**
+         * @brief Sends a list of Menus to the global menu panel.
+         * @param menus A list of root menus to display.
+         * @return true if the request was sent successfully.
+         */
+        bool set_global_menu(const std::vector<Menu *> &menus);
+
     private:
         nlohmann::json menu_to_json(Menu *menu);
         nlohmann::json menu_item_to_json(MenuItem *item);

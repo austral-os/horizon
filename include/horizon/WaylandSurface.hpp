@@ -196,6 +196,7 @@ namespace horizon
         double m_pointer_x = 0;
         double m_pointer_y = 0;
         bool m_is_maximized = false;
+        bool m_is_activated = false;
 
         struct wl_cursor_theme *m_cursor_theme = nullptr;
         struct wl_surface *m_cursor_surface = nullptr;

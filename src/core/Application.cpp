@@ -131,6 +131,21 @@ namespace horizon
         }
     }
 
+    void Application::on_activated(bool active)
+    {
+        EventContext ev;
+        ev.sender = this;
+        ev.type = active ? EventType::AppActivated : EventType::AppDeactivated;
+        if (active)
+        {
+            when_activated.run(ev);
+        }
+        else
+        {
+            when_deactivated.run(ev);
+        }
+    }
+
     void Application::on_key_event(const KeyEvent &event)
     {
         switch (event.type)

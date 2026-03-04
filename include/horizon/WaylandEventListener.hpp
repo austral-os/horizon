@@ -96,5 +96,11 @@ namespace horizon
          * @param height New height of the surface.
          */
         virtual void on_resize(int width, int height) = 0;
+
+        /**
+         * @brief Called when the surface gains or loses activation (focus).
+         * @param active True if activated, false if deactivated.
+         */
+        virtual void on_activated(bool active) = 0;
     };
 } // namespace horizon

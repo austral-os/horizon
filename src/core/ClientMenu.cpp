@@ -24,6 +24,27 @@ namespace horizon
         return m_client.send(request.dump());
     }
 
+    bool ClientMenu::set_global_menu(const std::vector<Menu *> &menus)
+    {
+        nlohmann::json request;
+        request["type"] = "set_global_menu";
+
+        nlohmann::json menu_array = nlohmann::json::array();
+        for (auto *menu : menus)
+        {
+            if (menu)
+            {
+                menu_array.push_back(menu_to_json(menu));
+            }
+        }
+
+        request["menus"] = menu_array;
+
+        // Uses a dedicated client to the global menu socket
+        IpcClient global_menu_client("/tmp/horizon_global_menu.sock");
+        return global_menu_client.send(request.dump());
+    }
+
     nlohmann::json ClientMenu::menu_to_json(Menu *menu)
     {
         nlohmann::json j;

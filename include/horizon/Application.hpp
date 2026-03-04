@@ -57,6 +57,9 @@ namespace horizon
         std::unique_ptr<ThemeManager> theme_manager;
         SignalManager signal_manager;
 
+        EventsManager when_activated;
+        EventsManager when_deactivated;
+
         /**
          * @brief Sets the root widget of the application's widget tree.
          * @param root Unique pointer to the new root widget.
@@ -133,6 +136,7 @@ namespace horizon
         void on_key_event(const KeyEvent &event) override;
         void on_modifiers_event(uint32_t modifiers) override;
         void on_resize(int width, int height) override;
+        void on_activated(bool active) override;
 
         // --- Application Events (Multi-Callback) ---
         size_t add_on_start(std::function<void()> handler);
