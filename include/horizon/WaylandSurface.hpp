@@ -162,7 +162,8 @@ namespace horizon
         void request_unfullscreen();
         bool is_maximized() const;
         bool is_fullscreen() const;
-        void request_activation_token(std::function<void(const std::string &)> callback);
+        void request_activation_token(std::function<void(const std::string &)> callback,
+                                      uint32_t serial = 0);
         void activate(const std::string &token);
 
         void set_cursor(CursorType type);

@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
                                         int pid = app_j.value("pid", -1);
                                         bool is_minimized = app_j.value("is_minimized", false);
                                         icn->when_mouse_press.connect(
-                                            [app_ptr, pid, is_minimized](EventContext &)
+                                            [app_ptr, pid, is_minimized](EventContext &ctx)
                                             {
                                                 if (pid == -1)
                                                     return;
@@ -195,7 +195,8 @@ int main(int argc, char *argv[])
                                                     << "[DOCK] Icon clicked! Target PID: " << pid
                                                     << " (State: "
                                                     << (is_minimized ? "minimized" : "visible")
-                                                    << ")" << std::endl;
+                                                    << ", Serial: " << ctx.serial << ")"
+                                                    << std::endl;
 
                                                 auto send_sig = [pid](const std::string &sig_name,
                                                                       const std::string &token = "")
@@ -229,7 +230,8 @@ int main(int argc, char *argv[])
                                                                 << (token.empty() ? "EMPTY" : token)
                                                                 << ", sending restore" << std::endl;
                                                             send_sig("restore", token);
-                                                        });
+                                                        },
+                                                        ctx.serial);
                                                 }
                                                 else
                                                 {

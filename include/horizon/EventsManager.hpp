@@ -53,6 +53,7 @@ namespace horizon
         uint32_t key{0};
         uint32_t modifiers{0};
         uint32_t keysym{0};
+        uint32_t serial{0};
         std::string text;
     };
 

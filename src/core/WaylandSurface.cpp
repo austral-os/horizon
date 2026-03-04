@@ -237,6 +237,7 @@ namespace horizon
         ev.type = (state == WL_KEYBOARD_KEY_STATE_PRESSED) ? KeyEvent::Type::Press
                                                            : KeyEvent::Type::Release;
         ev.key = key;
+        ev.serial = serial;
 
         self->process_key(key, state, ev);
 
@@ -1140,6 +1141,8 @@ namespace horizon
                                   const char *token)
     {
         auto *act_data = static_cast<ActivationData *>(data);
+        std::cout << "[SURFACE] Activation token received: " << (token ? token : "NULL")
+                  << std::endl;
         if (act_data->callback)
         {
             act_data->callback(token ? token : "");
@@ -1152,7 +1155,8 @@ namespace horizon
         .done = token_handle_done,
     };
 
-    void WaylandSurface::request_activation_token(std::function<void(const std::string &)> callback)
+    void WaylandSurface::request_activation_token(std::function<void(const std::string &)> callback,
+                                                  uint32_t serial)
     {
         if (!m_activation)
         {
@@ -1161,12 +1165,16 @@ namespace horizon
             return;
         }
 
+        uint32_t use_serial = (serial != 0) ? serial : m_last_serial;
+        std::cout << "[SURFACE] Requesting activation token (Serial: " << use_serial << ")"
+                  << std::endl;
+
         auto *act_data = new ActivationData();
         act_data->callback = callback;
         act_data->token_obj = xdg_activation_v1_get_activation_token(m_activation);
 
         xdg_activation_token_v1_add_listener(act_data->token_obj, &token_listener, act_data);
-        xdg_activation_token_v1_set_serial(act_data->token_obj, m_last_serial, m_seat);
+        xdg_activation_token_v1_set_serial(act_data->token_obj, use_serial, m_seat);
         xdg_activation_token_v1_set_surface(act_data->token_obj, m_surface);
         xdg_activation_token_v1_commit(act_data->token_obj);
 
@@ -1178,6 +1186,7 @@ namespace horizon
         if (!m_activation || token.empty())
             return;
         xdg_activation_v1_activate(m_activation, token.c_str(), m_surface);
+        commit(); // Ensure activation is sent
         wl_display_flush(m_display);
     }
 

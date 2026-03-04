@@ -235,6 +235,7 @@ namespace horizon
                                .key = event.key,
                                .modifiers = event.modifiers, // Use xkb-populated modifiers
                                .keysym = event.keysym,
+                               .serial = event.serial,
                                .text = event.text};
 
         // We no longer update m_modifiers here; on_modifiers_event is the sole source of truth
@@ -320,7 +321,8 @@ namespace horizon
                                            .eventX = m_pointer_x,
                                            .eventY = m_pointer_y,
                                            .key = 0,
-                                           .modifiers = m_modifiers};
+                                           .modifiers = m_modifiers,
+                                           .serial = event.serial};
                     temp->when_mouse_leave.run(new_ev);
                     temp = temp->parent();
                 }
@@ -378,7 +380,8 @@ namespace horizon
                                                  .eventX = m_pointer_x,
                                                  .eventY = m_pointer_y,
                                                  .key = 0,
-                                                 .modifiers = m_modifiers};
+                                                 .modifiers = m_modifiers,
+                                                 .serial = event.serial};
                         w->when_mouse_leave.run(leave_ev);
                     }
                 }
@@ -397,7 +400,8 @@ namespace horizon
                                                  .eventX = m_pointer_x,
                                                  .eventY = m_pointer_y,
                                                  .key = 0,
-                                                 .modifiers = m_modifiers};
+                                                 .modifiers = m_modifiers,
+                                                 .serial = event.serial};
                         w->when_mouse_enter.run(enter_ev);
                     }
                 }
@@ -416,7 +420,8 @@ namespace horizon
                                    .eventX = (double)event.x,
                                    .eventY = (double)event.y,
                                    .key = 0,
-                                   .modifiers = m_modifiers};
+                                   .modifiers = m_modifiers,
+                                   .serial = event.serial};
 
             Widget *temp = m_pressed;
             while (temp)
@@ -438,7 +443,8 @@ namespace horizon
                                    .eventX = (double)event.x,
                                    .eventY = (double)event.y,
                                    .key = 0,
-                                   .modifiers = m_modifiers};
+                                   .modifiers = m_modifiers,
+                                   .serial = event.serial};
 
             Widget *temp = m_hovered;
             while (temp)
@@ -517,7 +523,8 @@ namespace horizon
                                    .eventX = (double)event.x,
                                    .eventY = (double)event.y,
                                    .key = 0,
-                                   .modifiers = m_modifiers};
+                                   .modifiers = m_modifiers,
+                                   .serial = event.serial};
 
             Widget *temp = m_pressed;
             while (temp)
@@ -551,7 +558,8 @@ namespace horizon
                                    .eventX = (double)event.x,
                                    .eventY = (double)event.y,
                                    .key = 0,
-                                   .modifiers = m_modifiers};
+                                   .modifiers = m_modifiers,
+                                   .serial = event.serial};
 
             Widget *temp = m_pressed;
             while (temp)
@@ -936,8 +944,7 @@ namespace horizon
             std::cout << "[APP] Minimizing window..." << std::endl;
             m_was_maximized_before_minimize = is_maximized();
             m_surface->request_minimize();
-            m_is_minimized = true;
-            notify_app_manager("app_started"); // Notify state change
+            notify_window_state(true);
             for (auto const &[id, handler] : m_on_minimize_handlers)
             {
                 if (handler)
@@ -948,29 +955,40 @@ namespace horizon
 
     void Application::restore(const std::string &token)
     {
+        std::cout << "[APP] Restore requested with token: " << (token.empty() ? "EMPTY" : "PRESENT")
+                  << std::endl;
         if (m_surface)
         {
             if (!token.empty())
             {
-                std::cout << "[APP] Using activation token for restore" << std::endl;
+                std::cout << "[APP] Activating surface with token..." << std::endl;
                 m_surface->activate(token);
+            }
+            else
+            {
+                std::cout << "[APP] WARNING: Restore called without token!" << std::endl;
             }
 
             // If it was maximized before, request maximize again.
             // Otherwise, just request restore (unminimize).
             if (m_was_maximized_before_minimize)
             {
+                std::cout << "[APP] Re-maximizing after unminimize..." << std::endl;
                 m_surface->request_maximize();
             }
             else
             {
+                // POKE SEQUENCE: maximize then restore immediately to wake up KWin mapping
+                std::cout << "[APP] Poking compositor with maximize->restore sequence..."
+                          << std::endl;
+                m_surface->request_maximize();
+                m_surface->commit();
                 m_surface->request_restore();
+                m_surface->commit();
             }
 
-            wl_display_flush(m_surface->display());
+            notify_window_state(false);
 
-            m_is_minimized = false;
-            notify_app_manager("app_started"); // Notify state change
             for (auto const &[id, handler] : m_on_maximize_handlers)
             {
                 if (handler)
@@ -1064,6 +1082,12 @@ namespace horizon
                 }
             })
             .detach();
+    }
+
+    void Application::notify_window_state(bool minimized)
+    {
+        m_is_minimized = minimized;
+        notify_app_manager("window_state_changed");
     }
 
     void Application::dispatch_events() {}

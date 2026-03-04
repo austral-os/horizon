@@ -271,6 +271,7 @@ namespace horizon
          * @param type Event type (e.g., "app_started", "app_stopped").
          */
         void notify_app_manager(const std::string &type);
+        void notify_window_state(bool minimized);
 
     private:
         std::unique_ptr<WaylandSurface>

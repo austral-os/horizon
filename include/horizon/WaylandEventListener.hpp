@@ -54,6 +54,7 @@ namespace horizon
         uint32_t key{0};        /**< The hardware key code. */
         uint32_t modifiers{0};  /**< Modifier keys bitmask. */
         uint32_t keysym{0};     /**< The XKB keysym. */
+        uint32_t serial{0};     /**< The Wayland serial of the event. */
         std::string text;       /**< The UTF-8 text associated with the key. */
     };
 
