@@ -67,7 +67,24 @@ namespace horizon
     void MenuItem::set_shortcut(const std::string &shortcut)
     {
         m_shortcut_text = shortcut;
-        m_shortcut_label->set_text(shortcut);
+
+        // Map textual modifiers to symbols for a professional look
+        std::string display_text = shortcut;
+        auto replace = [&](const std::string &from, const std::string &to)
+        {
+            size_t pos = 0;
+            while ((pos = display_text.find(from, pos)) != std::string::npos)
+            {
+                display_text.replace(pos, from.length(), to);
+                pos += to.length();
+            }
+        };
+
+        replace("Ctrl", "⌃");
+        replace("Shift", "⇧");
+        replace("+", ""); // Usually shortcuts are displayed as ⌃⇧S rather than ⌃+⇧+S
+
+        m_shortcut_label->set_text(display_text);
     }
 
     void MenuItem::set_icon(const std::string &icon_path)

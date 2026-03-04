@@ -564,6 +564,12 @@ namespace horizon
         wl_surface_commit(m_surface);
         wl_display_roundtrip(m_display);
 
+        // Cursor setup for layer surface
+        if (m_shm)
+            m_cursor_theme = wl_cursor_theme_load(nullptr, 24, m_shm);
+        if (m_compositor)
+            m_cursor_surface = wl_compositor_create_surface(m_compositor);
+
         resize_buffer(m_width, m_height);
     }
 
