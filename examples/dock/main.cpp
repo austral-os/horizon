@@ -126,7 +126,8 @@ int main(int argc, char *argv[])
         app->set_exclusive_zone(100);
         app->set_show_in_dock(false);
         app->set_show_in_system_tray(false);
-        app->set_visible(true); // Enable input region
+        app->set_visible(true);             // Enable input region
+        app->set_keyboard_interactivity(0); // NONE - prevent focus stealing in labwc
 
         // 2. Root Window
         auto root = std::make_unique<Widget>();

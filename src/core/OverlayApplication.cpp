@@ -5,7 +5,7 @@
 namespace horizon
 {
     OverlayApplication::OverlayApplication(const std::string &namespace_id, uint32_t layer)
-        : Application(0, 0, true), m_namespace(namespace_id), m_layer(layer)
+        : Application(0, 0, true), m_namespace(namespace_id), m_layer(layer), m_interactivity(0)
     {
         // Initialization for Layer Shell
         w_surface()->init_display();
@@ -36,6 +36,7 @@ namespace horizon
 
     void OverlayApplication::set_keyboard_interactivity(uint32_t interactivity)
     {
+        m_interactivity = interactivity;
         w_surface()->set_layer_keyboard_interactivity(interactivity);
         w_surface()->commit();
     }
@@ -53,7 +54,8 @@ namespace horizon
         {
             // Restore full input region
             w_surface()->set_input_region(0, 0, w_surface()->width(), w_surface()->height());
-            set_keyboard_interactivity(ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND);
+            w_surface()->set_layer_keyboard_interactivity(m_interactivity);
+            w_surface()->commit();
         }
         else
         {

@@ -55,6 +55,7 @@ namespace horizon
     private:
         std::string m_namespace;
         uint32_t m_layer;
+        uint32_t m_interactivity{0}; // 0 = ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE
         bool m_visible{false};
     };
 } // namespace horizon
