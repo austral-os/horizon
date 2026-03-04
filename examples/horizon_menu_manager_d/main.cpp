@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
                 }
             });
 
-        // Timer to process new messages in the main thread
+        // Timer to process new messages in the main thread (REPEATING)
         app->add_timer(
             50,
             [&]()
@@ -210,7 +210,8 @@ int main(int argc, char *argv[])
                         }
                     }
                 }
-            });
+            },
+            true);
 
         app->set_root(std::move(root));
 

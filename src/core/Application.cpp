@@ -138,15 +138,18 @@ namespace horizon
     void Application::on_activated(bool active)
     {
         m_is_activated = active;
+        std::cout << "[APP] on_activated: " << active << " (PID: " << getpid() << ")" << std::endl;
 
         if (m_client_menu)
         {
             if (active)
             {
+                std::cout << "[APP] Sending global menu to panel." << std::endl;
                 m_client_menu->set_global_menu(m_global_menus);
             }
             else
             {
+                std::cout << "[APP] Clearing global menu from panel." << std::endl;
                 m_client_menu->set_global_menu({});
             }
         }

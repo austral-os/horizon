@@ -52,7 +52,8 @@ namespace horizon
 
         m_running = true;
         m_listen_thread = std::thread(&IpcServer::listen_loop, this);
-        std::cout << "IPC Server listening on " << m_socket_path << std::endl;
+        std::cout << "[IpcServer] PID " << getpid() << " listening on " << m_socket_path
+                  << " (fd: " << m_server_fd << ")" << std::endl;
     }
 
     void IpcServer::stop()
@@ -89,10 +90,11 @@ namespace horizon
             if (client_fd == -1)
             {
                 if (m_running)
-                    perror("accept");
+                    perror("[IpcServer] accept failed");
                 continue;
             }
 
+            std::cout << "[IpcServer] New connection accepted on fd: " << client_fd << std::endl;
             std::thread(&IpcServer::handle_client, this, client_fd).detach();
         }
     }
@@ -118,6 +120,7 @@ namespace horizon
 
     void IpcServer::handle_client(int client_fd)
     {
+        std::cout << "[IpcServer] Client connected (fd: " << client_fd << ")" << std::endl;
         char buffer[4096];
         while (m_running)
         {
@@ -127,6 +130,7 @@ namespace horizon
 
             buffer[n] = '\0';
             std::string request(buffer);
+            std::cout << "[IpcServer] Read " << n << " bytes from client." << std::endl;
             std::string response = m_message_handler(request);
 
             if (response == "SUBSCRIBE")

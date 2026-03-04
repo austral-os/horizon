@@ -1,6 +1,7 @@
 #include <horizon/Application.hpp>
 #include <horizon/MenuBar.hpp>
 #include <horizon/ThemeManager.hpp>
+#include <iostream>
 
 namespace horizon
 {
@@ -12,6 +13,7 @@ namespace horizon
 
     void MenuBar::add_menu(std::unique_ptr<Menu> menu)
     {
+        std::cout << "[MenuBar] Adding menu: " << menu->title() << std::endl;
         auto item = std::make_unique<MenuBarItem>(menu->title(), menu.get());
         item->set_position_type(FREE);
         item->when_mouse_press.connect(
@@ -71,6 +73,7 @@ namespace horizon
 
     void MenuBar::clear_menus()
     {
+        std::cout << "[MenuBar] Clearing all menus." << std::endl;
         m_menus.clear();
         clear_children();
         invalidate();

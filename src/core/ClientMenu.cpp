@@ -1,5 +1,7 @@
 #include <horizon/ClientMenu.hpp>
 #include <horizon/MenuSeparator.hpp>
+#include <iostream>
+#include <unistd.h>
 
 namespace horizon
 {
@@ -28,6 +30,7 @@ namespace horizon
     {
         nlohmann::json request;
         request["type"] = "set_global_menu";
+        request["pid"] = getpid();
 
         nlohmann::json menu_array = nlohmann::json::array();
         for (auto *menu : menus)
@@ -40,9 +43,26 @@ namespace horizon
 
         request["menus"] = menu_array;
 
+        std::cout << "[ClientMenu] Sending global menu from PID " << getpid() << " with "
+                  << menu_array.size() << " menus." << std::endl;
+
         // Uses a dedicated client to the global menu socket
         IpcClient global_menu_client("/tmp/horizon_global_menu.sock");
-        return global_menu_client.send(request.dump());
+        bool success = global_menu_client.send(request.dump());
+
+        if (!success)
+        {
+            std::cerr << "[ClientMenu] ERROR (PID " << getpid()
+                      << "): Failed to send global menu to /tmp/horizon_global_menu.sock. Error: "
+                      << strerror(errno) << std::endl;
+        }
+        else
+        {
+            std::cout << "[ClientMenu] SUCCESS (PID " << getpid()
+                      << "): Global menu sent successfully." << std::endl;
+        }
+
+        return success;
     }
 
     nlohmann::json ClientMenu::menu_to_json(Menu *menu)
