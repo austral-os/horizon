@@ -17,6 +17,7 @@ namespace horizon
     class Widget;
     class Menu;
     class ClientMenu;
+    class IpcClient;
 
     /**
      * @class Application
@@ -148,6 +149,21 @@ namespace horizon
         bool is_maximized() const;
 
         /**
+         * @brief Requests the window to enter fullscreen mode.
+         */
+        void fullscreen();
+
+        /**
+         * @brief Requests the window to exit fullscreen mode.
+         */
+        void unfullscreen();
+
+        /**
+         * @return True if the window is in fullscreen mode.
+         */
+        bool is_fullscreen() const;
+
+        /**
          * @brief Implementation of the WaylandEventListener pointer event callback.
          * @param event The pointer event details.
          */
@@ -174,7 +190,7 @@ namespace horizon
         size_t add_on_minimize(std::function<void()> handler);
         void remove_on_minimize(size_t id);
 
-        size_t add_timer(int ms, std::function<void()> callback);
+        size_t add_timer(int ms, std::function<void()> callback, bool repeat = false);
         void stop_timer(size_t id);
 
         /**
@@ -335,6 +351,7 @@ namespace horizon
             size_t id;
             int interval_ms;
             uint64_t next_expiry;
+            bool repeat;
             std::function<void()> callback;
         };
         std::map<size_t, Timer> m_timers;
@@ -346,6 +363,8 @@ namespace horizon
         std::string m_icon_name{"system-run"};
         bool m_show_in_dock{true};
         bool m_show_in_system_tray{false};
+        bool m_is_minimized{false};
+        bool m_was_maximized_before_minimize{false};
 
         std::deque<std::function<void()>> m_task_queue;
         std::mutex m_task_mutex;
@@ -353,5 +372,7 @@ namespace horizon
         // m_root is last: destroyed FIRST so widget dtors can safely call
         // stop_timer/unregister_widget
         std::unique_ptr<Widget> m_root; /**< The root of the UI widget hierarchy. */
+
+        std::unique_ptr<IpcClient> m_ipc_subscriber;
     };
 } // namespace horizon

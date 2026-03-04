@@ -10,6 +10,16 @@ namespace horizon
         // Initialization for Layer Shell
         w_surface()->init_display();
         w_surface()->setup_layer_surface(m_layer, m_namespace);
+
+        // Update input region whenever the surface size changes
+        add_on_resize(
+            [this](int w, int h)
+            {
+                if (m_visible)
+                {
+                    w_surface()->set_input_region(0, 0, w, h);
+                }
+            });
     }
 
     void OverlayApplication::set_anchor(uint32_t anchor)
@@ -38,10 +48,10 @@ namespace horizon
 
     void OverlayApplication::set_visible(bool visible)
     {
+        m_visible = visible;
         if (visible)
         {
-            // Restore full input region (or whatever makes sense for the overlay)
-            // For now, allow clicks on the whole surface when visible
+            // Restore full input region
             w_surface()->set_input_region(0, 0, w_surface()->width(), w_surface()->height());
             set_keyboard_interactivity(ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND);
         }

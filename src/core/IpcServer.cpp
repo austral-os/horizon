@@ -43,7 +43,7 @@ namespace horizon
             return;
         }
 
-        if (listen(m_server_fd, 5) == -1)
+        if (listen(m_server_fd, 32) == -1)
         {
             perror("listen");
             close(m_server_fd);
@@ -74,11 +74,9 @@ namespace horizon
             m_listen_thread.join();
         }
 
-        for (auto &t : m_client_threads)
-        {
-            if (t.joinable())
-                t.join();
-        }
+        // Detached threads don't need to be joined here.
+        // If we really wanted to wait for them, we'd need a counter and a condition variable.
+        // For now, detaching is enough to avoid the leak of thread objects.
 
         unlink(m_socket_path.c_str());
     }
@@ -95,7 +93,7 @@ namespace horizon
                 continue;
             }
 
-            m_client_threads.emplace_back(&IpcServer::handle_client, this, client_fd);
+            std::thread(&IpcServer::handle_client, this, client_fd).detach();
         }
     }
 

@@ -1,0 +1,57 @@
+# Plan de Implementación: Señales de Control de Aplicaciones
+
+Este plan describe cómo permitir que aplicaciones (como el Dock) controlen ventanas de otras aplicaciones enviando señales a través del `App Manager`.
+
+## Cambios Propuestos
+
+### Componente: Horizon Core (IPC y Application)
+
+Summary: Añadir la capacidad a las aplicaciones de escuchar señales externas del App Manager.
+
+#### [MODIFY] [Application.hpp](file:///home/horacio/Desarrollo/austral-os/horizon/include/horizon/Application.hpp)
+- Añadir un miembro `std::unique_ptr<IpcClient> m_ipc_subscriber` para mantener una conexión persistente.
+- Añadir métodos `fullscreen()` y `is_fullscreen()`.
+
+#### [MODIFY] [Application.cpp](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/Application.cpp)
+- En el método [run()](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/Application.cpp#581-812), después de notificar el inicio de la app, suscribirse al socket del App Manager.
+- Implementar el callback de suscripción para procesar mensajes de tipo `app_signal`.
+- Las señales deben verificar que el `pid` coincida con el de la aplicación actual.
+- Implementar la lógica para [maximize](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/Application.cpp#859-871), [minimize](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/Application.cpp#872-884), [restore](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/Application.cpp#885-897), [close](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/Application.cpp#1042-1059), y `fullscreen` al recibir la señal.
+
+#### [MODIFY] [WaylandSurface.hpp](file:///home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp)
+- Añadir `request_fullscreen()`.
+
+#### [MODIFY] [WaylandSurface.cpp](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp)
+- Implementar `request_fullscreen()` usando `xdg_toplevel_set_fullscreen`.
+
+---
+
+### Componente: App Manager
+
+Summary: Actuar como broker de señales.
+
+#### [MODIFY] [main.cpp](file:///home/horacio/Desarrollo/austral-os/horizon/examples/app_manager/main.cpp) (en el ejemplo de app_manager)
+- Añadir soporte para el mensaje `send_signal`.
+- Cuando se recibe `send_signal`, realizar un [broadcast](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/IpcServer.cpp#102-120) de un mensaje `app_signal` con el `target_pid` y la [signal](file:///home/horacio/Desarrollo/austral-os/horizon/examples/app_manager/main.cpp#10-15).
+
+---
+
+### Componente: Dock (Ejemplo)
+
+Summary: Permitir al usuario controlar aplicaciones desde el Dock.
+
+#### [MODIFY] [main.cpp](file:///home/horacio/Desarrollo/austral-os/horizon/examples/dock/main.cpp) (en el ejemplo del dock)
+- Al hacer clic en un icono de una aplicación ya abierta, enviar el mensaje `send_signal` al App Manager (ej. para alternar entre maximizar/restaurar o traer al frente).
+
+## Plan de Verificación
+
+### Pruebas Automatizadas
+- No hay pruebas automatizadas para IPC actualmente, pero se verificará la compilación.
+
+### Verificación Manual
+1. Ejecutar el [app_manager](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/Application.cpp#922-943).
+2. Ejecutar el [dock](file:///home/horacio/Desarrollo/austral-os/horizon/include/horizon/Application.hpp#218-222).
+3. Ejecutar una aplicación de ejemplo (ej. `minimal`).
+4. Verificar en el log del [app_manager](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/Application.cpp#922-943) que `minimal` se suscribió.
+5. Usar el [dock](file:///home/horacio/Desarrollo/austral-os/horizon/include/horizon/Application.hpp#218-222) (o una herramienta de prueba) para enviar una señal de [minimize](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/Application.cpp#872-884) a través del [app_manager](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/Application.cpp#922-943).
+6. Observar si la aplicación `minimal` se minimiza correctamente.

@@ -11,5 +11,6 @@ namespace app_manager
         std::string icon;
         bool show_in_dock;
         bool show_in_system_tray;
+        bool is_minimized;
     };
 } // namespace app_manager

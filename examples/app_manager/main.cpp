@@ -46,6 +46,7 @@ int main(int argc, char *argv[])
                                  info.icon = j.value("icon", "");
                                  info.show_in_dock = j.value("show_in_dock", false);
                                  info.show_in_system_tray = j.value("show_in_system_tray", false);
+                                 info.is_minimized = j.value("is_minimized", false);
 
                                  registry.add_app(info);
                                  changed = true;
@@ -59,6 +60,59 @@ int main(int argc, char *argv[])
                                  registry.remove_app(app_id);
                                  changed = true;
                                  std::cout << "[EVENT] App Unregistered: " << app_id << std::endl;
+                             }
+                             else if (type == "send_signal")
+                             {
+                                 int target_pid = j.value("target_pid", -1);
+                                 std::string signal = j.value("signal", "unknown");
+
+                                 // Optimistic update
+                                 if (signal == "minimize" || signal == "restore")
+                                 {
+                                     auto apps = registry.get_apps();
+                                     for (auto &app : apps)
+                                     {
+                                         if (app.pid == target_pid)
+                                         {
+                                             app.is_minimized = (signal == "minimize");
+                                             registry.add_app(app);
+                                             changed = true;
+                                             break;
+                                         }
+                                     }
+                                 }
+
+                                 nlohmann::json signal_msg;
+                                 signal_msg["type"] = "app_signal";
+                                 signal_msg["target_pid"] = target_pid;
+                                 signal_msg["signal"] = signal;
+
+                                 std::cout << "[SIGNAL] Sending " << signal << " to PID "
+                                           << target_pid << std::endl;
+                                 server.broadcast(signal_msg.dump());
+
+                                 if (changed)
+                                 {
+                                     // We need to broadcast the list update immediately
+                                     nlohmann::json broadcast_msg;
+                                     broadcast_msg["type"] = "app_list_updated";
+                                     broadcast_msg["apps"] = nlohmann::json::array();
+                                     for (const auto &app : registry.get_apps())
+                                     {
+                                         nlohmann::json app_j;
+                                         app_j["id"] = app.id;
+                                         app_j["name"] = app.name;
+                                         app_j["pid"] = app.pid;
+                                         app_j["icon"] = app.icon;
+                                         app_j["show_in_dock"] = app.show_in_dock;
+                                         app_j["show_in_system_tray"] = app.show_in_system_tray;
+                                         app_j["is_minimized"] = app.is_minimized;
+                                         broadcast_msg["apps"].push_back(app_j);
+                                     }
+                                     server.broadcast(broadcast_msg.dump());
+                                 }
+
+                                 return "{\"status\": \"sent\"}";
                              }
                              else
                              {
@@ -91,6 +145,7 @@ int main(int argc, char *argv[])
                                      app_j["icon"] = app.icon;
                                      app_j["show_in_dock"] = app.show_in_dock;
                                      app_j["show_in_system_tray"] = app.show_in_system_tray;
+                                     app_j["is_minimized"] = app.is_minimized;
                                      broadcast_msg["apps"].push_back(app_j);
                                  }
                                  server.broadcast(broadcast_msg.dump());

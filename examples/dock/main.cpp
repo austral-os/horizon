@@ -126,6 +126,7 @@ int main(int argc, char *argv[])
         app->set_exclusive_zone(100);
         app->set_show_in_dock(false);
         app->set_show_in_system_tray(false);
+        app->set_visible(true); // Enable input region
 
         // 2. Root Window
         auto root = std::make_unique<Widget>();
@@ -181,6 +182,37 @@ int main(int argc, char *argv[])
                                             app_j.value("icon", "application-x-executable"));
                                         icn->set_icon_size(48);
                                         icn->set_margin(5);
+
+                                        int pid = app_j.value("pid", -1);
+                                        bool is_minimized = app_j.value("is_minimized", false);
+                                        icn->when_mouse_press.connect(
+                                            [pid, is_minimized](EventContext &)
+                                            {
+                                                if (pid == -1)
+                                                    return;
+
+                                                std::cout
+                                                    << "[DOCK] Icon clicked! Target PID: " << pid
+                                                    << " (State: "
+                                                    << (is_minimized ? "minimized" : "visible")
+                                                    << ")" << std::endl;
+
+                                                try
+                                                {
+                                                    nlohmann::json sig;
+                                                    sig["type"] = "send_signal";
+                                                    sig["target_pid"] = pid;
+                                                    sig["signal"] =
+                                                        is_minimized ? "restore" : "minimize";
+
+                                                    IpcClient client("/tmp/horizon_apps.sock");
+                                                    client.send(sig.dump());
+                                                }
+                                                catch (...)
+                                                {
+                                                }
+                                            });
+
                                         shelf_ptr->add_child(std::move(icn));
                                     }
                                 }

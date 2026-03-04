@@ -155,7 +155,10 @@ namespace horizon
         void request_maximize();
         void request_minimize();
         void request_restore();
+        void request_fullscreen();
+        void request_unfullscreen();
         bool is_maximized() const;
+        bool is_fullscreen() const;
 
         void set_cursor(CursorType type);
 
@@ -196,6 +199,7 @@ namespace horizon
         double m_pointer_x = 0;
         double m_pointer_y = 0;
         bool m_is_maximized = false;
+        bool m_is_fullscreen = false;
         bool m_is_activated = false;
 
         struct wl_cursor_theme *m_cursor_theme = nullptr;

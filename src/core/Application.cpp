@@ -598,6 +598,50 @@ namespace horizon
 
         while (m_is_running)
         {
+            if (!m_ipc_subscriber)
+            {
+                m_ipc_subscriber = std::make_unique<IpcClient>("/tmp/horizon_apps.sock");
+                m_ipc_subscriber->subscribe(
+                    "{\"type\": \"subscribe\"}",
+                    [this](const std::string &msg)
+                    {
+                        try
+                        {
+                            auto j = nlohmann::json::parse(msg);
+                            if (j.value("type", "unknown") == "app_signal")
+                            {
+                                int target_pid = j.value("target_pid", -1);
+                                if (target_pid == getpid())
+                                {
+                                    std::string signal = j.value("signal", "unknown");
+                                    std::cout << "[APP] Received remote signal: " << signal
+                                              << " (posting task)" << std::endl;
+                                    this->post_task(
+                                        // ...
+                                        [this, signal]()
+                                        {
+                                            if (signal == "maximize")
+                                                this->maximize();
+                                            else if (signal == "minimize")
+                                                this->minimize();
+                                            else if (signal == "restore")
+                                                this->restore();
+                                            else if (signal == "close")
+                                                this->on_close();
+                                            else if (signal == "fullscreen")
+                                                this->fullscreen();
+                                            else if (signal == "unfullscreen")
+                                                this->unfullscreen();
+                                        });
+                                }
+                            }
+                        }
+                        catch (...)
+                        {
+                        }
+                    });
+            }
+
             wl_display_dispatch_pending(m_surface->display());
 
             // Frame rate limiter: compute current time and skip rendering if
@@ -740,9 +784,19 @@ namespace horizon
             {
                 if (m_timers.count(id))
                 {
-                    // Copy callback to avoid use-after-free if callback removes the timer
-                    auto callback = m_timers[id].callback;
-                    m_timers[id].next_expiry = now + m_timers[id].interval_ms;
+                    auto &timer = m_timers[id];
+                    auto callback = timer.callback;
+                    bool repeat = timer.repeat;
+
+                    if (repeat)
+                    {
+                        timer.next_expiry = now + timer.interval_ms;
+                    }
+                    else
+                    {
+                        m_timers.erase(id);
+                    }
+
                     if (callback)
                         callback();
                 }
@@ -783,7 +837,10 @@ namespace horizon
                 for (auto &task : tasks)
                 {
                     if (task)
+                    {
+                        std::cout << "[APP] Executing posted task..." << std::endl;
                         task();
+                    }
                 }
             }
 
@@ -861,6 +918,8 @@ namespace horizon
         if (m_surface)
         {
             m_surface->request_maximize();
+            m_is_minimized = false;
+            notify_app_manager("app_started"); // Notify state change
             for (auto const &[id, handler] : m_on_maximize_handlers)
             {
                 if (handler)
@@ -873,7 +932,11 @@ namespace horizon
     {
         if (m_surface)
         {
+            std::cout << "[APP] Minimizing window..." << std::endl;
+            m_was_maximized_before_minimize = is_maximized();
             m_surface->request_minimize();
+            m_is_minimized = true;
+            notify_app_manager("app_started"); // Notify state change
             for (auto const &[id, handler] : m_on_minimize_handlers)
             {
                 if (handler)
@@ -886,11 +949,31 @@ namespace horizon
     {
         if (m_surface)
         {
-            m_surface->request_restore();
+            // On many Wayland compositors (like KWin), request_maximize is needed
+            // to unminimize and bring the window to the front reliably.
+            m_surface->request_maximize();
+            wl_display_flush(m_surface->display());
+
+            // If it WASN'T maximized before minimizing, schedule a revert to normal size
+            // after a short delay to allow the compositor to handle the unminimize first.
+            if (!m_was_maximized_before_minimize)
+            {
+                add_timer(
+                    100,
+                    [this]()
+                    {
+                        this->m_surface->request_restore();
+                        wl_display_flush(this->m_surface->display());
+                    },
+                    false); // repeat = false
+            }
+
+            m_is_minimized = false;
+            notify_app_manager("app_started"); // Notify state change
             for (auto const &[id, handler] : m_on_maximize_handlers)
             {
                 if (handler)
-                    handler(false);
+                    handler(m_was_maximized_before_minimize);
             }
         }
     }
@@ -903,6 +986,27 @@ namespace horizon
     bool Application::is_maximized() const
     {
         return m_surface && m_surface->is_maximized();
+    }
+
+    void Application::fullscreen()
+    {
+        if (m_surface)
+        {
+            m_surface->request_fullscreen();
+        }
+    }
+
+    void Application::unfullscreen()
+    {
+        if (m_surface)
+        {
+            m_surface->request_unfullscreen();
+        }
+    }
+
+    bool Application::is_fullscreen() const
+    {
+        return m_surface && m_surface->is_fullscreen();
     }
 
     void Application::quit()
@@ -921,24 +1025,44 @@ namespace horizon
 
     void Application::notify_app_manager(const std::string &type)
     {
-        try
-        {
-            nlohmann::json msg;
-            msg["type"] = type;
-            msg["app_id"] = m_app_id;
-            msg["name"] = m_name;
-            msg["icon"] = m_icon_name;
-            msg["show_in_dock"] = m_show_in_dock;
-            msg["show_in_system_tray"] = m_show_in_system_tray;
-            msg["pid"] = getpid();
+        // Capture necessary data to avoid use-after-free in the thread
+        std::string app_id = m_app_id;
+        std::string name = m_name;
+        std::string icon = m_icon_name;
+        bool show_dock = m_show_in_dock;
+        bool show_tray = m_show_in_system_tray;
+        bool is_min = m_is_minimized;
+        pid_t pid = getpid();
 
-            IpcClient client("/tmp/horizon_apps.sock");
-            client.send(msg.dump());
-        }
-        catch (...)
-        {
-            // Silently ignore IPC errors to not crash the application
-        }
+        std::thread(
+            [app_id, name, icon, show_dock, show_tray, is_min, pid, type]()
+            {
+                try
+                {
+                    nlohmann::json msg;
+                    msg["type"] = type;
+                    msg["app_id"] = app_id;
+                    msg["name"] = name;
+                    msg["icon"] = icon;
+                    msg["show_in_dock"] = show_dock;
+                    msg["show_in_system_tray"] = show_tray;
+                    msg["is_minimized"] = is_min;
+                    msg["pid"] = pid;
+
+                    IpcClient client("/tmp/horizon_apps.sock");
+                    // Simple retry logic
+                    for (int i = 0; i < 3; ++i)
+                    {
+                        if (client.send(msg.dump()))
+                            break;
+                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    }
+                }
+                catch (...)
+                {
+                }
+            })
+            .detach();
     }
 
     void Application::dispatch_events() {}
@@ -998,7 +1122,7 @@ namespace horizon
         m_on_minimize_handlers.erase(id);
     }
 
-    size_t Application::add_timer(int ms, std::function<void()> callback)
+    size_t Application::add_timer(int ms, std::function<void()> callback, bool repeat)
     {
         size_t id = m_next_timer_id++;
         uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -1009,6 +1133,7 @@ namespace horizon
         t.id = id;
         t.interval_ms = ms;
         t.next_expiry = now + ms;
+        t.repeat = repeat;
         t.callback = callback;
 
         m_timers[id] = t;

@@ -55,5 +55,6 @@ namespace horizon
     private:
         std::string m_namespace;
         uint32_t m_layer;
+        bool m_visible{false};
     };
 } // namespace horizon

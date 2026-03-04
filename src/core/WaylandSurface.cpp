@@ -513,6 +513,7 @@ namespace horizon
                 uint32_t *state;
                 bool maximized = false;
                 bool activated = false;
+                bool fullscreen = false;
                 for (state = static_cast<uint32_t *>(states->data);
                      reinterpret_cast<const char *>(state) <
                      (static_cast<const char *>(states->data) + states->size);
@@ -522,8 +523,11 @@ namespace horizon
                         maximized = true;
                     if (*state == XDG_TOPLEVEL_STATE_ACTIVATED)
                         activated = true;
+                    if (*state == XDG_TOPLEVEL_STATE_FULLSCREEN)
+                        fullscreen = true;
                 }
                 self->m_is_maximized = maximized;
+                self->m_is_fullscreen = fullscreen;
 
                 if (self->m_is_activated != activated)
                 {
@@ -846,6 +850,7 @@ namespace horizon
         if (m_xdg_toplevel)
         {
             xdg_toplevel_set_maximized(m_xdg_toplevel);
+            wl_surface_commit(m_surface);
         }
     }
 
@@ -854,6 +859,7 @@ namespace horizon
         if (m_xdg_toplevel)
         {
             xdg_toplevel_set_minimized(m_xdg_toplevel);
+            wl_surface_commit(m_surface);
         }
     }
 
@@ -862,6 +868,25 @@ namespace horizon
         if (m_xdg_toplevel)
         {
             xdg_toplevel_unset_maximized(m_xdg_toplevel);
+            wl_surface_commit(m_surface);
+        }
+    }
+
+    void WaylandSurface::request_fullscreen()
+    {
+        if (m_xdg_toplevel)
+        {
+            xdg_toplevel_set_fullscreen(m_xdg_toplevel, nullptr);
+            wl_surface_commit(m_surface);
+        }
+    }
+
+    void WaylandSurface::request_unfullscreen()
+    {
+        if (m_xdg_toplevel)
+        {
+            xdg_toplevel_unset_fullscreen(m_xdg_toplevel);
+            wl_surface_commit(m_surface);
         }
     }
 
@@ -936,6 +961,11 @@ namespace horizon
     bool WaylandSurface::is_maximized() const
     {
         return m_is_maximized;
+    }
+
+    bool WaylandSurface::is_fullscreen() const
+    {
+        return m_is_fullscreen;
     }
 
     void WaylandSurface::set_last_serial(uint32_t serial)

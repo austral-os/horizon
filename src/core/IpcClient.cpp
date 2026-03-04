@@ -1,9 +1,11 @@
 #include <horizon/IpcClient.hpp>
 
+#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <thread>
 #include <unistd.h>
 
 namespace horizon
@@ -41,7 +43,6 @@ namespace horizon
 
         if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
         {
-            std::cerr << "IpcClient: Failed to connect to " << m_socket_path << std::endl;
             close(sock);
             return false;
         }
@@ -78,38 +79,50 @@ namespace horizon
         m_subscription_thread = std::thread(
             [this, message, callback]()
             {
-                m_subscription_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-                if (m_subscription_fd < 0)
-                    return;
-
-                struct sockaddr_un addr;
-                memset(&addr, 0, sizeof(addr));
-                addr.sun_family = AF_UNIX;
-                strncpy(addr.sun_path, m_socket_path.c_str(), sizeof(addr.sun_path) - 1);
-
-                if (connect(m_subscription_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-                {
-                    close(m_subscription_fd);
-                    m_subscription_fd = -1;
-                    return;
-                }
-
-                write(m_subscription_fd, message.c_str(), message.size());
-
-                char buf[4096];
                 while (!m_stop_subscription)
                 {
-                    ssize_t n = read(m_subscription_fd, buf, sizeof(buf) - 1);
-                    if (n <= 0)
-                        break;
-                    buf[n] = '\0';
-                    callback(std::string(buf, n));
-                }
+                    m_subscription_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+                    if (m_subscription_fd < 0)
+                    {
+                        std::this_thread::sleep_for(std::chrono::seconds(1));
+                        continue;
+                    }
 
-                if (m_subscription_fd != -1)
-                {
-                    close(m_subscription_fd);
-                    m_subscription_fd = -1;
+                    struct sockaddr_un addr;
+                    memset(&addr, 0, sizeof(addr));
+                    addr.sun_family = AF_UNIX;
+                    strncpy(addr.sun_path, m_socket_path.c_str(), sizeof(addr.sun_path) - 1);
+
+                    if (connect(m_subscription_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+                    {
+                        close(m_subscription_fd);
+                        m_subscription_fd = -1;
+                        std::this_thread::sleep_for(std::chrono::seconds(2));
+                        continue;
+                    }
+
+                    write(m_subscription_fd, message.c_str(), message.size());
+
+                    char buf[4096];
+                    while (!m_stop_subscription)
+                    {
+                        ssize_t n = read(m_subscription_fd, buf, sizeof(buf) - 1);
+                        if (n <= 0)
+                            break;
+                        buf[n] = '\0';
+                        callback(std::string(buf, n));
+                    }
+
+                    if (m_subscription_fd != -1)
+                    {
+                        close(m_subscription_fd);
+                        m_subscription_fd = -1;
+                    }
+
+                    if (!m_stop_subscription)
+                    {
+                        std::this_thread::sleep_for(std::chrono::seconds(2));
+                    }
                 }
             });
     }
