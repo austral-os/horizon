@@ -1,0 +1,137 @@
+#include <algorithm>
+#include <horizon/GraphicsContext.hpp>
+#include <horizon/Menu.hpp>
+
+namespace horizon
+{
+
+    Menu::Menu() : Widget()
+    {
+        // Default appearance - Solid white-ish as requested
+        set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+    }
+
+    void Menu::add_item(std::unique_ptr<MenuItem> item)
+    {
+        item->set_position_type(FREE);
+        add_child(std::move(item));
+        calculate_layout();
+    }
+
+    void Menu::add_separator()
+    {
+        auto separator = std::make_unique<MenuSeparator>();
+        separator->set_position_type(FREE);
+        add_child(std::move(separator));
+        calculate_layout();
+    }
+
+    MenuItem *Menu::add_item(const std::string &text, const std::string &shortcut)
+    {
+        auto item = std::make_unique<MenuItem>(text);
+        if (!shortcut.empty())
+            item->set_shortcut(shortcut);
+        auto *ptr = item.get();
+        add_item(std::move(item));
+        return ptr;
+    }
+
+    void Menu::calculate_layout()
+    {
+        // Update m_start_draw_x/y based on current m_x/y
+        Widget::calculate_layout();
+
+        int current_y = 1; // 1px border
+        int max_w = m_min_width;
+
+        // First pass: Determine max width needed
+        for (const auto &child : m_children)
+        {
+            max_w = std::max(max_w, child->width());
+        }
+
+        // Second pass: Layout children using absolute coordinates
+        for (auto &child : m_children)
+        {
+            child->set_position(m_start_draw_x + 1, m_start_draw_y + current_y);
+            child->set_size(max_w - 2, child->height());
+            current_y += child->height();
+        }
+
+        // Update size without triggering a full recalculation loop if possible
+        m_width = max_w;
+        m_height = current_y + 1;
+        // Re-call base to refresh draw area after size change
+        Widget::calculate_layout();
+    }
+
+    void Menu::close_submenus()
+    {
+        if (m_active_submenu)
+        {
+            m_active_submenu->close_submenus();
+            m_active_submenu->set_visible(false);
+            m_active_submenu = nullptr;
+            invalidate(); // Ensure the area where the submenu was is repainted
+        }
+    }
+
+    void Menu::set_active_submenu(Menu *menu)
+    {
+        if (m_active_submenu == menu)
+            return;
+
+        close_submenus();
+
+        if (menu)
+        {
+            m_active_submenu = menu;
+            m_active_submenu->set_visible(true);
+            m_active_submenu->invalidate();
+
+            // Positioning is tricky here because MenuItem doesn't know its own screen position
+            // reliably without Widget::calculate_layout having been called recently. But we can try
+            // to find the item that triggered this. Actually, for now we let the MenuItem pass its
+            // position if needed, or we just find which child is hovered.
+
+            for (const auto &child : m_children)
+            {
+                if (auto *item = dynamic_cast<MenuItem *>(child.get()))
+                {
+                    if (item->is_selected())
+                    {
+                        // Position submenu to the right of the item
+                        m_active_submenu->set_position(item->x() + item->width() - 2, item->y());
+                        m_active_submenu->calculate_layout();
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    void Menu::draw(GraphicsContext &gc)
+    {
+        // macOS Menu style
+        // Straight top corners, rounded bottom corners
+        CornerRadius radius(0, 0, 10, 10);
+
+        // Shadow/Border
+        gc.setColor(Color(0.7f, 0.7f, 0.7f, 0.8f));
+        gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height, radius, 1.0f);
+
+        // Fill background
+        gc.setColor(background_color());
+        gc.fillRect(m_start_draw_x + 1, m_start_draw_y + 1, m_width - 2, m_height - 2, radius);
+
+        // Clip children to follow the rounded corners
+        gc.save();
+        gc.clipRoundedRect(m_start_draw_x, m_start_draw_y, m_width, m_height, radius);
+
+        // Draw children (items)
+        Widget::draw(gc);
+
+        gc.restore();
+    }
+
+} // namespace horizon

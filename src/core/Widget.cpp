@@ -333,7 +333,11 @@ namespace horizon
 
     void Widget::set_visible(bool visible)
     {
-        m_visible = visible;
+        if (m_visible != visible)
+        {
+            m_visible = visible;
+            invalidate();
+        }
     }
     bool Widget::is_visible() const
     {

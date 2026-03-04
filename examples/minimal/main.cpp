@@ -7,6 +7,9 @@
 #include <horizon/GroupButton.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/Menu.hpp>
+#include <horizon/MenuItem.hpp>
+#include <horizon/MenuSeparator.hpp>
 #include <horizon/Notebook.hpp>
 #include <horizon/ProgressBar.hpp>
 #include <horizon/RadioButton.hpp>
@@ -477,7 +480,46 @@ int main()
         textarea_container->add_child(std::move(textarea));
         notebook->add_tab(NotebookPage("Textarea", std::move(textarea_container)));
 
-        notebook->set_current_tab(9);
+        // --- New Tab for Menus demo ---
+        auto menu_demo_container = std::make_unique<Widget>();
+        menu_demo_container->set_margin(30);
+        menu_demo_container->set_spacing(20);
+        menu_demo_container->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
+
+        // Submenu (starts hidden)
+        auto sub_menu = std::make_unique<horizon::Menu>();
+        auto *sub_menu_ptr = sub_menu.get();
+        sub_menu->set_visible(false);
+        sub_menu->set_position_type(horizon::FREE);
+        sub_menu->add_item("Undo", "Cmd+Z");
+        sub_menu->add_item("Redo", "Shift+Cmd+Z");
+        sub_menu->add_separator();
+        sub_menu->add_item("Cut", "Cmd+X");
+        sub_menu->add_item("Copy", "Cmd+C");
+        sub_menu->add_item("Paste", "Cmd+V");
+
+        // Main Menu
+        auto main_menu = std::make_unique<horizon::Menu>();
+        main_menu->set_position_type(horizon::FREE);
+        main_menu->set_position(100, 100);
+        main_menu->add_item("New File", "Cmd+N");
+        main_menu->add_item("Open...", "Cmd+O");
+        main_menu->add_separator();
+
+        auto edit_item = std::make_unique<horizon::MenuItem>("Edit");
+        edit_item->set_submenu(sub_menu_ptr);
+        main_menu->add_item(std::move(edit_item));
+
+        main_menu->add_item("Save", "Cmd+S");
+        main_menu->add_separator();
+        main_menu->add_item("Quit", "Cmd+Q");
+
+        menu_demo_container->add_child(std::move(main_menu));
+        menu_demo_container->add_child(std::move(sub_menu));
+
+        notebook->add_tab(NotebookPage("Menus", std::move(menu_demo_container)));
+
+        notebook->set_current_tab(10);
 
         wnd->add_child(std::move(notebook));
 
