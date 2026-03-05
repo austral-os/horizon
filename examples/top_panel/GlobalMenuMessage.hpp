@@ -20,6 +20,7 @@ namespace horizon
                 {
                     auto menu = std::make_unique<Menu>();
                     menu->set_title(menu_json.value("title", "Menu"));
+                    menu->set_bold(menu_json.value("bold", false));
                     menu->set_position_type(FREE);
 
                     if (menu_json.contains("max_width"))

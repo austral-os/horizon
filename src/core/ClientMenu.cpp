@@ -70,6 +70,7 @@ namespace horizon
         nlohmann::json j;
         j["id"] = menu->title().empty() ? "menu" : menu->title();
         j["title"] = menu->title();
+        j["bold"] = menu->bold();
 
         if (menu->max_width() > 0)
         {
