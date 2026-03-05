@@ -17,6 +17,8 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
     "src/*.cpp" 
     "src/*.c"
     "src/core/*.cpp"
+    "src/core/IconView.cpp"
+    "src/core/IconViewItem.cpp"
     "src/xdg-activation-v1-protocol.c"
     "include/horizon/*.hpp"
 )
@@ -131,6 +133,15 @@ add_executable(image_demo
 )
 
 target_link_libraries(image_demo
+    PRIVATE
+        horizon
+)
+
+add_executable(iconview_demo
+    examples/iconview_demo.cpp
+)
+
+target_link_libraries(iconview_demo
     PRIVATE
         horizon
 )

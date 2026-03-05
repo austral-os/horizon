@@ -1,5 +1,6 @@
 #include "horizon/Icon.hpp"
 #include "horizon/IconThemeLookup.hpp"
+#include <iostream>
 
 namespace horizon
 {
@@ -56,6 +57,11 @@ namespace horizon
         }
 
         m_resolved_path = IconThemeLookup::find_icon(m_icon_name, m_icon_size);
+        if (m_resolved_path.empty())
+        {
+            std::cout << "[Icon] Failed to resolve icon: \"" << m_icon_name << "\" at size "
+                      << m_icon_size << std::endl;
+        }
     }
 
     void Icon::draw(GraphicsContext &ctx)
