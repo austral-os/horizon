@@ -10,7 +10,7 @@ namespace horizon
         m_background_color = Color(1.0f, 1.0f, 1.0f, 1.0f); // Default white background
 
         auto scroll_area = std::make_unique<ScrollArea>();
-        scroll_area->set_position_type(FILL);
+        scroll_area->set_position_type(FREE);
         m_scroll_area = scroll_area.get();
 
         auto content_pane = std::make_unique<Widget>();
@@ -78,6 +78,7 @@ namespace horizon
 
         if (m_scroll_area)
         {
+            m_scroll_area->set_position(m_x, m_y);
             m_scroll_area->set_size(m_width, m_height);
         }
 
@@ -100,13 +101,16 @@ namespace horizon
         if (start_x < effective_margin)
             start_x = effective_margin;
 
+        int scroll_x = m_scroll_area ? m_scroll_area->scroll_x() : 0;
+        int scroll_y = m_scroll_area ? m_scroll_area->scroll_y() : 0;
         int current_col = 0;
         int current_row = 0;
 
         for (auto &child : m_content_pane->children())
         {
-            int x = start_x + current_col * (m_item_width + m_grid_spacing);
-            int y = effective_margin + current_row * (m_item_height + m_grid_spacing);
+            int x = m_x + start_x + current_col * (m_item_width + m_grid_spacing) - scroll_x;
+            int y =
+                m_y + effective_margin + current_row * (m_item_height + m_grid_spacing) - scroll_y;
 
             child->set_position(x, y);
             child->set_size(m_item_width, m_item_height);

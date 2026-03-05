@@ -207,10 +207,16 @@ namespace horizon
             return nullptr;
 
         // Check scrollbars first
-        if (m_show_v_scroll && x >= m_v_track_x)
+        if (m_show_v_scroll && x >= m_v_track_x && x < m_v_track_x + m_v_track_w &&
+            y >= m_v_track_y && y < m_v_track_y + m_v_track_h)
+        {
             return this;
-        if (m_show_h_scroll && y >= m_h_track_y)
+        }
+        if (m_show_h_scroll && y >= m_h_track_y && y < m_h_track_y + m_h_track_h &&
+            x >= m_h_track_x && x < m_h_track_x + m_h_track_w)
+        {
             return this;
+        }
 
         // Check child with offset
         if (!m_children.empty())
@@ -236,13 +242,15 @@ namespace horizon
 
     void ScrollArea::handle_mouse_press(MouseButtonEventContext &ev)
     {
-        if (m_show_v_scroll && ev.x >= m_v_track_x)
+        if (m_show_v_scroll && ev.x >= m_v_track_x && ev.x < m_v_track_x + m_v_track_w &&
+            ev.y >= m_v_track_y && ev.y < m_v_track_y + m_v_track_h)
         {
             m_dragging_v = true;
             m_drag_start_pos = ev.y;
             m_drag_start_scroll = m_scroll_y;
         }
-        else if (m_show_h_scroll && ev.y >= m_h_track_y)
+        else if (m_show_h_scroll && ev.y >= m_h_track_y && ev.y < m_h_track_y + m_h_track_h &&
+                 ev.x >= m_h_track_x && ev.x < m_h_track_x + m_h_track_w)
         {
             m_dragging_h = true;
             m_drag_start_pos = ev.x;
