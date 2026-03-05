@@ -53,8 +53,6 @@ int main(int argc, char *argv[])
         auto menubar = std::make_unique<MenuBar>();
         menubar->set_spacing(2);
 
-        menubar->set_spacing(2);
-
         // Keep a raw pointer to menubar to update it from the timer
         MenuBar *menubar_ptr = menubar.get();
 
@@ -88,10 +86,6 @@ int main(int argc, char *argv[])
             return menu;
         };
 
-        // --- START TEST MENUS ---
-        // Removed to use dynamic system menu insertion
-        // --- END TEST MENUS ---
-
         // State for managing global menu locking (preventing blink on focus loss)
         bool menu_daemon_visible = false;
         bool has_cached_menu_request = false;
@@ -114,6 +108,9 @@ int main(int argc, char *argv[])
             }
             menubar_ptr->invalidate();
         };
+
+        // Initialize with system menu
+        apply_global_menu_fn(nlohmann::json::object());
 
         // Wire up click callback: send menu to daemon for display
         menubar->set_on_menu_click(
@@ -184,13 +181,13 @@ int main(int argc, char *argv[])
                                           << request_pid << " in 100ms." << std::endl;
                                 clear_menu_timer_id = app->add_timer(
                                     100,
-                                    [menubar_ptr, request_pid, &current_owner_pid,
+                                    [apply_global_menu_fn, &current_owner_pid,
                                      &clear_menu_timer_id]()
                                     {
-                                        std::cout << "[TOP PANEL] [TIMER] Clearing global menu "
-                                                     "(Current owner PID "
+                                        std::cout << "[TOP PANEL] [TIMER] Resetting global menu "
+                                                     "to default (Current owner PID "
                                                   << current_owner_pid << ")." << std::endl;
-                                        menubar_ptr->clear_menus();
+                                        apply_global_menu_fn(nlohmann::json::object());
                                         current_owner_pid = -1;
                                         clear_menu_timer_id = 0;
                                     });
