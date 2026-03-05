@@ -1,5 +1,7 @@
 #pragma once
 #include "AppInfo.hpp"
+#include <chrono>
+#include <condition_variable>
 #include <map>
 #include <mutex>
 #include <string>
@@ -14,6 +16,7 @@ namespace app_manager
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             m_apps[info.id] = info;
+            m_cv.notify_all();
         }
 
         void remove_app(const std::string &app_id)
@@ -33,8 +36,16 @@ namespace app_manager
             return apps;
         }
 
+        bool wait_for_app(const std::string &app_id, int timeout_ms)
+        {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            return m_cv.wait_for(lock, std::chrono::milliseconds(timeout_ms),
+                                 [this, app_id] { return m_apps.find(app_id) != m_apps.end(); });
+        }
+
     private:
         std::map<std::string, AppInfo> m_apps;
         mutable std::mutex m_mutex;
+        std::condition_variable m_cv;
     };
 } // namespace app_manager

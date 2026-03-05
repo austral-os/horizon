@@ -14,6 +14,9 @@ int main(int argc, char *argv[])
     {
         // Create a layer application in the BACKGROUND layer (0)
         auto app = std::make_unique<LayerApplication>("horizon_wall", 0);
+        app->set_app_id("horizon_wall");
+        app->set_name("Horizon Wallpaper");
+        app->set_icon_name("preferences-desktop-wallpaper");
 
         // Anchor to ALL sides to cover the entire screen
         app->set_anchor(ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |

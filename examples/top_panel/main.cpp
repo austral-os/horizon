@@ -23,6 +23,9 @@ int main(int argc, char *argv[])
         // Create an overlay application
         auto app = std::make_unique<LayerApplication>("top_panel",
                                                       3); // 3 = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
+        app->set_app_id("top_panel");
+        app->set_name("Top Panel");
+        app->set_show_in_dock(false);
 
         // Anchor to TOP, LEFT, RIGHT to occupy the top of the screen
         app->set_anchor(1 | 4 | 8); // TOP | LEFT | RIGHT

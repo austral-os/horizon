@@ -118,6 +118,7 @@ target_link_libraries(horizon_wall
 
 add_executable(app_manager
     examples/app_manager/main.cpp
+    examples/app_manager/AppManager.cpp
 )
 
 target_link_libraries(app_manager

@@ -22,6 +22,10 @@ int main(int argc, char *argv[])
         auto app =
             std::make_unique<LayerApplication>("horizon_menu_manager_d", 3); // 3 = OVERLAY layer
 
+        app->set_app_id("horizon_menu_manager_d");
+        app->set_name("Horizon Menu Manager");
+        app->set_show_in_dock(false);
+
         // Fullscreen anchor
         app->set_anchor(1 | 2 | 4 | 8); // TOP | BOTTOM | LEFT | RIGHT
 

@@ -122,6 +122,9 @@ int main(int argc, char *argv[])
         // 1. Create the overlay application
         // Anchor to the bottom, left, and right edge to allow size 0
         auto app = std::make_unique<LayerApplication>("dock", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
+        app->set_app_id("dock");
+        app->set_name("Dock");
+
         app->set_anchor(2 | 4 | 8); // BOTTOM | LEFT | RIGHT
         app->set_size(0, 100);
         app->set_exclusive_zone(100);
