@@ -81,6 +81,13 @@ int main(int argc, char **argv)
 
     app.set_root(std::move(window));
 
+    auto app_menu = new horizon::Menu();
+    app_menu->set_title("Polygonal Demo");
+    app_menu->set_bold(true);
+    app_menu->add_item("Preferences", "Ctrl+,");
+    app_menu->add_separator();
+    app_menu->add_item("Quit", "Ctrl+Q");
+
     auto polygon_menu = new horizon::Menu();
     polygon_menu->set_title("Polygon");
     polygon_menu->add_item("Add Triangle", "Ctrl+T");
@@ -93,7 +100,7 @@ int main(int argc, char **argv)
     view_menu->add_item("Zoom In", "Ctrl++");
     view_menu->add_item("Zoom Out", "Ctrl+-");
 
-    app.set_global_menu({polygon_menu, view_menu});
+    app.set_global_menu({app_menu, polygon_menu, view_menu});
 
     app.run();
     return 0;
