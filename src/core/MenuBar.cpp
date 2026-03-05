@@ -86,7 +86,9 @@ namespace horizon
         int current_x = m_start_draw_x;
         for (auto &child : m_children)
         {
-            int child_width = child->width() > 0 ? child->width() : 80;
+            // Use preferred width (content based) + 20px padding
+            int child_width = child->preferred_width() + 20;
+
             child->set_position(current_x, m_start_draw_y);
             child->set_size(child_width, m_available_draw_height);
             current_x += child_width + m_spacing;

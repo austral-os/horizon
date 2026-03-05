@@ -122,6 +122,9 @@ namespace horizon
         void set_background_color(const Color &color);
         virtual void calculate_layout();
 
+        virtual int preferred_width() const;
+        virtual int preferred_height() const;
+
         int x() const;
         int y() const;
         int width() const;

@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     editMenu->add_item("Redo");
 
     auto helpMenu = std::make_unique<Menu>();
-    helpMenu->set_title("Help");
+    helpMenu->set_title("Window Management and Help"); // Long title for testing
     helpMenu->add_item("About");
 
     menubar->add_menu(std::move(fileMenu));

@@ -77,6 +77,16 @@ namespace horizon
         }
     }
 
+    int Widget::preferred_width() const
+    {
+        return m_fixed_size > 0 ? m_fixed_size : m_width;
+    }
+
+    int Widget::preferred_height() const
+    {
+        return m_fixed_size > 0 ? m_fixed_size : m_height;
+    }
+
     void Widget::render(GraphicsContext &ctx, int cx, int cy, int cw, int ch, bool force)
     {
         if (!m_visible)
@@ -250,6 +260,8 @@ namespace horizon
 
     WidgetDrawState Widget::get_draw_state(WidgetEvent event) const
     {
+        if (m_draw_state_map.find(event) == m_draw_state_map.end())
+            return WidgetDrawState::NORMAL;
         return m_draw_state_map.at(event);
     }
 

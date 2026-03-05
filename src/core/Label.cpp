@@ -1,12 +1,43 @@
+#include <cmath>
 #include <horizon/Application.hpp>
+#include <horizon/CairoGraphicsContext.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/ThemeManager.hpp>
 
 namespace horizon
 {
     Label::Label() : Widget() {}
 
     Label::Label(const std::string &text) : Widget(), m_text(text) {}
+
+    int Label::preferred_width() const
+    {
+        if (m_text.empty())
+            return 0;
+        if (!application() || !application()->theme_manager)
+            return 0;
+
+        auto theme_font = application()->theme_manager->get_font("window");
+        int size = (m_font_size > 0) ? m_font_size : theme_font.size;
+
+        unsigned char tmp_buf[4] = {0};
+        CairoGraphicContext measure_ctx(tmp_buf, 1, 1);
+
+        auto metrics = measure_ctx.getTextMetrics(m_text.c_str(), theme_font.family.c_str(), size,
+                                                  m_font_slant, m_font_weight);
+        return static_cast<int>(std::ceil(metrics.width));
+    }
+
+    int Label::preferred_height() const
+    {
+        if (!application() || !application()->theme_manager)
+            return 20;
+
+        auto theme_font = application()->theme_manager->get_font("window");
+        int size = (m_font_size > 0) ? m_font_size : theme_font.size;
+        return size + 4;
+    }
 
     void Label::draw(GraphicsContext &gc)
     {

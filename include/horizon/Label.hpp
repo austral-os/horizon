@@ -39,6 +39,9 @@ namespace horizon
 
         void draw(GraphicsContext &gc) override;
 
+        int preferred_width() const override;
+        int preferred_height() const override;
+
         void set_text(const std::string &text);
         const std::string &text() const;
 
