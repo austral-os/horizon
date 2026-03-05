@@ -18,7 +18,6 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
     "src/*.c"
     "src/core/*.cpp"
     "src/core/IconView.cpp"
-    "src/core/IconViewItem.cpp"
     "src/xdg-activation-v1-protocol.c"
     "include/horizon/*.hpp"
 )

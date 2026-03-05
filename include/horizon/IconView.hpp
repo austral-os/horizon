@@ -4,7 +4,6 @@
 #include <horizon/ScrollArea.hpp>
 #include <horizon/Widget.hpp>
 #include <memory>
-#include <string>
 #include <vector>
 
 namespace horizon

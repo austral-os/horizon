@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/IconView.hpp>
-#include <iostream>
 
 namespace horizon
 {
