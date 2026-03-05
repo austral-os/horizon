@@ -1,10 +1,11 @@
 #include "AppManager.hpp"
+#include <cerrno>
 #include <chrono>
 #include <cstring>
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
-#include <spawn.h>
+#include <sys/prctl.h>
 #include <sys/wait.h>
 #include <thread>
 
@@ -29,19 +30,26 @@ namespace app_manager
     {
         std::cout << "[APP MANAGER] Executing service: " << path << std::endl;
 
-        pid_t pid;
-        char *argv[] = {(char *)path.c_str(), nullptr};
+        pid_t pid = fork();
 
-        int status = posix_spawnp(&pid, path.c_str(), nullptr, nullptr, argv, environ);
+        if (pid == 0)
+        {
+            prctl(PR_SET_PDEATHSIG, SIGTERM);
+            char *argv[] = {(char *)path.c_str(), nullptr};
+            execvp(path.c_str(), argv);
 
-        if (status == 0)
+            std::cerr << "[APP MANAGER] Failed to exec " << path << ": " << strerror(errno)
+                      << std::endl;
+            exit(1);
+        }
+        else if (pid > 0)
         {
             std::cout << "[APP MANAGER] Successfully spawned " << path << " with PID " << pid
                       << std::endl;
         }
         else
         {
-            std::cerr << "[APP MANAGER] Failed to spawn " << path << ": " << strerror(status)
+            std::cerr << "[APP MANAGER] Failed to fork for " << path << ": " << strerror(errno)
                       << std::endl;
         }
     }
@@ -80,19 +88,26 @@ namespace app_manager
         std::cout << "[APP MANAGER] Executing application: " << app_name << " (Cmd: " << exec_cmd
                   << ")" << std::endl;
 
-        pid_t pid;
-        char *argv[] = {(char *)exec_cmd.c_str(), nullptr};
+        pid_t pid = fork();
 
-        int status = posix_spawnp(&pid, exec_cmd.c_str(), nullptr, nullptr, argv, environ);
+        if (pid == 0)
+        {
+            prctl(PR_SET_PDEATHSIG, SIGTERM);
+            char *argv[] = {(char *)exec_cmd.c_str(), nullptr};
+            execvp(exec_cmd.c_str(), argv);
 
-        if (status == 0)
+            std::cerr << "[APP MANAGER] Failed to exec " << app_name << ": " << strerror(errno)
+                      << std::endl;
+            exit(1);
+        }
+        else if (pid > 0)
         {
             std::cout << "[APP MANAGER] Successfully spawned " << app_name << " with PID " << pid
                       << std::endl;
         }
         else
         {
-            std::cerr << "[APP MANAGER] Failed to spawn " << app_name << ": " << strerror(status)
+            std::cerr << "[APP MANAGER] Failed to fork for " << app_name << ": " << strerror(errno)
                       << std::endl;
         }
     }
