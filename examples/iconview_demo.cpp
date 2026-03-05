@@ -64,7 +64,13 @@ public:
         m_icon_size = static_cast<int>(32 * m_zoom); // Slightly smaller icon
         m_icon_ptr->set_icon_name(icon_name);
         m_icon_ptr->set_icon_size(m_icon_size);
-        m_label_ptr->set_font_size(static_cast<int>(11 * m_zoom));
+        // Default font size handled by set_data caller or base theme
+        invalidate();
+    }
+
+    void set_font_size(int size)
+    {
+        m_label_ptr->set_font_size(size);
         invalidate();
     }
 
@@ -142,7 +148,7 @@ int main(int argc, char *argv[])
 
     auto icon_view = std::make_unique<IconView<FileData>>();
     auto icon_view_ptr = icon_view.get();
-    icon_view->set_zoom(1.0f);
+    icon_view->set_zoom(1.5f);
 
     // Factory for creating items
     icon_view->set_item_factory(
@@ -150,6 +156,9 @@ int main(int argc, char *argv[])
         {
             auto item = std::make_unique<FileItem>();
             item->set_data(data, zoom, selected);
+
+            int base_font_size = icon_view_ptr->get_theme_font_size();
+            item->set_font_size(static_cast<int>(base_font_size * zoom));
 
             // Handle selection
             item->when_mouse_press.connect(

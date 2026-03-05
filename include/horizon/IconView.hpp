@@ -27,6 +27,8 @@ namespace horizon
         void set_side_margin(int margin);
         int side_margin() const;
 
+        int get_theme_font_size(const std::string &role = "icon-view") const;
+
         void calculate_layout() override;
         void draw(GraphicsContext &gc) override;
 

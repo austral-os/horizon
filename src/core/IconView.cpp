@@ -72,6 +72,23 @@ namespace horizon
         return m_side_margin;
     }
 
+    int IconViewBase::get_theme_font_size(const std::string &role) const
+    {
+        if (!application() || !application()->theme_manager)
+            return 12;
+
+        auto fd = application()->theme_manager->get_font(role);
+        if (fd.size > 0)
+            return fd.size;
+
+        // Fallback to window role
+        fd = application()->theme_manager->get_font("window");
+        if (fd.size > 0)
+            return fd.size;
+
+        return 12; // Hard fallback
+    }
+
     void IconViewBase::calculate_layout()
     {
         Widget::calculate_layout();
