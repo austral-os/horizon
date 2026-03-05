@@ -2,6 +2,7 @@
 
 #include <cairo/cairo.h>
 #include <horizon/GraphicsContext.hpp>
+#include <map>
 
 namespace horizon
 {
@@ -58,8 +59,24 @@ namespace horizon
                                        bool vertical = true) override;
         void clipPolygon(const std::vector<PolygonPoint> &points) override;
 
+        void *getNativeContext() override
+        {
+            return cr;
+        }
+
+        std::unique_ptr<ImageDriver> createImageDriver(const std::string &path) override;
+
+        void drawPixels(const unsigned char *data, int img_w, int img_h, int x, int y, int w, int h,
+                        int channels = 4) override;
+        void drawSvg(const std::string &path, int x, int y, int w, int h) override;
+        void getSvgSize(const std::string &path, int &w, int &h) override;
+
     private:
         cairo_surface_t *cairo_s;
         cairo_t *cr;
+
+        // Simple SVG handle cache to avoid reparsing every frame
+        std::map<std::string, void *> m_svg_cache;
+        void *get_svg_handle(const std::string &path);
     };
 } // namespace horizon

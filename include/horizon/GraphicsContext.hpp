@@ -1,6 +1,7 @@
 #pragma once
 
 #include "horizon/Color.hpp"
+#include <memory>
 #include <string>
 #include <vector>
 namespace horizon
@@ -107,6 +108,32 @@ namespace horizon
         virtual void fillLinearGradientPolygon(const std::vector<PolygonPoint> &points, Color c1,
                                                Color c2, bool vertical = true) {};
         virtual void clipPolygon(const std::vector<PolygonPoint> &points) {};
+
+        /**
+         * @brief Get the native drawing context (e.g. cairo_t*).
+         */
+        virtual void *getNativeContext() = 0;
+
+        /**
+         * @brief Factory method to create an image driver appropriate for this context.
+         */
+        virtual std::unique_ptr<class ImageDriver> createImageDriver(const std::string &path) = 0;
+
+        /**
+         * @brief Draws raw pixels to the context.
+         */
+        virtual void drawPixels(const unsigned char *data, int img_w, int img_h, int x, int y,
+                                int w, int h, int channels = 4) = 0;
+
+        /**
+         * @brief Draws an SVG file to the context.
+         */
+        virtual void drawSvg(const std::string &path, int x, int y, int w, int h) = 0;
+
+        /**
+         * @brief Gets the intrinsic size of an SVG file.
+         */
+        virtual void getSvgSize(const std::string &path, int &w, int &h) = 0;
     };
 
 } // namespace horizon

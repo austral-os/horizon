@@ -15,6 +15,7 @@ namespace horizon
 {
 
     class Widget;
+    class GraphicsContext;
     class Menu;
     class ClientMenu;
     class IpcClient;
@@ -162,6 +163,11 @@ namespace horizon
          * @return True if the window is in fullscreen mode.
          */
         bool is_fullscreen() const;
+
+        /**
+         * @brief Returns the graphics context for this application.
+         */
+        virtual GraphicsContext &get_graphics_context() const;
 
         /**
          * @brief Implementation of the WaylandEventListener pointer event callback.
@@ -375,5 +381,7 @@ namespace horizon
         std::unique_ptr<Widget> m_root; /**< The root of the UI widget hierarchy. */
 
         std::unique_ptr<IpcClient> m_ipc_subscriber;
+
+        mutable std::unique_ptr<GraphicsContext> m_gc;
     };
 } // namespace horizon

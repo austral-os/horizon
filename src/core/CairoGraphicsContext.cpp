@@ -1,6 +1,10 @@
+#include <algorithm>
 #include <cmath>
 #include <horizon/CairoGraphicsContext.hpp>
+#include <horizon/StbImageDriver.hpp>
+#include <horizon/SvgImageDriver.hpp>
 #include <librsvg/rsvg.h>
+#include <memory>
 #include <string>
 
 namespace horizon
@@ -15,6 +19,10 @@ namespace horizon
 
     CairoGraphicContext::~CairoGraphicContext()
     {
+        for (auto const &[path, handle] : m_svg_cache)
+        {
+            g_object_unref(handle);
+        }
         if (cr)
             cairo_destroy(cr);
         if (cairo_s)
@@ -548,6 +556,117 @@ namespace horizon
     {
         rounded_polygon_path(cr, points);
         cairo_clip(cr);
+    }
+
+    std::unique_ptr<ImageDriver> CairoGraphicContext::createImageDriver(const std::string &path)
+    {
+        auto dot_pos = path.rfind('.');
+        std::string ext = "";
+        if (dot_pos != std::string::npos)
+        {
+            ext = path.substr(dot_pos + 1);
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+        }
+
+        std::unique_ptr<ImageDriver> driver;
+        if (ext == "svg")
+        {
+            driver = std::make_unique<SvgImageDriver>();
+        }
+        else
+        {
+            driver = std::make_unique<StbImageDriver>();
+        }
+
+        if (driver && driver->load(path))
+        {
+            return driver;
+        }
+
+        return nullptr;
+    }
+
+    void CairoGraphicContext::drawPixels(const unsigned char *data, int img_w, int img_h, int x,
+                                         int y, int w, int h, int channels)
+    {
+        if (!data || img_w <= 0 || img_h <= 0)
+            return;
+
+        // Note: Cairo prefers pre-multiplied Alpha, but for STB we'll assume ARGB32 for now
+        // or just draw it directly if possible. STB_load(..., 4) gives RGBA.
+        // We'll create a temporary surface for the draw.
+        // A better way would be for the ImageDriver to hold the surface,
+        // but we want the DRIVER to be Cairo-free.
+        // Caching the surface in the context based on the data pointer is one option.
+
+        cairo_surface_t *pixel_s = cairo_image_surface_create_for_data(
+            const_cast<unsigned char *>(data), CAIRO_FORMAT_ARGB32, img_w, img_h, img_w * 4);
+
+        if (cairo_surface_status(pixel_s) == CAIRO_STATUS_SUCCESS)
+        {
+            cairo_save(cr);
+            double sx = static_cast<double>(w) / img_w;
+            double sy = static_cast<double>(h) / img_h;
+
+            cairo_translate(cr, x, y);
+            cairo_scale(cr, sx, sy);
+            cairo_set_source_surface(cr, pixel_s, 0, 0);
+            cairo_paint(cr);
+            cairo_restore(cr);
+        }
+
+        cairo_surface_destroy(pixel_s);
+    }
+
+    void *CairoGraphicContext::get_svg_handle(const std::string &path)
+    {
+        if (m_svg_cache.count(path))
+            return m_svg_cache[path];
+
+        GError *error = nullptr;
+        GFile *gfile = g_file_new_for_path(path.c_str());
+        RsvgHandle *handle =
+            rsvg_handle_new_from_gfile_sync(gfile, RSVG_HANDLE_FLAGS_NONE, nullptr, &error);
+        g_object_unref(gfile);
+
+        if (handle)
+        {
+            m_svg_cache[path] = handle;
+        }
+        else if (error)
+        {
+            g_error_free(error);
+        }
+
+        return handle;
+    }
+
+    void CairoGraphicContext::drawSvg(const std::string &path, int x, int y, int w, int h)
+    {
+        RsvgHandle *handle = static_cast<RsvgHandle *>(get_svg_handle(path));
+        if (!handle)
+            return;
+
+        RsvgRectangle viewport = {static_cast<double>(x), static_cast<double>(y),
+                                  static_cast<double>(w), static_cast<double>(h)};
+
+        rsvg_handle_render_document(handle, cr, &viewport, nullptr);
+    }
+
+    void CairoGraphicContext::getSvgSize(const std::string &path, int &w, int &h)
+    {
+        RsvgHandle *handle = static_cast<RsvgHandle *>(get_svg_handle(path));
+        if (handle)
+        {
+            double width, height;
+            rsvg_handle_get_intrinsic_size_in_pixels(handle, &width, &height);
+            w = static_cast<int>(width);
+            h = static_cast<int>(height);
+        }
+        else
+        {
+            w = h = 0;
+        }
     }
 
 } // namespace horizon

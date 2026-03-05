@@ -1214,4 +1214,19 @@ namespace horizon
         }
     }
 
+    GraphicsContext &Application::get_graphics_context() const
+    {
+        // CairoGraphicContext is stack-allocated in the render loop.
+        // For general usage (like driver creation), we can provide a temporary one
+        // or a dedicated one. Since drivers just need it for the factory,
+        // we'll return a static/managed one if possible, but for now
+        // let's create a facade or a temporary one.
+        if (!m_gc)
+        {
+            m_gc = std::make_unique<CairoGraphicContext>(m_surface->data(), m_surface->width(),
+                                                         m_surface->height());
+        }
+        return *m_gc;
+    }
+
 } // namespace horizon

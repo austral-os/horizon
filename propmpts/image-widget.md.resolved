@@ -1,0 +1,68 @@
+# Implement Image Widget
+
+The goal is to provide a versatile [Image](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/CairoGraphicsContext.cpp#255-325) widget that supports various formats (JPG, PNG, SVG, BMP) and different display modes (Normal, Stretch, Fit, Repeat).
+
+## Alternativas a gdk-pixbuf
+
+Dado que preferís evitar `gdk-pixbuf`, propongo las siguientes alternativas:
+
+1.  **stb_image.h** (Recomendada):
+    *   **Pros**: Es una librería "header-only" (un solo archivo [.h](file:///home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h)). Es extremadamente liviana, no requiere instalación de paquetes del sistema y se integra copiando el archivo al proyecto. Soporta JPG, PNG, BMP, etc.
+    *   **Cons**: La performance puede ser ligeramente inferior a librerías especializadas como `libjpeg-turbo`, pero para una UI es imperceptible.
+2.  **Librerías del Sistema (libjpeg, libpng, libbmp)**:
+    *   **Pros**: Muy estables y eficientes.
+    *   **Cons**: Requieren instalar múltiples dependencias (`-dev`) y escribir mucho código "boilerplate" para cada formato.
+3.  **Cairo (Solo PNG)**:
+    *   **Cons**: Cairo solo soporta PNG de forma nativa. Para JPG o BMP tendríamos que implementar cargadores manuales de todas formas.
+
+> [!TIP]
+> Mi sugerencia es usar **stb_image.h**. Es la opción que menos "ensucia" el sistema y la más fácil de mantener.
+
+## Estrategia de Abstracción: ImageDriver
+
+Para permitir flexibilidad futura, implementaremos un sistema basado en drivers:
+
+1.  **ImageDriver (Abstracto)**: Define la interfaz base para cargar y dibujar imágenes.
+2.  **StbImageDriver**: Implementación usando `stb_image.h` para formatos raster (JPG, PNG, BMP, etc.).
+3.  **SvgImageDriver**: Implementación usando `librsvg` para vectores (SVG).
+
+## Modos de Visualización
+El widget [Image](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/CairoGraphicsContext.cpp#255-325) soportará los siguientes modos:
+- `NORMAL`: La imagen se dibuja en su tamaño original, centrada si el espacio es mayor.
+- `STRETCH`: La imagen se estira para cubrir exactamente el área del widget (no mantiene aspecto).
+- `FIT`: La imagen se escala para ocupar el máximo espacio posible manteniendo su relación de aspecto.
+- `REPEAT`: La imagen se dibuja repetidamente en forma de patrón (mosaico) para cubrir todo el espacio.
+
+## Cambios Propuestos
+
+### [Core]
+
+#### [NEW] [ImageDriver.hpp](file:///home/horacio/Desarrollo/austral-os/horizon/include/horizon/ImageDriver.hpp)
+- Define la interfaz `ImageDriver` con métodos `load`, [draw(ctx, x, y, w, h)](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/Icon.cpp#61-74), `width` y `height`.
+
+#### [NEW] [StbImageDriver.hpp](file:///home/horacio/Desarrollo/austral-os/horizon/include/horizon/StbImageDriver.hpp) / [.cpp](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/StbImageDriver.cpp)
+- Implementación de la carga usando `stb_image.h`.
+- Conversión de píxeles a superficie de Cairo para dibujado eficiente.
+
+#### [NEW] [SvgImageDriver.hpp](file:///home/horacio/Desarrollo/austral-os/horizon/include/horizon/SvgImageDriver.hpp) / [.cpp](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/SvgImageDriver.cpp)
+- Implementación usando la lógica actual de `librsvg` movida a este driver.
+
+#### [NEW] [Image.hpp](file:///home/horacio/Desarrollo/austral-os/horizon/include/horizon/Image.hpp) / [.cpp](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/Image.cpp)
+- El widget principal que utiliza un `ImageDriver`.
+- Contiene el enum `ImageMode`.
+- Gestiona la lógica de centrado, escalado y repetición en su método [draw](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/Icon.cpp#61-74).
+
+#### [NEW] [stb_image.h](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/external/stb_image.h)
+- Se añadirá el archivo header de la librería STB.
+
+#### [MODIFY] [CMakeLists.txt](file:///home/horacio/Desarrollo/austral-os/horizon/CMakeLists.txt)
+- Añadir los nuevos archivos [.cpp](file:///home/horacio/Desarrollo/austral-os/horizon/src/core/Menu.cpp) a las fuentes del proyecto.
+
+## Plan de Verificación
+
+### Pruebas Automatizadas
+- Crear `examples/image_test.cpp` que cargue imágenes de diferentes formatos y demuestre todos los modos.
+
+### Verificación Manual
+- Comprobar que al redimensionar la ventana (si aplica) o cambiar el tamaño del widget, los modos `FIT` y `STRETCH` funcionen correctamente.
+- Comprobar que `REPEAT` cubra toda el área sin dejar huecos.
