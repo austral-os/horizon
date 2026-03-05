@@ -112,7 +112,7 @@ namespace app_manager
         }
     }
 
-    void AppManager::init()
+    void AppManager::init(bool with_compositor)
     {
         std::cout << "[APP MANAGER] Initializing core services..." << std::endl;
 
@@ -123,13 +123,23 @@ namespace app_manager
             int timeout_ms;
         };
 
-        std::vector<ServiceConfig> services = {
-            {"horizon_wall", "/home/horacio/Desarrollo/austral-os/horizon/build/horizon_wall",
-             5000},
+        std::vector<ServiceConfig> services;
+
+        if (with_compositor)
+        {
+            services.push_back({"labwc", "labwc", 5000});
+        }
+
+        services.push_back({"horizon_wall",
+                            "/home/horacio/Desarrollo/austral-os/horizon/build/horizon_wall",
+                            5000});
+        services.push_back(
             {"horizon_menu_manager_d",
-             "/home/horacio/Desarrollo/austral-os/horizon/build/horizon_menu_manager_d", 5000},
-            {"top_panel", "/home/horacio/Desarrollo/austral-os/horizon/build/top_panel", 5000},
-            {"dock", "/home/horacio/Desarrollo/austral-os/horizon/build/dock", 5000}};
+             "/home/horacio/Desarrollo/austral-os/horizon/build/horizon_menu_manager_d", 5000});
+        services.push_back(
+            {"top_panel", "/home/horacio/Desarrollo/austral-os/horizon/build/top_panel", 5000});
+        services.push_back(
+            {"dock", "/home/horacio/Desarrollo/austral-os/horizon/build/dock", 5000});
 
         for (const auto &svc : services)
         {

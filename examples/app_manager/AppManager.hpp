@@ -12,7 +12,7 @@ namespace app_manager
         AppManager();
         ~AppManager();
 
-        void init();
+        void init(bool with_compositor = false);
         void start();
         void stop();
         void run_horizon_service(const std::string &path);

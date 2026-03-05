@@ -71,6 +71,16 @@ int main(int argc, char *argv[])
             std::signal(sig, handle_signal);
         }
 
+        bool with_compositor = false;
+        for (int i = 1; i < argc; ++i)
+        {
+            if (std::string(argv[i]) == "--with-compositor")
+            {
+                with_compositor = true;
+                break;
+            }
+        }
+
         AppManager manager;
 
         std::cout << "Starting Horizon App Manager..." << std::endl;
@@ -81,7 +91,7 @@ int main(int argc, char *argv[])
         // Give the IPC server a moment to start up before initializing services
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-        manager.init();
+        manager.init(with_compositor);
 
         auto start_time = std::chrono::steady_clock::now();
         while (true)
