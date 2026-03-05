@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Horizon
+Comment=Horizon Desktop Enviroment
+Exec=labwc
+Icon=labwc
+Type=Application
+DesktopNames=labwc;wlroots
