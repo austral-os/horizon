@@ -29,9 +29,7 @@ public:
 
     void calculate_layout() override
     {
-        Widget::calculate_layout();
-
-        // Let the widget natural width shape around its children
+        // 1. Calculate the required content width based on children
         int content_width = 0;
         for (const auto &child : children())
         {
@@ -47,8 +45,11 @@ public:
 
         content_width += 40; // Simulated Left + Right padding
 
+        // 2. Update size BEFORE base calculate_layout so parents and centering use new dimensions
         set_size(content_width, height());
-        set_fixed_size(content_width); // Prevent horizontal stretching
+        set_fixed_size(content_width);
+
+        Widget::calculate_layout();
     }
 
     void draw(GraphicsContext &gc) override
@@ -244,7 +245,8 @@ int main(int argc, char *argv[])
                                     }
                                 }
                                 shelf_ptr->calculate_layout();
-                                shelf_ptr->invalidate();
+                                app_ptr
+                                    ->invalidate(); // Trigger full repaint for transparent surface
                             });
                     }
                 }
