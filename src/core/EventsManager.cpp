@@ -24,9 +24,6 @@ namespace horizon
         auto current_handlers = m_handlers;
         for (auto &handler : current_handlers)
         {
-            if (context.stop_propagation)
-                break;
-
             if (handler.callback)
             {
                 handler.callback(context);

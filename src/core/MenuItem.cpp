@@ -9,7 +9,7 @@
 namespace horizon
 {
 
-    MenuItem::MenuItem() : Widget()
+    MenuItem::MenuItem() : Widget(), m_id("")
     {
         auto content = std::make_unique<Label>();
         m_content = content.get();

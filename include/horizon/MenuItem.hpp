@@ -29,6 +29,15 @@ namespace horizon
 
         void set_icon(const std::string &icon_path);
 
+        void set_id(const std::string &id)
+        {
+            m_id = id;
+        }
+        const std::string &id() const
+        {
+            return m_id;
+        }
+
         void set_has_submenu(bool has_submenu);
         bool has_submenu() const
         {
@@ -47,7 +56,7 @@ namespace horizon
         void set_submenu(Menu *submenu);
 
         // Returns the minimum width needed to display this item without truncation
-        int preferred_width() const;
+        int preferred_width() const override;
 
         bool has_icon() const
         {
@@ -68,6 +77,7 @@ namespace horizon
         bool m_has_submenu = false;
         bool m_selected = false;
         bool m_reserve_icon_space = false;
+        std::string m_id;
 
         void calculate_layout() override;
     };

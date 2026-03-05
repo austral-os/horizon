@@ -1,8 +1,8 @@
 #include <horizon/IpcClient.hpp>
 #include <horizon/IpcServer.hpp>
 #include <horizon/Label.hpp>
-#include <horizon/MessageManager.hpp>
 #include <horizon/LayerApplication.hpp>
+#include <horizon/MessageManager.hpp>
 #include <horizon/RequestRouter.hpp>
 #include <horizon/Widget.hpp>
 #include <iostream>
@@ -93,7 +93,8 @@ int main(int argc, char *argv[])
         root_ptr->add_on_mouse_press(
             [&](int btn)
             {
-                std::cout << "Click on background, hiding menu manager." << std::endl;
+                std::cout << "Click on background at unknown coordinates (button " << btn
+                          << "), hiding menu manager." << std::endl;
                 for (auto &child : root_ptr->children())
                 {
                     child->set_visible(false);

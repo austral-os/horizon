@@ -205,6 +205,15 @@ namespace horizon
          */
         void unregister_widget(Widget *widget);
 
+        /**
+         * @brief Sends a signal to another application via the IPC mechanism.
+         * @param target_pid The PID of the target application.
+         * @param signal The signal name (e.g., "maximize", "close").
+         * @param token Optional token for the signal.
+         */
+        void send_remote_signal(int target_pid, const std::string &signal,
+                                const std::string &token = "");
+
         // --- Application Metadata ---
         void set_app_id(const std::string &id)
         {

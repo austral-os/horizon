@@ -1097,6 +1097,39 @@ namespace horizon
         notify_app_manager("window_state_changed");
     }
 
+    void Application::send_remote_signal(int target_pid, const std::string &signal,
+                                         const std::string &token)
+    {
+        std::thread(
+            [target_pid, signal, token]()
+            {
+                try
+                {
+                    nlohmann::json msg;
+                    msg["type"] = "send_signal";
+                    msg["target_pid"] = target_pid;
+                    msg["signal"] = signal;
+                    if (!token.empty())
+                    {
+                        msg["token"] = token;
+                    }
+
+                    IpcClient client("/tmp/horizon_apps.sock");
+                    // Simple retry logic
+                    for (int i = 0; i < 3; ++i)
+                    {
+                        if (client.send(msg.dump()))
+                            break;
+                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    }
+                }
+                catch (...)
+                {
+                }
+            })
+            .detach();
+    }
+
     void Application::dispatch_events() {}
 
     size_t Application::add_on_start(std::function<void()> handler)

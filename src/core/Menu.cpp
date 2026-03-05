@@ -2,6 +2,7 @@
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Menu.hpp>
+#include <iostream>
 
 namespace horizon
 {

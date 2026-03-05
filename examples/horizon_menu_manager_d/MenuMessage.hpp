@@ -1,7 +1,9 @@
 #pragma once
+#include <horizon/IpcClient.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/MenuItem.hpp>
 #include <horizon/Message.hpp>
+#include <iostream>
 #include <memory>
 #include <nlohmann/json.hpp>
 
@@ -78,6 +80,36 @@ namespace horizon
                     if (!icon.empty())
                     {
                         item->set_icon(icon);
+                    }
+
+                    if (!item_id.empty())
+                    {
+                        item->set_id(item_id);
+                        std::cout << "[MENU MESSAGE] Adding click handler for item: " << item_id
+                                  << std::endl;
+                        item->add_on_click(
+                            [item_id]()
+                            {
+                                std::cout << "[MENU MANAGER] MenuItem clicked! ID: " << item_id
+                                          << ". Reporting to /tmp/horizon_global_menu.sock"
+                                          << std::endl;
+                                try
+                                {
+                                    IpcClient client("/tmp/horizon_global_menu.sock");
+                                    nlohmann::json msg;
+                                    msg["type"] = "menu_item_clicked";
+                                    msg["id"] = item_id;
+                                    bool ok = client.send(msg.dump());
+                                    std::cout << "[MENU MANAGER] Report sent: "
+                                              << (ok ? "SUCCESS" : "FAILED") << std::endl;
+                                }
+                                catch (const std::exception &e)
+                                {
+                                    std::cerr
+                                        << "[MENU MANAGER] ERROR reporting click: " << e.what()
+                                        << std::endl;
+                                }
+                            });
                     }
 
                     if (item_json.contains("submenu") && item_json["submenu"].is_object())

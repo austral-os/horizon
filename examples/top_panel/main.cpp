@@ -1,10 +1,10 @@
 #include "GlobalMenuMessage.hpp"
 #include <horizon/ClientMenu.hpp>
 #include <horizon/IpcServer.hpp>
+#include <horizon/LayerApplication.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/MenuBar.hpp>
 #include <horizon/MessageManager.hpp>
-#include <horizon/LayerApplication.hpp>
 #include <horizon/Panel.hpp>
 #include <horizon/RequestRouter.hpp>
 #include <horizon/Widget.hpp>
@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     {
         // Create an overlay application
         auto app = std::make_unique<LayerApplication>("top_panel",
-                                                        3); // 3 = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
+                                                      3); // 3 = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
 
         // Anchor to TOP, LEFT, RIGHT to occupy the top of the screen
         app->set_anchor(1 | 4 | 8); // TOP | LEFT | RIGHT
@@ -69,6 +69,8 @@ int main(int argc, char *argv[])
 
             menu->add_item("About This System");
             menu->add_separator();
+            auto *terminal = menu->add_item("Terminal");
+            terminal->set_id("run_terminal");
             menu->add_item("System Settings...");
             menu->add_item("App Store...");
             menu->add_separator();
@@ -81,7 +83,8 @@ int main(int argc, char *argv[])
             menu->add_item("Shut Down...");
             menu->add_separator();
             menu->add_item("Lock Screen");
-            menu->add_item("Log Out...");
+            auto *logout = menu->add_item("Log Out...");
+            logout->set_id("run_logout");
 
             return menu;
         };
@@ -200,6 +203,32 @@ int main(int argc, char *argv[])
                             }
                         }
                     });
+
+                nlohmann::json response;
+                response["status"] = "ok";
+                response["request_id"] = request_id;
+                return response;
+            });
+
+        router.register_handler(
+            "menu_item_clicked",
+            [&app](const std::string &request_id, const nlohmann::json &request,
+                   MessageManager &mgr) -> nlohmann::json
+            {
+                std::string item_id = request.value("id", "");
+                std::cout << "[TOP PANEL] Menu item clicked: " << item_id << std::endl;
+
+                if (item_id == "run_terminal")
+                {
+                    std::cout << "[TOP PANEL] Requesting to run terminal..." << std::endl;
+                    app->send_remote_signal(-1, "run_app", "konsole");
+                }
+                else if (item_id == "run_logout")
+                {
+                    std::cout << "[TOP PANEL] Requesting to run custom_app (Logout)..."
+                              << std::endl;
+                    app->send_remote_signal(-1, "run_app", "custom_app");
+                }
 
                 nlohmann::json response;
                 response["status"] = "ok";

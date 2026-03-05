@@ -1,11 +1,17 @@
 #include "AppRegistry.hpp"
 #include <chrono>
 #include <csignal>
+#include <fstream>
 #include <horizon/IpcServer.hpp>
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include <spawn.h>
+#include <sstream>
+#include <sys/wait.h>
 #include <thread>
 #include <vector>
+
+extern char **environ;
 
 using namespace horizon;
 using namespace app_manager;
@@ -59,6 +65,59 @@ void handle_signal(int sig)
     {
         std::cout << "Shutting down peacefully..." << std::endl;
         exit(0);
+    }
+}
+
+std::string get_exec_from_desktop(const std::string &app_name)
+{
+    // Try both absolute and relative paths (relative to project root)
+    std::string path =
+        "/home/horacio/Desarrollo/austral-os/horizon/examples/config/apps/" + app_name + ".desktop";
+    std::ifstream file(path);
+    if (!file.is_open())
+    {
+        // Fallback or log error
+        return "";
+    }
+
+    std::string line;
+    while (std::getline(file, line))
+    {
+        if (line.substr(0, 5) == "Exec=")
+        {
+            return line.substr(5);
+        }
+    }
+    return "";
+}
+
+void run_app(const std::string &app_name)
+{
+    std::string exec_cmd = get_exec_from_desktop(app_name);
+    if (exec_cmd.empty())
+    {
+        std::cerr << "[APP MANAGER] Could not find executable for: " << app_name << std::endl;
+        return;
+    }
+
+    std::cout << "[APP MANAGER] Executing application: " << app_name << " (Cmd: " << exec_cmd << ")"
+              << std::endl;
+
+    pid_t pid;
+    char *argv[] = {(char *)exec_cmd.c_str(), nullptr};
+
+    // Note: posix_spawnp is safer than fork/exec and searches the PATH
+    int status = posix_spawnp(&pid, exec_cmd.c_str(), nullptr, nullptr, argv, environ);
+
+    if (status == 0)
+    {
+        std::cout << "[APP MANAGER] Successfully spawned " << app_name << " with PID " << pid
+                  << std::endl;
+    }
+    else
+    {
+        std::cerr << "[APP MANAGER] Failed to spawn " << app_name << ": " << strerror(status)
+                  << std::endl;
     }
 }
 
@@ -134,6 +193,13 @@ int main(int argc, char *argv[])
                         int target_pid = j.value("target_pid", -1);
                         std::string signal = j.value("signal", "unknown");
 
+                        if (signal == "run_app")
+                        {
+                            std::string app_name = j.value("token", "unknown");
+                            run_app(app_name);
+                            return "{\"status\": \"ok\", \"message\": \"Execution logged\"}";
+                        }
+
                         nlohmann::json signal_msg;
                         signal_msg["type"] = "app_signal";
                         signal_msg["target_pid"] = target_pid;
@@ -148,6 +214,12 @@ int main(int argc, char *argv[])
                         server.broadcast(signal_msg.dump());
 
                         return "{\"status\": \"sent\"}";
+                    }
+                    else if (type == "run_app")
+                    {
+                        std::string app_name = j.value("app_name", "unknown");
+                        run_app(app_name);
+                        return "{\"status\": \"ok\", \"message\": \"Execution logged\"}";
                     }
                     else
                     {

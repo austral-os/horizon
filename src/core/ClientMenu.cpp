@@ -101,7 +101,7 @@ namespace horizon
     nlohmann::json ClientMenu::menu_item_to_json(MenuItem *item)
     {
         nlohmann::json j;
-        j["id"] = item->text();
+        j["id"] = item->id().empty() ? item->text() : item->id();
         j["text"] = item->text();
 
         if (!item->shortcut().empty())
