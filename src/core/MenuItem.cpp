@@ -38,7 +38,7 @@ namespace horizon
 
         when_mouse_leave.connect([this](EventContext &) { set_selected(false); });
 
-        when_mouse_press.connect([](EventContext &ev) { ev.stop_propagation = true; });
+        when_mouse_press.connect([](MouseButtonEventContext &ev) { ev.stop_propagation = true; });
     }
 
     MenuItem::MenuItem(const std::string &text) : MenuItem()

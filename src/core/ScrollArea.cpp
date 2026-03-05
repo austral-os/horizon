@@ -22,10 +22,11 @@ namespace horizon
         m_v_thumb->set_has_border(true);
         m_v_thumb->set_border_size(1.0f);
 
-        when_mouse_press.connect([this](EventContext &ev) { handle_mouse_press(ev); });
-        when_mouse_drag.connect([this](EventContext &ev) { handle_mouse_drag(ev); });
-        when_mouse_release.connect([this](EventContext &ev) { handle_mouse_release(ev); });
-        when_mouse_move.connect([this](EventContext &ev) { handle_mouse_move(ev); });
+        when_mouse_press.connect([this](MouseButtonEventContext &ev) { handle_mouse_press(ev); });
+        when_mouse_drag.connect([this](MouseMoveEventContext &ev) { handle_mouse_drag(ev); });
+        when_mouse_release.connect([this](MouseButtonEventContext &ev)
+                                   { handle_mouse_release(ev); });
+        when_mouse_move.connect([this](MouseMoveEventContext &ev) { handle_mouse_move(ev); });
     }
 
     ScrollArea::~ScrollArea() = default;
@@ -60,7 +61,6 @@ namespace horizon
 
             EventContext ev;
             ev.sender = this;
-            ev.data = nullptr; // Could pass offsets if needed
             when_scroll.run(ev);
 
             invalidate();
@@ -234,27 +234,27 @@ namespace horizon
             m_v_thumb->set_application_recursive(app);
     }
 
-    void ScrollArea::handle_mouse_press(EventContext &ev)
+    void ScrollArea::handle_mouse_press(MouseButtonEventContext &ev)
     {
-        if (m_show_v_scroll && ev.eventX >= m_v_track_x)
+        if (m_show_v_scroll && ev.x >= m_v_track_x)
         {
             m_dragging_v = true;
-            m_drag_start_pos = ev.eventY;
+            m_drag_start_pos = ev.y;
             m_drag_start_scroll = m_scroll_y;
         }
-        else if (m_show_h_scroll && ev.eventY >= m_h_track_y)
+        else if (m_show_h_scroll && ev.y >= m_h_track_y)
         {
             m_dragging_h = true;
-            m_drag_start_pos = ev.eventX;
+            m_drag_start_pos = ev.x;
             m_drag_start_scroll = m_scroll_x;
         }
     }
 
-    void ScrollArea::handle_mouse_drag(EventContext &ev)
+    void ScrollArea::handle_mouse_drag(MouseMoveEventContext &ev)
     {
         if (m_dragging_v && !m_children.empty())
         {
-            int delta = ev.eventY - m_drag_start_pos;
+            int delta = ev.y - m_drag_start_pos;
             Widget *content = m_children[0].get();
             float track_usable =
                 m_v_track_h -
@@ -268,7 +268,7 @@ namespace horizon
         }
         else if (m_dragging_h && !m_children.empty())
         {
-            int delta = ev.eventX - m_drag_start_pos;
+            int delta = ev.x - m_drag_start_pos;
             Widget *content = m_children[0].get();
             float track_usable =
                 m_h_track_w -
@@ -282,12 +282,12 @@ namespace horizon
         }
     }
 
-    void ScrollArea::handle_mouse_release(EventContext &)
+    void ScrollArea::handle_mouse_release(MouseButtonEventContext &)
     {
         m_dragging_v = false;
         m_dragging_h = false;
     }
 
-    void ScrollArea::handle_mouse_move(EventContext &ev) {}
+    void ScrollArea::handle_mouse_move(MouseMoveEventContext &ev) {}
 
 } // namespace horizon

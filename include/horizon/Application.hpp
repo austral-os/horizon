@@ -63,9 +63,9 @@ namespace horizon
         std::unique_ptr<ThemeManager> theme_manager;
         SignalManager signal_manager;
 
-        EventsManager when_activated;
-        EventsManager when_deactivated;
-        EventsManager when_close;
+        EventsManager<AppEventContext> when_activated;
+        EventsManager<AppEventContext> when_deactivated;
+        EventsManager<AppEventContext> when_close;
 
         /**
          * @brief Sets the global menu for the application.

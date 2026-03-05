@@ -45,7 +45,7 @@ namespace horizon
         theme_manager = std::make_unique<ThemeManager>();
 
         theme_manager->when_change.connect(
-            [this](EventContext &p)
+            [this](ThemeEventContext &p)
             {
                 std::cout << "Theme changed" << std::endl;
                 this->invalidate();
@@ -158,9 +158,8 @@ namespace horizon
             }
         }
 
-        EventContext ev;
+        AppEventContext ev;
         ev.sender = this;
-        ev.type = active ? EventType::AppActivated : EventType::AppDeactivated;
         if (active)
         {
             when_activated.run(ev);
@@ -232,18 +231,12 @@ namespace horizon
 
         Widget *target = m_focused ? m_focused : m_root.get();
 
-        EventContext new_ev = {.sender = nullptr,
-                               .type = EventType::KeyPress,
-                               .button = event.key,
-                               .stop_propagation = false,
-                               .data = nullptr,
-                               .eventX = 0,
-                               .eventY = 0,
-                               .key = event.key,
-                               .modifiers = event.modifiers, // Use xkb-populated modifiers
-                               .keysym = event.keysym,
-                               .serial = event.serial,
-                               .text = event.text};
+        KeyEventContext new_ev;
+        new_ev.sender = nullptr;
+        new_ev.key = event.key;
+        new_ev.modifiers = event.modifiers;
+        new_ev.keysym = event.keysym;
+        new_ev.text = event.text;
 
         // We no longer update m_modifiers here; on_modifiers_event is the sole source of truth
         target->when_key_press.run(new_ev);
@@ -262,17 +255,12 @@ namespace horizon
 
         Widget *target = m_focused ? m_focused : m_root.get();
 
-        EventContext new_ev = {.sender = nullptr,
-                               .type = EventType::KeyRelease,
-                               .button = event.key,
-                               .stop_propagation = false,
-                               .data = nullptr,
-                               .eventX = 0,
-                               .eventY = 0,
-                               .key = event.key,
-                               .modifiers = event.modifiers,
-                               .keysym = event.keysym,
-                               .text = event.text};
+        KeyEventContext new_ev;
+        new_ev.sender = nullptr;
+        new_ev.key = event.key;
+        new_ev.modifiers = event.modifiers;
+        new_ev.keysym = event.keysym;
+        new_ev.text = event.text;
         target->when_key_release.run(new_ev);
     }
 
@@ -320,17 +308,9 @@ namespace horizon
                 Widget *temp = m_hovered;
                 while (temp)
                 {
-                    EventContext new_ev = {.sender = temp,
-                                           .type = EventType::MouseLeave,
-                                           .button = event.button,
-                                           .stop_propagation = false,
-                                           .data = nullptr,
-                                           .eventX = m_pointer_x,
-                                           .eventY = m_pointer_y,
-                                           .key = 0,
-                                           .modifiers = m_modifiers,
-                                           .serial = event.serial};
-                    temp->when_mouse_leave.run(new_ev);
+                    EventContext leave_ev;
+                    leave_ev.sender = temp;
+                    temp->when_mouse_leave.run(leave_ev);
                     temp = temp->parent();
                 }
                 m_hovered = nullptr;
@@ -379,16 +359,8 @@ namespace horizon
                 {
                     if (std::find(new_path.begin(), new_path.end(), w) == new_path.end())
                     {
-                        EventContext leave_ev = {.sender = w,
-                                                 .type = EventType::MouseLeave,
-                                                 .button = event.button,
-                                                 .stop_propagation = false,
-                                                 .data = nullptr,
-                                                 .eventX = m_pointer_x,
-                                                 .eventY = m_pointer_y,
-                                                 .key = 0,
-                                                 .modifiers = m_modifiers,
-                                                 .serial = event.serial};
+                        EventContext leave_ev;
+                        leave_ev.sender = w;
                         w->when_mouse_leave.run(leave_ev);
                     }
                 }
@@ -399,16 +371,8 @@ namespace horizon
                     Widget *w = *it;
                     if (std::find(old_path.begin(), old_path.end(), w) == old_path.end())
                     {
-                        EventContext enter_ev = {.sender = w,
-                                                 .type = EventType::MouseEnter,
-                                                 .button = event.button,
-                                                 .stop_propagation = false,
-                                                 .data = nullptr,
-                                                 .eventX = m_pointer_x,
-                                                 .eventY = m_pointer_y,
-                                                 .key = 0,
-                                                 .modifiers = m_modifiers,
-                                                 .serial = event.serial};
+                        EventContext enter_ev;
+                        enter_ev.sender = w;
                         w->when_mouse_enter.run(enter_ev);
                     }
                 }
@@ -419,16 +383,11 @@ namespace horizon
 
         if (m_pressed)
         {
-            EventContext new_ev = {.sender = m_pressed,
-                                   .type = EventType::MouseDrag,
-                                   .button = event.button,
-                                   .stop_propagation = false,
-                                   .data = nullptr,
-                                   .eventX = (double)event.x,
-                                   .eventY = (double)event.y,
-                                   .key = 0,
-                                   .modifiers = m_modifiers,
-                                   .serial = event.serial};
+            MouseMoveEventContext new_ev;
+            new_ev.sender = m_pressed;
+            new_ev.x = (double)event.x;
+            new_ev.y = (double)event.y;
+            new_ev.modifiers = m_modifiers;
 
             Widget *temp = m_pressed;
             while (temp)
@@ -442,16 +401,11 @@ namespace horizon
         }
         else if (m_hovered)
         {
-            EventContext new_ev = {.sender = m_hovered,
-                                   .type = EventType::MouseHover,
-                                   .button = event.button,
-                                   .stop_propagation = false,
-                                   .data = nullptr,
-                                   .eventX = (double)event.x,
-                                   .eventY = (double)event.y,
-                                   .key = 0,
-                                   .modifiers = m_modifiers,
-                                   .serial = event.serial};
+            MouseMoveEventContext new_ev;
+            new_ev.sender = m_hovered;
+            new_ev.x = (double)event.x;
+            new_ev.y = (double)event.y;
+            new_ev.modifiers = m_modifiers;
 
             Widget *temp = m_hovered;
             while (temp)
@@ -522,16 +476,13 @@ namespace horizon
                 m_focused->set_focus(true);
             }
 
-            EventContext new_ev = {.sender = m_pressed,
-                                   .type = EventType::MousePress,
-                                   .button = event.button,
-                                   .stop_propagation = false,
-                                   .data = nullptr,
-                                   .eventX = (double)event.x,
-                                   .eventY = (double)event.y,
-                                   .key = 0,
-                                   .modifiers = m_modifiers,
-                                   .serial = event.serial};
+            MouseButtonEventContext new_ev;
+            new_ev.sender = m_pressed;
+            new_ev.button = event.button;
+            new_ev.modifiers = m_modifiers;
+            new_ev.serial = event.serial;
+            new_ev.x = (double)event.x;
+            new_ev.y = (double)event.y;
 
             Widget *temp = m_pressed;
             while (temp)
@@ -557,16 +508,13 @@ namespace horizon
     {
         if (m_pressed)
         {
-            EventContext new_ev = {.sender = m_pressed,
-                                   .type = EventType::MouseRelease,
-                                   .button = event.button,
-                                   .stop_propagation = false,
-                                   .data = nullptr,
-                                   .eventX = (double)event.x,
-                                   .eventY = (double)event.y,
-                                   .key = 0,
-                                   .modifiers = m_modifiers,
-                                   .serial = event.serial};
+            MouseButtonEventContext new_ev;
+            new_ev.sender = m_pressed;
+            new_ev.button = event.button;
+            new_ev.modifiers = m_modifiers;
+            new_ev.serial = event.serial;
+            new_ev.x = (double)event.x;
+            new_ev.y = (double)event.y;
 
             Widget *temp = m_pressed;
             while (temp)
@@ -1231,9 +1179,8 @@ namespace horizon
 
     void Application::on_close()
     {
-        EventContext ev;
+        AppEventContext ev;
         ev.sender = this;
-        ev.type = EventType::AppExit;
 
         when_close.run(ev);
 

@@ -22,8 +22,8 @@ namespace horizon
         // Gestión de estados de interacción
         when_mouse_enter.connect([this](EventContext &) { m_is_hovered = true; });
         when_mouse_leave.connect([this](EventContext &) { m_is_hovered = false; });
-        when_mouse_press.connect([this](EventContext &) { m_is_pressed = true; });
-        when_mouse_release.connect([this](EventContext &) { m_is_pressed = false; });
+        when_mouse_press.connect([this](MouseButtonEventContext &) { m_is_pressed = true; });
+        when_mouse_release.connect([this](MouseButtonEventContext &) { m_is_pressed = false; });
     }
 
     Widget::~Widget()
@@ -488,8 +488,8 @@ namespace horizon
 
     size_t Widget::add_on_mouse_move(std::function<void(int, int)> handler)
     {
-        return when_mouse_move.connect([handler](EventContext &ev)
-                                       { handler((int)ev.eventX, (int)ev.eventY); });
+        return when_mouse_move.connect([handler](MouseMoveEventContext &ev)
+                                       { handler((int)ev.x, (int)ev.y); });
     }
     void Widget::remove_on_mouse_move(size_t id)
     {
@@ -498,7 +498,8 @@ namespace horizon
 
     size_t Widget::add_on_mouse_press(std::function<void(int)> handler)
     {
-        return when_mouse_press.connect([handler](EventContext &ev) { handler(ev.button); });
+        return when_mouse_press.connect([handler](MouseButtonEventContext &ev)
+                                        { handler(ev.button); });
     }
     void Widget::remove_on_mouse_press(size_t id)
     {
@@ -507,7 +508,8 @@ namespace horizon
 
     size_t Widget::add_on_mouse_release(std::function<void(int)> handler)
     {
-        return when_mouse_release.connect([handler](EventContext &ev) { handler(ev.button); });
+        return when_mouse_release.connect([handler](MouseButtonEventContext &ev)
+                                          { handler(ev.button); });
     }
     void Widget::remove_on_mouse_release(size_t id)
     {
@@ -516,8 +518,8 @@ namespace horizon
 
     size_t Widget::add_on_mouse_drag(std::function<void(int, int)> handler)
     {
-        return when_mouse_drag.connect([handler](EventContext &ev)
-                                       { handler((int)ev.eventX, (int)ev.eventY); });
+        return when_mouse_drag.connect([handler](MouseMoveEventContext &ev)
+                                       { handler((int)ev.x, (int)ev.y); });
     }
     void Widget::remove_on_mouse_drag(size_t id)
     {
@@ -526,8 +528,8 @@ namespace horizon
 
     size_t Widget::add_on_mouse_hover(std::function<void(int, int)> handler)
     {
-        return when_mouse_hover.connect([handler](EventContext &ev)
-                                        { handler((int)ev.eventX, (int)ev.eventY); });
+        return when_mouse_hover.connect([handler](MouseMoveEventContext &ev)
+                                        { handler((int)ev.x, (int)ev.y); });
     }
     void Widget::remove_on_mouse_hover(size_t id)
     {
@@ -537,7 +539,7 @@ namespace horizon
     void Widget::set_on_click(std::function<void()> handler)
     {
         when_mouse_press.connect(
-            [handler](EventContext &ev)
+            [handler](MouseButtonEventContext &ev)
             {
                 if (ev.button == 0x110)
                     handler();

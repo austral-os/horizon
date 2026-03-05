@@ -20,7 +20,7 @@ namespace horizon
         void set_placeholder(const std::string &placeholder);
         const std::string &placeholder() const;
 
-        EventsManager when_text_changed;
+        EventsManager<KeyEventContext> when_text_changed;
 
     protected:
         struct LineInfo

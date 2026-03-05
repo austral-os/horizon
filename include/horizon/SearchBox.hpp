@@ -1,4 +1,5 @@
 #pragma once
+#include <horizon/EventsManager.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/TextBox.hpp>
 #include <memory>

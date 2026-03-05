@@ -19,7 +19,7 @@ namespace horizon
         item->set_icon_name(menu->icon_name());
         item->set_position_type(FREE);
         item->when_mouse_press.connect(
-            [this, item_ptr = item.get()](EventContext &ctx)
+            [this, item_ptr = item.get()](MouseButtonEventContext &ctx)
             {
                 if (ctx.button == 0x110) // Left click
                 {
@@ -46,7 +46,7 @@ namespace horizon
         item->set_icon_name(menu->icon_name());
         item->set_position_type(FREE);
         item->when_mouse_press.connect(
-            [this, item_ptr = item.get()](EventContext &ctx)
+            [this, item_ptr = item.get()](MouseButtonEventContext &ctx)
             {
                 if (ctx.button == 0x110) // Left click
                 {

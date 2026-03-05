@@ -50,11 +50,12 @@ namespace horizon
         }
 
         // --- Events ---
-        EventsManager when_value_changed; // ev.data = reinterpret_cast<float*>(&m_value)
+        EventsManager<EventContext>
+            when_value_changed; // ev.data = reinterpret_cast<float*>(&m_value)
 
     private:
-        void handle_mouse_press(EventContext &ev);
-        void handle_mouse_drag(EventContext &ev);
+        void handle_mouse_press(MouseButtonEventContext &ev);
+        void handle_mouse_drag(MouseMoveEventContext &ev);
         void update_value_from_pos(int x, int y);
 
         std::vector<Color> m_stops;

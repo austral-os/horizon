@@ -28,9 +28,9 @@ namespace horizon
         m_thumb_poly->set_has_border(true);
         m_thumb_poly->set_border_size(1.0f);
 
-        when_mouse_press.connect([this](EventContext &ev) { handle_mouse_press(ev); });
-        when_mouse_drag.connect([this](EventContext &ev) { handle_mouse_drag(ev); });
-        when_mouse_release.connect([this](EventContext &) { m_dragging = false; });
+        when_mouse_press.connect([this](MouseButtonEventContext &ev) { handle_mouse_press(ev); });
+        when_mouse_drag.connect([this](MouseMoveEventContext &ev) { handle_mouse_drag(ev); });
+        when_mouse_release.connect([this](MouseButtonEventContext &) { m_dragging = false; });
     }
 
     Slider::~Slider() = default;
@@ -50,9 +50,9 @@ namespace horizon
             m_value = v;
             update_thumb_polygon();
             EventContext ev;
-            ev.type = EventType::MouseMove; // generic event type for value changes
             ev.sender = this;
-            ev.data = &m_value;
+            // Since we don't have a specific ValueChangedEventContext yet,
+            // we use the base and the user can check the sender.
             when_value_changed.run(ev);
             invalidate();
         }
@@ -298,16 +298,16 @@ namespace horizon
         set_value(m_min + t * (m_max - m_min));
     }
 
-    void Slider::handle_mouse_press(EventContext &ev)
+    void Slider::handle_mouse_press(MouseButtonEventContext &ev)
     {
         m_dragging = true;
-        update_value_from_pos((int)ev.eventX, (int)ev.eventY);
+        update_value_from_pos((int)ev.x, (int)ev.y);
     }
 
-    void Slider::handle_mouse_drag(EventContext &ev)
+    void Slider::handle_mouse_drag(MouseMoveEventContext &ev)
     {
         if (m_dragging)
-            update_value_from_pos((int)ev.eventX, (int)ev.eventY);
+            update_value_from_pos((int)ev.x, (int)ev.y);
     }
 
     // -----------------------------------------------------------------------

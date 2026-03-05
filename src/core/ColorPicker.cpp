@@ -340,7 +340,7 @@ namespace horizon
 
         // Connect Hex textbox
         m_hex_box->when_text_changed.connect(
-            [this](EventContext &)
+            [this](KeyEventContext &)
             {
                 std::string text = m_hex_box->text();
                 // Basic check to avoid immediate exceptions on empty/short strings
@@ -369,7 +369,7 @@ namespace horizon
         update_ui_from_color();
 
         EventContext ev;
-        ev.data = &m_color;
+        ev.sender = this;
         when_color_changed.run(ev);
     }
 

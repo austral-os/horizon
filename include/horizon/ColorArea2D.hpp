@@ -32,11 +32,12 @@ namespace horizon
         }
 
         // --- Events ---
-        EventsManager when_values_changed; // ev.data = this (caller should read value_x/y)
+        EventsManager<EventContext>
+            when_values_changed; // ev.data = this (caller should read value_x/y)
 
     private:
-        void handle_mouse_press(EventContext &ev);
-        void handle_mouse_drag(EventContext &ev);
+        void handle_mouse_press(MouseButtonEventContext &ev);
+        void handle_mouse_drag(MouseMoveEventContext &ev);
         void update_values_from_pos(int x, int y);
 
         float m_hue{0.0f};

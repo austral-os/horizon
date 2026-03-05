@@ -27,7 +27,7 @@ namespace horizon
         virtual bool is_valid() const = 0;
         virtual std::string get_display_text() const = 0;
 
-        EventsManager when_text_changed;
+        EventsManager<KeyEventContext> when_text_changed;
 
     protected:
         std::string m_text{""};

@@ -8,82 +8,115 @@
 namespace horizon
 {
     /**
-     * @brief Supported event types in the system.
+     * @brief Base class for all event contexts.
      */
-    enum class EventType
+    class EventContext
     {
-        // Mouse Events
-        MouseEnter,
-        MouseLeave,
-        MouseMove,
-        MousePress,
-        MouseRelease,
-        MouseDrag,
-        MouseHover,
-
-        // Keyboard Events
-        KeyPress,
-        KeyRelease,
-
-        // Application Events
-        AppStart,
-        AppExit,
-        AppResize,
-        AppMaximize,
-        AppMinimize,
-        AppActivated,
-        AppDeactivated,
-
-        // Theme Events
-        ThemeChanged,
+    public:
+        virtual ~EventContext() = default;
+        void *sender{nullptr};
+        bool stop_propagation{false};
     };
 
     /**
-     * @brief Context information passed to every event handler.
+     * @brief Specialized event contexts.
      */
-    struct EventContext
+    class MouseMoveEventContext : public EventContext
     {
-        void *sender{nullptr};        /**< Pointer to the object that triggered the event. */
-        EventType type;               /**< The type of event. */
-        uint32_t button{0};           /**< The button that triggered the event. */
-        bool stop_propagation{false}; /**< If set to true, subsequent handlers won't be called. */
-        void *data{nullptr};          /**< Custom data associated with the event. */
-        double eventX{0};
-        double eventY{0};
-        uint32_t key{0};
+    public:
+        double x;
+        double y;
         uint32_t modifiers{0};
-        uint32_t keysym{0};
+    };
+
+    class MouseButtonEventContext : public EventContext
+    {
+    public:
+        uint32_t button;
+        uint32_t modifiers{0};
         uint32_t serial{0};
+        double x;
+        double y;
+    };
+
+    class KeyEventContext : public EventContext
+    {
+    public:
+        uint32_t key;
+        uint32_t modifiers;
+        uint32_t keysym;
         std::string text;
+    };
+
+    class AppEventContext : public EventContext
+    {
+    public:
+        int width{0};
+        int height{0};
+    };
+
+    class ThemeEventContext : public EventContext
+    {
+    public:
     };
 
     /**
      * @class EventsManager
-     * @brief Centralized manager for event callbacks.
+     * @brief Templated manager for event callbacks.
      */
-    class EventsManager
+    template <typename EventT> class EventsManager
     {
     public:
-        using Callback = std::function<void(EventContext &)>;
+        using Callback = std::function<void(EventT &)>;
 
         /**
          * @brief Connects a callback to the event manager.
          * @param callback The function to execute when run() is called.
          * @return A unique subscription ID.
          */
-        size_t connect(Callback callback);
+        size_t connect(Callback callback)
+        {
+            size_t id = m_next_id++;
+            m_handlers.push_back({id, std::move(callback)});
+            return id;
+        }
 
         /**
          * @brief Disconnects a callback using its ID.
          * @param id The ID returned by connect().
          */
-        void disconnect(size_t id);
+        void disconnect(size_t id)
+        {
+            for (auto it = m_handlers.begin(); it != m_handlers.end(); ++it)
+            {
+                if (it->id == id)
+                {
+                    m_handlers.erase(it);
+                    break;
+                }
+            }
+        }
 
         /**
          * @brief Executes all registered callbacks with the provided context.
          * @param context The event context to pass to handlers.
          */
-        void run(EventContext &context);
+        void run(EventT &context)
+        {
+            // We use a copy of the handlers to allow disconnection during execution.
+            auto current_handlers = m_handlers;
+            for (auto &handler : current_handlers)
+            {
+                if (handler.callback)
+                {
+                    handler.callback(context);
+                    if (context.stop_propagation)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
 
     private:
         struct Handler

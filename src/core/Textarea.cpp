@@ -31,32 +31,32 @@ namespace horizon
             });
 
         when_mouse_press.connect(
-            [this](EventContext &ev)
+            [this](MouseButtonEventContext &ev)
             {
                 m_selection_anchor = -1;
                 m_is_dragging = true;
                 m_has_pending_click = true;
-                m_pending_click_x = (int)ev.eventX;
-                m_pending_click_y = (int)ev.eventY;
+                m_pending_click_x = (int)ev.x;
+                m_pending_click_y = (int)ev.y;
                 invalidate();
             });
 
         when_mouse_drag.connect(
-            [this](EventContext &ev)
+            [this](MouseMoveEventContext &ev)
             {
                 if (m_is_dragging)
                 {
                     m_has_pending_click = true;
-                    m_pending_click_x = (int)ev.eventX;
-                    m_pending_click_y = (int)ev.eventY;
+                    m_pending_click_x = (int)ev.x;
+                    m_pending_click_y = (int)ev.y;
                     invalidate();
                 }
             });
 
-        when_mouse_release.connect([this](EventContext &ev) { m_is_dragging = false; });
+        when_mouse_release.connect([this](MouseButtonEventContext &ev) { m_is_dragging = false; });
 
         when_key_press.connect(
-            [this](EventContext &ev)
+            [this](KeyEventContext &ev)
             {
                 m_cursor_visible = true;
                 m_last_blink_time = std::chrono::steady_clock::now();
@@ -88,7 +88,8 @@ namespace horizon
                         }
                     }
                     invalidate();
-                    when_text_changed.run(ev);
+                    KeyEventContext ctx = ev;
+                    when_text_changed.run(ctx);
                 }
                 else if (ev.keysym == XKB_KEY_Delete)
                 {
@@ -100,7 +101,8 @@ namespace horizon
                         }
                     }
                     invalidate();
-                    when_text_changed.run(ev);
+                    KeyEventContext ctx = ev;
+                    when_text_changed.run(ctx);
                 }
                 else if (ev.keysym == XKB_KEY_Return || ev.keysym == XKB_KEY_KP_Enter)
                 {
@@ -108,7 +110,8 @@ namespace horizon
                     m_text.insert(m_cursor_pos, "\n");
                     m_cursor_pos++;
                     invalidate();
-                    when_text_changed.run(ev);
+                    KeyEventContext ctx = ev;
+                    when_text_changed.run(ctx);
                 }
                 else if (ev.keysym == XKB_KEY_Left || ev.keysym == XKB_KEY_KP_Left)
                 {
@@ -230,7 +233,7 @@ namespace horizon
                         m_cursor_pos += ev.text.length();
                         m_selection_anchor = -1;
                         invalidate();
-                        EventContext ctx = ev;
+                        KeyEventContext ctx = ev;
                         when_text_changed.run(ctx);
                     }
                 }

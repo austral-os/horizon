@@ -28,7 +28,7 @@ namespace horizon
         set_placeholder("Search...");
 
         when_text_changed.connect(
-            [this](EventContext &ev)
+            [this](KeyEventContext &)
             {
                 if (m_clear_ptr)
                 {
@@ -39,7 +39,7 @@ namespace horizon
 
         // Handle clear button click
         when_mouse_press.connect(
-            [this](EventContext &ev)
+            [this](MouseButtonEventContext &ev)
             {
                 if (m_text.empty() || !m_clear_ptr || !m_clear_ptr->is_visible())
                     return;
@@ -48,14 +48,14 @@ namespace horizon
                 int icon_y = m_clear_ptr->y();
 
                 // Hit test for clear icon (with a bit of extra padding for easier clicking)
-                if (ev.eventX >= icon_x - 4 && ev.eventX <= icon_x + 20 &&
-                    ev.eventY >= icon_y - 4 && ev.eventY <= icon_y + 20)
+                if (ev.x >= icon_x - 4 && ev.x <= icon_x + 20 && ev.y >= icon_y - 4 &&
+                    ev.y <= icon_y + 20)
                 {
                     set_text("");
                     m_cursor_pos = 0;
                     m_has_pending_click = false; // Prevent TextBoxBase from moving cursor
 
-                    EventContext dummy;
+                    KeyEventContext dummy;
                     dummy.sender = this;
                     when_text_changed.run(dummy);
 

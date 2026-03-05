@@ -145,7 +145,7 @@ namespace horizon
         int index = children.size() - 1;
 
         button->when_mouse_press.connect(
-            [this, index](EventContext &context)
+            [this, index](MouseButtonEventContext &context)
             {
                 this->set_current_tab(index - 1);
                 this->invalidate();

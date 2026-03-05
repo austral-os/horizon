@@ -255,7 +255,8 @@ namespace horizon
 
                 if (m_columns[i].sortable)
                 {
-                    btn->when_mouse_press.connect([this, i](EventContext &) { sort_by_column(i); });
+                    btn->when_mouse_press.connect([this, i](MouseButtonEventContext &)
+                                                  { sort_by_column(i); });
                 }
 
                 header->add_child(std::move(btn));
@@ -332,7 +333,7 @@ namespace horizon
                 }
 
                 row_widget->when_mouse_press.connect(
-                    [this, row_idx](EventContext &ctx)
+                    [this, row_idx](MouseButtonEventContext &ctx)
                     {
                         if (ctx.button == 0x110) // Left click
                         {

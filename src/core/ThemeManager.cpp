@@ -91,9 +91,8 @@ namespace horizon
 
         save();
 
-        EventContext ev = {
-            .type = EventType::ThemeChanged,
-        };
+        ThemeEventContext ev;
+        ev.sender = this;
 
         when_change.run(ev);
     }
@@ -113,9 +112,8 @@ namespace horizon
 
         save();
 
-        EventContext ev = {
-            .type = EventType::ThemeChanged,
-        };
+        ThemeEventContext ev;
+        ev.sender = this;
 
         when_change.run(ev);
     }
@@ -170,9 +168,8 @@ namespace horizon
             }
         }
 
-        EventContext ev = {
-            .type = EventType::ThemeChanged,
-        };
+        ThemeEventContext ev;
+        ev.sender = this;
 
         when_change.run(ev);
 

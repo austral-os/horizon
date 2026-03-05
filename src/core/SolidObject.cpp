@@ -26,7 +26,7 @@ namespace horizon
             });
 
         when_mouse_press.connect(
-            [this](EventContext &)
+            [this](MouseButtonEventContext &)
             {
                 // Redibuja el widget
                 set_draw_state(get_draw_state(WidgetEvent::MOUSE_PRESS));
@@ -34,7 +34,7 @@ namespace horizon
             });
 
         when_mouse_release.connect(
-            [this](EventContext &)
+            [this](MouseButtonEventContext &)
             {
                 // Redibuja el widget
                 set_draw_state(get_draw_state(WidgetEvent::MOUSE_RELEASE));

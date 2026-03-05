@@ -33,7 +33,7 @@ namespace horizon
         void set_application_recursive(Application *app) override;
 
         // --- Events ---
-        EventsManager when_scroll;
+        EventsManager<EventContext> when_scroll;
 
     protected:
         void draw(GraphicsContext &gc) override;
@@ -41,10 +41,10 @@ namespace horizon
 
     private:
         void update_scrollbars();
-        void handle_mouse_press(EventContext &ev);
-        void handle_mouse_drag(EventContext &ev);
-        void handle_mouse_release(EventContext &ev);
-        void handle_mouse_move(EventContext &ev);
+        void handle_mouse_press(MouseButtonEventContext &ev);
+        void handle_mouse_drag(MouseMoveEventContext &ev);
+        void handle_mouse_release(MouseButtonEventContext &ev);
+        void handle_mouse_move(MouseMoveEventContext &ev);
 
         int m_scroll_x{0};
         int m_scroll_y{0};

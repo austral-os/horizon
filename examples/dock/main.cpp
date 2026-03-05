@@ -191,7 +191,8 @@ int main(int argc, char *argv[])
                                         int pid = app_j.value("pid", -1);
                                         bool is_minimized = app_j.value("is_minimized", false);
                                         icn->when_mouse_press.connect(
-                                            [app_ptr, pid, is_minimized](EventContext &ctx)
+                                            [app_ptr, pid,
+                                             is_minimized](MouseButtonEventContext &ctx)
                                             {
                                                 if (pid == -1)
                                                     return;

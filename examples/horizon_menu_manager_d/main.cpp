@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
 
         // Hide when escape key is pressed to prevent the daemon from quitting entirely
         root_ptr->when_key_press.connect(
-            [&](EventContext &ev)
+            [&](KeyEventContext &ev)
             {
                 if (ev.key == KEY_ESC)
                 {

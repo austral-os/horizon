@@ -1,4 +1,5 @@
 #pragma once
+#include <horizon/EventsManager.hpp>
 #include <horizon/MenuItem.hpp>
 #include <horizon/MenuSeparator.hpp>
 #include <horizon/Widget.hpp>

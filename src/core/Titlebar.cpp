@@ -49,7 +49,7 @@ namespace horizon
         {
 
             m_close_button->when_mouse_press.connect(
-                [this](EventContext &context)
+                [this](MouseButtonEventContext &context)
                 {
                     if (application())
                     {
@@ -61,7 +61,7 @@ namespace horizon
         if (m_minimize_button)
         {
             m_minimize_button->when_mouse_press.connect(
-                [this](EventContext &context)
+                [this](MouseButtonEventContext &context)
                 {
                     if (application())
                     {
@@ -74,7 +74,7 @@ namespace horizon
         {
 
             m_maximize_button->when_mouse_press.connect(
-                [this](EventContext &context)
+                [this](MouseButtonEventContext &context)
                 {
                     if (application())
                     {
@@ -90,10 +90,11 @@ namespace horizon
                 });
         }
 
-        when_mouse_press.connect([this](EventContext &context) { m_dragging_requested = false; });
+        when_mouse_press.connect([this](MouseButtonEventContext &context)
+                                 { m_dragging_requested = false; });
 
         when_mouse_drag.connect(
-            [this](EventContext &context)
+            [this](MouseMoveEventContext &context)
             {
                 if (!m_dragging_requested && application())
                 {
@@ -102,7 +103,8 @@ namespace horizon
                 }
             });
 
-        when_mouse_release.connect([this](EventContext &context) { m_dragging_requested = false; });
+        when_mouse_release.connect([this](MouseButtonEventContext &context)
+                                   { m_dragging_requested = false; });
 
         add_child(std::move(spacer));
         add_child(std::move(close_button));

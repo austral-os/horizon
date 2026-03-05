@@ -11,12 +11,12 @@ namespace horizon
         m_divider_width = 2;
 
         when_mouse_move.connect(
-            [this](EventContext &ev)
+            [this](MouseMoveEventContext &ev)
             {
                 if (m_is_resizing)
                     return;
 
-                if (is_over_divider((int)ev.eventX, (int)ev.eventY))
+                if (is_over_divider((int)ev.x, (int)ev.y))
                 {
                     set_cursor_type(CursorType::ResizeEW);
                 }
@@ -27,9 +27,9 @@ namespace horizon
             });
 
         when_mouse_press.connect(
-            [this](EventContext &ev)
+            [this](MouseButtonEventContext &ev)
             {
-                if (is_over_divider((int)ev.eventX, (int)ev.eventY))
+                if (is_over_divider((int)ev.x, (int)ev.y))
                 {
                     m_is_resizing = true;
                     set_cursor_type(CursorType::ResizeEW);
@@ -38,11 +38,11 @@ namespace horizon
             });
 
         when_mouse_drag.connect(
-            [this](EventContext &ev)
+            [this](MouseMoveEventContext &ev)
             {
                 if (m_is_resizing)
                 {
-                    int local_x = (int)(ev.eventX - m_x);
+                    int local_x = (int)(ev.x - m_x);
                     m_left_width = std::clamp(local_x, 10, m_width - 10);
                     invalidate();
                     calculate_layout();
@@ -50,7 +50,7 @@ namespace horizon
             });
 
         when_mouse_release.connect(
-            [this](EventContext &ev)
+            [this](MouseButtonEventContext &ev)
             {
                 if (m_is_resizing)
                 {

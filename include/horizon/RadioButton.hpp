@@ -24,7 +24,7 @@ namespace horizon
             this->when_mouse_leave.connect([this](EventContext &) { this->invalidate(); });
 
             this->when_mouse_press.connect(
-                [this](EventContext &ctx)
+                [this](MouseButtonEventContext &ctx)
                 {
                     if (ctx.button == 0x110 && !m_selected)
                     {

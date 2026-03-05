@@ -215,17 +215,17 @@ namespace horizon
          */
         void invalidate();
 
-        EventsManager when_mouse_press;
-        EventsManager when_mouse_enter;
-        EventsManager when_mouse_leave;
-        EventsManager when_mouse_move;
-        EventsManager when_mouse_release;
-        EventsManager when_mouse_drag;
-        EventsManager when_mouse_hover;
-        EventsManager when_key_press;
-        EventsManager when_key_release;
-        EventsManager when_focus;
-        EventsManager when_blur;
+        EventsManager<MouseButtonEventContext> when_mouse_press;
+        EventsManager<EventContext> when_mouse_enter;
+        EventsManager<EventContext> when_mouse_leave;
+        EventsManager<MouseMoveEventContext> when_mouse_move;
+        EventsManager<MouseButtonEventContext> when_mouse_release;
+        EventsManager<MouseMoveEventContext> when_mouse_drag;
+        EventsManager<MouseMoveEventContext> when_mouse_hover;
+        EventsManager<KeyEventContext> when_key_press;
+        EventsManager<KeyEventContext> when_key_release;
+        EventsManager<EventContext> when_focus;
+        EventsManager<EventContext> when_blur;
 
         virtual void set_application_recursive(Application *app);
 

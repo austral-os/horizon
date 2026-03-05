@@ -60,12 +60,13 @@ namespace horizon
         ThumbShape thumb_shape() const;
 
         // --- Events ---
-        EventsManager when_value_changed; // ev.data = reinterpret_cast<float*>(&value)
+        EventsManager<EventContext>
+            when_value_changed; // ev.data = reinterpret_cast<float*>(&value)
 
     private:
         // Helpers
-        void handle_mouse_press(EventContext &ev);
-        void handle_mouse_drag(EventContext &ev);
+        void handle_mouse_press(MouseButtonEventContext &ev);
+        void handle_mouse_drag(MouseMoveEventContext &ev);
         void update_value_from_pos(int x, int y);
         int thumb_center() const; // pixel offset of thumb along track axis
         void update_thumb_polygon();

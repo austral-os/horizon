@@ -34,7 +34,7 @@ namespace horizon
             return m_color;
         }
 
-        EventsManager when_color_changed;
+        EventsManager<EventContext> when_color_changed;
 
     private:
         void setup_layout();

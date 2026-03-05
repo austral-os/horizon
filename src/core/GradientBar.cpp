@@ -9,9 +9,9 @@ namespace horizon
         m_stops = {Color(1.0f, 0.0f, 0.0f), Color(1.0f, 1.0f, 1.0f)}; // Default Red to White
         set_size(200, 20);
 
-        when_mouse_press.connect([this](EventContext &ev) { handle_mouse_press(ev); });
-        when_mouse_drag.connect([this](EventContext &ev) { handle_mouse_drag(ev); });
-        when_mouse_release.connect([this](EventContext &) { m_dragging = false; });
+        when_mouse_press.connect([this](MouseButtonEventContext &ev) { handle_mouse_press(ev); });
+        when_mouse_drag.connect([this](MouseMoveEventContext &ev) { handle_mouse_drag(ev); });
+        when_mouse_release.connect([this](MouseButtonEventContext &) { m_dragging = false; });
     }
 
     GradientBar::~GradientBar() {}
@@ -125,20 +125,20 @@ namespace horizon
         }
     }
 
-    void GradientBar::handle_mouse_press(EventContext &ev)
+    void GradientBar::handle_mouse_press(MouseButtonEventContext &ev)
     {
         if (ev.button == 0x110) // Left click
         {
             m_dragging = true;
-            update_value_from_pos(ev.eventX, ev.eventY);
+            update_value_from_pos(ev.x, ev.y);
         }
     }
 
-    void GradientBar::handle_mouse_drag(EventContext &ev)
+    void GradientBar::handle_mouse_drag(MouseMoveEventContext &ev)
     {
         if (m_dragging)
         {
-            update_value_from_pos(ev.eventX, ev.eventY);
+            update_value_from_pos(ev.x, ev.y);
         }
     }
 
@@ -154,7 +154,7 @@ namespace horizon
         if (m_value != old_value)
         {
             EventContext ev;
-            ev.data = &m_value;
+            ev.sender = this;
             when_value_changed.run(ev);
             invalidate();
         }

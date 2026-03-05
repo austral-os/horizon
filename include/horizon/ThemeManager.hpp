@@ -39,7 +39,7 @@ namespace horizon
 
         font_definition get_font(const std::string &role) const;
 
-        EventsManager when_change;
+        EventsManager<ThemeEventContext> when_change;
 
     private:
         std::string config_path;
