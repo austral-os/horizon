@@ -211,6 +211,13 @@ int main(int argc, char **argv)
 
     app.set_root(std::move(window));
 
+    auto app_menu = new horizon::Menu();
+    app_menu->set_title("Ark");
+    app_menu->set_bold(true);
+    app_menu->add_item("Preferences", "Ctrl+,");
+    app_menu->add_separator();
+    app_menu->add_item("Quit", "Ctrl+Q");
+
     auto file_menu = new horizon::Menu();
     file_menu->set_title("File");
     file_menu->add_item("New...", "Ctrl+N");
@@ -222,7 +229,7 @@ int main(int argc, char **argv)
     edit_menu->add_item("Copy", "Ctrl+C");
     edit_menu->add_item("Paste", "Ctrl+V");
 
-    std::vector<Menu *> menus = {file_menu, edit_menu};
+    std::vector<Menu *> menus = {app_menu, file_menu, edit_menu};
 
     app.set_global_menu(menus);
 
