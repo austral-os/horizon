@@ -58,6 +58,19 @@ namespace horizon
     {
         return m_selected_index;
     }
+    void IconViewBase::set_side_margin(int margin)
+    {
+        if (m_side_margin != margin)
+        {
+            m_side_margin = margin;
+            calculate_layout();
+        }
+    }
+
+    int IconViewBase::side_margin() const
+    {
+        return m_side_margin;
+    }
 
     void IconViewBase::calculate_layout()
     {
@@ -87,30 +100,45 @@ namespace horizon
         m_grid_spacing = std::max(0, static_cast<int>(BASE_GRID_SPACING * m_zoom));
 
         int effective_margin = std::max(0, static_cast<int>(m_grid_spacing));
-        int available_width = m_width - 2 * effective_margin;
+        int side_margin = std::max(0, static_cast<int>(m_side_margin * m_zoom));
+
+        int available_width = m_width - 2 * side_margin;
 
         // Ensure available_width is sensible
         if (available_width <= 0)
             available_width = m_width;
 
         int columns = std::max(1, available_width / (m_item_width + m_grid_spacing));
+        if (columns > 1 &&
+            (columns * (m_item_width + m_grid_spacing) - m_grid_spacing) > available_width)
+        {
+            columns--;
+            if (columns < 1)
+                columns = 1;
+        }
 
         // Center the grid horizontally
         int grid_width = columns * (m_item_width + m_grid_spacing) - m_grid_spacing;
-        int start_x = (m_width - grid_width) / 2;
-        if (start_x < effective_margin)
-            start_x = effective_margin;
+        int start_x = side_margin + (available_width - grid_width) / 2;
 
         int scroll_x = m_scroll_area ? m_scroll_area->scroll_x() : 0;
         int scroll_y = m_scroll_area ? m_scroll_area->scroll_y() : 0;
         int current_col = 0;
         int current_row = 0;
 
+        int actual_spacing = m_grid_spacing;
+        if (columns > 1)
+        {
+            // Justify: distribute extra space as spacing between columns
+            // This ensures margins are exactly side_margin (plus zoom factor)
+            actual_spacing = (available_width - columns * m_item_width) / (columns - 1);
+            start_x = side_margin;
+        }
+
         for (auto &child : m_content_pane->children())
         {
-            int x = m_x + start_x + current_col * (m_item_width + m_grid_spacing) - scroll_x;
-            int y =
-                m_y + effective_margin + current_row * (m_item_height + m_grid_spacing) - scroll_y;
+            int x = m_x + start_x + current_col * (m_item_width + actual_spacing) - scroll_x;
+            int y = m_y + side_margin + current_row * (m_item_height + m_grid_spacing) - scroll_y;
 
             child->set_position(x, y);
             child->set_size(m_item_width, m_item_height);
@@ -126,7 +154,7 @@ namespace horizon
         // Set content height based on rows
         int num_items = (int)m_content_pane->children().size();
         int total_rows = (num_items + columns - 1) / columns;
-        int needed_height = total_rows * (m_item_height + m_grid_spacing) + 2 * effective_margin;
+        int needed_height = total_rows * (m_item_height + m_grid_spacing) + 2 * side_margin;
 
         // Ensure we don't have crazy dimensions (max 1M pixels)
         needed_height = std::min(1000000, std::max(m_height, needed_height));

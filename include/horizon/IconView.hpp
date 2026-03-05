@@ -24,6 +24,9 @@ namespace horizon
         void set_selected_index(int index);
         int selected_index() const;
 
+        void set_side_margin(int margin);
+        int side_margin() const;
+
         void calculate_layout() override;
         void draw(GraphicsContext &gc) override;
 
@@ -38,6 +41,7 @@ namespace horizon
 
         int m_item_width{80};
         int m_item_height{90};
+        int m_side_margin{16};
         int m_grid_spacing{12};
 
         const int BASE_ITEM_WIDTH{80};
