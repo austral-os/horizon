@@ -15,6 +15,7 @@
 #include <linux/input-event-codes.h>
 #include <nlohmann/json.hpp>
 #include <poll.h>
+#include <signal.h>
 #include <sys/eventfd.h>
 #include <unistd.h>
 #include <wayland-client-core.h>
@@ -28,6 +29,9 @@ namespace horizon
 
     Application::Application(int w, int h, bool defer_init)
     {
+        // Global safeguard: ignore SIGPIPE to prevent crash when writing to broken sockets
+        signal(SIGPIPE, SIG_IGN);
+
         m_wakeup_fd = eventfd(0, EFD_NONBLOCK);
 
         // Inicialización del sistema

@@ -1,6 +1,7 @@
 #include <cstring>
 #include <horizon/IpcServer.hpp>
 #include <iostream>
+#include <signal.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -21,6 +22,9 @@ namespace horizon
     {
         if (m_running)
             return;
+
+        // Ignore SIGPIPE to prevent the process from crashing if a client disconnects during write
+        signal(SIGPIPE, SIG_IGN);
 
         m_server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
         if (m_server_fd == -1)
@@ -104,10 +108,12 @@ namespace horizon
         std::lock_guard<std::mutex> lock(m_subscribers_mutex);
         for (auto it = m_subscribers.begin(); it != m_subscribers.end();)
         {
-            ssize_t n = write(*it, msg.c_str(), msg.length());
+            // Use send with MSG_NOSIGNAL to prevent SIGPIPE if the subscriber disconnected
+            ssize_t n = send(*it, msg.c_str(), msg.length(), MSG_NOSIGNAL);
             if (n == -1)
             {
-                // Subscriber likely disconnected
+                std::cout << "[IpcServer] Subscriber on fd " << *it
+                          << " disconnected during broadcast." << std::endl;
                 close(*it);
                 it = m_subscribers.erase(it);
             }
@@ -143,11 +149,11 @@ namespace horizon
                 }
                 // Send an initial OK so the client knows it's subscribed
                 std::string ok = "{\"status\": \"subscribed\"}";
-                write(client_fd, ok.c_str(), ok.length());
+                send(client_fd, ok.c_str(), ok.length(), MSG_NOSIGNAL);
                 return; // Return so the thread can finish, but the FD stays in m_subscribers
             }
 
-            write(client_fd, response.c_str(), response.length());
+            send(client_fd, response.c_str(), response.length(), MSG_NOSIGNAL);
 
             // If it's a one-shot request (most cases), break after first interaction
             // unless we want to support long-lived command sessions.
