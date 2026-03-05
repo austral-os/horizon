@@ -15,6 +15,8 @@ namespace horizon
     {
         std::cout << "[MenuBar] Adding menu: " << menu->title() << std::endl;
         auto item = std::make_unique<MenuBarItem>(menu->title(), menu.get());
+        item->set_bold(menu->bold());
+        item->set_icon_name(menu->icon_name());
         item->set_position_type(FREE);
         item->when_mouse_press.connect(
             [this, item_ptr = item.get()](EventContext &ctx)
@@ -40,6 +42,8 @@ namespace horizon
     void MenuBar::insert_menu(int index, std::unique_ptr<Menu> menu)
     {
         auto item = std::make_unique<MenuBarItem>(menu->title(), menu.get());
+        item->set_bold(menu->bold());
+        item->set_icon_name(menu->icon_name());
         item->set_position_type(FREE);
         item->when_mouse_press.connect(
             [this, item_ptr = item.get()](EventContext &ctx)
@@ -140,6 +144,47 @@ namespace horizon
         set_alignment(TextAlignment::Center);
     }
 
+    void MenuBarItem::set_icon_name(const std::string &name)
+    {
+        if (m_icon_name == name)
+            return;
+
+        m_icon_name = name;
+        if (!m_icon_name.empty())
+        {
+            m_resolved_icon_path = IconThemeLookup::find_icon(m_icon_name, 18);
+            if (m_resolved_icon_path.empty())
+            {
+                std::cerr << "[MenuBarItem] Failed to resolve icon: " << m_icon_name << std::endl;
+            }
+            else
+            {
+                std::cout << "[MenuBarItem] Resolved icon " << m_icon_name << " to "
+                          << m_resolved_icon_path << std::endl;
+            }
+        }
+        else
+        {
+            m_resolved_icon_path.clear();
+        }
+        invalidate();
+    }
+
+    int MenuBarItem::preferred_width() const
+    {
+        if (!m_icon_name.empty() && text().empty())
+        {
+            return 24; // Standard icon size in menu bar
+        }
+
+        int width = Label::preferred_width();
+        if (!m_icon_name.empty())
+        {
+            width += 24 + 5; // Icon size + spacing
+        }
+        return width;
+    }
+
     void MenuBarItem::set_selected(bool selected)
     {
         m_selected = selected;
@@ -161,7 +206,63 @@ namespace horizon
             set_text_color(Color(0.0f, 0.0f, 0.0f, -1.0f)); // Use theme default
         }
 
-        Label::draw(gc);
+        if (m_bold)
+        {
+            set_font_weight(FONT_WEIGHT_BOLD);
+        }
+        else
+        {
+            set_font_weight(FONT_WEIGHT_NORMAL);
+        }
+
+        if (!m_icon_name.empty())
+        {
+            int icon_size = 18;
+            int total_content_width = icon_size;
+            if (!text().empty())
+            {
+                total_content_width += 5 + Label::preferred_width();
+            }
+
+            int start_x = m_x + (m_width - total_content_width) / 2;
+            int icon_y = m_y + (m_height - icon_size) / 2;
+
+            if (!m_resolved_icon_path.empty())
+            {
+                gc.drawImage(m_resolved_icon_path, start_x, icon_y, icon_size, icon_size);
+            }
+
+            if (!text().empty())
+            {
+                // Draw text aligned next to icon
+                // We need to manually draw the text if we want precise control,
+                // but Label::draw uses alignment. Let's adjust Label's text position
+                // if it's horizontal.
+
+                // For now, let's keep it simple: if there is an icon, we
+                // hack the Label::draw by shifting the draw area or
+                // just manually calling drawText.
+
+                // Actually, Label::draw uses m_start_draw_x/y.
+                // It's better to just manually draw the text here to be sure.
+
+                gc.setDrawFont(nullptr, font_size() > 0 ? font_size() : 13, FONT_SLANT_NORMAL,
+                               m_bold ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
+
+                TextMetrics tm = gc.getTextMetrics(
+                    text().c_str(), nullptr, font_size() > 0 ? font_size() : 13, FONT_SLANT_NORMAL,
+                    m_bold ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
+
+                int text_x = start_x + icon_size + 5;
+                int text_y = m_y + (m_height + tm.height) / 2 - 2; // -2 for baseline adjustment
+
+                gc.drawText(text_x, text_y, text().c_str());
+            }
+        }
+        else
+        {
+            Label::draw(gc);
+        }
     }
 
 } // namespace horizon

@@ -546,6 +546,7 @@ int main()
 
         auto app_menu = new horizon::Menu();
         app_menu->set_title("MinimalApp");
+        app_menu->set_bold(true);
         app_menu->add_item("Preferences", "Ctrl+,");
         app_menu->add_separator();
         app_menu->add_item("Quit", "Ctrl+Q");

@@ -58,6 +58,40 @@ int main(int argc, char *argv[])
         // Keep a raw pointer to menubar to update it from the timer
         MenuBar *menubar_ptr = menubar.get();
 
+        auto create_system_menu = []()
+        {
+            auto menu = std::make_unique<Menu>();
+            menu->set_title("");
+            menu->set_icon_name("start-here-symbolic"); // Tentative icon name
+            if (menu->icon_name().empty() ||
+                IconThemeLookup::find_icon(menu->icon_name(), 18).empty())
+            {
+                menu->set_icon_name("start-here"); // Fallback
+            }
+
+            menu->add_item("About This System");
+            menu->add_separator();
+            menu->add_item("System Settings...");
+            menu->add_item("App Store...");
+            menu->add_separator();
+            menu->add_item("Recent Items");
+            menu->add_separator();
+            menu->add_item("Force Quit...");
+            menu->add_separator();
+            menu->add_item("Sleep");
+            menu->add_item("Restart...");
+            menu->add_item("Shut Down...");
+            menu->add_separator();
+            menu->add_item("Lock Screen");
+            menu->add_item("Log Out...");
+
+            return menu;
+        };
+
+        // --- START TEST MENUS ---
+        // Removed to use dynamic system menu insertion
+        // --- END TEST MENUS ---
+
         // State for managing global menu locking (preventing blink on focus loss)
         bool menu_daemon_visible = false;
         bool has_cached_menu_request = false;
@@ -66,10 +100,14 @@ int main(int argc, char *argv[])
         int current_owner_pid = -1;
         size_t clear_menu_timer_id = 0;
 
-        auto apply_global_menu_fn = [menubar_ptr](const nlohmann::json &request)
+        auto apply_global_menu_fn = [menubar_ptr, create_system_menu](const nlohmann::json &request)
         {
             auto new_menus = GlobalMenuMessage::parse(request);
             menubar_ptr->clear_menus();
+
+            // Always add system menu first
+            menubar_ptr->add_menu(create_system_menu());
+
             for (auto &menu : new_menus)
             {
                 menubar_ptr->add_menu(std::move(menu));

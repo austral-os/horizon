@@ -28,6 +28,24 @@ namespace horizon
             return m_title;
         }
 
+        void set_bold(bool bold)
+        {
+            m_bold = bold;
+        }
+        bool bold() const
+        {
+            return m_bold;
+        }
+
+        void set_icon_name(const std::string &name)
+        {
+            m_icon_name = name;
+        }
+        const std::string &icon_name() const
+        {
+            return m_icon_name;
+        }
+
         // Helper to add a text item directly
         MenuItem *add_item(const std::string &text, const std::string &shortcut = "");
 
@@ -55,6 +73,8 @@ namespace horizon
         int m_max_width = -1;       // -1 means no maximum
         bool m_was_visible = false; // Track visibility transitions for clearing
         std::string m_title;
+        bool m_bold = false;
+        std::string m_icon_name;
     };
 
 } // namespace horizon
