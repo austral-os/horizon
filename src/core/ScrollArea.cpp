@@ -169,10 +169,10 @@ namespace horizon
 
             std::vector<PolygonPoint> pts;
             int r = m_v_track_w / 2;
-            pts.push_back({(float)m_v_track_x, (float)thumb_y, (float)r});
-            pts.push_back({(float)m_v_track_x + m_v_track_w, (float)thumb_y, (float)r});
-            pts.push_back({(float)m_v_track_x + m_v_track_w, (float)thumb_y + thumb_h, (float)r});
-            pts.push_back({(float)m_v_track_x, (float)thumb_y + thumb_h, (float)r});
+            pts.push_back({m_v_track_x, thumb_y, r});
+            pts.push_back({m_v_track_x + m_v_track_w, thumb_y, r});
+            pts.push_back({m_v_track_x + m_v_track_w, thumb_y + thumb_h, r});
+            pts.push_back({m_v_track_x, thumb_y + thumb_h, r});
             m_v_thumb->set_points(pts);
         }
 
@@ -190,10 +190,10 @@ namespace horizon
 
             std::vector<PolygonPoint> pts;
             int r = m_h_track_h / 2;
-            pts.push_back({(float)thumb_x, (float)m_h_track_y, (float)r});
-            pts.push_back({(float)thumb_x + thumb_w, (float)m_h_track_y, (float)r});
-            pts.push_back({(float)thumb_x + thumb_w, (float)m_h_track_y + m_h_track_h, (float)r});
-            pts.push_back({(float)thumb_x, (float)m_h_track_y + m_h_track_h, (float)r});
+            pts.push_back({thumb_x, m_h_track_y, r});
+            pts.push_back({thumb_x + thumb_w, m_h_track_y, r});
+            pts.push_back({thumb_x + thumb_w, m_h_track_y + m_h_track_h, r});
+            pts.push_back({thumb_x, m_h_track_y + m_h_track_h, r});
             m_h_thumb->set_points(pts);
         }
     }

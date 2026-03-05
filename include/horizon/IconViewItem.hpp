@@ -25,6 +25,9 @@ namespace horizon
         void set_icon_name(const std::string &icon_name);
         const std::string &icon_name() const;
 
+        void set_zoom(float zoom);
+        float zoom() const;
+
         void calculate_layout() override;
         void draw(GraphicsContext &gc) override;
 
@@ -34,6 +37,10 @@ namespace horizon
     private:
         Icon *m_icon_ptr{nullptr};
         Label *m_label_ptr{nullptr};
+        float m_zoom{1.0f};
         int m_icon_size{48};
+
+        const int BASE_ICON_SIZE{48};
+        const int BASE_FONT_SIZE{12};
     };
 } // namespace horizon

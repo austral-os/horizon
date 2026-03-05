@@ -16,6 +16,8 @@ namespace horizon
         auto label = std::make_unique<Label>();
         label->set_position_type(FREE);
         label->set_alignment(TextAlignment::Center);
+        label->set_vertical_alignment(VerticalAlignment::Top);
+        label->set_font_size(BASE_FONT_SIZE);
         m_label_ptr = label.get();
         add_child(std::move(label));
 
@@ -44,10 +46,24 @@ namespace horizon
         return m_icon_ptr->icon_name();
     }
 
+    void IconViewItem::set_zoom(float zoom)
+    {
+        m_zoom = zoom;
+        m_icon_size = static_cast<int>(BASE_ICON_SIZE * m_zoom);
+        m_icon_ptr->set_icon_size(m_icon_size);
+        m_label_ptr->set_font_size(static_cast<int>(BASE_FONT_SIZE * m_zoom));
+        invalidate();
+    }
+
+    float IconViewItem::zoom() const
+    {
+        return m_zoom;
+    }
+
     void IconViewItem::calculate_layout()
     {
         // Layout: Icon at top, Label at bottom
-        int padding = 4;
+        int padding = static_cast<int>(4 * m_zoom);
         int icon_y = padding;
         int label_y = icon_y + m_icon_size + padding;
 
@@ -76,11 +92,11 @@ namespace horizon
 
     int IconViewItem::preferred_width() const
     {
-        return 80;
+        return static_cast<int>(80 * m_zoom);
     }
 
     int IconViewItem::preferred_height() const
     {
-        return 100;
+        return static_cast<int>(100 * m_zoom);
     }
 } // namespace horizon
