@@ -1,7 +1,7 @@
 #include <cmath>
 #include <horizon/Icon.hpp>
 #include <horizon/IpcClient.hpp>
-#include <horizon/OverlayApplication.hpp>
+#include <horizon/LayerApplication.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <iostream>
@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
     {
         // 1. Create the overlay application
         // Anchor to the bottom, left, and right edge to allow size 0
-        auto app = std::make_unique<OverlayApplication>("dock", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
+        auto app = std::make_unique<LayerApplication>("dock", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
         app->set_anchor(2 | 4 | 8); // BOTTOM | LEFT | RIGHT
         app->set_size(0, 100);
         app->set_exclusive_zone(100);

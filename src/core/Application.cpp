@@ -682,7 +682,7 @@ namespace horizon
                         m_dirty_widgets.clear();
                         CairoGraphicContext ctx(m_surface->data(), m_surface->width(),
                                                 m_surface->height());
-                        // For transparent surfaces (OverlayApplication), clear the entire surface
+                        // For transparent surfaces (LayerApplication), clear the entire surface
                         // to remove stale pixels. Without this, popGroup's OVER compositing
                         // preserves old pixels from hidden widgets.
                         if (is_transparent_surface())

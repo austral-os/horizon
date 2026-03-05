@@ -107,6 +107,15 @@ target_link_libraries(dock
         horizon
 )
 
+add_executable(horizon_wall
+    examples/horizon_wall/main.cpp
+)
+
+target_link_libraries(horizon_wall
+    PRIVATE
+        horizon
+)
+
 add_executable(app_manager
     examples/app_manager/main.cpp
 )

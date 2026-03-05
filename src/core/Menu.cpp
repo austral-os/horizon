@@ -161,7 +161,7 @@ namespace horizon
             {
                 if (application())
                 {
-                    // Only force full repaint for transparent surfaces (OverlayApplication).
+                    // Only force full repaint for transparent surfaces (LayerApplication).
                     // Regular applications have opaque backgrounds that naturally cover old pixels.
                     if (application()->is_transparent_surface())
                     {

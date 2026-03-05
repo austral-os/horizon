@@ -2,7 +2,7 @@
 #include <horizon/IpcServer.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/MessageManager.hpp>
-#include <horizon/OverlayApplication.hpp>
+#include <horizon/LayerApplication.hpp>
 #include <horizon/RequestRouter.hpp>
 #include <horizon/Widget.hpp>
 #include <iostream>
@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     {
         // Create the Menu Manager Daemon
         auto app =
-            std::make_unique<OverlayApplication>("horizon_menu_manager_d", 3); // 3 = OVERLAY layer
+            std::make_unique<LayerApplication>("horizon_menu_manager_d", 3); // 3 = OVERLAY layer
 
         // Fullscreen anchor
         app->set_anchor(1 | 2 | 4 | 8); // TOP | BOTTOM | LEFT | RIGHT

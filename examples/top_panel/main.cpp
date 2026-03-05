@@ -4,7 +4,7 @@
 #include <horizon/Menu.hpp>
 #include <horizon/MenuBar.hpp>
 #include <horizon/MessageManager.hpp>
-#include <horizon/OverlayApplication.hpp>
+#include <horizon/LayerApplication.hpp>
 #include <horizon/Panel.hpp>
 #include <horizon/RequestRouter.hpp>
 #include <horizon/Widget.hpp>
@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     try
     {
         // Create an overlay application
-        auto app = std::make_unique<OverlayApplication>("top_panel",
+        auto app = std::make_unique<LayerApplication>("top_panel",
                                                         3); // 3 = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
 
         // Anchor to TOP, LEFT, RIGHT to occupy the top of the screen

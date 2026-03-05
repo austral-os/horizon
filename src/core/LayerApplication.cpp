@@ -1,10 +1,10 @@
-#include "horizon/OverlayApplication.hpp"
+#include "horizon/LayerApplication.hpp"
 #include <horizon/WaylandSurface.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 
 namespace horizon
 {
-    OverlayApplication::OverlayApplication(const std::string &namespace_id, uint32_t layer)
+    LayerApplication::LayerApplication(const std::string &namespace_id, uint32_t layer)
         : Application(0, 0, true), m_namespace(namespace_id), m_layer(layer), m_interactivity(0)
     {
         // Initialization for Layer Shell
@@ -22,32 +22,32 @@ namespace horizon
             });
     }
 
-    void OverlayApplication::set_anchor(uint32_t anchor)
+    void LayerApplication::set_anchor(uint32_t anchor)
     {
         w_surface()->set_layer_anchor(anchor);
         w_surface()->commit();
     }
 
-    void OverlayApplication::set_exclusive_zone(int32_t zone)
+    void LayerApplication::set_exclusive_zone(int32_t zone)
     {
         w_surface()->set_layer_exclusive_zone(zone);
         w_surface()->commit();
     }
 
-    void OverlayApplication::set_keyboard_interactivity(uint32_t interactivity)
+    void LayerApplication::set_keyboard_interactivity(uint32_t interactivity)
     {
         m_interactivity = interactivity;
         w_surface()->set_layer_keyboard_interactivity(interactivity);
         w_surface()->commit();
     }
 
-    void OverlayApplication::set_size(uint32_t width, uint32_t height)
+    void LayerApplication::set_size(uint32_t width, uint32_t height)
     {
         w_surface()->set_layer_size(width, height);
         w_surface()->commit();
     }
 
-    void OverlayApplication::set_visible(bool visible)
+    void LayerApplication::set_visible(bool visible)
     {
         m_visible = visible;
         if (visible)
@@ -64,12 +64,12 @@ namespace horizon
             set_keyboard_interactivity(ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
         }
     }
-    int OverlayApplication::get_monitor_count() const
+    int LayerApplication::get_monitor_count() const
     {
         return w_surface()->monitors().size();
     }
 
-    void OverlayApplication::move_to_monitor(int index)
+    void LayerApplication::move_to_monitor(int index)
     {
         auto *output = w_surface()->get_monitor(index);
         if (output)

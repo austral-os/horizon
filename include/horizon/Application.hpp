@@ -117,7 +117,7 @@ namespace horizon
 
         /**
          * @brief Returns whether this application uses a transparent surface.
-         * @return true for OverlayApplication, false for regular applications.
+         * @return true for LayerApplication, false for regular applications.
          */
         virtual bool is_transparent_surface() const
         {
