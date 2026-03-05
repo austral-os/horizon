@@ -23,7 +23,7 @@ public:
         set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         set_spacing(10);
         // Leave space at the bottom for the 3D lip of the shelf
-        set_margin(10);
+        set_margin(20);
         set_size(0, 100);
     }
 
