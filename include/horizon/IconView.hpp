@@ -21,6 +21,9 @@ namespace horizon
         void set_zoom(float zoom);
         float zoom() const;
 
+        void set_selected_index(int index);
+        int selected_index() const;
+
         void calculate_layout() override;
         void draw(GraphicsContext &gc) override;
 
@@ -31,14 +34,15 @@ namespace horizon
         Widget *m_content_pane{nullptr};
 
         float m_zoom{1.0f};
+        int m_selected_index{-1};
 
-        int m_item_width{100};
-        int m_item_height{120};
-        int m_grid_spacing{10};
+        int m_item_width{80};
+        int m_item_height{90};
+        int m_grid_spacing{12};
 
-        const int BASE_ITEM_WIDTH{100};
-        const int BASE_ITEM_HEIGHT{120};
-        const int BASE_GRID_SPACING{10};
+        const int BASE_ITEM_WIDTH{80};
+        const int BASE_ITEM_HEIGHT{90};
+        const int BASE_GRID_SPACING{12};
     };
 
     /**
@@ -48,14 +52,18 @@ namespace horizon
     template <typename T> class IconView : public IconViewBase
     {
     public:
-        using ItemFactory = std::function<std::unique_ptr<Widget>(const T &, float zoom)>;
+        using ItemFactory =
+            std::function<std::unique_ptr<Widget>(const T &, float zoom, bool selected)>;
 
         IconView() : IconViewBase() {}
         ~IconView() override = default;
 
+        std::function<void(int, const T &)> on_item_selected;
+
         void set_data(std::vector<T> data)
         {
             m_data = std::move(data);
+            m_selected_index = -1;
             rebuild_items();
         }
 
@@ -86,9 +94,10 @@ namespace horizon
             if (!m_item_factory)
                 return;
 
-            for (const auto &item_data : m_data)
+            for (int i = 0; i < (int)m_data.size(); ++i)
             {
-                auto item_widget = m_item_factory(item_data, m_zoom);
+                bool is_selected = (i == m_selected_index);
+                auto item_widget = m_item_factory(m_data[i], m_zoom, is_selected);
                 if (item_widget)
                 {
                     m_content_pane->add_child(std::move(item_widget));
