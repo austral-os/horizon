@@ -117,15 +117,6 @@ target_link_libraries(horizon_wall
         horizon
 )
 
-add_executable(app_manager
-    examples/app_manager/main.cpp
-    examples/app_manager/AppManager.cpp
-)
-
-target_link_libraries(app_manager
-    PRIVATE
-        horizon
-)
 
 add_executable(image_demo
     examples/image_demo.cpp
@@ -150,6 +141,7 @@ add_executable(horizon_session
     examples/horizon_session/HorizonSession.cpp
     examples/horizon_session/DesktopParser.cpp
     examples/horizon_session/Logger.cpp
+    examples/horizon_session/IpcServer.cpp
 )
 
 target_link_libraries(horizon_session

@@ -1,4 +1,4 @@
-#include "horizon/IpcServer.hpp"
+#include "IpcServer.hpp"
 #include <map>
 #include <mutex>
 #include <optional>
