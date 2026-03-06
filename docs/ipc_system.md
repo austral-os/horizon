@@ -85,28 +85,28 @@ flowchart TD
     end
 
     subgraph am["app_manager"]
-        am_server("IpcServer\n/tmp/horizon_apps.sock")
+        am_server("IpcServer /tmp/horizon_apps.sock")
     end
 
     subgraph tp["top_panel"]
-        tp_server("IpcServer\n/tmp/horizon_global_menu.sock")
-        tp_client>IpcClient]
+        tp_server("IpcServer /tmp/horizon_global_menu.sock")
+        tp_client["IpcClient"]
     end
 
     subgraph mm["menu_manager_horizon_d"]
-        mm_server("IpcServer\n/tmp/horizon_menu.sock")
-        mm_client>IpcClient]
+        mm_server("IpcServer /tmp/horizon_menu.sock")
+        mm_client["IpcClient"]
     end
 
-    %% Envío de eventos al app_manager (suscripciones o reportes)
-    app1 -.->|app_started/stopped| am_server
-    app2 -.->|app_started/stopped| am_server
+    %% Envío de eventos al app_manager
+    app1 -->|app_started y stopped| am_server
+    app2 -->|app_started y stopped| am_server
 
-    %% Envío de eventos al top_panel (dibujar menús)
-    app1 -.->|Envía menús de ventana| tp_server
-    app2 -.->|Envía menús de ventana| tp_server
+    %% Envío de eventos al top_panel
+    app1 -.->|Envia menus de ventana| tp_server
+    app2 -.->|Envia menus de ventana| tp_server
 
     %% Comunicación bidireccional entre panel y menu manager
-    tp_client ==>|"create_menu" (clic en barra)| mm_server
-    mm_client ==>|"menu_daemon_status" (visible/oculto)| tp_server
+    tp_client -->|peticion create_menu| mm_server
+    mm_client -->|estado menu_daemon_status| tp_server
 ```
