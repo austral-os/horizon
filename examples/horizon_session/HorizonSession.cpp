@@ -68,10 +68,24 @@ void HorizonSession::terminate_all_apps()
 {
     LOG_INFO << "[HorizonSession] Terminating all applications..." << std::endl;
 
-    std::lock_guard<std::mutex> lock(m_state_mutex);
-    for (int pid : m_spawned_pids)
+    std::vector<int> pids_to_kill;
     {
-        if (pid > 0)
+        std::lock_guard<std::mutex> lock(m_state_mutex);
+        pids_to_kill = m_spawned_pids;
+        for (auto const &[pid, info] : m_apps)
+        {
+            if (std::find(pids_to_kill.begin(), pids_to_kill.end(), pid) == pids_to_kill.end())
+            {
+                pids_to_kill.push_back(pid);
+            }
+        }
+    }
+
+    pid_t my_pid = getpid();
+
+    for (int pid : pids_to_kill)
+    {
+        if (pid > 0 && pid != my_pid)
         {
             LOG_INFO << "[HorizonSession] Sending SIGTERM to PID " << pid << std::endl;
             kill(pid, SIGTERM);
@@ -82,9 +96,9 @@ void HorizonSession::terminate_all_apps()
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // Force SIGKILL for any stubborn survivors
-    for (int pid : m_spawned_pids)
+    for (int pid : pids_to_kill)
     {
-        if (pid > 0)
+        if (pid > 0 && pid != my_pid)
         {
             if (kill(pid, 0) == 0) // Process still exists
             {
@@ -94,7 +108,10 @@ void HorizonSession::terminate_all_apps()
             }
         }
     }
+
+    std::lock_guard<std::mutex> lock(m_state_mutex);
     m_spawned_pids.clear();
+    m_apps.clear();
 }
 
 void HorizonSession::run_app(const std::string &app_name)
