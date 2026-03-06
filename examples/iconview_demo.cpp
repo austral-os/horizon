@@ -36,6 +36,9 @@ public:
         add_child(std::move(label));
 
         m_position_type = FREE;
+
+        when_mouse_enter.connect([this](EventContext &) { invalidate(); });
+        when_mouse_leave.connect([this](EventContext &) { invalidate(); });
     }
 
     void set_data(const FileData &data, float zoom, bool selected)
