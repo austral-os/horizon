@@ -8,12 +8,17 @@ namespace horizon
 
     ClientMenu::ClientMenu(const std::string &socket_path) : m_client(socket_path) {}
 
-    bool ClientMenu::show_menu(Menu *menu, int x, int y, int monitor)
+    bool ClientMenu::show_menu(Menu *menu, int x, int y, int monitor,
+                               const std::string &requester_id)
     {
         nlohmann::json request;
         request["type"] = "create_menu";
         request["receiver_id"] = "horizon_menu_manager_d";
         request["sender_pid"] = getpid();
+        if (!requester_id.empty())
+        {
+            request["requester_id"] = requester_id;
+        }
         request["request_id"] = "client_menu_" + std::to_string(reinterpret_cast<uintptr_t>(menu));
         request["x"] = x;
         request["y"] = y;

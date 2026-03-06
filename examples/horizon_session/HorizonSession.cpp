@@ -5,9 +5,11 @@
 #include <cerrno>
 #include <chrono>
 #include <cstring>
+#include <fcntl.h>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <sys/prctl.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
@@ -29,6 +31,10 @@ void HorizonSession::init(bool with_compositor)
     // Make sure we initialize the logger file output
     Logger::instance().init("/tmp/horizon_session.log");
     LOG_INFO << "[HorizonSession] Initializing..." << std::endl;
+
+    const char *wayland_display = getenv("WAYLAND_DISPLAY");
+    LOG_INFO << "[HorizonSession] Current WAYLAND_DISPLAY: "
+             << (wayland_display ? wayland_display : "NULL") << std::endl;
 
     if (with_compositor)
     {
@@ -78,13 +84,32 @@ void HorizonSession::run_service(const std::string &service_path)
 
     if (pid == 0)
     {
+        setsid(); // Create new session and process group
         prctl(PR_SET_PDEATHSIG, SIGTERM);
+
+        // Redirect stdout and stderr to the log file for child diagnostics
+        int fd = open("/tmp/horizon_session.log", O_WRONLY | O_APPEND | O_CREAT, 0644);
+        if (fd != -1)
+        {
+            dup2(fd, STDOUT_FILENO);
+            dup2(fd, STDERR_FILENO);
+            close(fd);
+        }
+
+        // Fork-safe logging (now goes to the log file because of redirection)
+        fprintf(stderr, "[CHILD] Spawning: %s (PID: %d)\n", service_path.c_str(), getpid());
+        const char *wd = getenv("WAYLAND_DISPLAY");
+        const char *path = getenv("PATH");
+        fprintf(stderr, "[CHILD] Environment WAYLAND_DISPLAY: %s\n", wd ? wd : "NULL");
+        fprintf(stderr, "[CHILD] Environment PATH: %s\n", path ? path : "NULL");
+        fflush(stderr);
+
         char *argv[] = {(char *)service_path.c_str(), nullptr};
         execvp(service_path.c_str(), argv);
 
-        LOG_ERROR << "[HorizonSession] Failed to exec " << service_path << ": " << strerror(errno)
-                  << std::endl;
-        exit(1);
+        fprintf(stderr, "[HorizonSession] Failed to exec %s: %s\n", service_path.c_str(),
+                strerror(errno));
+        _exit(1);
     }
     else if (pid > 0)
     {
@@ -316,8 +341,8 @@ std::string HorizonSession::handle_ipc_message(const std::string &msg)
 
             return "{\"status\": \"sent\"}";
         }
-        else if (type == "show_menu" || type == "menu_clicked" || type == "menu_daemon_status" ||
-                 type == "create_menu")
+        else if (type == "show_menu" || type == "menu_clicked" || type == "menu_item_clicked" ||
+                 type == "menu_daemon_status" || type == "create_menu")
         {
             // Ruta de mensajeria hub and spoke para menus.
             // Para `top_panel`, o `horizon_menu_manager_d`.

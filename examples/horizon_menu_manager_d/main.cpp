@@ -44,33 +44,56 @@ int main(int argc, char *argv[])
         MessageManager message_manager;
         RequestRouter router(message_manager);
 
+        // State for managing global menu locking
+        bool menu_visible = false;
+
         // Register the "create_menu" handler
-        router.register_handler("create_menu",
-                                [](const std::string &request_id, const nlohmann::json &request,
-                                   MessageManager &mgr) -> nlohmann::json
-                                {
-                                    if (!request.contains("menu") || !request["menu"].is_object())
-                                    {
-                                        nlohmann::json err;
-                                        err["status"] = "error";
-                                        err["request_id"] = request_id;
-                                        err["message"] =
-                                            "Missing 'menu' object in create_menu request";
-                                        return err;
-                                    }
+        router.register_handler(
+            "create_menu",
+            [&app, &menu_visible, root_ptr](const std::string &request_id,
+                                            const nlohmann::json &request,
+                                            MessageManager &mgr) -> nlohmann::json
+            {
+                if (!request.contains("menu") || !request["menu"].is_object())
+                {
+                    nlohmann::json err;
+                    err["status"] = "error";
+                    err["request_id"] = request_id;
+                    err["message"] = "Missing 'menu' object in create_menu request";
+                    return err;
+                }
 
-                                    auto menu_message =
-                                        std::make_unique<MenuMessage>(request["menu"]);
-                                    std::string message_id = menu_message->id();
+                // Define a reusable lambda to hide the daemon and notify others
+                auto hide_daemon = [&app, &menu_visible, root_ptr]()
+                {
+                    std::cout << "[MENU MANAGER] Hiding daemon via callback." << std::endl;
+                    for (auto &child : root_ptr->children())
+                    {
+                        child->set_visible(false);
+                    }
+                    menu_visible = false;
+                    app->set_visible(false);
 
-                                    mgr.add_message(std::move(menu_message));
+                    IpcClient global_menu_client("/tmp/horizon_session.sock");
+                    global_menu_client.send(nlohmann::json{{"type", "menu_daemon_status"},
+                                                           {"visible", false},
+                                                           {"receiver_id", "top_panel"}}
+                                                .dump());
+                };
 
-                                    nlohmann::json response;
-                                    response["status"] = "ok";
-                                    response["request_id"] = request_id;
-                                    response["message_id"] = message_id;
-                                    return response;
-                                });
+                std::string requester_id = request.value("requester_id", "");
+                auto menu_message =
+                    std::make_unique<MenuMessage>(request["menu"], requester_id, hide_daemon);
+                std::string message_id = menu_message->id();
+
+                mgr.add_message(std::move(menu_message));
+
+                nlohmann::json response;
+                response["status"] = "ok";
+                response["request_id"] = request_id;
+                response["message_id"] = message_id;
+                return response;
+            });
 
         std::mutex queue_mutex;
         std::vector<std::string> pending_messages;
@@ -94,8 +117,6 @@ int main(int argc, char *argv[])
                                   }
                               });
 
-        // Initially hidden
-        bool menu_visible = false;
         app->set_visible(false);
 
         // Hide when clicking the background (root widget)

@@ -26,7 +26,7 @@ namespace horizon
          * @param monitor Optional monitor index (-1 = default).
          * @return true if the request was sent successfully.
          */
-        bool show_menu(Menu *menu, int x, int y, int monitor = -1);
+        bool show_menu(Menu *menu, int x, int y, int monitor = -1, const std::string &requester_id = "");
 
         /**
          * @brief Sends a list of Menus to the global menu panel.

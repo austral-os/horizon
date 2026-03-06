@@ -12,7 +12,9 @@ namespace horizon
     class MenuMessage : public Message
     {
     public:
-        MenuMessage(const nlohmann::json &menu_json)
+        MenuMessage(const nlohmann::json &menu_json, const std::string &requester_id = "",
+                    std::function<void()> on_action = nullptr)
+            : m_requester_id(requester_id), m_on_action(on_action)
         {
             m_id = menu_json.value("id", "unknown");
             m_menu = std::make_unique<Menu>();
@@ -88,7 +90,7 @@ namespace horizon
                         std::cout << "[MENU MESSAGE] Adding click handler for item: " << item_id
                                   << std::endl;
                         item->add_on_click(
-                            [item_id]()
+                            [item_id, this]()
                             {
                                 std::cout << "[MENU MANAGER] MenuItem clicked! ID: " << item_id
                                           << ". Reporting to /tmp/horizon_global_menu.sock"
@@ -98,11 +100,24 @@ namespace horizon
                                     IpcClient client("/tmp/horizon_session.sock");
                                     nlohmann::json msg;
                                     msg["type"] = "menu_item_clicked";
-                                    msg["receiver_id"] = "top_panel";
+                                    // Route back to the requester (e.g., top_panel)
+                                    if (!m_requester_id.empty())
+                                    {
+                                        msg["receiver_id"] = m_requester_id;
+                                    }
+                                    else
+                                    {
+                                        msg["receiver_id"] = "top_panel"; // Fallback
+                                    }
                                     msg["id"] = item_id;
                                     bool ok = client.send(msg.dump());
                                     std::cout << "[MENU MANAGER] Report sent: "
                                               << (ok ? "SUCCESS" : "FAILED") << std::endl;
+
+                                    if (m_on_action)
+                                    {
+                                        m_on_action();
+                                    }
                                 }
                                 catch (const std::exception &e)
                                 {
@@ -132,6 +147,8 @@ namespace horizon
         }
 
         std::string m_id;
+        std::string m_requester_id;
+        std::function<void()> m_on_action;
         std::unique_ptr<Menu> m_menu;
         std::vector<std::unique_ptr<Menu>> m_submenus; // Keep submenus alive
     };
