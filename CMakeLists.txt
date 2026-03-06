@@ -145,6 +145,18 @@ target_link_libraries(iconview_demo
         horizon
 )
 
+add_executable(horizon_session
+    examples/horizon_session/main.cpp
+    examples/horizon_session/HorizonSession.cpp
+    examples/horizon_session/DesktopParser.cpp
+    examples/horizon_session/Logger.cpp
+)
+
+target_link_libraries(horizon_session
+    PRIVATE
+        horizon
+)
+
 # Agregamos un target "run" para compilar y ejecutar de una vez
 add_custom_target(run
     COMMAND $<TARGET_FILE:minimal>
