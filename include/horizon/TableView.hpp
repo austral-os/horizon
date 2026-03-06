@@ -112,7 +112,8 @@ namespace horizon
             if (!m_visible)
                 return;
 
-            calculate_internal_layout();
+            if (m_dirty || m_child_dirty || force)
+                calculate_internal_layout();
 
             // Intersects check (dirty region)
             bool intersects =

@@ -9,6 +9,22 @@ namespace horizon
 
     void AquaPolygon::set_points(const std::vector<PolygonPoint> &points)
     {
+        if (m_points.size() == points.size())
+        {
+            bool changed = false;
+            for (size_t i = 0; i < points.size(); ++i)
+            {
+                if (m_points[i].x != points[i].x || m_points[i].y != points[i].y ||
+                    m_points[i].radius != points[i].radius)
+                {
+                    changed = true;
+                    break;
+                }
+            }
+            if (!changed)
+                return;
+        }
+
         m_points = points;
         invalidate();
     }

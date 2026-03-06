@@ -67,6 +67,12 @@ namespace horizon
         }
     }
 
+    void ScrollArea::calculate_layout()
+    {
+        Widget::calculate_layout();
+        update_scrollbars();
+    }
+
     void ScrollArea::render(GraphicsContext &gc, int cx, int cy, int cw, int ch, bool force)
     {
         if (!m_visible)
@@ -77,9 +83,9 @@ namespace horizon
         if (!intersects)
             return;
 
-        bool should_draw = m_dirty || force || m_child_dirty;
-
         calculate_layout();
+
+        bool should_draw = m_dirty || force || m_child_dirty;
 
         // 1. Draw background (optional)
         if (should_draw)
@@ -87,8 +93,6 @@ namespace horizon
             // gc.setColor(Color(0.95f, 0.95f, 0.95f, 1.0f));
             // gc.fillRect(m_x, m_y, m_width, m_height);
         }
-
-        update_scrollbars();
 
         // 2. Render child with clipping and offset
         if (!m_children.empty())

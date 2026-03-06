@@ -28,6 +28,7 @@ namespace horizon
             return m_scroll_y;
         }
 
+        void calculate_layout() override;
         void render(GraphicsContext &gc, int cx, int cy, int cw, int ch,
                     bool force = false) override;
         void set_application_recursive(Application *app) override;
