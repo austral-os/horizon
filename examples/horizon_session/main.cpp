@@ -44,9 +44,16 @@ int main(int argc, char *argv[])
         // Assuming HorizonSession start/IPC server handles its own event loop blocking,
         // if not we might need to wait here. For now, we will sleep to keep the process alive
         // since we didn't see a blocking call in start().
-        while (true)
+        while (session && session->is_running())
         {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        LOG_INFO << "[HorizonSession] Session running flag is false, exiting main loop."
+                 << std::endl;
+        if (session)
+        {
+            session->stop();
         }
     }
     catch (const std::exception &e)

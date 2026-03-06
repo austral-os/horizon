@@ -55,6 +55,11 @@ public:
     void init(bool with_compositor = false);
     void start();
     void stop();
+    bool is_running() const
+    {
+        return m_running;
+    }
+    void terminate_all_apps();
 
     void run_app(const std::string &app_path);
     void run_service(const std::string &service_path);
@@ -100,4 +105,12 @@ private:
      * @brief Servidor de IPC
      */
     std::unique_ptr<horizon::IpcServer> m_server;
+    /**
+     * @brief Flag para controlar la ejecución de la sesión
+     */
+    bool m_running = true;
+    /**
+     * @brief Lista de PIDs de procesos hijos para terminarlos al cerrar la sesión
+     */
+    std::vector<int> m_spawned_pids;
 };

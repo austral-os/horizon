@@ -231,9 +231,8 @@ int main(int argc, char *argv[])
                 }
                 else if (item_id == "run_logout")
                 {
-                    std::cout << "[TOP PANEL] Requesting to run custom_app (Logout)..."
-                              << std::endl;
-                    app->send_remote_signal(-1, "run_app", "custom_app");
+                    std::cout << "[TOP PANEL] Requesting Logout..." << std::endl;
+                    app->send_remote_signal(-1, "logout");
                 }
                 else if (item_id == "force_quit")
                 {

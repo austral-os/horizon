@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cerrno>
 #include <chrono>
+#include <csignal>
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
@@ -58,7 +59,42 @@ void HorizonSession::start()
 
 void HorizonSession::stop()
 {
+    m_running = false;
     m_server->stop();
+    terminate_all_apps();
+}
+
+void HorizonSession::terminate_all_apps()
+{
+    LOG_INFO << "[HorizonSession] Terminating all applications..." << std::endl;
+
+    std::lock_guard<std::mutex> lock(m_state_mutex);
+    for (int pid : m_spawned_pids)
+    {
+        if (pid > 0)
+        {
+            LOG_INFO << "[HorizonSession] Sending SIGTERM to PID " << pid << std::endl;
+            kill(pid, SIGTERM);
+        }
+    }
+
+    // Give them a moment to close
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    // Force SIGKILL for any stubborn survivors
+    for (int pid : m_spawned_pids)
+    {
+        if (pid > 0)
+        {
+            if (kill(pid, 0) == 0) // Process still exists
+            {
+                LOG_INFO << "[HorizonSession] PID " << pid << " still alive, sending SIGKILL"
+                         << std::endl;
+                kill(pid, SIGKILL);
+            }
+        }
+    }
+    m_spawned_pids.clear();
 }
 
 void HorizonSession::run_app(const std::string &app_name)
@@ -115,6 +151,8 @@ void HorizonSession::run_service(const std::string &service_path)
     {
         LOG_INFO << "[HorizonSession] Successfully spawned " << service_path << " with PID " << pid
                  << std::endl;
+        std::lock_guard<std::mutex> lock(m_state_mutex);
+        m_spawned_pids.push_back(pid);
     }
     else
     {
@@ -337,6 +375,14 @@ std::string HorizonSession::handle_ipc_message(const std::string &msg)
                     remove_app(target_pid);
                 }
                 return "{\"status\": \"killed\"}";
+            }
+
+            if (signal == "logout")
+            {
+                LOG_INFO << "[SIGNAL] Logout requested" << std::endl;
+                terminate_all_apps();
+                m_running = false;
+                return "{\"status\": \"logging_out\"}";
             }
 
             nlohmann::json signal_msg;
