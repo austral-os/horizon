@@ -124,6 +124,7 @@ namespace horizon
 
         virtual int preferred_width() const;
         virtual int preferred_height() const;
+        virtual int preferred_height(int width) const;
 
         int x() const;
         int y() const;

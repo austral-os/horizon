@@ -87,6 +87,11 @@ namespace horizon
         return m_fixed_size > 0 ? m_fixed_size : m_height;
     }
 
+    int Widget::preferred_height(int /*width*/) const
+    {
+        return preferred_height();
+    }
+
     void Widget::render(GraphicsContext &ctx, int cx, int cy, int cw, int ch, bool force)
     {
         if (!m_visible)

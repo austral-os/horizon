@@ -39,6 +39,31 @@ namespace horizon
         return size + 4;
     }
 
+    int Label::preferred_height(int width) const
+    {
+        if (m_text.empty() || width <= 0)
+            return 0;
+
+        if (!application() || !application()->theme_manager)
+            return 20;
+
+        auto theme_font = application()->theme_manager->get_font("window");
+        int size = (m_font_size > 0) ? m_font_size : theme_font.size;
+        int line_height = size + 4;
+
+        unsigned char tmp_buf[4] = {0};
+        CairoGraphicContext measure_ctx(tmp_buf, 1, 1);
+
+        // We use a large height to calculate all lines
+        auto lines =
+            const_cast<Label *>(this)->calculate_lines(measure_ctx, width, 100000, line_height);
+
+        if (lines.empty())
+            return line_height;
+
+        return (int)lines.size() * line_height;
+    }
+
     void Label::draw(GraphicsContext &gc)
     {
         auto *tm = application()->theme_manager.get();

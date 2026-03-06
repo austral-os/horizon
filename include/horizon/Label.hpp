@@ -41,6 +41,7 @@ namespace horizon
 
         int preferred_width() const override;
         int preferred_height() const override;
+        int preferred_height(int width) const override;
 
         void set_text(const std::string &text);
         const std::string &text() const;

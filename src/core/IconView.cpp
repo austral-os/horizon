@@ -72,6 +72,13 @@ namespace horizon
         return m_side_margin;
     }
 
+    void IconViewBase::set_item_size(int width, int height)
+    {
+        BASE_ITEM_WIDTH = width;
+        BASE_ITEM_HEIGHT = height;
+        calculate_layout();
+    }
+
     int IconViewBase::get_theme_font_size(const std::string &role) const
     {
         if (!application() || !application()->theme_manager)
@@ -140,8 +147,6 @@ namespace horizon
 
         int scroll_x = m_scroll_area ? m_scroll_area->scroll_x() : 0;
         int scroll_y = m_scroll_area ? m_scroll_area->scroll_y() : 0;
-        int current_col = 0;
-        int current_row = 0;
 
         int actual_spacing = m_grid_spacing;
         if (columns > 1)
@@ -152,30 +157,36 @@ namespace horizon
             start_x = side_margin;
         }
 
-        for (auto &child : m_content_pane->children())
+        int current_y = side_margin;
+        auto &children = m_content_pane->children();
+
+        for (int i = 0; i < (int)children.size(); i += columns)
         {
-            int x = m_x + start_x + current_col * (m_item_width + actual_spacing) - scroll_x;
-            int y = m_y + side_margin + current_row * (m_item_height + m_grid_spacing) - scroll_y;
+            int row_max_height = 0;
+            int row_end = std::min(i + columns, (int)children.size());
 
-            child->set_position(x, y);
-            child->set_size(m_item_width, m_item_height);
-
-            current_col++;
-            if (current_col >= columns)
+            // 1. Calculate max height for this row
+            for (int j = i; j < row_end; ++j)
             {
-                current_col = 0;
-                current_row++;
+                row_max_height =
+                    std::max(row_max_height, children[j]->preferred_height(m_item_width));
             }
+
+            // 2. Position items in this row
+            for (int j = i; j < row_end; ++j)
+            {
+                int col = j - i;
+                int x = m_x + start_x + col * (m_item_width + actual_spacing) - scroll_x;
+                int y = m_y + current_y - scroll_y;
+                children[j]->set_position(x, y);
+                children[j]->set_size(m_item_width, row_max_height);
+            }
+
+            current_y += row_max_height + m_grid_spacing;
         }
 
-        // Set content height based on rows
-        int num_items = (int)m_content_pane->children().size();
-        int total_rows = (num_items + columns - 1) / columns;
-        int needed_height = total_rows * (m_item_height + m_grid_spacing) + 2 * side_margin;
-
-        // Ensure we don't have crazy dimensions (max 1M pixels)
+        int needed_height = current_y + side_margin - (children.empty() ? 0 : m_grid_spacing);
         needed_height = std::min(1000000, std::max(m_height, needed_height));
-
         m_content_pane->set_size(m_width, needed_height);
     }
 

@@ -77,9 +77,20 @@ public:
         invalidate();
     }
 
+    int preferred_height(int width) const override
+    {
+        int padding = static_cast<int>(4 * m_zoom);
+        int gap = 2; // icon-to-label gap
+        int label_width = width - 4;
+
+        int label_h = m_label_ptr->preferred_height(label_width);
+
+        return padding + m_icon_size + gap + label_h + padding;
+    }
+
     void calculate_layout() override
     {
-        int padding = static_cast<int>(6 * m_zoom);
+        int padding = static_cast<int>(4 * m_zoom); // Reduced from 6
         int icon_y = padding;
 
         // Center icon horizontally
@@ -87,7 +98,7 @@ public:
         m_icon_ptr->set_size(m_icon_size, m_icon_size);
 
         // Position label below icon
-        int label_y = icon_y + m_icon_size + 4;
+        int label_y = icon_y + m_icon_size + 2; // Reduced from 4
         m_label_ptr->set_position(m_x + 2, m_y + label_y);
         m_label_ptr->set_size(m_width - 4, m_height - label_y - 2);
     }
@@ -152,6 +163,7 @@ int main(int argc, char *argv[])
     auto icon_view = std::make_unique<IconView<FileData>>();
     auto icon_view_ptr = icon_view.get();
     icon_view->set_zoom(1.5f);
+    icon_view->set_item_size(80, 85); // Adjusted for better fit with labels
 
     // Factory for creating items
     icon_view->set_item_factory(

@@ -27,6 +27,8 @@ namespace horizon
         void set_side_margin(int margin);
         int side_margin() const;
 
+        void set_item_size(int width, int height);
+
         int get_theme_font_size(const std::string &role = "icon-view") const;
 
         void calculate_layout() override;
@@ -46,9 +48,9 @@ namespace horizon
         int m_side_margin{16};
         int m_grid_spacing{12};
 
-        const int BASE_ITEM_WIDTH{80};
-        const int BASE_ITEM_HEIGHT{90};
-        const int BASE_GRID_SPACING{12};
+        int BASE_ITEM_WIDTH{80};
+        int BASE_ITEM_HEIGHT{80};
+        int BASE_GRID_SPACING{12};
     };
 
     /**
