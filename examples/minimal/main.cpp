@@ -27,6 +27,7 @@
 #include <horizon/Widget.hpp>
 #include <horizon/Window.hpp>
 #include <iostream>
+#include <unistd.h>
 
 using horizon::Application;
 using horizon::AquaObject;
@@ -521,7 +522,16 @@ int main()
 
         main_menu->add_item("Save", "Cmd+S");
         main_menu->add_separator();
-        main_menu->add_item("Quit", "Cmd+Q");
+        auto *quit_item = main_menu->add_item("Quit", "Cmd+Q");
+        quit_item->set_id("quit");
+        quit_item->when_mouse_press.connect(
+            [&app](horizon::MouseButtonEventContext &ev)
+            {
+                std::cout << "[MINIMAL] Quit clicked in local menu. Sending close signal via IPC."
+                          << std::endl;
+                app.send_remote_signal(getpid(), "close");
+                ev.stop_propagation = true;
+            });
 
         menu_demo_container->add_child(std::move(main_menu));
         menu_demo_container->add_child(std::move(sub_menu));
@@ -549,7 +559,8 @@ int main()
         app_menu->set_bold(true);
         app_menu->add_item("Preferences", "Ctrl+,");
         app_menu->add_separator();
-        app_menu->add_item("Quit", "Ctrl+Q");
+        auto *global_quit = app_menu->add_item("Quit", "Ctrl+Q");
+        global_quit->set_id("quit");
 
         auto window_menu = new horizon::Menu();
         window_menu->set_title("Window");

@@ -82,8 +82,9 @@ int main(int argc, char *argv[])
                 };
 
                 std::string requester_id = request.value("requester_id", "");
-                auto menu_message =
-                    std::make_unique<MenuMessage>(request["menu"], requester_id, hide_daemon);
+                int requester_pid = request.value("requester_pid", -1);
+                auto menu_message = std::make_unique<MenuMessage>(request["menu"], requester_id,
+                                                                  requester_pid, hide_daemon);
                 std::string message_id = menu_message->id();
 
                 mgr.add_message(std::move(menu_message));

@@ -122,15 +122,16 @@ int main(int argc, char *argv[])
 
         // Wire up click callback: send menu to daemon for display
         menubar->set_on_menu_click(
-            [&client_menu, &menu_daemon_visible](Menu *menu, int x, int y)
+            [&client_menu, &menu_daemon_visible, &current_owner_pid](Menu *menu, int x, int y)
             {
                 // Synchronously assume daemon is visible to prevent race conditions
                 menu_daemon_visible = true;
 
                 // y=0 because the menu manager overlay starts right below the
                 // top_panel's exclusive zone, so y=0 is already at the panel bottom.
-                std::cout << "MenuBar click: " << menu->title() << " at x=" << x << std::endl;
-                client_menu.show_menu(menu, x, 0, -1, "top_panel");
+                std::cout << "MenuBar click: " << menu->title() << " at x=" << x
+                          << " (Owner PID: " << current_owner_pid << ")" << std::endl;
+                client_menu.show_menu(menu, x, 0, -1, "top_panel", current_owner_pid);
             });
 
         // Setup RequestRouter for top_panel

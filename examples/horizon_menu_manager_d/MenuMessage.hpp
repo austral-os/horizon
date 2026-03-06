@@ -13,8 +13,8 @@ namespace horizon
     {
     public:
         MenuMessage(const nlohmann::json &menu_json, const std::string &requester_id = "",
-                    std::function<void()> on_action = nullptr)
-            : m_requester_id(requester_id), m_on_action(on_action)
+                    int requester_pid = -1, std::function<void()> on_action = nullptr)
+            : m_requester_id(requester_id), m_requester_pid(requester_pid), m_on_action(on_action)
         {
             m_id = menu_json.value("id", "unknown");
             m_menu = std::make_unique<Menu>();
@@ -109,6 +109,11 @@ namespace horizon
                                     {
                                         msg["receiver_id"] = "top_panel"; // Fallback
                                     }
+
+                                    if (m_requester_pid != -1)
+                                    {
+                                        msg["receiver_pid"] = m_requester_pid;
+                                    }
                                     msg["id"] = item_id;
                                     bool ok = client.send(msg.dump());
                                     std::cout << "[MENU MANAGER] Report sent: "
@@ -148,6 +153,7 @@ namespace horizon
 
         std::string m_id;
         std::string m_requester_id;
+        int m_requester_pid;
         std::function<void()> m_on_action;
         std::unique_ptr<Menu> m_menu;
         std::vector<std::unique_ptr<Menu>> m_submenus; // Keep submenus alive

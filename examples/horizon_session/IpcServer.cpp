@@ -155,7 +155,7 @@ namespace horizon
                 // Send an initial OK so the client knows it's subscribed
                 std::string ok = "{\"status\": \"subscribed\"}\n";
                 send(client_fd, ok.c_str(), ok.length(), MSG_NOSIGNAL);
-                return; // Return so the thread can finish, but the FD stays in m_subscribers
+                return; // Return and KEEP FD open for broadcasts
             }
 
             send(client_fd, response.c_str(), response.length(), MSG_NOSIGNAL);
@@ -165,6 +165,9 @@ namespace horizon
             // For now, let's keep it simple: one shot or subscribe.
             break;
         }
+
+        // Only close if we are not a subscriber (subscribers are closed in broadcast() or on
+        // shutdown)
         close(client_fd);
     }
 } // namespace horizon

@@ -599,6 +599,21 @@ namespace horizon
                                         });
                                 }
                             }
+                            else if (j.value("type", "unknown") == "menu_item_clicked")
+                            {
+                                int receiver_pid = j.value("receiver_pid", -1);
+                                if (receiver_pid == getpid())
+                                {
+                                    std::string item_id = j.value("id", "");
+                                    if (item_id == "quit" || item_id == "Quit")
+                                    {
+                                        std::cout << "[APP] Received menu_item_clicked for 'quit', "
+                                                     "triggering on_close()"
+                                                  << std::endl;
+                                        this->post_task([this]() { this->on_close(); });
+                                    }
+                                }
+                            }
                         }
                         catch (...)
                         {
