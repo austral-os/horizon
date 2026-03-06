@@ -72,3 +72,41 @@ El panel superior (`top_panel`) y el gestor de menús (`menu_manager_horizon_d`)
 - `top_panel`: Sirve la lista de menús globales en `/tmp/horizon_global_menu.sock`.
 - `menu_manager_d`: Sirve el dibujado de menús en `/tmp/horizon_menu.sock`.
 - Y además de ser servidores, **todos usan clientes IPC para chusmearse información mutuamente**, creando un sistema rápido y modular donde cada aplicación hace solo una cosa, pero la hace muy bien.
+
+### Diagrama de Arquitectura IPC
+
+A continuación, un diagrama que ilustra cómo estas aplicaciones se conectan como clientes y servidores:
+
+```mermaid
+flowchart TD
+    subgraph apps["Aplicaciones Comunes"]
+        app1["Aplicación A"]
+        app2["Aplicación B"]
+    end
+
+    subgraph am["app_manager"]
+        am_server("IpcServer\n/tmp/horizon_apps.sock")
+    end
+
+    subgraph tp["top_panel"]
+        tp_server("IpcServer\n/tmp/horizon_global_menu.sock")
+        tp_client>IpcClient]
+    end
+
+    subgraph mm["menu_manager_horizon_d"]
+        mm_server("IpcServer\n/tmp/horizon_menu.sock")
+        mm_client>IpcClient]
+    end
+
+    %% Envío de eventos al app_manager (suscripciones o reportes)
+    app1 -.->|app_started/stopped| am_server
+    app2 -.->|app_started/stopped| am_server
+
+    %% Envío de eventos al top_panel (dibujar menús)
+    app1 -.->|Envía menús de ventana| tp_server
+    app2 -.->|Envía menús de ventana| tp_server
+
+    %% Comunicación bidireccional entre panel y menu manager
+    tp_client ==>|"create_menu" (clic en barra)| mm_server
+    mm_client ==>|"menu_daemon_status" (visible/oculto)| tp_server
+```
