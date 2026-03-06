@@ -31,7 +31,7 @@ public:
         auto label = std::make_unique<Label>();
         label->set_position_type(FREE);
         label->set_alignment(TextAlignment::Center);
-        label->set_vertical_alignment(VerticalAlignment::Top);
+        label->set_vertical_alignment(VerticalAlignment::Middle);
         m_label_ptr = label.get();
         add_child(std::move(label));
 
@@ -105,41 +105,31 @@ public:
 
     void draw(GraphicsContext &gc) override
     {
-        bool highlighted = m_selected || is_hovered() || is_pressed();
-        if (highlighted)
-        {
-            Color base_color;
-            Color border_color;
-
-            if (m_selected)
-            {
-                base_color = Color(0.2f, 0.4f, 0.8f, 0.2f);
-                border_color = Color(0.2f, 0.4f, 0.8f, 0.4f);
-            }
-            else if (is_pressed())
-            {
-                base_color = Color(0.4f, 0.4f, 0.4f, 0.2f);
-                border_color = Color(0.4f, 0.4f, 0.4f, 0.3f);
-            }
-            else
-            {
-                base_color = Color(0.0f, 0.0f, 0.0f, 0.05f);
-                border_color = Color(0.0f, 0.0f, 0.0f, 0.1f);
-            }
-
-            gc.setColor(base_color);
-            gc.fillRect(m_x, m_y, m_width, m_height, CornerRadius(6));
-
-            gc.setColor(border_color);
-            gc.drawRect(m_x, m_y, m_width, m_height, CornerRadius(6));
-        }
-
         if (m_selected)
         {
+            // MacOS Mountain Lion selection blue: #3875d7
+            Color base_color = Color(0.22f, 0.46f, 0.84f, 1.0f);
+            Color border_color = Color(0.22f, 0.46f, 0.84f, 1.0f);
+
+            int padding = static_cast<int>(4 * m_zoom);
+            int label_y = padding + m_icon_size + 2;
+            int h_x = m_x + 2;
+            int h_y = m_y + label_y;
+            int h_w = m_width - 4;
+            int h_h = m_height - label_y - 2;
+
+            gc.setColor(base_color);
+            gc.fillRect(h_x, h_y, h_w, h_h, CornerRadius(6));
+
+            gc.setColor(border_color);
+            gc.drawRect(h_x, h_y, h_w, h_h, CornerRadius(6));
+
+            m_label_ptr->set_text_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
             m_label_ptr->set_font_weight(FONT_WEIGHT_BOLD);
         }
         else
         {
+            m_label_ptr->set_text_color(Color(0.0f, 0.0f, 0.0f, 1.0f));
             m_label_ptr->set_font_weight(FONT_WEIGHT_NORMAL);
         }
     }
