@@ -105,11 +105,16 @@ namespace horizon
 
     void IpcServer::broadcast(const std::string &msg)
     {
+        std::string payload = msg;
+        if (payload.empty() || payload.back() != '\n')
+        {
+            payload += '\n';
+        }
         std::lock_guard<std::mutex> lock(m_subscribers_mutex);
         for (auto it = m_subscribers.begin(); it != m_subscribers.end();)
         {
             // Use send with MSG_NOSIGNAL to prevent SIGPIPE if the subscriber disconnected
-            ssize_t n = send(*it, msg.c_str(), msg.length(), MSG_NOSIGNAL);
+            ssize_t n = send(*it, payload.c_str(), payload.length(), MSG_NOSIGNAL);
             if (n == -1)
             {
                 std::cout << "[IpcServer] Subscriber on fd " << *it
@@ -148,7 +153,7 @@ namespace horizon
                     m_subscribers.push_back(client_fd);
                 }
                 // Send an initial OK so the client knows it's subscribed
-                std::string ok = "{\"status\": \"subscribed\"}";
+                std::string ok = "{\"status\": \"subscribed\"}\n";
                 send(client_fd, ok.c_str(), ok.length(), MSG_NOSIGNAL);
                 return; // Return so the thread can finish, but the FD stays in m_subscribers
             }

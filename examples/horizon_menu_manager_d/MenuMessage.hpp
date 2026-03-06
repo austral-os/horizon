@@ -95,9 +95,10 @@ namespace horizon
                                           << std::endl;
                                 try
                                 {
-                                    IpcClient client("/tmp/horizon_global_menu.sock");
+                                    IpcClient client("/tmp/horizon_session.sock");
                                     nlohmann::json msg;
                                     msg["type"] = "menu_item_clicked";
+                                    msg["receiver_id"] = "top_panel";
                                     msg["id"] = item_id;
                                     bool ok = client.send(msg.dump());
                                     std::cout << "[MENU MANAGER] Report sent: "

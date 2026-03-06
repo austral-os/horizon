@@ -160,8 +160,8 @@ int main(int argc, char *argv[])
 
         app->set_root(std::move(root));
 
-        // 5. Subscribe to App Manager
-        IpcClient client("/tmp/horizon_apps.sock");
+        // 5. Subscribe to Horizon Session Broker
+        IpcClient client("/tmp/horizon_session.sock");
         client.subscribe(
             "{\"type\": \"subscribe\"}",
             [&app, shelf_ptr](const std::string &msg)
@@ -216,7 +216,8 @@ int main(int argc, char *argv[])
                                                         if (!token.empty())
                                                             sig["token"] = token;
 
-                                                        IpcClient client("/tmp/horizon_apps.sock");
+                                                        IpcClient client(
+                                                            "/tmp/horizon_session.sock");
                                                         client.send(sig.dump());
                                                     }
                                                     catch (...)

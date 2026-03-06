@@ -103,6 +103,7 @@ namespace horizon
 
                     write(m_subscription_fd, message.c_str(), message.size());
 
+                    std::string pending_data;
                     char buf[4096];
                     while (!m_stop_subscription)
                     {
@@ -110,7 +111,18 @@ namespace horizon
                         if (n <= 0)
                             break;
                         buf[n] = '\0';
-                        callback(std::string(buf, n));
+                        pending_data += buf;
+
+                        size_t pos;
+                        while ((pos = pending_data.find('\n')) != std::string::npos)
+                        {
+                            std::string single_msg = pending_data.substr(0, pos);
+                            pending_data.erase(0, pos + 1);
+                            if (!single_msg.empty())
+                            {
+                                callback(single_msg);
+                            }
+                        }
                     }
 
                     if (m_subscription_fd != -1)

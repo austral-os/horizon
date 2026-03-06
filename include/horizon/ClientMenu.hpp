@@ -15,7 +15,7 @@ namespace horizon
     class ClientMenu
     {
     public:
-        ClientMenu(const std::string &socket_path = "/tmp/horizon_menu.sock");
+        ClientMenu(const std::string &socket_path = "/tmp/horizon_session.sock");
         ~ClientMenu() = default;
 
         /**

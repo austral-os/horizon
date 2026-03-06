@@ -3,25 +3,20 @@
 #include "Logger.hpp"
 #include <algorithm>
 #include <cerrno>
+#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <sys/prctl.h>
 #include <sys/wait.h>
+#include <thread>
 #include <unistd.h>
 
 HorizonSession::HorizonSession() : m_server_socket_path("/tmp/horizon_session.sock")
 {
-    // Initialize IPC Server
-    m_server = std::make_unique<horizon::IpcServer>(
-        m_server_socket_path,
-        [this](const std::string &msg) -> std::string
-        {
-            // Placeholder: Parse and handle incoming messages
-            // Depending on the message, it could be a pub/sub request or a state change
-            LOG_INFO << "[HorizonSession] Received IPC msg: " << msg << std::endl;
-            return "{\"status\": \"ok\"}";
-        });
+    m_server = std::make_unique<horizon::IpcServer>(m_server_socket_path,
+                                                    [this](const std::string &msg) -> std::string
+                                                    { return this->handle_ipc_message(msg); });
 }
 
 HorizonSession::~HorizonSession()
@@ -108,6 +103,16 @@ void HorizonSession::run_startup_services()
     for (const auto &svc_path : m_startup_services)
     {
         run_service(svc_path);
+        if (svc_path == "labwc")
+        {
+            LOG_INFO << "[HorizonSession] Waiting for compositor to initialize..." << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+        }
+        else
+        {
+            std::this_thread::sleep_for(
+                std::chrono::milliseconds(100)); // Space out apps to reduce concurrent congestion
+        }
     }
 }
 
@@ -231,4 +236,166 @@ void HorizonSession::send_to_subscribers(HznSessionEvent event, const HznSession
         target_msg.receiver_pid = pid;
         send_message(target_msg);
     }
+}
+
+std::string HorizonSession::handle_ipc_message(const std::string &msg)
+{
+    LOG_INFO << "[HorizonSession] IPC received: " << msg.substr(0, 100)
+             << (msg.length() > 100 ? "..." : "") << std::endl;
+    try
+    {
+        auto j = nlohmann::json::parse(msg);
+        std::string type = j.value("type", "unknown");
+
+        if (type == "subscribe")
+        {
+            LOG_INFO << "[HorizonSession] New subscription request." << std::endl;
+            return "SUBSCRIBE";
+        }
+
+        bool changed = false;
+
+        // Handling app state (similar to legacy app_manager)
+        if (type == "app_started" || type == "window_state_changed")
+        {
+            AppInfo info;
+            info.id = j.value("app_id", "unknown");
+            info.name = j.value("name", "Unknown");
+            info.pid = j.value("pid", -1);
+            info.icon = j.value("icon", "");
+            info.show_in_dock = j.value("show_in_dock", false);
+            info.show_in_system_tray = j.value("show_in_system_tray", false);
+            info.is_minimized = j.value("is_minimized", false);
+
+            add_app(info.pid, info);
+            changed = true;
+
+            if (type == "app_started")
+                LOG_INFO << "[EVENT] App Registered: " << info.name << " (" << info.id
+                         << ") [PID: " << info.pid << "]" << std::endl;
+            else
+                LOG_INFO << "[EVENT] Window State Changed: " << info.name
+                         << " (Minimized: " << (info.is_minimized ? "YES" : "NO") << ")"
+                         << std::endl;
+        }
+        else if (type == "app_stopped")
+        {
+            std::string app_id = j.value("app_id", "unknown");
+            int pid = j.value("pid", -1);
+            LOG_INFO << "[EVENT] App Unregistering: " << app_id << " (PID: " << pid << ")"
+                     << std::endl;
+            if (pid != -1)
+                remove_app(pid);
+            // Si el PID no venia o era -1, idealmente habria que buscar la app y sacarla
+            changed = true;
+            LOG_INFO << "[EVENT] App Unregistered: " << app_id << std::endl;
+        }
+        else if (type == "send_signal")
+        {
+            int target_pid = j.value("target_pid", -1);
+            std::string signal = j.value("signal", "unknown");
+
+            if (signal == "run_app")
+            {
+                std::string app_name = j.value("token", "unknown");
+                run_app(app_name);
+                return "{\"status\": \"ok\", \"message\": \"Execution logged\"}";
+            }
+
+            nlohmann::json signal_msg;
+            signal_msg["type"] = "app_signal";
+            signal_msg["target_pid"] = target_pid;
+            signal_msg["signal"] = signal;
+            if (j.contains("token"))
+            {
+                signal_msg["token"] = j["token"];
+            }
+
+            LOG_INFO << "[SIGNAL] Broadcasting " << signal << " to PID " << target_pid << std::endl;
+            m_server->broadcast(signal_msg.dump());
+
+            return "{\"status\": \"sent\"}";
+        }
+        else if (type == "show_menu" || type == "menu_clicked" || type == "menu_daemon_status" ||
+                 type == "create_menu")
+        {
+            // Ruta de mensajeria hub and spoke para menus.
+            // Para `top_panel`, o `horizon_menu_manager_d`.
+            // Sender y Receiver ID/PID deberían estar en el payload JSON ahora si se están rutando.
+
+            // Si el mensaje especifica un receiver_id o receiver_pid explícito, se lo enviaremos
+            // a través del broadcast para que el destinatario lo capture,
+            // ya que los clientes pueden filtrar usando receiver_id/pid.
+            std::string receiver_id = j.value("receiver_id", "");
+            int receiver_pid = j.value("receiver_pid", -1);
+
+            if (!receiver_id.empty() || receiver_pid != -1)
+            {
+                LOG_INFO << "[ROUTING] Routing message of type " << type << " to Receiver ID: '"
+                         << receiver_id << "', PID: " << receiver_pid << std::endl;
+                m_server->broadcast(j.dump());
+                return "{\"status\": \"routed\"}";
+            }
+            else
+            {
+                // Legacy support for directly broadcasting menu commands
+                m_server->broadcast(j.dump());
+                return "{\"status\": \"broadcasted\"}";
+            }
+        }
+        else if (type == "run_app")
+        {
+            std::string app_name = j.value("app_name", "unknown");
+            run_app(app_name);
+            return "{\"status\": \"ok\", \"message\": \"Execution logged\"}";
+        }
+        else
+        {
+            // By default, if a generic message has a receiver, re-broadcast it so the targeted sub
+            // gets it
+            std::string receiver_id = j.value("receiver_id", "");
+            int receiver_pid = j.value("receiver_pid", -1);
+
+            if (!receiver_id.empty() || receiver_pid != -1)
+            {
+                m_server->broadcast(j.dump());
+                return "{\"status\": \"routed\"}";
+            }
+            LOG_INFO << "[EVENT] Unknown message type: " << type << std::endl;
+        }
+
+        if (changed)
+        {
+            // Print current registry state
+            std::lock_guard<std::mutex> lock(m_state_mutex);
+            LOG_INFO << "[DEBUG] Total apps in registry: " << m_apps.size() << std::endl;
+
+            // Broadcast to subscribers
+            nlohmann::json broadcast_msg;
+            broadcast_msg["type"] = "app_list_updated";
+            broadcast_msg["apps"] = nlohmann::json::array();
+            for (const auto &[pid, app] : m_apps)
+            {
+                nlohmann::json app_j;
+                app_j["id"] = app.id;
+                app_j["name"] = app.name;
+                app_j["pid"] = app.pid;
+                app_j["icon"] = app.icon;
+                app_j["show_in_dock"] = app.show_in_dock;
+                app_j["show_in_system_tray"] = app.show_in_system_tray;
+                app_j["is_minimized"] = app.is_minimized;
+                broadcast_msg["apps"].push_back(app_j);
+            }
+
+            LOG_INFO << "[IPC] Broadcasting registry update to all subscribers..." << std::endl;
+            m_server->broadcast(broadcast_msg.dump());
+            LOG_INFO << "[IPC] Broadcast complete." << std::endl;
+        }
+    }
+    catch (const std::exception &e)
+    {
+        LOG_ERROR << "[IPC ERROR] Processing: " << e.what() << " | Raw: " << msg << std::endl;
+        return "{\"status\": \"error\"}";
+    }
+    return "{\"status\": \"ok\"}";
 }

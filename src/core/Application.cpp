@@ -563,7 +563,7 @@ namespace horizon
         {
             if (!m_ipc_subscriber)
             {
-                m_ipc_subscriber = std::make_unique<IpcClient>("/tmp/horizon_apps.sock");
+                m_ipc_subscriber = std::make_unique<IpcClient>("/tmp/horizon_session.sock");
                 m_ipc_subscriber->subscribe(
                     "{\"type\": \"subscribe\"}",
                     [this](const std::string &msg)
@@ -1023,7 +1023,7 @@ namespace horizon
                     msg["is_minimized"] = is_min;
                     msg["pid"] = pid;
 
-                    IpcClient client("/tmp/horizon_apps.sock");
+                    IpcClient client("/tmp/horizon_session.sock");
                     // Simple retry logic
                     for (int i = 0; i < 3; ++i)
                     {
@@ -1062,7 +1062,7 @@ namespace horizon
                         msg["token"] = token;
                     }
 
-                    IpcClient client("/tmp/horizon_apps.sock");
+                    IpcClient client("/tmp/horizon_session.sock");
                     // Simple retry logic
                     for (int i = 0; i < 3; ++i)
                     {

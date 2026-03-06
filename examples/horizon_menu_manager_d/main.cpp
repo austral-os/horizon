@@ -1,5 +1,5 @@
 #include <horizon/IpcClient.hpp>
-#include <horizon/IpcServer.hpp>
+
 #include <horizon/Label.hpp>
 #include <horizon/LayerApplication.hpp>
 #include <horizon/MessageManager.hpp>
@@ -75,19 +75,24 @@ int main(int argc, char *argv[])
         std::mutex queue_mutex;
         std::vector<std::string> pending_messages;
 
-        // Set up IPC Server
-        IpcServer server("/tmp/horizon_menu.sock",
-                         [&](const std::string &msg)
-                         {
-                             std::lock_guard<std::mutex> lock(queue_mutex);
-                             pending_messages.push_back(msg);
-
-                             // Return a placeholder response. Real response will be asynchronous
-                             // but for this protocol, "ok" is enough to acknowledge receipt.
-                             return "{\"status\": \"received\"}";
-                         });
-
-        server.start();
+        // Set up IPC Client
+        auto ipc_client = std::make_unique<IpcClient>("/tmp/horizon_session.sock");
+        ipc_client->subscribe("{\"type\": \"subscribe\"}",
+                              [&queue_mutex, &pending_messages](const std::string &msg)
+                              {
+                                  try
+                                  {
+                                      auto j = nlohmann::json::parse(msg);
+                                      if (j.value("receiver_id", "") == "horizon_menu_manager_d")
+                                      {
+                                          std::lock_guard<std::mutex> lock(queue_mutex);
+                                          pending_messages.push_back(msg);
+                                      }
+                                  }
+                                  catch (...)
+                                  {
+                                  }
+                              });
 
         // Initially hidden
         bool menu_visible = false;
@@ -106,9 +111,11 @@ int main(int argc, char *argv[])
                 menu_visible = false;
                 app->set_visible(false);
 
-                IpcClient global_menu_client("/tmp/horizon_global_menu.sock");
-                global_menu_client.send(
-                    nlohmann::json{{"type", "menu_daemon_status"}, {"visible", false}}.dump());
+                IpcClient global_menu_client("/tmp/horizon_session.sock");
+                global_menu_client.send(nlohmann::json{{"type", "menu_daemon_status"},
+                                                       {"visible", false},
+                                                       {"receiver_id", "top_panel"}}
+                                            .dump());
             });
 
         // Hide when escape key is pressed to prevent the daemon from quitting entirely
@@ -125,9 +132,11 @@ int main(int argc, char *argv[])
                     menu_visible = false;
                     app->set_visible(false);
 
-                    IpcClient global_menu_client("/tmp/horizon_global_menu.sock");
-                    global_menu_client.send(
-                        nlohmann::json{{"type", "menu_daemon_status"}, {"visible", false}}.dump());
+                    IpcClient global_menu_client("/tmp/horizon_session.sock");
+                    global_menu_client.send(nlohmann::json{{"type", "menu_daemon_status"},
+                                                           {"visible", false},
+                                                           {"receiver_id", "top_panel"}}
+                                                .dump());
                     ev.stop_propagation = true;
                 }
             });
@@ -207,10 +216,12 @@ int main(int argc, char *argv[])
                                 app->set_visible(true);
                                 root_ptr->invalidate();
 
-                                IpcClient global_menu_client("/tmp/horizon_global_menu.sock");
-                                global_menu_client.send(nlohmann::json{
-                                    {"type", "menu_daemon_status"},
-                                    {"visible", true}}.dump());
+                                IpcClient global_menu_client("/tmp/horizon_session.sock");
+                                global_menu_client.send(
+                                    nlohmann::json{{"type", "menu_daemon_status"},
+                                                   {"visible", true},
+                                                   {"receiver_id", "top_panel"}}
+                                        .dump());
                             }
                         }
                     }
@@ -221,12 +232,10 @@ int main(int argc, char *argv[])
         app->set_root(std::move(root));
 
         std::cout << "Horizon Menu Manager Daemon started." << std::endl;
-        std::cout << "IPC Server: /tmp/horizon_menu.sock" << std::endl;
+        std::cout << "IPC Target: /tmp/horizon_session.sock" << std::endl;
         std::cout << "Application is hidden and waiting for requests." << std::endl;
 
         app->run();
-
-        server.stop();
     }
     catch (const std::exception &e)
     {

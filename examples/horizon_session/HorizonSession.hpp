@@ -27,6 +27,8 @@ enum class HznSessionEvent
     APP_FOCUS,
     APP_BLUR,
     APP_CLOSE,
+    MENU_SHOW,
+    MENU_CLICKED,
 };
 
 struct AppInfo
@@ -57,6 +59,8 @@ public:
     void run_app(const std::string &app_path);
     void run_service(const std::string &service_path);
     void run_startup_services();
+
+    std::string handle_ipc_message(const std::string &msg);
 
     void add_app(int pid, const AppInfo &app);
     void remove_app(int pid);

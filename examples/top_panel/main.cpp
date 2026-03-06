@@ -1,6 +1,6 @@
 #include "GlobalMenuMessage.hpp"
 #include <horizon/ClientMenu.hpp>
-#include <horizon/IpcServer.hpp>
+#include <horizon/IpcClient.hpp>
 #include <horizon/LayerApplication.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/MenuBar.hpp>
@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
         app->set_keyboard_interactivity(0); // 0 = NONE
 
         app->set_show_in_dock(false);
+        app->set_visible(true); // Enable input region
 
         // IPC client for communicating with horizon_menu_manager_d
         ClientMenu client_menu;
@@ -283,16 +284,24 @@ int main(int argc, char *argv[])
         std::mutex queue_mutex;
         std::vector<std::string> pending_messages;
 
-        // Set up IPC Server
-        IpcServer server("/tmp/horizon_global_menu.sock",
-                         [&](const std::string &msg)
-                         {
-                             std::lock_guard<std::mutex> lock(queue_mutex);
-                             pending_messages.push_back(msg);
-                             return "{\"status\": \"received\"}";
-                         });
-
-        server.start();
+        // Set up IPC Client
+        auto ipc_client = std::make_unique<IpcClient>("/tmp/horizon_session.sock");
+        ipc_client->subscribe("{\"type\": \"subscribe\"}",
+                              [&queue_mutex, &pending_messages](const std::string &msg)
+                              {
+                                  try
+                                  {
+                                      auto j = nlohmann::json::parse(msg);
+                                      if (j.value("receiver_id", "") == "top_panel")
+                                      {
+                                          std::lock_guard<std::mutex> lock(queue_mutex);
+                                          pending_messages.push_back(msg);
+                                      }
+                                  }
+                                  catch (...)
+                                  {
+                                  }
+                              });
 
         // Timer to process new messages in the main thread (REPEATING)
         app->add_timer(
@@ -326,8 +335,6 @@ int main(int argc, char *argv[])
         std::cout << "Top Panel started (32px)." << std::endl;
 
         app->run();
-
-        server.stop();
     }
     catch (const std::exception &e)
     {
