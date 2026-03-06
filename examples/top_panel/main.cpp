@@ -80,7 +80,8 @@ int main(int argc, char *argv[])
             menu->add_separator();
             menu->add_item("Recent Items");
             menu->add_separator();
-            menu->add_item("Force Quit...");
+            auto *force_quit = menu->add_item("Force Quit...");
+            force_quit->set_id("force_quit");
             menu->add_separator();
             menu->add_item("Sleep");
             menu->add_item("Restart...");
@@ -216,8 +217,8 @@ int main(int argc, char *argv[])
 
         router.register_handler(
             "menu_item_clicked",
-            [&app](const std::string &request_id, const nlohmann::json &request,
-                   MessageManager &mgr) -> nlohmann::json
+            [&app, &current_owner_pid](const std::string &request_id, const nlohmann::json &request,
+                                       MessageManager &mgr) -> nlohmann::json
             {
                 std::string item_id = request.value("id", "");
                 std::cout << "[TOP PANEL] Menu item clicked: " << item_id << std::endl;
@@ -232,6 +233,20 @@ int main(int argc, char *argv[])
                     std::cout << "[TOP PANEL] Requesting to run custom_app (Logout)..."
                               << std::endl;
                     app->send_remote_signal(-1, "run_app", "custom_app");
+                }
+                else if (item_id == "force_quit")
+                {
+                    if (current_owner_pid != -1)
+                    {
+                        std::cout << "[TOP PANEL] Requesting Force Quit for PID "
+                                  << current_owner_pid << std::endl;
+                        app->send_remote_signal(current_owner_pid, "kill");
+                    }
+                    else
+                    {
+                        std::cout << "[TOP PANEL] Force Quit requested but no app is focused."
+                                  << std::endl;
+                    }
                 }
 
                 nlohmann::json response;

@@ -197,13 +197,6 @@ int main(int argc, char *argv[])
                                                 if (pid == -1)
                                                     return;
 
-                                                std::cout
-                                                    << "[DOCK] Icon clicked! Target PID: " << pid
-                                                    << " (State: "
-                                                    << (is_minimized ? "minimized" : "visible")
-                                                    << ", Serial: " << ctx.serial << ")"
-                                                    << std::endl;
-
                                                 auto send_sig = [pid](const std::string &sig_name,
                                                                       const std::string &token = "")
                                                 {
@@ -224,6 +217,22 @@ int main(int argc, char *argv[])
                                                     {
                                                     }
                                                 };
+
+                                                if (ctx.button == 274) // BTN_MIDDLE
+                                                {
+                                                    std::cout << "[DOCK] Middle click! Sending "
+                                                                 "close to PID: "
+                                                              << pid << std::endl;
+                                                    send_sig("close");
+                                                    return;
+                                                }
+
+                                                std::cout
+                                                    << "[DOCK] Icon clicked! Target PID: " << pid
+                                                    << " (State: "
+                                                    << (is_minimized ? "minimized" : "visible")
+                                                    << ", Serial: " << ctx.serial << ")"
+                                                    << std::endl;
 
                                                 if (is_minimized)
                                                 {

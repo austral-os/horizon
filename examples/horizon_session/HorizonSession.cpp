@@ -327,6 +327,18 @@ std::string HorizonSession::handle_ipc_message(const std::string &msg)
                 return "{\"status\": \"ok\", \"message\": \"Execution logged\"}";
             }
 
+            if (signal == "kill")
+            {
+                LOG_INFO << "[SIGNAL] Terminating process PID " << target_pid << " (Force Quit)"
+                         << std::endl;
+                if (target_pid > 0)
+                {
+                    kill(target_pid, SIGKILL);
+                    remove_app(target_pid);
+                }
+                return "{\"status\": \"killed\"}";
+            }
+
             nlohmann::json signal_msg;
             signal_msg["type"] = "app_signal";
             signal_msg["target_pid"] = target_pid;
