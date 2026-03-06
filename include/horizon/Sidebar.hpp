@@ -31,12 +31,12 @@ namespace horizon
 
         void render(GraphicsContext &gc, int cx, int cy, int cw, int ch,
                     bool force = false) override;
+        void calculate_layout() override;
 
     protected:
         void draw(GraphicsContext &gc) override;
 
     private:
-        void calculate_internal_layout();
         std::map<std::string, Widget *> m_groups;
         ScrollArea *m_scroll_area{nullptr};
         Widget *m_content_container{nullptr};

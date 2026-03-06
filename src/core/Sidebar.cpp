@@ -59,14 +59,10 @@ namespace horizon
 
     void Sidebar::render(GraphicsContext &gc, int cx, int cy, int cw, int ch, bool force)
     {
-        if (!m_visible)
-            return;
-
-        calculate_internal_layout();
         Widget::render(gc, cx, cy, cw, ch, force);
     }
 
-    void Sidebar::calculate_internal_layout()
+    void Sidebar::calculate_layout()
     {
         if (!m_content_container || !m_scroll_area)
             return;
@@ -114,6 +110,8 @@ namespace horizon
 
         m_content_container->set_fixed_size(total_height);
         m_content_container->set_size(width, total_height);
+
+        Widget::calculate_layout();
     }
 
     void Sidebar::draw(GraphicsContext &gc)

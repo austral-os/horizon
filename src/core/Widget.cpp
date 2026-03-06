@@ -272,7 +272,11 @@ namespace horizon
 
     void Widget::set_draw_state(WidgetDrawState draw_state)
     {
-        m_draw_state = draw_state;
+        if (m_draw_state != draw_state)
+        {
+            m_draw_state = draw_state;
+            invalidate();
+        }
     }
 
     void Widget::map_draw_state(WidgetEvent event, WidgetDrawState draw_state)
@@ -288,33 +292,57 @@ namespace horizon
 
     void Widget::set_size(int width, int height)
     {
-        m_width = width;
-        m_height = height;
+        if (m_width != width || m_height != height)
+        {
+            m_width = width;
+            m_height = height;
+            invalidate();
+        }
     }
 
     void Widget::set_fixed_size(int size)
     {
-        m_fixed_size = size;
+        if (m_fixed_size != size)
+        {
+            m_fixed_size = size;
+            invalidate();
+        }
     }
 
     void Widget::set_spacing(int spacing)
     {
-        m_spacing = spacing;
+        if (m_spacing != spacing)
+        {
+            m_spacing = spacing;
+            invalidate();
+        }
     }
 
     void Widget::set_margin(int margin)
     {
-        m_margin = margin;
+        if (m_margin != margin)
+        {
+            m_margin = margin;
+            invalidate();
+        }
     }
 
     void Widget::set_position_type(WidgetPositionTypes position_type)
     {
-        m_position_type = position_type;
+        if (m_position_type != position_type)
+        {
+            m_position_type = position_type;
+            invalidate();
+        }
     }
 
     void Widget::set_layout_type(WidgetLayoutTypes layout_type)
     {
-        m_layout_type = layout_type;
+        if (m_layout_type != layout_type)
+        {
+            m_layout_type = layout_type;
+            invalidate();
+        }
     }
 
     void Widget::set_accent_color(WidgetAccentColor accent_color)
@@ -325,8 +353,12 @@ namespace horizon
 
     void Widget::set_background_color(const Color &color)
     {
-        m_background_color = color;
-        invalidate();
+        if (m_background_color.r != color.r || m_background_color.g != color.g ||
+            m_background_color.b != color.b || m_background_color.a != color.a)
+        {
+            m_background_color = color;
+            invalidate();
+        }
     }
 
     Color Widget::background_color() const
@@ -389,7 +421,11 @@ namespace horizon
     }
     void Widget::set_enabled(bool enabled)
     {
-        m_enabled = enabled;
+        if (m_enabled != enabled)
+        {
+            m_enabled = enabled;
+            invalidate();
+        }
     }
     bool Widget::is_enabled() const
     {

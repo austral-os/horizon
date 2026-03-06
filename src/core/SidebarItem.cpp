@@ -25,6 +25,35 @@ namespace horizon
         add_child(std::move(label));
 
         set_focusable(true);
+
+        when_focus.connect(
+            [this](EventContext &)
+            {
+                if (m_label_ptr)
+                    m_label_ptr->set_text_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+            });
+
+        when_blur.connect(
+            [this](EventContext &)
+            {
+                if (m_label_ptr)
+                    m_label_ptr->set_text_color(Color(0.2f, 0.2f, 0.2f, 1.0f));
+            });
+    }
+
+    void SidebarItem::calculate_layout()
+    {
+        // Internal padding (Indentation)
+        const int indentation = 15;
+
+        // Update children positions manually to simulate indentation without height collapse
+        // Micro-adjustment (+1px) to fix the "slightly up" visual misalignment
+        m_start_draw_x = m_x + indentation;
+        m_start_draw_y = m_y + 1;
+        m_available_draw_width = m_width - indentation;
+        m_available_draw_height = m_height - 1;
+
+        Widget::calculate_layout();
     }
 
     Widget *SidebarItem::hit_test(int x, int y)
@@ -40,16 +69,6 @@ namespace horizon
 
     void SidebarItem::draw(GraphicsContext &gc)
     {
-        // Internal padding (Indentation)
-        const int indentation = 15;
-
-        // Update children positions manually to simulate indentation without height collapse
-        // Micro-adjustment (+1px) to fix the "slightly up" visual misalignment
-        m_start_draw_x = m_x + indentation;
-        m_start_draw_y = m_y + 1;
-        m_available_draw_width = m_width - indentation;
-        m_available_draw_height = m_height - 1;
-
         bool selected = has_focus();
 
         if (is_hovered() && !selected)
@@ -64,14 +83,6 @@ namespace horizon
             Color c1(0.32f, 0.61f, 0.90f, 1.0f); // Top
             Color c2(0.11f, 0.45f, 0.81f, 1.0f); // Bottom
             gc.fillLinearGradientRect(m_x, m_y, m_width, m_height, c1, c2, true);
-
-            if (m_label_ptr)
-                m_label_ptr->set_text_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
-        }
-        else
-        {
-            if (m_label_ptr)
-                m_label_ptr->set_text_color(Color(0.2f, 0.2f, 0.2f, 1.0f));
         }
 
         // Children (Icon, Label) are drawn by Widget::render

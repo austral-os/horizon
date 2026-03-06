@@ -156,8 +156,11 @@ namespace horizon
 
     void Label::set_alignment(TextAlignment alignment)
     {
-        m_alignment = alignment;
-        invalidate();
+        if (m_alignment != alignment)
+        {
+            m_alignment = alignment;
+            invalidate();
+        }
     }
 
     TextAlignment Label::alignment() const
@@ -167,8 +170,11 @@ namespace horizon
 
     void Label::set_vertical_alignment(VerticalAlignment alignment)
     {
-        m_vertical_alignment = alignment;
-        invalidate();
+        if (m_vertical_alignment != alignment)
+        {
+            m_vertical_alignment = alignment;
+            invalidate();
+        }
     }
 
     VerticalAlignment Label::vertical_alignment() const
@@ -178,8 +184,11 @@ namespace horizon
 
     void Label::set_font_weight(FontWeight weight)
     {
-        m_font_weight = weight;
-        invalidate();
+        if (m_font_weight != weight)
+        {
+            m_font_weight = weight;
+            invalidate();
+        }
     }
 
     FontWeight Label::font_weight() const
@@ -189,8 +198,11 @@ namespace horizon
 
     void Label::set_font_slant(FontSlant slant)
     {
-        m_font_slant = slant;
-        invalidate();
+        if (m_font_slant != slant)
+        {
+            m_font_slant = slant;
+            invalidate();
+        }
     }
 
     FontSlant Label::font_slant() const
@@ -200,14 +212,21 @@ namespace horizon
 
     void Label::set_font_size(int size)
     {
-        m_font_size = size;
-        invalidate();
+        if (m_font_size != size)
+        {
+            m_font_size = size;
+            invalidate();
+        }
     }
 
     void Label::set_text_color(Color color)
     {
-        m_text_color = color;
-        invalidate();
+        if (m_text_color.r != color.r || m_text_color.g != color.g || m_text_color.b != color.b ||
+            m_text_color.a != color.a)
+        {
+            m_text_color = color;
+            invalidate();
+        }
     }
 
     std::vector<std::string> Label::calculate_lines(GraphicsContext &gc, int max_width,

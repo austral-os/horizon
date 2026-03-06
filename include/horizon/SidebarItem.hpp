@@ -17,6 +17,7 @@ namespace horizon
         ~SidebarItem() = default;
 
         void draw(GraphicsContext &gc) override;
+        void calculate_layout() override;
         Widget *hit_test(int x, int y) override;
 
     private:
