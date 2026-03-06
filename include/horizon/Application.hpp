@@ -73,6 +73,7 @@ namespace horizon
          * @param menus A list of root menus.
          */
         void set_global_menu(const std::vector<Menu *> &menus);
+        void init_global_menu();
 
         /**
          * @brief Sets the root widget of the application's widget tree.
@@ -295,6 +296,7 @@ namespace horizon
         bool m_is_activated = false; /**< Flag indicating if the application is currently active. */
 
         std::vector<Menu *> m_global_menus;
+        std::unique_ptr<Menu> m_app_menu;
         std::shared_ptr<ClientMenu> m_client_menu;
 
         bool m_full_repaint = true; /**< Flag indicating if the entire UI needs re-rendering. */

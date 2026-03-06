@@ -11,6 +11,8 @@ int main(int argc, char *argv[])
 {
     Application app(800, 600);
 
+    app.set_name("Image Demo");
+
     auto window = std::make_unique<ApplicationWindow>("Image Widget Demo");
 
     auto root_panel = std::make_unique<VPanel>();

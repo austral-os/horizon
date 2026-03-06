@@ -554,14 +554,6 @@ int main()
                                        exit(0);
                                    });
 
-        auto app_menu = new horizon::Menu();
-        app_menu->set_title("MinimalApp");
-        app_menu->set_bold(true);
-        app_menu->add_item("Preferences", "Ctrl+,");
-        app_menu->add_separator();
-        auto *global_quit = app_menu->add_item("Quit", "Ctrl+Q");
-        global_quit->set_id("quit");
-
         auto window_menu = new horizon::Menu();
         window_menu->set_title("Window");
         window_menu->add_item("Minimize", "Ctrl+M");
@@ -572,7 +564,7 @@ int main()
         help_menu->add_item("Documentation", "F1");
         help_menu->add_item("About MinimalApp");
 
-        app.set_global_menu({app_menu, window_menu, help_menu});
+        app.set_global_menu({window_menu, help_menu});
 
         app.run();
     }

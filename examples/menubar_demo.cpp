@@ -9,6 +9,8 @@ int main(int argc, char **argv)
 {
     Application app(800, 600);
 
+    app.set_name("Menubar Demo");
+
     auto window = std::make_unique<Window>("MenuBar Demo");
     window->set_layout_type(WIDGET_LAYOUT_VERTICAL);
 

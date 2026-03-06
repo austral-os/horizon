@@ -12,7 +12,9 @@
 #include <horizon/Window.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
 #include <iostream>
+#include <iterator>
 #include <linux/input-event-codes.h>
+#include <memory>
 #include <nlohmann/json.hpp>
 #include <poll.h>
 #include <signal.h>
@@ -50,6 +52,8 @@ namespace horizon
                 std::cout << "Theme changed" << std::endl;
                 this->invalidate();
             });
+
+        m_app_menu = std::make_unique<Menu>();
     }
 
     // Constructor de movimiento
@@ -82,6 +86,7 @@ namespace horizon
 
     Application::~Application()
     {
+
         // Limpieza
         m_surface->free();
         if (m_wakeup_fd >= 0)
@@ -173,15 +178,6 @@ namespace horizon
     void Application::set_global_menu(const std::vector<Menu *> &menus)
     {
         m_global_menus = menus;
-        if (!m_client_menu)
-        {
-            m_client_menu = std::make_shared<ClientMenu>();
-        }
-
-        if (m_is_activated)
-        {
-            m_client_menu->set_global_menu(m_global_menus);
-        }
     }
 
     void Application::on_key_event(const KeyEvent &event)
@@ -214,8 +210,8 @@ namespace horizon
             return;
         }
 
-        // Key repeat management — only reset if this is a NEW key being pressed (not a synthetic
-        // repeat)
+        // Key repeat management — only reset if this is a NEW key being pressed (not a
+        // synthetic repeat)
         uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
                            std::chrono::steady_clock::now().time_since_epoch())
                            .count();
@@ -541,9 +537,35 @@ namespace horizon
         }
     }
 
+    void Application::init_global_menu()
+    {
+
+        m_app_menu->set_title(m_name);
+        m_app_menu->set_bold(true);
+        m_app_menu->add_item("Preferences", "Ctrl+,");
+        m_app_menu->add_separator();
+        auto *global_quit = m_app_menu->add_item("Quit", "Ctrl+Q");
+        global_quit->set_id("quit");
+
+        auto mnu = m_app_menu.get();
+        m_global_menus.insert(m_global_menus.begin(), mnu);
+
+        if (!m_client_menu)
+        {
+            m_client_menu = std::make_shared<ClientMenu>();
+        }
+
+        if (m_is_activated)
+        {
+            m_client_menu->set_global_menu(m_global_menus);
+        }
+    }
+
     void Application::run()
     {
         m_is_running = true;
+
+        init_global_menu();
 
         for (auto const &[id, handler] : m_on_start_handlers)
         {
@@ -679,8 +701,8 @@ namespace horizon
                                               w->height());
 
                             // 2. Individual rendering pass with absolute clip and force=true
-                            // Force is necessary to ensure parent clears background for the dirty
-                            // widget area.
+                            // Force is necessary to ensure parent clears background for the
+                            // dirty widget area.
                             ctx.save();
                             ctx.clip(w->x(), w->y(), w->width(), w->height());
 

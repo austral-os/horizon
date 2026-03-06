@@ -146,6 +146,7 @@ int main(int argc, char *argv[])
 {
     auto app = std::make_unique<Application>(600, 400);
     app->set_app_id("org.horizon.iconview_demo");
+    app->set_name("Icon view");
 
     auto window = std::make_unique<ApplicationWindow>("IconView Demo");
     window->set_size(600, 410);
