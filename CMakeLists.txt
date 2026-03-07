@@ -18,7 +18,8 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
     "src/*.c"
     "src/core/*.cpp"
     "src/core/IconView.cpp"
-    "src/xdg-activation-v1-protocol.c"
+    "src/core/Spacer.cpp"
+    "src/core/SystemInfo.cpp"
     "include/horizon/*.hpp"
 )
 
@@ -149,7 +150,19 @@ target_link_libraries(horizon_session
         horizon
 )
 
+
+add_executable(aboutus
+    examples/aboutus/main.cpp
+    examples/aboutus/AboutWindow.cpp
+)
+
+target_link_libraries(aboutus
+    PRIVATE
+        horizon
+)
+
 # Agregamos un target "run" para compilar y ejecutar de una vez
+
 add_custom_target(run
     COMMAND $<TARGET_FILE:minimal>
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

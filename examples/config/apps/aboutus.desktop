@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=About System
+Exec=/home/horacio/Desarrollo/austral-os/horizon/build/aboutus
+Icon=computer
+Comment=About system info
+Terminal=false
+Categories=System;

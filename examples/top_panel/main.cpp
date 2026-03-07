@@ -71,7 +71,9 @@ int main(int argc, char *argv[])
                 menu->set_icon_name("start-here"); // Fallback
             }
 
-            menu->add_item("About This System");
+            auto *about_mnu = menu->add_item("About This System");
+            about_mnu->set_id("run_aboutus");
+
             menu->add_separator();
             auto *terminal = menu->add_item("Terminal");
             terminal->set_id("run_terminal");
@@ -228,6 +230,11 @@ int main(int argc, char *argv[])
                 {
                     std::cout << "[TOP PANEL] Requesting to run terminal..." << std::endl;
                     app->send_remote_signal(-1, "run_app", "konsole");
+                }
+                else if (item_id == "run_aboutus")
+                {
+                    std::cout << "[TOP PANEL] Requesting to run aboutus..." << std::endl;
+                    app->send_remote_signal(-1, "run_app", "aboutus");
                 }
                 else if (item_id == "run_logout")
                 {
