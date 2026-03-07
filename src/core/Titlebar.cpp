@@ -4,6 +4,7 @@
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Titlebar.hpp>
 #include <memory>
+#include <unistd.h>
 
 namespace horizon
 {
@@ -53,7 +54,7 @@ namespace horizon
                 {
                     if (application())
                     {
-                        application()->on_close();
+                        application()->send_remote_signal(getpid(), "close");
                     }
                 });
         }
