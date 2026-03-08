@@ -1,3 +1,4 @@
+#include "horizon/EventsManager.hpp"
 #include <horizon/Button.hpp>
 #include <horizon/GroupButton.hpp>
 #include <horizon/Icon.hpp>
@@ -70,6 +71,21 @@ namespace horizon
 
         auto button = std::make_unique<Button<SolidObject>>();
         button->set_text(text);
+        auto ptr_button = button.get();
+
+        int index = children().size();
+
+        button->when_mouse_press.connect(
+            [this, ptr_button, text, index](MouseButtonEventContext &ev)
+            {
+                GroupButtonClickEvent event;
+                event.button_index = index;
+                event.button_text = text;
+                when_button_clicked.run(event);
+
+                ptr_button->set_draw_state(WidgetDrawState::PRESSED);
+                ptr_button->invalidate();
+            });
 
         add_child(std::move(button));
     }

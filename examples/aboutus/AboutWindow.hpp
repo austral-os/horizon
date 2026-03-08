@@ -11,5 +11,6 @@ namespace horizon
         ~AboutWindow() = default;
 
     private:
+        void set_content(std::unique_ptr<Widget> content);
     };
 } // namespace horizon

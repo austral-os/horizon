@@ -10,6 +10,13 @@
 namespace horizon
 {
 
+    class GroupButtonClickEvent : public EventContext
+    {
+    public:
+        int button_index;
+        std::string button_text;
+    };
+
     class GroupButton : public Widget
     {
     public:
@@ -24,6 +31,8 @@ namespace horizon
         void add_item(std::unique_ptr<Icon> icon);
 
         void set_current_item(int index);
+
+        EventsManager<GroupButtonClickEvent> when_button_clicked;
 
     private:
         void configure();

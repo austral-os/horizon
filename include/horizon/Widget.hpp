@@ -232,13 +232,13 @@ namespace horizon
 
         void map_draw_state(WidgetEvent event, WidgetDrawState draw_state);
 
-    protected:
-        virtual void draw(GraphicsContext &ctx);
-
         WidgetDrawState get_draw_state() const;
         WidgetDrawState get_draw_state(WidgetEvent event) const;
 
         void set_draw_state(WidgetDrawState draw_state);
+
+    protected:
+        virtual void draw(GraphicsContext &ctx);
 
     protected:
         int m_x{0};

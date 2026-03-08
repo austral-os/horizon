@@ -111,4 +111,71 @@ namespace horizon
         }
         return std::string(buffer.release);
     }
+
+    std::string SystemInfo::get_monitor_name()
+    {
+        for (int i = 0; i < 10; ++i)
+        {
+            std::string path = "/sys/class/drm/card0-";
+            // Check common connector types
+            const char *connectors[] = {"eDP-1", "HDMI-A-1", "DP-1", "HDMI-A-2", "DP-2"};
+            for (const char *conn : connectors)
+            {
+                std::string status = read_file(path + conn + "/status");
+                if (status == "connected")
+                {
+                    return conn;
+                }
+            }
+        }
+        return "Unknown Monitor";
+    }
+
+    std::string SystemInfo::get_monitor_model()
+    {
+        std::string conn = get_monitor_name();
+        if (conn == "Unknown Monitor")
+            return "Generic Monitor";
+
+        std::string edid_path = "/sys/class/drm/card0-" + conn + "/edid";
+        std::ifstream file(edid_path, std::ios::binary);
+        if (!file.is_open())
+            return "Generic Monitor";
+
+        char buffer[128];
+        if (!file.read(buffer, 128))
+            return "Generic Monitor";
+
+        // EDID extraction of monitor name (Descriptor blocks at 0x36, 0x48, 0x5A, 0x6C)
+        // This is a simplified extraction looking for the ASCII descriptor (0xFC)
+        for (int i = 0; i < 4; ++i)
+        {
+            int offset = 0x36 + i * 18;
+            if (buffer[offset] == 0 && buffer[offset + 1] == 0 && buffer[offset + 2] == 0 &&
+                (unsigned char)buffer[offset + 3] == 0xFC)
+            {
+                std::string name(buffer + offset + 5, 13);
+                // Trim trailing spaces and newlines
+                name.erase(name.find_last_not_of(" \n\r\t") + 1);
+                return name;
+            }
+        }
+
+        return "Generic Monitor";
+    }
+
+    std::string SystemInfo::get_monitor_resolution()
+    {
+        std::string conn = get_monitor_name();
+        if (conn == "Unknown Monitor")
+            return "Unknown Resolution";
+
+        std::ifstream file("/sys/class/drm/card0-" + conn + "/modes");
+        std::string line;
+        if (std::getline(file, line))
+        {
+            return line;
+        }
+        return "Unknown Resolution";
+    }
 } // namespace horizon

@@ -13,5 +13,8 @@ namespace horizon
         static std::string get_graphics();
         static std::string get_os();
         static std::string get_kernel();
+        static std::string get_monitor_name();
+        static std::string get_monitor_model();
+        static std::string get_monitor_resolution();
     };
 } // namespace horizon
