@@ -7,13 +7,17 @@
 #include <csignal>
 #include <cstring>
 #include <fcntl.h>
+#include <filesystem>
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include <set>
 #include <sys/prctl.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
+
+namespace fs = std::filesystem;
 
 HorizonSession::HorizonSession() : m_server_socket_path("/tmp/horizon_session.sock")
 {
@@ -40,6 +44,7 @@ void HorizonSession::init(bool with_compositor)
     if (with_compositor)
     {
         m_startup_services.push_back("labwc");
+        // m_startup_services.push_back("wayfire");
     }
 
     // Example of default core services
@@ -180,13 +185,29 @@ void HorizonSession::run_service(const std::string &service_path)
 
 void HorizonSession::run_startup_services()
 {
+    auto existing_displays = get_wayland_displays();
+
     for (const auto &svc_path : m_startup_services)
     {
         run_service(svc_path);
-        if (svc_path == "labwc")
+
+        // If we just started the compositor, we need to wait for its socket and set the environment
+        if (svc_path == "wayfire" || svc_path == "labwc")
         {
-            LOG_INFO << "[HorizonSession] Waiting for compositor to initialize..." << std::endl;
-            std::this_thread::sleep_for(std::chrono::seconds(2));
+            LOG_INFO << "[HorizonSession] Compositor started, waiting for Wayland socket..."
+                     << std::endl;
+            std::string new_display = wait_for_new_wayland_display(existing_displays);
+
+            if (!new_display.empty())
+            {
+                LOG_INFO << "[HorizonSession] Detected new WAYLAND_DISPLAY: " << new_display
+                         << std::endl;
+                setenv("WAYLAND_DISPLAY", new_display.c_str(), 1);
+            }
+            else
+            {
+                LOG_ERROR << "[HorizonSession] Timeout waiting for Wayland socket!" << std::endl;
+            }
         }
         else
         {
@@ -194,6 +215,50 @@ void HorizonSession::run_startup_services()
                 std::chrono::milliseconds(100)); // Space out apps to reduce concurrent congestion
         }
     }
+}
+
+std::vector<std::string> HorizonSession::get_wayland_displays()
+{
+    std::vector<std::string> displays;
+    const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
+    if (!runtime_dir)
+        return displays;
+
+    try
+    {
+        for (const auto &entry : fs::directory_iterator(runtime_dir))
+        {
+            std::string filename = entry.path().filename().string();
+            if (filename.find("wayland-") == 0 && filename.find(".lock") == std::string::npos)
+            {
+                displays.push_back(filename);
+            }
+        }
+    }
+    catch (...)
+    {
+    }
+    return displays;
+}
+
+std::string HorizonSession::wait_for_new_wayland_display(const std::vector<std::string> &existing)
+{
+    std::set<std::string> existing_set(existing.begin(), existing.end());
+
+    for (int i = 0; i < 50; ++i) // Try for ~5 seconds
+    {
+        auto current = get_wayland_displays();
+        for (const auto &display : current)
+        {
+            if (existing_set.find(display) == existing_set.end())
+            {
+                return display;
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    return "";
 }
 
 void HorizonSession::add_app(int pid, const AppInfo &app)

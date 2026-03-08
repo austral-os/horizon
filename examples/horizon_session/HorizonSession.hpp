@@ -81,6 +81,8 @@ public:
     void send_to_subscribers(HznSessionEvent event, const HznSessionMessage &message);
 
 private:
+    std::vector<std::string> get_wayland_displays();
+    std::string wait_for_new_wayland_display(const std::vector<std::string> &existing);
     /**
      * @brief Path del socket del servidor
      */
