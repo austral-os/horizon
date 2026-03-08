@@ -31,10 +31,12 @@ namespace horizon
         void add_item(std::unique_ptr<Icon> icon);
 
         void set_current_item(int index);
+        int current_item() const;
 
         EventsManager<GroupButtonClickEvent> when_button_clicked;
 
     private:
         void configure();
+        int m_current_index{-1};
     };
 } // namespace horizon
