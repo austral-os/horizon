@@ -66,15 +66,14 @@ namespace horizon
 
         toolbar()->add_toolbar_widget(std::move(tool_widget));
 
+        show_status_bar();
+        set_status_text("System Information");
+
         set_content(std::make_unique<Overview>());
     }
 
     void AboutWindow::set_content(std::unique_ptr<Widget> content)
     {
-        if (children().size() > 1)
-        {
-            remove_child_at(1);
-        }
-        add_child(std::move(content));
+        ApplicationWindow::set_content(std::move(content));
     }
 } // namespace horizon

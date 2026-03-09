@@ -95,6 +95,8 @@ int main(int argc, char **argv)
 
     auto window = std::make_unique<ApplicationWindow>("Horizon Toolbar Demo");
     window->set_size(800, 600);
+    window->show_status_bar();
+    window->set_status_text("Horizon OS - Alpha");
 
     auto tool = std::make_unique<ArkToolbar>();
 
@@ -207,7 +209,7 @@ int main(int argc, char **argv)
 
     vpanel_container->add_child(std::move(vpanel));
 
-    window->add_child(std::move(vpanel_container));
+    window->set_content(std::move(vpanel_container));
 
     app.set_root(std::move(window));
 

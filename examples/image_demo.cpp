@@ -48,7 +48,9 @@ int main(int argc, char *argv[])
     add_demo("Fit", ImageMode::Fit, test_img);
     add_demo("Repeat", ImageMode::Repeat, test_img);
 
-    window->add_child(std::move(root_panel));
+    window->show_status_bar();
+    window->set_status_text("Image Viewer");
+    window->set_content(std::move(root_panel));
     app.set_root(std::move(window));
 
     app.run();

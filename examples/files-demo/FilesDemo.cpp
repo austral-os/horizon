@@ -21,6 +21,8 @@ namespace horizon::demo
 
         auto window = std::make_unique<ApplicationWindow>("FileSystem Model Demo");
         window->set_size(800, 600);
+        window->show_status_bar();
+        window->set_status_text("Ready");
         m_window = window.get();
 
         auto root = std::make_unique<Widget>();
@@ -287,7 +289,7 @@ namespace horizon::demo
 
         refresh_ui(m_current_path);
 
-        m_window->add_child(std::move(root));
+        m_window->set_content(std::move(root));
         m_app->set_root(std::move(window));
     }
 

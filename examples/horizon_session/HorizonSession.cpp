@@ -43,8 +43,8 @@ void HorizonSession::init(bool with_compositor)
 
     if (with_compositor)
     {
-        // m_startup_services.push_back("labwc");
-        m_startup_services.push_back("wayfire");
+        m_startup_services.push_back("labwc");
+        // m_startup_services.push_back("wayfire");
     }
 
     // Example of default core services

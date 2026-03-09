@@ -2,6 +2,7 @@
 
 #include "Widget.hpp"
 #include "horizon/Titlebar.hpp"
+#include <horizon/GraphicsContext.hpp>
 #include <string>
 
 namespace horizon
@@ -15,6 +16,8 @@ namespace horizon
         void set_size(int width, int height);
 
         const std::string &title() const;
+
+        virtual CornerRadius get_window_corners() const;
 
         void render(GraphicsContext &gc, int cx, int cy, int cw, int ch,
                     bool force = false) override;

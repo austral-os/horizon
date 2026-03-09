@@ -209,7 +209,9 @@ int main(int argc, char *argv[])
 
     icon_view->set_data(files);
 
-    window->add_child(std::move(icon_view));
+    window->show_status_bar();
+    window->set_status_text("Icon View Demo - 0 items selected");
+    window->set_content(std::move(icon_view));
     app->set_root(std::move(window));
 
     std::cout << "Starting IconView Demo..." << std::endl;

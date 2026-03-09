@@ -41,6 +41,11 @@ namespace horizon
         return m_titlebar->title();
     }
 
+    CornerRadius Window::get_window_corners() const
+    {
+        return {10, 10, 0, 0};
+    }
+
     void Window::render(GraphicsContext &gc, int cx, int cy, int cw, int ch, bool force)
     {
         Widget::render(gc, cx, cy, cw, ch, force);
@@ -48,17 +53,17 @@ namespace horizon
 
     void Window::draw(GraphicsContext &gc)
     {
+        CornerRadius corners = get_window_corners();
 
         Color bg = application()->theme_manager->get_color("window_bg");
         Color bg2 = bg.lighter(10.0f);
         Color brd = application()->theme_manager->get_color("window_border");
 
         gc.setColor(bg);
-        gc.fillRect(m_start_draw_x, m_start_draw_y, m_available_draw_width, m_available_draw_height,
-                    {10, 10, 0, 0});
+        gc.fillRect(0, 0, m_width, m_height, corners);
 
         gc.setColor(brd);
-        gc.drawRect(0, 0, m_width, m_height, {10, 10, 0, 0}, 0.9f);
+        gc.drawRect(0, 0, m_width, m_height, corners, 0.9f);
 
         // Dibujamos rectangulos horizontales oscuros cada 10 pixeles
         int titlebar_height = 30;
