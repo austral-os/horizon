@@ -169,9 +169,9 @@ namespace horizon::demo
                 }
             });
 
-        auto coverflow_container = std::make_unique<SolidObject>();
+        auto coverflow_container = std::make_unique<Widget>();
         m_coverflow_container = coverflow_container.get();
-        coverflow_container->set_background_color(Color(0.0f, 0.0f, 0.0f)); // Dark background
+        coverflow_container->set_background_color(Color(0.0f, 0.0f, 0.0f)); // Black background
         coverflow_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         coverflow_container->set_visible(false);
 
@@ -214,6 +214,7 @@ namespace horizon::demo
 
         auto cf_slider_container = std::make_unique<Widget>();
         cf_slider_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        cf_slider_container->set_background_color(Color(0.0f, 0.0f, 0.0f)); // Black background
         cf_slider_container->set_fixed_size(40);
 
         auto cf_spacer_l = std::make_unique<Widget>();
