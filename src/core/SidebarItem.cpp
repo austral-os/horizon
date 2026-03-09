@@ -9,7 +9,7 @@ namespace horizon
         set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         set_fixed_size(30); // Height of the item
         set_spacing(10);
-        set_margin(0); // MUST be 0 to allow vertical centering using full 30px height
+        set_margin(10); // MUST be 0 to allow vertical centering using full 30px height
 
         auto icon = std::make_unique<Icon>();
         icon->set_icon_name(icon_name);
@@ -44,7 +44,7 @@ namespace horizon
     void SidebarItem::calculate_layout()
     {
         // Internal padding (Indentation)
-        const int indentation = 15;
+        const int indentation = 25;
 
         // Update children positions manually to simulate indentation without height collapse
         // Micro-adjustment (+1px) to fix the "slightly up" visual misalignment

@@ -37,7 +37,7 @@ namespace horizon
         header->set_font_size(11);
         header->set_font_weight(FONT_WEIGHT_BOLD);
         header->set_text_color(Color(0.5f, 0.5f, 0.5f, 1.0f));
-        header->set_margin(15); // Re-enabled margin-based indentation
+
         header->set_fixed_size(25);
         header->set_vertical_alignment(VerticalAlignment::Middle);
 
