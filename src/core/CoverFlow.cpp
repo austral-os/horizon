@@ -170,30 +170,26 @@ namespace horizon
                        (m_draw_reflection ? (int)(m_item_height / 4.0f) : 0);
 
         // Parameters for 3D look
-        float spacing = 40.0f;      // Tightened spacing
-        float lateral_gap = 110.0f; // Closer to center for cohesion
+        float spacing = 25.0f;      // Closer spacing for side items
+        float lateral_gap = 130.0f; // Larger gap around the center item
 
         for (int i = 0; i < (int)m_children.size(); ++i)
         {
             auto &child = m_children[i];
             int dist = i - m_selected_index;
+            float abs_dist = (float)std::abs(dist);
 
-            float scale = 1.0f;
+            // More aggressive scaling
+            float scale = std::pow(0.70f, abs_dist);
+
             float x_offset = 0.0f;
-
             if (dist < 0)
             {
-                scale = 0.85f;
                 x_offset = dist * spacing - lateral_gap;
             }
             else if (dist > 0)
             {
-                scale = 0.85f;
                 x_offset = dist * spacing + lateral_gap;
-            }
-            else
-            {
-                scale = 1.0f; // Center item is full size
             }
 
             int w = (int)(m_item_width * scale);
@@ -201,8 +197,11 @@ namespace horizon
 
             child->set_size(w, h);
             int x = center_x - w / 2 + (int)x_offset;
-            // Align all items by their bottom edge to make reflections consistent
-            int y = center_y + m_item_height / 2 - h;
+
+            // Adjust y to keep them mostly aligned vertically in the center,
+            // but slightly lower as they get smaller.
+            int y = center_y - (h / 2) + (int)(abs_dist * 5);
+
             child->set_position(x, y);
         }
     }
@@ -334,7 +333,9 @@ namespace horizon
             double pivot_x = child->x() + (double)child->width() / 2.0;
             double pivot_y = child->y() + (double)capture_h / 2.0;
 
-            float z_pos = (std::abs(dist) < 0.1) ? -1.0f : -1.5f;
+            // Dynamic depth and rotation
+            // Slightly push further items back to naturally complement the 2D scale
+            float z_pos = -1.0f - (float)std::abs(dist) * 0.15f;
             float rotation = (std::abs(dist) < 0.1) ? 0.0f : ((dist < 0) ? 0.75f : -0.75f);
 
             // 4. Calculate Screen-to-Scene mapping at this depth
@@ -363,7 +364,8 @@ namespace horizon
             mat4_scale(mvp, scene_scale_x, scene_scale_y, 1.0f);
             mat4_multiply(mvp, proj, mvp);
 
-            float opacity = 1.0f - std::min(0.6f, (float)std::abs(dist) * 0.25f);
+            // Dynamic opacity based on distance
+            float opacity = 1.0f - std::min(0.7f, (float)std::abs(dist) * 0.15f);
             gc.drawTexture3D(tex_id, child->width(), capture_h, mvp, opacity);
 
             cairo_restore(cr);
