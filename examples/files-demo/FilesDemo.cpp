@@ -1,7 +1,10 @@
 #include "FilesDemo.hpp"
+#include <horizon/Button.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/ScrollArea.hpp>
+#include <horizon/Slider.hpp>
+#include <horizon/SolidObject.hpp>
 #include <horizon/VPanel.hpp>
 #include <iostream>
 
@@ -22,6 +25,34 @@ namespace horizon::demo
 
         auto root = std::make_unique<Widget>();
         root->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+
+        auto top_bar = std::make_unique<Widget>();
+        top_bar->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        top_bar->set_fixed_size(40);
+
+        auto toggle_btn = std::make_unique<Button<AquaObject>>();
+        toggle_btn->set_text("Toggle View");
+        toggle_btn->set_size(100, 30);
+        toggle_btn->when_mouse_press.connect(
+            [this](MouseButtonEventContext &ev)
+            {
+                if (ev.button == 0x110)
+                {
+                    m_is_coverflow_view = !m_is_coverflow_view;
+                    m_table->set_visible(!m_is_coverflow_view);
+                    if (m_coverflow_container)
+                        m_coverflow_container->set_visible(m_is_coverflow_view);
+                    // force re-layout on toggle
+                    if (m_view_container)
+                        m_view_container->invalidate();
+                }
+            });
+
+        top_bar->add_child(std::move(toggle_btn));
+        root->add_child(std::move(top_bar));
+
+        auto view_container = std::make_unique<Widget>();
+        m_view_container = view_container.get();
 
         auto table = std::make_unique<TableView<arkutils::FileInfo>>();
         m_table = table.get();
@@ -121,11 +152,6 @@ namespace horizon::demo
         m_table->add_column(col_size);
         m_table->add_column(col_mod);
 
-        root->add_child(std::move(table));
-
-        m_window->add_child(std::move(root));
-        m_app->set_root(std::move(window));
-
         // Handle row selection
         m_table->when_row_dbl_click.connect(
             [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
@@ -143,6 +169,102 @@ namespace horizon::demo
                 }
             });
 
+        auto coverflow_container = std::make_unique<SolidObject>();
+        m_coverflow_container = coverflow_container.get();
+        coverflow_container->set_background_color(Color(0.0f, 0.0f, 0.0f)); // Dark background
+        coverflow_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        coverflow_container->set_visible(false);
+
+        auto coverflow = std::make_unique<CoverFlow<arkutils::FileInfo>>();
+        m_coverflow = coverflow.get();
+        m_coverflow->set_item_factory(
+            [](const arkutils::FileInfo &f, bool selected)
+            {
+                auto item = std::make_unique<Widget>();
+                item->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+
+                auto icon_name_str =
+                    f.type == arkutils::FileType::Directory ? "folder" : "text-x-generic";
+                if (f.extension == "png" || f.extension == "jpg" || f.extension == "jpeg" ||
+                    f.extension == "svg")
+                    icon_name_str = "image-x-generic";
+
+                auto icon = std::make_unique<Icon>();
+                icon->set_icon_name(icon_name_str);
+                icon->set_icon_size(128);
+
+                // Note: The CoverFlow image typically just shows the art, we don't put labels on
+                // the items themselves.
+                item->add_child(std::move(icon));
+
+                return item;
+            });
+
+        auto cf_label = std::make_unique<Label>("No selection");
+        cf_label->set_text_color(Color(1.0f, 1.0f, 1.0f));
+        cf_label->set_font_weight(FONT_WEIGHT_BOLD);
+        cf_label->set_alignment(TextAlignment::Center);
+        cf_label->set_fixed_size(30);
+        auto cf_label_ptr = cf_label.get();
+
+        auto cf_slider = std::make_unique<Slider>();
+        cf_slider->set_size(400, 30);
+        cf_slider->set_show_ticks(false);
+        auto cf_slider_ptr = cf_slider.get();
+
+        auto cf_slider_container = std::make_unique<Widget>();
+        cf_slider_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        cf_slider_container->set_fixed_size(40);
+
+        auto cf_spacer_l = std::make_unique<Widget>();
+        auto cf_spacer_r = std::make_unique<Widget>();
+
+        cf_slider_container->add_child(std::move(cf_spacer_l));
+        cf_slider_container->add_child(std::move(cf_slider));
+        cf_slider_container->add_child(std::move(cf_spacer_r));
+
+        m_coverflow->when_selection_changed.connect(
+            [this, cf_label_ptr, cf_slider_ptr](EventContext &)
+            {
+                int idx = m_coverflow->selected_index();
+                if (idx >= 0 && idx < (int)m_coverflow->data().size())
+                {
+                    const auto &f = m_coverflow->data()[idx];
+                    cf_label_ptr->set_text(f.name);
+
+                    if (m_coverflow->data().size() > 1)
+                    {
+                        float frac = (float)idx / (m_coverflow->data().size() - 1);
+                        cf_slider_ptr->set_value(frac);
+                    }
+                }
+            });
+
+        cf_slider_ptr->when_value_changed.connect(
+            [this](EventContext &ev)
+            {
+                auto *slider = static_cast<Slider *>(ev.sender);
+                float frac = slider ? slider->value() : 0.0f;
+                int count = (int)m_coverflow->data().size();
+                if (count > 0)
+                {
+                    int target_idx = std::round(frac * (count - 1));
+                    target_idx = std::max(0, std::min(count - 1, target_idx));
+                    if (m_coverflow->selected_index() != target_idx)
+                    {
+                        m_coverflow->set_selected_index(target_idx);
+                    }
+                }
+            });
+
+        coverflow_container->add_child(std::move(coverflow));
+        coverflow_container->add_child(std::move(cf_label));
+        coverflow_container->add_child(std::move(cf_slider_container));
+
+        m_view_container->add_child(std::move(table));
+        m_view_container->add_child(std::move(coverflow_container));
+        root->add_child(std::move(view_container));
+
         // Listen for changes
         m_fs_model->signal_manager().connect(arkutils::FileSystemModel::SIGNAL_DIRECTORY_CHANGED,
                                              [this](SignalContext &ctx)
@@ -155,6 +277,9 @@ namespace horizon::demo
                                              });
 
         refresh_ui(m_current_path);
+
+        m_window->add_child(std::move(root));
+        m_app->set_root(std::move(window));
     }
 
     int FilesDemo::run()
@@ -183,6 +308,7 @@ namespace horizon::demo
         // TableView stores data by value, copy it.
         std::vector<arkutils::FileInfo> files_copy = files;
         m_table->set_data(std::move(files_copy));
+        m_coverflow->set_data(std::move(files));
     }
 } // namespace horizon::demo
 

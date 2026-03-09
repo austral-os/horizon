@@ -2,6 +2,7 @@
 
 #include <horizon/Application.hpp>
 #include <horizon/ApplicationWindow.hpp>
+#include <horizon/CoverFlow.hpp>
 #include <horizon/TableView.hpp>
 #include <horizon/arkutils/FileSystemModel.hpp>
 #include <memory>
@@ -23,6 +24,10 @@ namespace horizon::demo
         std::unique_ptr<Application> m_app;
         ApplicationWindow *m_window = nullptr;
         TableView<arkutils::FileInfo> *m_table = nullptr;
+        CoverFlow<arkutils::FileInfo> *m_coverflow = nullptr;
+        Widget *m_coverflow_container = nullptr;
+        Widget *m_view_container = nullptr;
+        bool m_is_coverflow_view{false};
         std::unique_ptr<arkutils::FileSystemModel> m_fs_model;
 
         std::string m_current_path;
