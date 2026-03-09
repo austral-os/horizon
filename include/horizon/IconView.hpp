@@ -54,6 +54,16 @@ namespace horizon
     };
 
     /**
+     * @brief Context for an icon view item click event.
+     */
+    template <typename T> class IconViewItemMouseClickContext : public EventContext
+    {
+    public:
+        int item_index;
+        T item_data;
+    };
+
+    /**
      * @class IconView
      * @brief A generic widget that displays a grid of items from a given collection.
      */
@@ -65,6 +75,9 @@ namespace horizon
 
         IconView() : IconViewBase() {}
         ~IconView() override = default;
+
+        EventsManager<IconViewItemMouseClickContext<T>> when_item_click;
+        EventsManager<IconViewItemMouseClickContext<T>> when_item_dbl_click;
 
         std::function<void(int, const T &)> on_item_selected;
 
@@ -108,6 +121,35 @@ namespace horizon
                 auto item_widget = m_item_factory(m_data[i], m_zoom, is_selected);
                 if (item_widget)
                 {
+                    item_widget->when_mouse_press.connect(
+                        [this, i](MouseButtonEventContext &ctx)
+                        {
+                            if (ctx.button == 0x110) // Left click
+                            {
+                                set_selected_index(i);
+
+                                IconViewItemMouseClickContext<T> click_ctx;
+                                click_ctx.item_index = i;
+                                click_ctx.item_data = m_data[i];
+                                when_item_click.run(click_ctx);
+
+                                if (on_item_selected)
+                                    on_item_selected(i, m_data[i]);
+                            }
+                        });
+
+                    item_widget->when_dbl_click.connect(
+                        [this, i](MouseButtonEventContext &ctx)
+                        {
+                            if (ctx.button == 0x110) // Left click
+                            {
+                                IconViewItemMouseClickContext<T> click_ctx;
+                                click_ctx.item_index = i;
+                                click_ctx.item_data = m_data[i];
+                                when_item_dbl_click.run(click_ctx);
+                            }
+                        });
+
                     m_content_pane->add_child(std::move(item_widget));
                 }
             }

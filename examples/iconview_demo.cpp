@@ -166,34 +166,22 @@ int main(int argc, char *argv[])
             int base_font_size = icon_view_ptr->get_theme_font_size();
             item->set_font_size(static_cast<int>(base_font_size * zoom));
 
-            // Handle selection
-            item->when_mouse_press.connect(
-                [icon_view_ptr, item_ptr = item.get()](EventContext &ctx)
-                {
-                    // Find index of this item in content pane
-                    auto &children = icon_view_ptr->children(); // Faulty, it's ScrollArea
-                    // We need to access content_pane children. IconViewBase has it as protected.
-                    // Wait, IconViewBase is the parent of rebuilding items.
-                    // Re-calculating index is better.
-
-                    // Let's use a capture to know our index or just loop.
-                    auto content_pane = item_ptr->parent();
-                    if (content_pane)
-                    {
-                        auto &items = content_pane->children();
-                        for (int i = 0; i < (int)items.size(); ++i)
-                        {
-                            if (items[i].get() == item_ptr)
-                            {
-                                icon_view_ptr->set_selected_index(i);
-                                break;
-                            }
-                        }
-                    }
-                });
+            // Handle selection is now done automatically by IconView
+            // but we could still add custom logic here if needed.
 
             return item;
         });
+
+    icon_view->when_item_click.connect(
+        [](IconViewItemMouseClickContext<FileData> &ctx)
+        {
+            std::cout << "Clicked: " << ctx.item_data.name << " (index: " << ctx.item_index << ")"
+                      << std::endl;
+        });
+
+    icon_view->when_item_dbl_click.connect(
+        [](IconViewItemMouseClickContext<FileData> &ctx)
+        { std::cout << "Double clicked: " << ctx.item_data.name << std::endl; });
 
     // Load data from filesystem
     std::string path = "/home/horacio";
