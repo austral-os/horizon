@@ -369,7 +369,7 @@ namespace horizon
             // Dynamic depth and rotation mimicking classic Cover Flow
             float clamped_dist_rot = std::max(-1.0f, std::min(1.0f, (float)dist));
             // Steeper angle for side items
-            float rotation = clamped_dist_rot * -1.35f;
+            float rotation = clamped_dist_rot * -1.75f;
 
             // Push side items back to a common depth plane, with tiny progressive offset
             float depth_step = std::abs(clamped_dist_rot) * 0.6f;
