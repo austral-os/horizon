@@ -60,6 +60,16 @@ namespace horizon
     public:
     };
 
+    class MouseWheelEventContext : public EventContext
+    {
+    public:
+        double dx{0.0};
+        double dy{0.0};
+        double x{0.0};
+        double y{0.0};
+        uint32_t modifiers{0};
+    };
+
     /**
      * @class EventsManager
      * @brief Templated manager for event callbacks.

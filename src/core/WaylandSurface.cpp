@@ -172,6 +172,26 @@ namespace horizon
     static void pointer_handle_axis(void *data, wl_pointer *pointer, uint32_t time, uint32_t axis,
                                     wl_fixed_t value)
     {
+        WaylandSurface *self = static_cast<WaylandSurface *>(data);
+        if (self->listener())
+        {
+            PointerEvent ev;
+            ev.type = PointerEvent::Type::Scroll;
+            ev.x = self->pointer_x();
+            ev.y = self->pointer_y();
+
+            double val = wl_fixed_to_double(value);
+            if (axis == WL_POINTER_AXIS_VERTICAL_SCROLL)
+            {
+                ev.dy = val;
+            }
+            else if (axis == WL_POINTER_AXIS_HORIZONTAL_SCROLL)
+            {
+                ev.dx = val;
+            }
+
+            self->listener()->on_pointer_event(ev);
+        }
     }
 
     static void seat_handle_name(void *data, wl_seat *seat, const char *name) {}

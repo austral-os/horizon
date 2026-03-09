@@ -367,6 +367,7 @@ namespace horizon
          * @brief Internal handler for pointer button release events.
          */
         void handle_release(const PointerEvent &event);
+        void handle_wheel(const PointerEvent &event);
 
         /**
          * @brief Internal handler for keyboard key press events.

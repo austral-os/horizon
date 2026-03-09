@@ -253,6 +253,9 @@ namespace horizon
         case PointerEvent::Type::Release:
             handle_release(event);
             break;
+        case PointerEvent::Type::Scroll:
+            handle_wheel(event);
+            break;
 
         case PointerEvent::Type::Leave:
             m_pressed = nullptr;
@@ -662,6 +665,34 @@ namespace horizon
                 temp = temp->parent();
             }
             m_pressed = nullptr;
+        }
+    }
+
+    void Application::handle_wheel(const PointerEvent &event)
+    {
+        if (!m_root)
+            return;
+
+        Widget *under = m_root->hit_test(event.x, event.y);
+        if (!under)
+            return;
+
+        MouseWheelEventContext new_ev;
+        new_ev.sender = under;
+        new_ev.dx = event.dx;
+        new_ev.dy = event.dy;
+        new_ev.x = event.x;
+        new_ev.y = event.y;
+        new_ev.modifiers = m_modifiers;
+
+        Widget *temp = under;
+        while (temp)
+        {
+            new_ev.sender = temp;
+            temp->when_mouse_wheel.run(new_ev);
+            if (new_ev.stop_propagation)
+                break;
+            temp = temp->parent();
         }
     }
 

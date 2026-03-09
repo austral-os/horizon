@@ -32,6 +32,8 @@ namespace horizon
         uint32_t button{
             0}; /**< The button identifier (e.g., BTN_LEFT from <linux/input-event-codes.h>). */
         uint32_t serial{0}; /**< The Wayland serial of the event. */
+        double dx{0.0};     /**< Scroll delta X. */
+        double dy{0.0};     /**< Scroll delta Y. */
     };
 
     /**

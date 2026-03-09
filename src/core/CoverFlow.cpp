@@ -162,6 +162,20 @@ namespace horizon
                 }
             });
 
+        when_mouse_wheel.connect(
+            [this](MouseWheelEventContext &ev)
+            {
+                if (ev.dy > 0)
+                {
+                    set_selected_index(std::min((int)m_children.size() - 1, m_selected_index + 1));
+                }
+                else if (ev.dy < 0)
+                {
+                    set_selected_index(std::max(0, m_selected_index - 1));
+                }
+                ev.stop_propagation = true;
+            });
+
         set_focusable(true); // Allow keyboard input
     }
 

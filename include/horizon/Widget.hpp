@@ -238,6 +238,7 @@ namespace horizon
         EventsManager<EventContext> when_mouse_leave;
         EventsManager<MouseMoveEventContext> when_mouse_move;
         EventsManager<MouseButtonEventContext> when_mouse_release;
+        EventsManager<MouseWheelEventContext> when_mouse_wheel;
         EventsManager<MouseMoveEventContext> when_mouse_drag;
         EventsManager<MouseMoveEventContext> when_mouse_hover;
         EventsManager<KeyEventContext> when_key_press;

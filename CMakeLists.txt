@@ -185,6 +185,15 @@ target_link_libraries(files_demo
         horizon
 )
 
+add_executable(mouse_wheel_test
+    tests/mouse_wheel_test.cpp
+)
+
+target_link_libraries(mouse_wheel_test
+    PRIVATE
+        horizon
+)
+
 # Agregamos un target "run" para compilar y ejecutar de una vez
 
 add_custom_target(run
