@@ -750,14 +750,15 @@ namespace horizon
         if (width <= 0 || height <= 0)
             return;
 
-        m_width = width;
-        m_height = height;
-
         // 1. Cairo/SHM data allocation (Hybrid mode: we still draw with Cairo to CPU)
         if (m_data)
         {
             munmap(m_data, m_width * m_height * 4);
         }
+
+        m_width = width;
+        m_height = height;
+
         int stride = m_width * 4;
         int size = stride * m_height;
         int fd = memfd_create("buffer", MFD_CLOEXEC);
