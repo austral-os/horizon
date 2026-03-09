@@ -20,6 +20,7 @@ namespace horizon
     class Menu;
     class ClientMenu;
     class IpcClient;
+    class CompositorContext;
 
     /**
      * @class Application
@@ -167,6 +168,11 @@ namespace horizon
         bool is_fullscreen() const;
 
         /**
+         * @return True if the window is minimized.
+         */
+        bool is_minimized() const;
+
+        /**
          * @brief Returns the graphics context for this application.
          */
         virtual GraphicsContext &get_graphics_context() const;
@@ -202,7 +208,12 @@ namespace horizon
         void on_modifiers_event(uint32_t modifiers) override;
         void on_resize(int width, int height) override;
         void on_activated(bool active) override;
-        void on_close() override;
+        virtual void on_close() override;
+
+        /**
+         * @brief Returns the compositor context for this application.
+         */
+        virtual CompositorContext &get_compositor_context() const;
 
         // --- Application Events (Multi-Callback) ---
         size_t add_on_start(std::function<void()> handler);
@@ -426,5 +437,6 @@ namespace horizon
         mutable std::vector<GLDrawCall> m_gl_queue;
 
         mutable std::unique_ptr<GraphicsContext> m_gc;
+        std::unique_ptr<CompositorContext> m_compositor_context;
     };
 } // namespace horizon

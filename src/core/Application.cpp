@@ -8,6 +8,7 @@
 #include <horizon/Application.hpp>
 #include <horizon/ClientMenu.hpp>
 #include <horizon/IpcClient.hpp>
+#include <horizon/LabwcCompositorContext.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/Window.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
@@ -90,6 +91,7 @@ namespace horizon
             });
 
         m_app_menu = std::make_unique<Menu>();
+        m_compositor_context = std::make_unique<LabwcCompositorContext>(this);
     }
 
     // Constructor de movimiento
@@ -1045,17 +1047,17 @@ namespace horizon
 
     void Application::request_move()
     {
-        if (m_surface)
+        if (m_compositor_context)
         {
-            m_surface->request_move(m_last_serial);
+            m_compositor_context->request_move(m_last_serial);
         }
     }
 
     void Application::maximize()
     {
-        if (m_surface)
+        if (m_compositor_context)
         {
-            m_surface->request_maximize();
+            m_compositor_context->maximize();
             m_is_minimized = false;
             notify_app_manager("app_started"); // Notify state change
             for (auto const &[id, handler] : m_on_maximize_handlers)
@@ -1068,11 +1070,10 @@ namespace horizon
 
     void Application::minimize()
     {
-        if (m_surface)
+        if (m_compositor_context)
         {
-            std::cout << "[APP] Minimizing window..." << std::endl;
             m_was_maximized_before_minimize = is_maximized();
-            m_surface->request_minimize();
+            m_compositor_context->minimize();
             notify_window_state(true);
             for (auto const &[id, handler] : m_on_minimize_handlers)
             {
@@ -1084,38 +1085,9 @@ namespace horizon
 
     void Application::restore(const std::string &token)
     {
-        std::cout << "[APP] Restore requested with token: " << (token.empty() ? "EMPTY" : "PRESENT")
-                  << std::endl;
-        if (m_surface)
+        if (m_compositor_context)
         {
-            if (!token.empty())
-            {
-                std::cout << "[APP] Activating surface with token..." << std::endl;
-                m_surface->activate(token);
-            }
-            else
-            {
-                std::cout << "[APP] WARNING: Restore called without token!" << std::endl;
-            }
-
-            // If it was maximized before, request maximize again.
-            // Otherwise, just request restore (unminimize).
-            if (m_was_maximized_before_minimize)
-            {
-                std::cout << "[APP] Re-maximizing after unminimize..." << std::endl;
-                m_surface->request_maximize();
-            }
-            else
-            {
-                // POKE SEQUENCE: maximize then restore immediately to wake up KWin mapping
-                std::cout << "[APP] Poking compositor with maximize->restore sequence..."
-                          << std::endl;
-                m_surface->request_maximize();
-                m_surface->commit();
-                m_surface->request_restore();
-                m_surface->commit();
-            }
-
+            m_compositor_context->restore(token);
             notify_window_state(false);
 
             for (auto const &[id, handler] : m_on_maximize_handlers)
@@ -1138,23 +1110,28 @@ namespace horizon
 
     void Application::fullscreen()
     {
-        if (m_surface)
+        if (m_compositor_context)
         {
-            m_surface->request_fullscreen();
+            m_compositor_context->fullscreen();
         }
     }
 
     void Application::unfullscreen()
     {
-        if (m_surface)
+        if (m_compositor_context)
         {
-            m_surface->request_unfullscreen();
+            m_compositor_context->unfullscreen();
         }
     }
 
     bool Application::is_fullscreen() const
     {
-        return m_surface && m_surface->is_fullscreen();
+        return m_compositor_context && m_compositor_context->is_fullscreen();
+    }
+
+    bool Application::is_minimized() const
+    {
+        return m_is_minimized;
     }
 
     void Application::quit()
@@ -1381,6 +1358,11 @@ namespace horizon
                                                          m_surface->width(), m_surface->height());
         }
         return *m_gc;
+    }
+
+    CompositorContext &Application::get_compositor_context() const
+    {
+        return *m_compositor_context;
     }
 
 } // namespace horizon
