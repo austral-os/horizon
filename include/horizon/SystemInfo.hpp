@@ -22,6 +22,21 @@ namespace horizon
         std::vector<PartitionInfo> partitions;
     };
 
+    struct MemorySlotInfo
+    {
+        bool occupied;
+        uint64_t capacity; // in bytes
+        std::string type;  // e.g., DDR3
+        uint32_t speed;    // in MHz
+    };
+
+    struct MemoryInfo
+    {
+        uint64_t total_capacity; // in bytes
+        uint32_t total_slots;
+        std::vector<MemorySlotInfo> slots;
+    };
+
     class SystemInfo
     {
     public:
@@ -36,5 +51,6 @@ namespace horizon
         static std::string get_monitor_resolution();
 
         static DiskInfo get_os_disk_info();
+        static MemoryInfo get_memory_info();
     };
 } // namespace horizon

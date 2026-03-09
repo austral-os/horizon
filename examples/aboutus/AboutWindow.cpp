@@ -1,6 +1,7 @@
 #include "AboutWindow.hpp"
 #include "DiskInfo.hpp"
 #include "Displays.hpp"
+#include "MemoryInfo.hpp"
 #include "Overview.hpp"
 #include <horizon/GroupButton.hpp>
 #include <horizon/Icon.hpp>
@@ -24,34 +25,32 @@ namespace horizon
         navigation->add_item("Overview");
         navigation->add_item("Displays");
         navigation->add_item("Storage");
-        navigation->add_item("Support");
-        navigation->add_item("Service");
+        navigation->add_item("Memory");
+
+        navigation->set_current_item(0);
 
         navigation->when_button_clicked.connect(
             [this](GroupButtonClickEvent &ev)
             {
                 if (ev.button_text == "Overview")
                 {
-                    std::cout << "Overview" << std::endl;
+
                     set_content(std::make_unique<Overview>());
                 }
                 else if (ev.button_text == "Displays")
                 {
-                    std::cout << "Displays" << std::endl;
+
                     set_content(std::make_unique<Displays>());
                 }
                 else if (ev.button_text == "Storage")
                 {
-                    std::cout << "Storage" << std::endl;
+
                     set_content(std::make_unique<DiskInfoWidget>());
                 }
-                else if (ev.button_text == "Support")
+
+                else if (ev.button_text == "Memory")
                 {
-                    std::cout << "Support" << std::endl;
-                }
-                else if (ev.button_text == "Service")
-                {
-                    std::cout << "Service" << std::endl;
+                    set_content(std::make_unique<MemoryInfoWidget>());
                 }
             });
 

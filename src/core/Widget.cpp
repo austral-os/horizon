@@ -366,6 +366,49 @@ namespace horizon
         return m_background_color;
     }
 
+    void Widget::set_border_radius(int radius)
+    {
+        if (m_border_radius != radius)
+        {
+            m_border_radius = radius;
+            invalidate();
+        }
+    }
+
+    int Widget::border_radius() const
+    {
+        return m_border_radius;
+    }
+
+    void Widget::set_border_width(int width)
+    {
+        if (m_border_width != width)
+        {
+            m_border_width = width;
+            invalidate();
+        }
+    }
+
+    int Widget::border_width() const
+    {
+        return m_border_width;
+    }
+
+    void Widget::set_border_color(const Color &color)
+    {
+        if (m_border_color.r != color.r || m_border_color.g != color.g ||
+            m_border_color.b != color.b || m_border_color.a != color.a)
+        {
+            m_border_color = color;
+            invalidate();
+        }
+    }
+
+    Color Widget::border_color() const
+    {
+        return m_border_color;
+    }
+
     int Widget::x() const
     {
         return m_x;
@@ -486,7 +529,13 @@ namespace horizon
         if (m_background_color.a > 0.001f)
         {
             gc.setColor(m_background_color);
-            gc.fillRect(m_x, m_y, m_width, m_height);
+            gc.fillRect(m_x, m_y, m_width, m_height, m_border_radius);
+        }
+
+        if (m_border_width > 0 && m_border_color.a > 0.001f)
+        {
+            gc.setColor(m_border_color);
+            gc.drawRect(m_x, m_y, m_width, m_height, m_border_radius, (float)m_border_width);
         }
     }
 

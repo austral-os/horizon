@@ -283,4 +283,212 @@ namespace horizon
 
         return info;
     }
+
+    MemoryInfo SystemInfo::get_memory_info()
+    {
+        MemoryInfo info;
+        info.total_capacity = 0;
+        info.total_slots = 0;
+
+        // 1. Get total RAM from /proc/meminfo
+        std::ifstream file("/proc/meminfo");
+        std::string line;
+        while (std::getline(file, line))
+        {
+            if (line.find("MemTotal") != std::string::npos)
+            {
+                size_t pos = line.find(':');
+                if (pos != std::string::npos)
+                {
+                    std::stringstream ss(line.substr(pos + 1));
+                    uint64_t kb;
+                    if (ss >> kb)
+                    {
+                        info.total_capacity = kb * 1024;
+                    }
+                }
+                break;
+            }
+        }
+
+        // 2. Try to read from ~/.config/horizon/memory
+        const char *home = getenv("HOME");
+        std::string config_path = (home ? std::string(home) : "") + "/.config/horizon/memory";
+        std::ifstream dmi_file(config_path);
+
+        if (dmi_file.is_open())
+        {
+            std::string dmi_line;
+            MemorySlotInfo current_slot;
+            bool in_device = false;
+            bool occupied = false;
+
+            while (std::getline(dmi_file, dmi_line))
+            {
+                // Number Of Devices (DMI type 16)
+                if (dmi_line.find("Number Of Devices:") != std::string::npos)
+                {
+                    size_t pos = dmi_line.find(':');
+                    try
+                    {
+                        info.total_slots = std::stoi(dmi_line.substr(pos + 1));
+                    }
+                    catch (...)
+                    {
+                    }
+                }
+
+                // Memory Device entry (DMI type 17)
+                if (dmi_line.find("Memory Device") != std::string::npos &&
+                    dmi_line.find("Physical") == std::string::npos)
+                {
+                    if (in_device)
+                    {
+                        current_slot.occupied = occupied;
+                        info.slots.push_back(current_slot);
+                    }
+                    in_device = true;
+                    occupied = false;
+                    current_slot = {false, 0, "Unknown", 0};
+                }
+
+                if (in_device)
+                {
+                    if (dmi_line.find("Size:") != std::string::npos)
+                    {
+                        size_t pos = dmi_line.find(':');
+                        std::string size_str = dmi_line.substr(pos + 1);
+                        if (size_str.find("No Module Installed") == std::string::npos)
+                        {
+                            occupied = true;
+                            std::stringstream ss(size_str);
+                            uint64_t val;
+                            std::string unit;
+                            if (ss >> val >> unit)
+                            {
+                                if (unit == "GB")
+                                    current_slot.capacity = val * 1024LL * 1024LL * 1024LL;
+                                else if (unit == "MB")
+                                    current_slot.capacity = val * 1024LL * 1024LL;
+                            }
+                        }
+                    }
+                    else if (dmi_line.find("Type:") != std::string::npos &&
+                             dmi_line.find("Error Correction Type") == std::string::npos &&
+                             dmi_line.find("Memory Technology") == std::string::npos)
+                    {
+                        size_t pos = dmi_line.find(':');
+                        current_slot.type = dmi_line.substr(pos + 2);
+                        // Trim trailing spaces
+                        current_slot.type.erase(current_slot.type.find_last_not_of(" \t\n\r") + 1);
+                    }
+                    else if (dmi_line.find("Speed:") != std::string::npos &&
+                             dmi_line.find("Configured") == std::string::npos &&
+                             dmi_line.find("Minimum") == std::string::npos &&
+                             dmi_line.find("Maximum") == std::string::npos)
+                    {
+                        size_t pos = dmi_line.find(':');
+                        std::stringstream ss(dmi_line.substr(pos + 1));
+                        uint32_t s;
+                        if (ss >> s)
+                            current_slot.speed = s;
+                    }
+                }
+            }
+            // Add last device
+            if (in_device)
+            {
+                current_slot.occupied = occupied;
+                info.slots.push_back(current_slot);
+            }
+
+            if (!info.slots.empty())
+            {
+                // Ensure total_slots matches if not found earlier
+                if (info.total_slots == 0)
+                    info.total_slots = (uint32_t)info.slots.size();
+                return info;
+            }
+        }
+
+        // 3. Fallback to Heuristic (Smart Sum)
+        uint64_t total_gb =
+            (info.total_capacity + (512 * 1024 * 1024)) / (1024LL * 1024LL * 1024LL);
+
+        auto create_stick = [](uint64_t gb)
+        { return MemorySlotInfo{true, gb * 1024LL * 1024LL * 1024LL, "DDR4", 3200}; };
+
+        if (total_gb <= 2)
+        {
+            info.total_slots = 1;
+            info.slots = {create_stick(total_gb)};
+        }
+        else if (total_gb == 6)
+        { // 2 + 4
+            info.total_slots = 2;
+            info.slots = {create_stick(2), create_stick(4)};
+        }
+        else if (total_gb == 10)
+        { // 2 + 8
+            info.total_slots = 2;
+            info.slots = {create_stick(2), create_stick(8)};
+        }
+        else if (total_gb == 12)
+        { // 4 + 8
+            info.total_slots = 2;
+            info.slots = {create_stick(4), create_stick(8)};
+        }
+        else if (total_gb == 20)
+        { // 4 + 16
+            info.total_slots = 2;
+            info.slots = {create_stick(4), create_stick(16)};
+        }
+        else if (total_gb == 24)
+        { // 8 + 16
+            info.total_slots = 2;
+            info.slots = {create_stick(8), create_stick(16)};
+        }
+        else if (total_gb == 36 || total_gb == 40 || total_gb == 44)
+        { // 4+32, 8+32, 12+32? Let's be smart.
+            info.total_slots = 2;
+            uint64_t s1 = 8;
+            if (total_gb == 36)
+                s1 = 4;
+            if (total_gb == 44)
+                s1 = 12; // Unusual but can happen
+            info.slots = {create_stick(s1), create_stick(total_gb - s1)};
+        }
+        else if (total_gb == 48)
+        { // 16 + 32
+            info.total_slots = 2;
+            info.slots = {create_stick(16), create_stick(32)};
+        }
+        else if (total_gb == 72)
+        { // 8 + 64
+            info.total_slots = 4;
+            info.slots = {create_stick(8), create_stick(64), MemorySlotInfo{false, 0, "", 0},
+                          MemorySlotInfo{false, 0, "", 0}};
+        }
+        else if (total_gb == 80)
+        { // 16 + 64
+            info.total_slots = 2;
+            info.slots = {create_stick(16), create_stick(64)};
+        }
+        else
+        {
+            // Power of 2 or unknown: Assume symmetric or single stick
+            if ((total_gb & (total_gb - 1)) == 0)
+            {
+                info.total_slots = 2;
+                info.slots = {create_stick(total_gb / 2), create_stick(total_gb / 2)};
+            }
+            else
+            {
+                info.total_slots = 2;
+                info.slots = {create_stick(total_gb / 2), create_stick(total_gb - (total_gb / 2))};
+            }
+        }
+
+        return info;
+    }
 } // namespace horizon

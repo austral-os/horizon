@@ -1,0 +1,82 @@
+# dmidecode 3.6
+Getting SMBIOS data from sysfs.
+SMBIOS 3.5.0 present.
+
+Handle 0x000C, DMI type 16, 23 bytes
+Physical Memory Array
+        Location: System Board Or Motherboard
+        Use: System Memory
+        Error Correction Type: None
+        Maximum Capacity: 64 GB
+        Error Information Handle: Not Provided
+        Number Of Devices: 2
+
+Handle 0x0010, DMI type 17, 92 bytes
+Memory Device
+        Array Handle: 0x000C
+        Error Information Handle: Not Provided
+        Total Width: 64 bits
+        Data Width: 64 bits
+        Size: 8 GB
+        Form Factor: SODIMM
+        Set: None
+        Locator: Controller0-ChannelA
+        Bank Locator: BANK 0
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 3200 MT/s
+        Manufacturer: SK Hynix
+        Serial Number: 00000000
+        Asset Tag: 9876543210
+        Part Number: HMAA1GS6CJR6N-XN    
+        Rank: 1
+        Configured Memory Speed: 3200 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+        Memory Technology: DRAM
+        Memory Operating Mode Capability: Volatile memory
+        Firmware Version: Not Specified
+        Module Manufacturer ID: Bank 1, Hex 0xAD
+        Module Product ID: Unknown
+        Memory Subsystem Controller Manufacturer ID: Unknown
+        Memory Subsystem Controller Product ID: Unknown
+        Non-Volatile Size: None
+        Volatile Size: 8 GB
+        Cache Size: None
+        Logical Size: None
+
+Handle 0x0011, DMI type 17, 92 bytes
+Memory Device
+        Array Handle: 0x000C
+        Error Information Handle: Not Provided
+        Total Width: 64 bits
+        Data Width: 64 bits
+        Size: 32 GB
+        Form Factor: SODIMM
+        Set: None
+        Locator: Controller1-ChannelA-DIMM0
+        Bank Locator: BANK 0
+        Type: DDR4
+        Type Detail: Synchronous
+        Speed: 3200 MT/s
+        Manufacturer: Lexar Co Limited
+        Serial Number: 246516C5
+        Asset Tag: 9876543210
+        Part Number: LD4AS032G-3200ST    
+        Rank: 2
+        Configured Memory Speed: 3200 MT/s
+        Minimum Voltage: 1.2 V
+        Maximum Voltage: 1.2 V
+        Configured Voltage: 1.2 V
+        Memory Technology: DRAM
+        Memory Operating Mode Capability: Volatile memory
+        Firmware Version: Not Specified
+        Module Manufacturer ID: Bank 11, Hex 0x76
+        Module Product ID: Unknown
+        Memory Subsystem Controller Manufacturer ID: Unknown
+        Memory Subsystem Controller Product ID: Unknown
+        Non-Volatile Size: None
+        Volatile Size: 32767 MB
+        Cache Size: None
+        Logical Size: None

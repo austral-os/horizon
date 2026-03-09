@@ -120,6 +120,9 @@ namespace horizon
         void set_layout_type(WidgetLayoutTypes layout_type);
         void set_accent_color(WidgetAccentColor accent_color);
         void set_background_color(const Color &color);
+        void set_border_radius(int radius);
+        void set_border_width(int width);
+        void set_border_color(const Color &color);
         virtual void calculate_layout();
 
         virtual int preferred_width() const;
@@ -137,6 +140,9 @@ namespace horizon
         WidgetLayoutTypes layout_type() const;
         WidgetAccentColor accent_color() const;
         Color background_color() const;
+        int border_radius() const;
+        int border_width() const;
+        Color border_color() const;
 
         // --- Estado ---
         void set_visible(bool visible);
@@ -253,6 +259,9 @@ namespace horizon
         WidgetLayoutTypes m_layout_type{WIDGET_LAYOUT_HORIZONTAL};
         WidgetAccentColor m_accent_color{WidgetAccentColor::Default};
         Color m_background_color{0.0f, 0.0f, 0.0f, 0.0f}; // Default transparent
+        int m_border_radius{0};
+        int m_border_width{0};
+        Color m_border_color{0.0f, 0.0f, 0.0f, 0.0f};
 
         std::map<WidgetEvent, WidgetDrawState> m_draw_state_map;
         WidgetDrawState m_draw_state{WidgetDrawState::NORMAL};
