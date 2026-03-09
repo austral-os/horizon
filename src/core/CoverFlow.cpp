@@ -342,8 +342,10 @@ namespace horizon
                 cairo_pattern_t *mask =
                     cairo_pattern_create_linear(0, child->y(), 0, child->y() + child->height());
                 // Make the reflection a bit softer (0.5 alpha) and fade out more naturally
-                cairo_pattern_add_color_stop_rgba(mask, 1.0, 0, 0, 0, 0.5);
-                cairo_pattern_add_color_stop_rgba(mask, 0.6, 0, 0, 0, 0.0);
+                float offset_start = 1.0f;
+                float offset_end = 0.5f;
+                cairo_pattern_add_color_stop_rgba(mask, offset_start, 0, 0, 0, 0.4);
+                cairo_pattern_add_color_stop_rgba(mask, offset_end, 0, 0, 0, 0.0);
                 cairo_mask(cr, mask);
                 cairo_pattern_destroy(mask);
                 cairo_restore(cr);
