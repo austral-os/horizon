@@ -90,33 +90,62 @@ namespace horizon
                 { // Left click
                     m_is_dragging = true;
                     m_mouse_press_x = ev.x;
-                    m_drag_start_index = m_selected_index;
+                    m_drag_start_animated_index = m_animated_index;
+
+                    // Stop any ongoing animation when user grabs the widget
+                    if (m_animation_timer != 0 && application())
+                    {
+                        application()->stop_timer(m_animation_timer);
+                        m_animation_timer = 0;
+                    }
                 }
             });
 
-        when_mouse_move.connect(
+        when_mouse_drag.connect(
             [this](MouseMoveEventContext &ev)
             {
                 if (m_is_dragging)
                 {
-                    int dx = ev.x - m_mouse_press_x;
-                    // drag distance threshold
-                    int index_offset = -dx / 100; // change index every 100px
-                    int next_index = m_drag_start_index + index_offset;
-                    next_index = std::max(0, std::min((int)m_children.size() - 1, next_index));
-                    if (next_index != m_selected_index)
-                    {
-                        set_selected_index(next_index);
-                    }
+                    int dx = (int)ev.x - m_mouse_press_x;
+                    // Drag sensitivity: 200px moves one full item
+                    float index_offset = -(float)dx / 200.0f;
+                    m_animated_index = m_drag_start_animated_index + index_offset;
+
+                    // Constrain to available items
+                    m_animated_index =
+                        std::max(0.0f, std::min((float)m_children.size() - 1, m_animated_index));
+
+                    invalidate();
+                    calculate_layout();
                 }
             });
 
         when_mouse_release.connect(
             [this](MouseButtonEventContext &ev)
             {
-                if (ev.button == 0x110)
+                if (m_is_dragging)
                 {
                     m_is_dragging = false;
+
+                    // Snap to the nearest index
+                    int nearest_index = (int)std::round(m_animated_index);
+                    nearest_index =
+                        std::max(0, std::min((int)m_children.size() - 1, nearest_index));
+
+                    // Set selected index and trigger animation to snap
+                    set_selected_index(nearest_index);
+
+                    // If we were already at the nearest index, we still need to start a timer
+                    // to ensure it perfectly aligns if it was off by a small fraction
+                    if (m_selected_index == nearest_index &&
+                        std::abs(m_animated_index - (float)nearest_index) > 0.001f)
+                    {
+                        if (m_animation_timer == 0 && application())
+                        {
+                            m_animation_timer = application()->add_timer(
+                                16, [this]() { update_animation(); }, true);
+                        }
+                    }
                 }
             });
 
@@ -159,18 +188,26 @@ namespace horizon
 
     void CoverFlowBase::set_selected_index(int index)
     {
-        if (index >= 0 && index < (int)m_children.size() && m_selected_index != index)
+        if (index >= 0 && index < (int)m_children.size())
         {
+            bool changed = (m_selected_index != index);
             m_selected_index = index;
+
             if (m_animated_index < 0.0f)
                 m_animated_index = (float)index;
 
-            if (m_animation_timer == 0 && application())
+            // Only start animation if not dragging and we need to move
+            if (!m_is_dragging && m_animation_timer == 0 && application() &&
+                std::abs(m_animated_index - (float)index) > 0.001f)
             {
                 m_animation_timer =
                     application()->add_timer(16, [this]() { update_animation(); }, true);
             }
-            rebuild_items(); // trigger re-render of selected state to children
+
+            if (changed)
+            {
+                invalidate();
+            }
         }
     }
 

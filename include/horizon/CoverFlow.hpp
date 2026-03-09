@@ -69,7 +69,7 @@ namespace horizon
         // Interaction state
         bool m_is_dragging{false};
         int m_mouse_press_x{0};
-        int m_drag_start_index{0};
+        float m_drag_start_animated_index{0.0f};
 
         struct CachedTexture
         {
