@@ -39,6 +39,13 @@ namespace horizon
             return false;
         }
 
+        // Cairo CAIRO_FORMAT_ARGB32 on Little-Endian expects BGRA byte order.
+        // STB loads as RGBA. We swap R and B.
+        for (int i = 0; i < m_width * m_height * 4; i += 4)
+        {
+            std::swap(m_impl->data[i], m_impl->data[i + 2]);
+        }
+
         return true;
     }
 
