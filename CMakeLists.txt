@@ -170,6 +170,15 @@ target_link_libraries(group_button_test
         horizon
 )
 
+add_executable(files_demo
+    examples/files-demo/FilesDemo.cpp
+)
+
+target_link_libraries(files_demo
+    PRIVATE
+        horizon
+)
+
 # Agregamos un target "run" para compilar y ejecutar de una vez
 
 add_custom_target(run

@@ -25,6 +25,16 @@ namespace horizon
     };
 
     /**
+     * @brief Context for a row click event.
+     */
+    template <typename T> class TableViewRowMouseClickContext : public EventContext
+    {
+    public:
+        int row_index;
+        T row_data;
+    };
+
+    /**
      * @class TableView
      * @brief A template-based widget for displaying data in a grid.
      */
@@ -105,6 +115,25 @@ namespace horizon
                 children()[0]->set_visible(visible);
             invalidate();
         }
+
+        /**
+         * @brief Returns the items currently selected in the table.
+         * @return A vector of data items of type T.
+         */
+        std::vector<T> get_selected_items() const
+        {
+            std::vector<T> selected_items;
+            for (int idx : m_selected_rows)
+            {
+                if (idx >= 0 && (size_t)idx < m_data.size())
+                {
+                    selected_items.push_back(m_data[idx]);
+                }
+            }
+            return selected_items;
+        }
+
+        EventsManager<TableViewRowMouseClickContext<T>> when_row_click;
 
         void render(GraphicsContext &gc, int cx, int cy, int cw, int ch,
                     bool force = false) override
@@ -271,23 +300,6 @@ namespace horizon
             header->add_child(std::move(filler));
         }
 
-        /**
-         * @brief Returns the items currently selected in the table.
-         * @return A vector of data items of type T.
-         */
-        std::vector<T> get_selected_items() const
-        {
-            std::vector<T> selected_items;
-            for (int idx : m_selected_rows)
-            {
-                if (idx >= 0 && (size_t)idx < m_data.size())
-                {
-                    selected_items.push_back(m_data[idx]);
-                }
-            }
-            return selected_items;
-        }
-
         void update_selection_visuals()
         {
             if (children().size() < 2)
@@ -355,8 +367,10 @@ namespace horizon
 
                             update_selection_visuals();
 
-                            if (m_on_row_selected)
-                                m_on_row_selected(m_data[row_idx]);
+                            TableViewRowMouseClickContext<T> click_ctx;
+                            click_ctx.row_index = (int)row_idx;
+                            click_ctx.row_data = m_data[row_idx];
+                            when_row_click.run(click_ctx);
                         }
                     });
 
@@ -439,6 +453,5 @@ namespace horizon
         bool m_use_alternate_colors{true};
 
         std::set<int> m_selected_rows;
-        std::function<void(const T &)> m_on_row_selected;
     };
 } // namespace horizon
