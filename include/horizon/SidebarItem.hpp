@@ -20,8 +20,19 @@ namespace horizon
         void calculate_layout() override;
         Widget *hit_test(int x, int y) override;
 
+        void set_selected(bool selected)
+        {
+            m_selected = selected;
+            invalidate();
+        }
+        bool is_selected() const
+        {
+            return m_selected;
+        }
+
     private:
         Icon *m_icon_ptr{nullptr};
         Label *m_label_ptr{nullptr};
+        bool m_selected{false};
     };
 } // namespace horizon

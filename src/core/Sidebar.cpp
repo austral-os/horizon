@@ -52,6 +52,23 @@ namespace horizon
         auto it = m_groups.find(group_name);
         if (it != m_groups.end())
         {
+            auto *widget_ptr = item.get();
+            auto *sidebar_item = dynamic_cast<SidebarItem *>(widget_ptr);
+
+            if (sidebar_item)
+            {
+                sidebar_item->set_on_click(
+                    [this, sidebar_item]()
+                    {
+                        if (m_selected_item)
+                        {
+                            m_selected_item->set_selected(false);
+                        }
+                        m_selected_item = sidebar_item;
+                        m_selected_item->set_selected(true);
+                    });
+            }
+
             it->second->add_child(std::move(item));
         }
         invalidate();

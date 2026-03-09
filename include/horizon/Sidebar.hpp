@@ -1,5 +1,6 @@
 #pragma once
 #include <horizon/ScrollArea.hpp>
+#include <horizon/SidebarItem.hpp>
 #include <horizon/Widget.hpp>
 #include <map>
 #include <memory>
@@ -40,5 +41,6 @@ namespace horizon
         std::map<std::string, Widget *> m_groups;
         ScrollArea *m_scroll_area{nullptr};
         Widget *m_content_container{nullptr};
+        SidebarItem *m_selected_item{nullptr};
     };
 } // namespace horizon

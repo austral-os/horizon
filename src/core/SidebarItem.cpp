@@ -29,15 +29,19 @@ namespace horizon
         when_focus.connect(
             [this](EventContext &)
             {
-                if (m_label_ptr)
-                    m_label_ptr->set_text_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+                // Note: Selection is now managed externally or via click
             });
 
         when_blur.connect(
             [this](EventContext &)
             {
-                if (m_label_ptr)
-                    m_label_ptr->set_text_color(Color(0.2f, 0.2f, 0.2f, 1.0f));
+                // Note: Blur doesn't clear selection anymore
+            });
+
+        set_on_click(
+            [this]()
+            {
+                // We will let Sidebar handle the exclusive selection
             });
     }
 
@@ -69,7 +73,7 @@ namespace horizon
 
     void SidebarItem::draw(GraphicsContext &gc)
     {
-        bool selected = has_focus();
+        bool selected = m_selected;
 
         if (is_hovered() && !selected)
         {
@@ -83,6 +87,14 @@ namespace horizon
             Color c1(0.32f, 0.61f, 0.90f, 1.0f); // Top
             Color c2(0.11f, 0.45f, 0.81f, 1.0f); // Bottom
             gc.fillLinearGradientRect(m_x, m_y, m_width, m_height, c1, c2, true);
+
+            if (m_label_ptr)
+                m_label_ptr->set_text_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+        }
+        else
+        {
+            if (m_label_ptr)
+                m_label_ptr->set_text_color(Color(0.2f, 0.2f, 0.2f, 1.0f));
         }
 
         // Children (Icon, Label) are drawn by Widget::render
