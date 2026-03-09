@@ -341,8 +341,9 @@ namespace horizon
                 cairo_pop_group_to_source(cr);
                 cairo_pattern_t *mask =
                     cairo_pattern_create_linear(0, child->y(), 0, child->y() + child->height());
-                cairo_pattern_add_color_stop_rgba(mask, 1.0, 0, 0, 0, 0.35);
-                cairo_pattern_add_color_stop_rgba(mask, 0.6, 0, 0, 0, 0.0);
+                // Make the reflection start much stronger (0.8 alpha) and fade out slower (0.4)
+                cairo_pattern_add_color_stop_rgba(mask, 1.0, 0, 0, 0, 0.8);
+                cairo_pattern_add_color_stop_rgba(mask, 0.4, 0, 0, 0, 0.0);
                 cairo_mask(cr, mask);
                 cairo_pattern_destroy(mask);
                 cairo_restore(cr);
