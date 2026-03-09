@@ -198,7 +198,7 @@ namespace horizon::demo
 
                 auto icon = std::make_unique<Icon>();
                 icon->set_icon_name(icon_name_str);
-                icon->set_icon_size(128);
+                icon->set_icon_size(180);
 
                 // Note: The CoverFlow image typically just shows the art, we don't put labels on
                 // the items themselves.

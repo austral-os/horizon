@@ -59,8 +59,8 @@ namespace horizon
         float m_animated_index{-1.0f};
         size_t m_animation_timer{0};
 
-        int m_item_width{150};
-        int m_item_height{150};
+        int m_item_width{190};
+        int m_item_height{190};
 
         bool m_draw_reflection{true};
         bool m_dark_mode{true};
