@@ -112,7 +112,7 @@ namespace horizon
         virtual void popGroupToTexture(uint32_t &texture_id, int x, int y, int w, int h) {};
 
         virtual void drawTexture3D(uint32_t texture_id, int w, int h, float *matrix_4x4,
-                                   float opacity = 1.0f) {};
+                                   float opacity = 1.0f, bool delete_texture = true) {};
 
         virtual void fillPolygon(const std::vector<PolygonPoint> &points) {};
         virtual void drawPolygon(const std::vector<PolygonPoint> &points, float lineWidth = 1.0f) {

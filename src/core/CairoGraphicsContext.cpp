@@ -707,7 +707,7 @@ namespace horizon
     }
 
     void CairoGraphicContext::drawTexture3D(uint32_t texture_id, int w, int h, float *matrix_4x4,
-                                            float opacity)
+                                            float opacity, bool delete_texture)
     {
         if (!m_app)
             return;
@@ -716,8 +716,7 @@ namespace horizon
         call.texture_id = texture_id;
         std::memcpy(call.mvp, matrix_4x4, 16 * sizeof(float));
         call.opacity = opacity;
-        call.delete_texture =
-            true; // CoverFlow will handle texture deletion (wait, no, let's let App handle it)
+        call.delete_texture = delete_texture;
 
         m_app->queue_gl_draw(call);
     }

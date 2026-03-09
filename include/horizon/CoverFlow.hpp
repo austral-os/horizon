@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <horizon/Widget.hpp>
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -69,6 +70,16 @@ namespace horizon
         bool m_is_dragging{false};
         int m_mouse_press_x{0};
         int m_drag_start_index{0};
+
+        struct CachedTexture
+        {
+            uint32_t texture_id{0};
+            int width{0};
+            int height{0};
+        };
+
+        std::map<Widget *, CachedTexture> m_texture_cache;
+        void clear_cache();
     };
 
     /**
@@ -112,6 +123,7 @@ namespace horizon
     protected:
         void rebuild_items() override
         {
+            clear_cache();
             clear_children();
 
             if (!m_item_factory)

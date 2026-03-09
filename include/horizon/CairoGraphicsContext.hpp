@@ -57,7 +57,7 @@ namespace horizon
         void popGroupToTexture(uint32_t &texture_id, int x, int y, int w, int h) override;
 
         void drawTexture3D(uint32_t texture_id, int w, int h, float *matrix_4x4,
-                           float opacity = 1.0f) override;
+                           float opacity = 1.0f, bool delete_texture = true) override;
 
         void fillPolygon(const std::vector<PolygonPoint> &points) override;
         void drawPolygon(const std::vector<PolygonPoint> &points, float lineWidth = 1.0f) override;

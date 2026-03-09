@@ -142,6 +142,19 @@ namespace horizon
         {
             application()->stop_timer(m_animation_timer);
         }
+        clear_cache();
+    }
+
+    void CoverFlowBase::clear_cache()
+    {
+        for (auto &pair : m_texture_cache)
+        {
+            if (pair.second.texture_id != 0)
+            {
+                glDeleteTextures(1, &pair.second.texture_id);
+            }
+        }
+        m_texture_cache.clear();
     }
 
     void CoverFlowBase::set_selected_index(int index)
@@ -300,16 +313,18 @@ namespace horizon
         gc.save();
         gc.clip(m_x, m_y, m_width, m_height);
 
-        // 1. Determine which child is "center"
-        Widget *center_child = (m_selected_index >= 0 && m_selected_index < (int)m_children.size())
-                                   ? m_children[m_selected_index].get()
-                                   : nullptr;
-
-        // 2. Sort children for correct back-to-front rendering
-        // We draw further items first (leftmost and rightmost)
+        // 1. Select visible/culled items and sort them
+        // Items further than CULL_THRESHOLD from m_animated_index are skipped
+        const float CULL_THRESHOLD = 7.0f;
         std::vector<int> indices;
         for (int i = 0; i < (int)m_children.size(); i++)
-            indices.push_back(i);
+        {
+            float dist = std::abs((float)i - m_animated_index);
+            if (dist < CULL_THRESHOLD)
+            {
+                indices.push_back(i);
+            }
+        }
 
         std::sort(indices.begin(), indices.end(),
                   [&](int a, int b)
@@ -319,45 +334,73 @@ namespace horizon
                       return dist_a > dist_b; // Furthest first
                   });
 
-        // 3. Render each child using the 3D path
+        // 2. Render each visible child using the 3D path
         for (int i : indices)
         {
             Widget *child = m_children[i].get();
             double dist = (double)i - (double)m_animated_index;
 
-            cairo_save(cr);
-            gc.pushGroup();
+            uint32_t tex_id = 0;
+            int tex_w = 0;
+            int tex_h = 0;
 
-            // Draw reflection
-            if (m_draw_reflection)
+            // Texture Caching: Only re-render if the widget or its children are dirty,
+            // or if it's missing from the cache.
+            bool needs_rerender = (m_texture_cache.find(child) == m_texture_cache.end()) ||
+                                  child->is_dirty() || child->is_child_dirty() || force;
+
+            if (needs_rerender)
             {
                 cairo_save(cr);
-                double mirror_y = child->y() + (double)child->height();
-                cairo_translate(cr, 0, mirror_y);
-                cairo_scale(cr, 1.0, -1.0);
-                cairo_translate(cr, 0, -mirror_y);
-                cairo_push_group(cr);
+                gc.pushGroup();
+
+                // Draw reflection
+                if (m_draw_reflection)
+                {
+                    cairo_save(cr);
+                    double mirror_y = child->y() + (double)child->height();
+                    cairo_translate(cr, 0, mirror_y);
+                    cairo_scale(cr, 1.0, -1.0);
+                    cairo_translate(cr, 0, -mirror_y);
+                    cairo_push_group(cr);
+                    child->render(gc, cx, cy, cw, ch, true);
+                    cairo_pop_group_to_source(cr);
+                    cairo_pattern_t *mask =
+                        cairo_pattern_create_linear(0, child->y(), 0, child->y() + child->height());
+                    float offset_start = 1.0f;
+                    float offset_end = 0.5f;
+                    cairo_pattern_add_color_stop_rgba(mask, offset_start, 0, 0, 0, 0.4);
+                    cairo_pattern_add_color_stop_rgba(mask, offset_end, 0, 0, 0, 0.0);
+                    cairo_mask(cr, mask);
+                    cairo_pattern_destroy(mask);
+                    cairo_restore(cr);
+                }
+
+                // Draw main child
                 child->render(gc, cx, cy, cw, ch, true);
-                cairo_pop_group_to_source(cr);
-                cairo_pattern_t *mask =
-                    cairo_pattern_create_linear(0, child->y(), 0, child->y() + child->height());
-                // Make the reflection a bit softer (0.5 alpha) and fade out more naturally
-                float offset_start = 1.0f;
-                float offset_end = 0.5f;
-                cairo_pattern_add_color_stop_rgba(mask, offset_start, 0, 0, 0, 0.4);
-                cairo_pattern_add_color_stop_rgba(mask, offset_end, 0, 0, 0, 0.0);
-                cairo_mask(cr, mask);
-                cairo_pattern_destroy(mask);
+
+                int capture_h = m_draw_reflection ? child->height() * 2 : child->height();
+                gc.popGroupToTexture(tex_id, child->x(), child->y(), child->width(), capture_h);
                 cairo_restore(cr);
+
+                // Update cache (deleting old texture if it exists)
+                if (m_texture_cache.count(child) && m_texture_cache[child].texture_id != 0)
+                {
+                    glDeleteTextures(1, &m_texture_cache[child].texture_id);
+                }
+                m_texture_cache[child] = {tex_id, child->width(), capture_h};
+                tex_w = child->width();
+                tex_h = capture_h;
+            }
+            else
+            {
+                const auto &cached = m_texture_cache[child];
+                tex_id = cached.texture_id;
+                tex_w = cached.width;
+                tex_h = cached.height;
             }
 
-            // Draw main child
-            child->render(gc, cx, cy, cw, ch, true);
-
-            int capture_h = m_draw_reflection ? child->height() * 2 : child->height();
-            uint32_t tex_id = 0;
-            gc.popGroupToTexture(tex_id, child->x(), child->y(), child->width(), capture_h);
-
+            int capture_h = tex_h;
             // Calculate 3D Projection
             float mvp[16];
             mat4_identity(mvp);
@@ -371,27 +414,22 @@ namespace horizon
 
             // Dynamic depth and rotation mimicking classic Cover Flow
             float clamped_dist_rot = std::max(-1.0f, std::min(1.0f, (float)dist));
-            // Steeper angle for side items
             float rotation = clamped_dist_rot * -1.75f;
 
             // Push side items back to a common depth plane, with tiny progressive offset
             float depth_step = std::abs(clamped_dist_rot) * 0.6f;
             float z_pos = -1.0f - depth_step - (float)std::abs(dist) * 0.05f;
 
-            // 4. Calculate Screen-to-Scene mapping at this depth
-            // This ensures quads perfectly match their 2D positions/sizes
             float fov_rad = 100.0f * 3.14159f / 180.0f;
             float f_val = 1.0f / tanf(fov_rad / 2.0f);
             float screen_to_scene_x = std::abs(z_pos) * aspect / f_val;
             float screen_to_scene_y = std::abs(z_pos) / f_val;
 
-            // Convert normalized screen coordinates to scene coordinates
             float norm_x = (float)(pivot_x - (m_app->width() / 2.0f)) / (m_app->width() / 2.0f);
             float norm_y = -(float)(pivot_y - (m_app->height() / 2.0f)) / (m_app->height() / 2.0f);
             float scene_x = norm_x * screen_to_scene_x;
             float scene_y = norm_y * screen_to_scene_y;
 
-            // Convert normalized screen size to scene size
             float scene_scale_x = (float)child->width() / m_app->width() * screen_to_scene_x;
             float scene_scale_y = (float)capture_h / m_app->height() * screen_to_scene_y;
 
@@ -404,11 +442,8 @@ namespace horizon
             mat4_scale(mvp, scene_scale_x, scene_scale_y, 1.0f);
             mat4_multiply(mvp, proj, mvp);
 
-            // Dynamic opacity based on distance
             float opacity = 1.0f - std::min(0.7f, (float)std::abs(dist) * 0.15f);
-            gc.drawTexture3D(tex_id, child->width(), capture_h, mvp, opacity);
-
-            cairo_restore(cr);
+            gc.drawTexture3D(tex_id, tex_w, tex_h, mvp, opacity, false);
         }
 
         gc.restore();

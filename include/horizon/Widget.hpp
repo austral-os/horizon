@@ -223,6 +223,15 @@ namespace horizon
          */
         void invalidate();
 
+        bool is_dirty() const
+        {
+            return m_dirty;
+        }
+        bool is_child_dirty() const
+        {
+            return m_child_dirty;
+        }
+
         EventsManager<MouseButtonEventContext> when_mouse_press;
         EventsManager<MouseButtonEventContext> when_dbl_click;
         EventsManager<EventContext> when_mouse_enter;
