@@ -27,6 +27,27 @@ namespace horizon
         when_mouse_release.connect([this](MouseButtonEventContext &ev)
                                    { handle_mouse_release(ev); });
         when_mouse_move.connect([this](MouseMoveEventContext &ev) { handle_mouse_move(ev); });
+
+        when_mouse_wheel.connect(
+            [this](MouseWheelEventContext &ev)
+            {
+                // Simple vertical scroll implementation
+                // Scroll multiplier: around 30-40 pixels per "notch" (usually dy is ~1.0 or 10.0)
+                int scroll_amount = (int)(ev.dy * 4.0f);
+                if (std::abs(ev.dy) > 0)
+                {
+                    set_scroll_position(m_scroll_x, m_scroll_y + scroll_amount);
+                }
+
+                // If horizontal scroll is present
+                if (std::abs(ev.dx) > 0)
+                {
+                    int h_scroll_amount = (int)(ev.dx * 4.0f);
+                    set_scroll_position(m_scroll_x + h_scroll_amount, m_scroll_y);
+                }
+
+                ev.stop_propagation = true;
+            });
     }
 
     ScrollArea::~ScrollArea() = default;
