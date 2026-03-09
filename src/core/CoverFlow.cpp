@@ -92,7 +92,7 @@ namespace horizon
         int center_x = m_start_draw_x + m_available_draw_width / 2;
         // Shift center_y up slightly to account for reflections at the bottom
         int center_y = m_start_draw_y + m_available_draw_height / 2 -
-                       (m_draw_reflection ? m_item_height / 4 : 0);
+                       (m_draw_reflection ? (int)(m_item_height / 4.0f) : 0);
 
         // Parameters for better 3D look
         float spacing = 55.0f;      // distance between side items

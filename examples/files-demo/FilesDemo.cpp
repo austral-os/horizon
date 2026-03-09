@@ -42,9 +42,14 @@ namespace horizon::demo
                     m_table->set_visible(!m_is_coverflow_view);
                     if (m_coverflow_container)
                         m_coverflow_container->set_visible(m_is_coverflow_view);
-                    // force re-layout on toggle
+
                     if (m_view_container)
+                    {
+                        m_view_container->set_background_color(m_is_coverflow_view
+                                                                   ? Color(0.0f, 0.0f, 0.0f)
+                                                                   : Color(0.0f, 0.0f, 0.0f, 0.0f));
                         m_view_container->invalidate();
+                    }
                 }
             });
 
@@ -202,6 +207,7 @@ namespace horizon::demo
 
         auto cf_label = std::make_unique<Label>("No selection");
         cf_label->set_text_color(Color(1.0f, 1.0f, 1.0f));
+        cf_label->set_background_color(Color(0.0f, 0.0f, 0.0f)); // Black background
         cf_label->set_font_weight(FONT_WEIGHT_BOLD);
         cf_label->set_alignment(TextAlignment::Center);
         cf_label->set_fixed_size(30);

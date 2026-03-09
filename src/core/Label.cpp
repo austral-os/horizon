@@ -66,6 +66,7 @@ namespace horizon
 
     void Label::draw(GraphicsContext &gc)
     {
+        Widget::draw(gc);
         auto *tm = application()->theme_manager.get();
         auto theme_font = tm->get_font("window");
 
