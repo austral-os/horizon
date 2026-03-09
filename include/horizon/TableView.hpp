@@ -92,7 +92,14 @@ namespace horizon
         void set_data(std::vector<T> data)
         {
             m_data = std::move(data);
-            rebuild_content();
+            if (auto *app = application())
+            {
+                app->add_timer(0, [this]() { rebuild_content(); });
+            }
+            else
+            {
+                rebuild_content();
+            }
         }
 
         void set_width_mode(TableViewWidthMode mode)
@@ -134,6 +141,7 @@ namespace horizon
         }
 
         EventsManager<TableViewRowMouseClickContext<T>> when_row_click;
+        EventsManager<TableViewRowMouseClickContext<T>> when_row_dbl_click;
 
         void render(GraphicsContext &gc, int cx, int cy, int cw, int ch,
                     bool force = false) override
@@ -371,6 +379,18 @@ namespace horizon
                             click_ctx.row_index = (int)row_idx;
                             click_ctx.row_data = m_data[row_idx];
                             when_row_click.run(click_ctx);
+                        }
+                    });
+
+                row_widget->when_dbl_click.connect(
+                    [this, row_idx](MouseButtonEventContext &ctx)
+                    {
+                        if (ctx.button == 0x110) // Left click
+                        {
+                            TableViewRowMouseClickContext<T> click_ctx;
+                            click_ctx.row_index = (int)row_idx;
+                            click_ctx.row_data = m_data[row_idx];
+                            when_row_dbl_click.run(click_ctx);
                         }
                     });
 

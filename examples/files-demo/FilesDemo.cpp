@@ -127,7 +127,7 @@ namespace horizon::demo
         m_app->set_root(std::move(window));
 
         // Handle row selection
-        m_table->when_row_click.connect(
+        m_table->when_row_dbl_click.connect(
             [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
             {
                 if (ctx.row_data.type == arkutils::FileType::Directory)

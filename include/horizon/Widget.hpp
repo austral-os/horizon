@@ -2,6 +2,7 @@
 
 #include "horizon/Color.hpp"
 #include "horizon/EventsManager.hpp"
+#include <chrono>
 #include <functional>
 #include <map>
 #include <memory>
@@ -223,6 +224,7 @@ namespace horizon
         void invalidate();
 
         EventsManager<MouseButtonEventContext> when_mouse_press;
+        EventsManager<MouseButtonEventContext> when_dbl_click;
         EventsManager<EventContext> when_mouse_enter;
         EventsManager<EventContext> when_mouse_leave;
         EventsManager<MouseMoveEventContext> when_mouse_move;
@@ -288,6 +290,9 @@ namespace horizon
         size_t m_next_handler_id{0};
         bool m_dirty{true};
         bool m_child_dirty{true};
+
+        std::chrono::steady_clock::time_point m_last_click_time;
+        uint32_t m_last_click_button{0};
     };
 
 } // namespace horizon

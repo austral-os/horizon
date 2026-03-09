@@ -22,7 +22,26 @@ namespace horizon
         // Gestión de estados de interacción
         when_mouse_enter.connect([this](EventContext &) { m_is_hovered = true; });
         when_mouse_leave.connect([this](EventContext &) { m_is_hovered = false; });
-        when_mouse_press.connect([this](MouseButtonEventContext &) { m_is_pressed = true; });
+        when_mouse_press.connect(
+            [this](MouseButtonEventContext &ev)
+            {
+                m_is_pressed = true;
+                auto now = std::chrono::steady_clock::now();
+                auto duration =
+                    std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_click_time)
+                        .count();
+                if (m_last_click_button == ev.button && duration < 500)
+                {
+                    when_dbl_click.run(ev);
+                    m_last_click_button =
+                        0; // Prevent triple click from triggering another double click
+                }
+                else
+                {
+                    m_last_click_time = now;
+                    m_last_click_button = ev.button;
+                }
+            });
         when_mouse_release.connect([this](MouseButtonEventContext &) { m_is_pressed = false; });
     }
 
