@@ -1,4 +1,5 @@
 #include "AboutWindow.hpp"
+#include "DiskInfo.hpp"
 #include "Displays.hpp"
 #include "Overview.hpp"
 #include <horizon/GroupButton.hpp>
@@ -42,6 +43,7 @@ namespace horizon
                 else if (ev.button_text == "Storage")
                 {
                     std::cout << "Storage" << std::endl;
+                    set_content(std::make_unique<DiskInfoWidget>());
                 }
                 else if (ev.button_text == "Support")
                 {

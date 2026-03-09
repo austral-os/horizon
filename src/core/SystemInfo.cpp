@@ -1,8 +1,10 @@
 #include "horizon/SystemInfo.hpp"
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <sys/statvfs.h>
 #include <sys/utsname.h>
 
 namespace horizon
@@ -177,5 +179,108 @@ namespace horizon
             return line;
         }
         return "Unknown Resolution";
+    }
+
+    DiskInfo SystemInfo::get_os_disk_info()
+    {
+        DiskInfo info;
+        info.brand = "Unknown";
+        info.model = "Unknown Disk";
+        info.capacity = 0;
+
+        // 1. Find root dev from /proc/mounts
+        std::string root_dev = "";
+        std::ifstream mounts("/proc/mounts");
+        std::string line;
+        while (std::getline(mounts, line))
+        {
+            if (line.find(" / ") != std::string::npos)
+            {
+                std::stringstream ss(line);
+                ss >> root_dev;
+                break;
+            }
+        }
+
+        if (root_dev.empty())
+            return info;
+
+        // 2. Extract disk name
+        // /dev/nvme0n1p2 -> nvme0n1
+        // /dev/sda1 -> sda
+        std::string dev_name = root_dev;
+        if (dev_name.find("/dev/") == 0)
+            dev_name = dev_name.substr(5);
+
+        std::string disk_name = dev_name;
+        // Search for the disk in /sys/block
+        namespace fs = std::filesystem;
+        bool found_disk = false;
+
+        // Try to find the parent disk by checking /sys/block
+        for (const auto &entry : fs::directory_iterator("/sys/block"))
+        {
+            std::string bname = entry.path().filename().string();
+            if (dev_name.find(bname) == 0)
+            {
+                disk_name = bname;
+                found_disk = true;
+                break;
+            }
+        }
+
+        if (!found_disk)
+            return info;
+
+        // 3. Get disk info from /sys/block/disk_name
+        std::string sys_path = "/sys/block/" + disk_name;
+
+        info.model = read_file(sys_path + "/device/model");
+        if (info.model.empty())
+            info.model = disk_name;
+
+        info.brand = read_file(sys_path + "/device/vendor");
+        if (info.brand.empty())
+            info.brand = "Generic";
+
+        std::string size_str = read_file(sys_path + "/size");
+        if (!size_str.empty())
+        {
+            try
+            {
+                info.capacity = std::stoull(size_str) * 512;
+            }
+            catch (...)
+            {
+            }
+        }
+
+        // 4. Get partitions from /proc/mounts that belong to this disk
+        mounts.clear();
+        mounts.seekg(0);
+        while (std::getline(mounts, line))
+        {
+            std::stringstream ss(line);
+            std::string path, mount, type;
+            if (!(ss >> path >> mount >> type))
+                continue;
+
+            if (path.find("/dev/" + disk_name) == 0)
+            {
+                PartitionInfo p;
+                p.name = path;
+                p.mount_point = mount;
+
+                struct statvfs vfs;
+                if (statvfs(mount.c_str(), &vfs) == 0)
+                {
+                    p.capacity = (uint64_t)vfs.f_blocks * vfs.f_frsize;
+                    p.used = p.capacity - ((uint64_t)vfs.f_bfree * vfs.f_frsize);
+                    info.partitions.push_back(p);
+                }
+            }
+        }
+
+        return info;
     }
 } // namespace horizon
