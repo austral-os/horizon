@@ -183,8 +183,10 @@ namespace horizon
         init_gl_resources();
 
         glViewport(0, 0, m_surface->width(), m_surface->height());
-        // glClear is now called in the main loop before m_root->render
-        glClearColor(0, 0, 0, 1);
+        if (is_transparent_surface())
+            glClearColor(0, 0, 0, 0);
+        else
+            glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glEnable(GL_BLEND);
@@ -832,8 +834,10 @@ namespace horizon
                 if (has_pending && m_surface->is_configured() &&
                     (frame_now - m_last_commit_time) >= FRAME_MS)
                 {
-                    init_gl_resources();
-                    glClearColor(0, 0, 0, 1);
+                    if (is_transparent_surface())
+                        glClearColor(0, 0, 0, 0);
+                    else
+                        glClearColor(0, 0, 0, 1);
                     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                     m_gl_queue.clear();
 
