@@ -22,7 +22,7 @@ namespace horizon
         int size = (m_font_size > 0) ? m_font_size : theme_font.size;
 
         unsigned char tmp_buf[4] = {0};
-        CairoGraphicContext measure_ctx(tmp_buf, 1, 1);
+        CairoGraphicContext measure_ctx(nullptr, tmp_buf, 1, 1);
 
         auto metrics = measure_ctx.getTextMetrics(m_text.c_str(), theme_font.family.c_str(), size,
                                                   m_font_slant, m_font_weight);
@@ -52,7 +52,7 @@ namespace horizon
         int line_height = size + 4;
 
         unsigned char tmp_buf[4] = {0};
-        CairoGraphicContext measure_ctx(tmp_buf, 1, 1);
+        CairoGraphicContext measure_ctx(nullptr, tmp_buf, 1, 1);
 
         // We use a large height to calculate all lines
         auto lines =

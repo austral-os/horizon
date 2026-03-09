@@ -6,6 +6,11 @@
 #include <string>
 #include <xkbcommon/xkbcommon.h>
 
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#include <GLES2/gl2.h>
+#include <wayland-egl.h>
+
 struct wl_display;
 struct wl_registry;
 struct wl_compositor;
@@ -25,6 +30,7 @@ struct zwlr_layer_surface_v1;
 struct wl_output;
 struct xdg_activation_v1;
 struct xdg_activation_token_v1;
+struct wl_egl_window;
 
 namespace horizon
 {
@@ -173,6 +179,20 @@ namespace horizon
             return m_xkb_state;
         }
 
+        EGLDisplay egl_display() const
+        {
+            return m_egl_display;
+        }
+        EGLSurface egl_surface() const
+        {
+            return m_egl_surface;
+        }
+        EGLContext egl_context() const
+        {
+            return m_egl_context;
+        }
+        void swap_buffers();
+
     private:
         int m_width;
         int m_height;
@@ -185,6 +205,15 @@ namespace horizon
         struct xdg_wm_base *m_xdg_wm_base = nullptr;
         struct zwlr_layer_shell_v1 *m_layer_shell = nullptr;
         struct xdg_activation_v1 *m_activation = nullptr;
+
+        // EGL Objects
+        EGLDisplay m_egl_display = EGL_NO_DISPLAY;
+        EGLConfig m_egl_config;
+        EGLContext m_egl_context = EGL_NO_CONTEXT;
+        EGLSurface m_egl_surface = EGL_NO_SURFACE;
+        struct wl_egl_window *m_egl_window = nullptr;
+
+        void init_egl();
 
         // Role specific objects
         struct xdg_surface *m_xdg_surface = nullptr;

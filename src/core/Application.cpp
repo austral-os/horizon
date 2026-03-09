@@ -24,8 +24,44 @@
 #include <wayland-client-protocol.h>
 #include <wayland-client.h>
 
+#include <GLES2/gl2.h>
+#include <iostream>
+
 namespace horizon
 {
+    static const char *VERTEX_SHADER = "attribute vec3 position;\n"
+                                       "attribute vec2 texcoord;\n"
+                                       "varying vec2 v_texcoord;\n"
+                                       "uniform mat4 u_mvp;\n"
+                                       "void main() {\n"
+                                       "    gl_Position = u_mvp * vec4(position, 1.0);\n"
+                                       "    v_texcoord = texcoord;\n"
+                                       "}\n";
+
+    static const char *FRAGMENT_SHADER =
+        "precision mediump float;\n"
+        "varying vec2 v_texcoord;\n"
+        "uniform sampler2D u_texture;\n"
+        "uniform float u_opacity;\n"
+        "void main() {\n"
+        "    gl_FragColor = texture2D(u_texture, v_texcoord).bgra * u_opacity;\n"
+        "}\n";
+
+    static GLuint compile_shader(GLenum type, const char *source)
+    {
+        GLuint shader = glCreateShader(type);
+        glShaderSource(shader, 1, &source, nullptr);
+        glCompileShader(shader);
+        GLint compiled;
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+        if (!compiled)
+        {
+            char info[512];
+            glGetShaderInfoLog(shader, 512, nullptr, info);
+            std::cerr << "Shader compilation failed: " << info << std::endl;
+        }
+        return shader;
+    }
 
     Application::Application(int w, int h) : Application(w, h, false) {}
 
@@ -93,6 +129,110 @@ namespace horizon
         {
             close(m_wakeup_fd);
         }
+    }
+    void Application::init_gl_resources()
+    {
+        if (m_gl_program)
+            return;
+
+        GLuint vshader = compile_shader(GL_VERTEX_SHADER, VERTEX_SHADER);
+        GLuint fshader = compile_shader(GL_FRAGMENT_SHADER, FRAGMENT_SHADER);
+        m_gl_program = glCreateProgram();
+        glAttachShader(m_gl_program, vshader);
+        glAttachShader(m_gl_program, fshader);
+        glLinkProgram(m_gl_program);
+
+        glGenBuffers(1, &m_gl_vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, m_gl_vbo);
+        float vertices[] = {
+            -1.0f, 1.0f,  0.0f, 0.0f, 0.0f, // TL
+            -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, // BL
+            1.0f,  1.0f,  0.0f, 1.0f, 0.0f, // TR
+            1.0f,  -1.0f, 0.0f, 1.0f, 1.0f  // BR
+        };
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+        glGenTextures(1, &m_gl_texture);
+        glBindTexture(GL_TEXTURE_2D, m_gl_texture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    }
+
+    int Application::width() const
+    {
+        return m_surface ? m_surface->width() : 0;
+    }
+
+    int Application::height() const
+    {
+        return m_surface ? m_surface->height() : 0;
+    }
+
+    void Application::queue_gl_draw(const GLDrawCall &call) const
+    {
+        m_gl_queue.push_back(call);
+    }
+
+    void Application::render_gl_ui()
+    {
+        if (!m_surface || !m_surface->data())
+            return;
+
+        init_gl_resources();
+
+        glViewport(0, 0, m_surface->width(), m_surface->height());
+        // glClear is now called in the main loop before m_root->render
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA); // Premultiplied alpha (Cairo format)
+
+        glUseProgram(m_gl_program);
+
+        float identity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+        GLint mvp_loc = glGetUniformLocation(m_gl_program, "u_mvp");
+        glUniformMatrix4fv(mvp_loc, 1, GL_FALSE, identity);
+
+        GLint opacity_loc = glGetUniformLocation(m_gl_program, "u_opacity");
+        glUniform1f(opacity_loc, 1.0f);
+
+        // Upload Cairo buffer to texture
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_gl_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_surface->width(), m_surface->height(), 0, GL_RGBA,
+                     GL_UNSIGNED_BYTE, m_surface->data());
+
+        GLint pos_attr = glGetAttribLocation(m_gl_program, "position");
+        GLint tex_attr = glGetAttribLocation(m_gl_program, "texcoord");
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_gl_vbo);
+        glVertexAttribPointer(pos_attr, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+        glEnableVertexAttribArray(pos_attr);
+        glVertexAttribPointer(tex_attr, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                              (void *)(3 * sizeof(float)));
+        glEnableVertexAttribArray(tex_attr);
+
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); // Background
+
+        // Execute queued 3D draws
+        for (const auto &draw : m_gl_queue)
+        {
+            glUniformMatrix4fv(mvp_loc, 1, GL_FALSE, draw.mvp);
+            glUniform1f(opacity_loc, draw.opacity);
+            glBindTexture(GL_TEXTURE_2D, draw.texture_id);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+            if (draw.delete_texture)
+            {
+                glDeleteTextures(1, &draw.texture_id);
+            }
+        }
+        m_gl_queue.clear();
+
+        m_surface->swap_buffers();
     }
 
     void Application::on_pointer_event(const PointerEvent &event)
@@ -658,72 +798,34 @@ namespace horizon
 
                 bool has_pending = m_full_repaint || !m_dirty_widgets.empty();
 
-                if (has_pending && m_surface->buffer() && m_surface->is_configured() &&
+                if (has_pending && m_surface->is_configured() &&
                     (frame_now - m_last_commit_time) >= FRAME_MS)
                 {
-                    if (m_full_repaint && m_root)
+                    init_gl_resources();
+                    glClearColor(0, 0, 0, 1);
+                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    m_gl_queue.clear();
+
+                    if (m_root)
                     {
                         m_full_repaint = false;
                         m_dirty_widgets.clear();
-                        CairoGraphicContext ctx(m_surface->data(), m_surface->width(),
+
+                        CairoGraphicContext ctx(this, m_surface->data(), m_surface->width(),
                                                 m_surface->height());
-                        // For transparent surfaces (LayerApplication), clear the entire surface
-                        // to remove stale pixels. Without this, popGroup's OVER compositing
-                        // preserves old pixels from hidden widgets.
+
                         if (is_transparent_surface())
                         {
                             ctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
                             ctx.clearRect(0, 0, m_surface->width(), m_surface->height());
                         }
+
                         ctx.pushGroup();
                         m_root->render(ctx, 0, 0, m_surface->width(), m_surface->height(), true);
                         ctx.popGroup();
                         ctx.flush();
 
-                        wl_surface_damage(m_surface->surface(), 0, 0, m_surface->width(),
-                                          m_surface->height());
-                        wl_surface_attach(m_surface->surface(), m_surface->buffer(), 0, 0);
-                        wl_surface_commit(m_surface->surface());
-                        m_last_commit_time = frame_now;
-                    }
-                    else if (!m_dirty_widgets.empty() && m_root)
-                    {
-                        std::vector<Widget *> current_dirty;
-                        std::swap(current_dirty, m_dirty_widgets);
-
-                        CairoGraphicContext ctx(m_surface->data(), m_surface->width(),
-                                                m_surface->height());
-
-                        for (Widget *w : current_dirty)
-                        {
-                            // 1. Precise damage reporting
-                            wl_surface_damage(m_surface->surface(), w->x(), w->y(), w->width(),
-                                              w->height());
-
-                            // 2. Individual rendering pass with absolute clip and force=true
-                            // Force is necessary to ensure parent clears background for the
-                            // dirty widget area.
-                            ctx.save();
-                            ctx.clip(w->x(), w->y(), w->width(), w->height());
-
-                            // For transparent surfaces, we must clear the destination region
-                            // before compositing the new widget tree,
-                            // otherwise old pixels remain underneath
-                            if (is_transparent_surface())
-                            {
-                                ctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
-                                ctx.clearRect(w->x(), w->y(), w->width(), w->height());
-                            }
-
-                            ctx.pushGroup();
-                            m_root->render(ctx, w->x(), w->y(), w->width(), w->height(), true);
-                            ctx.popGroup();
-                            ctx.restore();
-                        }
-
-                        ctx.flush();
-                        wl_surface_attach(m_surface->surface(), m_surface->buffer(), 0, 0);
-                        wl_surface_commit(m_surface->surface());
+                        render_gl_ui();
                         m_last_commit_time = frame_now;
                     }
                 }
@@ -1240,8 +1342,8 @@ namespace horizon
         // let's create a facade or a temporary one.
         if (!m_gc)
         {
-            m_gc = std::make_unique<CairoGraphicContext>(m_surface->data(), m_surface->width(),
-                                                         m_surface->height());
+            m_gc = std::make_unique<CairoGraphicContext>(this, m_surface->data(),
+                                                         m_surface->width(), m_surface->height());
         }
         return *m_gc;
     }

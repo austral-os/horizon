@@ -1,6 +1,7 @@
 #include "horizon/SignalManager.hpp"
 #include "horizon/ThemeManager.hpp"
 #include "horizon/WaylandEventListener.hpp"
+#include <GLES2/gl2.h>
 #include <deque>
 #include <functional>
 #include <horizon/WaylandSurface.hpp>
@@ -169,6 +170,28 @@ namespace horizon
          * @brief Returns the graphics context for this application.
          */
         virtual GraphicsContext &get_graphics_context() const;
+
+        GLuint gl_program() const
+        {
+            return m_gl_program;
+        }
+        GLuint gl_vbo() const
+        {
+            return m_gl_vbo;
+        }
+
+        struct GLDrawCall
+        {
+            uint32_t texture_id;
+            float mvp[16];
+            float opacity;
+            bool delete_texture;
+        };
+
+        void queue_gl_draw(const GLDrawCall &call) const;
+
+        int width() const;
+        int height() const;
 
         /**
          * @brief Implementation of the WaylandEventListener pointer event callback.
@@ -392,6 +415,14 @@ namespace horizon
         std::unique_ptr<Widget> m_root; /**< The root of the UI widget hierarchy. */
 
         std::unique_ptr<IpcClient> m_ipc_subscriber;
+
+        void init_gl_resources();
+        void render_gl_ui();
+
+        GLuint m_gl_program{0};
+        GLuint m_gl_vbo{0};
+        GLuint m_gl_texture{0};
+        mutable std::vector<GLDrawCall> m_gl_queue;
 
         mutable std::unique_ptr<GraphicsContext> m_gc;
     };

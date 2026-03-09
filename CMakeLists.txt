@@ -8,10 +8,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(PkgConfig REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
-pkg_check_modules(WAYLAND REQUIRED wayland-client wayland-cursor)
+pkg_check_modules(WAYLAND REQUIRED wayland-client wayland-cursor wayland-egl)
 pkg_check_modules(CAIRO REQUIRED cairo)
 pkg_check_modules(XKBCOMMON REQUIRED xkbcommon)
 pkg_check_modules(RSVG REQUIRED librsvg-2.0)
+pkg_check_modules(EGL REQUIRED egl)
+pkg_check_modules(GLESV2 REQUIRED glesv2)
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS 
     "src/*.cpp" 
@@ -35,6 +37,8 @@ target_include_directories(horizon
         ${XKBCOMMON_INCLUDE_DIRS}
         ${nlohmann_json_INCLUDE_DIRS}
         ${RSVG_INCLUDE_DIRS}
+        ${EGL_INCLUDE_DIRS}
+        ${GLESV2_INCLUDE_DIRS}
 )
 
 target_link_libraries(horizon
@@ -44,6 +48,8 @@ target_link_libraries(horizon
         ${XKBCOMMON_LIBRARIES}
         ${nlohmann_json_LIBRARIES}
         ${RSVG_LIBRARIES}
+        ${EGL_LIBRARIES}
+        ${GLESV2_LIBRARIES}
 )
 
 add_executable(minimal

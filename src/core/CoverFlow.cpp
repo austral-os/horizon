@@ -1,3 +1,4 @@
+#include <GLES2/gl2.h>
 #include <cairo/cairo.h>
 #include <cmath>
 #include <horizon/Application.hpp>
@@ -6,6 +7,80 @@
 
 namespace horizon
 {
+
+    static void mat4_identity(float *m)
+    {
+        for (int i = 0; i < 16; i++)
+            m[i] = 0;
+        m[0] = m[5] = m[10] = m[15] = 1.0f;
+    }
+
+    static void mat4_multiply(float *out, const float *a, const float *b)
+    {
+        float res[16];
+        for (int c = 0; c < 4; c++)
+        {
+            for (int r = 0; r < 4; r++)
+            {
+                res[c * 4 + r] = a[0 * 4 + r] * b[c * 4 + 0] + a[1 * 4 + r] * b[c * 4 + 1] +
+                                 a[2 * 4 + r] * b[c * 4 + 2] + a[3 * 4 + r] * b[c * 4 + 3];
+            }
+        }
+        std::memcpy(out, res, 16 * sizeof(float));
+    }
+
+    void mat4_perspective(float *m, float fov, float aspect, float near, float far)
+    {
+        float f = 1.0f / tanf(fov / 2.0f);
+        m[0] = f / aspect;
+        m[1] = 0;
+        m[2] = 0;
+        m[3] = 0;
+        m[4] = 0;
+        m[5] = f;
+        m[6] = 0;
+        m[7] = 0;
+        m[8] = 0;
+        m[9] = 0;
+        m[10] = (far + near) / (near - far);
+        m[11] = -1;
+        m[12] = 0;
+        m[13] = 0;
+        m[14] = (2.0f * far * near) / (near - far);
+        m[15] = 0;
+    }
+
+    static void mat4_translate(float *m, float x, float y, float z)
+    {
+        float t[16];
+        mat4_identity(t);
+        t[12] = x;
+        t[13] = y;
+        t[14] = z;
+        mat4_multiply(m, m, t);
+    }
+
+    static void mat4_rotate_y(float *m, float angle)
+    {
+        float r[16];
+        mat4_identity(r);
+        r[0] = cosf(angle);
+        r[2] = sinf(angle);
+        r[8] = -sinf(angle);
+        r[10] = cosf(angle);
+        mat4_multiply(m, m, r);
+    }
+
+    static void mat4_scale(float *m, float x, float y, float z)
+    {
+        float s[16];
+        mat4_identity(s);
+        s[0] = x;
+        s[5] = y;
+        s[10] = z;
+        mat4_multiply(m, m, s);
+    }
+
     CoverFlowBase::CoverFlowBase() : Widget()
     {
         when_mouse_press.connect(
@@ -94,9 +169,9 @@ namespace horizon
         int center_y = m_start_draw_y + m_available_draw_height / 2 -
                        (m_draw_reflection ? (int)(m_item_height / 4.0f) : 0);
 
-        // Parameters for better 3D look
-        float spacing = 55.0f;      // distance between side items
-        float lateral_gap = 160.0f; // gap between center item and sides
+        // Parameters for 3D look
+        float spacing = 40.0f;      // Tightened spacing
+        float lateral_gap = 110.0f; // Closer to center for cohesion
 
         for (int i = 0; i < (int)m_children.size(); ++i)
         {
@@ -108,12 +183,12 @@ namespace horizon
 
             if (dist < 0)
             {
-                scale = 0.7f;
+                scale = 0.85f;
                 x_offset = dist * spacing - lateral_gap;
             }
             else if (dist > 0)
             {
-                scale = 0.7f;
+                scale = 0.85f;
                 x_offset = dist * spacing + lateral_gap;
             }
             else
@@ -121,11 +196,11 @@ namespace horizon
                 scale = 1.0f; // Center item is full size
             }
 
-            int w = m_item_width * scale;
-            int h = m_item_height * scale;
+            int w = (int)(m_item_width * scale);
+            int h = (int)(m_item_height * scale);
 
             child->set_size(w, h);
-            int x = center_x - w / 2 + x_offset;
+            int x = center_x - w / 2 + (int)x_offset;
             // Align all items by their bottom edge to make reflections consistent
             int y = center_y + m_item_height / 2 - h;
             child->set_position(x, y);
@@ -186,67 +261,115 @@ namespace horizon
             gc.fillRect(m_x, m_y, m_width, m_height);
         }
 
+        if (!application() || !m_app)
+            return;
+
+        cairo_t *cr = static_cast<cairo_t *>(gc.getNativeContext());
         gc.save();
         gc.clip(m_x, m_y, m_width, m_height);
 
-        auto draw_child_with_reflection = [&](int i)
-        {
-            auto &child = m_children[i];
+        // 1. Determine which child is "center"
+        Widget *center_child = (m_selected_index >= 0 && m_selected_index < (int)m_children.size())
+                                   ? m_children[m_selected_index].get()
+                                   : nullptr;
 
+        // 2. Sort children for correct back-to-front rendering
+        // We draw further items first (leftmost and rightmost)
+        std::vector<int> indices;
+        for (int i = 0; i < (int)m_children.size(); i++)
+            indices.push_back(i);
+
+        std::sort(indices.begin(), indices.end(),
+                  [&](int a, int b)
+                  {
+                      double dist_a = std::abs((double)a - m_selected_index);
+                      double dist_b = std::abs((double)b - m_selected_index);
+                      return dist_a > dist_b; // Furthest first
+                  });
+
+        // 3. Render each child using the 3D path
+        for (int i : indices)
+        {
+            Widget *child = m_children[i].get();
+            double dist = (double)i - m_selected_index;
+
+            cairo_save(cr);
+            gc.pushGroup();
+
+            // Draw reflection
             if (m_draw_reflection)
             {
-                cairo_t *cr = static_cast<cairo_t *>(gc.getNativeContext());
                 cairo_save(cr);
-
-                // Mirror across the bottom of the widget
-                double mirror_y = child->y() + child->height();
-
-                // Translate to mirror line, flip vertically, translate back
-                cairo_translate(cr, 0, 1.0 * mirror_y);
+                double mirror_y = child->y() + (double)child->height();
+                cairo_translate(cr, 0, mirror_y);
                 cairo_scale(cr, 1.0, -1.0);
-                cairo_translate(cr, 0, -1.0 * mirror_y);
-
-                // Create a fade-out mask for reflection
+                cairo_translate(cr, 0, -mirror_y);
                 cairo_push_group(cr);
-                // Draw child again as its own reflection
                 child->render(gc, cx, cy, cw, ch, true);
                 cairo_pop_group_to_source(cr);
-
-                // Linear gradient mask for the fade effect
-                // It should start quite transparent at the bottom of the widget
                 cairo_pattern_t *mask =
                     cairo_pattern_create_linear(0, child->y(), 0, child->y() + child->height());
-                cairo_pattern_add_color_stop_rgba(mask, 1.0, 0, 0, 0, 0.35); // Start of reflection
-                cairo_pattern_add_color_stop_rgba(mask, 0.6, 0, 0, 0, 0.0);  // Fades out half-way
-
+                cairo_pattern_add_color_stop_rgba(mask, 1.0, 0, 0, 0, 0.35);
+                cairo_pattern_add_color_stop_rgba(mask, 0.6, 0, 0, 0, 0.0);
                 cairo_mask(cr, mask);
                 cairo_pattern_destroy(mask);
                 cairo_restore(cr);
             }
 
-            child->render(gc, cx, cy, cw, ch, should_draw);
-        };
+            // Draw main child
+            child->render(gc, cx, cy, cw, ch, true);
 
-        // Draw left side (far to near)
-        for (int i = 0; i < m_selected_index && i < (int)m_children.size(); ++i)
-        {
-            draw_child_with_reflection(i);
-        }
+            int capture_h = m_draw_reflection ? child->height() * 2 : child->height();
+            uint32_t tex_id = 0;
+            gc.popGroupToTexture(tex_id, child->x(), child->y(), child->width(), capture_h);
 
-        // Draw right side (far to near)
-        for (int i = (int)m_children.size() - 1; i > m_selected_index; --i)
-        {
-            draw_child_with_reflection(i);
-        }
+            // Calculate 3D Projection
+            float mvp[16];
+            mat4_identity(mvp);
 
-        // Draw center
-        if (m_selected_index >= 0 && m_selected_index < (int)m_children.size())
-        {
-            draw_child_with_reflection(m_selected_index);
+            float aspect = (float)m_app->width() / m_app->height();
+            float proj[16];
+            mat4_perspective(proj, 45.0f * 3.14159f / 180.0f, aspect, 0.1f, 100.0f);
+
+            double pivot_x = child->x() + (double)child->width() / 2.0;
+            double pivot_y = child->y() + (double)capture_h / 2.0;
+
+            float z_pos = (std::abs(dist) < 0.1) ? -1.0f : -1.5f;
+            float rotation = (std::abs(dist) < 0.1) ? 0.0f : ((dist < 0) ? 0.75f : -0.75f);
+
+            // 4. Calculate Screen-to-Scene mapping at this depth
+            // This ensures quads perfectly match their 2D positions/sizes
+            float fov_rad = 45.0f * 3.14159f / 180.0f;
+            float f_val = 1.0f / tanf(fov_rad / 2.0f);
+            float screen_to_scene_x = std::abs(z_pos) * aspect / f_val;
+            float screen_to_scene_y = std::abs(z_pos) / f_val;
+
+            // Convert normalized screen coordinates to scene coordinates
+            float norm_x = (float)(pivot_x - (m_app->width() / 2.0f)) / (m_app->width() / 2.0f);
+            float norm_y = -(float)(pivot_y - (m_app->height() / 2.0f)) / (m_app->height() / 2.0f);
+            float scene_x = norm_x * screen_to_scene_x;
+            float scene_y = norm_y * screen_to_scene_y;
+
+            // Convert normalized screen size to scene size
+            float scene_scale_x = (float)child->width() / m_app->width() * screen_to_scene_x;
+            float scene_scale_y = (float)capture_h / m_app->height() * screen_to_scene_y;
+
+            mat4_translate(mvp, scene_x, scene_y, z_pos);
+            if (rotation != 0.0f)
+            {
+                mat4_rotate_y(mvp, rotation);
+            }
+
+            mat4_scale(mvp, scene_scale_x, scene_scale_y, 1.0f);
+            mat4_multiply(mvp, proj, mvp);
+
+            float opacity = 1.0f - std::min(0.6f, (float)std::abs(dist) * 0.25f);
+            gc.drawTexture3D(tex_id, child->width(), capture_h, mvp, opacity);
+
+            cairo_restore(cr);
         }
 
         gc.restore();
-
         m_dirty = false;
         m_child_dirty = false;
     }

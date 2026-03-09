@@ -101,6 +101,18 @@ namespace horizon
 
         virtual void pushGroup() {};
         virtual void popGroup() {};
+        /**
+         * @brief Pops the current Cairo group and uploads it to an OpenGL texture.
+         * @param texture_id The ID of the generated texture.
+         * @param x The x-offset of the area to capture.
+         * @param y The y-offset of the area to capture.
+         * @param w The width of the area to capture.
+         * @param h The height of the area to capture.
+         */
+        virtual void popGroupToTexture(uint32_t &texture_id, int x, int y, int w, int h) {};
+
+        virtual void drawTexture3D(uint32_t texture_id, int w, int h, float *matrix_4x4,
+                                   float opacity = 1.0f) {};
 
         virtual void fillPolygon(const std::vector<PolygonPoint> &points) {};
         virtual void drawPolygon(const std::vector<PolygonPoint> &points, float lineWidth = 1.0f) {

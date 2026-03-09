@@ -179,6 +179,8 @@ namespace horizon::demo
         coverflow_container->set_background_color(Color(0.0f, 0.0f, 0.0f)); // Black background
         coverflow_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         coverflow_container->set_visible(false);
+        m_is_coverflow_view = false;
+        m_table->set_visible(true);
 
         auto coverflow = std::make_unique<CoverFlow<arkutils::FileInfo>>();
         m_coverflow = coverflow.get();

@@ -1,5 +1,7 @@
+#include <GLES2/gl2.h>
 #include <algorithm>
 #include <cmath>
+#include <horizon/Application.hpp>
 #include <horizon/CairoGraphicsContext.hpp>
 #include <horizon/StbImageDriver.hpp>
 #include <horizon/SvgImageDriver.hpp>
@@ -10,7 +12,8 @@
 namespace horizon
 {
 
-    CairoGraphicContext::CairoGraphicContext(void *data, int w, int h)
+    CairoGraphicContext::CairoGraphicContext(const Application *app, void *data, int w, int h)
+        : m_app(app)
     {
         cairo_s = cairo_image_surface_create_for_data((unsigned char *)data, CAIRO_FORMAT_ARGB32, w,
                                                       h, w * 4);
@@ -669,4 +672,53 @@ namespace horizon
         }
     }
 
+    void CairoGraphicContext::popGroupToTexture(uint32_t &texture_id, int x, int y, int w, int h)
+    {
+        cairo_pattern_t *group = cairo_pop_group(cr);
+        if (!group)
+            return;
+
+        // Use a temporary surface to extract the region at (x, y)
+        cairo_surface_t *tmp_surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
+        cairo_t *tmp_cr = cairo_create(tmp_surf);
+
+        // Blit the group content from (x, y) to (0, 0)
+        cairo_set_source(tmp_cr, group);
+        cairo_matrix_t matrix;
+        cairo_matrix_init_translate(&matrix, x, y);
+        cairo_pattern_set_matrix(group, &matrix);
+        cairo_paint(tmp_cr);
+
+        int surf_w = cairo_image_surface_get_width(tmp_surf);
+        int surf_h = cairo_image_surface_get_height(tmp_surf);
+        unsigned char *data = cairo_image_surface_get_data(tmp_surf);
+
+        glGenTextures(1, &texture_id);
+        glBindTexture(GL_TEXTURE_2D, texture_id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surf_w, surf_h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+        cairo_destroy(tmp_cr);
+        cairo_surface_destroy(tmp_surf);
+        cairo_pattern_destroy(group);
+    }
+
+    void CairoGraphicContext::drawTexture3D(uint32_t texture_id, int w, int h, float *matrix_4x4,
+                                            float opacity)
+    {
+        if (!m_app)
+            return;
+
+        Application::GLDrawCall call;
+        call.texture_id = texture_id;
+        std::memcpy(call.mvp, matrix_4x4, 16 * sizeof(float));
+        call.opacity = opacity;
+        call.delete_texture =
+            true; // CoverFlow will handle texture deletion (wait, no, let's let App handle it)
+
+        m_app->queue_gl_draw(call);
+    }
 } // namespace horizon

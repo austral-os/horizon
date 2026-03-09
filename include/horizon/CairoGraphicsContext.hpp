@@ -7,10 +7,12 @@
 namespace horizon
 {
 
+    class Application;
+
     class CairoGraphicContext : public GraphicsContext
     {
     public:
-        CairoGraphicContext(void *data, int w, int h);
+        CairoGraphicContext(const Application *app, void *data, int w, int h);
         ~CairoGraphicContext();
 
         void paint() override;
@@ -52,6 +54,10 @@ namespace horizon
 
         void pushGroup() override;
         void popGroup() override;
+        void popGroupToTexture(uint32_t &texture_id, int x, int y, int w, int h) override;
+
+        void drawTexture3D(uint32_t texture_id, int w, int h, float *matrix_4x4,
+                           float opacity = 1.0f) override;
 
         void fillPolygon(const std::vector<PolygonPoint> &points) override;
         void drawPolygon(const std::vector<PolygonPoint> &points, float lineWidth = 1.0f) override;
@@ -72,6 +78,7 @@ namespace horizon
         void getSvgSize(const std::string &path, int &w, int &h) override;
 
     private:
+        const Application *m_app;
         cairo_surface_t *cairo_s;
         cairo_t *cr;
 
