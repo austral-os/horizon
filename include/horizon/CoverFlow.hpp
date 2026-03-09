@@ -15,10 +15,11 @@ namespace horizon
     {
     public:
         CoverFlowBase();
-        virtual ~CoverFlowBase() = default;
+        virtual ~CoverFlowBase();
 
         void set_selected_index(int index);
         int selected_index() const;
+        void update_animation();
 
         void set_item_size(int width, int height);
 
@@ -55,6 +56,8 @@ namespace horizon
         virtual void rebuild_items() = 0;
 
         int m_selected_index{-1};
+        float m_animated_index{-1.0f};
+        size_t m_animation_timer{0};
 
         int m_item_width{150};
         int m_item_height{150};
@@ -86,6 +89,7 @@ namespace horizon
         {
             m_data = std::move(data);
             m_selected_index = m_data.empty() ? -1 : 0;
+            m_animated_index = (float)m_selected_index;
             rebuild_items();
         }
 

@@ -136,13 +136,48 @@ namespace horizon
         set_focusable(true); // Allow keyboard input
     }
 
+    CoverFlowBase::~CoverFlowBase()
+    {
+        if (m_animation_timer != 0 && application())
+        {
+            application()->stop_timer(m_animation_timer);
+        }
+    }
+
     void CoverFlowBase::set_selected_index(int index)
     {
         if (index >= 0 && index < (int)m_children.size() && m_selected_index != index)
         {
             m_selected_index = index;
+            if (m_animated_index < 0.0f)
+                m_animated_index = (float)index;
+
+            if (m_animation_timer == 0 && application())
+            {
+                m_animation_timer =
+                    application()->add_timer(16, [this]() { update_animation(); }, true);
+            }
             rebuild_items(); // trigger re-render of selected state to children
         }
+    }
+
+    void CoverFlowBase::update_animation()
+    {
+        float diff = (float)m_selected_index - m_animated_index;
+        if (std::abs(diff) < 0.01f)
+        {
+            m_animated_index = (float)m_selected_index;
+            if (m_animation_timer != 0 && application())
+            {
+                application()->stop_timer(m_animation_timer);
+                m_animation_timer = 0;
+            }
+            invalidate();
+            return;
+        }
+
+        m_animated_index += diff * 0.15f;
+        invalidate();
     }
 
     int CoverFlowBase::selected_index() const
@@ -176,21 +211,14 @@ namespace horizon
         for (int i = 0; i < (int)m_children.size(); ++i)
         {
             auto &child = m_children[i];
-            int dist = i - m_selected_index;
-            float abs_dist = (float)std::abs(dist);
+            float dist = (float)i - m_animated_index;
+            float abs_dist = std::abs(dist);
 
             // More aggressive scaling
             float scale = std::pow(0.70f, abs_dist);
 
-            float x_offset = 0.0f;
-            if (dist < 0)
-            {
-                x_offset = dist * spacing - lateral_gap;
-            }
-            else if (dist > 0)
-            {
-                x_offset = dist * spacing + lateral_gap;
-            }
+            float clamped_dist = std::max(-1.0f, std::min(1.0f, dist));
+            float x_offset = dist * spacing + clamped_dist * lateral_gap;
 
             int w = (int)(m_item_width * scale);
             int h = (int)(m_item_height * scale);
@@ -281,8 +309,8 @@ namespace horizon
         std::sort(indices.begin(), indices.end(),
                   [&](int a, int b)
                   {
-                      double dist_a = std::abs((double)a - m_selected_index);
-                      double dist_b = std::abs((double)b - m_selected_index);
+                      double dist_a = std::abs((double)a - (double)m_animated_index);
+                      double dist_b = std::abs((double)b - (double)m_animated_index);
                       return dist_a > dist_b; // Furthest first
                   });
 
@@ -290,7 +318,7 @@ namespace horizon
         for (int i : indices)
         {
             Widget *child = m_children[i].get();
-            double dist = (double)i - m_selected_index;
+            double dist = (double)i - (double)m_animated_index;
 
             cairo_save(cr);
             gc.pushGroup();
@@ -336,7 +364,8 @@ namespace horizon
             // Dynamic depth and rotation
             // Slightly push further items back to naturally complement the 2D scale
             float z_pos = -1.0f - (float)std::abs(dist) * 0.15f;
-            float rotation = (std::abs(dist) < 0.1) ? 0.0f : ((dist < 0) ? 0.75f : -0.75f);
+            float clamped_dist_rot = std::max(-1.0f, std::min(1.0f, (float)dist));
+            float rotation = clamped_dist_rot * -0.75f;
 
             // 4. Calculate Screen-to-Scene mapping at this depth
             // This ensures quads perfectly match their 2D positions/sizes
