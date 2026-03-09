@@ -23,10 +23,6 @@ namespace horizon::demo
         auto root = std::make_unique<Widget>();
         root->set_layout_type(WIDGET_LAYOUT_VERTICAL);
 
-        auto title = std::make_unique<Label>("FileSystem Model - File Listing");
-        title->set_margin(10);
-        root->add_child(std::move(title));
-
         auto table = std::make_unique<TableView<arkutils::FileInfo>>();
         m_table = table.get();
         m_table->set_width_mode(horizon::TableViewWidthMode::Fill);
