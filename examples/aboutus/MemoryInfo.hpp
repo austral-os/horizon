@@ -1,6 +1,7 @@
 #pragma once
 
 #include "horizon/CategorizedBar.hpp"
+#include "horizon/FormatUtils.hpp"
 #include "horizon/Label.hpp"
 #include "horizon/Spacer.hpp"
 #include "horizon/SystemInfo.hpp"
@@ -34,7 +35,7 @@ namespace horizon
                 auto label_row = std::make_unique<Widget>();
                 label_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
                 label_row->add_child(Spacer(15)); // Left padding
-                auto label = std::make_unique<Label>(CategorizedBar::format_bytes(slot.capacity));
+                auto label = std::make_unique<Label>(format_bytes(slot.capacity));
                 label->set_font_size(18);
                 label->set_font_weight(FONT_WEIGHT_BOLD);
                 label->set_text_color(Color(1.0f, 1.0f, 1.0f));
@@ -96,8 +97,7 @@ namespace horizon
             badge->set_margin(10);
 
             badge->add_child(Spacer());
-            auto badge_value =
-                std::make_unique<Label>(CategorizedBar::format_bytes(mem_info.total_capacity));
+            auto badge_value = std::make_unique<Label>(format_bytes(mem_info.total_capacity));
             badge_value->set_font_size(22);
             badge_value->set_font_weight(FONT_WEIGHT_BOLD);
             badge_value->set_text_color(Color(1, 1, 1));

@@ -53,11 +53,6 @@ namespace horizon
         int preferred_height() const override;
         int preferred_height(int width) const override;
 
-        /**
-         * @brief A helper formatter for bytes (B, KB, MB, GB, TB).
-         */
-        static std::string format_bytes(double bytes);
-
     private:
         std::vector<BarCategory> m_categories;
         double m_total_value{0.0};

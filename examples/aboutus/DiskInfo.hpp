@@ -1,6 +1,7 @@
 #pragma once
 
 #include "horizon/CategorizedBar.hpp"
+#include "horizon/FormatUtils.hpp"
 #include "horizon/Icon.hpp"
 #include "horizon/Label.hpp"
 #include "horizon/Spacer.hpp"
@@ -38,8 +39,8 @@ namespace horizon
             model_label->set_font_weight(FONT_WEIGHT_BOLD);
             model_label->set_fixed_size(35);
 
-            auto cap_label = std::make_unique<Label>(
-                "Total Capacity: " + CategorizedBar::format_bytes(disk_info.capacity));
+            auto cap_label =
+                std::make_unique<Label>("Total Capacity: " + format_bytes(disk_info.capacity));
             cap_label->set_font_size(16);
             cap_label->set_text_color(Color(0.4f, 0.4f, 0.4f));
             cap_label->set_fixed_size(25);
@@ -58,7 +59,7 @@ namespace horizon
             auto bar = std::make_unique<CategorizedBar>();
             bar->set_fixed_size(150); // Height for bar + legend
             bar->set_total_value(disk_info.capacity);
-            bar->set_value_formatter(CategorizedBar::format_bytes);
+            bar->set_value_formatter(format_bytes);
 
             std::vector<Color> partition_colors = {
                 Color("#007AFF"), // Blue

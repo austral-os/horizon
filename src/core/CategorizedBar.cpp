@@ -2,6 +2,7 @@
 #include <cmath>
 #include <horizon/Application.hpp>
 #include <horizon/CategorizedBar.hpp>
+#include <horizon/FormatUtils.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/ThemeManager.hpp>
 #include <iomanip>
@@ -42,21 +43,6 @@ namespace horizon
     {
         std::stringstream ss;
         ss << std::fixed << std::setprecision(2) << value;
-        return ss.str();
-    }
-
-    std::string CategorizedBar::format_bytes(double bytes)
-    {
-        const char *units[] = {"B", "KB", "MB", "GB", "TB", "PB"};
-        int i = 0;
-        double display_bytes = bytes;
-        while (display_bytes >= 1024 && i < 5)
-        {
-            display_bytes /= 1024;
-            i++;
-        }
-        std::stringstream ss;
-        ss << std::fixed << std::setprecision(2) << display_bytes << " " << units[i];
         return ss.str();
     }
 
