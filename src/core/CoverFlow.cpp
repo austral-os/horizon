@@ -214,11 +214,17 @@ namespace horizon
             float dist = (float)i - m_animated_index;
             float abs_dist = std::abs(dist);
 
-            // More aggressive scaling
-            float scale = std::pow(0.70f, abs_dist);
+            // To mimic CoverFlow geometry, items maintain their full resolution
+            // and perspective is handled completely by 3D mapping.
+            float scale = 1.0f;
 
             float clamped_dist = std::max(-1.0f, std::min(1.0f, dist));
-            float x_offset = dist * spacing + clamped_dist * lateral_gap;
+
+            // Adjust spacing to mimic dense CoverFlow layout
+            // Side items are close together, center has a larger gap
+            float actual_spacing = m_item_width * 0.12f;
+            float actual_lateral_gap = m_item_width * 0.35f;
+            float x_offset = dist * actual_spacing + clamped_dist * actual_lateral_gap;
 
             int w = (int)(m_item_width * scale);
             int h = (int)(m_item_height * scale);
@@ -226,9 +232,8 @@ namespace horizon
             child->set_size(w, h);
             int x = center_x - w / 2 + (int)x_offset;
 
-            // Adjust y to keep them mostly aligned vertically in the center,
-            // but slightly lower as they get smaller.
-            int y = center_y - (h / 2) + (int)(abs_dist * 5);
+            // Vertically align perfectly centered
+            int y = center_y - (h / 2);
 
             child->set_position(x, y);
         }
@@ -356,20 +361,23 @@ namespace horizon
 
             float aspect = (float)m_app->width() / m_app->height();
             float proj[16];
-            mat4_perspective(proj, 45.0f * 3.14159f / 180.0f, aspect, 0.1f, 100.0f);
+            mat4_perspective(proj, 100.0f * 3.14159f / 180.0f, aspect, 0.1f, 100.0f);
 
             double pivot_x = child->x() + (double)child->width() / 2.0;
             double pivot_y = child->y() + (double)capture_h / 2.0;
 
-            // Dynamic depth and rotation
-            // Slightly push further items back to naturally complement the 2D scale
-            float z_pos = -1.0f - (float)std::abs(dist) * 0.15f;
+            // Dynamic depth and rotation mimicking classic Cover Flow
             float clamped_dist_rot = std::max(-1.0f, std::min(1.0f, (float)dist));
-            float rotation = clamped_dist_rot * -0.75f;
+            // Steeper angle for side items
+            float rotation = clamped_dist_rot * -1.35f;
+
+            // Push side items back to a common depth plane, with tiny progressive offset
+            float depth_step = std::abs(clamped_dist_rot) * 0.6f;
+            float z_pos = -1.0f - depth_step - (float)std::abs(dist) * 0.05f;
 
             // 4. Calculate Screen-to-Scene mapping at this depth
             // This ensures quads perfectly match their 2D positions/sizes
-            float fov_rad = 45.0f * 3.14159f / 180.0f;
+            float fov_rad = 100.0f * 3.14159f / 180.0f;
             float f_val = 1.0f / tanf(fov_rad / 2.0f);
             float screen_to_scene_x = std::abs(z_pos) * aspect / f_val;
             float screen_to_scene_y = std::abs(z_pos) / f_val;
