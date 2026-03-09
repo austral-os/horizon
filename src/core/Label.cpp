@@ -26,7 +26,7 @@ namespace horizon
 
         auto metrics = measure_ctx.getTextMetrics(m_text.c_str(), theme_font.family.c_str(), size,
                                                   m_font_slant, m_font_weight);
-        return static_cast<int>(std::ceil(metrics.width));
+        return static_cast<int>(std::ceil(metrics.width)) + m_left_padding;
     }
 
     int Label::preferred_height() const
@@ -93,8 +93,8 @@ namespace horizon
             m_last_text != m_text || m_last_font_weight != m_font_weight ||
             m_last_font_size != size)
         {
-            m_cached_lines =
-                calculate_lines(gc, m_available_draw_width, m_available_draw_height, line_height);
+            m_cached_lines = calculate_lines(gc, m_available_draw_width - m_left_padding,
+                                             m_available_draw_height, line_height);
             m_last_width = m_available_draw_width;
             m_last_height = m_available_draw_height;
             m_last_text = m_text;
@@ -124,7 +124,7 @@ namespace horizon
         for (size_t i = 0; i < lines.size(); ++i)
         {
             int current_y = start_y + (i * line_height) + size - 3;
-            int text_x = m_x;
+            int text_x = m_x + m_left_padding;
 
             if (m_alignment == TextAlignment::Center || m_alignment == TextAlignment::Right)
             {
