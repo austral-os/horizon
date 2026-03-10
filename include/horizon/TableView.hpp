@@ -353,8 +353,11 @@ namespace horizon
                     row_widget->set_selected(true);
                 }
 
+                // Capture row data by value to avoid out-of-bounds access if m_data is updated
+                T row_data = m_data[row_idx];
+
                 row_widget->when_mouse_press.connect(
-                    [this, row_idx](MouseButtonEventContext &ctx)
+                    [this, row_idx, row_data](MouseButtonEventContext &ctx)
                     {
                         if (ctx.button == 0x110) // Left click
                         {
@@ -377,19 +380,19 @@ namespace horizon
 
                             TableViewRowMouseClickContext<T> click_ctx;
                             click_ctx.row_index = (int)row_idx;
-                            click_ctx.row_data = m_data[row_idx];
+                            click_ctx.row_data = row_data;
                             when_row_click.run(click_ctx);
                         }
                     });
 
                 row_widget->when_dbl_click.connect(
-                    [this, row_idx](MouseButtonEventContext &ctx)
+                    [this, row_idx, row_data](MouseButtonEventContext &ctx)
                     {
                         if (ctx.button == 0x110) // Left click
                         {
                             TableViewRowMouseClickContext<T> click_ctx;
                             click_ctx.row_index = (int)row_idx;
-                            click_ctx.row_data = m_data[row_idx];
+                            click_ctx.row_data = row_data;
                             when_row_dbl_click.run(click_ctx);
                         }
                     });
@@ -399,7 +402,7 @@ namespace horizon
                     std::unique_ptr<Widget> cell;
                     if (m_columns[col_idx].cell_factory)
                     {
-                        cell = m_columns[col_idx].cell_factory(m_data[row_idx]);
+                        cell = m_columns[col_idx].cell_factory(row_data);
                     }
                     else
                     {

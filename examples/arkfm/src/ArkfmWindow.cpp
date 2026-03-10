@@ -18,7 +18,7 @@ namespace horizon::arkfm
         vpanel->set_spacing(10);
 
         auto sidebar = std::make_unique<ArkfmSidebar>();
-        auto view = std::make_unique<ArkfmView>();
+        auto view = std::make_unique<ArkfmView>(getenv("HOME") ? getenv("HOME") : "~/");
 
         vpanel->add_child(std::move(sidebar));
         vpanel->add_child(std::move(view));
