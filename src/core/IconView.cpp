@@ -7,7 +7,7 @@ namespace horizon
 {
     IconViewBase::IconViewBase() : Widget()
     {
-        m_background_color = Color(1.0f, 1.0f, 1.0f, 1.0f); // Default white background
+        m_background_color = Color(0.0f, 0.0f, 0.0f, 0.0f); // Default transparent
 
         auto scroll_area = std::make_unique<ScrollArea>();
         scroll_area->set_position_type(FREE);
@@ -190,9 +190,4 @@ namespace horizon
         m_content_pane->set_size(m_width, needed_height);
     }
 
-    void IconViewBase::draw(GraphicsContext &gc)
-    {
-        gc.setColor(m_background_color);
-        gc.fillRect(m_x, m_y, m_width, m_height);
-    }
 } // namespace horizon

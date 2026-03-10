@@ -52,8 +52,11 @@ namespace horizon
          */
         static void set_search_paths(const std::vector<std::string> &paths);
 
-    private:
         static std::vector<std::string> get_desktop_search_dirs();
+        static std::string get_value_from_desktop_file(const std::string &path,
+                                                       const std::string &key);
+
+    private:
         static std::vector<std::string> s_additional_search_paths;
     };
 } // namespace horizon

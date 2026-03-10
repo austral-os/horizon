@@ -18,7 +18,8 @@ namespace horizon
         return s.substr(start, end - start + 1);
     }
 
-    static std::string get_value_from_desktop_file(const std::string &path, const std::string &key)
+    std::string DesktopEntry::get_value_from_desktop_file(const std::string &path,
+                                                          const std::string &key)
     {
         if (path.empty())
             return "";

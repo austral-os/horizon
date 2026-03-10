@@ -33,7 +33,6 @@ namespace horizon
         int get_theme_font_size(const std::string &role = "icon-view") const;
 
         void calculate_layout() override;
-        void draw(GraphicsContext &gc) override;
 
     protected:
         virtual void rebuild_items() = 0;

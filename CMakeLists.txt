@@ -199,6 +199,8 @@ target_link_libraries(launcher_demo
         horizon
 )
 
+add_subdirectory(examples/launchpad)
+
 # Agregamos un target "run" para compilar y ejecutar de una vez
 
 add_custom_target(run
