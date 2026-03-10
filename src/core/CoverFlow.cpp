@@ -198,41 +198,51 @@ namespace horizon
         if (m_children.empty())
             return;
 
-        int center_x = m_start_draw_x + m_available_draw_width / 2;
-        // Shift center_y up slightly to account for reflections at the bottom
-        int center_y = m_start_draw_y + m_available_draw_height / 2 -
-                       (m_draw_reflection ? (int)(m_item_height / 4.0f) : 0);
+        // Calculate actual item size based on available space
+        int actual_h = m_item_height;
+        int actual_w = m_item_width;
 
-        // Parameters for 3D look
-        float spacing = 25.0f;      // Closer spacing for side items
-        float lateral_gap = 130.0f; // Larger gap around the center item
+        if (m_draw_reflection)
+        {
+            // If drawing reflections, ensure item + reflection fits.
+            // 45% height for the item leaves 45% for reflection and 10% margin.
+            int max_h = (int)(m_available_draw_height * 0.45f);
+            if (actual_h > max_h)
+            {
+                float ratio = (float)actual_w / actual_h;
+                actual_h = max_h;
+                actual_w = (int)(max_h * ratio);
+            }
+        }
+        else
+        {
+            int max_h = (int)(m_available_draw_height * 0.9f);
+            if (actual_h > max_h)
+            {
+                float ratio = (float)actual_w / actual_h;
+                actual_h = max_h;
+                actual_w = (int)(max_h * ratio);
+            }
+        }
+
+        int center_x = m_start_draw_x + m_available_draw_width / 2;
+        // Perfect vertical center for the 'item + reflection' group
+        int center_y = m_start_draw_y + m_available_draw_height / 2 - (actual_h / 2);
 
         for (int i = 0; i < (int)m_children.size(); ++i)
         {
             auto &child = m_children[i];
             float dist = (float)i - m_animated_index;
-            float abs_dist = std::abs(dist);
-
-            // To mimic CoverFlow geometry, items maintain their full resolution
-            // and perspective is handled completely by 3D mapping.
-            float scale = 1.0f;
-
-            float clamped_dist = std::max(-1.0f, std::min(1.0f, dist));
 
             // Adjust spacing to mimic dense CoverFlow layout
-            // Side items are close together, center has a larger gap
-            float actual_spacing = m_item_width * 0.12f;
-            float actual_lateral_gap = m_item_width * 0.35f;
+            float actual_spacing = actual_w * 0.12f;
+            float actual_lateral_gap = actual_w * 0.35f;
+            float clamped_dist = std::max(-1.0f, std::min(1.0f, dist));
             float x_offset = dist * actual_spacing + clamped_dist * actual_lateral_gap;
 
-            int w = (int)(m_item_width * scale);
-            int h = (int)(m_item_height * scale);
-
-            child->set_size(w, h);
-            int x = center_x - w / 2 + (int)x_offset;
-
-            // Vertically align perfectly centered
-            int y = center_y - (h / 2);
+            child->set_size(actual_w, actual_h);
+            int x = center_x - actual_w / 2 + (int)x_offset;
+            int y = center_y;
 
             child->set_position(x, y);
         }
@@ -287,7 +297,6 @@ namespace horizon
         // --- 1. Draw Background ---
         if (should_draw)
         {
-            // Even darker background for more contrast
             gc.setColor(m_dark_mode ? Color(0.01f, 0.01f, 0.01f) : Color(0.99f, 0.99f, 0.99f));
             gc.fillRect(m_x, m_y, m_width, m_height);
         }
@@ -317,6 +326,22 @@ namespace horizon
                       double dist_b = std::abs((double)b - (double)m_animated_index);
                       return dist_a > dist_b; // Furthest first
                   });
+
+        // Pre-calculate portal matrix: standard NDC maps to the widget's screen rectangle
+        float portal[16];
+        Matrix::identity(portal);
+        float portal_x =
+            (float)(m_x + m_width / 2.0f - m_app->width() / 2.0f) / (m_app->width() / 2.0f);
+        float portal_y =
+            -(float)(m_y + m_height / 2.0f - m_app->height() / 2.0f) / (m_app->height() / 2.0f);
+        float portal_scale_x = (float)m_width / m_app->width();
+        float portal_scale_y = (float)m_height / m_app->height();
+
+        // Matrix::translate/scale are POST-multipliers (M = M * T).
+        // We want Final = Translation * Scale * Perspective...
+        // So we build T * S first and then multiply by projection.
+        Matrix::translate(portal, portal_x, portal_y, 0.0f);
+        Matrix::scale(portal, portal_scale_x, portal_scale_y, 1.0f);
 
         // 2. Render each visible child using the 3D path
         for (int i : indices)
@@ -382,32 +407,36 @@ namespace horizon
             float mvp[16];
             Matrix::identity(mvp);
 
-            float aspect = (float)m_app->width() / m_app->height();
+            float aspect = (float)m_width / m_height;
             float proj[16];
-            Matrix::perspective(proj, 100.0f * 3.14159f / 180.0f, aspect, 0.1f, 100.0f);
+            Matrix::perspective(proj, 60.0f * 3.14159f / 180.0f, aspect, 0.1f, 100.0f);
 
             double pivot_x = child->x() + (double)child->width() / 2.0;
             double pivot_y = child->y() + (double)capture_h / 2.0;
 
+            // Use widget-local coordinates for normalization
+            double local_pivot_x = pivot_x - m_x;
+            double local_pivot_y = pivot_y - m_y;
+
             // Dynamic depth and rotation mimicking classic Cover Flow
             float clamped_dist_rot = std::max(-1.0f, std::min(1.0f, (float)dist));
-            float rotation = clamped_dist_rot * -1.75f;
+            float rotation = clamped_dist_rot * -1.1f;
 
             float depth_step = std::abs(clamped_dist_rot) * 0.6f;
-            float z_pos = -1.0f - depth_step - (float)std::abs(dist) * 0.05f;
+            float z_pos = -2.0f - depth_step - (float)std::abs(dist) * 0.05f;
 
-            float fov_rad = 100.0f * 3.14159f / 180.0f;
+            float fov_rad = 60.0f * 3.14159f / 180.0f;
             float f_val = 1.0f / tanf(fov_rad / 2.0f);
             float screen_to_scene_x = std::abs(z_pos) * aspect / f_val;
             float screen_to_scene_y = std::abs(z_pos) / f_val;
 
-            float norm_x = (float)(pivot_x - (m_app->width() / 2.0f)) / (m_app->width() / 2.0f);
-            float norm_y = -(float)(pivot_y - (m_app->height() / 2.0f)) / (m_app->height() / 2.0f);
+            float norm_x = (float)(local_pivot_x - (m_width / 2.0f)) / (m_width / 2.0f);
+            float norm_y = -(float)(local_pivot_y - (m_height / 2.0f)) / (m_height / 2.0f);
             float scene_x = norm_x * screen_to_scene_x;
             float scene_y = norm_y * screen_to_scene_y;
 
-            float scene_scale_x = (float)child->width() / m_app->width() * screen_to_scene_x;
-            float scene_scale_y = (float)capture_h / m_app->height() * screen_to_scene_y;
+            float scene_scale_x = (float)child->width() / m_width * screen_to_scene_x;
+            float scene_scale_y = (float)capture_h / m_height * screen_to_scene_y;
 
             Matrix::translate(mvp, scene_x, scene_y, z_pos);
             if (rotation != 0.0f)
@@ -416,7 +445,10 @@ namespace horizon
             }
 
             Matrix::scale(mvp, scene_scale_x, scene_scale_y, 1.0f);
+
+            // Apply portal transform last (pre-multiply logic)
             Matrix::multiply(mvp, proj, mvp);
+            Matrix::multiply(mvp, portal, mvp);
 
             float opacity = 1.0f - std::min(0.7f, (float)std::abs(dist) * 0.15f);
             gc.drawTexture3D(tex_id, tex_w, tex_h, mvp, opacity, false);
