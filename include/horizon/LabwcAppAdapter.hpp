@@ -1,8 +1,7 @@
 #pragma once
 
 #include "horizon/CompositorAppInterface.hpp"
-#include "horizon/IpcClient.hpp"
-#include <memory>
+#include <vector>
 
 namespace horizon
 {
@@ -20,14 +19,17 @@ namespace horizon
 
         std::vector<ApplicationInfo> get_running_applications() override;
 
+        void activate(const std::string &app_id) override;
+        void minimize(const std::string &app_id) override;
+        void close(const std::string &app_id) override;
+
     private:
         void setup_ipc();
         void merge_and_notify();
         void handle_ipc_message(const std::string &msg);
         void handle_foreign_update(AppListEventContext &ctx);
 
-        std::unique_ptr<IpcClient> m_ipc_client;
-        std::vector<ApplicationInfo> m_ipc_apps;
+        Application *m_app;
         std::vector<ApplicationInfo> m_foreign_apps;
     };
 } // namespace horizon

@@ -50,5 +50,20 @@ namespace horizon
          * @brief Event fired when the application list is updated.
          */
         EventsManager<AppListEventContext> when_update;
+
+        /**
+         * @brief Activates/Restores an application.
+         */
+        virtual void activate(const std::string &app_id) = 0;
+
+        /**
+         * @brief Minimizes an application.
+         */
+        virtual void minimize(const std::string &app_id) = 0;
+
+        /**
+         * @brief Closes an application.
+         */
+        virtual void close(const std::string &app_id) = 0;
     };
 } // namespace horizon

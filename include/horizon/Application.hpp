@@ -302,6 +302,11 @@ namespace horizon
             return m_show_in_system_tray;
         }
 
+        virtual CompositorAppInterface *compositor_apps()
+        {
+            return nullptr;
+        }
+
         // Modifiers
         enum Modifier
         {

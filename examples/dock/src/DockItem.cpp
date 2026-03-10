@@ -62,28 +62,23 @@ namespace horizon
         when_mouse_press.connect(
             [this](MouseButtonEventContext &ctx)
             {
+                auto *ca = _app->compositor_apps();
+                if (!ca || _app_id.empty())
+                    return;
+
                 if (ctx.button == 274) // BTN_MIDDLE
                 {
-                    send_sig("close");
+                    ca->close(_app_id);
                     return;
                 }
 
                 if (_is_minimized)
                 {
-                    if (_is_wayfire && !_app_id.empty())
-                    {
-                        _app->w_surface()->restore_foreign_app(_app_id);
-                    }
-                    else
-                    {
-                        _app->w_surface()->request_activation_token([this](const std::string &token)
-                                                                    { send_sig("restore", token); },
-                                                                    ctx.serial);
-                    }
+                    ca->activate(_app_id);
                 }
                 else
                 {
-                    send_sig("minimize");
+                    ca->minimize(_app_id);
                 }
             });
     }

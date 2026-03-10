@@ -199,7 +199,9 @@ namespace horizon
         void set_cursor(CursorType type);
 
         // Foreign toplevel management (for Dock)
-        void restore_foreign_app(const std::string &app_id);
+        void activate_foreign_app(const std::string &app_id);
+        void minimize_foreign_app(const std::string &app_id);
+        void close_foreign_app(const std::string &app_id);
 
         /**
          * @struct ForeignToplevel

@@ -36,6 +36,11 @@ namespace horizon
 
     DockApplication::~DockApplication() = default;
 
+    CompositorAppInterface *DockApplication::compositor_apps()
+    {
+        return _compositor_apps.get();
+    }
+
     void DockApplication::detect_environment()
     {
         const char *desktop_env = getenv("XDG_CURRENT_DESKTOP");

@@ -1357,24 +1357,56 @@ namespace horizon
         wl_display_flush(m_display);
     }
 
-    void WaylandSurface::restore_foreign_app(const std::string &app_id)
+    void WaylandSurface::activate_foreign_app(const std::string &app_id)
     {
         if (!m_foreign_toplevel_manager)
             return;
 
-        LOG_INFO << "[SURFACE] Attempting foreign restore for: " << app_id;
+        LOG_INFO << "[SURFACE] Attempting foreign activation for: " << app_id;
         for (auto &pair : m_foreign_toplevels)
         {
             auto &ft = pair.second;
             if (ft.app_id == app_id)
             {
-                LOG_INFO << "[SURFACE] Found foreign handle for " << app_id
-                         << ", unminimizing and activating.";
-                zwlr_foreign_toplevel_handle_v1_unset_minimized(ft.handle);
+                LOG_INFO << "[SURFACE] Found foreign handle for " << app_id << ", activating.";
                 if (m_seat)
                 {
                     zwlr_foreign_toplevel_handle_v1_activate(ft.handle, m_seat);
                 }
+            }
+        }
+    }
+
+    void WaylandSurface::minimize_foreign_app(const std::string &app_id)
+    {
+        if (!m_foreign_toplevel_manager)
+            return;
+
+        LOG_INFO << "[SURFACE] Attempting foreign minimize for: " << app_id;
+        for (auto &pair : m_foreign_toplevels)
+        {
+            auto &ft = pair.second;
+            if (ft.app_id == app_id)
+            {
+                LOG_INFO << "[SURFACE] Found foreign handle for " << app_id << ", minimizing.";
+                zwlr_foreign_toplevel_handle_v1_set_minimized(ft.handle);
+            }
+        }
+    }
+
+    void WaylandSurface::close_foreign_app(const std::string &app_id)
+    {
+        if (!m_foreign_toplevel_manager)
+            return;
+
+        LOG_INFO << "[SURFACE] Attempting foreign close for: " << app_id;
+        for (auto &pair : m_foreign_toplevels)
+        {
+            auto &ft = pair.second;
+            if (ft.app_id == app_id)
+            {
+                LOG_INFO << "[SURFACE] Found foreign handle for " << app_id << ", closing.";
+                zwlr_foreign_toplevel_handle_v1_close(ft.handle);
             }
         }
     }

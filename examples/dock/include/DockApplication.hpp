@@ -25,6 +25,8 @@ namespace horizon
         DockApplication();
         ~DockApplication() override;
 
+        CompositorAppInterface *compositor_apps() override;
+
     private:
         void detect_environment();
         void setup_ui();
