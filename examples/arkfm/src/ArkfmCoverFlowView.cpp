@@ -21,18 +21,11 @@ namespace horizon::arkfm
             icon->set_enabled(false);
             m_icon = icon.get();
 
-            auto label = std::make_unique<Label>();
-            label->set_alignment(TextAlignment::Center);
-            label->set_enabled(false);
-            m_label = label.get();
-
             add_child(std::move(icon));
-            add_child(std::move(label));
         }
 
         void set_data(const arkutils::FileInfo &f)
         {
-            m_label->set_text(f.name);
             std::string icon_name = "text-x-generic";
             if (f.type == arkutils::FileType::Directory)
             {
@@ -48,7 +41,6 @@ namespace horizon::arkfm
 
     private:
         Icon *m_icon;
-        Label *m_label;
     };
 
     ArkfmCoverFlowView::ArkfmCoverFlowView(std::string path)
@@ -70,13 +62,28 @@ namespace horizon::arkfm
                 return item;
             });
 
+        // Navigation Label
+        auto navigation_label = std::make_unique<Label>("No selection");
+        m_navigation_label = navigation_label.get();
+        m_navigation_label->set_alignment(TextAlignment::Center);
+        m_navigation_label->set_text_color(Color(1.0f, 1.0f, 1.0f));
+        m_navigation_label->set_background_color(Color(0.0f, 0.0f, 0.0f)); // Black background
+        m_navigation_label->set_fixed_size(30);
+
         // Communication
         m_cover_flow->when_selection_changed.connect(
             [this](EventContext &)
             {
+                int idx = m_cover_flow->selected_index();
                 if (m_list_view)
                 {
-                    m_list_view->set_selected_index(m_cover_flow->selected_index());
+                    m_list_view->set_selected_index(idx);
+                }
+
+                if (idx >= 0 && idx < (int)m_cover_flow->data().size())
+                {
+                    const auto &f = m_cover_flow->data()[idx];
+                    m_navigation_label->set_text(f.name);
                 }
             });
 
@@ -93,6 +100,7 @@ namespace horizon::arkfm
             });
 
         add_child(std::move(cover_flow));
+        add_child(std::move(navigation_label));
         add_child(std::move(list_view));
 
         refresh(m_current_path);

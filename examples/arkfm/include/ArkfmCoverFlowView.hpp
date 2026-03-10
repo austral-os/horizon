@@ -9,7 +9,8 @@
 namespace horizon
 {
     template <typename T> class CoverFlow;
-}
+    class Label;
+} // namespace horizon
 
 namespace horizon::arkutils
 {
@@ -32,6 +33,7 @@ namespace horizon::arkfm
     private:
         std::string m_current_path;
         horizon::CoverFlow<arkutils::FileInfo> *m_cover_flow{nullptr};
+        horizon::Label *m_navigation_label{nullptr};
         ArkfmListView *m_list_view{nullptr};
         std::unique_ptr<horizon::arkutils::FileSystemModel> m_fs_model;
 
