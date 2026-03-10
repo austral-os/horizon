@@ -5,6 +5,7 @@
 #include <horizon/ApplicationLauncher.hpp>
 #include <horizon/DesktopEntry.hpp>
 #include <horizon/Logger.hpp>
+#include <horizon/Spacer.hpp>
 
 namespace fs = std::filesystem;
 
@@ -21,12 +22,25 @@ namespace horizon
         top_spacer->set_fixed_size(40);
         add_child(std::move(top_spacer));
 
+        // Search Box Container (Horizontal to center the search box)
+        auto search_container = std::make_unique<Widget>();
+        search_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        search_container->set_fixed_size(48);
+
+        // Left Spacer
+        search_container->add_child(Spacer());
+
         // Search Box
         auto search_box = std::make_unique<SearchBox>();
-        search_box->set_fixed_size(48);
+        search_box->set_fixed_size(300);
         search_box->set_placeholder("Search Applications...");
         m_search_box = search_box.get();
-        add_child(std::move(search_box));
+        search_container->add_child(std::move(search_box));
+
+        // Right Spacer
+        search_container->add_child(Spacer());
+
+        add_child(std::move(search_container));
 
         // Icon View
         auto icon_view = std::make_unique<IconView<AppData>>();
@@ -141,16 +155,6 @@ namespace horizon
             }
         }
         m_icon_view->set_data(m_filtered_apps);
-    }
-
-    void LaunchpadWindow::calculate_layout()
-    {
-        Widget::calculate_layout();
-
-        // Center the search box and limit its width
-        int search_width = std::min(m_width - 80, 600);
-        m_search_box->set_position(m_x + (m_width - search_width) / 2, m_search_box->y());
-        m_search_box->set_size(search_width, m_search_box->height());
     }
 
     void LaunchpadWindow::draw(GraphicsContext &gc)

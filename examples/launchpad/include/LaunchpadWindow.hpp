@@ -15,7 +15,6 @@ namespace horizon
     public:
         LaunchpadWindow();
 
-        void calculate_layout() override;
         void draw(GraphicsContext &gc) override;
 
     private:
