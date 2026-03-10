@@ -3,6 +3,12 @@
 #include <horizon/EventsManager.hpp>
 #include <horizon/Widget.hpp>
 
+namespace horizon
+{
+    class GroupButton;
+    class ToggleGroupButton;
+} // namespace horizon
+
 namespace horizon::arkfm
 {
 
@@ -18,6 +24,10 @@ namespace horizon::arkfm
         ~ArkToolbar() override = default;
 
         EventsManager<NavigationButtonClickEvent> when_navigation_clicked;
+
+    private:
+        horizon::GroupButton *m_navigation;
+        horizon::ToggleGroupButton *m_view_modes;
     };
 
 } // namespace horizon::arkfm
