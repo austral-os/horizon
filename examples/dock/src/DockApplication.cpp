@@ -15,7 +15,8 @@ namespace horizon
         {"alacritty", "Terminal", "utilities-terminal", "terminal"},
         {"firefox", "Web Browser", "firefox", "firefox"}};
 
-    DockApplication::DockApplication() : LayerApplication("dock", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY)
+    DockApplication::DockApplication()
+        : LayerApplication("org.horizon.dock", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY)
     {
         set_name("Dock");
         set_anchor(2 | 4 | 8); // BOTTOM | LEFT | RIGHT
