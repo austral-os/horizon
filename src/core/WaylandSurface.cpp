@@ -914,6 +914,11 @@ namespace horizon
 
         // Make context current for this surface
         eglMakeCurrent(m_egl_display, m_egl_surface, m_egl_surface, m_egl_context);
+
+        if (m_blur_enabled)
+        {
+            update_blur_region();
+        }
     }
 
     void WaylandSurface::swap_buffers()
@@ -1545,68 +1550,77 @@ namespace horizon
         zwlr_foreign_toplevel_handle_v1_add_listener(handle, &foreign_toplevel_handle_listener, ws);
     }
 
-    void WaylandSurface::set_blur(bool enabled)
+    void WaylandSurface::update_blur_region()
     {
-        if (!m_surface)
+        if (!m_surface || !m_blur_enabled)
+            return;
+
+        if (m_width <= 0 || m_height <= 0)
             return;
 
         // Try ext-background-effect-v1 (standard/modern)
         if (m_background_effect_manager)
         {
-            if (enabled)
+            if (!m_background_effect_surface)
             {
-                if (!m_background_effect_surface)
-                {
-                    m_background_effect_surface =
-                        ext_background_effect_manager_v1_get_background_effect(
-                            m_background_effect_manager, m_surface);
-                }
+                m_background_effect_surface =
+                    ext_background_effect_manager_v1_get_background_effect(
+                        m_background_effect_manager, m_surface);
+            }
 
-                struct wl_region *region = wl_compositor_create_region(m_compositor);
-                wl_region_add(region, 0, 0, m_width, m_height);
-                ext_background_effect_surface_v1_set_blur_region(m_background_effect_surface,
-                                                                 region);
-                wl_region_destroy(region);
-                LOG_INFO << "[SURFACE] Blur enabled via ext-background-effect";
-            }
-            else
-            {
-                if (m_background_effect_surface)
-                {
-                    ext_background_effect_surface_v1_destroy(m_background_effect_surface);
-                    m_background_effect_surface = nullptr;
-                }
-            }
+            struct wl_region *region = wl_compositor_create_region(m_compositor);
+            wl_region_add(region, 0, 0, m_width, m_height);
+            ext_background_effect_surface_v1_set_blur_region(m_background_effect_surface, region);
+            wl_region_destroy(region);
+            LOG_INFO << "[SURFACE] Blur region updated via ext-background-effect (" << m_width
+                     << "x" << m_height << ")";
         }
         // Try org_kde_kwin_blur_manager (KDE/Wayfire fallback)
         else if (m_blur_manager)
         {
-            if (enabled)
+            if (!m_blur_object)
             {
-                if (!m_blur_object)
-                {
-                    m_blur_object = org_kde_kwin_blur_manager_create(m_blur_manager, m_surface);
-                }
+                m_blur_object = org_kde_kwin_blur_manager_create(m_blur_manager, m_surface);
+            }
 
-                struct wl_region *region = wl_compositor_create_region(m_compositor);
-                wl_region_add(region, 0, 0, m_width, m_height);
-                org_kde_kwin_blur_set_region(m_blur_object, region);
-                org_kde_kwin_blur_commit(m_blur_object);
-                wl_region_destroy(region);
-                LOG_INFO << "[SURFACE] Blur enabled via org_kde_kwin_blur";
-            }
-            else
-            {
-                if (m_blur_object)
-                {
-                    org_kde_kwin_blur_release(m_blur_object);
-                    m_blur_object = nullptr;
-                }
-            }
+            struct wl_region *region = wl_compositor_create_region(m_compositor);
+            wl_region_add(region, 0, 0, m_width, m_height);
+            org_kde_kwin_blur_set_region(m_blur_object, region);
+            org_kde_kwin_blur_commit(m_blur_object);
+            wl_region_destroy(region);
+            LOG_INFO << "[SURFACE] Blur region updated via org_kde_kwin_blur (" << m_width << "x"
+                     << m_height << ")";
+        }
+    }
+
+    void WaylandSurface::set_blur(bool enabled)
+    {
+        if (m_blur_enabled == enabled)
+            return;
+
+        m_blur_enabled = enabled;
+
+        if (!m_surface)
+            return;
+
+        if (enabled)
+        {
+            update_blur_region();
         }
         else
         {
-            LOG_WARNING << "[SURFACE] No blur protocol supported by compositor";
+            if (m_background_effect_surface)
+            {
+                ext_background_effect_surface_v1_destroy(m_background_effect_surface);
+                m_background_effect_surface = nullptr;
+            }
+
+            if (m_blur_object)
+            {
+                org_kde_kwin_blur_release(m_blur_object);
+                m_blur_object = nullptr;
+            }
+            LOG_INFO << "[SURFACE] Blur disabled";
         }
 
         wl_surface_commit(m_surface);

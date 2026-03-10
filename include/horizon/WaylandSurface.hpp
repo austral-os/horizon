@@ -251,10 +251,12 @@ namespace horizon
         }
         void swap_buffers();
 
+        void update_blur_region();
     private:
         int m_width;
         int m_height;
         Role m_role = Role::None;
+        bool m_blur_enabled = false;
 
         struct wl_display *m_display = nullptr;
         struct wl_registry *m_registry = nullptr;
