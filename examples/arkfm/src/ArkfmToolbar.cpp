@@ -43,7 +43,7 @@ namespace horizon::arkfm
         m_view_modes->add_item(std::move(icon_view));
 
         auto list_view = std::make_unique<horizon::Icon>();
-        list_view->set_icon_name("view-list");
+        list_view->set_icon_name("view-filter");
         list_view->set_icon_size(16);
         m_view_modes->add_item(std::move(list_view));
 
@@ -53,7 +53,7 @@ namespace horizon::arkfm
         m_view_modes->add_item(std::move(column_view));
 
         auto cover_flow = std::make_unique<horizon::Icon>();
-        cover_flow->set_icon_name("folder-pictures"); // Generic enough for cover flow demo
+        cover_flow->set_icon_name("view-coverflow"); // Generic enough for cover flow demo
         cover_flow->set_icon_size(16);
         m_view_modes->add_item(std::move(cover_flow));
 
