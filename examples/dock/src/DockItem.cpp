@@ -1,4 +1,5 @@
 #include "DockItem.hpp"
+#include <horizon/ApplicationLauncher.hpp>
 #include <horizon/IpcClient.hpp>
 #include <horizon/Logger.hpp>
 
@@ -92,7 +93,7 @@ namespace horizon
                 if (ctx.button == 272) // BTN_LEFT
                 {
                     LOG_INFO << "[DOCK] Requesting to run app: " << _run_id;
-                    _app->send_remote_signal(-1, "run_app", _run_id);
+                    ApplicationLauncher::launch(_run_id);
                 }
             });
     }

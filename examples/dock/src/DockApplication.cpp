@@ -2,6 +2,7 @@
 #include "DockItem.hpp"
 #include "DockShelf.hpp"
 #include <algorithm>
+#include <horizon/DesktopEntry.hpp>
 #include <horizon/LabwcAppAdapter.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/WayfireAppAdapter.hpp>
@@ -28,6 +29,10 @@ namespace horizon
         set_show_in_system_tray(false);
         set_visible(true);
         set_keyboard_interactivity(0);
+
+        // Add custom search path for .desktop files
+        DesktopEntry::add_search_path(
+            "/home/horacio/Desarrollo/austral-os/horizon/examples/config/apps/");
 
         detect_environment();
         setup_ui();
