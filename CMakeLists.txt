@@ -186,19 +186,7 @@ target_link_libraries(files_demo
         horizon
 )
 
-add_executable(arkfm
-    examples/arkfm/main.cpp
-    examples/arkfm/ArkfmApplication.cpp
-    examples/arkfm/ArkfmSidebar.cpp
-    examples/arkfm/ArkfmToolbar.cpp
-    examples/arkfm/ArkfmView.cpp
-    examples/arkfm/ArkfmWindow.cpp
-)
-
-target_link_libraries(arkfm
-    PRIVATE
-        horizon
-)
+add_subdirectory(examples/arkfm)
 
 add_executable(mouse_wheel_test
     tests/mouse_wheel_test.cpp
