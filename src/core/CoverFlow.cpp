@@ -1,85 +1,13 @@
-#include <GLES2/gl2.h>
-#include <cairo/cairo.h>
+#include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <horizon/Application.hpp>
 #include <horizon/CoverFlow.hpp>
 #include <horizon/GraphicsContext.hpp>
+#include <horizon/Matrix.hpp>
 
 namespace horizon
 {
-
-    static void mat4_identity(float *m)
-    {
-        for (int i = 0; i < 16; i++)
-            m[i] = 0;
-        m[0] = m[5] = m[10] = m[15] = 1.0f;
-    }
-
-    static void mat4_multiply(float *out, const float *a, const float *b)
-    {
-        float res[16];
-        for (int c = 0; c < 4; c++)
-        {
-            for (int r = 0; r < 4; r++)
-            {
-                res[c * 4 + r] = a[0 * 4 + r] * b[c * 4 + 0] + a[1 * 4 + r] * b[c * 4 + 1] +
-                                 a[2 * 4 + r] * b[c * 4 + 2] + a[3 * 4 + r] * b[c * 4 + 3];
-            }
-        }
-        std::memcpy(out, res, 16 * sizeof(float));
-    }
-
-    void mat4_perspective(float *m, float fov, float aspect, float near, float far)
-    {
-        float f = 1.0f / tanf(fov / 2.0f);
-        m[0] = f / aspect;
-        m[1] = 0;
-        m[2] = 0;
-        m[3] = 0;
-        m[4] = 0;
-        m[5] = f;
-        m[6] = 0;
-        m[7] = 0;
-        m[8] = 0;
-        m[9] = 0;
-        m[10] = (far + near) / (near - far);
-        m[11] = -1;
-        m[12] = 0;
-        m[13] = 0;
-        m[14] = (2.0f * far * near) / (near - far);
-        m[15] = 0;
-    }
-
-    static void mat4_translate(float *m, float x, float y, float z)
-    {
-        float t[16];
-        mat4_identity(t);
-        t[12] = x;
-        t[13] = y;
-        t[14] = z;
-        mat4_multiply(m, m, t);
-    }
-
-    static void mat4_rotate_y(float *m, float angle)
-    {
-        float r[16];
-        mat4_identity(r);
-        r[0] = cosf(angle);
-        r[2] = sinf(angle);
-        r[8] = -sinf(angle);
-        r[10] = cosf(angle);
-        mat4_multiply(m, m, r);
-    }
-
-    static void mat4_scale(float *m, float x, float y, float z)
-    {
-        float s[16];
-        mat4_identity(s);
-        s[0] = x;
-        s[5] = y;
-        s[10] = z;
-        mat4_multiply(m, m, s);
-    }
 
     CoverFlowBase::CoverFlowBase() : Widget()
     {
@@ -192,9 +120,16 @@ namespace horizon
     {
         for (auto &pair : m_texture_cache)
         {
-            if (pair.second.texture_id != 0)
+            if (pair.second.texture_id != 0 && m_app)
             {
-                glDeleteTextures(1, &pair.second.texture_id);
+                // We need to delete via application or queue if no GC is here.
+                // For now, let's assume we can't easily get a GC here,
+                // but we can queue it in the app.
+                Application::GLDrawCall call;
+                call.texture_id = pair.second.texture_id;
+                call.delete_texture = true;
+                call.opacity = -1.0f; // Convention for "just delete"
+                m_app->queue_gl_draw(call);
             }
         }
         m_texture_cache.clear();
@@ -360,12 +295,10 @@ namespace horizon
         if (!application() || !m_app)
             return;
 
-        cairo_t *cr = static_cast<cairo_t *>(gc.getNativeContext());
         gc.save();
         gc.clip(m_x, m_y, m_width, m_height);
 
         // 1. Select visible/culled items and sort them
-        // Items further than CULL_THRESHOLD from m_animated_index are skipped
         const float CULL_THRESHOLD = 7.0f;
         std::vector<int> indices;
         for (int i = 0; i < (int)m_children.size(); i++)
@@ -392,39 +325,32 @@ namespace horizon
             double dist = (double)i - (double)m_animated_index;
 
             uint32_t tex_id = 0;
-            int tex_w = 0;
-            int tex_h = 0;
+            int tex_w = 0, tex_h = 0;
 
-            // Texture Caching: Only re-render if the widget or its children are dirty,
-            // or if it's missing from the cache.
             bool needs_rerender = (m_texture_cache.find(child) == m_texture_cache.end()) ||
                                   child->is_dirty() || child->is_child_dirty() || force;
 
             if (needs_rerender)
             {
-                cairo_save(cr);
+                gc.save();
                 gc.pushGroup();
 
                 // Draw reflection
                 if (m_draw_reflection)
                 {
-                    cairo_save(cr);
+                    gc.save();
                     double mirror_y = child->y() + (double)child->height();
-                    cairo_translate(cr, 0, mirror_y);
-                    cairo_scale(cr, 1.0, -1.0);
-                    cairo_translate(cr, 0, -mirror_y);
-                    cairo_push_group(cr);
+                    gc.translate(0, mirror_y);
+                    gc.scale(1.0, -1.0);
+                    gc.translate(0, -mirror_y);
+                    gc.pushGroup();
                     child->render(gc, cx, cy, cw, ch, true);
-                    cairo_pop_group_to_source(cr);
-                    cairo_pattern_t *mask =
-                        cairo_pattern_create_linear(0, child->y(), 0, child->y() + child->height());
-                    float offset_start = 1.0f;
-                    float offset_end = 0.5f;
-                    cairo_pattern_add_color_stop_rgba(mask, offset_start, 0, 0, 0, 0.4);
-                    cairo_pattern_add_color_stop_rgba(mask, offset_end, 0, 0, 0, 0.0);
-                    cairo_mask(cr, mask);
-                    cairo_pattern_destroy(mask);
-                    cairo_restore(cr);
+                    gc.popGroup();
+
+                    gc.maskLinearGradient(0, child->y(), child->width(), child->height(),
+                                          Color(0.0f, 0.0f, 0.0f, 0.4f),
+                                          Color(0.0f, 0.0f, 0.0f, 0.0f), true);
+                    gc.restore();
                 }
 
                 // Draw main child
@@ -432,12 +358,12 @@ namespace horizon
 
                 int capture_h = m_draw_reflection ? child->height() * 2 : child->height();
                 gc.popGroupToTexture(tex_id, child->x(), child->y(), child->width(), capture_h);
-                cairo_restore(cr);
+                gc.restore();
 
-                // Update cache (deleting old texture if it exists)
+                // Update cache
                 if (m_texture_cache.count(child) && m_texture_cache[child].texture_id != 0)
                 {
-                    glDeleteTextures(1, &m_texture_cache[child].texture_id);
+                    gc.deleteTexture(m_texture_cache[child].texture_id);
                 }
                 m_texture_cache[child] = {tex_id, child->width(), capture_h};
                 tex_w = child->width();
@@ -454,11 +380,11 @@ namespace horizon
             int capture_h = tex_h;
             // Calculate 3D Projection
             float mvp[16];
-            mat4_identity(mvp);
+            Matrix::identity(mvp);
 
             float aspect = (float)m_app->width() / m_app->height();
             float proj[16];
-            mat4_perspective(proj, 100.0f * 3.14159f / 180.0f, aspect, 0.1f, 100.0f);
+            Matrix::perspective(proj, 100.0f * 3.14159f / 180.0f, aspect, 0.1f, 100.0f);
 
             double pivot_x = child->x() + (double)child->width() / 2.0;
             double pivot_y = child->y() + (double)capture_h / 2.0;
@@ -467,7 +393,6 @@ namespace horizon
             float clamped_dist_rot = std::max(-1.0f, std::min(1.0f, (float)dist));
             float rotation = clamped_dist_rot * -1.75f;
 
-            // Push side items back to a common depth plane, with tiny progressive offset
             float depth_step = std::abs(clamped_dist_rot) * 0.6f;
             float z_pos = -1.0f - depth_step - (float)std::abs(dist) * 0.05f;
 
@@ -484,14 +409,14 @@ namespace horizon
             float scene_scale_x = (float)child->width() / m_app->width() * screen_to_scene_x;
             float scene_scale_y = (float)capture_h / m_app->height() * screen_to_scene_y;
 
-            mat4_translate(mvp, scene_x, scene_y, z_pos);
+            Matrix::translate(mvp, scene_x, scene_y, z_pos);
             if (rotation != 0.0f)
             {
-                mat4_rotate_y(mvp, rotation);
+                Matrix::rotate_y(mvp, rotation);
             }
 
-            mat4_scale(mvp, scene_scale_x, scene_scale_y, 1.0f);
-            mat4_multiply(mvp, proj, mvp);
+            Matrix::scale(mvp, scene_scale_x, scene_scale_y, 1.0f);
+            Matrix::multiply(mvp, proj, mvp);
 
             float opacity = 1.0f - std::min(0.7f, (float)std::abs(dist) * 0.15f);
             gc.drawTexture3D(tex_id, tex_w, tex_h, mvp, opacity, false);

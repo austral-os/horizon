@@ -83,6 +83,10 @@ namespace horizon
         virtual void restore() {};
         virtual void clip(int x, int y, int width, int height) {};
         virtual void clipRoundedRect(int x, int y, int width, int height, CornerRadius radius) {};
+
+        virtual void translate(float dx, float dy) {};
+        virtual void scale(float sx, float sy) {};
+
         virtual void setDrawFont(const char *font, int size, FontSlant slant, FontWeight weight) {};
         virtual TextMetrics getTextMetrics(const char *text, const char *font, int size,
                                            FontSlant slant, FontWeight weight) const = 0;
@@ -116,12 +120,17 @@ namespace horizon
         virtual void drawTexture3D(uint32_t texture_id, int w, int h, float *matrix_4x4,
                                    float opacity = 1.0f, bool delete_texture = true) {};
 
+        virtual void deleteTexture(uint32_t texture_id) {};
+
         virtual void fillPolygon(const std::vector<PolygonPoint> &points) {};
         virtual void drawPolygon(const std::vector<PolygonPoint> &points, float lineWidth = 1.0f) {
         };
         virtual void fillLinearGradientPolygon(const std::vector<PolygonPoint> &points, Color c1,
                                                Color c2, bool vertical = true) {};
         virtual void clipPolygon(const std::vector<PolygonPoint> &points) {};
+
+        virtual void maskLinearGradient(int x, int y, int w, int h, Color c1, Color c2,
+                                        bool vertical = true) {};
 
         /**
          * @brief Get the native drawing context (e.g. cairo_t*).

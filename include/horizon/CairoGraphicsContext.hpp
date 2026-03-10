@@ -61,18 +61,24 @@ namespace horizon
         void clip(int x, int y, int width, int height) override;
         void clipRoundedRect(int x, int y, int width, int height, CornerRadius radius) override;
 
+        void translate(float dx, float dy) override;
+        void scale(float sx, float sy) override;
+
         void pushGroup() override;
         void popGroup() override;
         void popGroupToTexture(uint32_t &texture_id, int x, int y, int w, int h) override;
 
         void drawTexture3D(uint32_t texture_id, int w, int h, float *matrix_4x4,
                            float opacity = 1.0f, bool delete_texture = true) override;
+        void deleteTexture(uint32_t texture_id) override;
 
         void fillPolygon(const std::vector<PolygonPoint> &points) override;
         void drawPolygon(const std::vector<PolygonPoint> &points, float lineWidth = 1.0f) override;
         void fillLinearGradientPolygon(const std::vector<PolygonPoint> &points, Color c1, Color c2,
                                        bool vertical = true) override;
         void clipPolygon(const std::vector<PolygonPoint> &points) override;
+        void maskLinearGradient(int x, int y, int w, int h, Color c1, Color c2,
+                                bool vertical = true) override;
 
         void *getNativeContext() override
         {

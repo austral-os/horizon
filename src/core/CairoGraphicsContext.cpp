@@ -512,6 +512,16 @@ namespace horizon
         cairo_clip(cr);
     }
 
+    void CairoGraphicContext::translate(float dx, float dy)
+    {
+        cairo_translate(cr, dx, dy);
+    }
+
+    void CairoGraphicContext::scale(float sx, float sy)
+    {
+        cairo_scale(cr, sx, sy);
+    }
+
     void CairoGraphicContext::pushGroup()
     {
         cairo_push_group(cr);
@@ -577,6 +587,17 @@ namespace horizon
     {
         rounded_polygon_path(cr, points);
         cairo_clip(cr);
+    }
+
+    void CairoGraphicContext::maskLinearGradient(int x, int y, int w, int h, Color c1, Color c2,
+                                                 bool vertical)
+    {
+        cairo_pattern_t *mask = vertical ? cairo_pattern_create_linear(x, y, x, y + h)
+                                         : cairo_pattern_create_linear(x, y, x + w, y);
+        cairo_pattern_add_color_stop_rgba(mask, 0, c1.r, c1.g, c1.b, c1.a);
+        cairo_pattern_add_color_stop_rgba(mask, 1, c2.r, c2.g, c2.b, c2.a);
+        cairo_mask(cr, mask);
+        cairo_pattern_destroy(mask);
     }
 
     std::unique_ptr<ImageDriver> CairoGraphicContext::createImageDriver(const std::string &path)
@@ -751,5 +772,11 @@ namespace horizon
         }
 
         m_app->queue_gl_draw(call);
+    }
+
+    void CairoGraphicContext::deleteTexture(uint32_t texture_id)
+    {
+        if (texture_id != 0)
+            glDeleteTextures(1, &texture_id);
     }
 } // namespace horizon
