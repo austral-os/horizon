@@ -1,4 +1,5 @@
 #include "ArkfmListView.hpp"
+#include "ArkfmIconProvider.hpp"
 #include "horizon/Logger.hpp"
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
@@ -20,35 +21,7 @@ namespace horizon::arkfm
             auto icon = std::make_unique<Icon>();
             icon->set_icon_size(24);
 
-            std::string icon_name = "text-x-generic";
-            if (f.type == arkutils::FileType::Directory)
-            {
-                icon_name = "folder";
-            }
-            else if (f.extension == "png" || f.extension == "jpg" || f.extension == "jpeg" ||
-                     f.extension == "svg")
-            {
-                icon_name = "image-x-generic";
-            }
-            else if (f.extension == "cpp" || f.extension == "hpp" || f.extension == "c" ||
-                     f.extension == "h")
-            {
-                icon_name = "text-x-csrc";
-            }
-            else if (f.extension == "txt" || f.extension == "md")
-            {
-                icon_name = "text-x-generic";
-            }
-            else if (f.extension == "pdf")
-            {
-                icon_name = "document-pdf";
-            }
-            else if (f.extension == "zip" || f.extension == "tar" || f.extension == "gz")
-            {
-                icon_name = "package-x-generic";
-            }
-
-            icon->set_icon_name(icon_name);
+            icon->set_icon_name(ArkfmIconProvider::get_icon_name(f));
             return icon;
         };
 

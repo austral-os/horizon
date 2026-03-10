@@ -1,4 +1,5 @@
 #include "ArkfmIconView.hpp"
+#include "ArkfmIconProvider.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/Icon.hpp"
 #include "horizon/Label.hpp"
@@ -35,16 +36,7 @@ namespace horizon::arkfm
             m_selected = selected;
             m_label_ptr->set_text(f.name);
 
-            std::string icon_name = "text-x-generic";
-            if (f.type == arkutils::FileType::Directory)
-            {
-                icon_name = "folder";
-            }
-            else if (f.extension == "png" || f.extension == "jpg" || f.extension == "jpeg" ||
-                     f.extension == "svg")
-            {
-                icon_name = "image-x-generic";
-            }
+            std::string icon_name = ArkfmIconProvider::get_icon_name(f);
 
             m_icon_size = static_cast<int>(48 * m_zoom);
             m_icon_ptr->set_icon_name(icon_name);

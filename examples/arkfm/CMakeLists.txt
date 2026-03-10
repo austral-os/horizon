@@ -8,6 +8,7 @@ add_executable(arkfm
     src/ArkfmToolbar.cpp
     src/ArkfmView.cpp
     src/ArkfmWindow.cpp
+    src/ArkfmIconProvider.cpp
 )
 
 target_include_directories(arkfm

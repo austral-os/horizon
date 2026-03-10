@@ -1,4 +1,5 @@
 #include "ArkfmCoverFlowView.hpp"
+#include "ArkfmIconProvider.hpp"
 #include "ArkfmListView.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/CoverFlow.hpp"
@@ -31,17 +32,7 @@ namespace horizon::arkfm
 
         void set_data(const arkutils::FileInfo &f)
         {
-            std::string icon_name = "text-x-generic";
-            if (f.type == arkutils::FileType::Directory)
-            {
-                icon_name = "folder";
-            }
-            else if (f.extension == "png" || f.extension == "jpg" || f.extension == "jpeg" ||
-                     f.extension == "svg")
-            {
-                icon_name = "image-x-generic";
-            }
-            m_icon->set_icon_name(icon_name);
+            m_icon->set_icon_name(ArkfmIconProvider::get_icon_name(f));
         }
 
     private:
