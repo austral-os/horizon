@@ -54,6 +54,15 @@ namespace horizon::arkfm
         cover_flow->set_icon_size(16);
         view_modes->add_item(std::move(cover_flow));
 
+        auto *navigation_ptr = navigation.get();
+        navigation_ptr->when_button_clicked.connect(
+            [this](horizon::GroupButtonClickEvent &ctx)
+            {
+                NavigationButtonClickEvent nav_event;
+                nav_event.index = ctx.button_index;
+                this->when_navigation_clicked.run(nav_event);
+            });
+
         auto search_box = std::make_unique<horizon::SearchBox>();
         search_box->set_placeholder("Buscar...");
         search_box->set_fixed_size(200);

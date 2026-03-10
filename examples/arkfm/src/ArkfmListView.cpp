@@ -106,21 +106,8 @@ namespace horizon::arkfm
         add_column(col_mod);
 
         // Handle row selection
-        when_row_dbl_click.connect(
-            [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
-            {
-                if (ctx.row_data.type == arkutils::FileType::Directory)
-                {
-                    m_current_path = ctx.row_data.path;
-                    m_fs_model->unwatch_all(); // Important: we should stop watching old folders if
-                                               // we only care about the new one, but for now we
-                                               // just change path.
-                    this->refresh(m_current_path);
-
-                    // Update window title or add a label if desired
-                    LOG_INFO << "Navigating to: " << m_current_path;
-                }
-            });
+        // We don't navigate here anymore, parent ArkfmView handles this via the same signal.
+        // We keep it empty or remove it if not needed, but signal is public so others can use it.
 
         m_fs_model->signal_manager().connect(arkutils::FileSystemModel::SIGNAL_DIRECTORY_CHANGED,
                                              [this](SignalContext &ctx)

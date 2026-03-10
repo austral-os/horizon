@@ -1,6 +1,5 @@
-#pragma once
-
 #include "horizon/Widget.hpp"
+#include <memory>
 
 namespace horizon::arkfm
 {
@@ -12,17 +11,34 @@ namespace horizon::arkfm
         CoverFlow
     };
 
+    struct PathChangedEvent : public EventContext
+    {
+        std::string path;
+    };
+
     class ArkfmView : public Widget
     {
     public:
         ArkfmView(std::string path = ".");
-        ~ArkfmView() = default;
+        ~ArkfmView() override;
 
         void set_view_mode(ViewMode mode);
+
+        void navigate_to(const std::string &path, bool record_history = true);
+        void navigate_back();
+        void navigate_forward();
+
+        bool can_back() const;
+        bool can_forward() const;
+
+        const std::string &current_path() const;
+
+        EventsManager<PathChangedEvent> when_path_changed;
 
     private:
         ViewMode m_view_mode;
         std::string m_current_path;
+        std::unique_ptr<class NavigationHistory> m_history;
     };
 
 } // namespace horizon::arkfm
