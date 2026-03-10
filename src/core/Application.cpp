@@ -1207,6 +1207,14 @@ namespace horizon
         }
     }
 
+    void Application::set_blur(bool enabled)
+    {
+        if (m_compositor_context)
+        {
+            m_compositor_context->set_blur(enabled);
+        }
+    }
+
     bool Application::is_fullscreen() const
     {
         return m_compositor_context && m_compositor_context->is_fullscreen();

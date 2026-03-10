@@ -7,6 +7,8 @@
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <horizon/xdg-activation-v1-client-protocol.h>
 #include <horizon/xdg-shell-client-protocol.h>
+#include <protocols/blur-client-protocol.h>
+#include <protocols/ext-background-effect-v1-client-protocol.h>
 #include <protocols/wlr-foreign-toplevel-management-unstable-v1-client-protocol.h>
 #include <stdexcept>
 #include <sys/mman.h>
@@ -153,6 +155,19 @@ namespace horizon
         foreign_toplevel_manager_listener = {
             foreign_toplevel_manager_toplevel,
             foreign_toplevel_manager_finished,
+    };
+
+    static void background_effect_manager_handle_capabilities(
+        void *data, struct ext_background_effect_manager_v1 *ext_background_effect_manager_v1,
+        uint32_t flags)
+    {
+        // For now we just log it
+        LOG_INFO << "[SURFACE] Background effect capabilities: " << flags;
+    }
+
+    static const struct ext_background_effect_manager_v1_listener
+        background_effect_manager_listener = {
+            .capabilities = background_effect_manager_handle_capabilities,
     };
 
     static void seat_handle_capabilities(void *data, wl_seat *seat, uint32_t caps)
@@ -399,6 +414,22 @@ namespace horizon
                 static_cast<wl_output *>(wl_registry_bind(registry, id, &wl_output_interface, 1));
             ws->add_wl_output(output);
         }
+        else if (strcmp(interface, ext_background_effect_manager_v1_interface.name) == 0)
+        {
+            LOG_INFO << "[SURFACE] Binding ext_background_effect_manager_v1";
+            ws->set_ext_background_effect_manager(static_cast<ext_background_effect_manager_v1 *>(
+                wl_registry_bind(registry, id, &ext_background_effect_manager_v1_interface, 1)));
+            LOG_INFO << "[SURFACE] Bound ext_background_effect_manager_v1";
+            ext_background_effect_manager_v1_add_listener(ws->background_effect_manager(),
+                                                          &background_effect_manager_listener, ws);
+        }
+        else if (strcmp(interface, org_kde_kwin_blur_manager_interface.name) == 0)
+        {
+            LOG_INFO << "[SURFACE] Binding org_kde_kwin_blur_manager";
+            ws->m_blur_manager = (struct org_kde_kwin_blur_manager *)wl_registry_bind(
+                registry, id, &org_kde_kwin_blur_manager_interface, 1);
+            LOG_INFO << "[SURFACE] Bound org_kde_kwin_blur_manager";
+        }
     }
 
     /**
@@ -552,6 +583,12 @@ namespace horizon
     void WaylandSurface::set_xdg_wm_base(struct xdg_wm_base *xdg_wm_base)
     {
         m_xdg_wm_base = xdg_wm_base;
+    }
+
+    void WaylandSurface::set_ext_background_effect_manager(
+        struct ext_background_effect_manager_v1 *manager)
+    {
+        m_background_effect_manager = manager;
     }
 
     void WaylandSurface::set_zwlr_layer_shell(struct zwlr_layer_shell_v1 *layer_shell)
@@ -1508,4 +1545,70 @@ namespace horizon
         zwlr_foreign_toplevel_handle_v1_add_listener(handle, &foreign_toplevel_handle_listener, ws);
     }
 
+    void WaylandSurface::set_blur(bool enabled)
+    {
+        if (!m_surface)
+            return;
+
+        // Try ext-background-effect-v1 (standard/modern)
+        if (m_background_effect_manager)
+        {
+            if (enabled)
+            {
+                if (!m_background_effect_surface)
+                {
+                    m_background_effect_surface =
+                        ext_background_effect_manager_v1_get_background_effect(
+                            m_background_effect_manager, m_surface);
+                }
+
+                struct wl_region *region = wl_compositor_create_region(m_compositor);
+                wl_region_add(region, 0, 0, m_width, m_height);
+                ext_background_effect_surface_v1_set_blur_region(m_background_effect_surface,
+                                                                 region);
+                wl_region_destroy(region);
+                LOG_INFO << "[SURFACE] Blur enabled via ext-background-effect";
+            }
+            else
+            {
+                if (m_background_effect_surface)
+                {
+                    ext_background_effect_surface_v1_destroy(m_background_effect_surface);
+                    m_background_effect_surface = nullptr;
+                }
+            }
+        }
+        // Try org_kde_kwin_blur_manager (KDE/Wayfire fallback)
+        else if (m_blur_manager)
+        {
+            if (enabled)
+            {
+                if (!m_blur_object)
+                {
+                    m_blur_object = org_kde_kwin_blur_manager_create(m_blur_manager, m_surface);
+                }
+
+                struct wl_region *region = wl_compositor_create_region(m_compositor);
+                wl_region_add(region, 0, 0, m_width, m_height);
+                org_kde_kwin_blur_set_region(m_blur_object, region);
+                org_kde_kwin_blur_commit(m_blur_object);
+                wl_region_destroy(region);
+                LOG_INFO << "[SURFACE] Blur enabled via org_kde_kwin_blur";
+            }
+            else
+            {
+                if (m_blur_object)
+                {
+                    org_kde_kwin_blur_release(m_blur_object);
+                    m_blur_object = nullptr;
+                }
+            }
+        }
+        else
+        {
+            LOG_WARNING << "[SURFACE] No blur protocol supported by compositor";
+        }
+
+        wl_surface_commit(m_surface);
+    }
 } // namespace horizon

@@ -107,4 +107,12 @@ namespace horizon
     {
         return m_app && m_app->is_fullscreen();
     }
+
+    void LabwcCompositorContext::set_blur(bool enabled)
+    {
+        if (m_app && m_app->w_surface())
+        {
+            m_app->w_surface()->set_blur(enabled);
+        }
+    }
 } // namespace horizon

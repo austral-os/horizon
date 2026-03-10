@@ -21,6 +21,7 @@ namespace horizon
         virtual void restore(const std::string &token = "") = 0;
         virtual void fullscreen() = 0;
         virtual void unfullscreen() = 0;
+        virtual void set_blur(bool enabled) = 0;
 
         virtual bool is_maximized() const = 0;
         virtual bool is_fullscreen() const = 0;

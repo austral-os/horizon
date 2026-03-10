@@ -19,6 +19,9 @@ int main(int argc, char *argv[])
     // Request keyboard focus immediately
     app->set_keyboard_interactivity(ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
 
+    // Enable background blur
+    app->set_blur(true);
+
     // Create the launchpad window
     auto launchpad_window = std::make_unique<LaunchpadWindow>();
 

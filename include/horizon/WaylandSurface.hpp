@@ -4,6 +4,8 @@
 #include "horizon/Widget.hpp"
 #include <cstdint>
 #include <map>
+#include <protocols/blur-client-protocol.h>
+#include <protocols/ext-background-effect-v1-client-protocol.h>
 #include <string>
 #include <vector>
 #include <xkbcommon/xkbcommon.h>
@@ -34,6 +36,8 @@ struct xdg_activation_v1;
 struct xdg_activation_token_v1;
 struct zwlr_foreign_toplevel_manager_v1;
 struct zwlr_foreign_toplevel_handle_v1;
+struct ext_background_effect_manager_v1;
+struct ext_background_effect_surface_v1;
 struct wl_egl_window;
 
 namespace horizon
@@ -80,6 +84,7 @@ namespace horizon
         void set_wl_keyboard(struct wl_keyboard *keyboard);
         void set_xdg_activation(struct xdg_activation_v1 *activation);
         void set_zwlr_foreign_toplevel_manager(struct zwlr_foreign_toplevel_manager_v1 *manager);
+        void set_ext_background_effect_manager(struct ext_background_effect_manager_v1 *manager);
 
         void set_event_listener(WaylandEventListener *listener);
 
@@ -98,6 +103,10 @@ namespace horizon
         }
         void *data() const;
         struct wl_surface *surface() const;
+        struct ext_background_effect_manager_v1 *background_effect_manager() const
+        {
+            return m_background_effect_manager;
+        }
         struct wl_buffer *buffer() const;
         struct wl_display *display() const;
         const std::vector<struct wl_output *> &monitors() const
@@ -173,6 +182,7 @@ namespace horizon
         void free();
         void resize_buffer(int width, int height);
         void commit();
+        void set_blur(bool enabled);
 
         void request_move(uint32_t serial);
         void request_resize(uint32_t serial, uint32_t edge);
@@ -254,6 +264,10 @@ namespace horizon
         struct zwlr_layer_shell_v1 *m_layer_shell = nullptr;
         struct xdg_activation_v1 *m_activation = nullptr;
         struct zwlr_foreign_toplevel_manager_v1 *m_foreign_toplevel_manager = nullptr;
+        struct ext_background_effect_manager_v1 *m_background_effect_manager = nullptr;
+        struct ext_background_effect_surface_v1 *m_background_effect_surface = nullptr;
+        struct org_kde_kwin_blur_manager *m_blur_manager = nullptr;
+        struct org_kde_kwin_blur *m_blur_object = nullptr;
 
         // EGL Objects
         EGLDisplay m_egl_display = EGL_NO_DISPLAY;

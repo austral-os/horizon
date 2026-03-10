@@ -23,6 +23,7 @@ namespace horizon
         void restore(const std::string &token = "") override;
         void fullscreen() override;
         void unfullscreen() override;
+        void set_blur(bool enabled) override;
 
         bool is_maximized() const override;
         bool is_fullscreen() const override;

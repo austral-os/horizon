@@ -164,6 +164,7 @@ namespace horizon
          * @brief Requests the window to exit fullscreen mode.
          */
         void unfullscreen();
+        void set_blur(bool enabled);
 
         /**
          * @return True if the window is in fullscreen mode.
