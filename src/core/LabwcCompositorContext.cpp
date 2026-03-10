@@ -2,6 +2,7 @@
 #include "horizon/Application.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/WaylandSurface.hpp"
+#include <unistd.h>
 
 namespace horizon
 {
@@ -49,17 +50,17 @@ namespace horizon
 
         auto *surface = m_app->w_surface();
 
+        // Protocol sequence:
+        // 1. If we have an activation token, use it FIRST.
         if (!token.empty())
         {
             surface->activate(token);
         }
 
-        // Exact mechanism as currently used in Application.cpp
-        if (m_app->is_minimized())
+        // 2. Request the compositor to un-minimize/maximize
+        if (m_app->is_minimized() || m_app->was_maximized_before_minimize())
         {
-            // If we were minimized, we just want to bring the window back.
-            // If it was maximized before minimizing, keep it maximized.
-            if (m_app->is_maximized())
+            if (m_app->was_maximized_before_minimize())
             {
                 surface->request_maximize();
             }
@@ -70,16 +71,14 @@ namespace horizon
         }
         else if (m_app->is_maximized())
         {
-            // If it was already visible and maximized, restore to floating
             surface->request_restore();
         }
         else
         {
-            // Not minimized and not maximized? This shouldn't happen from the maximize button,
-            // but for safety we just maximize.
             surface->request_maximize();
         }
 
+        // 3. Force a commit to ensure the requests are sent to the compositor
         surface->commit();
     }
 

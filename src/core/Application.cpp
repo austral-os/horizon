@@ -318,6 +318,17 @@ namespace horizon
             }
         }
 
+        if (active && m_is_minimized)
+        {
+            LOG_INFO << "[APP] Window activated while minimized, marking as restored and "
+                        "triggering repaint (PID: "
+                     << getpid() << ")";
+            m_is_minimized = false;
+            m_full_repaint = true;
+            notify_app_manager("window_state_changed");
+            invalidate();
+        }
+
         AppEventContext ev;
         ev.sender = this;
         if (active)
@@ -838,181 +849,185 @@ namespace horizon
                                          std::chrono::steady_clock::now().time_since_epoch())
                                          .count();
                 static constexpr uint64_t FRAME_MS = 16; // ~60fps cap
-
                 bool has_pending = m_full_repaint || !m_dirty_widgets.empty();
 
-                if (has_pending && m_surface->is_configured() &&
-                    (frame_now - m_last_commit_time) >= FRAME_MS)
+                if (has_pending && !m_is_minimized)
                 {
-                    if (is_transparent_surface())
-                        glClearColor(0, 0, 0, 0);
-                    else
-                        glClearColor(0, 0, 0, 1);
-                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                    m_gl_queue.clear();
+                    // Only render if not minimized to avoid hanging in
+                    // eglSwapBuffers/wl_display_dispatch when the compositor might not be giving us
+                    // frame callbacks.
 
-                    if (m_root)
+                    if (m_surface->is_configured() && (frame_now - m_last_commit_time) >= FRAME_MS)
                     {
-                        m_full_repaint = false;
-                        m_dirty_widgets.clear();
-
-                        CairoGraphicContext ctx(this, m_surface->data(), m_surface->width(),
-                                                m_surface->height());
-
                         if (is_transparent_surface())
+                            glClearColor(0, 0, 0, 0);
+                        else
+                            glClearColor(0, 0, 0, 1);
+                        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                        m_gl_queue.clear();
+
+                        if (m_root)
                         {
-                            ctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
-                            ctx.clearRect(0, 0, m_surface->width(), m_surface->height());
+                            m_full_repaint = false;
+                            m_dirty_widgets.clear();
+
+                            CairoGraphicContext ctx(this, m_surface->data(), m_surface->width(),
+                                                    m_surface->height());
+
+                            if (is_transparent_surface())
+                            {
+                                ctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+                                ctx.clearRect(0, 0, m_surface->width(), m_surface->height());
+                            }
+
+                            ctx.pushGroup();
+                            m_root->render(ctx, 0, 0, m_surface->width(), m_surface->height(),
+                                           true);
+                            ctx.popGroup();
+                            ctx.flush();
+
+                            render_gl_ui();
+                            m_last_commit_time = frame_now;
                         }
-
-                        ctx.pushGroup();
-                        m_root->render(ctx, 0, 0, m_surface->width(), m_surface->height(), true);
-                        ctx.popGroup();
-                        ctx.flush();
-
-                        render_gl_ui();
-                        m_last_commit_time = frame_now;
                     }
                 }
-            }
 
-            wl_display_flush(m_surface->display());
+                wl_display_flush(m_surface->display());
 
-            uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
-                               std::chrono::steady_clock::now().time_since_epoch())
-                               .count();
+                uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                   std::chrono::steady_clock::now().time_since_epoch())
+                                   .count();
 
-            // Calculate poll() timeout — take the minimum of: repeating, timer expiry, blink
-            // heartbeat
-            int timeout = -1;
-            if (m_is_repeating)
-            {
-                timeout = 10;
-            }
-            else
-            {
-                // Check nearest timer expiry
-                if (!m_timers.empty())
+                // Calculate poll() timeout — take the minimum of: repeating, timer expiry, blink
+                // heartbeat
+                int timeout = -1;
+                if (m_is_repeating)
                 {
-                    uint64_t next_expiry = 0;
-                    for (const auto &[id, timer] : m_timers)
+                    timeout = 10;
+                }
+                else
+                {
+                    // Check nearest timer expiry
+                    if (!m_timers.empty())
                     {
-                        if (next_expiry == 0 || timer.next_expiry < next_expiry)
-                            next_expiry = timer.next_expiry;
+                        uint64_t next_expiry = 0;
+                        for (const auto &[id, timer] : m_timers)
+                        {
+                            if (next_expiry == 0 || timer.next_expiry < next_expiry)
+                                next_expiry = timer.next_expiry;
+                        }
+                        int timer_ms = (next_expiry <= now) ? 0 : (int)(next_expiry - now);
+                        timeout = (timeout == -1) ? timer_ms : std::min(timeout, timer_ms);
                     }
-                    int timer_ms = (next_expiry <= now) ? 0 : (int)(next_expiry - now);
-                    timeout = (timeout == -1) ? timer_ms : std::min(timeout, timer_ms);
-                }
 
-                // Cursor blink heartbeat: always needed when something is focused
-                if (m_focused)
-                {
-                    int blink_ms = 500 - (int)(now - m_blink_last_time);
-                    if (blink_ms < 0)
-                        blink_ms = 0;
-                    timeout = (timeout == -1) ? blink_ms : std::min(timeout, blink_ms);
-                }
-            }
-
-            int ret = poll(fds, 2, timeout);
-
-            now = std::chrono::duration_cast<std::chrono::milliseconds>(
-                      std::chrono::steady_clock::now().time_since_epoch())
-                      .count();
-
-            // Handle timers
-            std::vector<size_t> to_run;
-            for (auto const &[id, timer] : m_timers)
-            {
-                if (now >= timer.next_expiry)
-                    to_run.push_back(id);
-            }
-
-            for (size_t id : to_run)
-            {
-                if (m_timers.count(id))
-                {
-                    auto &timer = m_timers[id];
-                    auto callback = timer.callback;
-                    bool repeat = timer.repeat;
-
-                    if (repeat)
+                    // Cursor blink heartbeat: always needed when something is focused
+                    if (m_focused)
                     {
-                        timer.next_expiry = now + timer.interval_ms;
-                    }
-                    else
-                    {
-                        m_timers.erase(id);
-                    }
-
-                    if (callback)
-                        callback();
-                }
-            }
-
-            // Trigger cursor blink independently of timers
-            if (m_focused && !m_is_repeating && (now - m_blink_last_time >= 500))
-            {
-                m_blink_last_time = now;
-                m_focused->invalidate();
-            }
-
-            if (ret > 0)
-            {
-                // Always dispatch Wayland events FIRST, before anything else,
-                // so physical key events update m_is_repeating state before the repeat check.
-                if (fds[0].revents & POLLIN)
-                {
-                    wl_display_dispatch(m_surface->display());
-                }
-                if (fds[1].revents & POLLIN)
-                {
-                    uint64_t val;
-                    if (read(m_wakeup_fd, &val, sizeof(val)) < 0)
-                    {
-                        // ignore error
+                        int blink_ms = 500 - (int)(now - m_blink_last_time);
+                        if (blink_ms < 0)
+                            blink_ms = 0;
+                        timeout = (timeout == -1) ? blink_ms : std::min(timeout, blink_ms);
                     }
                 }
-            }
 
-            // Execute posted tasks
-            {
-                std::deque<std::function<void()>> tasks;
-                {
-                    std::lock_guard<std::mutex> lock(m_task_mutex);
-                    std::swap(tasks, m_task_queue);
-                }
-                for (auto &task : tasks)
-                {
-                    if (task)
-                    {
-                        LOG_INFO << "[APP] Executing posted task...";
-                        task();
-                    }
-                }
-            }
+                int ret = poll(fds, 2, timeout);
 
-            // Key repeat check — runs on every loop iteration when a key is held
-            if (m_is_repeating)
-            {
                 now = std::chrono::duration_cast<std::chrono::milliseconds>(
                           std::chrono::steady_clock::now().time_since_epoch())
                           .count();
-                if (now - m_repeat_start_time >= m_repeat_delay)
+
+                // Handle timers
+                std::vector<size_t> to_run;
+                for (auto const &[id, timer] : m_timers)
                 {
-                    if (now - m_repeat_last_time >= m_repeat_rate)
+                    if (now >= timer.next_expiry)
+                        to_run.push_back(id);
+                }
+
+                for (size_t id : to_run)
+                {
+                    if (m_timers.count(id))
                     {
-                        // Replay the full stored event but use CURRENT modifiers
-                        KeyEvent repeat_ev = m_repeat_event;
-                        repeat_ev.modifiers = m_modifiers;
-                        handle_key_press(repeat_ev);
-                        m_repeat_last_time = now;
+                        auto &timer = m_timers[id];
+                        auto callback = timer.callback;
+                        bool repeat = timer.repeat;
+
+                        if (repeat)
+                        {
+                            timer.next_expiry = now + timer.interval_ms;
+                        }
+                        else
+                        {
+                            m_timers.erase(id);
+                        }
+
+                        if (callback)
+                            callback();
+                    }
+                }
+
+                // Trigger cursor blink independently of timers
+                if (m_focused && !m_is_repeating && (now - m_blink_last_time >= 500))
+                {
+                    m_blink_last_time = now;
+                    m_focused->invalidate();
+                }
+
+                if (ret > 0)
+                {
+                    // Always dispatch Wayland events FIRST, before anything else,
+                    // so physical key events update m_is_repeating state before the repeat check.
+                    if (fds[0].revents & POLLIN)
+                    {
+                        wl_display_dispatch(m_surface->display());
+                    }
+                    if (fds[1].revents & POLLIN)
+                    {
+                        uint64_t val;
+                        if (read(m_wakeup_fd, &val, sizeof(val)) < 0)
+                        {
+                            // ignore error
+                        }
+                    }
+                }
+
+                // Execute posted tasks
+                {
+                    std::deque<std::function<void()>> tasks;
+                    {
+                        std::lock_guard<std::mutex> lock(m_task_mutex);
+                        std::swap(tasks, m_task_queue);
+                    }
+                    for (auto &task : tasks)
+                    {
+                        if (task)
+                        {
+                            LOG_INFO << "[APP] Executing posted task...";
+                            task();
+                        }
+                    }
+                }
+
+                // Key repeat check — runs on every loop iteration when a key is held
+                if (m_is_repeating)
+                {
+                    now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                              std::chrono::steady_clock::now().time_since_epoch())
+                              .count();
+                    if (now - m_repeat_start_time >= m_repeat_delay)
+                    {
+                        if (now - m_repeat_last_time >= m_repeat_rate)
+                        {
+                            // Replay the full stored event but use CURRENT modifiers
+                            KeyEvent repeat_ev = m_repeat_event;
+                            repeat_ev.modifiers = m_modifiers;
+                            handle_key_press(repeat_ev);
+                            m_repeat_last_time = now;
+                        }
                     }
                 }
             }
         }
-
-        quit();
     }
 
     void Application::invalidate(Widget *widget)
@@ -1068,6 +1083,7 @@ namespace horizon
             m_compositor_context->maximize();
             m_is_minimized = false;
             notify_app_manager("app_started"); // Notify state change
+            invalidate();                      // Ensure we repaint and commit a new buffer
             for (auto const &[id, handler] : m_on_maximize_handlers)
             {
                 if (handler)
@@ -1097,6 +1113,7 @@ namespace horizon
         {
             m_compositor_context->restore(token);
             notify_window_state(false);
+            invalidate(); // Ensure we repaint and commit a new buffer
 
             for (auto const &[id, handler] : m_on_maximize_handlers)
             {
@@ -1121,6 +1138,7 @@ namespace horizon
         if (m_compositor_context)
         {
             m_compositor_context->fullscreen();
+            invalidate();
         }
     }
 
@@ -1129,6 +1147,7 @@ namespace horizon
         if (m_compositor_context)
         {
             m_compositor_context->unfullscreen();
+            invalidate();
         }
     }
 
@@ -1140,6 +1159,11 @@ namespace horizon
     bool Application::is_minimized() const
     {
         return m_is_minimized;
+    }
+
+    bool Application::was_maximized_before_minimize() const
+    {
+        return m_was_maximized_before_minimize;
     }
 
     void Application::quit()

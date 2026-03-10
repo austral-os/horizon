@@ -1,4 +1,3 @@
-#include "horizon/Logger.hpp"
 #include "horizon/SignalManager.hpp"
 #include "horizon/ThemeManager.hpp"
 #include "horizon/WaylandEventListener.hpp"
@@ -173,6 +172,11 @@ namespace horizon
          * @return True if the window is minimized.
          */
         bool is_minimized() const;
+
+        /**
+         * @return True if the window was maximized before being minimized.
+         */
+        bool was_maximized_before_minimize() const;
 
         /**
          * @brief Returns the graphics context for this application.
