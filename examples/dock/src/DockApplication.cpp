@@ -14,6 +14,7 @@ namespace horizon
 {
 
     const std::vector<PinnedApp> DockApplication::PINNED_APPS = {
+        {"org.horizon.launchpad", "Launchpad", "slingscold", "launchpad"},
         {"arkfm", "Ark File Manager", "arkfm", "arkfm"},
         {"alacritty", "Terminal", "utilities-terminal", "terminal"},
         {"firefox", "Web Browser", "firefox", "firefox"}};

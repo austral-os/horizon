@@ -8,8 +8,8 @@ int main(int argc, char *argv[])
 {
     // Create a LayerApplication for the launchpad
     // Namespace: "horizon.launchpad", Layer: Overlay
-    auto app =
-        std::make_unique<LayerApplication>("horizon.launchpad", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
+    auto app = std::make_unique<LayerApplication>("org.horizon.launchpad",
+                                                  ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
     app->set_name("Launchpad");
 
     // Full screen anchor
