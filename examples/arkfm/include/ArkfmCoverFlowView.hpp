@@ -1,5 +1,7 @@
 #pragma once
 
+#include "horizon/EventsManager.hpp"
+#include "horizon/TableView.hpp"
 #include "horizon/Widget.hpp"
 #include "horizon/arkutils/FileInfo.hpp"
 #include <memory>
@@ -29,6 +31,9 @@ namespace horizon::arkfm
         ~ArkfmCoverFlowView() override;
 
         void refresh(const std::string &path);
+
+        EventsManager<horizon::TableViewRowMouseClickContext<arkutils::FileInfo>>
+            when_row_dbl_click;
 
     private:
         std::string m_current_path;

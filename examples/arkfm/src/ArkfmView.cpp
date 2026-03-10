@@ -73,6 +73,23 @@ namespace horizon::arkfm
             // Handle navigation via double click if desired, but user didn't ask yet.
             // For now, just show it.
 
+            view_mode_cover->when_row_dbl_click.connect(
+                [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
+                {
+                    if (ctx.row_data.type == arkutils::FileType::Directory)
+                    {
+                        // We MUST defer navigation because this signal is emitted by the child
+                        // we are about to destroy in navigate_to -> set_view_mode ->
+                        // clear_children.
+                        std::string target_path = ctx.row_data.path;
+                        if (application())
+                        {
+                            application()->post_task([this, target_path]()
+                                                     { this->navigate_to(target_path); });
+                        }
+                    }
+                });
+
             add_child(std::move(view_mode_cover));
         }
     }

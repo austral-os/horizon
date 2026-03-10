@@ -2,6 +2,7 @@
 #include "ArkfmListView.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/CoverFlow.hpp"
+#include "horizon/EventsManager.hpp"
 #include "horizon/Icon.hpp"
 #include "horizon/Label.hpp"
 #include "horizon/Logger.hpp"
@@ -9,6 +10,10 @@
 
 namespace horizon::arkfm
 {
+    struct PathChangedEvent : public EventContext
+    {
+        std::string path;
+    };
 
     class ArkfmCoverFlowItem : public Widget
     {
@@ -96,6 +101,16 @@ namespace horizon::arkfm
                 if (m_cover_flow)
                 {
                     m_cover_flow->set_selected_index(ctx.row_index);
+                    m_navigation_label->set_text(ctx.row_data.name);
+                }
+            });
+
+        m_list_view->when_row_dbl_click.connect(
+            [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
+            {
+                if (ctx.row_data.type == arkutils::FileType::Directory)
+                {
+                    when_row_dbl_click.run(ctx);
                 }
             });
 
