@@ -1,4 +1,5 @@
 #include "ArkfmView.hpp"
+#include "ArkfmCoverFlowView.hpp"
 #include "ArkfmIconView.hpp"
 #include "ArkfmListView.hpp"
 #include "NavigationHistory.hpp"
@@ -64,6 +65,15 @@ namespace horizon::arkfm
                 });
 
             add_child(std::move(view_mode_grid));
+        }
+        else if (m_view_mode == ViewMode::CoverFlow)
+        {
+            auto view_mode_cover = std::make_unique<ArkfmCoverFlowView>(m_current_path);
+
+            // Handle navigation via double click if desired, but user didn't ask yet.
+            // For now, just show it.
+
+            add_child(std::move(view_mode_cover));
         }
     }
 

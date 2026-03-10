@@ -262,6 +262,18 @@ namespace horizon
         // Execute queued 3D draws
         for (const auto &draw : m_gl_queue)
         {
+            if (draw.use_scissor)
+            {
+                glEnable(GL_SCISSOR_TEST);
+                // Convert top-left (UI) to bottom-left (OpenGL)
+                int gl_y = m_surface->height() - (draw.scissor_y + draw.scissor_h);
+                glScissor(draw.scissor_x, gl_y, draw.scissor_w, draw.scissor_h);
+            }
+            else
+            {
+                glDisable(GL_SCISSOR_TEST);
+            }
+
             glUniformMatrix4fv(mvp_loc, 1, GL_FALSE, draw.mvp);
             glUniform1f(opacity_loc, draw.opacity);
             glBindTexture(GL_TEXTURE_2D, draw.texture_id);
@@ -272,6 +284,7 @@ namespace horizon
                 glDeleteTextures(1, &draw.texture_id);
             }
         }
+        glDisable(GL_SCISSOR_TEST);
         m_gl_queue.clear();
 
         m_surface->swap_buffers();

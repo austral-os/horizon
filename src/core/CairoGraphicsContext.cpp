@@ -18,6 +18,7 @@ namespace horizon
         cairo_s = cairo_image_surface_create_for_data((unsigned char *)data, CAIRO_FORMAT_ARGB32, w,
                                                       h, w * 4);
         cr = cairo_create(cairo_s);
+        m_clip_stack.push_back({0, 0, w, h});
     }
 
     CairoGraphicContext::~CairoGraphicContext()
@@ -474,17 +475,34 @@ namespace horizon
     void CairoGraphicContext::save()
     {
         cairo_save(cr);
+        if (!m_clip_stack.empty())
+            m_clip_stack.push_back(m_clip_stack.back());
     }
 
     void CairoGraphicContext::restore()
     {
         cairo_restore(cr);
+        if (!m_clip_stack.empty())
+            m_clip_stack.pop_back();
     }
 
     void CairoGraphicContext::clip(int x, int y, int width, int height)
     {
         cairo_rectangle(cr, x, y, width, height);
         cairo_clip(cr);
+
+        if (!m_clip_stack.empty())
+        {
+            auto &cur = m_clip_stack.back();
+            int nx = std::max(cur.x, x);
+            int ny = std::max(cur.y, y);
+            int nr = std::min(cur.x + cur.w, x + width);
+            int nb = std::min(cur.y + cur.h, y + height);
+            cur.x = nx;
+            cur.y = ny;
+            cur.w = std::max(0, nr - nx);
+            cur.h = std::max(0, nb - ny);
+        }
     }
 
     void CairoGraphicContext::clipRoundedRect(int x, int y, int width, int height,
@@ -717,6 +735,20 @@ namespace horizon
         std::memcpy(call.mvp, matrix_4x4, 16 * sizeof(float));
         call.opacity = opacity;
         call.delete_texture = delete_texture;
+
+        if (!m_clip_stack.empty())
+        {
+            const auto &clip = m_clip_stack.back();
+            call.use_scissor = true;
+            call.scissor_x = clip.x;
+            call.scissor_y = clip.y;
+            call.scissor_w = clip.w;
+            call.scissor_h = clip.h;
+        }
+        else
+        {
+            call.use_scissor = false;
+        }
 
         m_app->queue_gl_draw(call);
     }

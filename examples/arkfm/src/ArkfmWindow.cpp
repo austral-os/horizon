@@ -47,6 +47,10 @@ namespace horizon::arkfm
                 {
                     view_ptr->set_view_mode(ViewMode::List);
                 }
+                else if (ctx.view_mode_index == 3)
+                {
+                    view_ptr->set_view_mode(ViewMode::CoverFlow);
+                }
             });
 
         vpanel->add_child(std::move(sidebar));

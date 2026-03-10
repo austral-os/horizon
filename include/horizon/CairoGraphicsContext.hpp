@@ -92,6 +92,12 @@ namespace horizon
         cairo_t *cr;
         int m_width, m_height;
 
+        struct ClipRect
+        {
+            int x, y, w, h;
+        };
+        std::vector<ClipRect> m_clip_stack;
+
         // Simple SVG handle cache to avoid reparsing every frame
         std::map<std::string, void *> m_svg_cache;
         void *get_svg_handle(const std::string &path);

@@ -140,6 +140,20 @@ namespace horizon
             return selected_items;
         }
 
+        /**
+         * @brief Programmatically sets the selected row by index.
+         * @param index The index of the row to select.
+         */
+        void set_selected_index(int index)
+        {
+            m_selected_rows.clear();
+            if (index >= 0 && (size_t)index < m_data.size())
+            {
+                m_selected_rows.insert(index);
+            }
+            update_selection_visuals();
+        }
+
         EventsManager<TableViewRowMouseClickContext<T>> when_row_click;
         EventsManager<TableViewRowMouseClickContext<T>> when_row_dbl_click;
 

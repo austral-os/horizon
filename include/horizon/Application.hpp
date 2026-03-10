@@ -198,6 +198,8 @@ namespace horizon
             float mvp[16];
             float opacity;
             bool delete_texture;
+            bool use_scissor;
+            int scissor_x, scissor_y, scissor_w, scissor_h;
         };
 
         void queue_gl_draw(const GLDrawCall &call) const;
