@@ -65,6 +65,14 @@ namespace horizon::arkfm
                 this->when_navigation_clicked.run(nav_event);
             });
 
+        m_view_modes->when_button_clicked.connect(
+            [this](horizon::GroupButtonClickEvent &ctx)
+            {
+                ViewModeChangeEvent view_event;
+                view_event.view_mode_index = ctx.button_index;
+                this->when_view_mode_changed.run(view_event);
+            });
+
         auto search_box = std::make_unique<horizon::SearchBox>();
         search_box->set_placeholder("Buscar...");
         search_box->set_fixed_size(200);

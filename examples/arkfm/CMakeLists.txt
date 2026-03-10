@@ -2,6 +2,7 @@ add_executable(arkfm
     src/main.cpp
     src/ArkfmApplication.cpp
     src/ArkfmListView.cpp
+    src/ArkfmIconView.cpp
     src/ArkfmSidebar.cpp
     src/ArkfmToolbar.cpp
     src/ArkfmView.cpp

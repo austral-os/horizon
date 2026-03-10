@@ -17,6 +17,11 @@ namespace horizon::arkfm
         int index; // 0 for back, 1 for forward
     };
 
+    struct ViewModeChangeEvent : public EventContext
+    {
+        int view_mode_index;
+    };
+
     class ArkToolbar : public Widget
     {
     public:
@@ -24,6 +29,7 @@ namespace horizon::arkfm
         ~ArkToolbar() override = default;
 
         EventsManager<NavigationButtonClickEvent> when_navigation_clicked;
+        EventsManager<ViewModeChangeEvent> when_view_mode_changed;
 
     private:
         horizon::GroupButton *m_navigation;

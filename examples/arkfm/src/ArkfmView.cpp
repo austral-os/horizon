@@ -1,8 +1,8 @@
 #include "ArkfmView.hpp"
+#include "ArkfmIconView.hpp"
 #include "ArkfmListView.hpp"
 #include "NavigationHistory.hpp"
 #include "horizon/Application.hpp"
-#include <memory>
 
 namespace horizon::arkfm
 {
@@ -44,6 +44,26 @@ namespace horizon::arkfm
                 });
 
             add_child(std::move(view_mode_list));
+        }
+        else if (m_view_mode == ViewMode::Grid)
+        {
+            auto view_mode_grid = std::make_unique<ArkfmIconView>(m_current_path);
+
+            view_mode_grid->when_item_dbl_click.connect(
+                [this](horizon::IconViewItemMouseClickContext<arkutils::FileInfo> &ctx)
+                {
+                    if (ctx.item_data.type == arkutils::FileType::Directory)
+                    {
+                        std::string target_path = ctx.item_data.path;
+                        if (application())
+                        {
+                            application()->post_task([this, target_path]()
+                                                     { this->navigate_to(target_path); });
+                        }
+                    }
+                });
+
+            add_child(std::move(view_mode_grid));
         }
     }
 

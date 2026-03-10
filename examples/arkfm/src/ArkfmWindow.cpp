@@ -36,6 +36,19 @@ namespace horizon::arkfm
                 }
             });
 
+        ark_toolbar_ptr->when_view_mode_changed.connect(
+            [view_ptr](ViewModeChangeEvent &ctx)
+            {
+                if (ctx.view_mode_index == 0)
+                {
+                    view_ptr->set_view_mode(ViewMode::Grid);
+                }
+                else if (ctx.view_mode_index == 1)
+                {
+                    view_ptr->set_view_mode(ViewMode::List);
+                }
+            });
+
         vpanel->add_child(std::move(sidebar));
         vpanel->add_child(std::move(view));
 
