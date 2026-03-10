@@ -201,6 +201,25 @@ namespace horizon
         // Foreign toplevel management (for Dock)
         void restore_foreign_app(const std::string &app_id);
 
+        /**
+         * @struct ForeignToplevel
+         * @brief Information about a window from another application.
+         */
+        struct ForeignToplevel
+        {
+            struct zwlr_foreign_toplevel_handle_v1 *handle;
+            std::string title;
+            std::string app_id;
+            bool minimized = false;
+            bool active = false;
+        };
+
+        const std::map<struct zwlr_foreign_toplevel_handle_v1 *, ForeignToplevel> &
+        get_foreign_toplevels() const
+        {
+            return m_foreign_toplevels;
+        }
+
         struct xkb_state *xkb_state() const
         {
             return m_xkb_state;
@@ -275,14 +294,6 @@ namespace horizon
         struct xkb_state *m_xkb_state = nullptr;
 
         // Foreign toplevel tracking
-        struct ForeignToplevel
-        {
-            struct zwlr_foreign_toplevel_handle_v1 *handle;
-            std::string title;
-            std::string app_id;
-            bool minimized = false;
-            bool active = false;
-        };
         std::map<struct zwlr_foreign_toplevel_handle_v1 *, ForeignToplevel> m_foreign_toplevels;
 
         // Layer Shell State tracking

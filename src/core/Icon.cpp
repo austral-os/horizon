@@ -50,17 +50,19 @@ namespace horizon
 
     void Icon::resolve_icon()
     {
-        if (m_icon_name.empty())
+        std::string name_to_find = m_icon_name.empty() ? "application-x-executable" : m_icon_name;
+        m_resolved_path = IconThemeLookup::find_icon(name_to_find, m_icon_size);
+
+        if (m_resolved_path.empty() && name_to_find != "application-x-executable")
         {
-            m_resolved_path.clear();
-            return;
+            LOG_INFO << "[Icon] Failed to resolve icon: \"" << name_to_find
+                     << "\". Falling back to default.";
+            m_resolved_path = IconThemeLookup::find_icon("application-x-executable", m_icon_size);
         }
 
-        m_resolved_path = IconThemeLookup::find_icon(m_icon_name, m_icon_size);
         if (m_resolved_path.empty())
         {
-            LOG_INFO << "[Icon] Failed to resolve icon: \"" << m_icon_name << "\" at size "
-                     << m_icon_size;
+            m_resolved_path = IconThemeLookup::find_icon("system-run", m_icon_size);
         }
     }
 

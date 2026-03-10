@@ -105,6 +105,11 @@ namespace horizon
          * @param active True if activated, false if deactivated.
          */
         virtual void on_activated(bool active) = 0;
+        /**
+         * @brief Called when a foreign toplevel window (another app) is added, removed or changed.
+         */
+        virtual void on_foreign_toplevel_event() {}
+
         virtual void on_close() {}
     };
 } // namespace horizon

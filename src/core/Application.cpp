@@ -1452,4 +1452,25 @@ namespace horizon
         return *m_compositor_context;
     }
 
+    void Application::on_foreign_toplevel_event()
+    {
+        AppListEventContext ctx;
+        if (m_surface)
+        {
+            const auto &foreigns = m_surface->get_foreign_toplevels();
+            for (const auto &pair : foreigns)
+            {
+                const auto &ft = pair.second;
+                ApplicationInfo info;
+                info.app_id = ft.app_id;
+                info.title = ft.title;
+                info.is_active = ft.active;
+                info.is_minimized = ft.minimized;
+                info.show_in_dock = true; // By default show foreign windows
+                ctx.apps.push_back(info);
+            }
+        }
+        when_foreign_update.run(ctx);
+    }
+
 } // namespace horizon

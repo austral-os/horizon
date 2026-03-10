@@ -1385,6 +1385,8 @@ namespace horizon
     {
         auto *ws = static_cast<WaylandSurface *>(data);
         ws->m_foreign_toplevels[handle].title = title ? title : "";
+        if (ws->m_listener)
+            ws->m_listener->on_foreign_toplevel_event();
     }
 
     void foreign_toplevel_handle_app_id(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle,
@@ -1393,6 +1395,8 @@ namespace horizon
         auto *ws = static_cast<WaylandSurface *>(data);
         LOG_INFO << "[SURFACE] Foreign toplevel app_id: " << (app_id ? app_id : "NULL");
         ws->m_foreign_toplevels[handle].app_id = app_id ? app_id : "";
+        if (ws->m_listener)
+            ws->m_listener->on_foreign_toplevel_event();
     }
 
     void foreign_toplevel_handle_state(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle,
@@ -1415,6 +1419,8 @@ namespace horizon
         }
         ws->m_foreign_toplevels[handle].minimized = minimized;
         ws->m_foreign_toplevels[handle].active = active;
+        if (ws->m_listener)
+            ws->m_listener->on_foreign_toplevel_event();
     }
 
     void foreign_toplevel_handle_closed(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle)
@@ -1423,6 +1429,8 @@ namespace horizon
         LOG_INFO << "[SURFACE] Foreign toplevel closed: " << ws->m_foreign_toplevels[handle].app_id;
         ws->m_foreign_toplevels.erase(handle);
         zwlr_foreign_toplevel_handle_v1_destroy(handle);
+        if (ws->m_listener)
+            ws->m_listener->on_foreign_toplevel_event();
     }
 
     void foreign_toplevel_handle_parent(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle,
@@ -1445,7 +1453,12 @@ namespace horizon
         // Dummy handler
     }
 
-    void foreign_toplevel_handle_done(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle) {}
+    void foreign_toplevel_handle_done(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        if (ws->m_listener)
+            ws->m_listener->on_foreign_toplevel_event();
+    }
 
     void foreign_toplevel_manager_finished(void *data,
                                            struct zwlr_foreign_toplevel_manager_v1 *manager)

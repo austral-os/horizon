@@ -2,7 +2,9 @@
 #include "DockItem.hpp"
 #include "DockShelf.hpp"
 #include <algorithm>
+#include <horizon/LabwcAppAdapter.hpp>
 #include <horizon/Logger.hpp>
+#include <horizon/WayfireAppAdapter.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <set>
@@ -40,9 +42,16 @@ namespace horizon
         std::string desktop_str = desktop_env ? desktop_env : "";
         std::transform(desktop_str.begin(), desktop_str.end(), desktop_str.begin(), ::tolower);
         _is_wayfire = (desktop_str.find("wayfire") != std::string::npos);
+
         if (_is_wayfire)
         {
-            LOG_INFO << "[DOCK] Wayfire detected, using foreign-toplevel for restoration.";
+            LOG_INFO << "[DOCK] Wayfire detected, using WayfireAppAdapter.";
+            _compositor_apps = std::make_unique<WayfireAppAdapter>(this);
+        }
+        else
+        {
+            LOG_INFO << "[DOCK] Labwc detected, using LabwcAppAdapter.";
+            _compositor_apps = std::make_unique<LabwcAppAdapter>(this);
         }
     }
 
@@ -68,29 +77,14 @@ namespace horizon
     void DockApplication::setup_ipc()
     {
         // Initial update
-        post_task([this]() { update_dock(nlohmann::json::array()); });
+        update_dock(_compositor_apps->get_running_applications());
 
-        _ipc_client = std::make_unique<IpcClient>("/tmp/horizon_session.sock");
-        _ipc_client->subscribe("{\"type\": \"subscribe\"}",
-                               [this](const std::string &msg)
-                               {
-                                   try
-                                   {
-                                       auto j = nlohmann::json::parse(msg);
-                                       if (j.value("type", "") == "app_list_updated")
-                                       {
-                                           auto apps = j.at("apps");
-                                           post_task([this, apps]() { update_dock(apps); });
-                                       }
-                                   }
-                                   catch (const std::exception &e)
-                                   {
-                                       LOG_ERROR << "Dock: Error parsing broadcast: " << e.what();
-                                   }
-                               });
+        _compositor_apps->when_update.connect(
+            [this](AppListEventContext &ctx)
+            { post_task([this, apps = ctx.apps]() { update_dock(apps); }); });
     }
 
-    void DockApplication::update_dock(const nlohmann::json &apps)
+    void DockApplication::update_dock(const std::vector<ApplicationInfo> &apps)
     {
         LOG_INFO << "Updating Dock icons...";
         _shelf_ptr->clear_children();
@@ -101,16 +95,15 @@ namespace horizon
         for (const auto &pinned : PINNED_APPS)
         {
             bool is_running = false;
-            nlohmann::json running_app_data;
+            ApplicationInfo running_app_data;
 
-            for (const auto &app_j : apps)
+            for (const auto &app_info : apps)
             {
-                std::string app_id = app_j.value("app_id", "");
-                if (app_id.find(pinned.app_id) != std::string::npos)
+                if (app_info.app_id.find(pinned.app_id) != std::string::npos)
                 {
                     is_running = true;
-                    running_app_data = app_j;
-                    running_pinned_ids.insert(app_id);
+                    running_app_data = app_info;
+                    running_pinned_ids.insert(app_info.app_id);
                     break;
                 }
             }
@@ -118,7 +111,9 @@ namespace horizon
             auto item = std::make_unique<DockItem>(this, pinned.icon, _is_wayfire);
             if (is_running)
             {
-                item->set_app_data(running_app_data);
+                // We'll need to update DockItem to accept ApplicationInfo or keep JSON
+                // For now, let's assume we update DockItem
+                item->set_app_info(running_app_data);
             }
             else
             {
@@ -129,12 +124,11 @@ namespace horizon
 
         // 2. Add Separator
         bool has_other_apps = false;
-        for (const auto &app_j : apps)
+        for (const auto &app_info : apps)
         {
-            if (app_j.value("show_in_dock", false))
+            if (app_info.show_in_dock)
             {
-                std::string app_id = app_j.value("app_id", "");
-                if (running_pinned_ids.find(app_id) == running_pinned_ids.end())
+                if (running_pinned_ids.find(app_info.app_id) == running_pinned_ids.end())
                 {
                     has_other_apps = true;
                     break;
@@ -152,19 +146,17 @@ namespace horizon
         }
 
         // 3. Add Other Running Apps
-        for (const auto &app_j : apps)
+        for (const auto &app_info : apps)
         {
-            if (app_j.value("show_in_dock", false))
+            if (app_info.show_in_dock)
             {
-                std::string app_id = app_j.value("app_id", "");
-                if (running_pinned_ids.find(app_id) != running_pinned_ids.end())
+                if (running_pinned_ids.find(app_info.app_id) != running_pinned_ids.end())
                 {
                     continue;
                 }
 
-                auto item = std::make_unique<DockItem>(
-                    this, app_j.value("icon", "application-x-executable"), _is_wayfire);
-                item->set_app_data(app_j);
+                auto item = std::make_unique<DockItem>(this, app_info.icon, _is_wayfire);
+                item->set_app_info(app_info);
                 _shelf_ptr->add_child(std::move(item));
             }
         }

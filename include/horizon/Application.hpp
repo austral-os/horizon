@@ -4,6 +4,7 @@
 #include <GLES2/gl2.h>
 #include <deque>
 #include <functional>
+#include <horizon/CompositorAppInterface.hpp>
 #include <horizon/WaylandSurface.hpp>
 #include <map>
 #include <memory>
@@ -69,6 +70,7 @@ namespace horizon
         EventsManager<AppEventContext> when_activated;
         EventsManager<AppEventContext> when_deactivated;
         EventsManager<AppEventContext> when_close;
+        EventsManager<AppListEventContext> when_foreign_update;
 
         /**
          * @brief Sets the global menu for the application.
@@ -216,6 +218,7 @@ namespace horizon
         void on_modifiers_event(uint32_t modifiers) override;
         void on_resize(int width, int height) override;
         void on_activated(bool active) override;
+        void on_foreign_toplevel_event() override;
         virtual void on_close() override;
 
         /**

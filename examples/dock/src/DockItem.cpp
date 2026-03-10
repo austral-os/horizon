@@ -13,11 +13,11 @@ namespace horizon
         set_margin(5);
     }
 
-    void DockItem::set_app_data(const nlohmann::json &app_j)
+    void DockItem::set_app_info(const ApplicationInfo &info)
     {
-        _pid = app_j.value("pid", -1);
-        _app_id = app_j.value("app_id", "");
-        _is_minimized = app_j.value("is_minimized", false);
+        _pid = info.pid;
+        _app_id = info.app_id;
+        _is_minimized = info.is_minimized;
         _is_running = true;
         setup_running_behavior();
     }

@@ -1,9 +1,8 @@
 #pragma once
 
-#include <horizon/IpcClient.hpp>
+#include <horizon/CompositorAppInterface.hpp>
 #include <horizon/LayerApplication.hpp>
 #include <memory>
-#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 
@@ -30,11 +29,11 @@ namespace horizon
         void detect_environment();
         void setup_ui();
         void setup_ipc();
-        void update_dock(const nlohmann::json &apps);
+        void update_dock(const std::vector<ApplicationInfo> &apps);
 
         bool _is_wayfire = false;
         DockShelf *_shelf_ptr = nullptr;
-        std::unique_ptr<IpcClient> _ipc_client;
+        std::unique_ptr<CompositorAppInterface> _compositor_apps;
         static const std::vector<PinnedApp> PINNED_APPS;
     };
 
