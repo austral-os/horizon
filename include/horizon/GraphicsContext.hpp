@@ -108,6 +108,11 @@ namespace horizon
         virtual void pushGroup() {};
         virtual void popGroup() {};
         /**
+         * @brief Pops the current group and sets it as the source, but does not paint it.
+         * This allows applying masks or other operations before painting.
+         */
+        virtual void popGroupToSource() {};
+        /**
          * @brief Pops the current Cairo group and uploads it to an OpenGL texture.
          * @param texture_id The ID of the generated texture.
          * @param x The x-offset of the area to capture.

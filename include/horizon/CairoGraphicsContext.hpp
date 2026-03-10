@@ -66,6 +66,7 @@ namespace horizon
 
         void pushGroup() override;
         void popGroup() override;
+        void popGroupToSource() override;
         void popGroupToTexture(uint32_t &texture_id, int x, int y, int w, int h) override;
 
         void drawTexture3D(uint32_t texture_id, int w, int h, float *matrix_4x4,

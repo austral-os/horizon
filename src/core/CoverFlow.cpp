@@ -345,11 +345,11 @@ namespace horizon
                     gc.translate(0, -mirror_y);
                     gc.pushGroup();
                     child->render(gc, cx, cy, cw, ch, true);
-                    gc.popGroup();
+                    gc.popGroupToSource();
 
-                    gc.maskLinearGradient(0, child->y(), child->width(), child->height(),
-                                          Color(0.0f, 0.0f, 0.0f, 0.4f),
-                                          Color(0.0f, 0.0f, 0.0f, 0.0f), true);
+                    gc.maskLinearGradient(child->x(), child->y(), child->width(), child->height(),
+                                          Color(0.0f, 0.0f, 0.0f, 0.0f),
+                                          Color(0.0f, 0.0f, 0.0f, 0.7f), true);
                     gc.restore();
                 }
 

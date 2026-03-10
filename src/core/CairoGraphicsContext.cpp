@@ -533,6 +533,11 @@ namespace horizon
         cairo_paint(cr);
     }
 
+    void CairoGraphicContext::popGroupToSource()
+    {
+        cairo_pop_group_to_source(cr);
+    }
+
     void CairoGraphicContext::fillPolygon(const std::vector<PolygonPoint> &points)
     {
         rounded_polygon_path(cr, points);
