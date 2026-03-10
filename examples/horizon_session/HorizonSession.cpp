@@ -65,7 +65,8 @@ void HorizonSession::init(const std::string &compositor)
     m_startup_services.push_back(
         "/home/horacio/Desarrollo/austral-os/horizon/build/horizon_menu_manager_d");
     m_startup_services.push_back("/home/horacio/Desarrollo/austral-os/horizon/build/top_panel");
-    m_startup_services.push_back("/home/horacio/Desarrollo/austral-os/horizon/build/dock");
+    m_startup_services.push_back(
+        "/home/horacio/Desarrollo/austral-os/horizon/build/examples/dock/dock");
 }
 
 void HorizonSession::start()

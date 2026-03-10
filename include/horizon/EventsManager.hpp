@@ -108,6 +108,14 @@ namespace horizon
         }
 
         /**
+         * @brief Disconnects all registered callbacks.
+         */
+        void disconnect_all()
+        {
+            m_handlers.clear();
+        }
+
+        /**
          * @brief Executes all registered callbacks with the provided context.
          * @param context The event context to pass to handlers.
          */

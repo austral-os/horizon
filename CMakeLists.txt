@@ -108,14 +108,7 @@ target_link_libraries(horizon_menu_manager_d
         horizon
 )
 
-add_executable(dock
-    examples/dock/main.cpp
-)
-
-target_link_libraries(dock
-    PRIVATE
-        horizon
-)
+add_subdirectory(examples/dock)
 
 add_executable(horizon_wall
     examples/horizon_wall/main.cpp
