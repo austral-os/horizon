@@ -420,7 +420,7 @@ namespace horizon
         // Application Metadata
         std::string m_app_id{"horizon.app"};
         std::string m_name{"Horizon Application"};
-        std::string m_icon_name{"system-run"};
+        std::string m_icon_name{""};
         bool m_show_in_dock{true};
         bool m_show_in_system_tray{false};
         bool m_is_minimized{false};

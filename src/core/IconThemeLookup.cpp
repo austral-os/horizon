@@ -1,4 +1,6 @@
 #include "horizon/IconThemeLookup.hpp"
+#include "horizon/DesktopEntry.hpp"
+#include <horizon/Logger.hpp>
 
 #include <climits>
 #include <cstdlib>
@@ -196,7 +198,16 @@ namespace horizon
 
             auto size_it = sec.find("Size");
             if (size_it != sec.end())
-                idir.size = std::stoi(size_it->second);
+            {
+                try
+                {
+                    idir.size = std::stoi(size_it->second);
+                }
+                catch (...)
+                {
+                    continue;
+                }
+            }
             else
                 continue; // Size is required
 
@@ -212,13 +223,34 @@ namespace horizon
             }
 
             auto min_it = sec.find("MinSize");
-            idir.min_size = (min_it != sec.end()) ? std::stoi(min_it->second) : idir.size;
+            try
+            {
+                idir.min_size = (min_it != sec.end()) ? std::stoi(min_it->second) : idir.size;
+            }
+            catch (...)
+            {
+                idir.min_size = idir.size;
+            }
 
             auto max_it = sec.find("MaxSize");
-            idir.max_size = (max_it != sec.end()) ? std::stoi(max_it->second) : idir.size;
+            try
+            {
+                idir.max_size = (max_it != sec.end()) ? std::stoi(max_it->second) : idir.size;
+            }
+            catch (...)
+            {
+                idir.max_size = idir.size;
+            }
 
             auto thresh_it = sec.find("Threshold");
-            idir.threshold = (thresh_it != sec.end()) ? std::stoi(thresh_it->second) : 2;
+            try
+            {
+                idir.threshold = (thresh_it != sec.end()) ? std::stoi(thresh_it->second) : 2;
+            }
+            catch (...)
+            {
+                idir.threshold = 2;
+            }
 
             info.directories.push_back(idir);
         }
@@ -380,24 +412,61 @@ namespace horizon
         if (icon_name.empty())
             return "";
 
+        LOG_INFO << "[IconThemeLookup] Finding icon for: \"" << icon_name << "\" (size: " << size
+                 << ")";
+
         std::string theme_name = theme.empty() ? get_active_theme_name() : theme;
         auto base_dirs = get_base_dirs();
 
-        // 1. Search in the requested theme
+        // 1. Resolve through .desktop files FIRST
+        // This ensures that if app_id is "firefox", we look into firefox.desktop and find
+        // Icon=browser-firefox
+        std::string desktop_icon = DesktopEntry::get_icon_name(icon_name);
+        if (!desktop_icon.empty() && desktop_icon != icon_name)
+        {
+            LOG_INFO << "[IconThemeLookup] Fallback for " << icon_name
+                     << ": found actual icon name \"" << desktop_icon << "\" in desktop file.";
+            std::string result = lookup_icon_in_theme(desktop_icon, size, theme_name, base_dirs);
+            if (!result.empty())
+                return result;
+
+            // If found in desktop but NOT in theme, try fallback directories for the new name
+            result = lookup_fallback_icon(desktop_icon, base_dirs);
+            if (!result.empty())
+                return result;
+        }
+
+        // 2. Search requested theme with the ORIGINAL name (if not found/different in desktop)
         std::string result = lookup_icon_in_theme(icon_name, size, theme_name, base_dirs);
         if (!result.empty())
             return result;
 
-        // 2. Fallback to hicolor
+        // 3. Fallback to hicolor
         if (theme_name != "hicolor")
         {
             result = lookup_icon_in_theme(icon_name, size, "hicolor", base_dirs);
             if (!result.empty())
                 return result;
+
+            if (!desktop_icon.empty() && desktop_icon != icon_name)
+            {
+                result = lookup_icon_in_theme(desktop_icon, size, "hicolor", base_dirs);
+                if (!result.empty())
+                    return result;
+            }
         }
 
-        // 3. Fallback to pixmaps
-        return lookup_fallback_icon(icon_name, base_dirs);
+        // 4. Fallback to pixmaps
+        result = lookup_fallback_icon(icon_name, base_dirs);
+        if (!result.empty())
+            return result;
+
+        if (!desktop_icon.empty() && desktop_icon != icon_name)
+        {
+            return lookup_fallback_icon(desktop_icon, base_dirs);
+        }
+
+        return "";
     }
 
 } // namespace horizon

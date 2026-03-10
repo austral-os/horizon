@@ -19,6 +19,12 @@ namespace horizon
         _app_id = info.app_id;
         _is_minimized = info.is_minimized;
         _is_running = true;
+
+        if (!info.icon.empty())
+            set_icon_name(info.icon);
+        else if (icon_name().empty())
+            set_icon_name(info.app_id);
+
         setup_running_behavior();
     }
 

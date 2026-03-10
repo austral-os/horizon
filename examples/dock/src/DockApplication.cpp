@@ -86,7 +86,16 @@ namespace horizon
 
     void DockApplication::update_dock(const std::vector<ApplicationInfo> &apps)
     {
-        LOG_INFO << "Updating Dock icons...";
+        LOG_INFO << "Updating Dock icons... Found " << apps.size() << " apps.";
+        for (const auto &app : apps)
+        {
+            LOG_INFO << "[DOCK-DEBUG] App: " << app.app_id << " | Title: " << app.title
+                     << " | Icon: " << app.icon << " | PID: " << app.pid
+                     << " | Active: " << (app.is_active ? "yes" : "no")
+                     << " | Minimized: " << (app.is_minimized ? "yes" : "no")
+                     << " | ShowInDock: " << (app.show_in_dock ? "yes" : "no");
+        }
+
         _shelf_ptr->clear_children();
 
         std::set<std::string> running_pinned_ids;
@@ -155,7 +164,11 @@ namespace horizon
                     continue;
                 }
 
-                auto item = std::make_unique<DockItem>(this, app_info.icon, _is_wayfire);
+                std::string icon = app_info.icon;
+                if (icon.empty())
+                    icon = app_info.app_id;
+
+                auto item = std::make_unique<DockItem>(this, icon, _is_wayfire);
                 item->set_app_info(app_info);
                 _shelf_ptr->add_child(std::move(item));
             }
