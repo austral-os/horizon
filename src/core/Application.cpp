@@ -90,7 +90,8 @@ namespace horizon
         m_surface = std::make_unique<WaylandSurface>(w, h);
         if (!defer_init)
         {
-            m_surface->init();
+            m_surface->init_display();
+            m_surface->setup_xdg_toplevel(m_name, m_app_id);
         }
         m_surface->set_event_listener(this);
 

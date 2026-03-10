@@ -553,7 +553,7 @@ std::string HorizonSession::handle_ipc_message(const std::string &msg)
             for (const auto &[pid, app] : m_apps)
             {
                 nlohmann::json app_j;
-                app_j["id"] = app.id;
+                app_j["app_id"] = app.id;
                 app_j["name"] = app.name;
                 app_j["pid"] = app.pid;
                 app_j["icon"] = app.icon;

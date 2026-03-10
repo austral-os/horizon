@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <horizon/Icon.hpp>
 #include <horizon/IpcClient.hpp>
@@ -133,8 +135,9 @@ int main(int argc, char *argv[])
         app->set_keyboard_interactivity(0); // NONE - prevent focus stealing in labwc
 
         const char *desktop_env = getenv("XDG_CURRENT_DESKTOP");
-        bool is_wayfire =
-            (desktop_env && std::string(desktop_env).find("WAYFIRE") != std::string::npos);
+        std::string desktop_str = desktop_env ? desktop_env : "";
+        std::transform(desktop_str.begin(), desktop_str.end(), desktop_str.begin(), ::tolower);
+        bool is_wayfire = (desktop_str.find("wayfire") != std::string::npos);
         if (is_wayfire)
         {
             LOG_INFO << "[DOCK] Wayfire detected, using foreign-toplevel for restoration.";
