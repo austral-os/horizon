@@ -14,6 +14,7 @@ namespace horizon::arkfm
         {
             auto icon = std::make_unique<Icon>();
             icon->set_position_type(FREE);
+            icon->set_enabled(false); // Propagate events to parent
             m_icon_ptr = icon.get();
             add_child(std::move(icon));
 
@@ -21,6 +22,7 @@ namespace horizon::arkfm
             label->set_position_type(FREE);
             label->set_alignment(TextAlignment::Center);
             label->set_vertical_alignment(VerticalAlignment::Middle);
+            label->set_enabled(false); // Propagate events to parent
             m_label_ptr = label.get();
             add_child(std::move(label));
 

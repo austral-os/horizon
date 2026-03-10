@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <functional>
 #include <horizon/ScrollArea.hpp>
 #include <horizon/Widget.hpp>
@@ -51,6 +52,10 @@ namespace horizon
         int BASE_ITEM_WIDTH{80};
         int BASE_ITEM_HEIGHT{80};
         int BASE_GRID_SPACING{12};
+
+        std::chrono::steady_clock::time_point m_last_item_click_time;
+        int m_last_item_click_index{-1};
+        uint32_t m_last_item_click_button{0};
     };
 
     /**
@@ -126,27 +131,37 @@ namespace horizon
                         {
                             if (ctx.button == 0x110) // Left click
                             {
-                                set_selected_index(i);
+                                auto now = std::chrono::steady_clock::now();
+                                auto duration =
+                                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                                        now - m_last_item_click_time)
+                                        .count();
 
-                                IconViewItemMouseClickContext<T> click_ctx;
-                                click_ctx.item_index = i;
-                                click_ctx.item_data = m_data[i];
-                                when_item_click.run(click_ctx);
+                                if (m_last_item_click_index == i &&
+                                    m_last_item_click_button == ctx.button && duration < 500)
+                                {
+                                    IconViewItemMouseClickContext<T> click_ctx;
+                                    click_ctx.item_index = i;
+                                    click_ctx.item_data = m_data[i];
+                                    when_item_dbl_click.run(click_ctx);
+                                    m_last_item_click_index = -1; // Reset
+                                }
+                                else
+                                {
+                                    set_selected_index(i);
 
-                                if (on_item_selected)
-                                    on_item_selected(i, m_data[i]);
-                            }
-                        });
+                                    IconViewItemMouseClickContext<T> click_ctx;
+                                    click_ctx.item_index = i;
+                                    click_ctx.item_data = m_data[i];
+                                    when_item_click.run(click_ctx);
 
-                    item_widget->when_dbl_click.connect(
-                        [this, i](MouseButtonEventContext &ctx)
-                        {
-                            if (ctx.button == 0x110) // Left click
-                            {
-                                IconViewItemMouseClickContext<T> click_ctx;
-                                click_ctx.item_index = i;
-                                click_ctx.item_data = m_data[i];
-                                when_item_dbl_click.run(click_ctx);
+                                    if (on_item_selected)
+                                        on_item_selected(i, m_data[i]);
+
+                                    m_last_item_click_time = now;
+                                    m_last_item_click_index = i;
+                                    m_last_item_click_button = ctx.button;
+                                }
                             }
                         });
 
