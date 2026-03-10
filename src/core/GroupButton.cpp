@@ -61,32 +61,9 @@ namespace horizon
                     button->set_accent_color(WidgetAccentColor::Default);
                 }
 
-                // Ensure the selected button is in the PRESSED state if configured during
-                // layout/render
-                if (index == m_current_index)
-                {
-                    button->set_draw_state(WidgetDrawState::PRESSED);
-                }
-                else
-                {
-                    button->set_draw_state(WidgetDrawState::NORMAL);
-                }
-
                 index++;
             }
         }
-    }
-
-    void GroupButton::set_current_item(int index)
-    {
-        m_current_index = index;
-        configure();
-        invalidate();
-    }
-
-    int GroupButton::current_item() const
-    {
-        return m_current_index;
     }
 
     void GroupButton::add_item(std::string text)
@@ -105,24 +82,7 @@ namespace horizon
                 event.button_index = index;
                 event.button_text = text;
                 when_button_clicked.run(event);
-
-                set_current_item(index);
             });
-
-        // Event handlers to override state transitions for the selected button
-        auto override_state = [this, ptr_button, index](EventContext &ev)
-        {
-            if (m_current_index == index)
-            {
-                ptr_button->set_draw_state(WidgetDrawState::PRESSED);
-                ptr_button->invalidate();
-            }
-        };
-
-        button->when_mouse_enter.connect(override_state);
-        button->when_mouse_leave.connect(override_state);
-        button->when_mouse_release.connect([override_state](MouseButtonEventContext &ev)
-                                           { override_state(ev); });
 
         add_child(std::move(button));
     }
@@ -144,24 +104,7 @@ namespace horizon
                 event.button_index = index;
                 event.button_text = "";
                 when_button_clicked.run(event);
-
-                set_current_item(index);
             });
-
-        // Event handlers to override state transitions for the selected button
-        auto override_state = [this, ptr_button, index](EventContext &ev)
-        {
-            if (m_current_index == index)
-            {
-                ptr_button->set_draw_state(WidgetDrawState::PRESSED);
-                ptr_button->invalidate();
-            }
-        };
-
-        button->when_mouse_enter.connect(override_state);
-        button->when_mouse_leave.connect(override_state);
-        button->when_mouse_release.connect([override_state](MouseButtonEventContext &ev)
-                                           { override_state(ev); });
 
         add_child(std::move(button));
     }

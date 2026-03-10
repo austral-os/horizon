@@ -12,6 +12,7 @@
 #include <horizon/Sidebar.hpp>
 #include <horizon/SidebarItem.hpp>
 #include <horizon/TableView.hpp>
+#include <horizon/ToggleGroupButton.hpp>
 #include <horizon/VPanel.hpp>
 
 #include <memory>
@@ -44,7 +45,8 @@ public:
         forward_icon->set_icon_size(16);
         navigation->add_item(std::move(forward_icon));
 
-        auto view_modes = std::make_unique<horizon::GroupButton>();
+        auto view_modes = std::make_unique<horizon::ToggleGroupButton>();
+        view_modes->set_current_item(0);
         view_modes->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         view_modes->set_fixed_size(140);
         view_modes->set_margin(0);

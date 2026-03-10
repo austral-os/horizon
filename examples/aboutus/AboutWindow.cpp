@@ -5,6 +5,7 @@
 #include "Overview.hpp"
 #include <horizon/GroupButton.hpp>
 #include <horizon/Icon.hpp>
+#include <horizon/ToggleGroupButton.hpp>
 #include <horizon/Widget.hpp>
 #include <iostream>
 #include <memory>
@@ -18,7 +19,7 @@ namespace horizon
 
         tool_widget->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
 
-        auto navigation = std::make_unique<horizon::GroupButton>();
+        auto navigation = std::make_unique<horizon::ToggleGroupButton>();
         navigation->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         navigation->set_fixed_size(600);
 

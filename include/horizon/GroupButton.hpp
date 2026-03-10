@@ -23,20 +23,18 @@ namespace horizon
         GroupButton();
         ~GroupButton();
 
-        void render(GraphicsContext &ctx, int cx, int cy, int cw, int ch,
-                    bool force = false) override;
-        void draw(GraphicsContext &ctx) override;
+        virtual void render(GraphicsContext &ctx, int cx, int cy, int cw, int ch,
+                            bool force = false) override;
+        virtual void draw(GraphicsContext &ctx) override;
 
-        void add_item(std::string text);
-        void add_item(std::unique_ptr<Icon> icon);
-
-        void set_current_item(int index);
-        int current_item() const;
+        virtual void add_item(std::string text);
+        virtual void add_item(std::unique_ptr<Icon> icon);
 
         EventsManager<GroupButtonClickEvent> when_button_clicked;
 
+    protected:
+        virtual void configure();
+
     private:
-        void configure();
-        int m_current_index{-1};
     };
 } // namespace horizon
