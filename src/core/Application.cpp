@@ -11,6 +11,7 @@
 #include <horizon/LabwcCompositorContext.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
+#include <horizon/WayfireCompositorContext.hpp>
 #include <horizon/Window.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
 #include <iterator>
@@ -99,7 +100,31 @@ namespace horizon
             });
 
         m_app_menu = std::make_unique<Menu>();
-        m_compositor_context = std::make_unique<LabwcCompositorContext>(this);
+        // Detect current compositor
+        const char *xdg_current_desktop = std::getenv("XDG_CURRENT_DESKTOP");
+        std::string desktop = xdg_current_desktop ? xdg_current_desktop : "";
+        std::transform(desktop.begin(), desktop.end(), desktop.begin(), ::tolower);
+
+        LOG_INFO << "[APP] Detecting compositor (XDG_CURRENT_DESKTOP=" << desktop << ")";
+
+        if (desktop.find("wayfire") != std::string::npos ||
+            desktop.find("hzn-wayfire") != std::string::npos)
+        {
+            LOG_INFO << "[APP] Recognized Wayfire compositor, using WayfireCompositorContext";
+            m_compositor_context = std::make_unique<WayfireCompositorContext>(this);
+        }
+        else if (desktop.find("labwc") != std::string::npos ||
+                 desktop.find("hzn-labwc") != std::string::npos)
+        {
+            LOG_INFO << "[APP] Recognized Labwc compositor, using LabwcCompositorContext";
+            m_compositor_context = std::make_unique<LabwcCompositorContext>(this);
+        }
+        else
+        {
+            LOG_INFO << "[APP] Unknown or generic compositor, defaulting to LabwcCompositorContext "
+                        "(XDG-Shell)";
+            m_compositor_context = std::make_unique<LabwcCompositorContext>(this);
+        }
     }
 
     // Constructor de movimiento

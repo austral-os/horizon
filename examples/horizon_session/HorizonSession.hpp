@@ -52,7 +52,7 @@ public:
     HorizonSession();
     ~HorizonSession();
 
-    void init(bool with_compositor = false);
+    void init(const std::string &compositor = "");
     void start();
     void stop();
     bool is_running() const

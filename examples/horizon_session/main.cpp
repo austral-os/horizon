@@ -17,15 +17,29 @@ void signal_handler(int sig)
 
 int main(int argc, char *argv[])
 {
-    bool with_compositor = false;
-
+    std::string compositor = "";
     // Parse command line arguments
     for (int i = 1; i < argc; ++i)
     {
         std::string arg = argv[i];
-        if (arg == "--with-compositor")
+        if (arg == "--help" || arg == "-h")
         {
-            with_compositor = true;
+            std::cout << "Usage: " << argv[0] << " [options]" << std::endl;
+            std::cout << "Options:" << std::endl;
+            std::cout << "  --help, -h               Show this help message" << std::endl;
+            std::cout << "  --compositor <name>      Specify the compositor to start (e.g., labwc, "
+                         "wayfire)"
+                      << std::endl;
+            std::cout << "  --with-compositor        Alias for --compositor labwc" << std::endl;
+            return 0;
+        }
+        else if (arg == "--with-compositor")
+        {
+            compositor = "labwc";
+        }
+        else if (arg == "--compositor" && i + 1 < argc)
+        {
+            compositor = argv[++i];
         }
     }
 
@@ -36,7 +50,7 @@ int main(int argc, char *argv[])
     {
         session = std::make_unique<HorizonSession>();
 
-        session->init(with_compositor);
+        session->init(compositor);
         session->start();
 
         // Keep the main thread alive. The IPC server usually runs its own event loop or thread.

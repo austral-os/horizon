@@ -31,7 +31,7 @@ HorizonSession::~HorizonSession()
     stop();
 }
 
-void HorizonSession::init(bool with_compositor)
+void HorizonSession::init(const std::string &compositor)
 {
     // Logger is now automatically initialized by the base class Application
     // if this class inherits from it, or manually here if it doesn't.
@@ -43,10 +43,21 @@ void HorizonSession::init(bool with_compositor)
     LOG_INFO << "[HorizonSession] Current WAYLAND_DISPLAY: "
              << (wayland_display ? wayland_display : "NULL");
 
-    if (with_compositor)
+    if (!compositor.empty())
     {
-        m_startup_services.push_back("labwc");
-        // m_startup_services.push_back("wayfire");
+        m_startup_services.push_back(compositor);
+
+        if (compositor == "labwc")
+        {
+            setenv("XDG_CURRENT_DESKTOP", "HZN-LABWC", 1);
+        }
+        else if (compositor == "wayfire")
+        {
+            setenv("XDG_CURRENT_DESKTOP", "HZN-WAYFIRE", 1);
+        }
+
+        LOG_INFO << "[HorizonSession] Set XDG_CURRENT_DESKTOP to: "
+                 << (getenv("XDG_CURRENT_DESKTOP") ? getenv("XDG_CURRENT_DESKTOP") : "NULL");
     }
 
     // Example of default core services
