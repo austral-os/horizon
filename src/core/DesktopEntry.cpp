@@ -18,19 +18,18 @@ namespace horizon
         return s.substr(start, end - start + 1);
     }
 
-    std::string DesktopEntry::get_icon_name(const std::string &app_id)
+    static std::string get_value_from_desktop_file(const std::string &path, const std::string &key)
     {
-        std::string path = find_desktop_file(app_id);
         if (path.empty())
             return "";
 
-        LOG_INFO << "[DesktopEntry] Parsing file: " << path;
         std::ifstream file(path);
         if (!file.is_open())
             return "";
 
         std::string line;
         bool in_desktop_entry = false;
+        std::string key_prefix = key + "=";
 
         while (std::getline(file, line))
         {
@@ -54,16 +53,39 @@ namespace horizon
             if (!in_desktop_entry)
                 continue;
 
-            if (line.rfind("Icon=", 0) == 0)
+            if (line.rfind(key_prefix, 0) == 0)
             {
-                std::string icon = trim(line.substr(5));
-                LOG_INFO << "[DesktopEntry] Found icon name: " << icon;
-                return icon;
+                return trim(line.substr(key_prefix.length()));
             }
         }
-
-        LOG_INFO << "[DesktopEntry] No icon found in " << path;
         return "";
+    }
+
+    std::string DesktopEntry::get_icon_name(const std::string &app_id)
+    {
+        std::string path = find_desktop_file(app_id);
+        std::string icon = get_value_from_desktop_file(path, "Icon");
+        if (!icon.empty())
+        {
+            LOG_INFO << "[DesktopEntry] Found icon name: " << icon << " for app_id: " << app_id;
+        }
+        return icon;
+    }
+
+    std::string DesktopEntry::get_exec_command(const std::string &app_id)
+    {
+        std::string path = find_desktop_file(app_id);
+        return get_exec_command_from_path(path);
+    }
+
+    std::string DesktopEntry::get_exec_command_from_path(const std::string &path)
+    {
+        std::string exec = get_value_from_desktop_file(path, "Exec");
+        if (!exec.empty())
+        {
+            LOG_INFO << "[DesktopEntry] Found exec command: " << exec << " in " << path;
+        }
+        return exec;
     }
 
     std::string DesktopEntry::find_desktop_file(const std::string &app_id)
@@ -93,9 +115,27 @@ namespace horizon
         return "";
     }
 
+    std::vector<std::string> DesktopEntry::s_additional_search_paths = {};
+
+    void DesktopEntry::add_search_path(const std::string &path)
+    {
+        s_additional_search_paths.push_back(path);
+    }
+
+    void DesktopEntry::set_search_paths(const std::vector<std::string> &paths)
+    {
+        s_additional_search_paths = paths;
+    }
+
     std::vector<std::string> DesktopEntry::get_desktop_search_dirs()
     {
         std::vector<std::string> dirs;
+
+        // User specified paths first
+        for (const auto &path : s_additional_search_paths)
+        {
+            dirs.push_back(path);
+        }
 
         const char *home = std::getenv("HOME");
         if (home)

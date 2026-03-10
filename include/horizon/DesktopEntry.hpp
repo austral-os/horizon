@@ -26,7 +26,34 @@ namespace horizon
          */
         static std::string find_desktop_file(const std::string &app_id);
 
+        /**
+         * @brief Gets the execution command for a given app_id.
+         * @param app_id The application identifier.
+         * @return The execution command, or empty string if not found.
+         */
+        static std::string get_exec_command(const std::string &app_id);
+
+        /**
+         * @brief Gets the execution command from a desktop file at the given path.
+         * @param path The absolute path to the .desktop file.
+         * @return The execution command, or empty string if not found.
+         */
+        static std::string get_exec_command_from_path(const std::string &path);
+
+        /**
+         * @brief Adds a directory to the list of additional search paths for .desktop files.
+         * @param path The absolute path to the directory.
+         */
+        static void add_search_path(const std::string &path);
+
+        /**
+         * @brief Sets the list of additional search paths for .desktop files.
+         * @param paths A vector of absolute paths to directories.
+         */
+        static void set_search_paths(const std::vector<std::string> &paths);
+
     private:
         static std::vector<std::string> get_desktop_search_dirs();
+        static std::vector<std::string> s_additional_search_paths;
     };
 } // namespace horizon
