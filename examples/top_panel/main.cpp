@@ -2,6 +2,7 @@
 #include <horizon/ClientMenu.hpp>
 #include <horizon/IpcClient.hpp>
 #include <horizon/LayerApplication.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/MenuBar.hpp>
 #include <horizon/MessageManager.hpp>
@@ -9,7 +10,6 @@
 #include <horizon/RequestRouter.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
-#include <iostream>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -23,7 +23,6 @@ int main(int argc, char *argv[])
         // Create an overlay application
         auto app = std::make_unique<LayerApplication>("top_panel",
                                                       3); // 3 = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
-        app->set_app_id("top_panel");
         app->set_name("Top Panel");
         app->set_show_in_dock(false);
 
@@ -131,8 +130,8 @@ int main(int argc, char *argv[])
 
                 // y=0 because the menu manager overlay starts right below the
                 // top_panel's exclusive zone, so y=0 is already at the panel bottom.
-                std::cout << "MenuBar click: " << menu->title() << " at x=" << x
-                          << " (Owner PID: " << current_owner_pid << ")" << std::endl;
+                LOG_INFO << "MenuBar click: " << menu->title() << " at x=" << x
+                         << " (Owner PID: " << current_owner_pid << ")";
                 client_menu.show_menu(menu, x, 0, -1, "top_panel", current_owner_pid);
             });
 
@@ -151,32 +150,30 @@ int main(int argc, char *argv[])
                 auto menus_json = request.value("menus", nlohmann::json::array());
                 bool is_empty = menus_json.empty();
 
-                std::cout << "[TOP PANEL] [IPC THREAD] Received set_global_menu from PID "
-                          << request_pid << " (menus count: " << menus_json.size() << ")"
-                          << std::endl;
+                LOG_INFO << "[TOP PANEL] [IPC THREAD] Received set_global_menu from PID "
+                         << request_pid << " (menus count: " << menus_json.size() << ")";
 
                 // Move UI modifications to the main thread
                 app->post_task(
                     [menubar_ptr, request, request_pid, is_empty, &current_owner_pid,
                      &clear_menu_timer_id, &app, apply_global_menu_fn]()
                     {
-                        std::cout << "[TOP PANEL] [MAIN THREAD] Processing request from PID "
-                                  << request_pid << std::endl;
+                        LOG_INFO << "[TOP PANEL] [MAIN THREAD] Processing request from PID "
+                                 << request_pid;
 
                         if (!is_empty)
                         {
                             if (clear_menu_timer_id)
                             {
-                                std::cout
-                                    << "[TOP PANEL] [MAIN THREAD] Cancelling pending clear timer."
-                                    << std::endl;
+                                LOG_INFO
+                                    << "[TOP PANEL] [MAIN THREAD] Cancelling pending clear timer.";
                                 app->stop_timer(clear_menu_timer_id);
                                 clear_menu_timer_id = 0;
                             }
 
                             current_owner_pid = request_pid;
-                            std::cout << "[TOP PANEL] [MAIN THREAD] Applying menu for PID "
-                                      << current_owner_pid << std::endl;
+                            LOG_INFO << "[TOP PANEL] [MAIN THREAD] Applying menu for PID "
+                                     << current_owner_pid;
                             apply_global_menu_fn(request);
                         }
                         else
@@ -188,16 +185,16 @@ int main(int argc, char *argv[])
                                     app->stop_timer(clear_menu_timer_id);
                                 }
 
-                                std::cout << "[TOP PANEL] [MAIN THREAD] Scheduling clear for PID "
-                                          << request_pid << " in 100ms." << std::endl;
+                                LOG_INFO << "[TOP PANEL] [MAIN THREAD] Scheduling clear for PID "
+                                         << request_pid << " in 100ms.";
                                 clear_menu_timer_id = app->add_timer(
                                     100,
                                     [apply_global_menu_fn, &current_owner_pid,
                                      &clear_menu_timer_id]()
                                     {
-                                        std::cout << "[TOP PANEL] [TIMER] Resetting global menu "
-                                                     "to default (Current owner PID "
-                                                  << current_owner_pid << ")." << std::endl;
+                                        LOG_INFO << "[TOP PANEL] [TIMER] Resetting global menu "
+                                                    "to default (Current owner PID "
+                                                 << current_owner_pid << ").";
                                         apply_global_menu_fn(nlohmann::json::object());
                                         current_owner_pid = -1;
                                         clear_menu_timer_id = 0;
@@ -205,9 +202,9 @@ int main(int argc, char *argv[])
                             }
                             else
                             {
-                                std::cout << "[TOP PANEL] [MAIN THREAD] Ignoring clear from PID "
-                                          << request_pid << " (Owner is " << current_owner_pid
-                                          << ")" << std::endl;
+                                LOG_INFO << "[TOP PANEL] [MAIN THREAD] Ignoring clear from PID "
+                                         << request_pid << " (Owner is " << current_owner_pid
+                                         << ")";
                             }
                         }
                     });
@@ -224,35 +221,34 @@ int main(int argc, char *argv[])
                                        MessageManager &mgr) -> nlohmann::json
             {
                 std::string item_id = request.value("id", "");
-                std::cout << "[TOP PANEL] Menu item clicked: " << item_id << std::endl;
+                LOG_INFO << "[TOP PANEL] Menu item clicked: " << item_id;
 
                 if (item_id == "run_terminal")
                 {
-                    std::cout << "[TOP PANEL] Requesting to run terminal..." << std::endl;
+                    LOG_INFO << "[TOP PANEL] Requesting to run terminal...";
                     app->send_remote_signal(-1, "run_app", "konsole");
                 }
                 else if (item_id == "run_aboutus")
                 {
-                    std::cout << "[TOP PANEL] Requesting to run aboutus..." << std::endl;
+                    LOG_INFO << "[TOP PANEL] Requesting to run aboutus...";
                     app->send_remote_signal(-1, "run_app", "aboutus");
                 }
                 else if (item_id == "run_logout")
                 {
-                    std::cout << "[TOP PANEL] Requesting Logout..." << std::endl;
+                    LOG_INFO << "[TOP PANEL] Requesting Logout...";
                     app->send_remote_signal(-1, "logout");
                 }
                 else if (item_id == "force_quit")
                 {
                     if (current_owner_pid != -1)
                     {
-                        std::cout << "[TOP PANEL] Requesting Force Quit for PID "
-                                  << current_owner_pid << std::endl;
+                        LOG_INFO << "[TOP PANEL] Requesting Force Quit for PID "
+                                 << current_owner_pid;
                         app->send_remote_signal(current_owner_pid, "kill");
                     }
                     else
                     {
-                        std::cout << "[TOP PANEL] Force Quit requested but no app is focused."
-                                  << std::endl;
+                        LOG_INFO << "[TOP PANEL] Force Quit requested but no app is focused.";
                     }
                 }
 
@@ -270,7 +266,7 @@ int main(int argc, char *argv[])
                           MessageManager &mgr) -> nlohmann::json
             {
                 menu_daemon_visible = request.value("visible", false);
-                std::cout << "Menu daemon status updated: " << menu_daemon_visible << std::endl;
+                LOG_INFO << "Menu daemon status updated: " << menu_daemon_visible;
 
                 if (!menu_daemon_visible && has_cached_menu_request && !apply_cache_timer_id)
                 {
@@ -283,8 +279,7 @@ int main(int argc, char *argv[])
                         {
                             if (has_cached_menu_request)
                             {
-                                std::cout << "Applying cached menu request after unlock timer."
-                                          << std::endl;
+                                LOG_INFO << "Applying cached menu request after unlock timer.";
                                 apply_global_menu_fn(cached_menu_request);
                                 has_cached_menu_request = false;
                             }
@@ -336,15 +331,15 @@ int main(int argc, char *argv[])
                     if (pending_messages.empty())
                         return;
 
-                    std::cout << "[TOP PANEL] [TIMER] Picking up " << pending_messages.size()
-                              << " messages from queue." << std::endl;
+                    LOG_INFO << "[TOP PANEL] [TIMER] Picking up " << pending_messages.size()
+                             << " messages from queue.";
                     to_process = std::move(pending_messages);
                     pending_messages.clear();
                 }
 
                 for (const auto &msg : to_process)
                 {
-                    std::cout << "[TOP PANEL] [TIMER] Routing message..." << std::endl;
+                    LOG_INFO << "[TOP PANEL] [TIMER] Routing message...";
                     router.route(msg);
                 }
             },
@@ -354,13 +349,13 @@ int main(int argc, char *argv[])
         root->add_child(std::move(panel));
         app->set_root(std::move(root));
 
-        std::cout << "Top Panel started (32px)." << std::endl;
+        LOG_INFO << "Top Panel started (32px).";
 
         app->run();
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Error: " << e.what() << std::endl;
+        LOG_ERROR << "Error: " << e.what();
         return 1;
     }
 

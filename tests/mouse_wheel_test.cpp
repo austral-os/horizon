@@ -1,7 +1,7 @@
 #include <horizon/Application.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/Window.hpp>
-#include <iostream>
 
 using namespace horizon;
 
@@ -9,7 +9,7 @@ int main()
 {
     try
     {
-        Application app(400, 300);
+        Application app("org.horizon.mouse_wheel_test", 400, 300);
         app.set_name("Mouse Wheel Test");
 
         auto wnd = std::make_unique<Window>("Mouse Wheel Test");
@@ -21,8 +21,8 @@ int main()
         label->when_mouse_wheel.connect(
             [](MouseWheelEventContext &ev)
             {
-                std::cout << "Mouse Wheel Event: dx=" << ev.dx << ", dy=" << ev.dy << " at ("
-                          << ev.x << ", " << ev.y << ")" << std::endl;
+                LOG_INFO << "Mouse Wheel Event: dx=" << ev.dx << ", dy=" << ev.dy << " at (" << ev.x
+                         << ", " << ev.y << ")";
             });
 
         wnd->add_child(std::move(label));
@@ -30,9 +30,9 @@ int main()
 
         app.run();
     }
-    catch (std::exception &e)
+    catch (const std::exception &e)
     {
-        std::cerr << "Error: " << e.what() << std::endl;
+        LOG_ERROR << "Error: " << e.what();
         return 1;
     }
     return 0;

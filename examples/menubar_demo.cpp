@@ -7,7 +7,7 @@ using namespace horizon;
 
 int main(int argc, char **argv)
 {
-    Application app(800, 600);
+    Application app("org.horizon.menubar_demo", 800, 600);
 
     app.set_name("Menubar Demo");
 

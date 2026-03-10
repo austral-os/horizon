@@ -1,6 +1,6 @@
 #include <horizon/ClientMenu.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/MenuSeparator.hpp>
-#include <iostream>
 #include <unistd.h>
 
 namespace horizon
@@ -56,22 +56,22 @@ namespace horizon
 
         request["menus"] = menu_array;
 
-        std::cout << "[ClientMenu] Sending global menu from PID " << getpid() << " with "
-                  << menu_array.size() << " menus." << std::endl;
+        LOG_INFO << "[ClientMenu] Sending global menu from PID " << getpid() << " with "
+                 << menu_array.size() << " menus.";
 
         IpcClient global_menu_client("/tmp/horizon_session.sock");
         bool success = global_menu_client.send(request.dump());
 
         if (!success)
         {
-            std::cerr << "[ClientMenu] ERROR (PID " << getpid()
+            LOG_ERROR << "[ClientMenu] ERROR (PID " << getpid()
                       << "): Failed to send global menu to /tmp/horizon_session.sock. Error: "
-                      << strerror(errno) << std::endl;
+                      << strerror(errno);
         }
         else
         {
-            std::cout << "[ClientMenu] SUCCESS (PID " << getpid()
-                      << "): Global menu sent successfully." << std::endl;
+            LOG_INFO << "[ClientMenu] SUCCESS (PID " << getpid()
+                     << "): Global menu sent successfully.";
         }
 
         return success;

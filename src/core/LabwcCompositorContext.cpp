@@ -1,7 +1,7 @@
 #include "horizon/LabwcCompositorContext.hpp"
 #include "horizon/Application.hpp"
+#include "horizon/Logger.hpp"
 #include "horizon/WaylandSurface.hpp"
-#include <iostream>
 
 namespace horizon
 {
@@ -37,7 +37,7 @@ namespace horizon
     {
         if (m_app && m_app->w_surface())
         {
-            std::cout << "[LabwcContext] Minimizing window..." << std::endl;
+            LOG_INFO << "[LabwcContext] Minimizing window...";
             m_app->w_surface()->request_minimize();
         }
     }

@@ -2,11 +2,11 @@
 #include <GLES2/gl2.h>
 #include <cstring>
 #include <fcntl.h>
+#include <horizon/Logger.hpp>
 #include <horizon/WaylandSurface.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <horizon/xdg-activation-v1-client-protocol.h>
 #include <horizon/xdg-shell-client-protocol.h>
-#include <iostream>
 #include <stdexcept>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -1143,14 +1143,13 @@ namespace horizon
     {
         if (m_role != Role::LayerShell || !m_layer_surface)
         {
-            std::cout << "move_layer_to_monitor: Ignored (Role: " << (int)m_role
-                      << ", Surface: " << m_layer_surface << ")" << std::endl;
+            LOG_INFO << "move_layer_to_monitor: Ignored (Role: " << (int)m_role
+                     << ", Surface: " << m_layer_surface << ")";
             return;
         }
 
-        std::cout << "move_layer_to_monitor: Moving to output " << output
-                  << " (Layer: " << m_layer_num << ", NS: " << m_layer_namespace << ")"
-                  << std::endl;
+        LOG_INFO << "move_layer_to_monitor: Moving to output " << output
+                 << " (Layer: " << m_layer_num << ", NS: " << m_layer_namespace << ")";
 
         // 1. Reset configuration state
         m_configured = false;
@@ -1166,7 +1165,7 @@ namespace horizon
 
         if (!m_layer_surface)
         {
-            std::cout << "move_layer_to_monitor: FAILED to create new layer surface!" << std::endl;
+            LOG_INFO << "move_layer_to_monitor: FAILED to create new layer surface!";
             return;
         }
 
@@ -1201,8 +1200,8 @@ namespace horizon
 
     void WaylandSurface::add_wl_output(struct wl_output *output)
     {
-        std::cout << "Added Wayland output: " << output << " (Total: " << m_outputs.size() + 1
-                  << ")" << std::endl;
+        LOG_INFO << "Added Wayland output: " << output << " (Total: " << m_outputs.size() + 1
+                 << ")";
         m_outputs.push_back(output);
     }
 
@@ -1216,8 +1215,7 @@ namespace horizon
                                   const char *token)
     {
         auto *act_data = static_cast<ActivationData *>(data);
-        std::cout << "[SURFACE] Activation token received: " << (token ? token : "NULL")
-                  << std::endl;
+        LOG_INFO << "[SURFACE] Activation token received: " << (token ? token : "NULL");
         if (act_data->callback)
         {
             act_data->callback(token ? token : "");
@@ -1241,8 +1239,7 @@ namespace horizon
         }
 
         uint32_t use_serial = (serial != 0) ? serial : m_last_serial;
-        std::cout << "[SURFACE] Requesting activation token (Serial: " << use_serial << ")"
-                  << std::endl;
+        LOG_INFO << "[SURFACE] Requesting activation token (Serial: " << use_serial << ")";
 
         auto *act_data = new ActivationData();
         act_data->callback = callback;

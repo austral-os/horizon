@@ -2,9 +2,9 @@
 #include <horizon/Icon.hpp>
 #include <horizon/IpcClient.hpp>
 #include <horizon/LayerApplication.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
-#include <iostream>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <vector>
@@ -122,7 +122,6 @@ int main(int argc, char *argv[])
         // 1. Create the overlay application
         // Anchor to the bottom, left, and right edge to allow size 0
         auto app = std::make_unique<LayerApplication>("dock", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
-        app->set_app_id("dock");
         app->set_name("Dock");
 
         app->set_anchor(2 | 4 | 8); // BOTTOM | LEFT | RIGHT
@@ -176,7 +175,7 @@ int main(int argc, char *argv[])
                         app->post_task(
                             [app_ptr = app.get(), shelf_ptr, apps]()
                             {
-                                std::cout << "Updating Dock icons from App Manager..." << std::endl;
+                                LOG_INFO << "Updating Dock icons from App Manager...";
                                 shelf_ptr->clear_children();
                                 for (const auto &app_j : apps)
                                 {
@@ -220,19 +219,18 @@ int main(int argc, char *argv[])
 
                                                 if (ctx.button == 274) // BTN_MIDDLE
                                                 {
-                                                    std::cout << "[DOCK] Middle click! Sending "
-                                                                 "close to PID: "
-                                                              << pid << std::endl;
+                                                    LOG_INFO << "[DOCK] Middle click! Sending "
+                                                                "close to PID: "
+                                                             << pid;
                                                     send_sig("close");
                                                     return;
                                                 }
 
-                                                std::cout
+                                                LOG_INFO
                                                     << "[DOCK] Icon clicked! Target PID: " << pid
                                                     << " (State: "
                                                     << (is_minimized ? "minimized" : "visible")
-                                                    << ", Serial: " << ctx.serial << ")"
-                                                    << std::endl;
+                                                    << ", Serial: " << ctx.serial << ")";
 
                                                 if (is_minimized)
                                                 {
@@ -240,11 +238,11 @@ int main(int argc, char *argv[])
                                                     app_ptr->w_surface()->request_activation_token(
                                                         [send_sig](const std::string &token)
                                                         {
-                                                            std::cout
+                                                            LOG_INFO
                                                                 << "[DOCK] Got activation "
                                                                    "token: "
                                                                 << (token.empty() ? "EMPTY" : token)
-                                                                << ", sending restore" << std::endl;
+                                                                << ", sending restore";
                                                             send_sig("restore", token);
                                                         },
                                                         ctx.serial);
@@ -266,16 +264,16 @@ int main(int argc, char *argv[])
                 }
                 catch (const std::exception &e)
                 {
-                    std::cerr << "Dock: Error parsing broadcast: " << e.what() << std::endl;
+                    LOG_ERROR << "Dock: Error parsing broadcast: " << e.what();
                 }
             });
 
-        std::cout << "Starting Mountain Lion OS X Dock Overlay..." << std::endl;
+        LOG_INFO << "Starting Mountain Lion OS X Dock Overlay...";
         app->run();
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Error: " << e.what() << std::endl;
+        LOG_ERROR << "Error: " << e.what();
         return 1;
     }
     return 0;

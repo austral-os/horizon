@@ -1,6 +1,6 @@
 #include "DesktopParser.hpp"
-#include "Logger.hpp"
 #include <fstream>
+#include <horizon/Logger.hpp>
 #include <iostream>
 
 std::optional<DesktopEntry> DesktopParser::parse(const std::string &app_name)

@@ -1,3 +1,4 @@
+#include "horizon/Logger.hpp"
 #include "horizon/SignalManager.hpp"
 #include "horizon/ThemeManager.hpp"
 #include "horizon/WaylandEventListener.hpp"
@@ -35,10 +36,11 @@ namespace horizon
     public:
         /**
          * @brief Constructs an Application with a window of specified size.
+         * @param app_id Unique identifier for the application.
          * @param w Width of the application window.
          * @param h Height of the application window.
          */
-        explicit Application(int w, int h);
+        explicit Application(const std::string &app_id, int w, int h);
 
         /**
          * @brief Destructor. Ensures proper cleanup of resources.
@@ -250,10 +252,6 @@ namespace horizon
                                 const std::string &token = "");
 
         // --- Application Metadata ---
-        void set_app_id(const std::string &id)
-        {
-            m_app_id = id;
-        }
         const std::string &app_id() const
         {
             return m_app_id;
@@ -308,7 +306,7 @@ namespace horizon
         /**
          * @brief Protected constructor for derived classes that need custom initialization.
          */
-        Application(int w, int h, bool defer_init);
+        Application(const std::string &app_id, int w, int h, bool defer_init);
 
     private:
         /**

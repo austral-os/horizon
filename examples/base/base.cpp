@@ -1,7 +1,8 @@
 #include <cairo/cairo.h>
 #include <cstring>
 #include <fcntl.h>
-#include <iostream>
+#include <horizon/Application.hpp>
+#include <horizon/Logger.hpp>
 #include <memory>
 #include <stdexcept>
 #include <sys/mman.h>
@@ -34,20 +35,20 @@ public:
         cairo_set_line_width(cr, 10.0);
         cairo_stroke(cr);
 
-        std::cout << "Renderizado completado en el buffer." << std::endl;
+        LOG_INFO << "Renderizado completado en el buffer.";
     }
 };
 
 // ----------------------------
-class Application
+class LegacyApplication
 {
 public:
-    Application()
+    LegacyApplication()
     {
         init_wayland();
     }
 
-    ~Application()
+    ~LegacyApplication()
     {
         if (m_xdg_wm_base)
             xdg_wm_base_destroy(m_xdg_wm_base);
@@ -118,7 +119,7 @@ public:
         wl_surface_damage(surface, 0, 0, width, height);
         wl_surface_commit(surface);
 
-        std::cout << "Ventana mapeada. Bucle de eventos iniciado..." << std::endl;
+        LOG_INFO << "Ventana mapeada. Bucle de eventos iniciado...";
 
         while (wl_display_dispatch(m_display) != -1)
         {
@@ -172,13 +173,13 @@ int main()
 {
     try
     {
-        Application app;
+        horizon::Application app("org.horizon.base_demo", 800, 600);
         app.set_root(std::make_unique<RootWidget>());
         app.run();
     }
     catch (const std::exception &ex)
     {
-        std::cerr << "Error: " << ex.what() << std::endl;
+        LOG_ERROR << "Error: " << ex.what();
         return 1;
     }
     return 0;

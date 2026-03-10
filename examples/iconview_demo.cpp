@@ -5,7 +5,7 @@
 #include <horizon/Icon.hpp>
 #include <horizon/IconView.hpp>
 #include <horizon/Label.hpp>
-#include <iostream>
+#include <horizon/Logger.hpp>
 #include <vector>
 
 using namespace horizon;
@@ -144,8 +144,7 @@ private:
 
 int main(int argc, char *argv[])
 {
-    auto app = std::make_unique<Application>(600, 400);
-    app->set_app_id("org.horizon.iconview_demo");
+    auto app = std::make_unique<Application>("org.horizon.iconview_demo", 600, 400);
     app->set_name("Icon view");
 
     auto window = std::make_unique<ApplicationWindow>("IconView Demo");
@@ -174,14 +173,11 @@ int main(int argc, char *argv[])
 
     icon_view->when_item_click.connect(
         [](IconViewItemMouseClickContext<FileData> &ctx)
-        {
-            std::cout << "Clicked: " << ctx.item_data.name << " (index: " << ctx.item_index << ")"
-                      << std::endl;
-        });
+        { LOG_INFO << "Clicked: " << ctx.item_data.name << " (index: " << ctx.item_index << ")"; });
 
     icon_view->when_item_dbl_click.connect(
         [](IconViewItemMouseClickContext<FileData> &ctx)
-        { std::cout << "Double clicked: " << ctx.item_data.name << std::endl; });
+        { LOG_INFO << "Double clicked: " << ctx.item_data.name; });
 
     // Load data from filesystem
     std::string path = "/home/horacio";
@@ -214,7 +210,7 @@ int main(int argc, char *argv[])
     window->set_content(std::move(icon_view));
     app->set_root(std::move(window));
 
-    std::cout << "Starting IconView Demo..." << std::endl;
+    LOG_INFO << "Starting IconView Demo...";
     app->run();
     return 0;
 }

@@ -5,7 +5,8 @@
 namespace horizon
 {
     LayerApplication::LayerApplication(const std::string &namespace_id, uint32_t layer)
-        : Application(0, 0, true), m_namespace(namespace_id), m_layer(layer), m_interactivity(0)
+        : Application(namespace_id, 0, 0, true), m_namespace(namespace_id), m_layer(layer),
+          m_interactivity(0)
     {
         // Initialization for Layer Shell
         w_surface()->init_display();

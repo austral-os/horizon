@@ -2,10 +2,10 @@
 
 #include <horizon/Label.hpp>
 #include <horizon/LayerApplication.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/MessageManager.hpp>
 #include <horizon/RequestRouter.hpp>
 #include <horizon/Widget.hpp>
-#include <iostream>
 #include <linux/input-event-codes.h>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -22,7 +22,6 @@ int main(int argc, char *argv[])
         auto app =
             std::make_unique<LayerApplication>("horizon_menu_manager_d", 3); // 3 = OVERLAY layer
 
-        app->set_app_id("horizon_menu_manager_d");
         app->set_name("Horizon Menu Manager");
         app->set_show_in_dock(false);
 
@@ -66,7 +65,7 @@ int main(int argc, char *argv[])
                 // Define a reusable lambda to hide the daemon and notify others
                 auto hide_daemon = [&app, &menu_visible, root_ptr]()
                 {
-                    std::cout << "[MENU MANAGER] Hiding daemon via callback." << std::endl;
+                    LOG_INFO << "[MENU MANAGER] Hiding daemon via callback.";
                     for (auto &child : root_ptr->children())
                     {
                         child->set_visible(false);
@@ -124,8 +123,8 @@ int main(int argc, char *argv[])
         root_ptr->add_on_mouse_press(
             [&](int btn)
             {
-                std::cout << "Click on background at unknown coordinates (button " << btn
-                          << "), hiding menu manager." << std::endl;
+                LOG_INFO << "Click on background at unknown coordinates (button " << btn
+                         << "), hiding menu manager.";
                 for (auto &child : root_ptr->children())
                 {
                     child->set_visible(false);
@@ -146,7 +145,7 @@ int main(int argc, char *argv[])
             {
                 if (ev.key == KEY_ESC)
                 {
-                    std::cout << "Escape pressed, hiding menu manager." << std::endl;
+                    LOG_INFO << "Escape pressed, hiding menu manager.";
                     for (auto &child : root_ptr->children())
                     {
                         child->set_visible(false);
@@ -177,7 +176,7 @@ int main(int argc, char *argv[])
 
                 for (const auto &msg : to_process)
                 {
-                    std::cout << "Processing message in main thread: " << msg << std::endl;
+                    LOG_INFO << "Processing message in main thread: " << msg;
                     auto response = router.route(msg);
 
                     if (response.contains("message_id"))
@@ -216,8 +215,7 @@ int main(int argc, char *argv[])
                                     {
                                         app->move_to_monitor(json_msg["monitor"]);
                                     }
-                                    std::cout << "Positioning menu at (" << x << ", " << y << ")"
-                                              << std::endl;
+                                    LOG_INFO << "Positioning menu at (" << x << ", " << y << ")";
                                 }
                                 catch (...)
                                 {
@@ -253,15 +251,15 @@ int main(int argc, char *argv[])
 
         app->set_root(std::move(root));
 
-        std::cout << "Horizon Menu Manager Daemon started." << std::endl;
-        std::cout << "IPC Target: /tmp/horizon_session.sock" << std::endl;
-        std::cout << "Application is hidden and waiting for requests." << std::endl;
+        LOG_INFO << "Horizon Menu Manager Daemon started.";
+        LOG_INFO << "IPC Target: /tmp/horizon_session.sock";
+        LOG_INFO << "Application is hidden and waiting for requests.";
 
         app->run();
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Error: " << e.what() << std::endl;
+        LOG_ERROR << "Error: " << e.what();
         return 1;
     }
 

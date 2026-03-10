@@ -1,6 +1,5 @@
 #include "HorizonSession.hpp"
 #include "DesktopParser.hpp"
-#include "Logger.hpp"
 #include <algorithm>
 #include <cerrno>
 #include <chrono>
@@ -8,6 +7,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <filesystem>
+#include <horizon/Logger.hpp>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <set>
@@ -33,13 +33,15 @@ HorizonSession::~HorizonSession()
 
 void HorizonSession::init(bool with_compositor)
 {
-    // Make sure we initialize the logger file output
-    Logger::instance().init("/tmp/horizon_session.log");
-    LOG_INFO << "[HorizonSession] Initializing..." << std::endl;
+    // Logger is now automatically initialized by the base class Application
+    // if this class inherits from it, or manually here if it doesn't.
+    // HorizonSession doesn't seem to inherit from Application based on its ctor.
+    horizon::Logger::instance().init("horizon_session");
+    LOG_INFO << "[HorizonSession] Initializing...";
 
     const char *wayland_display = getenv("WAYLAND_DISPLAY");
     LOG_INFO << "[HorizonSession] Current WAYLAND_DISPLAY: "
-             << (wayland_display ? wayland_display : "NULL") << std::endl;
+             << (wayland_display ? wayland_display : "NULL");
 
     if (with_compositor)
     {
@@ -155,18 +157,16 @@ void HorizonSession::run_service(const std::string &service_path)
         }
 
         // Fork-safe logging (now goes to the log file because of redirection)
-        fprintf(stderr, "[CHILD] Spawning: %s (PID: %d)\n", service_path.c_str(), getpid());
+        LOG_INFO << "[CHILD] Spawning: " << service_path << " (PID: " << getpid() << ")";
         const char *wd = getenv("WAYLAND_DISPLAY");
         const char *path = getenv("PATH");
-        fprintf(stderr, "[CHILD] Environment WAYLAND_DISPLAY: %s\n", wd ? wd : "NULL");
-        fprintf(stderr, "[CHILD] Environment PATH: %s\n", path ? path : "NULL");
-        fflush(stderr);
+        LOG_INFO << "[CHILD] Environment WAYLAND_DISPLAY: " << (wd ? wd : "NULL");
+        LOG_INFO << "[CHILD] Environment PATH: " << (path ? path : "NULL");
 
         char *argv[] = {(char *)service_path.c_str(), nullptr};
         execvp(service_path.c_str(), argv);
 
-        fprintf(stderr, "[HorizonSession] Failed to exec %s: %s\n", service_path.c_str(),
-                strerror(errno));
+        LOG_INFO << "[HorizonSession] Failed to exec " << service_path << ": " << strerror(errno);
         _exit(1);
     }
     else if (pid > 0)

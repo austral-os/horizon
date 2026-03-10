@@ -19,6 +19,7 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
     "src/*.cpp" 
     "src/*.c"
     "src/core/*.cpp"
+    "src/core/Logger.cpp"
     "src/core/IconView.cpp"
     "src/core/Spacer.cpp"
     "src/core/SystemInfo.cpp"
@@ -147,7 +148,6 @@ add_executable(horizon_session
     examples/horizon_session/main.cpp
     examples/horizon_session/HorizonSession.cpp
     examples/horizon_session/DesktopParser.cpp
-    examples/horizon_session/Logger.cpp
     examples/horizon_session/IpcServer.cpp
 )
 

@@ -1,7 +1,7 @@
 #include <horizon/Application.hpp>
 #include <horizon/GroupButton.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/Window.hpp>
-#include <iostream>
 
 using horizon::Application;
 using horizon::GroupButton;
@@ -12,8 +12,7 @@ int main()
 {
     try
     {
-        Application app(400, 300);
-        app.set_app_id("horizon.group_button_test");
+        Application app("org.horizon.group_button_test", 400, 300);
         app.set_name("GroupButton Test");
 
         auto wnd = std::make_unique<Window>("GroupButton Test");
@@ -31,10 +30,7 @@ int main()
 
         group->when_button_clicked.connect(
             [](horizon::GroupButtonClickEvent &ev)
-            {
-                std::cout << "Button clicked: " << ev.button_index << " - " << ev.button_text
-                          << std::endl;
-            });
+            { LOG_INFO << "Button clicked: " << ev.button_index << " - " << ev.button_text; });
 
         container->add_child(std::move(group));
         wnd->add_child(std::move(container));
@@ -44,7 +40,7 @@ int main()
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Error: " << e.what() << std::endl;
+        LOG_ERROR << "Error: " << e.what();
         return 1;
     }
     return 0;

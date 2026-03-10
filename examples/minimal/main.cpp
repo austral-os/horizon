@@ -7,6 +7,7 @@
 #include <horizon/GroupButton.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/MenuItem.hpp>
 #include <horizon/MenuSeparator.hpp>
@@ -26,7 +27,6 @@
 #include <horizon/VPanel.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/Window.hpp>
-#include <iostream>
 #include <unistd.h>
 
 using horizon::Application;
@@ -52,8 +52,7 @@ int main()
 {
     try
     {
-        Application app(800, 600);
-        app.set_app_id("horizon.minimal");
+        Application app("horizon.minimal", 800, 600);
         app.set_name("Minimal Demo");
         app.set_icon_name("system-help");
         app.set_show_in_dock(true);
@@ -527,8 +526,7 @@ int main()
         quit_item->when_mouse_press.connect(
             [&app](horizon::MouseButtonEventContext &ev)
             {
-                std::cout << "[MINIMAL] Quit clicked in local menu. Sending close signal via IPC."
-                          << std::endl;
+                LOG_INFO << "[MINIMAL] Quit clicked in local menu. Sending close signal via IPC.";
                 app.send_remote_signal(getpid(), "close");
                 ev.stop_propagation = true;
             });
@@ -548,9 +546,8 @@ int main()
         app.signal_manager.connect("on_exit",
                                    [](horizon::SignalContext &ctx)
                                    {
-                                       std::cout
-                                           << "Signal 'on_exit' received. Closing application."
-                                           << std::endl;
+                                       LOG_INFO
+                                           << "Signal 'on_exit' received. Closing application.";
                                        exit(0);
                                    });
 
@@ -568,9 +565,9 @@ int main()
 
         app.run();
     }
-    catch (std::exception &e)
+    catch (const std::exception &e)
     {
-        std::cerr << "Error: " << e.what() << std::endl;
+        LOG_ERROR << "Error: " << e.what();
         return 1;
     }
     return 0;

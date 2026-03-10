@@ -1,9 +1,9 @@
 #pragma once
 #include <horizon/IpcClient.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/MenuItem.hpp>
 #include <horizon/Message.hpp>
-#include <iostream>
 #include <memory>
 #include <nlohmann/json.hpp>
 
@@ -87,14 +87,12 @@ namespace horizon
                     if (!item_id.empty())
                     {
                         item->set_id(item_id);
-                        std::cout << "[MENU MESSAGE] Adding click handler for item: " << item_id
-                                  << std::endl;
+                        LOG_INFO << "[MENU MESSAGE] Adding click handler for item: " << item_id;
                         item->add_on_click(
                             [item_id, this]()
                             {
-                                std::cout << "[MENU MANAGER] MenuItem clicked! ID: " << item_id
-                                          << ". Reporting to /tmp/horizon_global_menu.sock"
-                                          << std::endl;
+                                LOG_INFO << "[MENU MANAGER] MenuItem clicked! ID: " << item_id
+                                         << ". Reporting to /tmp/horizon_global_menu.sock";
                                 try
                                 {
                                     IpcClient client("/tmp/horizon_session.sock");
@@ -116,8 +114,8 @@ namespace horizon
                                     }
                                     msg["id"] = item_id;
                                     bool ok = client.send(msg.dump());
-                                    std::cout << "[MENU MANAGER] Report sent: "
-                                              << (ok ? "SUCCESS" : "FAILED") << std::endl;
+                                    LOG_INFO << "[MENU MANAGER] Report sent: "
+                                             << (ok ? "SUCCESS" : "FAILED");
 
                                     if (m_on_action)
                                     {
@@ -126,9 +124,8 @@ namespace horizon
                                 }
                                 catch (const std::exception &e)
                                 {
-                                    std::cerr
-                                        << "[MENU MANAGER] ERROR reporting click: " << e.what()
-                                        << std::endl;
+                                    LOG_ERROR << "[MENU MANAGER] ERROR reporting click: "
+                                              << e.what();
                                 }
                             });
                     }

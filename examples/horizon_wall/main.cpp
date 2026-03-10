@@ -1,9 +1,9 @@
 #include <filesystem>
 #include <horizon/Image.hpp>
 #include <horizon/LayerApplication.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
-#include <iostream>
 #include <memory>
 
 using namespace horizon;
@@ -14,7 +14,6 @@ int main(int argc, char *argv[])
     {
         // Create a layer application in the BACKGROUND layer (0)
         auto app = std::make_unique<LayerApplication>("horizon_wall", 0);
-        app->set_app_id("horizon_wall");
         app->set_name("Horizon Wallpaper");
         app->set_icon_name("preferences-desktop-wallpaper");
 
@@ -56,13 +55,13 @@ int main(int argc, char *argv[])
 
         if (!wall_path.empty())
         {
-            std::cout << "[HORIZON WALL] Loading wallpaper: " << wall_path << std::endl;
+            LOG_INFO << "[HORIZON WALL] Loading wallpaper: " << wall_path;
             wallpaper->set_path(wall_path);
             wallpaper->set_mode(ImageMode::Stretch); // Match screen size
         }
         else
         {
-            std::cerr << "[HORIZON WALL] Warning: No wallpaper image found." << std::endl;
+            LOG_ERROR << "[HORIZON WALL] Warning: No wallpaper image found.";
         }
 
         // Add dummy click listener to root widget to verify interactivity
@@ -71,21 +70,18 @@ int main(int argc, char *argv[])
 
         wallpaper->add_on_mouse_press(
             [](int button)
-            {
-                std::cout << "[HORIZON WALL] Wallpaper clicked with button: " << button
-                          << std::endl;
-            });
+            { LOG_INFO << "[HORIZON WALL] Wallpaper clicked with button: " << button; });
 
         root->add_child(std::move(wallpaper));
         app->set_root(std::move(root));
 
-        std::cout << "Horizon Wallpaper started (Background Layer)." << std::endl;
+        LOG_INFO << "Horizon Wallpaper started (Background Layer).";
 
         app->run();
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Error: " << e.what() << std::endl;
+        LOG_ERROR << "Error: " << e.what();
         return 1;
     }
 

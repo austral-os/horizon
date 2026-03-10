@@ -2,11 +2,11 @@
 #include <horizon/Button.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/ScrollArea.hpp>
 #include <horizon/Slider.hpp>
 #include <horizon/SolidObject.hpp>
 #include <horizon/VPanel.hpp>
-#include <iostream>
 
 namespace horizon::demo
 {
@@ -15,8 +15,7 @@ namespace horizon::demo
         m_fs_model = std::make_unique<arkutils::FileSystemModel>();
         m_current_path = "/home/horacio"; // Default path
 
-        m_app = std::make_unique<Application>(800, 600);
-        m_app->set_app_id("org.horizon.files_demo");
+        m_app = std::make_unique<Application>("org.horizon.files_demo", 800, 600);
         m_app->set_name("Files Demo");
 
         auto window = std::make_unique<ApplicationWindow>("FileSystem Model Demo");
@@ -172,7 +171,7 @@ namespace horizon::demo
                     this->refresh_ui(m_current_path);
 
                     // Update window title or add a label if desired
-                    std::cout << "[Demo] Navigating to: " << m_current_path << std::endl;
+                    LOG_INFO << "[Demo] Navigating to: " << m_current_path;
                 }
             });
 
@@ -315,7 +314,7 @@ namespace horizon::demo
 
     void FilesDemo::update_table(const std::vector<arkutils::FileInfo> &files)
     {
-        std::cout << "[Demo] Updating table with " << files.size() << " files." << std::endl;
+        LOG_INFO << "[Demo] Updating table with " << files.size() << " files.";
         // TableView stores data by value, copy it.
         std::vector<arkutils::FileInfo> files_copy = files;
         m_table->set_data(std::move(files_copy));

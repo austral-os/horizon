@@ -1,6 +1,6 @@
 #include "IpcServer.hpp"
 #include <cstring>
-#include <iostream>
+#include <horizon/Logger.hpp>
 #include <signal.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -29,7 +29,7 @@ namespace horizon
         m_server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
         if (m_server_fd == -1)
         {
-            perror("socket");
+            LOG_ERROR << "[IpcServer] socket failed: " << strerror(errno);
             return;
         }
 
@@ -42,22 +42,22 @@ namespace horizon
 
         if (bind(m_server_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
         {
-            perror("bind");
+            LOG_ERROR << "[IpcServer] bind failed: " << strerror(errno);
             close(m_server_fd);
             return;
         }
 
         if (listen(m_server_fd, 32) == -1)
         {
-            perror("listen");
+            LOG_ERROR << "[IpcServer] listen failed: " << strerror(errno);
             close(m_server_fd);
             return;
         }
 
         m_running = true;
         m_listen_thread = std::thread(&IpcServer::listen_loop, this);
-        std::cout << "[IpcServer] PID " << getpid() << " listening on " << m_socket_path
-                  << " (fd: " << m_server_fd << ")" << std::endl;
+        LOG_INFO << "[IpcServer] PID " << getpid() << " listening on " << m_socket_path
+                 << " (fd: " << m_server_fd << ")";
     }
 
     void IpcServer::stop()
@@ -94,11 +94,11 @@ namespace horizon
             if (client_fd == -1)
             {
                 if (m_running)
-                    perror("[IpcServer] accept failed");
+                    LOG_ERROR << "[IpcServer] accept failed: " << strerror(errno);
                 continue;
             }
 
-            std::cout << "[IpcServer] New connection accepted on fd: " << client_fd << std::endl;
+            LOG_INFO << "[IpcServer] New connection accepted on fd: " << client_fd;
             std::thread(&IpcServer::handle_client, this, client_fd).detach();
         }
     }
@@ -117,8 +117,8 @@ namespace horizon
             ssize_t n = send(*it, payload.c_str(), payload.length(), MSG_NOSIGNAL);
             if (n == -1)
             {
-                std::cout << "[IpcServer] Subscriber on fd " << *it
-                          << " disconnected during broadcast." << std::endl;
+                LOG_INFO << "[IpcServer] Subscriber on fd " << *it
+                         << " disconnected during broadcast.";
                 close(*it);
                 it = m_subscribers.erase(it);
             }
@@ -131,7 +131,7 @@ namespace horizon
 
     void IpcServer::handle_client(int client_fd)
     {
-        std::cout << "[IpcServer] Client connected (fd: " << client_fd << ")" << std::endl;
+        LOG_INFO << "[IpcServer] Client connected (fd: " << client_fd << ")";
         char buffer[4096];
         while (m_running)
         {
@@ -141,7 +141,7 @@ namespace horizon
 
             buffer[n] = '\0';
             std::string request(buffer);
-            std::cout << "[IpcServer] Read " << n << " bytes from client." << std::endl;
+            LOG_INFO << "[IpcServer] Read " << n << " bytes from client.";
             std::string response = m_message_handler(request);
 
             if (response == "SUBSCRIBE")

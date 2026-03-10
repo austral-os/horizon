@@ -1,8 +1,7 @@
-#include <horizon/IpcClient.hpp>
-
 #include <chrono>
 #include <cstring>
-#include <iostream>
+#include <horizon/IpcClient.hpp>
+#include <horizon/Logger.hpp>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <thread>
@@ -32,7 +31,7 @@ namespace horizon
         int sock = socket(AF_UNIX, SOCK_STREAM, 0);
         if (sock < 0)
         {
-            std::cerr << "IpcClient: Failed to create socket." << std::endl;
+            LOG_ERROR << "IpcClient: Failed to create socket.";
             return false;
         }
 
@@ -50,7 +49,7 @@ namespace horizon
         ssize_t sent = write(sock, message.c_str(), message.size());
         if (sent < 0)
         {
-            std::cerr << "IpcClient: Failed to send data." << std::endl;
+            LOG_ERROR << "IpcClient: Failed to send data.";
             close(sock);
             return false;
         }

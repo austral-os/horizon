@@ -9,8 +9,7 @@ using namespace horizon;
 
 int main(int argc, char **argv)
 {
-    Application app(800, 600);
-    app.set_app_id("horizon.polygon_demo");
+    Application app("org.horizon.polygon_demo", 800, 600);
     app.set_name("Polygon Demo");
     app.set_icon_name("applications-graphics");
     app.set_show_in_dock(true);

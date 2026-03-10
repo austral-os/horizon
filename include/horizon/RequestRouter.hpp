@@ -1,7 +1,7 @@
 #pragma once
 #include <functional>
+#include <horizon/Logger.hpp>
 #include <horizon/MessageManager.hpp>
-#include <iostream>
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
@@ -29,7 +29,7 @@ namespace horizon
 
         nlohmann::json route(const std::string &raw_json)
         {
-            std::cout << "[RequestRouter] Routing message: " << raw_json << std::endl;
+            LOG_INFO << "[RequestRouter] Routing message: " << raw_json;
             try
             {
                 auto request = nlohmann::json::parse(raw_json);
@@ -39,12 +39,12 @@ namespace horizon
                 auto it = m_handlers.find(type);
                 if (it != m_handlers.end())
                 {
-                    std::cout << "[RequestRouter] Found handler for type: " << type << std::endl;
+                    LOG_INFO << "[RequestRouter] Found handler for type: " << type;
                     return it->second(request_id, request, m_message_manager);
                 }
                 else
                 {
-                    std::cerr << "[RequestRouter] No handler for type: " << type << std::endl;
+                    LOG_ERROR << "[RequestRouter] No handler for type: " << type;
                     return error_response(request_id, "Unknown request type: " + type);
                 }
             }

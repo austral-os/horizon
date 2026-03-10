@@ -1,14 +1,13 @@
 #include "HorizonSession.hpp"
-#include "Logger.hpp"
 #include <csignal>
-#include <iostream>
+#include <horizon/Logger.hpp>
 #include <memory>
 
 std::unique_ptr<HorizonSession> session;
 
 void signal_handler(int sig)
 {
-    LOG_INFO << "Received signal " << sig << ", shutting down HorizonSession..." << std::endl;
+    LOG_INFO << "Received signal " << sig << ", shutting down HorizonSession...";
     if (session)
     {
         session->stop();
@@ -49,8 +48,7 @@ int main(int argc, char *argv[])
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
-        LOG_INFO << "[HorizonSession] Session running flag is false, exiting main loop."
-                 << std::endl;
+        LOG_INFO << "[HorizonSession] Session running flag is false, exiting main loop.";
         if (session)
         {
             session->stop();
@@ -58,7 +56,7 @@ int main(int argc, char *argv[])
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Fatal error: " << e.what() << std::endl;
+        LOG_ERROR << "Fatal error: " << e.what();
         return 1;
     }
 

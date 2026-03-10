@@ -87,8 +87,7 @@ public:
 
 int main(int argc, char **argv)
 {
-    Application app(800, 600);
-    app.set_app_id("horizon.toolbar_demo");
+    Application app("org.horizon.main_window", 800, 600);
     app.set_name("Toolbar Demo");
     app.set_icon_name("folder");
     app.set_show_in_dock(true);

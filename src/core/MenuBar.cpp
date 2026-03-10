@@ -1,7 +1,7 @@
 #include <horizon/Application.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/MenuBar.hpp>
 #include <horizon/ThemeManager.hpp>
-#include <iostream>
 
 namespace horizon
 {
@@ -13,7 +13,7 @@ namespace horizon
 
     void MenuBar::add_menu(std::unique_ptr<Menu> menu)
     {
-        std::cout << "[MenuBar] Adding menu: " << menu->title() << std::endl;
+        LOG_INFO << "[MenuBar] Adding menu: " << menu->title();
         auto item = std::make_unique<MenuBarItem>(menu->title(), menu.get());
         item->set_bold(menu->bold());
         item->set_icon_name(menu->icon_name());
@@ -77,7 +77,7 @@ namespace horizon
 
     void MenuBar::clear_menus()
     {
-        std::cout << "[MenuBar] Clearing all menus." << std::endl;
+        LOG_INFO << "[MenuBar] Clearing all menus.";
         m_menus.clear();
         clear_children();
         invalidate();
@@ -155,12 +155,12 @@ namespace horizon
             m_resolved_icon_path = IconThemeLookup::find_icon(m_icon_name, 18);
             if (m_resolved_icon_path.empty())
             {
-                std::cerr << "[MenuBarItem] Failed to resolve icon: " << m_icon_name << std::endl;
+                LOG_ERROR << "[MenuBarItem] Failed to resolve icon: " << m_icon_name;
             }
             else
             {
-                std::cout << "[MenuBarItem] Resolved icon " << m_icon_name << " to "
-                          << m_resolved_icon_path << std::endl;
+                LOG_INFO << "[MenuBarItem] Resolved icon " << m_icon_name << " to "
+                         << m_resolved_icon_path;
             }
         }
         else

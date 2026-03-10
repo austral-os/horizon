@@ -9,10 +9,10 @@
 #include <horizon/ClientMenu.hpp>
 #include <horizon/IpcClient.hpp>
 #include <horizon/LabwcCompositorContext.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/Window.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
-#include <iostream>
 #include <iterator>
 #include <linux/input-event-codes.h>
 #include <memory>
@@ -59,17 +59,25 @@ namespace horizon
         {
             char info[512];
             glGetShaderInfoLog(shader, 512, nullptr, info);
-            std::cerr << "Shader compilation failed: " << info << std::endl;
+            LOG_ERROR << "Shader compilation failed: " << info;
         }
         return shader;
     }
 
-    Application::Application(int w, int h) : Application(w, h, false) {}
+    Application::Application(const std::string &app_id, int w, int h)
+        : Application(app_id, w, h, false)
+    {
+    }
 
-    Application::Application(int w, int h, bool defer_init)
+    Application::Application(const std::string &app_id, int w, int h, bool defer_init)
+        : m_app_id(app_id)
     {
         // Global safeguard: ignore SIGPIPE to prevent crash when writing to broken sockets
         signal(SIGPIPE, SIG_IGN);
+
+        // Initialize logger
+        Logger::instance().init(m_app_id);
+        LOG_INFO << "Application started: " << m_name << " (" << m_app_id << ")";
 
         m_wakeup_fd = eventfd(0, EFD_NONBLOCK);
 
@@ -86,7 +94,7 @@ namespace horizon
         theme_manager->when_change.connect(
             [this](ThemeEventContext &p)
             {
-                std::cout << "Theme changed" << std::endl;
+                LOG_INFO << "Theme changed";
                 this->invalidate();
             });
 
@@ -294,18 +302,18 @@ namespace horizon
     void Application::on_activated(bool active)
     {
         m_is_activated = active;
-        std::cout << "[APP] on_activated: " << active << " (PID: " << getpid() << ")" << std::endl;
+        LOG_INFO << "[APP] on_activated: " << active << " (PID: " << getpid() << ")";
 
         if (m_client_menu)
         {
             if (active)
             {
-                std::cout << "[APP] Sending global menu to panel." << std::endl;
+                LOG_INFO << "[APP] Sending global menu to panel.";
                 m_client_menu->set_global_menu(m_global_menus);
             }
             else
             {
-                std::cout << "[APP] Clearing global menu from panel." << std::endl;
+                LOG_INFO << "[APP] Clearing global menu from panel.";
                 m_client_menu->set_global_menu({});
             }
         }
@@ -775,9 +783,9 @@ namespace horizon
                                 {
                                     std::string signal = j.value("signal", "unknown");
                                     std::string token = j.value("token", "");
-                                    std::cout << "[APP] Received remote signal: " << signal
-                                              << " (token: " << (token.empty() ? "none" : "present")
-                                              << ", posting task)" << std::endl;
+                                    LOG_INFO << "[APP] Received remote signal: " << signal
+                                             << " (token: " << (token.empty() ? "none" : "present")
+                                             << ", posting task)";
                                     this->post_task(
                                         [this, signal, token]()
                                         {
@@ -804,9 +812,9 @@ namespace horizon
                                     std::string item_id = j.value("id", "");
                                     if (item_id == "quit" || item_id == "Quit")
                                     {
-                                        std::cout << "[APP] Received menu_item_clicked for 'quit', "
-                                                     "triggering on_close()"
-                                                  << std::endl;
+                                        LOG_INFO << "[APP] Received menu_item_clicked for 'quit', "
+                                                    "triggering on_close()"
+                                                 << std::endl;
                                         this->post_task([this]() { this->on_close(); });
                                     }
                                 }
@@ -978,7 +986,7 @@ namespace horizon
                 {
                     if (task)
                     {
-                        std::cout << "[APP] Executing posted task..." << std::endl;
+                        LOG_INFO << "[APP] Executing posted task...";
                         task();
                     }
                 }
