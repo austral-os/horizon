@@ -1,5 +1,7 @@
 #include "GlobalMenuMessage.hpp"
+#include <horizon/ApplicationLauncher.hpp>
 #include <horizon/ClientMenu.hpp>
+#include <horizon/DesktopEntry.hpp>
 #include <horizon/IpcClient.hpp>
 #include <horizon/LayerApplication.hpp>
 #include <horizon/Logger.hpp>
@@ -25,6 +27,10 @@ int main(int argc, char *argv[])
                                                       3); // 3 = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
         app->set_name("Top Panel");
         app->set_show_in_dock(false);
+
+        // Add custom search path for .desktop files
+        DesktopEntry::add_search_path(
+            "/home/horacio/Desarrollo/austral-os/horizon/examples/config/apps/");
 
         // Anchor to TOP, LEFT, RIGHT to occupy the top of the screen
         app->set_anchor(1 | 4 | 8); // TOP | LEFT | RIGHT
@@ -231,7 +237,7 @@ int main(int argc, char *argv[])
                 else if (item_id == "run_aboutus")
                 {
                     LOG_INFO << "[TOP PANEL] Requesting to run aboutus...";
-                    app->send_remote_signal(-1, "run_app", "aboutus");
+                    ApplicationLauncher::launch("aboutus");
                 }
                 else if (item_id == "run_logout")
                 {
