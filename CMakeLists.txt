@@ -32,6 +32,7 @@ add_library(horizon STATIC ${SOURCES})
 target_include_directories(horizon
     PUBLIC
         ${PROJECT_SOURCE_DIR}/include
+        ${PROJECT_SOURCE_DIR}/src
     PRIVATE
         ${WAYLAND_INCLUDE_DIRS}
         ${CAIRO_INCLUDE_DIRS}

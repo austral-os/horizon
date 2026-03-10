@@ -7,6 +7,7 @@
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <horizon/xdg-activation-v1-client-protocol.h>
 #include <horizon/xdg-shell-client-protocol.h>
+#include <protocols/wlr-foreign-toplevel-management-unstable-v1-client-protocol.h>
 #include <stdexcept>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -114,6 +115,45 @@ namespace horizon
      * @brief Dispatch table for seat events.
      */
     static const wl_seat_listener g_seat_listener = {seat_handle_capabilities, seat_handle_name};
+
+    // Foreign toplevel management listeners
+    void foreign_toplevel_handle_title(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle,
+                                       const char *title);
+    void foreign_toplevel_handle_app_id(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle,
+                                        const char *app_id);
+    void foreign_toplevel_handle_state(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle,
+                                       struct wl_array *state);
+    void foreign_toplevel_handle_closed(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle);
+    void foreign_toplevel_handle_done(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle);
+
+    void foreign_toplevel_handle_output_enter(void *data,
+                                              struct zwlr_foreign_toplevel_handle_v1 *handle,
+                                              struct wl_output *output);
+    void foreign_toplevel_handle_output_leave(void *data,
+                                              struct zwlr_foreign_toplevel_handle_v1 *handle,
+                                              struct wl_output *output);
+    void foreign_toplevel_handle_parent(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle,
+                                        struct zwlr_foreign_toplevel_handle_v1 *parent);
+
+    static const struct zwlr_foreign_toplevel_handle_v1_listener foreign_toplevel_handle_listener =
+        {
+            foreign_toplevel_handle_title,        foreign_toplevel_handle_app_id,
+            foreign_toplevel_handle_output_enter, foreign_toplevel_handle_output_leave,
+            foreign_toplevel_handle_state,        foreign_toplevel_handle_done,
+            foreign_toplevel_handle_closed,       foreign_toplevel_handle_parent,
+    };
+
+    void foreign_toplevel_manager_finished(void *data,
+                                           struct zwlr_foreign_toplevel_manager_v1 *manager);
+    void foreign_toplevel_manager_toplevel(void *data,
+                                           struct zwlr_foreign_toplevel_manager_v1 *manager,
+                                           struct zwlr_foreign_toplevel_handle_v1 *handle);
+
+    static const struct zwlr_foreign_toplevel_manager_v1_listener
+        foreign_toplevel_manager_listener = {
+            foreign_toplevel_manager_toplevel,
+            foreign_toplevel_manager_finished,
+    };
 
     static void seat_handle_capabilities(void *data, wl_seat *seat, uint32_t caps)
     {
@@ -302,10 +342,11 @@ namespace horizon
     /**
      * @brief Global registry handler. Binds core Wayland interfaces.
      */
-    static void registry_global(void *data, wl_registry *registry, uint32_t id,
-                                const char *interface, uint32_t version)
+    void registry_global(void *data, wl_registry *registry, uint32_t id, const char *interface,
+                         uint32_t version)
     {
         WaylandSurface *ws = static_cast<WaylandSurface *>(data);
+        LOG_INFO << "[SURFACE] Global: " << interface << " (v" << version << ")";
 
         if (strcmp(interface, "wl_compositor") == 0)
         {
@@ -321,6 +362,7 @@ namespace horizon
         {
             ws->set_xdg_wm_base(static_cast<xdg_wm_base *>(
                 wl_registry_bind(registry, id, &xdg_wm_base_interface, 1)));
+            LOG_INFO << "[SURFACE] Bound xdg_wm_base";
             static const xdg_wm_base_listener wm_list = {
                 .ping = [](void *, xdg_wm_base *wm, uint32_t ser) { xdg_wm_base_pong(wm, ser); }};
             xdg_wm_base_add_listener(ws->xdg_wm_base(), &wm_list, nullptr);
@@ -329,11 +371,21 @@ namespace horizon
         {
             ws->set_zwlr_layer_shell(static_cast<zwlr_layer_shell_v1 *>(
                 wl_registry_bind(registry, id, &zwlr_layer_shell_v1_interface, 1)));
+            LOG_INFO << "[SURFACE] Bound zwlr_layer_shell_v1";
         }
         else if (strcmp(interface, "xdg_activation_v1") == 0)
         {
             ws->set_xdg_activation(static_cast<xdg_activation_v1 *>(
                 wl_registry_bind(registry, id, &xdg_activation_v1_interface, 1)));
+            LOG_INFO << "[SURFACE] Bound xdg_activation_v1";
+        }
+        else if (strcmp(interface, "zwlr_foreign_toplevel_manager_v1") == 0)
+        {
+            ws->set_zwlr_foreign_toplevel_manager(static_cast<zwlr_foreign_toplevel_manager_v1 *>(
+                wl_registry_bind(registry, id, &zwlr_foreign_toplevel_manager_v1_interface, 3)));
+            LOG_INFO << "[SURFACE] Bound zwlr_foreign_toplevel_manager_v1";
+            zwlr_foreign_toplevel_manager_v1_add_listener(ws->foreign_toplevel_manager(),
+                                                          &foreign_toplevel_manager_listener, ws);
         }
         else if (strcmp(interface, "wl_seat") == 0)
         {
@@ -489,6 +541,12 @@ namespace horizon
     void WaylandSurface::set_wl_shm(struct wl_shm *shm)
     {
         m_shm = shm;
+    }
+
+    void WaylandSurface::set_zwlr_foreign_toplevel_manager(
+        struct zwlr_foreign_toplevel_manager_v1 *manager)
+    {
+        m_foreign_toplevel_manager = manager;
     }
 
     void WaylandSurface::set_xdg_wm_base(struct xdg_wm_base *xdg_wm_base)
@@ -782,9 +840,28 @@ namespace horizon
         int stride = m_width * 4;
         int size = stride * m_height;
         int fd = memfd_create("buffer", MFD_CLOEXEC);
-        ftruncate(fd, size);
+        if (fd < 0)
+        {
+            LOG_ERROR << "[SURFACE] memfd_create failed: " << strerror(errno);
+            return;
+        }
+
+        if (ftruncate(fd, size) < 0)
+        {
+            LOG_ERROR << "[SURFACE] ftruncate failed: " << strerror(errno);
+            close(fd);
+            return;
+        }
+
         m_data = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
         close(fd);
+
+        if (m_data == MAP_FAILED)
+        {
+            LOG_ERROR << "[SURFACE] mmap failed: " << strerror(errno);
+            m_data = nullptr;
+            return;
+        }
 
         // 2. EGL Window and Surface management
         if (!m_egl_window)
@@ -954,7 +1031,12 @@ namespace horizon
     {
         if (m_xdg_toplevel)
         {
+            LOG_INFO << "[SURFACE] Requesting restore (unset maximized)";
             xdg_toplevel_unset_maximized(m_xdg_toplevel);
+
+            // NOTE: xdg_shell doesn't have an "unset_minimized".
+            // Some compositors restore when focus is requested or activation occurs.
+            // We commit to ensure the request is sent.
             wl_surface_commit(m_surface);
         }
     }
@@ -1155,6 +1237,18 @@ namespace horizon
         m_configured = false;
 
         // 2. Clean up OLD surface and layer surface
+        if (m_egl_surface != EGL_NO_SURFACE)
+        {
+            eglDestroySurface(m_egl_display, m_egl_surface);
+            m_egl_surface = EGL_NO_SURFACE;
+        }
+
+        if (m_egl_window)
+        {
+            wl_egl_window_destroy(m_egl_window);
+            m_egl_window = nullptr;
+        }
+
         zwlr_layer_surface_v1_destroy(m_layer_surface);
         wl_surface_destroy(m_surface);
 
@@ -1215,7 +1309,8 @@ namespace horizon
                                   const char *token)
     {
         auto *act_data = static_cast<ActivationData *>(data);
-        LOG_INFO << "[SURFACE] Activation token received: " << (token ? token : "NULL");
+        LOG_INFO << "[SURFACE] Activation token received: " << (token ? token : "NULL")
+                 << " (Obj: " << (void *)token_obj << ")";
         if (act_data->callback)
         {
             act_data->callback(token ? token : "");
@@ -1260,6 +1355,112 @@ namespace horizon
         xdg_activation_v1_activate(m_activation, token.c_str(), m_surface);
         commit(); // Ensure activation is sent
         wl_display_flush(m_display);
+    }
+
+    void WaylandSurface::restore_foreign_app(const std::string &app_id)
+    {
+        if (!m_foreign_toplevel_manager)
+            return;
+
+        LOG_INFO << "[SURFACE] Attempting foreign restore for: " << app_id;
+        for (auto &pair : m_foreign_toplevels)
+        {
+            auto &ft = pair.second;
+            if (ft.app_id == app_id)
+            {
+                LOG_INFO << "[SURFACE] Found foreign handle for " << app_id
+                         << ", unminimizing and activating.";
+                zwlr_foreign_toplevel_handle_v1_unset_minimized(ft.handle);
+                if (m_seat)
+                {
+                    zwlr_foreign_toplevel_handle_v1_activate(ft.handle, m_seat);
+                }
+            }
+        }
+    }
+
+    // Foreign toplevel management callbacks implementation
+    void foreign_toplevel_handle_title(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle,
+                                       const char *title)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        ws->m_foreign_toplevels[handle].title = title ? title : "";
+    }
+
+    void foreign_toplevel_handle_app_id(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle,
+                                        const char *app_id)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        LOG_INFO << "[SURFACE] Foreign toplevel app_id: " << (app_id ? app_id : "NULL");
+        ws->m_foreign_toplevels[handle].app_id = app_id ? app_id : "";
+    }
+
+    void foreign_toplevel_handle_state(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle,
+                                       struct wl_array *state)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        uint32_t *entry;
+        bool minimized = false;
+        bool active = false;
+        // Using common Wayland loop pattern
+        uint32_t *states_data = static_cast<uint32_t *>(state->data);
+        size_t states_count = state->size / sizeof(uint32_t);
+        for (size_t i = 0; i < states_count; ++i)
+        {
+            uint32_t s = states_data[i];
+            if (s == ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_MINIMIZED)
+                minimized = true;
+            if (s == ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_ACTIVATED)
+                active = true;
+        }
+        ws->m_foreign_toplevels[handle].minimized = minimized;
+        ws->m_foreign_toplevels[handle].active = active;
+    }
+
+    void foreign_toplevel_handle_closed(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        LOG_INFO << "[SURFACE] Foreign toplevel closed: " << ws->m_foreign_toplevels[handle].app_id;
+        ws->m_foreign_toplevels.erase(handle);
+        zwlr_foreign_toplevel_handle_v1_destroy(handle);
+    }
+
+    void foreign_toplevel_handle_parent(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle,
+                                        struct zwlr_foreign_toplevel_handle_v1 *parent)
+    {
+        // Dummy handler
+    }
+
+    void foreign_toplevel_handle_output_enter(void *data,
+                                              struct zwlr_foreign_toplevel_handle_v1 *handle,
+                                              struct wl_output *output)
+    {
+        // Dummy handler
+    }
+
+    void foreign_toplevel_handle_output_leave(void *data,
+                                              struct zwlr_foreign_toplevel_handle_v1 *handle,
+                                              struct wl_output *output)
+    {
+        // Dummy handler
+    }
+
+    void foreign_toplevel_handle_done(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle) {}
+
+    void foreign_toplevel_manager_finished(void *data,
+                                           struct zwlr_foreign_toplevel_manager_v1 *manager)
+    {
+        // Dummy handler
+    }
+
+    void foreign_toplevel_manager_toplevel(void *data,
+                                           struct zwlr_foreign_toplevel_manager_v1 *manager,
+                                           struct zwlr_foreign_toplevel_handle_v1 *handle)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        ws->m_foreign_toplevels[handle].handle = handle;
+        LOG_INFO << "[SURFACE] New foreign toplevel handle discovered";
+        zwlr_foreign_toplevel_handle_v1_add_listener(handle, &foreign_toplevel_handle_listener, ws);
     }
 
 } // namespace horizon

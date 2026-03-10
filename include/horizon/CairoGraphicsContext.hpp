@@ -15,6 +15,15 @@ namespace horizon
         CairoGraphicContext(const Application *app, void *data, int w, int h);
         ~CairoGraphicContext();
 
+        int width() const override
+        {
+            return m_width;
+        }
+        int height() const override
+        {
+            return m_height;
+        }
+
         void paint() override;
         void setColor(float r, float g, float b, float a = 1.0f) override;
         void setColor(Color color) override;
@@ -81,6 +90,7 @@ namespace horizon
         const Application *m_app;
         cairo_surface_t *cairo_s;
         cairo_t *cr;
+        int m_width, m_height;
 
         // Simple SVG handle cache to avoid reparsing every frame
         std::map<std::string, void *> m_svg_cache;

@@ -132,6 +132,14 @@ int main(int argc, char *argv[])
         app->set_visible(true);             // Enable input region
         app->set_keyboard_interactivity(0); // NONE - prevent focus stealing in labwc
 
+        const char *desktop_env = getenv("XDG_CURRENT_DESKTOP");
+        bool is_wayfire =
+            (desktop_env && std::string(desktop_env).find("WAYFIRE") != std::string::npos);
+        if (is_wayfire)
+        {
+            LOG_INFO << "[DOCK] Wayfire detected, using foreign-toplevel for restoration.";
+        }
+
         // 2. Root Window
         auto root = std::make_unique<Widget>();
         // Center the shelf horizontally within the available width
@@ -163,7 +171,7 @@ int main(int argc, char *argv[])
         IpcClient client("/tmp/horizon_session.sock");
         client.subscribe(
             "{\"type\": \"subscribe\"}",
-            [&app, shelf_ptr](const std::string &msg)
+            [&app, shelf_ptr, is_wayfire](const std::string &msg)
             {
                 try
                 {
@@ -173,7 +181,7 @@ int main(int argc, char *argv[])
                         auto apps = j.at("apps");
                         // Update UI on the main thread
                         app->post_task(
-                            [app_ptr = app.get(), shelf_ptr, apps]()
+                            [app_ptr = app.get(), shelf_ptr, apps, is_wayfire]()
                             {
                                 LOG_INFO << "Updating Dock icons from App Manager...";
                                 shelf_ptr->clear_children();
@@ -188,9 +196,10 @@ int main(int argc, char *argv[])
                                         icn->set_margin(5);
 
                                         int pid = app_j.value("pid", -1);
+                                        std::string app_id = app_j.value("app_id", "");
                                         bool is_minimized = app_j.value("is_minimized", false);
                                         icn->when_mouse_press.connect(
-                                            [app_ptr, pid,
+                                            [app_ptr, pid, app_id, is_wayfire,
                                              is_minimized](MouseButtonEventContext &ctx)
                                             {
                                                 if (pid == -1)
@@ -234,18 +243,37 @@ int main(int argc, char *argv[])
 
                                                 if (is_minimized)
                                                 {
-                                                    // Request activation token before restoring
-                                                    app_ptr->w_surface()->request_activation_token(
-                                                        [send_sig](const std::string &token)
-                                                        {
-                                                            LOG_INFO
-                                                                << "[DOCK] Got activation "
-                                                                   "token: "
-                                                                << (token.empty() ? "EMPTY" : token)
-                                                                << ", sending restore";
-                                                            send_sig("restore", token);
-                                                        },
-                                                        ctx.serial);
+                                                    if (is_wayfire && !app_id.empty())
+                                                    {
+                                                        LOG_INFO << "[DOCK] Wayfire Restore: using "
+                                                                    "foreign-toplevel for "
+                                                                 << app_id;
+                                                        app_ptr->w_surface()->restore_foreign_app(
+                                                            app_id);
+                                                    }
+                                                    else
+                                                    {
+                                                        LOG_INFO << "[DOCK] Requesting activation "
+                                                                    "token for PID: "
+                                                                 << pid
+                                                                 << " (Serial: " << ctx.serial
+                                                                 << ")";
+                                                        // Request activation token before restoring
+                                                        app_ptr->w_surface()
+                                                            ->request_activation_token(
+                                                                [send_sig](const std::string &token)
+                                                                {
+                                                                    LOG_INFO
+                                                                        << "[DOCK] Got activation "
+                                                                           "response "
+                                                                           "for PID: "
+                                                                        << (token.empty() ? "EMPTY"
+                                                                                          : token)
+                                                                        << ", sending restore";
+                                                                    send_sig("restore", token);
+                                                                },
+                                                                ctx.serial);
+                                                    }
                                                 }
                                                 else
                                                 {

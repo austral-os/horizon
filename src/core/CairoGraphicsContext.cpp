@@ -13,7 +13,7 @@ namespace horizon
 {
 
     CairoGraphicContext::CairoGraphicContext(const Application *app, void *data, int w, int h)
-        : m_app(app)
+        : m_app(app), m_width(w), m_height(h)
     {
         cairo_s = cairo_image_surface_create_for_data((unsigned char *)data, CAIRO_FORMAT_ARGB32, w,
                                                       h, w * 4);

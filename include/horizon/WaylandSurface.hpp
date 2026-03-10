@@ -3,7 +3,9 @@
 #include "horizon/WaylandEventListener.hpp"
 #include "horizon/Widget.hpp"
 #include <cstdint>
+#include <map>
 #include <string>
+#include <vector>
 #include <xkbcommon/xkbcommon.h>
 
 #include <EGL/egl.h>
@@ -30,6 +32,8 @@ struct zwlr_layer_surface_v1;
 struct wl_output;
 struct xdg_activation_v1;
 struct xdg_activation_token_v1;
+struct zwlr_foreign_toplevel_manager_v1;
+struct zwlr_foreign_toplevel_handle_v1;
 struct wl_egl_window;
 
 namespace horizon
@@ -40,6 +44,21 @@ namespace horizon
      */
     class WaylandSurface
     {
+        // Friend declarations for Wayland callbacks
+        friend void registry_global(void *, struct wl_registry *, uint32_t, const char *, uint32_t);
+        friend void foreign_toplevel_manager_toplevel(void *,
+                                                      struct zwlr_foreign_toplevel_manager_v1 *,
+                                                      struct zwlr_foreign_toplevel_handle_v1 *);
+        friend void foreign_toplevel_handle_title(void *, struct zwlr_foreign_toplevel_handle_v1 *,
+                                                  const char *);
+        friend void foreign_toplevel_handle_app_id(void *, struct zwlr_foreign_toplevel_handle_v1 *,
+                                                   const char *);
+        friend void foreign_toplevel_handle_state(void *, struct zwlr_foreign_toplevel_handle_v1 *,
+                                                  struct wl_array *);
+        friend void foreign_toplevel_handle_closed(void *,
+                                                   struct zwlr_foreign_toplevel_handle_v1 *);
+        friend void foreign_toplevel_handle_done(void *, struct zwlr_foreign_toplevel_handle_v1 *);
+
     public:
         enum class Role
         {
@@ -60,6 +79,7 @@ namespace horizon
         void set_wl_pointer(struct wl_pointer *pointer);
         void set_wl_keyboard(struct wl_keyboard *keyboard);
         void set_xdg_activation(struct xdg_activation_v1 *activation);
+        void set_zwlr_foreign_toplevel_manager(struct zwlr_foreign_toplevel_manager_v1 *manager);
 
         void set_event_listener(WaylandEventListener *listener);
 
@@ -72,6 +92,10 @@ namespace horizon
         struct wl_seat *seat() const;
         struct xdg_wm_base *xdg_wm_base() const;
         struct zwlr_layer_shell_v1 *layer_shell() const;
+        struct zwlr_foreign_toplevel_manager_v1 *foreign_toplevel_manager() const
+        {
+            return m_foreign_toplevel_manager;
+        }
         void *data() const;
         struct wl_surface *surface() const;
         struct wl_buffer *buffer() const;
@@ -174,6 +198,9 @@ namespace horizon
 
         void set_cursor(CursorType type);
 
+        // Foreign toplevel management (for Dock)
+        void restore_foreign_app(const std::string &app_id);
+
         struct xkb_state *xkb_state() const
         {
             return m_xkb_state;
@@ -205,6 +232,7 @@ namespace horizon
         struct xdg_wm_base *m_xdg_wm_base = nullptr;
         struct zwlr_layer_shell_v1 *m_layer_shell = nullptr;
         struct xdg_activation_v1 *m_activation = nullptr;
+        struct zwlr_foreign_toplevel_manager_v1 *m_foreign_toplevel_manager = nullptr;
 
         // EGL Objects
         EGLDisplay m_egl_display = EGL_NO_DISPLAY;
@@ -245,6 +273,17 @@ namespace horizon
         struct xkb_context *m_xkb_context = nullptr;
         struct xkb_keymap *m_xkb_keymap = nullptr;
         struct xkb_state *m_xkb_state = nullptr;
+
+        // Foreign toplevel tracking
+        struct ForeignToplevel
+        {
+            struct zwlr_foreign_toplevel_handle_v1 *handle;
+            std::string title;
+            std::string app_id;
+            bool minimized = false;
+            bool active = false;
+        };
+        std::map<struct zwlr_foreign_toplevel_handle_v1 *, ForeignToplevel> m_foreign_toplevels;
 
         // Layer Shell State tracking
         uint32_t m_layer_num = 0;

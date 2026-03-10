@@ -63,6 +63,8 @@ namespace horizon
     {
     public:
         virtual ~GraphicsContext() = default;
+        virtual int width() const = 0;
+        virtual int height() const = 0;
 
         virtual void paint() {};
         virtual void setColor(float r, float g, float b, float a = 1.0f) {};

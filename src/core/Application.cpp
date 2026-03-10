@@ -80,7 +80,11 @@ namespace horizon
         Logger::instance().init(m_app_id);
         LOG_INFO << "Application started: " << m_name << " (" << m_app_id << ")";
 
-        m_wakeup_fd = eventfd(0, EFD_NONBLOCK);
+        m_wakeup_fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+        if (m_wakeup_fd < 0)
+        {
+            LOG_ERROR << "[APP] Failed to create eventfd: " << strerror(errno);
+        }
 
         // Inicialización del sistema
         m_surface = std::make_unique<WaylandSurface>(w, h);
@@ -956,6 +960,14 @@ namespace horizon
                 }
 
                 int ret = poll(fds, 2, timeout);
+                if (ret < 0)
+                {
+                    if (errno == EINTR)
+                        continue;
+                    LOG_ERROR << "[APP] poll() error: " << strerror(errno);
+                    m_is_running = false;
+                    break;
+                }
 
                 now = std::chrono::duration_cast<std::chrono::milliseconds>(
                           std::chrono::steady_clock::now().time_since_epoch())
@@ -1004,7 +1016,12 @@ namespace horizon
                     // so physical key events update m_is_repeating state before the repeat check.
                     if (fds[0].revents & POLLIN)
                     {
-                        wl_display_dispatch(m_surface->display());
+                        if (wl_display_dispatch(m_surface->display()) == -1)
+                        {
+                            LOG_ERROR << "[APP] wl_display_dispatch() failed, exiting loop.";
+                            m_is_running = false;
+                            break;
+                        }
                     }
                     if (fds[1].revents & POLLIN)
                     {
@@ -1404,15 +1421,14 @@ namespace horizon
 
     GraphicsContext &Application::get_graphics_context() const
     {
-        // CairoGraphicContext is stack-allocated in the render loop.
-        // For general usage (like driver creation), we can provide a temporary one
-        // or a dedicated one. Since drivers just need it for the factory,
-        // we'll return a static/managed one if possible, but for now
-        // let's create a facade or a temporary one.
-        if (!m_gc)
+        int w = width();
+        int h = height();
+        void *data = m_surface->data();
+
+        if (!m_gc || !data || m_gc->width() != w || m_gc->height() != h)
         {
-            m_gc = std::make_unique<CairoGraphicContext>(this, m_surface->data(),
-                                                         m_surface->width(), m_surface->height());
+            LOG_INFO << "[APP] Creating new CairoGraphicsContext (" << w << "x" << h << ")";
+            m_gc = std::make_unique<CairoGraphicContext>(this, data, w, h);
         }
         return *m_gc;
     }

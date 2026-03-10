@@ -1,5 +1,6 @@
 #include "horizon/WayfireCompositorContext.hpp"
 #include "horizon/Application.hpp"
+#include "horizon/Logger.hpp"
 #include "horizon/WaylandSurface.hpp"
 #include <unistd.h>
 
@@ -41,12 +42,15 @@ namespace horizon
 
     void WayfireCompositorContext::restore(const std::string &token)
     {
+        LOG_INFO << "[WayfireContext] Restore requested (Token: "
+                 << (token.empty() ? "EMPTY" : token) << ")";
+
         if (!m_app || !m_app->w_surface())
             return;
 
         auto *surface = m_app->w_surface();
 
-        // Use activation token if provided
+        // Use activation token if provided (Labwc or future Wayfire)
         if (!token.empty())
         {
             surface->activate(token);
@@ -56,11 +60,20 @@ namespace horizon
         {
             if (m_app->was_maximized_before_minimize())
             {
+                LOG_INFO << "[WayfireContext] Window was maximized before minimize, re-maximizing.";
                 surface->request_maximize();
             }
             else
             {
-                surface->request_restore();
+                // WAYFIRE SPECIFIC NUDGE:
+                // Since Wayfire doesn't support xdg_activation_v1 and xdg_shell lacks "unminimize",
+                // we "nudge" the compositor by requesting maximization and a dummy move.
+                // This usually forces the window to be restored from minimized state.
+                LOG_INFO
+                    << "[WayfireContext] Window was minimized, nudging via request_maximize and "
+                       "request_move.";
+                surface->request_maximize();
+                surface->request_move(surface->last_serial());
             }
         }
         else if (m_app->is_maximized())
@@ -69,6 +82,8 @@ namespace horizon
         }
         else
         {
+            // If it's already visible and not maximized, just activate it (if token allowed)
+            // or maximize if we want to ensure it comes to front.
             surface->request_maximize();
         }
 
