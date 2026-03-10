@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Ark
+Exec=/home/horacio/Desarrollo/austral-os/horizon/build/examples/arkfm/arkfm
+Icon=arkfm
+Comment=Ark file manager
+Terminal=false
+Categories=System;

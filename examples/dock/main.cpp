@@ -9,9 +9,23 @@
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <set>
 #include <vector>
 
 using namespace horizon;
+
+struct PinnedApp
+{
+    std::string app_id;
+    std::string name;
+    std::string icon;
+    std::string run_id; // ID used for run_app signal
+};
+
+const std::vector<PinnedApp> PINNED_APPS = {
+    {"arkfm", "Ark File Manager", "arkfm", "arkfm"},
+    {"alacritty", "Terminal", "utilities-terminal", "terminal"},
+    {"firefox", "Web Browser", "firefox", "firefox"}};
 
 /**
  * @brief Custom widget mimicking the Mac OS X Mountain Lion 3D Dock shelf.
@@ -170,134 +184,241 @@ int main(int argc, char *argv[])
 
         app->set_root(std::move(root));
 
-        // 5. Subscribe to Horizon Session Broker
-        IpcClient client("/tmp/horizon_session.sock");
-        client.subscribe(
-            "{\"type\": \"subscribe\"}",
-            [&app, shelf_ptr, is_wayfire](const std::string &msg)
+        // 5. Dock Update Logic
+        auto update_dock = [app_ptr = app.get(), shelf_ptr, is_wayfire](const nlohmann::json &apps)
+        {
+            LOG_INFO << "Updating Dock icons...";
+            shelf_ptr->clear_children();
+
+            // Track which pinned apps are already running
+            std::set<std::string> running_pinned_ids;
+
+            // 1. Add Pinned Apps (checking if they are running)
+            for (const auto &pinned : PINNED_APPS)
             {
-                try
+                bool is_running = false;
+                nlohmann::json running_app_data;
+
+                for (const auto &app_j : apps)
                 {
-                    auto j = nlohmann::json::parse(msg);
-                    if (j.value("type", "") == "app_list_updated")
+                    std::string app_id = app_j.value("app_id", "");
+                    // Simple match by app_id
+                    if (app_id.find(pinned.app_id) != std::string::npos)
                     {
-                        auto apps = j.at("apps");
-                        // Update UI on the main thread
-                        app->post_task(
-                            [app_ptr = app.get(), shelf_ptr, apps, is_wayfire]()
-                            {
-                                LOG_INFO << "Updating Dock icons from App Manager...";
-                                shelf_ptr->clear_children();
-                                for (const auto &app_j : apps)
-                                {
-                                    if (app_j.value("show_in_dock", false))
-                                    {
-                                        auto icn = std::make_unique<Icon>();
-                                        icn->set_icon_name(
-                                            app_j.value("icon", "application-x-executable"));
-                                        icn->set_icon_size(48);
-                                        icn->set_margin(5);
-
-                                        int pid = app_j.value("pid", -1);
-                                        std::string app_id = app_j.value("app_id", "");
-                                        bool is_minimized = app_j.value("is_minimized", false);
-                                        icn->when_mouse_press.connect(
-                                            [app_ptr, pid, app_id, is_wayfire,
-                                             is_minimized](MouseButtonEventContext &ctx)
-                                            {
-                                                if (pid == -1)
-                                                    return;
-
-                                                auto send_sig = [pid](const std::string &sig_name,
-                                                                      const std::string &token = "")
-                                                {
-                                                    try
-                                                    {
-                                                        nlohmann::json sig;
-                                                        sig["type"] = "send_signal";
-                                                        sig["target_pid"] = pid;
-                                                        sig["signal"] = sig_name;
-                                                        if (!token.empty())
-                                                            sig["token"] = token;
-
-                                                        IpcClient client(
-                                                            "/tmp/horizon_session.sock");
-                                                        client.send(sig.dump());
-                                                    }
-                                                    catch (...)
-                                                    {
-                                                    }
-                                                };
-
-                                                if (ctx.button == 274) // BTN_MIDDLE
-                                                {
-                                                    LOG_INFO << "[DOCK] Middle click! Sending "
-                                                                "close to PID: "
-                                                             << pid;
-                                                    send_sig("close");
-                                                    return;
-                                                }
-
-                                                LOG_INFO
-                                                    << "[DOCK] Icon clicked! Target PID: " << pid
-                                                    << " (State: "
-                                                    << (is_minimized ? "minimized" : "visible")
-                                                    << ", Serial: " << ctx.serial << ")";
-
-                                                if (is_minimized)
-                                                {
-                                                    if (is_wayfire && !app_id.empty())
-                                                    {
-                                                        LOG_INFO << "[DOCK] Wayfire Restore: using "
-                                                                    "foreign-toplevel for "
-                                                                 << app_id;
-                                                        app_ptr->w_surface()->restore_foreign_app(
-                                                            app_id);
-                                                    }
-                                                    else
-                                                    {
-                                                        LOG_INFO << "[DOCK] Requesting activation "
-                                                                    "token for PID: "
-                                                                 << pid
-                                                                 << " (Serial: " << ctx.serial
-                                                                 << ")";
-                                                        // Request activation token before restoring
-                                                        app_ptr->w_surface()
-                                                            ->request_activation_token(
-                                                                [send_sig](const std::string &token)
-                                                                {
-                                                                    LOG_INFO
-                                                                        << "[DOCK] Got activation "
-                                                                           "response "
-                                                                           "for PID: "
-                                                                        << (token.empty() ? "EMPTY"
-                                                                                          : token)
-                                                                        << ", sending restore";
-                                                                    send_sig("restore", token);
-                                                                },
-                                                                ctx.serial);
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    send_sig("minimize");
-                                                }
-                                            });
-
-                                        shelf_ptr->add_child(std::move(icn));
-                                    }
-                                }
-                                shelf_ptr->calculate_layout();
-                                app_ptr
-                                    ->invalidate(); // Trigger full repaint for transparent surface
-                            });
+                        is_running = true;
+                        running_app_data = app_j;
+                        running_pinned_ids.insert(app_id);
+                        break;
                     }
                 }
-                catch (const std::exception &e)
+
+                auto icn = std::make_unique<Icon>();
+                icn->set_icon_name(pinned.icon);
+                icn->set_icon_size(48);
+                icn->set_margin(5);
+
+                if (is_running)
                 {
-                    LOG_ERROR << "Dock: Error parsing broadcast: " << e.what();
+                    int pid = running_app_data.value("pid", -1);
+                    std::string app_id = running_app_data.value("app_id", "");
+                    bool is_minimized = running_app_data.value("is_minimized", false);
+
+                    icn->when_mouse_press.connect(
+                        [app_ptr, pid, app_id, is_wayfire,
+                         is_minimized](MouseButtonEventContext &ctx)
+                        {
+                            if (pid == -1)
+                                return;
+
+                            auto send_sig =
+                                [pid](const std::string &sig_name, const std::string &token = "")
+                            {
+                                try
+                                {
+                                    nlohmann::json sig;
+                                    sig["type"] = "send_signal";
+                                    sig["target_pid"] = pid;
+                                    sig["signal"] = sig_name;
+                                    if (!token.empty())
+                                        sig["token"] = token;
+
+                                    IpcClient client("/tmp/horizon_session.sock");
+                                    client.send(sig.dump());
+                                }
+                                catch (...)
+                                {
+                                }
+                            };
+
+                            if (ctx.button == 274) // BTN_MIDDLE
+                            {
+                                send_sig("close");
+                                return;
+                            }
+
+                            if (is_minimized)
+                            {
+                                if (is_wayfire && !app_id.empty())
+                                {
+                                    app_ptr->w_surface()->restore_foreign_app(app_id);
+                                }
+                                else
+                                {
+                                    app_ptr->w_surface()->request_activation_token(
+                                        [send_sig](const std::string &token)
+                                        { send_sig("restore", token); }, ctx.serial);
+                                }
+                            }
+                            else
+                            {
+                                send_sig("minimize");
+                            }
+                        });
                 }
-            });
+                else
+                {
+                    // Not running, clicking launches it via horizon_session signal
+                    icn->when_mouse_press.connect(
+                        [app_ptr, run_id = pinned.run_id](MouseButtonEventContext &ctx)
+                        {
+                            if (ctx.button == 272) // BTN_LEFT
+                            {
+                                LOG_INFO << "[DOCK] Requesting to run app: " << run_id;
+                                app_ptr->send_remote_signal(-1, "run_app", run_id);
+                            }
+                        });
+                }
+
+                shelf_ptr->add_child(std::move(icn));
+            }
+
+            // 2. Add Separator (if there are other running apps)
+            bool has_other_apps = false;
+            for (const auto &app_j : apps)
+            {
+                if (app_j.value("show_in_dock", false))
+                {
+                    std::string app_id = app_j.value("app_id", "");
+                    if (running_pinned_ids.find(app_id) == running_pinned_ids.end())
+                    {
+                        has_other_apps = true;
+                        break;
+                    }
+                }
+            }
+
+            if (has_other_apps)
+            {
+                auto separator = std::make_unique<Widget>();
+                separator->set_fixed_size(2);
+                separator->set_margin(10);
+                separator->set_background_color({1.0f, 1.0f, 1.0f, 0.3f});
+                shelf_ptr->add_child(std::move(separator));
+            }
+
+            // 3. Add Other Running Apps
+            for (const auto &app_j : apps)
+            {
+                if (app_j.value("show_in_dock", false))
+                {
+                    std::string app_id = app_j.value("app_id", "");
+                    if (running_pinned_ids.find(app_id) != running_pinned_ids.end())
+                    {
+                        continue; // Already added as pinned
+                    }
+
+                    auto icn = std::make_unique<Icon>();
+                    icn->set_icon_name(app_j.value("icon", "application-x-executable"));
+                    icn->set_icon_size(48);
+                    icn->set_margin(5);
+
+                    int pid = app_j.value("pid", -1);
+                    std::string app_id_str = app_j.value("app_id", "");
+                    bool is_minimized = app_j.value("is_minimized", false);
+
+                    icn->when_mouse_press.connect(
+                        [app_ptr, pid, app_id_str, is_wayfire,
+                         is_minimized](MouseButtonEventContext &ctx)
+                        {
+                            if (pid == -1)
+                                return;
+
+                            auto send_sig =
+                                [pid](const std::string &sig_name, const std::string &token = "")
+                            {
+                                try
+                                {
+                                    nlohmann::json sig;
+                                    sig["type"] = "send_signal";
+                                    sig["target_pid"] = pid;
+                                    sig["signal"] = sig_name;
+                                    if (!token.empty())
+                                        sig["token"] = token;
+
+                                    IpcClient client("/tmp/horizon_session.sock");
+                                    client.send(sig.dump());
+                                }
+                                catch (...)
+                                {
+                                }
+                            };
+
+                            if (ctx.button == 274) // BTN_MIDDLE
+                            {
+                                send_sig("close");
+                                return;
+                            }
+
+                            if (is_minimized)
+                            {
+                                if (is_wayfire && !app_id_str.empty())
+                                {
+                                    app_ptr->w_surface()->restore_foreign_app(app_id_str);
+                                }
+                                else
+                                {
+                                    app_ptr->w_surface()->request_activation_token(
+                                        [send_sig](const std::string &token)
+                                        { send_sig("restore", token); }, ctx.serial);
+                                }
+                            }
+                            else
+                            {
+                                send_sig("minimize");
+                            }
+                        });
+
+                    shelf_ptr->add_child(std::move(icn));
+                }
+            }
+            shelf_ptr->calculate_layout();
+            app_ptr->invalidate(); // Trigger full repaint for transparent surface
+        };
+
+        // Initial update with empty apps list to show pinned apps
+        app->post_task([update_dock]() { update_dock(nlohmann::json::array()); });
+
+        // 6. Subscribe to Horizon Session Broker
+        IpcClient client("/tmp/horizon_session.sock");
+        client.subscribe("{\"type\": \"subscribe\"}",
+                         [app_ptr = app.get(), update_dock](const std::string &msg)
+                         {
+                             try
+                             {
+                                 auto j = nlohmann::json::parse(msg);
+                                 if (j.value("type", "") == "app_list_updated")
+                                 {
+                                     auto apps = j.at("apps");
+                                     // Update UI on the main thread
+                                     app_ptr->post_task([update_dock, apps]()
+                                                        { update_dock(apps); });
+                                 }
+                             }
+                             catch (const std::exception &e)
+                             {
+                                 LOG_ERROR << "Dock: Error parsing broadcast: " << e.what();
+                             }
+                         });
 
         LOG_INFO << "Starting Mountain Lion OS X Dock Overlay...";
         app->run();
