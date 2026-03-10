@@ -19,6 +19,9 @@ int main(int argc, char *argv[])
     // Request keyboard focus immediately
     app->set_keyboard_interactivity(ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
 
+    // Set exclusive zone to -1 to ignore panels and be truly fullscreen
+    app->set_exclusive_zone(-1);
+
     // Enable background blur
     app->set_blur(true);
 

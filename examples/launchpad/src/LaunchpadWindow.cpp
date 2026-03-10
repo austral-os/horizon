@@ -14,8 +14,12 @@ namespace horizon
     LaunchpadWindow::LaunchpadWindow() : Widget()
     {
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        set_margin(40);
-        set_spacing(20);
+        set_spacing(40);
+
+        // Top spacer for some padding from the screen edge
+        auto top_spacer = std::make_unique<Widget>();
+        top_spacer->set_fixed_size(40);
+        add_child(std::move(top_spacer));
 
         // Search Box
         auto search_box = std::make_unique<SearchBox>();
