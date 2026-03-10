@@ -108,12 +108,12 @@ namespace horizon
 
     bool WayfireCompositorContext::is_maximized() const
     {
-        return m_app && m_app->is_maximized();
+        return m_app && m_app->w_surface() && m_app->w_surface()->is_maximized();
     }
 
     bool WayfireCompositorContext::is_fullscreen() const
     {
-        return m_app && m_app->is_fullscreen();
+        return m_app && m_app->w_surface() && m_app->w_surface()->is_fullscreen();
     }
 
     void WayfireCompositorContext::set_blur(bool enabled)

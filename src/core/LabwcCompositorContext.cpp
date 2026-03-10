@@ -100,12 +100,12 @@ namespace horizon
 
     bool LabwcCompositorContext::is_maximized() const
     {
-        return m_app && m_app->is_maximized();
+        return m_app && m_app->w_surface() && m_app->w_surface()->is_maximized();
     }
 
     bool LabwcCompositorContext::is_fullscreen() const
     {
-        return m_app && m_app->is_fullscreen();
+        return m_app && m_app->w_surface() && m_app->w_surface()->is_fullscreen();
     }
 
     void LabwcCompositorContext::set_blur(bool enabled)

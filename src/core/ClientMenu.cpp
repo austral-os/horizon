@@ -121,6 +121,11 @@ namespace horizon
             j["shortcut"] = item->shortcut();
         }
 
+        if (item->submenu())
+        {
+            j["submenu"] = menu_to_json(item->submenu());
+        }
+
         return j;
     }
 

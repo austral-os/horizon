@@ -56,6 +56,10 @@ namespace horizon
                     const std::string icon = item_json.value("icon", "");
 
                     auto *item = menu->add_item(text, shortcut);
+                    if (!item_id.empty())
+                    {
+                        item->set_id(item_id);
+                    }
                     if (!icon.empty())
                     {
                         item->set_icon(icon);

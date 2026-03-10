@@ -54,6 +54,10 @@ namespace horizon
         void set_content_widget(std::unique_ptr<Widget> widget);
 
         void set_submenu(Menu *submenu);
+        Menu *submenu() const
+        {
+            return m_submenu;
+        }
 
         // Returns the minimum width needed to display this item without truncation
         int preferred_width() const override;

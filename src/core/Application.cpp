@@ -445,6 +445,19 @@ namespace horizon
 
         // We no longer update m_modifiers here; on_modifiers_event is the sole source of truth
         target->when_key_press.run(new_ev);
+
+        // Global shortcuts
+        if (event.key == KEY_F11)
+        {
+            if (this->is_fullscreen())
+                this->unfullscreen();
+            else
+                this->fullscreen();
+        }
+        else if (event.key == KEY_Q && (m_modifiers & CTRL))
+        {
+            this->on_close();
+        }
     }
 
     void Application::handle_key_release(const KeyEvent &event)
@@ -779,13 +792,18 @@ namespace horizon
 
         m_app_menu->set_title(m_name);
         m_app_menu->set_bold(true);
-        m_app_menu->add_item("Preferences", "Ctrl+,");
+        m_app_menu->add_item("Preferencias", "Ctrl+,");
+        auto *fullscreen_item = m_app_menu->add_item("Pantalla completa", "F11");
+        fullscreen_item->set_id("fullscreen");
         m_app_menu->add_separator();
-        auto *global_quit = m_app_menu->add_item("Quit", "Ctrl+Q");
+        auto *global_quit = m_app_menu->add_item("Salir", "Ctrl+Q");
         global_quit->set_id("quit");
 
         auto mnu = m_app_menu.get();
-        m_global_menus.insert(m_global_menus.begin(), mnu);
+        if (std::find(m_global_menus.begin(), m_global_menus.end(), mnu) == m_global_menus.end())
+        {
+            m_global_menus.insert(m_global_menus.begin(), mnu);
+        }
 
         if (!m_client_menu)
         {
@@ -870,6 +888,21 @@ namespace horizon
                                                     "triggering on_close()"
                                                  << std::endl;
                                         this->post_task([this]() { this->on_close(); });
+                                    }
+                                    else if (item_id == "fullscreen")
+                                    {
+                                        LOG_INFO
+                                            << "[APP] Received menu_item_clicked for 'fullscreen', "
+                                               "toggling state"
+                                            << std::endl;
+                                        this->post_task(
+                                            [this]()
+                                            {
+                                                if (this->is_fullscreen())
+                                                    this->unfullscreen();
+                                                else
+                                                    this->fullscreen();
+                                            });
                                     }
                                 }
                             }
@@ -1217,7 +1250,7 @@ namespace horizon
 
     bool Application::is_fullscreen() const
     {
-        return m_compositor_context && m_compositor_context->is_fullscreen();
+        return m_surface && m_surface->is_fullscreen();
     }
 
     bool Application::is_minimized() const
