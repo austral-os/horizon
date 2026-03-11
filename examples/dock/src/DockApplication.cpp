@@ -2,6 +2,7 @@
 #include "DockItem.hpp"
 #include "DockShelf.hpp"
 #include <algorithm>
+#include <horizon/ApplicationLauncher.hpp>
 #include <horizon/DesktopEntry.hpp>
 #include <horizon/IpcClient.hpp>
 #include <horizon/LabwcAppAdapter.hpp>
@@ -115,17 +116,23 @@ namespace horizon
                 post_task(
                     [this, item_id]()
                     {
-                        if (item_id == "dock_exit")
+                        if (item_id.find("dock_exit:") == 0)
                         {
-                            LOG_INFO << "[DOCK] Exit requested via context menu.";
-                            // Signal the application to quit cleanly
-                            quit();
+                            int pid = std::stoi(item_id.substr(10));
+                            LOG_INFO << "[DOCK] Exit requested for pid: " << pid;
+                            send_remote_signal(pid, "close");
                         }
-                        else if (item_id == "dock_fullscreen")
+                        else if (item_id.find("dock_fullscreen:") == 0)
                         {
-                            LOG_INFO << "[DOCK] Fullscreen toggle requested via context menu.";
-                            // Send toggle_fullscreen signal to the currently focused app
-                            send_remote_signal(-1, "toggle_fullscreen");
+                            int pid = std::stoi(item_id.substr(16));
+                            LOG_INFO << "[DOCK] Fullscreen toggle requested for pid: " << pid;
+                            send_remote_signal(pid, "toggle_fullscreen");
+                        }
+                        else if (item_id.find("dock_launch:") == 0)
+                        {
+                            std::string run_id = item_id.substr(12);
+                            LOG_INFO << "[DOCK] Launch requested for run_id: " << run_id;
+                            ApplicationLauncher::launch(run_id);
                         }
                     });
 
@@ -176,7 +183,7 @@ namespace horizon
             true);
     }
 
-    void DockApplication::show_dock_context_menu(int x, int y)
+    void DockApplication::show_dock_context_menu(int x, int y, int pid, const std::string &run_id)
     {
         // La coordenada 'y' recibida es local dentro del dock.
         // El dock está anclado al borde inferior, así que su posición global en Y
@@ -200,13 +207,21 @@ namespace horizon
         auto menu = std::make_unique<Menu>();
         menu->set_title("dock_context");
 
-        auto *exit_item = menu->add_item("Salir");
-        exit_item->set_id("dock_exit");
+        if (pid != -1)
+        {
+            auto *exit_item = menu->add_item("Salir");
+            exit_item->set_id("dock_exit:" + std::to_string(pid));
 
-        auto *fullscreen_item = menu->add_item("Entrar en pantalla completa");
-        fullscreen_item->set_id("dock_fullscreen");
+            auto *fullscreen_item = menu->add_item("Entrar en pantalla completa");
+            fullscreen_item->set_id("dock_fullscreen:" + std::to_string(pid));
+        }
+        else if (!run_id.empty())
+        {
+            auto *launch_item = menu->add_item("Lanzar aplicación");
+            launch_item->set_id("dock_launch:" + run_id);
+        }
 
-        LOG_INFO << "[DOCK] Showing context menu at (" << x << ", " << global_y << ")";
+        LOG_INFO << "[DOCK] Showing context menu at (" << x << ", " << global_y << ") for pid=" << pid;
         _client_menu.show_menu(menu.get(), x, global_y, -1, "org.horizon.dock");
 
         // menu is kept alive long enough for show_menu() to serialize it
@@ -246,7 +261,8 @@ namespace horizon
             }
 
             auto item = std::make_unique<DockItem>(this, pinned.icon, _is_wayfire);
-            item->on_right_click = [this](int x, int y) { show_dock_context_menu(x, y); };
+            item->on_right_click = [this, item_ptr = item.get()](int x, int y)
+            { show_dock_context_menu(x, y, item_ptr->pid(), item_ptr->run_id()); };
 
             if (is_running)
             {
@@ -297,7 +313,8 @@ namespace horizon
                     icon = app_info.app_id;
 
                 auto item = std::make_unique<DockItem>(this, icon, _is_wayfire);
-                item->on_right_click = [this](int x, int y) { show_dock_context_menu(x, y); };
+                item->on_right_click = [this, item_ptr = item.get()](int x, int y)
+                { show_dock_context_menu(x, y, item_ptr->pid(), item_ptr->run_id()); };
                 item->set_app_info(app_info);
                 _shelf_ptr->add_child(std::move(item));
             }

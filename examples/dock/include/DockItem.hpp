@@ -20,6 +20,10 @@ namespace horizon
         // Called when the user right-clicks this item. Receives absolute screen (x, y).
         std::function<void(int, int)> on_right_click;
 
+        int pid() const { return _pid; }
+        const std::string &run_id() const { return _run_id; }
+        bool is_running() const { return _is_running; }
+
     private:
         void send_sig(const std::string &sig_name, const std::string &token = "");
         void setup_running_behavior();
