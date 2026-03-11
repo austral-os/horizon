@@ -22,6 +22,8 @@ namespace horizon
         void set_zoom(float zoom);
         float zoom() const;
 
+        void set_transparent(bool transparent);
+
         void set_selected_index(int index);
         int selected_index() const;
 

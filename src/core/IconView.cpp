@@ -7,7 +7,7 @@ namespace horizon
 {
     IconViewBase::IconViewBase() : Widget()
     {
-        m_background_color = Color(0.0f, 0.0f, 0.0f, 0.0f); // Default transparent
+        m_background_color = Color(1.0f, 1.0f, 1.0f, 1.0f); // Default white
 
         auto scroll_area = std::make_unique<ScrollArea>();
         scroll_area->set_position_type(FREE);
@@ -34,6 +34,18 @@ namespace horizon
     float IconViewBase::zoom() const
     {
         return m_zoom;
+    }
+
+    void IconViewBase::set_transparent(bool transparent)
+    {
+        if (transparent)
+        {
+            set_background_color(Color(0.0f, 0.0f, 0.0f, 0.0f));
+        }
+        else
+        {
+            set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+        }
     }
 
     void IconViewBase::set_selected_index(int index)

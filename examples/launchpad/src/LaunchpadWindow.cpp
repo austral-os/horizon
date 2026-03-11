@@ -46,6 +46,7 @@ namespace horizon
         auto icon_view = std::make_unique<IconView<AppData>>();
         icon_view->set_zoom(1.2f);
         icon_view->set_item_size(120, 140);
+        icon_view->set_transparent(true);
         m_icon_view = icon_view.get();
 
         icon_view->set_item_factory(
