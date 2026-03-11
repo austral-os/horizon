@@ -63,6 +63,13 @@ namespace horizon
         when_mouse_press.connect(
             [this](MouseButtonEventContext &ctx)
             {
+                if (ctx.button == 273) // BTN_RIGHT
+                {
+                    if (on_right_click)
+                        on_right_click(x() + width() / 2, y());
+                    return;
+                }
+
                 auto *ca = _app->compositor_apps();
                 if (!ca || _app_id.empty())
                     return;
@@ -90,6 +97,13 @@ namespace horizon
         when_mouse_press.connect(
             [this](MouseButtonEventContext &ctx)
             {
+                if (ctx.button == 273) // BTN_RIGHT
+                {
+                    if (on_right_click)
+                        on_right_click(x() + width() / 2, y());
+                    return;
+                }
+
                 if (ctx.button == 272) // BTN_LEFT
                 {
                     LOG_INFO << "[DOCK] Requesting to run app: " << _run_id;

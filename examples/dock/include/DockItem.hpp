@@ -3,6 +3,7 @@
 #include <horizon/CompositorAppInterface.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/LayerApplication.hpp>
+#include <functional>
 #include <string>
 
 namespace horizon
@@ -15,6 +16,9 @@ namespace horizon
 
         void set_app_info(const ApplicationInfo &info);
         void set_pinned_data(const std::string &run_id);
+
+        // Called when the user right-clicks this item. Receives absolute screen (x, y).
+        std::function<void(int, int)> on_right_click;
 
     private:
         void send_sig(const std::string &sig_name, const std::string &token = "");

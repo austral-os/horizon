@@ -3,8 +3,10 @@
 #include "DockShelf.hpp"
 #include <algorithm>
 #include <horizon/DesktopEntry.hpp>
+#include <horizon/IpcClient.hpp>
 #include <horizon/LabwcAppAdapter.hpp>
 #include <horizon/Logger.hpp>
+#include <horizon/Menu.hpp>
 #include <horizon/WayfireAppAdapter.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
@@ -21,6 +23,7 @@ namespace horizon
 
     DockApplication::DockApplication()
         : LayerApplication("org.horizon.dock", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY)
+        , _router(std::make_unique<RequestRouter>(_message_manager))
     {
         set_name("Dock");
         set_anchor(2 | 4 | 8); // BOTTOM | LEFT | RIGHT
@@ -93,6 +96,102 @@ namespace horizon
         _compositor_apps->when_update.connect(
             [this](AppListEventContext &ctx)
             { post_task([this, apps = ctx.apps]() { update_dock(apps); }); });
+
+        setup_context_menu_ipc();
+    }
+
+    void DockApplication::setup_context_menu_ipc()
+    {
+        // Register handler for menu_item_clicked sent back by horizon_menu_manager_d
+        _router->register_handler(
+            "menu_item_clicked",
+            [this](const std::string &request_id, const nlohmann::json &request,
+                   MessageManager &) -> nlohmann::json
+            {
+                std::string item_id = request.value("id", "");
+                LOG_INFO << "[DOCK] Context menu item clicked: " << item_id;
+
+                post_task(
+                    [this, item_id]()
+                    {
+                        if (item_id == "dock_exit")
+                        {
+                            LOG_INFO << "[DOCK] Exit requested via context menu.";
+                            // Signal the application to quit cleanly
+                            quit();
+                        }
+                        else if (item_id == "dock_fullscreen")
+                        {
+                            LOG_INFO << "[DOCK] Fullscreen toggle requested via context menu.";
+                            // Send toggle_fullscreen signal to the currently focused app
+                            send_remote_signal(-1, "toggle_fullscreen");
+                        }
+                    });
+
+                nlohmann::json response;
+                response["status"] = "ok";
+                response["request_id"] = request_id;
+                return response;
+            });
+
+        // Subscribe to the session socket to receive menu_item_clicked messages
+        _menu_ipc_client = std::make_unique<IpcClient>("/tmp/horizon_session.sock");
+        _menu_ipc_client->subscribe(
+            "{\"type\": \"subscribe\"}",
+            [this](const std::string &msg)
+            {
+                try
+                {
+                    auto j = nlohmann::json::parse(msg);
+                    if (j.value("receiver_id", "") == "org.horizon.dock")
+                    {
+                        std::lock_guard<std::mutex> lock(_queue_mutex);
+                        _pending_messages.push_back(msg);
+                    }
+                }
+                catch (...)
+                {
+                }
+            });
+
+        // Process incoming messages on the main thread every 50ms
+        add_timer(
+            50,
+            [this]()
+            {
+                std::vector<std::string> to_process;
+                {
+                    std::lock_guard<std::mutex> lock(_queue_mutex);
+                    if (_pending_messages.empty())
+                        return;
+                    to_process = std::move(_pending_messages);
+                    _pending_messages.clear();
+                }
+                for (const auto &msg : to_process)
+                {
+                    LOG_INFO << "[DOCK] Routing IPC message: " << msg;
+                    _router->route(msg);
+                }
+            },
+            true);
+    }
+
+    void DockApplication::show_dock_context_menu(int x, int y)
+    {
+        // Build the context menu
+        auto menu = std::make_unique<Menu>();
+        menu->set_title("dock_context");
+
+        auto *exit_item = menu->add_item("Salir");
+        exit_item->set_id("dock_exit");
+
+        auto *fullscreen_item = menu->add_item("Entrar en pantalla completa");
+        fullscreen_item->set_id("dock_fullscreen");
+
+        LOG_INFO << "[DOCK] Showing context menu at (" << x << ", " << y << ")";
+        _client_menu.show_menu(menu.get(), x, y, -1, "org.horizon.dock");
+
+        // menu is kept alive long enough for show_menu() to serialize it
     }
 
     void DockApplication::update_dock(const std::vector<ApplicationInfo> &apps)
@@ -129,10 +228,10 @@ namespace horizon
             }
 
             auto item = std::make_unique<DockItem>(this, pinned.icon, _is_wayfire);
+            item->on_right_click = [this](int x, int y) { show_dock_context_menu(x, y); };
+
             if (is_running)
             {
-                // We'll need to update DockItem to accept ApplicationInfo or keep JSON
-                // For now, let's assume we update DockItem
                 item->set_app_info(running_app_data);
             }
             else
@@ -180,6 +279,7 @@ namespace horizon
                     icon = app_info.app_id;
 
                 auto item = std::make_unique<DockItem>(this, icon, _is_wayfire);
+                item->on_right_click = [this](int x, int y) { show_dock_context_menu(x, y); };
                 item->set_app_info(app_info);
                 _shelf_ptr->add_child(std::move(item));
             }
