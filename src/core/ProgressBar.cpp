@@ -32,15 +32,40 @@ namespace horizon
 
         if (m_app)
         {
-            m_timer_id =
-                m_app->add_timer(60,
-                                 [this]()
-                                 {
-                                     m_animation_offset += 2.0f;
-                                     if (m_animation_offset >= 25.0f) // Matches stripe_spacing
-                                         m_animation_offset = 0.0f;
-                                     invalidate();
-                                 });
+            m_timer_id = m_app->add_timer(
+                60,
+                [this]()
+                {
+                    if (!is_effectively_visible())
+                        return;
+
+                    bool needs_repaint = false;
+
+                    // 1. Stripe animation offset
+                    m_animation_offset += 2.0f;
+                    if (m_animation_offset >= 25.0f) // Matches stripe_spacing
+                        m_animation_offset = 0.0f;
+                    needs_repaint = true;
+
+                    // 2. Smooth progress transition
+                    if (!m_is_indeterminate)
+                    {
+                        if (std::abs(m_progress - m_target_progress) > 0.001f)
+                        {
+                            float delta = m_target_progress - m_progress;
+                            float step = 0.05f; // Transition speed
+                            if (std::abs(delta) < step)
+                                m_progress = m_target_progress;
+                            else
+                                m_progress += (delta > 0 ? step : -step);
+                            needs_repaint = true;
+                        }
+                    }
+
+                    if (needs_repaint)
+                        invalidate();
+                },
+                true); // repeat = true
         }
     }
 
@@ -99,9 +124,10 @@ namespace horizon
         gc.drawLine(m_x + radius.top_left, m_y + m_height, m_x + m_width - radius.top_right,
                     m_y + m_height, 1.0f);
 
-        if (m_progress > 0.0f)
+        if (m_progress > 0.0f || m_is_indeterminate)
         {
-            int progress_width = (int)(m_width * std::clamp(m_progress, 0.0f, 1.0f));
+            float draw_progress = m_is_indeterminate ? 1.0f : m_progress;
+            int progress_width = (int)(m_width * std::clamp(draw_progress, 0.0f, 1.0f));
             if (progress_width < m_height)
                 progress_width = m_height;
 
@@ -139,8 +165,20 @@ namespace horizon
 
     void ProgressBar::set_progress(float progress)
     {
-        m_progress = std::clamp(progress, 0.0f, 1.0f);
+        m_target_progress = std::clamp(progress, 0.0f, 1.0f);
+        m_is_indeterminate = false;
         invalidate();
+    }
+
+    void ProgressBar::set_indeterminate(bool indeterminate)
+    {
+        m_is_indeterminate = indeterminate;
+        invalidate();
+    }
+
+    bool ProgressBar::is_indeterminate() const
+    {
+        return m_is_indeterminate;
     }
 
     float ProgressBar::progress() const

@@ -149,6 +149,11 @@ namespace horizon
         void set_visible(bool visible);
         bool is_visible() const;
 
+        /**
+         * @return True if the widget and all its parents are visible.
+         */
+        bool is_effectively_visible() const;
+
         void set_enabled(bool enabled);
         bool is_enabled() const;
 

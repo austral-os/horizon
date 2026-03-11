@@ -483,6 +483,14 @@ namespace horizon
     {
         return m_visible;
     }
+    bool Widget::is_effectively_visible() const
+    {
+        if (!m_visible)
+            return false;
+        if (m_parent)
+            return m_parent->is_effectively_visible();
+        return true;
+    }
     void Widget::set_enabled(bool enabled)
     {
         if (m_enabled != enabled)
