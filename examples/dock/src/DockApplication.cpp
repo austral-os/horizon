@@ -146,6 +146,18 @@ namespace horizon
                             LOG_INFO << "[DOCK] Launch requested for run_id: " << run_id;
                             ApplicationLauncher::launch(run_id);
                         }
+                        else if (item_id.find("dock_exit_instance:") == 0)
+                        {
+                            uintptr_t instance_id = std::stoull(item_id.substr(19));
+                            LOG_INFO << "[DOCK] Exit requested for instance: " << instance_id;
+                            compositor_apps()->close_instance(instance_id);
+                        }
+                        else if (item_id.find("dock_fullscreen_instance:") == 0)
+                        {
+                            uintptr_t instance_id = std::stoull(item_id.substr(25));
+                            LOG_INFO << "[DOCK] Fullscreen toggle requested for instance: " << instance_id;
+                            compositor_apps()->toggle_fullscreen_instance(instance_id);
+                        }
                     });
 
                 nlohmann::json response;
@@ -195,7 +207,7 @@ namespace horizon
             true);
     }
 
-    void DockApplication::show_dock_context_menu(int x, int y, int pid, const std::string &run_id, const std::string &app_id)
+    void DockApplication::show_dock_context_menu(int x, int y, int pid, const std::string &run_id, const std::string &app_id, uintptr_t instance_id)
     {
         // La coordenada 'y' recibida es local dentro del dock.
         // El dock está anclado al borde inferior, así que su posición global en Y
@@ -219,21 +231,41 @@ namespace horizon
         auto menu = std::make_unique<Menu>();
         menu->set_title("dock_context");
 
-        if (pid != -1)
+        if (pid != -1 || !app_id.empty())
         {
-            auto *exit_item = menu->add_item("Salir");
-            exit_item->set_id("dock_exit:" + std::to_string(pid));
+            // First option: Open new instance (if we have a way to launch it)
+            std::string launch_id = run_id;
+            if (launch_id.empty() && !app_id.empty())
+            {
+                launch_id = app_id;
+            }
 
-            auto *fullscreen_item = menu->add_item("Entrar en pantalla completa");
-            fullscreen_item->set_id("dock_fullscreen:" + std::to_string(pid));
-        }
-        else if (!app_id.empty())
-        {
-            auto *exit_item = menu->add_item("Salir");
-            exit_item->set_id("dock_exit_id:" + app_id);
+            if (!launch_id.empty())
+            {
+                auto *new_instance_item = menu->add_item("Abrir nueva instancia");
+                new_instance_item->set_id("dock_launch:" + launch_id);
+            }
 
+            // Second option: Fullscreen
             auto *fullscreen_item = menu->add_item("Entrar en pantalla completa");
-            fullscreen_item->set_id("dock_fullscreen_id:" + app_id);
+            if (instance_id != 0)
+                fullscreen_item->set_id("dock_fullscreen_instance:" + std::to_string(instance_id));
+            else if (pid != -1)
+                fullscreen_item->set_id("dock_fullscreen:" + std::to_string(pid));
+            else
+                fullscreen_item->set_id("dock_fullscreen_id:" + app_id);
+
+            // Separator
+            menu->add_separator();
+
+            // Third option: Exit
+            auto *exit_item = menu->add_item("Salir");
+            if (instance_id != 0)
+                exit_item->set_id("dock_exit_instance:" + std::to_string(instance_id));
+            else if (pid != -1)
+                exit_item->set_id("dock_exit:" + std::to_string(pid));
+            else
+                exit_item->set_id("dock_exit_id:" + app_id);
         }
         else if (!run_id.empty())
         {
@@ -282,11 +314,13 @@ namespace horizon
 
             auto item = std::make_unique<DockItem>(this, pinned.icon, _is_wayfire);
             item->on_right_click = [this, item_ptr = item.get()](int x, int y)
-            { show_dock_context_menu(x, y, item_ptr->pid(), item_ptr->run_id(), item_ptr->app_id()); };
+            { show_dock_context_menu(x, y, item_ptr->pid(), item_ptr->run_id(), item_ptr->app_id(), item_ptr->instance_id()); };
 
             if (is_running)
             {
                 item->set_app_info(running_app_data);
+                // Also set run_id so we can launch new instances
+                item->set_run_id(pinned.run_id);
             }
             else
             {
@@ -325,7 +359,10 @@ namespace horizon
             {
                 if (running_pinned_ids.find(app_info.app_id) != running_pinned_ids.end())
                 {
-                    continue;
+                    // This is an additional instance of a pinned app
+                    // We still show it if it's not the primary one pinned at the start
+                    // But we want to keep it grouped? Uniquely identified?
+                    // For now, continue showing it as a separate icon as requested by behavior
                 }
 
                 std::string icon = app_info.icon;
@@ -333,9 +370,23 @@ namespace horizon
                     icon = app_info.app_id;
 
                 auto item = std::make_unique<DockItem>(this, icon, _is_wayfire);
-                item->on_right_click = [this, item_ptr = item.get()](int x, int y)
-                { show_dock_context_menu(x, y, item_ptr->pid(), item_ptr->run_id(), item_ptr->app_id()); };
                 item->set_app_info(app_info);
+
+                // Try to find the run_id for this app_id from PINNED_APPS
+                for (const auto &pinned : PINNED_APPS)
+                {
+                    if (app_info.app_id.find(pinned.app_id) != std::string::npos)
+                    {
+                        item->set_run_id(pinned.run_id);
+                        break;
+                    }
+                }
+
+                item->on_right_click = [this, item_ptr = item.get()](int x, int y)
+                {
+                    show_dock_context_menu(x, y, item_ptr->pid(), item_ptr->run_id(),
+                                           item_ptr->app_id(), item_ptr->instance_id());
+                };
                 _shelf_ptr->add_child(std::move(item));
             }
         }

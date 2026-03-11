@@ -20,6 +20,7 @@ namespace horizon
         _app_id = info.app_id;
         _is_minimized = info.is_minimized;
         _is_running = true;
+        _instance_id = info.instance_id;
 
         if (!info.icon.empty())
             set_icon_name(info.icon);
@@ -76,17 +77,26 @@ namespace horizon
 
                 if (ctx.button == 274) // BTN_MIDDLE
                 {
-                    ca->close(_app_id);
+                    if (_instance_id != 0)
+                        ca->close_instance(_instance_id);
+                    else
+                        ca->close(_app_id);
                     return;
                 }
 
                 if (_is_minimized)
                 {
-                    ca->activate(_app_id);
+                    if (_instance_id != 0)
+                        ca->activate_instance(_instance_id);
+                    else
+                        ca->activate(_app_id);
                 }
                 else
                 {
-                    ca->minimize(_app_id);
+                    if (_instance_id != 0)
+                        ca->minimize_instance(_instance_id);
+                    else
+                        ca->minimize(_app_id);
                 }
             });
     }

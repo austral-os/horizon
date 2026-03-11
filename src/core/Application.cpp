@@ -1505,6 +1505,7 @@ namespace horizon
                 ApplicationInfo info;
                 info.app_id = ft.app_id;
                 info.title = ft.title;
+                info.instance_id = reinterpret_cast<uintptr_t>(ft.handle);
                 info.is_active = ft.active;
                 info.is_minimized = ft.minimized;
                 info.show_in_dock = true; // By default show foreign windows

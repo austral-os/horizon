@@ -24,6 +24,11 @@ namespace horizon
         void toggle_fullscreen(const std::string &app_id) override;
         void close(const std::string &app_id) override;
 
+        void activate_instance(uintptr_t instance_id) override;
+        void minimize_instance(uintptr_t instance_id) override;
+        void toggle_fullscreen_instance(uintptr_t instance_id) override;
+        void close_instance(uintptr_t instance_id) override;
+
     private:
         void setup_ipc();
         void merge_and_notify();

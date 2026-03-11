@@ -1423,6 +1423,7 @@ namespace horizon
         wl_display_flush(m_display);
     }
 
+
     void WaylandSurface::activate_foreign_app(const std::string &app_id)
     {
         if (!m_foreign_toplevel_manager)
@@ -1472,8 +1473,6 @@ namespace horizon
             if (ft.app_id == app_id)
             {
                 LOG_INFO << "[SURFACE] Found foreign handle for " << app_id << ", setting fullscreen.";
-                // In many compositors, this works as a toggle if already fullscreen, 
-                // or we could track state. For now, we use set_fullscreen.
                 zwlr_foreign_toplevel_handle_v1_set_fullscreen(ft.handle, nullptr);
             }
         }
@@ -1493,6 +1492,58 @@ namespace horizon
                 LOG_INFO << "[SURFACE] Found foreign handle for " << app_id << ", closing.";
                 zwlr_foreign_toplevel_handle_v1_close(ft.handle);
             }
+        }
+    }
+
+    void WaylandSurface::activate_foreign_instance(uintptr_t instance_id)
+    {
+        if (!m_foreign_toplevel_manager || instance_id == 0)
+            return;
+
+        auto *handle = reinterpret_cast<struct zwlr_foreign_toplevel_handle_v1 *>(instance_id);
+        if (m_foreign_toplevels.count(handle) && m_seat)
+        {
+            LOG_INFO << "[SURFACE] Activating foreign instance: " << instance_id;
+            zwlr_foreign_toplevel_handle_v1_activate(handle, m_seat);
+        }
+    }
+
+    void WaylandSurface::minimize_foreign_instance(uintptr_t instance_id)
+    {
+        if (!m_foreign_toplevel_manager || instance_id == 0)
+            return;
+
+        auto *handle = reinterpret_cast<struct zwlr_foreign_toplevel_handle_v1 *>(instance_id);
+        if (m_foreign_toplevels.count(handle))
+        {
+            LOG_INFO << "[SURFACE] Minimizing foreign instance: " << instance_id;
+            zwlr_foreign_toplevel_handle_v1_set_minimized(handle);
+        }
+    }
+
+    void WaylandSurface::toggle_fullscreen_foreign_instance(uintptr_t instance_id)
+    {
+        if (!m_foreign_toplevel_manager || instance_id == 0)
+            return;
+
+        auto *handle = reinterpret_cast<struct zwlr_foreign_toplevel_handle_v1 *>(instance_id);
+        if (m_foreign_toplevels.count(handle))
+        {
+            LOG_INFO << "[SURFACE] Toggling fullscreen for foreign instance: " << instance_id;
+            zwlr_foreign_toplevel_handle_v1_set_fullscreen(handle, nullptr);
+        }
+    }
+
+    void WaylandSurface::close_foreign_instance(uintptr_t instance_id)
+    {
+        if (!m_foreign_toplevel_manager || instance_id == 0)
+            return;
+
+        auto *handle = reinterpret_cast<struct zwlr_foreign_toplevel_handle_v1 *>(instance_id);
+        if (m_foreign_toplevels.count(handle))
+        {
+            LOG_INFO << "[SURFACE] Closing foreign instance: " << instance_id;
+            zwlr_foreign_toplevel_handle_v1_close(handle);
         }
     }
 

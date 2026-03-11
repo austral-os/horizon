@@ -16,6 +16,7 @@ namespace horizon
         std::string title;
         std::string icon;
         int pid{-1};
+        uintptr_t instance_id{0};
         bool is_active{false};
         bool is_minimized{false};
         bool show_in_dock{true};
@@ -70,5 +71,13 @@ namespace horizon
          * @brief Closes an application.
          */
         virtual void close(const std::string &app_id) = 0;
+
+        /**
+         * @brief Targeting specific instances
+         */
+        virtual void activate_instance(uintptr_t instance_id) = 0;
+        virtual void minimize_instance(uintptr_t instance_id) = 0;
+        virtual void toggle_fullscreen_instance(uintptr_t instance_id) = 0;
+        virtual void close_instance(uintptr_t instance_id) = 0;
     };
 } // namespace horizon

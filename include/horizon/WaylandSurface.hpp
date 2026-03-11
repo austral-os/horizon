@@ -215,6 +215,11 @@ namespace horizon
         void toggle_fullscreen_foreign_app(const std::string &app_id);
         void close_foreign_app(const std::string &app_id);
 
+        void activate_foreign_instance(uintptr_t instance_id);
+        void minimize_foreign_instance(uintptr_t instance_id);
+        void toggle_fullscreen_foreign_instance(uintptr_t instance_id);
+        void close_foreign_instance(uintptr_t instance_id);
+
         /**
          * @struct ForeignToplevel
          * @brief Information about a window from another application.
