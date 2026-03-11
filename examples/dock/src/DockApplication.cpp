@@ -122,11 +122,23 @@ namespace horizon
                             LOG_INFO << "[DOCK] Exit requested for pid: " << pid;
                             send_remote_signal(pid, "close");
                         }
+                        else if (item_id.find("dock_exit_id:") == 0)
+                        {
+                            std::string app_id = item_id.substr(13);
+                            LOG_INFO << "[DOCK] Exit requested for app_id: " << app_id;
+                            compositor_apps()->close(app_id);
+                        }
                         else if (item_id.find("dock_fullscreen:") == 0)
                         {
                             int pid = std::stoi(item_id.substr(16));
                             LOG_INFO << "[DOCK] Fullscreen toggle requested for pid: " << pid;
                             send_remote_signal(pid, "toggle_fullscreen");
+                        }
+                        else if (item_id.find("dock_fullscreen_id:") == 0)
+                        {
+                            std::string app_id = item_id.substr(19);
+                            LOG_INFO << "[DOCK] Fullscreen toggle requested for app_id: " << app_id;
+                            compositor_apps()->toggle_fullscreen(app_id);
                         }
                         else if (item_id.find("dock_launch:") == 0)
                         {
@@ -183,7 +195,7 @@ namespace horizon
             true);
     }
 
-    void DockApplication::show_dock_context_menu(int x, int y, int pid, const std::string &run_id)
+    void DockApplication::show_dock_context_menu(int x, int y, int pid, const std::string &run_id, const std::string &app_id)
     {
         // La coordenada 'y' recibida es local dentro del dock.
         // El dock está anclado al borde inferior, así que su posición global en Y
@@ -214,6 +226,14 @@ namespace horizon
 
             auto *fullscreen_item = menu->add_item("Entrar en pantalla completa");
             fullscreen_item->set_id("dock_fullscreen:" + std::to_string(pid));
+        }
+        else if (!app_id.empty())
+        {
+            auto *exit_item = menu->add_item("Salir");
+            exit_item->set_id("dock_exit_id:" + app_id);
+
+            auto *fullscreen_item = menu->add_item("Entrar en pantalla completa");
+            fullscreen_item->set_id("dock_fullscreen_id:" + app_id);
         }
         else if (!run_id.empty())
         {
@@ -262,7 +282,7 @@ namespace horizon
 
             auto item = std::make_unique<DockItem>(this, pinned.icon, _is_wayfire);
             item->on_right_click = [this, item_ptr = item.get()](int x, int y)
-            { show_dock_context_menu(x, y, item_ptr->pid(), item_ptr->run_id()); };
+            { show_dock_context_menu(x, y, item_ptr->pid(), item_ptr->run_id(), item_ptr->app_id()); };
 
             if (is_running)
             {
@@ -314,7 +334,7 @@ namespace horizon
 
                 auto item = std::make_unique<DockItem>(this, icon, _is_wayfire);
                 item->on_right_click = [this, item_ptr = item.get()](int x, int y)
-                { show_dock_context_menu(x, y, item_ptr->pid(), item_ptr->run_id()); };
+                { show_dock_context_menu(x, y, item_ptr->pid(), item_ptr->run_id(), item_ptr->app_id()); };
                 item->set_app_info(app_info);
                 _shelf_ptr->add_child(std::move(item));
             }

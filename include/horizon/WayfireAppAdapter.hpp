@@ -22,6 +22,7 @@ namespace horizon
 
         void activate(const std::string &app_id) override;
         void minimize(const std::string &app_id) override;
+        void toggle_fullscreen(const std::string &app_id) override;
         void close(const std::string &app_id) override;
 
     private:

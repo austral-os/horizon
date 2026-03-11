@@ -30,6 +30,12 @@ namespace horizon
             m_app->w_surface()->minimize_foreign_app(app_id);
     }
 
+    void LabwcAppAdapter::toggle_fullscreen(const std::string &app_id)
+    {
+        if (m_app && m_app->w_surface())
+            m_app->w_surface()->toggle_fullscreen_foreign_app(app_id);
+    }
+
     void LabwcAppAdapter::close(const std::string &app_id)
     {
         if (m_app && m_app->w_surface())

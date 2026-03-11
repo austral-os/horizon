@@ -62,6 +62,11 @@ namespace horizon
         virtual void minimize(const std::string &app_id) = 0;
 
         /**
+         * @brief Toggles fullscreen for an application.
+         */
+        virtual void toggle_fullscreen(const std::string &app_id) = 0;
+
+        /**
          * @brief Closes an application.
          */
         virtual void close(const std::string &app_id) = 0;

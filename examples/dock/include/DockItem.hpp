@@ -21,6 +21,7 @@ namespace horizon
         std::function<void(int, int)> on_right_click;
 
         int pid() const { return _pid; }
+        const std::string &app_id() const { return _app_id; }
         const std::string &run_id() const { return _run_id; }
         bool is_running() const { return _is_running; }
 

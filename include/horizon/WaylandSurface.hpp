@@ -212,6 +212,7 @@ namespace horizon
         // Foreign toplevel management (for Dock)
         void activate_foreign_app(const std::string &app_id);
         void minimize_foreign_app(const std::string &app_id);
+        void toggle_fullscreen_foreign_app(const std::string &app_id);
         void close_foreign_app(const std::string &app_id);
 
         /**

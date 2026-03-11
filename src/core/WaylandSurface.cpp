@@ -1460,6 +1460,25 @@ namespace horizon
         }
     }
 
+    void WaylandSurface::toggle_fullscreen_foreign_app(const std::string &app_id)
+    {
+        if (!m_foreign_toplevel_manager)
+            return;
+
+        LOG_INFO << "[SURFACE] Attempting foreign toggle fullscreen for: " << app_id;
+        for (auto &pair : m_foreign_toplevels)
+        {
+            auto &ft = pair.second;
+            if (ft.app_id == app_id)
+            {
+                LOG_INFO << "[SURFACE] Found foreign handle for " << app_id << ", setting fullscreen.";
+                // In many compositors, this works as a toggle if already fullscreen, 
+                // or we could track state. For now, we use set_fullscreen.
+                zwlr_foreign_toplevel_handle_v1_set_fullscreen(ft.handle, nullptr);
+            }
+        }
+    }
+
     void WaylandSurface::close_foreign_app(const std::string &app_id)
     {
         if (!m_foreign_toplevel_manager)
