@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
     {
         // Create an overlay application
         auto app = std::make_unique<LayerApplication>("top_panel",
-                                                      3); // 3 = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
+                                                      2); // 2 = ZWLR_LAYER_SHELL_V1_LAYER_TOP
         app->set_name("Top Panel");
         app->set_show_in_dock(false);
 

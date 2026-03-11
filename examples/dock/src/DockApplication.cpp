@@ -23,7 +23,7 @@ namespace horizon
         {"firefox", "Web Browser", "firefox", "firefox"}};
 
     DockApplication::DockApplication()
-        : LayerApplication("org.horizon.dock", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY),
+        : LayerApplication("org.horizon.dock", ZWLR_LAYER_SHELL_V1_LAYER_TOP),
           _router(std::make_unique<RequestRouter>(_message_manager))
     {
         set_name("Dock");
