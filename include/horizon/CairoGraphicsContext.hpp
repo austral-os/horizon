@@ -2,7 +2,6 @@
 
 #include <cairo/cairo.h>
 #include <horizon/GraphicsContext.hpp>
-#include <map>
 
 namespace horizon
 {
@@ -105,8 +104,6 @@ namespace horizon
         };
         std::vector<ClipRect> m_clip_stack;
 
-        // Simple SVG handle cache to avoid reparsing every frame
-        std::map<std::string, void *> m_svg_cache;
         void *get_svg_handle(const std::string &path);
     };
 } // namespace horizon

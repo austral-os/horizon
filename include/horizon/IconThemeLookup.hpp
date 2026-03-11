@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -68,6 +69,10 @@ namespace horizon
         static int directory_size_distance(const IconDirectory &dir, int size);
 
         static std::string try_file_extensions(const std::string &base_path);
+
+        // --- Caching ---
+        static std::map<std::string, ThemeInfo> s_theme_cache;
+        static std::map<std::string, std::string> s_resolution_cache;
     };
 
 } // namespace horizon

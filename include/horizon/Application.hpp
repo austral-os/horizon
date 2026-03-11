@@ -33,6 +33,7 @@ namespace horizon
      */
     class Application : public WaylandEventListener
     {
+        friend class CairoGraphicContext;
     public:
         /**
          * @brief Constructs an Application with a window of specified size.
@@ -451,5 +452,9 @@ namespace horizon
 
         mutable std::unique_ptr<GraphicsContext> m_gc;
         std::unique_ptr<CompositorContext> m_compositor_context;
+
+        // Image caching
+        mutable std::map<std::string, void *> m_svg_cache;
+        mutable std::map<std::string, void *> m_surface_cache;
     };
 } // namespace horizon

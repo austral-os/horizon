@@ -1,3 +1,4 @@
+#include <librsvg/rsvg.h>
 #include "horizon/CairoGraphicsContext.hpp"
 #include "horizon/EventsManager.hpp"
 #include "horizon/Widget.hpp"
@@ -162,6 +163,17 @@ namespace horizon
 
     Application::~Application()
     {
+        // Cleanup image cache
+        for (auto const &[path, handle] : m_svg_cache)
+        {
+            if (handle)
+                g_object_unref(handle);
+        }
+        for (auto const &[path, surface] : m_surface_cache)
+        {
+            if (surface)
+                cairo_surface_destroy(static_cast<cairo_surface_t *>(surface));
+        }
 
         // Limpieza
         m_surface->free();

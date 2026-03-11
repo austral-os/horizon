@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -58,5 +59,7 @@ namespace horizon
 
     private:
         static std::vector<std::string> s_additional_search_paths;
+        static std::map<std::string, std::string> s_desktop_file_cache;
+        static std::map<std::string, std::string> s_icon_name_cache;
     };
 } // namespace horizon

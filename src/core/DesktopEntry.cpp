@@ -62,14 +62,21 @@ namespace horizon
         return "";
     }
 
+    std::map<std::string, std::string> DesktopEntry::s_icon_name_cache = {};
+    std::map<std::string, std::string> DesktopEntry::s_desktop_file_cache = {};
+
     std::string DesktopEntry::get_icon_name(const std::string &app_id)
     {
+        if (s_icon_name_cache.count(app_id))
+            return s_icon_name_cache[app_id];
+
         std::string path = find_desktop_file(app_id);
         std::string icon = get_value_from_desktop_file(path, "Icon");
         if (!icon.empty())
         {
             LOG_INFO << "[DesktopEntry] Found icon name: " << icon << " for app_id: " << app_id;
         }
+        s_icon_name_cache[app_id] = icon;
         return icon;
     }
 
@@ -91,6 +98,9 @@ namespace horizon
 
     std::string DesktopEntry::find_desktop_file(const std::string &app_id)
     {
+        if (s_desktop_file_cache.count(app_id))
+            return s_desktop_file_cache[app_id];
+
         auto dirs = get_desktop_search_dirs();
         std::vector<std::string> candidates = {app_id + ".desktop"};
 
@@ -107,12 +117,14 @@ namespace horizon
                 if (fs::exists(full_path))
                 {
                     LOG_INFO << "[DesktopEntry] Found candidate: " << full_path;
+                    s_desktop_file_cache[app_id] = full_path;
                     return full_path;
                 }
             }
         }
 
         LOG_INFO << "[DesktopEntry] No desktop file found for app_id: " << app_id;
+        s_desktop_file_cache[app_id] = "";
         return "";
     }
 

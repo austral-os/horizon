@@ -23,10 +23,6 @@ namespace horizon
 
     CairoGraphicContext::~CairoGraphicContext()
     {
-        for (auto const &[path, handle] : m_svg_cache)
-        {
-            g_object_unref(handle);
-        }
         if (cr)
             cairo_destroy(cr);
         if (cairo_s)
@@ -277,42 +273,74 @@ namespace horizon
         if (dot_pos != std::string::npos)
         {
             std::string ext = path.substr(dot_pos + 1);
-            is_svg = (ext == "svg" || ext == "SVG");
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            is_svg = (ext == "svg");
         }
 
         if (is_svg)
         {
-            // --- SVG rendering via librsvg ---
-            GError *error = nullptr;
-            GFile *gfile = g_file_new_for_path(path.c_str());
-            RsvgHandle *handle =
-                rsvg_handle_new_from_gfile_sync(gfile, RSVG_HANDLE_FLAGS_NONE, nullptr, &error);
-            g_object_unref(gfile);
+            // --- SVG rendering with surface cache ---
+            std::string cache_key = path + "@" + std::to_string(w) + "x" + std::to_string(h);
+            cairo_surface_t *img = nullptr;
 
-            if (!handle)
+            if (m_app && m_app->m_surface_cache.count(cache_key))
             {
-                if (error)
-                    g_error_free(error);
-                cairo_restore(cr);
-                return;
+                img = static_cast<cairo_surface_t *>(m_app->m_surface_cache[cache_key]);
+            }
+            else
+            {
+                // Render SVG to a new image surface
+                img = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
+                cairo_t *temp_cr = cairo_create(img);
+
+                void *handle = get_svg_handle(path);
+                if (handle)
+                {
+                    RsvgHandle *rsvg = static_cast<RsvgHandle *>(handle);
+                    RsvgRectangle viewport = {0, 0, static_cast<double>(w), static_cast<double>(h)};
+                    rsvg_handle_render_document(rsvg, temp_cr, &viewport, nullptr);
+                }
+
+                cairo_destroy(temp_cr);
+
+                if (m_app)
+                {
+                    m_app->m_surface_cache[cache_key] = img;
+                }
             }
 
-            RsvgRectangle viewport = {static_cast<double>(x), static_cast<double>(y),
-                                      static_cast<double>(w), static_cast<double>(h)};
+            if (img)
+            {
+                cairo_set_source_surface(cr, img, x, y);
+                cairo_paint(cr);
+            }
 
-            rsvg_handle_render_document(handle, cr, &viewport, nullptr);
-
-            g_object_unref(handle);
+            if (!m_app && img)
+            {
+                cairo_surface_destroy(img);
+            }
         }
         else
         {
             // --- PNG rendering via cairo ---
-            cairo_surface_t *img = cairo_image_surface_create_from_png(path.c_str());
-            if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS)
+            cairo_surface_t *img = nullptr;
+            if (m_app && m_app->m_surface_cache.count(path))
             {
-                cairo_surface_destroy(img);
-                cairo_restore(cr);
-                return;
+                img = static_cast<cairo_surface_t *>(m_app->m_surface_cache[path]);
+            }
+            else
+            {
+                img = cairo_image_surface_create_from_png(path.c_str());
+                if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS)
+                {
+                    cairo_surface_destroy(img);
+                    cairo_restore(cr);
+                    return;
+                }
+                if (m_app)
+                {
+                    m_app->m_surface_cache[path] = img;
+                }
             }
 
             int img_w = cairo_image_surface_get_width(img);
@@ -329,7 +357,13 @@ namespace horizon
                 cairo_paint(cr);
             }
 
-            cairo_surface_destroy(img);
+            // Note: We don't destroy the surface here because it's cached in m_app
+            // If m_app is null (shouldn't happen), we'd need to destroy it, but 
+            // the cache persists for the life of the app.
+            if (!m_app && img)
+            {
+                cairo_surface_destroy(img);
+            }
         }
 
         cairo_restore(cr);
@@ -667,8 +701,11 @@ namespace horizon
 
     void *CairoGraphicContext::get_svg_handle(const std::string &path)
     {
-        if (m_svg_cache.count(path))
-            return m_svg_cache[path];
+        if (!m_app)
+            return nullptr;
+
+        if (m_app->m_svg_cache.count(path))
+            return m_app->m_svg_cache[path];
 
         GError *error = nullptr;
         GFile *gfile = g_file_new_for_path(path.c_str());
@@ -678,7 +715,7 @@ namespace horizon
 
         if (handle)
         {
-            m_svg_cache[path] = handle;
+            m_app->m_svg_cache[path] = handle;
         }
         else if (error)
         {

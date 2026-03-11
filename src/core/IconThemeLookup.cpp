@@ -13,6 +13,8 @@ namespace fs = std::filesystem;
 
 namespace horizon
 {
+    std::map<std::string, IconThemeLookup::ThemeInfo> IconThemeLookup::s_theme_cache;
+    std::map<std::string, std::string> IconThemeLookup::s_resolution_cache;
 
     // ---------------------------------------------------------------------------
     // Utility: trim whitespace
@@ -122,6 +124,9 @@ namespace horizon
     // ---------------------------------------------------------------------------
     IconThemeLookup::ThemeInfo IconThemeLookup::parse_index_theme(const std::string &theme_dir)
     {
+        if (s_theme_cache.count(theme_dir))
+            return s_theme_cache[theme_dir];
+
         ThemeInfo info;
         std::string index_path = theme_dir + "/index.theme";
 
@@ -255,6 +260,7 @@ namespace horizon
             info.directories.push_back(idir);
         }
 
+        s_theme_cache[theme_dir] = info;
         return info;
     }
 
@@ -412,8 +418,12 @@ namespace horizon
         if (icon_name.empty())
             return "";
 
-        LOG_INFO << "[IconThemeLookup] Finding icon for: \"" << icon_name << "\" (size: " << size
-                 << ")";
+        std::string cache_key = icon_name + ":" + std::to_string(size) + ":" + theme;
+        if (s_resolution_cache.count(cache_key))
+            return s_resolution_cache[cache_key];
+
+        // LOG_INFO << "[IconThemeLookup] Finding icon for: \"" << icon_name << "\" (size: " << size
+        //          << ")";
 
         std::string theme_name = theme.empty() ? get_active_theme_name() : theme;
         auto base_dirs = get_base_dirs();
@@ -428,18 +438,27 @@ namespace horizon
                      << ": found actual icon name \"" << desktop_icon << "\" in desktop file.";
             std::string result = lookup_icon_in_theme(desktop_icon, size, theme_name, base_dirs);
             if (!result.empty())
+            {
+                s_resolution_cache[cache_key] = result;
                 return result;
+            }
 
             // If found in desktop but NOT in theme, try fallback directories for the new name
             result = lookup_fallback_icon(desktop_icon, base_dirs);
             if (!result.empty())
+            {
+                s_resolution_cache[cache_key] = result;
                 return result;
+            }
         }
 
         // 2. Search requested theme with the ORIGINAL name (if not found/different in desktop)
         std::string result = lookup_icon_in_theme(icon_name, size, theme_name, base_dirs);
         if (!result.empty())
+        {
+            s_resolution_cache[cache_key] = result;
             return result;
+        }
 
         // 3. Fallback to hicolor
         if (theme_name != "hicolor")
@@ -452,20 +471,32 @@ namespace horizon
             {
                 result = lookup_icon_in_theme(desktop_icon, size, "hicolor", base_dirs);
                 if (!result.empty())
+                {
+                    s_resolution_cache[cache_key] = result;
                     return result;
+                }
             }
         }
 
         // 4. Fallback to pixmaps
         result = lookup_fallback_icon(icon_name, base_dirs);
         if (!result.empty())
+        {
+            s_resolution_cache[cache_key] = result;
             return result;
+        }
 
         if (!desktop_icon.empty() && desktop_icon != icon_name)
         {
-            return lookup_fallback_icon(desktop_icon, base_dirs);
+            result = lookup_fallback_icon(desktop_icon, base_dirs);
+            if (!result.empty())
+            {
+                s_resolution_cache[cache_key] = result;
+                return result;
+            }
         }
 
+        s_resolution_cache[cache_key] = "";
         return "";
     }
 
