@@ -2,7 +2,6 @@
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Menu.hpp>
-#include <iostream>
 
 namespace horizon
 {
@@ -31,11 +30,14 @@ namespace horizon
         calculate_layout();
     }
 
-    MenuItem *Menu::add_item(const std::string &text, const std::string &shortcut)
+    MenuItem *Menu::add_item(const std::string &text, const std::string &shortcut,
+                             const std::string &item_id)
     {
         auto item = std::make_unique<MenuItem>(text);
         if (!shortcut.empty())
             item->set_shortcut(shortcut);
+        if (!item_id.empty())
+            item->set_id(item_id);
         auto *ptr = item.get();
         add_item(std::move(item));
         return ptr;

@@ -78,27 +78,22 @@ int main(int argc, char *argv[])
                 menu->set_icon_name("start-here"); // Fallback
             }
 
-            auto *about_mnu = menu->add_item("About This System");
-            about_mnu->set_id("run_aboutus");
-
+            menu->add_item("About This System", "", "run_aboutus");
             menu->add_separator();
-            auto *terminal = menu->add_item("Terminal");
-            terminal->set_id("run_terminal");
+            menu->add_item("Terminal", "", "run_terminal");
             menu->add_item("System Settings...");
             menu->add_item("App Store...");
             menu->add_separator();
             menu->add_item("Recent Items");
             menu->add_separator();
-            auto *force_quit = menu->add_item("Force Quit...");
-            force_quit->set_id("force_quit");
+            menu->add_item("Force Quit...", "", "force_quit");
             menu->add_separator();
             menu->add_item("Sleep");
             menu->add_item("Restart...");
             menu->add_item("Shut Down...");
             menu->add_separator();
             menu->add_item("Lock Screen");
-            auto *logout = menu->add_item("Log Out...");
-            logout->set_id("run_logout");
+            menu->add_item("Log Out...", "", "run_logout");
 
             return menu;
         };

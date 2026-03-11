@@ -48,7 +48,8 @@ namespace horizon
         }
 
         // Helper to add a text item directly
-        MenuItem *add_item(const std::string &text, const std::string &shortcut = "");
+        MenuItem *add_item(const std::string &text, const std::string &shortcut = "",
+                           const std::string &item_id = "");
 
         void calculate_layout() override;
 
