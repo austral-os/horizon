@@ -45,7 +45,14 @@ namespace horizon
 
     void AquaObject::set_corner_radius(CornerRadius radius)
     {
+        if (m_corner_radius.top_left == radius.top_left &&
+            m_corner_radius.top_right == radius.top_right &&
+            m_corner_radius.bottom_left == radius.bottom_left &&
+            m_corner_radius.bottom_right == radius.bottom_right)
+            return;
+
         m_corner_radius = radius;
+        invalidate();
     }
 
     CornerRadius AquaObject::corner_radius() const

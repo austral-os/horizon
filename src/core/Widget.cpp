@@ -366,6 +366,8 @@ namespace horizon
 
     void Widget::set_accent_color(WidgetAccentColor accent_color)
     {
+        if (m_accent_color == accent_color)
+            return;
         m_accent_color = accent_color;
         invalidate();
     }

@@ -46,8 +46,6 @@ namespace horizon
 
     void Notebook::render(GraphicsContext &ctx, int cx, int cy, int cw, int ch, bool force)
     {
-        configure_header();
-
         m_header->set_position(m_x, m_y + m_margin_top->fixed_size());
         m_header->set_size(width(), 40);
 
@@ -123,6 +121,7 @@ namespace horizon
         m_body->children()[index]->invalidate();
         m_current_tab = index;
 
+        configure_header();
         // Invalidate self and parent to ensure background is redrawn if transparent
         this->invalidate();
         if (parent())
@@ -152,6 +151,7 @@ namespace horizon
             });
 
         m_header->add_child_at(index, std::move(button));
+        configure_header();
     }
 
 } // namespace horizon
