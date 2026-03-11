@@ -38,6 +38,8 @@ struct zwlr_foreign_toplevel_manager_v1;
 struct zwlr_foreign_toplevel_handle_v1;
 struct ext_background_effect_manager_v1;
 struct ext_background_effect_surface_v1;
+struct ext_foreign_toplevel_list_v1;
+struct ext_foreign_toplevel_handle_v1;
 struct wl_egl_window;
 
 namespace horizon
@@ -62,6 +64,21 @@ namespace horizon
         friend void foreign_toplevel_handle_closed(void *,
                                                    struct zwlr_foreign_toplevel_handle_v1 *);
         friend void foreign_toplevel_handle_done(void *, struct zwlr_foreign_toplevel_handle_v1 *);
+
+        // Modern foreign toplevel (ext-foreign-toplevel-list-v1)
+        friend void ext_foreign_toplevel_list_handle_toplevel(void *data,
+                                                              struct ext_foreign_toplevel_list_v1 *ext_foreign_toplevel_list_v1,
+                                                              struct ext_foreign_toplevel_handle_v1 *handle);
+        friend void ext_foreign_toplevel_handle_app_id(void *data,
+                                                       struct ext_foreign_toplevel_handle_v1 *ext_foreign_toplevel_handle_v1,
+                                                       const char *app_id);
+        friend void ext_foreign_toplevel_handle_title(void *data,
+                                                      struct ext_foreign_toplevel_handle_v1 *ext_foreign_toplevel_handle_v1,
+                                                      const char *title);
+        friend void ext_foreign_toplevel_handle_closed(void *data,
+                                                       struct ext_foreign_toplevel_handle_v1 *ext_foreign_toplevel_handle_v1);
+        friend void ext_foreign_toplevel_handle_done(void *data,
+                                                     struct ext_foreign_toplevel_handle_v1 *ext_foreign_toplevel_handle_v1);
 
     public:
         enum class Role
@@ -231,12 +248,19 @@ namespace horizon
             std::string app_id;
             bool minimized = false;
             bool active = false;
+            struct ext_foreign_toplevel_handle_v1 *ext_handle = nullptr;
         };
 
         const std::map<struct zwlr_foreign_toplevel_handle_v1 *, ForeignToplevel> &
         get_foreign_toplevels() const
         {
             return m_foreign_toplevels;
+        }
+
+        const std::map<struct ext_foreign_toplevel_handle_v1 *, ForeignToplevel> &
+        get_ext_foreign_toplevels() const
+        {
+            return m_ext_foreign_toplevels;
         }
 
         struct xkb_state *xkb_state() const
@@ -279,6 +303,7 @@ namespace horizon
         struct ext_background_effect_surface_v1 *m_background_effect_surface = nullptr;
         struct org_kde_kwin_blur_manager *m_blur_manager = nullptr;
         struct org_kde_kwin_blur *m_blur_object = nullptr;
+        struct ext_foreign_toplevel_list_v1 *m_ext_foreign_toplevel_list = nullptr;
 
         // EGL Objects
         EGLDisplay m_egl_display = EGL_NO_DISPLAY;
@@ -322,6 +347,7 @@ namespace horizon
 
         // Foreign toplevel tracking
         std::map<struct zwlr_foreign_toplevel_handle_v1 *, ForeignToplevel> m_foreign_toplevels;
+        std::map<struct ext_foreign_toplevel_handle_v1 *, ForeignToplevel> m_ext_foreign_toplevels;
 
         // Layer Shell State tracking
         uint32_t m_layer_num = 0;

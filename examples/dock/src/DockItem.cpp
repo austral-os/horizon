@@ -9,6 +9,7 @@ namespace horizon
     DockItem::DockItem(LayerApplication *app, const std::string &icon_name, bool is_wayfire)
         : _app(app), _is_wayfire(is_wayfire)
     {
+        set_application_recursive(app);
         set_icon_name(icon_name);
         set_icon_size(48);
         set_margin(5);

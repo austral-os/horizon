@@ -15,15 +15,11 @@ pkg_check_modules(RSVG REQUIRED librsvg-2.0)
 pkg_check_modules(EGL REQUIRED egl)
 pkg_check_modules(GLESV2 REQUIRED glesv2)
 
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS 
+file(GLOB_RECURSE SOURCES 
     "src/*.cpp" 
     "src/*.c"
     "src/core/*.cpp"
-    "src/core/Logger.cpp"
-    "src/core/IconView.cpp"
-    "src/core/Spacer.cpp"
-    "src/core/SystemInfo.cpp"
-    "include/horizon/*.hpp"
+    "src/protocols/*.c"
 )
 
 add_library(horizon STATIC ${SOURCES})

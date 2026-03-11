@@ -23,6 +23,7 @@
 #include <signal.h>
 #include <sys/eventfd.h>
 #include <unistd.h>
+#include <set>
 #include <wayland-client-core.h>
 #include <wayland-client-protocol.h>
 #include <wayland-client.h>
@@ -714,14 +715,25 @@ namespace horizon
             new_ev.x = (double)event.x;
             new_ev.y = (double)event.y;
 
+            // Collect parent chain first for safety (if a handler destroys the widget)
+            std::vector<Widget*> chain;
             Widget *temp = m_pressed;
             while (temp)
             {
-                new_ev.sender = temp;
-                temp->when_mouse_press.run(new_ev);
+                chain.push_back(temp);
+                temp = temp->parent();
+            }
+
+            for (Widget *w : chain)
+            {
+                // Verify widget is still registered (optional but safer)
+                // If it was destroyed, it should have cleared m_pressed if it was m_pressed.
+                // However, intermediate parents might not be easily verifiable here without 
+                // more complex tracking. The pre-collection already solves the invalid 'parent()' call.
+                new_ev.sender = w;
+                w->when_mouse_press.run(new_ev);
                 if (new_ev.stop_propagation)
                     break;
-                temp = temp->parent();
             }
         }
         else
@@ -736,27 +748,34 @@ namespace horizon
 
     void Application::handle_release(const PointerEvent &event)
     {
-        if (m_pressed)
-        {
-            MouseButtonEventContext new_ev;
-            new_ev.sender = m_pressed;
-            new_ev.button = event.button;
-            new_ev.modifiers = m_modifiers;
-            new_ev.serial = event.serial;
-            new_ev.x = (double)event.x;
-            new_ev.y = (double)event.y;
+        if (!m_pressed)
+            return;
 
-            Widget *temp = m_pressed;
-            while (temp)
-            {
-                new_ev.sender = temp;
-                temp->when_mouse_release.run(new_ev);
-                if (new_ev.stop_propagation)
-                    break;
-                temp = temp->parent();
-            }
-            m_pressed = nullptr;
+        MouseButtonEventContext new_ev;
+        new_ev.sender = m_pressed;
+        new_ev.button = event.button;
+        new_ev.modifiers = m_modifiers;
+        new_ev.serial = event.serial;
+        new_ev.x = (double)event.x;
+        new_ev.y = (double)event.y;
+
+        // Collect parent chain first for safety (if a handler destroys the widget)
+        std::vector<Widget*> chain;
+        Widget *temp = m_pressed;
+        while (temp)
+        {
+            chain.push_back(temp);
+            temp = temp->parent();
         }
+
+        for (Widget *w : chain)
+        {
+            new_ev.sender = w;
+            w->when_mouse_release.run(new_ev);
+            if (new_ev.stop_propagation)
+                break;
+        }
+        m_pressed = nullptr;
     }
 
     void Application::handle_wheel(const PointerEvent &event)
@@ -1510,18 +1529,38 @@ namespace horizon
         AppListEventContext ctx;
         if (m_surface)
         {
-            const auto &foreigns = m_surface->get_foreign_toplevels();
-            for (const auto &pair : foreigns)
+            std::set<std::string> seen_keys;
+
+            auto process_ft = [&](const WaylandSurface::ForeignToplevel &ft, uintptr_t instance_id)
             {
-                const auto &ft = pair.second;
+                // Create a unique key to deduplicate between protocols.
+                // Usually app_id is enough, but some apps might have empty app_id but unique titles.
+                std::string key = ft.app_id + "|" + ft.title;
+                if (seen_keys.find(key) != seen_keys.end())
+                    return;
+
+                seen_keys.insert(key);
+
                 ApplicationInfo info;
                 info.app_id = ft.app_id;
                 info.title = ft.title;
-                info.instance_id = reinterpret_cast<uintptr_t>(ft.handle);
+                info.instance_id = instance_id;
                 info.is_active = ft.active;
                 info.is_minimized = ft.minimized;
-                info.show_in_dock = true; // By default show foreign windows
+                info.show_in_dock = true;
                 ctx.apps.push_back(info);
+            };
+
+            const auto &foreigns = m_surface->get_foreign_toplevels();
+            for (const auto &pair : foreigns)
+            {
+                process_ft(pair.second, reinterpret_cast<uintptr_t>(pair.first));
+            }
+
+            const auto &ext_foreigns = m_surface->get_ext_foreign_toplevels();
+            for (const auto &pair : ext_foreigns)
+            {
+                process_ft(pair.second, reinterpret_cast<uintptr_t>(pair.first));
             }
         }
         when_foreign_update.run(ctx);

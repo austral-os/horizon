@@ -9,6 +9,7 @@
 #include <horizon/xdg-shell-client-protocol.h>
 #include <protocols/blur-client-protocol.h>
 #include <protocols/ext-background-effect-v1-client-protocol.h>
+#include <protocols/ext-foreign-toplevel-list-v1-client-protocol.h>
 #include <protocols/wlr-foreign-toplevel-management-unstable-v1-client-protocol.h>
 #include <stdexcept>
 #include <sys/mman.h>
@@ -155,6 +156,34 @@ namespace horizon
         foreign_toplevel_manager_listener = {
             foreign_toplevel_manager_toplevel,
             foreign_toplevel_manager_finished,
+    };
+
+    // ext-foreign-toplevel-list-v1 handlers
+    void ext_foreign_toplevel_list_handle_toplevel(void *data,
+                                                   struct ext_foreign_toplevel_list_v1 *ext_foreign_toplevel_list_v1,
+                                                   struct ext_foreign_toplevel_handle_v1 *handle);
+    void ext_foreign_toplevel_handle_app_id(void *data,
+                                            struct ext_foreign_toplevel_handle_v1 *handle,
+                                            const char *app_id);
+    void ext_foreign_toplevel_handle_title(void *data,
+                                           struct ext_foreign_toplevel_handle_v1 *handle,
+                                           const char *title);
+    void ext_foreign_toplevel_handle_closed(void *data,
+                                            struct ext_foreign_toplevel_handle_v1 *handle);
+    void ext_foreign_toplevel_handle_done(void *data,
+                                          struct ext_foreign_toplevel_handle_v1 *handle);
+
+    static const struct ext_foreign_toplevel_list_v1_listener ext_foreign_toplevel_list_listener = {
+        .toplevel = ext_foreign_toplevel_list_handle_toplevel,
+        .finished = [](void *, struct ext_foreign_toplevel_list_v1 *) {},
+    };
+
+    static const struct ext_foreign_toplevel_handle_v1_listener ext_foreign_toplevel_handle_listener = {
+        .closed = ext_foreign_toplevel_handle_closed,
+        .done = ext_foreign_toplevel_handle_done,
+        .title = ext_foreign_toplevel_handle_title,
+        .app_id = ext_foreign_toplevel_handle_app_id,
+        .identifier = [](void *, struct ext_foreign_toplevel_handle_v1 *, const char *) {},
     };
 
     static void background_effect_manager_handle_capabilities(
@@ -401,6 +430,14 @@ namespace horizon
             LOG_INFO << "[SURFACE] Bound zwlr_foreign_toplevel_manager_v1";
             zwlr_foreign_toplevel_manager_v1_add_listener(ws->foreign_toplevel_manager(),
                                                           &foreign_toplevel_manager_listener, ws);
+        }
+        else if (strcmp(interface, "ext_foreign_toplevel_list_v1") == 0)
+        {
+            ws->m_ext_foreign_toplevel_list = static_cast<ext_foreign_toplevel_list_v1 *>(
+                wl_registry_bind(registry, id, &ext_foreign_toplevel_list_v1_interface, 1));
+            LOG_INFO << "[SURFACE] Bound ext_foreign_toplevel_list_v1";
+            ext_foreign_toplevel_list_v1_add_listener(ws->m_ext_foreign_toplevel_list,
+                                                      &ext_foreign_toplevel_list_listener, ws);
         }
         else if (strcmp(interface, "wl_seat") == 0)
         {
@@ -1497,53 +1534,76 @@ namespace horizon
 
     void WaylandSurface::activate_foreign_instance(uintptr_t instance_id)
     {
-        if (!m_foreign_toplevel_manager || instance_id == 0)
+        if (instance_id == 0)
             return;
 
-        auto *handle = reinterpret_cast<struct zwlr_foreign_toplevel_handle_v1 *>(instance_id);
-        if (m_foreign_toplevels.count(handle) && m_seat)
+        // Try zwlr protocol
+        auto *zwlr_handle = reinterpret_cast<struct zwlr_foreign_toplevel_handle_v1 *>(instance_id);
+        if (m_foreign_toplevel_manager && m_foreign_toplevels.count(zwlr_handle) && m_seat)
         {
-            LOG_INFO << "[SURFACE] Activating foreign instance: " << instance_id;
-            zwlr_foreign_toplevel_handle_v1_activate(handle, m_seat);
+            LOG_INFO << "[SURFACE] Activating foreign instance (zwlr): " << instance_id;
+            zwlr_foreign_toplevel_handle_v1_activate(zwlr_handle, m_seat);
+            return;
+        }
+
+        // Try modern ext protocol (Note: ext protocol might not have a direct 'activate' yet in shared library version, 
+        // but we should at least check for its existence or implement if available in our protocols)
+        auto *ext_handle = reinterpret_cast<struct ext_foreign_toplevel_handle_v1 *>(instance_id);
+        if (m_ext_foreign_toplevel_list && m_ext_foreign_toplevels.count(ext_handle))
+        {
+             LOG_INFO << "[SURFACE] Target instance is ext-foreign-toplevel: " << instance_id;
+             // ext-foreign-level-list-v1 is often for listing only, activation might need xdg_activation_v1
         }
     }
 
     void WaylandSurface::minimize_foreign_instance(uintptr_t instance_id)
     {
-        if (!m_foreign_toplevel_manager || instance_id == 0)
+        if (instance_id == 0)
             return;
 
-        auto *handle = reinterpret_cast<struct zwlr_foreign_toplevel_handle_v1 *>(instance_id);
-        if (m_foreign_toplevels.count(handle))
+        auto *zwlr_handle = reinterpret_cast<struct zwlr_foreign_toplevel_handle_v1 *>(instance_id);
+        if (m_foreign_toplevel_manager && m_foreign_toplevels.count(zwlr_handle))
         {
-            LOG_INFO << "[SURFACE] Minimizing foreign instance: " << instance_id;
-            zwlr_foreign_toplevel_handle_v1_set_minimized(handle);
+            LOG_INFO << "[SURFACE] Minimizing foreign instance (zwlr): " << instance_id;
+            zwlr_foreign_toplevel_handle_v1_set_minimized(zwlr_handle);
+            return;
         }
     }
 
     void WaylandSurface::toggle_fullscreen_foreign_instance(uintptr_t instance_id)
     {
-        if (!m_foreign_toplevel_manager || instance_id == 0)
+        if (instance_id == 0)
             return;
 
-        auto *handle = reinterpret_cast<struct zwlr_foreign_toplevel_handle_v1 *>(instance_id);
-        if (m_foreign_toplevels.count(handle))
+        auto *zwlr_handle = reinterpret_cast<struct zwlr_foreign_toplevel_handle_v1 *>(instance_id);
+        if (m_foreign_toplevel_manager && m_foreign_toplevels.count(zwlr_handle))
         {
-            LOG_INFO << "[SURFACE] Toggling fullscreen for foreign instance: " << instance_id;
-            zwlr_foreign_toplevel_handle_v1_set_fullscreen(handle, nullptr);
+            LOG_INFO << "[SURFACE] Toggling fullscreen for foreign instance (zwlr): " << instance_id;
+            zwlr_foreign_toplevel_handle_v1_set_fullscreen(zwlr_handle, nullptr);
+            return;
         }
     }
 
     void WaylandSurface::close_foreign_instance(uintptr_t instance_id)
     {
-        if (!m_foreign_toplevel_manager || instance_id == 0)
+        if (instance_id == 0)
             return;
 
-        auto *handle = reinterpret_cast<struct zwlr_foreign_toplevel_handle_v1 *>(instance_id);
-        if (m_foreign_toplevels.count(handle))
+        auto *zwlr_handle = reinterpret_cast<struct zwlr_foreign_toplevel_handle_v1 *>(instance_id);
+        if (m_foreign_toplevel_manager && m_foreign_toplevels.count(zwlr_handle))
         {
-            LOG_INFO << "[SURFACE] Closing foreign instance: " << instance_id;
-            zwlr_foreign_toplevel_handle_v1_close(handle);
+            LOG_INFO << "[SURFACE] Closing foreign instance (zwlr): " << instance_id;
+            zwlr_foreign_toplevel_handle_v1_close(zwlr_handle);
+            return;
+        }
+
+        auto *ext_handle = reinterpret_cast<struct ext_foreign_toplevel_handle_v1 *>(instance_id);
+        if (m_ext_foreign_toplevel_list && m_ext_foreign_toplevels.count(ext_handle))
+        {
+            LOG_INFO << "[SURFACE] Closing foreign instance (ext): " << instance_id;
+            // ext_foreign_toplevel_handle_v1 doesn't have a close request, it's read-only for now
+            // according to the current protocol implemented in some compositors. 
+            // In others, it might have it. we'll leave it as a log for now or if we bound it.
         }
     }
 
@@ -1639,9 +1699,58 @@ namespace horizon
                                            struct zwlr_foreign_toplevel_handle_v1 *handle)
     {
         auto *ws = static_cast<WaylandSurface *>(data);
-        ws->m_foreign_toplevels[handle].handle = handle;
         LOG_INFO << "[SURFACE] New foreign toplevel handle discovered";
         zwlr_foreign_toplevel_handle_v1_add_listener(handle, &foreign_toplevel_handle_listener, ws);
+    }
+
+    void ext_foreign_toplevel_list_handle_toplevel(void *data,
+                                                   struct ext_foreign_toplevel_list_v1 *ext_foreign_toplevel_list_v1,
+                                                   struct ext_foreign_toplevel_handle_v1 *handle)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        ws->m_ext_foreign_toplevels[handle].ext_handle = handle;
+        LOG_INFO << "[SURFACE] New modern ext-foreign toplevel handle discovered";
+        ext_foreign_toplevel_handle_v1_add_listener(handle, &ext_foreign_toplevel_handle_listener, ws);
+    }
+
+    void ext_foreign_toplevel_handle_app_id(void *data,
+                                            struct ext_foreign_toplevel_handle_v1 *handle,
+                                            const char *app_id)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        LOG_INFO << "[SURFACE] Ext-Foreign toplevel app_id: " << (app_id ? app_id : "NULL");
+        ws->m_ext_foreign_toplevels[handle].app_id = app_id ? app_id : "";
+        if (ws->m_listener)
+            ws->m_listener->on_foreign_toplevel_event();
+    }
+
+    void ext_foreign_toplevel_handle_title(void *data,
+                                           struct ext_foreign_toplevel_handle_v1 *handle,
+                                           const char *title)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        ws->m_ext_foreign_toplevels[handle].title = title ? title : "";
+        if (ws->m_listener)
+            ws->m_listener->on_foreign_toplevel_event();
+    }
+
+    void ext_foreign_toplevel_handle_closed(void *data,
+                                            struct ext_foreign_toplevel_handle_v1 *handle)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        LOG_INFO << "[SURFACE] Ext-Foreign toplevel closed: " << ws->m_ext_foreign_toplevels[handle].app_id;
+        ws->m_ext_foreign_toplevels.erase(handle);
+        ext_foreign_toplevel_handle_v1_destroy(handle);
+        if (ws->m_listener)
+            ws->m_listener->on_foreign_toplevel_event();
+    }
+
+    void ext_foreign_toplevel_handle_done(void *data,
+                                          struct ext_foreign_toplevel_handle_v1 *handle)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        if (ws->m_listener)
+            ws->m_listener->on_foreign_toplevel_event();
     }
 
     void WaylandSurface::update_blur_region()
