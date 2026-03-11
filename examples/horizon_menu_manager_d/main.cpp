@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 
 #include "MenuMessage.hpp"
+#include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 
 using namespace horizon;
 
@@ -19,20 +20,23 @@ int main(int argc, char *argv[])
     try
     {
         // Create the Menu Manager Daemon
-        auto app =
-            std::make_unique<LayerApplication>("horizon_menu_manager_d", 3); // 3 = OVERLAY layer
+        auto app = std::make_unique<LayerApplication>(
+            "horizon_menu_manager_d", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY); // 3 = OVERLAY layer
 
         app->set_name("Horizon Menu Manager");
         app->set_show_in_dock(false);
 
         // Fullscreen anchor
-        app->set_anchor(1 | 2 | 4 | 8); // TOP | BOTTOM | LEFT | RIGHT
+        // app->set_anchor(1 | 2 | 4 | 8); // TOP | BOTTOM | LEFT | RIGHT
+        app->set_anchor(ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |
+                        ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
 
         // No exclusive zone - we don't want to move other windows
-        app->set_exclusive_zone(0);
+        app->set_exclusive_zone(-1);
 
         // Enable keyboard interactivity to catch Escape
-        app->set_keyboard_interactivity(1); // 1 = EXCLUSIVE
+        app->set_keyboard_interactivity(
+            ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE); // 1 = EXCLUSIVE
 
         auto root = std::make_unique<Widget>();
         root->set_background_color({0.0f, 0.0f, 0.0f, 0.0f});

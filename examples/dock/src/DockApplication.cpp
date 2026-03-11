@@ -8,6 +8,7 @@
 #include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/WayfireAppAdapter.hpp>
+#include <horizon/WaylandSurface.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <set>
@@ -22,8 +23,8 @@ namespace horizon
         {"firefox", "Web Browser", "firefox", "firefox"}};
 
     DockApplication::DockApplication()
-        : LayerApplication("org.horizon.dock", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY)
-        , _router(std::make_unique<RequestRouter>(_message_manager))
+        : LayerApplication("org.horizon.dock", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY),
+          _router(std::make_unique<RequestRouter>(_message_manager))
     {
         set_name("Dock");
         set_anchor(2 | 4 | 8); // BOTTOM | LEFT | RIGHT
@@ -136,23 +137,22 @@ namespace horizon
 
         // Subscribe to the session socket to receive menu_item_clicked messages
         _menu_ipc_client = std::make_unique<IpcClient>("/tmp/horizon_session.sock");
-        _menu_ipc_client->subscribe(
-            "{\"type\": \"subscribe\"}",
-            [this](const std::string &msg)
-            {
-                try
-                {
-                    auto j = nlohmann::json::parse(msg);
-                    if (j.value("receiver_id", "") == "org.horizon.dock")
-                    {
-                        std::lock_guard<std::mutex> lock(_queue_mutex);
-                        _pending_messages.push_back(msg);
-                    }
-                }
-                catch (...)
-                {
-                }
-            });
+        _menu_ipc_client->subscribe("{\"type\": \"subscribe\"}",
+                                    [this](const std::string &msg)
+                                    {
+                                        try
+                                        {
+                                            auto j = nlohmann::json::parse(msg);
+                                            if (j.value("receiver_id", "") == "org.horizon.dock")
+                                            {
+                                                std::lock_guard<std::mutex> lock(_queue_mutex);
+                                                _pending_messages.push_back(msg);
+                                            }
+                                        }
+                                        catch (...)
+                                        {
+                                        }
+                                    });
 
         // Process incoming messages on the main thread every 50ms
         add_timer(
@@ -178,6 +178,24 @@ namespace horizon
 
     void DockApplication::show_dock_context_menu(int x, int y)
     {
+        // La coordenada 'y' recibida es local dentro del dock.
+        // El dock está anclado al borde inferior, así que su posición global en Y
+        // es monitor_height - dock_height. Sumamos ese offset para la coordenada
+        // global de pantalla que espera el menu manager.
+        int screen_h = w_surface()->monitor_height();
+        int dock_height = height();
+        int global_y = y;
+        if (screen_h > 0)
+        {
+            global_y = (screen_h - dock_height) + y;
+            LOG_INFO << "[DOCK] screen_h=" << screen_h << " dock_h=" << dock_height
+                     << " local_y=" << y << " global_y=" << global_y;
+        }
+        else
+        {
+            LOG_INFO << "[DOCK] monitor_height unknown, using local y=" << y;
+        }
+
         // Build the context menu
         auto menu = std::make_unique<Menu>();
         menu->set_title("dock_context");
@@ -188,8 +206,8 @@ namespace horizon
         auto *fullscreen_item = menu->add_item("Entrar en pantalla completa");
         fullscreen_item->set_id("dock_fullscreen");
 
-        LOG_INFO << "[DOCK] Showing context menu at (" << x << ", " << y << ")";
-        _client_menu.show_menu(menu.get(), x, y, -1, "org.horizon.dock");
+        LOG_INFO << "[DOCK] Showing context menu at (" << x << ", " << global_y << ")";
+        _client_menu.show_menu(menu.get(), x, global_y, -1, "org.horizon.dock");
 
         // menu is kept alive long enough for show_menu() to serialize it
     }

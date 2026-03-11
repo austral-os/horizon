@@ -1339,6 +1339,30 @@ namespace horizon
         LOG_INFO << "Added Wayland output: " << output << " (Total: " << m_outputs.size() + 1
                  << ")";
         m_outputs.push_back(output);
+
+        // Registrar listener para capturar el tamaño del monitor
+        static const wl_output_listener s_output_listener = {
+            // geometry
+            [](void *, wl_output *, int32_t, int32_t, int32_t, int32_t, int32_t,
+               const char *, const char *, int32_t) {},
+            // mode: capturamos width y height del modo current
+            [](void *data, wl_output *, uint32_t flags, int32_t width, int32_t height, int32_t)
+            {
+                if (flags & WL_OUTPUT_MODE_CURRENT)
+                {
+                    auto *self = static_cast<WaylandSurface *>(data);
+                    self->m_monitor_width  = width;
+                    self->m_monitor_height = height;
+                    LOG_INFO << "[SURFACE] Monitor size from wl_output mode: "
+                             << width << "x" << height;
+                }
+            },
+            // done
+            [](void *, wl_output *) {},
+            // scale
+            [](void *, wl_output *, int32_t) {},
+        };
+        wl_output_add_listener(output, &s_output_listener, this);
     }
 
     struct ActivationData

@@ -131,6 +131,7 @@ namespace horizon
         double pointer_y() const;
         int width() const;
         int height() const;
+        int monitor_height() const { return m_monitor_height; }
 
         /**
          * @brief Initializes the Wayland connection and binds globals.
@@ -255,6 +256,8 @@ namespace horizon
     private:
         int m_width;
         int m_height;
+        int m_monitor_width{0};
+        int m_monitor_height{0};
         Role m_role = Role::None;
         bool m_blur_enabled = false;
 

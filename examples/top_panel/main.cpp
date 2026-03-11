@@ -18,6 +18,8 @@
 
 using namespace horizon;
 
+const int PANEL_HEIGHT = 32;
+
 int main(int argc, char *argv[])
 {
     try
@@ -36,10 +38,10 @@ int main(int argc, char *argv[])
         app->set_anchor(1 | 4 | 8); // TOP | LEFT | RIGHT
 
         // Set height to 32, width to 0 (ignored by anchors)
-        app->set_size(0, 32);
+        app->set_size(0, PANEL_HEIGHT);
 
         // Set exclusive zone to 32 so other windows don't overlap
-        app->set_exclusive_zone(32);
+        app->set_exclusive_zone(PANEL_HEIGHT);
 
         // Disable keyboard interactivity to prevent focus stealing
         app->set_keyboard_interactivity(0); // 0 = NONE
@@ -138,7 +140,7 @@ int main(int argc, char *argv[])
                 // top_panel's exclusive zone, so y=0 is already at the panel bottom.
                 LOG_INFO << "MenuBar click: " << menu->title() << " at x=" << x
                          << " (Owner PID: " << current_owner_pid << ")";
-                client_menu.show_menu(menu, x, 0, -1, "top_panel", current_owner_pid);
+                client_menu.show_menu(menu, x, PANEL_HEIGHT, -1, "top_panel", current_owner_pid);
             });
 
         // Setup RequestRouter for top_panel
