@@ -1,3 +1,4 @@
+#include "horizon/EventsManager.hpp"
 #include "horizon/SignalManager.hpp"
 #include "horizon/ThemeManager.hpp"
 #include "horizon/WaylandEventListener.hpp"
@@ -34,6 +35,7 @@ namespace horizon
     class Application : public WaylandEventListener
     {
         friend class CairoGraphicContext;
+
     public:
         /**
          * @brief Constructs an Application with a window of specified size.

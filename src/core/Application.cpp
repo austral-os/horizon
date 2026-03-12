@@ -1,9 +1,10 @@
-#include <librsvg/rsvg.h>
 #include "horizon/CairoGraphicsContext.hpp"
 #include "horizon/EventsManager.hpp"
+#include "horizon/SignalManager.hpp"
 #include "horizon/Widget.hpp"
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <horizon/Application.hpp>
@@ -16,14 +17,15 @@
 #include <horizon/Window.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
 #include <iterator>
+#include <librsvg/rsvg.h>
 #include <linux/input-event-codes.h>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <poll.h>
+#include <set>
 #include <signal.h>
 #include <sys/eventfd.h>
 #include <unistd.h>
-#include <set>
 #include <wayland-client-core.h>
 #include <wayland-client-protocol.h>
 #include <wayland-client.h>
@@ -132,6 +134,32 @@ namespace horizon
                         "(XDG-Shell)";
             m_compositor_context = std::make_unique<LabwcCompositorContext>(this);
         }
+
+        signal_manager.connect("quit",
+                               [this](SignalContext &p)
+                               {
+                                   LOG_INFO << "[SIGNAL] Signal quit" << std::endl;
+                                   this->post_task([this]() { this->on_close(); });
+                               });
+
+        signal_manager.connect(
+            "fullscreen",
+            [this](SignalContext &p)
+            {
+                {
+                    LOG_INFO << "[SIGNAL] Received menu_item_clicked for 'fullscreen', "
+                                "toggling state"
+                             << std::endl;
+                    this->post_task(
+                        [this]()
+                        {
+                            if (this->is_fullscreen())
+                                this->unfullscreen();
+                            else
+                                this->fullscreen();
+                        });
+                }
+            });
     }
 
     // Constructor de movimiento
@@ -716,7 +744,7 @@ namespace horizon
             new_ev.y = (double)event.y;
 
             // Collect parent chain first for safety (if a handler destroys the widget)
-            std::vector<Widget*> chain;
+            std::vector<Widget *> chain;
             Widget *temp = m_pressed;
             while (temp)
             {
@@ -728,8 +756,9 @@ namespace horizon
             {
                 // Verify widget is still registered (optional but safer)
                 // If it was destroyed, it should have cleared m_pressed if it was m_pressed.
-                // However, intermediate parents might not be easily verifiable here without 
-                // more complex tracking. The pre-collection already solves the invalid 'parent()' call.
+                // However, intermediate parents might not be easily verifiable here without
+                // more complex tracking. The pre-collection already solves the invalid 'parent()'
+                // call.
                 new_ev.sender = w;
                 w->when_mouse_press.run(new_ev);
                 if (new_ev.stop_propagation)
@@ -760,7 +789,7 @@ namespace horizon
         new_ev.y = (double)event.y;
 
         // Collect parent chain first for safety (if a handler destroys the widget)
-        std::vector<Widget*> chain;
+        std::vector<Widget *> chain;
         Widget *temp = m_pressed;
         while (temp)
         {
@@ -913,28 +942,11 @@ namespace horizon
                                 if (receiver_pid == getpid())
                                 {
                                     std::string item_id = j.value("id", "");
-                                    if (item_id == "quit" || item_id == "Quit")
-                                    {
-                                        LOG_INFO << "[APP] Received menu_item_clicked for 'quit', "
-                                                    "triggering on_close()"
-                                                 << std::endl;
-                                        this->post_task([this]() { this->on_close(); });
-                                    }
-                                    else if (item_id == "fullscreen")
-                                    {
-                                        LOG_INFO
-                                            << "[APP] Received menu_item_clicked for 'fullscreen', "
-                                               "toggling state"
-                                            << std::endl;
-                                        this->post_task(
-                                            [this]()
-                                            {
-                                                if (this->is_fullscreen())
-                                                    this->unfullscreen();
-                                                else
-                                                    this->fullscreen();
-                                            });
-                                    }
+                                    SignalContext signal_ctx;
+                                    signal_ctx.signal = item_id;
+                                    signal_ctx.sender = nullptr;
+                                    signal_ctx.data = nullptr;
+                                    signal_manager.emit(item_id, signal_ctx);
                                 }
                             }
                         }
@@ -1534,7 +1546,8 @@ namespace horizon
             auto process_ft = [&](const WaylandSurface::ForeignToplevel &ft, uintptr_t instance_id)
             {
                 // Create a unique key to deduplicate between protocols.
-                // Usually app_id is enough, but some apps might have empty app_id but unique titles.
+                // Usually app_id is enough, but some apps might have empty app_id but unique
+                // titles.
                 std::string key = ft.app_id + "|" + ft.title;
                 if (seen_keys.find(key) != seen_keys.end())
                     return;

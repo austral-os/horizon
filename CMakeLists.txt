@@ -77,14 +77,7 @@ target_link_libraries(main_window
         horizon
 )
 
-add_executable(top_panel
-    examples/top_panel/main.cpp
-)
-
-target_link_libraries(top_panel
-    PRIVATE
-        horizon
-)
+add_subdirectory(examples/top_panel)
 
 add_executable(menubar_demo
     examples/menubar_demo.cpp

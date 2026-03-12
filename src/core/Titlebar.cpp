@@ -54,7 +54,7 @@ namespace horizon
                 {
                     if (application())
                     {
-                        application()->send_remote_signal(getpid(), "close");
+                        application()->signal_manager.emit("quit");
                     }
                 });
         }
