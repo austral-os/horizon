@@ -138,28 +138,27 @@ namespace horizon
         signal_manager.connect("quit",
                                [this](SignalContext &p)
                                {
-                                   LOG_INFO << "[SIGNAL] Signal quit" << std::endl;
+                                   LOG_INFO << "[SIGNAL] Quit signal received" << std::endl;
                                    this->post_task([this]() { this->on_close(); });
                                });
 
-        signal_manager.connect(
-            "fullscreen",
-            [this](SignalContext &p)
-            {
-                {
-                    LOG_INFO << "[SIGNAL] Received menu_item_clicked for 'fullscreen', "
-                                "toggling state"
-                             << std::endl;
-                    this->post_task(
-                        [this]()
-                        {
-                            if (this->is_fullscreen())
-                                this->unfullscreen();
-                            else
-                                this->fullscreen();
-                        });
-                }
-            });
+        signal_manager.connect("fullscreen",
+                               [this](SignalContext &p)
+                               {
+                                   {
+                                       LOG_INFO
+                                           << "[SIGNAL] Fullscreen signal received, toggling state"
+                                           << std::endl;
+                                       this->post_task(
+                                           [this]()
+                                           {
+                                               if (this->is_fullscreen())
+                                                   this->unfullscreen();
+                                               else
+                                                   this->fullscreen();
+                                           });
+                                   }
+                               });
     }
 
     // Constructor de movimiento
