@@ -70,6 +70,14 @@ namespace horizon
         uint32_t modifiers{0};
     };
 
+    class MenuBarClickContext : public EventContext
+    {
+    public:
+        class Menu *menu;
+        int x;
+        int y;
+    };
+
     /**
      * @class EventsManager
      * @brief Templated manager for event callbacks.

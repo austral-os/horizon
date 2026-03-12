@@ -36,7 +36,7 @@ classDiagram
         -vector~Menu~ m_menus
         +add_menu(Menu)
         +clear_menus()
-        +set_on_menu_click(callback)
+        +when_menu_click EventsManager
     }
     class Menu {
         -string m_title
@@ -81,7 +81,7 @@ Debido a que `top_panel` es solo una barra delgada, no puede renderizar los men�
 
 ### Flujo de un Clic en la Barra de Menú:
 1. El usuario hace clic en un título (ej: "Archivo") en `top_panel`.
-2. `MenuBar` ejecuta el callback `on_menu_click`.
+2. `MenuBar` ejecuta el evento `when_menu_click`.
 3. `top_panel` envía una solicitud `create_menu` a `horizon_menu_manager_d` vía IPC, incluyendo la estructura completa del menú y la posición (x, y).
 4. `horizon_menu_manager_d` (que es una capa `OVERLAY` transparente que cubre toda la pantalla) despierta, se vuelve visible y renderiza el `Menu` en la posición indicada.
 

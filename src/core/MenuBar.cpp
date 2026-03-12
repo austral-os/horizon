@@ -115,18 +115,17 @@ namespace horizon
             m_menu_open = true;
         }
 
-        if (m_on_menu_click && selected_item)
+        if (selected_item)
         {
-            // Pass the menu and the bottom-left corner of the clicked item
-            m_on_menu_click(selected_item->menu(), selected_item->x(),
-                            selected_item->y() + selected_item->height());
+            MenuBarClickContext ctx;
+            ctx.sender = this;
+            ctx.menu = selected_item->menu();
+            ctx.x = selected_item->x();
+            ctx.y = selected_item->y() + selected_item->height();
+            when_menu_click.run(ctx);
         }
     }
 
-    void MenuBar::set_on_menu_click(std::function<void(Menu *, int x, int y)> callback)
-    {
-        m_on_menu_click = std::move(callback);
-    }
 
     void MenuBar::set_menu_open(bool open)
     {

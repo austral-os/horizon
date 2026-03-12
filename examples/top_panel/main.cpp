@@ -125,17 +125,17 @@ int main(int argc, char *argv[])
         apply_global_menu_fn(nlohmann::json::object());
 
         // Wire up click callback: send menu to daemon for display
-        menubar->set_on_menu_click(
-            [&client_menu, &menu_daemon_visible, &current_owner_pid](Menu *menu, int x, int y)
+        menubar->when_menu_click.connect(
+            [&client_menu, &menu_daemon_visible, &current_owner_pid](MenuBarClickContext &ctx)
             {
                 // Synchronously assume daemon is visible to prevent race conditions
                 menu_daemon_visible = true;
 
                 // y=0 because the menu manager overlay starts right below the
                 // top_panel's exclusive zone, so y=0 is already at the panel bottom.
-                LOG_INFO << "MenuBar click: " << menu->title() << " at x=" << x
+                LOG_INFO << "MenuBar click: " << ctx.menu->title() << " at x=" << ctx.x
                          << " (Owner PID: " << current_owner_pid << ")";
-                client_menu.show_menu(menu, x, PANEL_HEIGHT, -1, "top_panel", current_owner_pid);
+                client_menu.show_menu(ctx.menu, ctx.x, PANEL_HEIGHT, -1, "top_panel", current_owner_pid);
             });
 
         // Setup RequestRouter for top_panel

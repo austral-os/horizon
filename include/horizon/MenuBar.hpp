@@ -1,6 +1,6 @@
 #pragma once
 
-#include <functional>
+#include <horizon/EventsManager.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/Widget.hpp>
@@ -24,8 +24,8 @@ namespace horizon
 
         void calculate_layout() override;
 
-        // Callback when a menu title is clicked: receives (Menu*, x, y) of the item
-        void set_on_menu_click(std::function<void(Menu *, int x, int y)> callback);
+        // Callback when a menu title is clicked: receives MenuBarClickContext
+        EventsManager<MenuBarClickContext> when_menu_click;
         void set_menu_open(bool open);
         bool menu_open() const
         {
@@ -36,7 +36,6 @@ namespace horizon
         void update_selection(MenuBarItem *selected_item);
 
         std::vector<std::unique_ptr<Menu>> m_menus;
-        std::function<void(Menu *, int x, int y)> m_on_menu_click;
         bool m_menu_open = false;
     };
 
