@@ -1,4 +1,5 @@
 #include "horizon/LayerApplication.hpp"
+#include <horizon/LayerWindow.hpp>
 #include <horizon/WaylandSurface.hpp>
 #include <horizon/Window.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
@@ -9,12 +10,9 @@ namespace horizon
         : Application(namespace_id, 0, 0, true), m_namespace(namespace_id), m_layer(layer)
     {
         // For LayerApplication, we create a primary window that manages the layer surface
-        auto window = std::make_unique<Window>(this, namespace_id);
+        auto window = std::make_unique<LayerWindow>(this, namespace_id, m_layer);
         m_main_window = window.get();
         
-        // Configuration for Layer Shell
-        w_surface()->setup_layer_surface(m_layer, m_namespace);
- 
         // Update input region whenever the surface size changes
         add_timer(0, [this]() {
             if (m_main_window) {
@@ -33,34 +31,38 @@ namespace horizon
 
     void LayerApplication::set_anchor(uint32_t anchor)
     {
-        if (w_surface()) {
-            w_surface()->set_layer_anchor(anchor);
-            w_surface()->commit();
+        if (m_main_window) {
+            m_main_window->set_anchor(anchor);
+            m_main_window->commit();
         }
     }
  
     void LayerApplication::set_exclusive_zone(int32_t zone)
     {
-        if (w_surface()) {
-            w_surface()->set_layer_exclusive_zone(zone);
-            w_surface()->commit();
+        if (m_main_window) {
+            m_main_window->set_exclusive_zone(zone);
+            m_main_window->commit();
         }
     }
  
     void LayerApplication::set_keyboard_interactivity(uint32_t interactivity)
     {
         m_interactivity = interactivity;
-        if (w_surface()) {
-            w_surface()->set_layer_keyboard_interactivity(interactivity);
-            w_surface()->commit();
+        if (m_main_window) {
+            m_main_window->set_keyboard_interactivity(interactivity);
+            m_main_window->commit();
         }
     }
  
     void LayerApplication::set_size(uint32_t width, uint32_t height)
     {
-        if (w_surface()) {
-            w_surface()->set_layer_size(width, height);
-            w_surface()->commit();
+        if (m_main_window) {
+            m_main_window->set_layer_size(width, height);
+            m_main_window->commit();
+            if (m_visible)
+            {
+                update_input_region();
+            }
         }
     }
  
@@ -79,7 +81,7 @@ namespace horizon
             if (visible)
             {
                 // Restore full input region
-                w_surface()->set_input_region(0, 0, w_surface()->width(), w_surface()->height());
+                update_input_region();
                 w_surface()->set_layer_keyboard_interactivity(m_interactivity);
                 w_surface()->commit();
             }
@@ -106,6 +108,15 @@ namespace horizon
             {
                 w_surface()->move_layer_to_monitor(output);
             }
+        }
+    }
+ 
+    void LayerApplication::update_input_region()
+    {
+        if (w_surface() && m_visible)
+        {
+            w_surface()->set_input_region(0, 0, w_surface()->width(), w_surface()->height());
+            w_surface()->commit();
         }
     }
 } // namespace horizon

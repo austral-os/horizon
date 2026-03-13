@@ -12,6 +12,7 @@
 #include <horizon/WaylandSurface.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/Window.hpp>
+#include <horizon/LayerWindow.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <set>
 
@@ -74,6 +75,8 @@ namespace horizon
 
     void DockApplication::setup_ui()
     {
+        main_window()->set_background_color({0.0f, 0.0f, 0.0f, 0.0f});
+
         auto root = std::make_unique<Widget>();
         root->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         root->set_background_color({0.0f, 0.0f, 0.0f, 0.0f});

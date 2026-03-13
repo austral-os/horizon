@@ -11,7 +11,7 @@
 namespace horizon
 {
 
-    Window::Window(Application* app, std::string title, int w, int h)
+    Window::Window(Application* app, std::string title, int w, int h, bool setup_toplevel)
         : m_title(title)
     {
         m_app = app;
@@ -29,20 +29,28 @@ namespace horizon
         m_surface->set_zwlr_layer_shell(app->wl_layer_shell());
         m_surface->set_wl_seat(app->wl_seat());
         m_surface->set_xdg_activation(app->xdg_activation());
+        m_surface->set_zwlr_foreign_toplevel_manager(app->foreign_toplevel_manager());
+        m_surface->set_ext_background_effect_manager(app->background_effect_manager());
+        m_surface->set_ext_foreign_toplevel_list(app->ext_foreign_toplevel_list());
+        m_surface->set_blur_manager(app->blur_manager());
+        for (auto* out : app->outputs()) m_surface->add_wl_output(out);
         
         m_surface->set_egl_display(app->m_egl_display);
         m_surface->set_egl_config(app->m_egl_config);
         m_surface->set_egl_context(app->m_egl_context);
         
-        m_surface->setup_xdg_toplevel(title, app->app_id());
+        if (setup_toplevel) {
+            m_surface->setup_xdg_toplevel(title, app->app_id());
+            
+            auto titlebar = std::make_unique<Titlebar>(title);
+            titlebar->set_fixed_size(34);
+            m_titlebar = titlebar.get();
+            add_child(std::move(titlebar));
+        }
+        
         m_surface->set_event_listener(this);
 
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
-
-        auto titlebar = std::make_unique<Titlebar>(title);
-        titlebar->set_fixed_size(34);
-        m_titlebar = titlebar.get();
-        add_child(std::move(titlebar));
         
         set_window_recursive(this);
     }
@@ -65,6 +73,11 @@ namespace horizon
         m_surface->set_zwlr_layer_shell(app->wl_layer_shell());
         m_surface->set_wl_seat(app->wl_seat());
         m_surface->set_xdg_activation(app->xdg_activation());
+        m_surface->set_zwlr_foreign_toplevel_manager(app->foreign_toplevel_manager());
+        m_surface->set_ext_background_effect_manager(app->background_effect_manager());
+        m_surface->set_ext_foreign_toplevel_list(app->ext_foreign_toplevel_list());
+        m_surface->set_blur_manager(app->blur_manager());
+        for (auto* out : app->outputs()) m_surface->add_wl_output(out);
         
         m_surface->set_egl_display(app->m_egl_display);
         m_surface->set_egl_config(app->m_egl_config);
@@ -121,11 +134,26 @@ namespace horizon
         Color bg = m_app->theme_manager->get_color("window_bg");
         Color brd = m_app->theme_manager->get_color("window_border");
 
-        gc.setColor(bg);
-        gc.fillRect(0, 0, m_width, m_height, corners);
+        // Use custom background if set, or if the surface needs to be transparent
+        if (m_background_color.a > 0.0f || m_app->is_transparent_surface()) {
+            bg = m_background_color;
+        }
 
-        gc.setColor(brd);
-        gc.drawRect(0, 0, m_width, m_height, corners, 0.9f);
+        bool is_transparent = m_app->is_transparent_surface() || m_background_color.a < 1.0f;
+
+        if (is_transparent) {
+            gc.clearRect(0, 0, m_width, m_height, corners);
+        }
+
+        if (bg.a > 0.0f) {
+            gc.setColor(bg);
+            gc.fillRect(0, 0, m_width, m_height, corners);
+        }
+
+        if (brd.a > 0.0f && !is_transparent) {
+            gc.setColor(brd);
+            gc.drawRect(0, 0, m_width, m_height, corners, 0.9f);
+        }
 
         gc.flush();
     }

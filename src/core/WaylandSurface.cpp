@@ -639,6 +639,16 @@ namespace horizon
         m_layer_shell = layer_shell;
     }
 
+    void WaylandSurface::set_ext_foreign_toplevel_list(struct ext_foreign_toplevel_list_v1 *list)
+    {
+        m_ext_foreign_toplevel_list = list;
+    }
+
+    void WaylandSurface::set_blur_manager(struct org_kde_kwin_blur_manager *manager)
+    {
+        m_blur_manager = manager;
+    }
+
     struct zwlr_layer_shell_v1 *WaylandSurface::layer_shell() const
     {
         return m_layer_shell;

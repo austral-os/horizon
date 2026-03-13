@@ -3,9 +3,10 @@
 #include "horizon/Application.hpp"
 #include <string>
  
+#include <horizon/LayerWindow.hpp>
+
 namespace horizon
 {
-    class Window;
     class WaylandSurface;
 
     /**
@@ -30,7 +31,7 @@ namespace horizon
         void set_anchor(uint32_t anchor);
  
         /**
-         * @brief Sets the exclusive zone for the layer surface.
+         * @brief Sets the exclusive_zone for the layer surface.
          * @param zone The exclusive zone in pixels.
          */
         void set_exclusive_zone(int32_t zone);
@@ -56,11 +57,12 @@ namespace horizon
             return true;
         }
 
-        Window* main_window() const { return m_main_window; }
+        LayerWindow* main_window() const { return m_main_window; }
         WaylandSurface* w_surface() const;
+        void update_input_region();
  
     private:
-        Window* m_main_window{nullptr};
+        LayerWindow* m_main_window{nullptr};
         std::string m_namespace;
         uint32_t m_layer;
         uint32_t m_interactivity{0}; // 0 = ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE

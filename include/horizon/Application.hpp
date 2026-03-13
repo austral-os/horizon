@@ -28,6 +28,11 @@ struct xdg_activation_v1;
 struct wl_seat;
 struct wl_surface;
 struct xkb_context;
+struct zwlr_foreign_toplevel_manager_v1;
+struct ext_foreign_toplevel_list_v1;
+struct ext_background_effect_manager_v1;
+struct org_kde_kwin_blur_manager;
+struct wl_output;
 struct xkb_keymap;
 struct xkb_state;
 
@@ -214,6 +219,26 @@ namespace horizon
         {
             return m_activation;
         }
+        struct ::zwlr_foreign_toplevel_manager_v1 *foreign_toplevel_manager() const
+        {
+            return m_foreign_toplevel_manager;
+        }
+        struct ::ext_foreign_toplevel_list_v1 *ext_foreign_toplevel_list() const
+        {
+            return m_ext_foreign_toplevel_list;
+        }
+        struct ::ext_background_effect_manager_v1 *background_effect_manager() const
+        {
+            return m_background_effect_manager;
+        }
+        struct ::org_kde_kwin_blur_manager *blur_manager() const
+        {
+            return m_blur_manager;
+        }
+        const std::vector<struct ::wl_output *> &outputs() const
+        {
+            return m_outputs;
+        }
 
         // WaylandEventListener implementation (routing)
         void on_pointer_event(const PointerEvent &event) override;
@@ -244,7 +269,12 @@ namespace horizon
         struct ::xdg_wm_base *m_xdg_wm_base = nullptr;
         struct ::zwlr_layer_shell_v1 *m_layer_shell = nullptr;
         struct ::xdg_activation_v1 *m_activation = nullptr;
+        struct ::zwlr_foreign_toplevel_manager_v1 *m_foreign_toplevel_manager = nullptr;
+        struct ::ext_foreign_toplevel_list_v1 *m_ext_foreign_toplevel_list = nullptr;
+        struct ::ext_background_effect_manager_v1 *m_background_effect_manager = nullptr;
+        struct ::org_kde_kwin_blur_manager *m_blur_manager = nullptr;
         struct ::wl_seat *m_seat = nullptr;
+        std::vector<struct ::wl_output *> m_outputs;
 
         // EGL Shared context
         EGLDisplay m_egl_display = EGL_NO_DISPLAY;

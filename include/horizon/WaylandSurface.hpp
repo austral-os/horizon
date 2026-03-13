@@ -102,6 +102,8 @@ namespace horizon
         void set_xdg_activation(struct xdg_activation_v1 *activation);
         void set_zwlr_foreign_toplevel_manager(struct zwlr_foreign_toplevel_manager_v1 *manager);
         void set_ext_background_effect_manager(struct ext_background_effect_manager_v1 *manager);
+        void set_ext_foreign_toplevel_list(struct ext_foreign_toplevel_list_v1 *list);
+        void set_blur_manager(struct org_kde_kwin_blur_manager *manager);
         
         void set_egl_display(EGLDisplay display);
         void set_egl_config(EGLConfig config);

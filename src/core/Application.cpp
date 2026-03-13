@@ -10,6 +10,10 @@
 #include <horizon/xdg-shell-client-protocol.h>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <horizon/xdg-activation-v1-client-protocol.h>
+#include <protocols/wlr-foreign-toplevel-management-unstable-v1-client-protocol.h>
+#include <protocols/ext-foreign-toplevel-list-v1-client-protocol.h>
+#include <protocols/ext-background-effect-v1-client-protocol.h>
+#include <protocols/blur-client-protocol.h>
 #include <wayland-client.h>
 #include <GLES2/gl2.h>
 #include <EGL/egl.h>
@@ -163,6 +167,35 @@ namespace horizon
                 .name = [](void *, struct wl_seat *, const char *) {}
             };
             wl_seat_add_listener(app->m_seat, &s_list, app);
+        } else if (strcmp(interface, "zwlr_layer_shell_v1") == 0) {
+            LOG_INFO << "[APP] Binding zwlr_layer_shell_v1...";
+            app->m_layer_shell = static_cast<struct ::zwlr_layer_shell_v1 *>(wl_registry_bind(registry, id, &zwlr_layer_shell_v1_interface, 1));
+            LOG_INFO << "[APP] Bound zwlr_layer_shell_v1";
+        } else if (strcmp(interface, "xdg_activation_v1") == 0) {
+            LOG_INFO << "[APP] Binding xdg_activation_v1...";
+            app->m_activation = static_cast<struct ::xdg_activation_v1 *>(wl_registry_bind(registry, id, &xdg_activation_v1_interface, 1));
+            LOG_INFO << "[APP] Bound xdg_activation_v1";
+        } else if (strcmp(interface, "zwlr_foreign_toplevel_manager_v1") == 0) {
+            LOG_INFO << "[APP] Binding zwlr_foreign_toplevel_manager_v1...";
+            app->m_foreign_toplevel_manager = static_cast<struct ::zwlr_foreign_toplevel_manager_v1 *>(wl_registry_bind(registry, id, &zwlr_foreign_toplevel_manager_v1_interface, 3));
+            LOG_INFO << "[APP] Bound zwlr_foreign_toplevel_manager_v1";
+        } else if (strcmp(interface, "ext_foreign_toplevel_list_v1") == 0) {
+            LOG_INFO << "[APP] Binding ext_foreign_toplevel_list_v1...";
+            app->m_ext_foreign_toplevel_list = static_cast<struct ::ext_foreign_toplevel_list_v1 *>(wl_registry_bind(registry, id, &ext_foreign_toplevel_list_v1_interface, 1));
+            LOG_INFO << "[APP] Bound ext_foreign_toplevel_list_v1";
+        } else if (strcmp(interface, "ext_background_effect_manager_v1") == 0) {
+            LOG_INFO << "[APP] Binding ext_background_effect_manager_v1...";
+            app->m_background_effect_manager = static_cast<struct ::ext_background_effect_manager_v1 *>(wl_registry_bind(registry, id, &ext_background_effect_manager_v1_interface, 1));
+            LOG_INFO << "[APP] Bound ext_background_effect_manager_v1";
+        } else if (strcmp(interface, "org_kde_kwin_blur_manager") == 0) {
+            LOG_INFO << "[APP] Binding org_kde_kwin_blur_manager...";
+            app->m_blur_manager = static_cast<struct ::org_kde_kwin_blur_manager *>(wl_registry_bind(registry, id, &org_kde_kwin_blur_manager_interface, 1));
+            LOG_INFO << "[APP] Bound org_kde_kwin_blur_manager";
+        } else if (strcmp(interface, "wl_output") == 0) {
+            LOG_INFO << "[APP] Binding wl_output...";
+            struct wl_output *output = static_cast<struct wl_output *>(wl_registry_bind(registry, id, &wl_output_interface, 1));
+            app->m_outputs.push_back(output);
+            LOG_INFO << "[APP] Bound wl_output " << output;
         }
     }
 
@@ -565,7 +598,7 @@ namespace horizon
 
             // 2. OpenGL Phase
             glViewport(0, 0, window->width(), window->height());
-            glClearColor(0.2f, 0.2f, 0.2f, 1.0f); // Dark Gray
+            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             glClear(GL_COLOR_BUFFER_BIT);
 
             glEnable(GL_BLEND);

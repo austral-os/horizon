@@ -23,7 +23,7 @@ namespace horizon
     {
         friend class Application;
     public:
-        Window(Application* app, std::string title, int w = 800, int h = 600);
+        Window(Application* app, std::string title, int w = 800, int h = 600, bool setup_toplevel = true);
         Window(Application* app, std::unique_ptr<Titlebar> custom_titlebar);
         virtual ~Window();
 
