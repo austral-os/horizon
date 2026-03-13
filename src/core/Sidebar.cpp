@@ -66,6 +66,7 @@ namespace horizon
                         }
                         m_selected_item = sidebar_item;
                         m_selected_item->set_selected(true);
+                        when_item_selected.run(ev);
                     });
             }
 

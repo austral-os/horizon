@@ -1,9 +1,11 @@
 #pragma once
+#include <horizon/EventsManager.hpp>
 #include <horizon/ScrollArea.hpp>
 #include <horizon/SidebarItem.hpp>
 #include <horizon/Widget.hpp>
 #include <map>
 #include <memory>
+#include <string>
 
 namespace horizon
 {
@@ -33,6 +35,8 @@ namespace horizon
         void render(GraphicsContext &gc, int cx, int cy, int cw, int ch,
                     bool force = false) override;
         void calculate_layout() override;
+
+        EventsManager<EventContext> when_item_selected;
 
     protected:
         void draw(GraphicsContext &gc) override;

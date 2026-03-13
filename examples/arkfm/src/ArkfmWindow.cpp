@@ -3,12 +3,14 @@
 #include "ArkfmToolbar.hpp"
 #include "ArkfmView.hpp"
 #include "horizon/ApplicationWindow.hpp"
+#include "horizon/Logger.hpp"
 #include "horizon/VPanel.hpp"
 
 namespace horizon::arkfm
 {
 
-    ArkfmWindow::ArkfmWindow(Application* app, int w, int h) : ApplicationWindow(app, "Ark File Manager")
+    ArkfmWindow::ArkfmWindow(Application *app, int w, int h)
+        : ApplicationWindow(app, "Ark File Manager")
     {
         set_size(w, h);
         auto ark_toolbar = std::make_unique<ArkToolbar>();
@@ -22,6 +24,13 @@ namespace horizon::arkfm
         auto sidebar = std::make_unique<ArkfmSidebar>();
         auto view = std::make_unique<ArkfmView>(getenv("HOME") ? getenv("HOME") : "~/");
         auto *view_ptr = view.get();
+
+        sidebar->when_item_selected.connect(
+            [view_ptr](horizon::EventContext &ev)
+            {
+                LOG_INFO << "Navegando...";
+                view_ptr->navigate_to("/home/horacio", true);
+            });
 
         ark_toolbar_ptr->when_navigation_clicked.connect(
             [view_ptr](NavigationButtonClickEvent &ctx)
