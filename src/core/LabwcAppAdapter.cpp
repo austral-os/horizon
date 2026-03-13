@@ -1,5 +1,6 @@
 #include "horizon/LabwcAppAdapter.hpp"
 #include <horizon/Application.hpp>
+#include <horizon/WaylandSurface.hpp>
 #include <horizon/Logger.hpp>
 
 namespace horizon

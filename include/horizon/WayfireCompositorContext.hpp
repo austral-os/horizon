@@ -1,10 +1,11 @@
 #pragma once
 
 #include "horizon/CompositorContext.hpp"
+#include "horizon/Window.hpp"
 
 namespace horizon
 {
-    class Application;
+    class Window;
 
     /**
      * @class WayfireCompositorContext
@@ -13,7 +14,7 @@ namespace horizon
     class WayfireCompositorContext : public CompositorContext
     {
     public:
-        explicit WayfireCompositorContext(Application *app);
+        explicit WayfireCompositorContext(Window *window);
         ~WayfireCompositorContext() override = default;
 
         void request_move(uint32_t serial) override;
@@ -29,6 +30,6 @@ namespace horizon
         bool is_fullscreen() const override;
 
     private:
-        Application *m_app;
+        Window *m_window;
     };
 } // namespace horizon

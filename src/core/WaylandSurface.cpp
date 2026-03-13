@@ -206,13 +206,13 @@ namespace horizon
         if (caps & WL_SEAT_CAPABILITY_POINTER)
         {
             self->set_wl_pointer(static_cast<wl_pointer *>(wl_seat_get_pointer(seat)));
-            wl_pointer_add_listener(self->pointer(), &g_pointer_listener, data);
+            // wl_pointer_add_listener(self->pointer(), &g_pointer_listener, data); // Handled by Application
         }
 
         if (caps & WL_SEAT_CAPABILITY_KEYBOARD)
         {
             self->set_wl_keyboard(static_cast<wl_keyboard *>(wl_seat_get_keyboard(seat)));
-            wl_keyboard_add_listener(self->keyboard(), &g_keyboard_listener, data);
+            // wl_keyboard_add_listener(self->keyboard(), &g_keyboard_listener, data); // Handled by Application
         }
     }
 
@@ -386,8 +386,8 @@ namespace horizon
     /**
      * @brief Global registry handler. Binds core Wayland interfaces.
      */
-    void registry_global(void *data, wl_registry *registry, uint32_t id, const char *interface,
-                         uint32_t version)
+    void WaylandSurface::registry_global(void *data, wl_registry *registry, uint32_t id, const char *interface,
+                          uint32_t version)
     {
         WaylandSurface *ws = static_cast<WaylandSurface *>(data);
         LOG_INFO << "[SURFACE] Global: " << interface << " (v" << version << ")";
@@ -404,11 +404,11 @@ namespace horizon
         }
         else if (std::strcmp(interface, "xdg_wm_base") == 0)
         {
-            ws->set_xdg_wm_base(static_cast<xdg_wm_base *>(
+            ws->set_xdg_wm_base(static_cast<struct xdg_wm_base *>(
                 wl_registry_bind(registry, id, &xdg_wm_base_interface, 1)));
             LOG_INFO << "[SURFACE] Bound xdg_wm_base";
-            static const xdg_wm_base_listener wm_list = {
-                .ping = [](void *, xdg_wm_base *wm, uint32_t ser) { xdg_wm_base_pong(wm, ser); }};
+            static const struct xdg_wm_base_listener wm_list = {
+                .ping = [](void *, struct xdg_wm_base *wm, uint32_t ser) { xdg_wm_base_pong(wm, ser); }};
             xdg_wm_base_add_listener(ws->xdg_wm_base(), &wm_list, nullptr);
         }
         else if (strcmp(interface, "zwlr_layer_shell_v1") == 0)
@@ -443,7 +443,7 @@ namespace horizon
         {
             ws->set_wl_seat(
                 static_cast<wl_seat *>(wl_registry_bind(registry, id, &wl_seat_interface, 1)));
-            wl_seat_add_listener(ws->seat(), &g_seat_listener, ws);
+            // wl_seat_add_listener(ws->seat(), &g_seat_listener, ws); // Handled by Application
         }
         else if (strcmp(interface, "wl_output") == 0)
         {
@@ -556,7 +556,8 @@ namespace horizon
             ev.modifiers |= 0x8;
     }
 
-    WaylandSurface::WaylandSurface(int w, int h) : m_width(w), m_height(h)
+    WaylandSurface::WaylandSurface(Application *app, int w, int h)
+        : m_width(w), m_height(h)
     {
         m_xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     }
@@ -594,6 +595,11 @@ namespace horizon
     void WaylandSurface::set_wl_keyboard(struct wl_keyboard *keyboard)
     {
         m_keyboard = keyboard;
+    }
+
+    void WaylandSurface::set_wl_display(struct wl_display *display)
+    {
+        m_display = display;
     }
 
     void WaylandSurface::set_wl_compositor(struct wl_compositor *compositor)
@@ -636,55 +642,6 @@ namespace horizon
     struct zwlr_layer_shell_v1 *WaylandSurface::layer_shell() const
     {
         return m_layer_shell;
-    }
-
-    void WaylandSurface::init_display()
-    {
-        m_display = wl_display_connect(nullptr);
-        if (!m_display)
-            throw std::runtime_error("Failed to connect to Wayland display");
-
-        m_registry = wl_display_get_registry(m_display);
-        static const wl_registry_listener listener = {registry_global, registry_global_remove};
-        wl_registry_add_listener(m_registry, &listener, this);
-
-        wl_display_roundtrip(m_display);
-
-        init_egl();
-    }
-
-    void WaylandSurface::init_egl()
-    {
-        m_egl_display = eglGetDisplay((EGLNativeDisplayType)m_display);
-        if (m_egl_display == EGL_NO_DISPLAY)
-            throw std::runtime_error("Failed to get EGL display");
-
-        if (!eglInitialize(m_egl_display, nullptr, nullptr))
-            throw std::runtime_error("Failed to initialize EGL");
-
-        EGLint attr[] = {EGL_SURFACE_TYPE,
-                         EGL_WINDOW_BIT,
-                         EGL_RED_SIZE,
-                         8,
-                         EGL_GREEN_SIZE,
-                         8,
-                         EGL_BLUE_SIZE,
-                         8,
-                         EGL_ALPHA_SIZE,
-                         8,
-                         EGL_RENDERABLE_TYPE,
-                         EGL_OPENGL_ES2_BIT,
-                         EGL_NONE};
-
-        EGLint num_configs;
-        if (!eglChooseConfig(m_egl_display, attr, &m_egl_config, 1, &num_configs) ||
-            num_configs < 1)
-            throw std::runtime_error("Failed to choose EGL config");
-
-        EGLint ctx_attr[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
-        m_egl_context = eglCreateContext(m_egl_display, m_egl_config, EGL_NO_CONTEXT, ctx_attr);
-        if (m_egl_context == EGL_NO_CONTEXT)
-            throw std::runtime_error("Failed to create EGL context");
     }
 
     void WaylandSurface::setup_xdg_toplevel(const std::string &title, const std::string &app_id)
@@ -891,12 +848,6 @@ namespace horizon
         }
     }
 
-    void WaylandSurface::init()
-    {
-        init_display();
-        setup_xdg_toplevel("Horizon Application", "horizon");
-    }
-
     void WaylandSurface::resize_buffer(int width, int height)
     {
         if (width <= 0 || height <= 0)
@@ -937,12 +888,22 @@ namespace horizon
             return;
         }
 
+        LOG_INFO << "[SURFACE] Resizing buffer to " << width << "x" << height;
+
         // 2. EGL Window and Surface management
         if (!m_egl_window)
         {
             m_egl_window = wl_egl_window_create(m_surface, width, height);
+            if (!m_egl_window) {
+                LOG_ERROR << "[SURFACE] wl_egl_window_create failed";
+                return;
+            }
             m_egl_surface = eglCreateWindowSurface(m_egl_display, m_egl_config,
                                                    (EGLNativeWindowType)m_egl_window, nullptr);
+            if (m_egl_surface == EGL_NO_SURFACE) {
+                LOG_ERROR << "[SURFACE] eglCreateWindowSurface failed: 0x" << std::hex << eglGetError();
+                return;
+            }
         }
         else
         {
@@ -971,11 +932,11 @@ namespace horizon
         if (m_egl_display != EGL_NO_DISPLAY)
         {
             if (m_egl_surface != EGL_NO_SURFACE)
+            {
                 eglDestroySurface(m_egl_display, m_egl_surface);
-            if (m_egl_context != EGL_NO_CONTEXT)
-                eglDestroyContext(m_egl_display, m_egl_context);
-
-            eglTerminate(m_egl_display);
+                m_egl_surface = EGL_NO_SURFACE;
+            }
+            // Note: m_egl_context and m_egl_display are shared and managed by Application
             m_egl_display = EGL_NO_DISPLAY;
             m_egl_surface = EGL_NO_SURFACE;
             m_egl_context = EGL_NO_CONTEXT;
@@ -987,55 +948,15 @@ namespace horizon
             m_egl_window = nullptr;
         }
 
-        if (m_pointer)
+        if (m_cursor_theme)
         {
-            wl_pointer_destroy(m_pointer);
-            m_pointer = nullptr;
+            wl_cursor_theme_destroy(m_cursor_theme);
+            m_cursor_theme = nullptr;
         }
-        if (m_keyboard)
+        if (m_cursor_surface)
         {
-            wl_keyboard_destroy(m_keyboard);
-            m_keyboard = nullptr;
-        }
-        if (m_seat)
-        {
-            wl_seat_destroy(m_seat);
-            m_seat = nullptr;
-        }
-
-        if (m_data)
-        {
-            // Note: m_width/m_height might have changed, but this is a rough cleanup
-            // In a real app we'd track allocation size
-            m_data = nullptr;
-        }
-
-        if (m_xdg_wm_base)
-        {
-            xdg_wm_base_destroy(m_xdg_wm_base);
-            m_xdg_wm_base = nullptr;
-        }
-
-        if (m_layer_shell)
-        {
-            zwlr_layer_shell_v1_destroy(m_layer_shell);
-            m_layer_shell = nullptr;
-        }
-
-        if (m_compositor)
-        {
-            wl_compositor_destroy(m_compositor);
-            m_compositor = nullptr;
-        }
-        if (m_shm)
-        {
-            wl_shm_destroy(m_shm);
-            m_shm = nullptr;
-        }
-        if (m_registry)
-        {
-            wl_registry_destroy(m_registry);
-            m_registry = nullptr;
+            wl_surface_destroy(m_cursor_surface);
+            m_cursor_surface = nullptr;
         }
 
         if (m_xdg_toplevel)
@@ -1055,21 +976,27 @@ namespace horizon
             zwlr_layer_surface_v1_destroy(m_layer_surface);
             m_layer_surface = nullptr;
         }
-        if (m_display)
+
+        if (m_background_effect_surface)
         {
-            if (m_cursor_theme)
-            {
-                wl_cursor_theme_destroy(m_cursor_theme);
-                m_cursor_theme = nullptr;
-            }
-            if (m_cursor_surface)
-            {
-                wl_surface_destroy(m_cursor_surface);
-                m_cursor_surface = nullptr;
-            }
-            wl_display_disconnect(m_display);
-            m_display = nullptr;
+            ext_background_effect_surface_v1_destroy(m_background_effect_surface);
+            m_background_effect_surface = nullptr;
         }
+
+        if (m_blur_object)
+        {
+            org_kde_kwin_blur_release(m_blur_object);
+            m_blur_object = nullptr;
+        }
+
+        if (m_surface)
+        {
+            wl_surface_destroy(m_surface);
+            m_surface = nullptr;
+        }
+
+        // Shared globals (m_compositor, m_shm, m_registry, m_xdg_wm_base, m_layer_shell, m_display)
+        // are NOT destroyed here as they are owned by Application.
     }
 
     void WaylandSurface::request_move(uint32_t serial)
@@ -1255,6 +1182,10 @@ namespace horizon
     {
         m_pointer_y = y;
     }
+
+    void WaylandSurface::set_egl_display(EGLDisplay display) { m_egl_display = display; }
+    void WaylandSurface::set_egl_config(EGLConfig config) { m_egl_config = config; }
+    void WaylandSurface::set_egl_context(EGLContext context) { m_egl_context = context; }
 
     struct wl_pointer *WaylandSurface::pointer() const
     {

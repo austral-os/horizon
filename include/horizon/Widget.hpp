@@ -105,7 +105,7 @@ namespace horizon
 
         // --- Geometría ---
         void set_position(int x, int y);
-        void set_size(int width, int height);
+        virtual void set_size(int width, int height);
         void set_width(int width)
         {
             m_width = width;
@@ -144,6 +144,9 @@ namespace horizon
         int border_radius() const;
         int border_width() const;
         Color border_color() const;
+        
+        void set_name(const std::string &name) { m_name = name; }
+        std::string name() const { return m_name; }
 
         // --- Estado ---
         void set_visible(bool visible);
@@ -215,6 +218,7 @@ namespace horizon
         void remove_child_at(int index);
         Widget *parent() const;
         Application *application() const;
+        class Window *window() const;
 
         const std::vector<std::unique_ptr<Widget>> &children() const;
         void clear_children();
@@ -226,7 +230,7 @@ namespace horizon
         /**
          * @brief Invalidates this widget, requesting a selective repaint.
          */
-        void invalidate();
+        virtual void invalidate(Widget *widget = nullptr);
 
         bool is_dirty() const
         {
@@ -252,6 +256,7 @@ namespace horizon
         EventsManager<EventContext> when_blur;
 
         virtual void set_application_recursive(Application *app);
+        virtual void set_window_recursive(class Window *window);
 
         void map_draw_state(WidgetEvent event, WidgetDrawState draw_state);
 
@@ -300,12 +305,14 @@ namespace horizon
 
         Widget *m_parent{nullptr};
         Application *m_app{nullptr};
+        class Window *m_window{nullptr};
         std::vector<std::unique_ptr<Widget>> m_children;
 
         size_t m_next_handler_id{0};
         bool m_dirty{true};
         bool m_child_dirty{true};
 
+        std::string m_name;
         std::chrono::steady_clock::time_point m_last_click_time;
         uint32_t m_last_click_button{0};
     };

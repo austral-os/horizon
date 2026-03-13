@@ -14,7 +14,7 @@ namespace horizon
             return;
 
         m_path = path;
-        load_driver();
+        m_driver.reset();
         invalidate();
     }
 
@@ -30,26 +30,20 @@ namespace horizon
     void Image::set_application_recursive(Application *app)
     {
         Widget::set_application_recursive(app);
-        if (app && !m_driver && !m_path.empty())
-        {
-            load_driver();
-        }
     }
 
     void Image::load_driver()
     {
-        m_driver.reset();
-        if (m_path.empty() || !application())
-            return;
-
-        // Image doesn't know about Stb or Svg anymore.
-        // It asks the current context to create a driver for it.
-        // This makes it compatible with future rendering backends.
-        m_driver = application()->get_graphics_context().createImageDriver(m_path);
+        // No-op, managed in draw() now
     }
 
     void Image::draw(GraphicsContext &ctx)
     {
+        if (!m_driver && !m_path.empty())
+        {
+            m_driver = ctx.createImageDriver(m_path);
+        }
+
         if (!m_driver)
             return;
 

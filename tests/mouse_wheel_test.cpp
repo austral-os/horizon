@@ -12,7 +12,7 @@ int main()
         Application app("org.horizon.mouse_wheel_test", 400, 300);
         app.set_name("Mouse Wheel Test");
 
-        auto wnd = std::make_unique<Window>("Mouse Wheel Test");
+        auto wnd = std::make_unique<Window>(&app, "Mouse Wheel Test");
         wnd->set_size(400, 300);
 
         auto label = std::make_unique<Label>("Scroll over me!");

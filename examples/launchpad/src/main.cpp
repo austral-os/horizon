@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
     app->set_blur(true);
 
     // Create the launchpad window
-    auto launchpad_window = std::make_unique<LaunchpadWindow>();
+    auto launchpad_window = std::make_unique<LaunchpadWindow>(app.get());
 
     // Set as root and run
     app->set_root(std::move(launchpad_window));

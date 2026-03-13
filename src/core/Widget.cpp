@@ -1,6 +1,8 @@
+#include <horizon/Widget.hpp>
+#include <horizon/Window.hpp>
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
-#include <horizon/Widget.hpp>
+#include <horizon/Logger.hpp>
 #include <linux/input-event-codes.h>
 
 namespace horizon
@@ -139,16 +141,21 @@ namespace horizon
         int current_x = m_start_draw_x;
         int current_y = m_start_draw_y;
 
+        int child_idx = 0;
         for (const auto &child : m_children)
         {
             if (child->position_type() == FREE)
             {
                 child->render(ctx, cx, cy, cw, ch, should_draw);
+                child_idx++;
                 continue;
             }
 
             if (!child->is_visible())
+            {
+                child_idx++;
                 continue;
+            }
 
             if (child->fixed_size() > 0)
             {
@@ -184,6 +191,7 @@ namespace horizon
             }
 
             child->render(ctx, cx, cy, cw, ch, should_draw);
+            child_idx++;
         }
 
         m_dirty = false;
@@ -217,6 +225,7 @@ namespace horizon
 
         child->m_parent = this;
         child->set_application_recursive(m_app);
+        child->set_window_recursive(m_window);
         m_children.push_back(std::move(child));
     }
 
@@ -227,6 +236,7 @@ namespace horizon
 
         child->m_parent = this;
         child->set_application_recursive(m_app);
+        child->set_window_recursive(m_window);
         m_children.insert(m_children.begin() + index, std::move(child));
     }
 
@@ -272,6 +282,15 @@ namespace horizon
         return nullptr;
     }
 
+    Window *Widget::window() const
+    {
+        if (m_window)
+            return m_window;
+        if (m_parent)
+            return m_parent->window();
+        return nullptr;
+    }
+
     const std::vector<std::unique_ptr<Widget>> &Widget::children() const
     {
         return m_children;
@@ -305,8 +324,10 @@ namespace horizon
 
     void Widget::set_position(int x, int y)
     {
-        m_x = x;
-        m_y = y;
+        if (m_x != x || m_y != y) {
+            m_x = x;
+            m_y = y;
+        }
     }
 
     void Widget::set_size(int width, int height)
@@ -553,18 +574,21 @@ namespace horizon
         return m_cursor_type;
     }
 
-    void Widget::draw(GraphicsContext &gc)
+    void Widget::draw(GraphicsContext &ctx)
     {
+        if (m_name == "NotebookHeader" || m_name == "NotebookBody" || m_name == "MainTextarea") {
+            LOG_INFO << "[DRAW] " << m_name << " at " << m_x << "," << m_y << " " << m_width << "x" << m_height;
+        }
         if (m_background_color.a > 0.001f)
         {
-            gc.setColor(m_background_color);
-            gc.fillRect(m_x, m_y, m_width, m_height, m_border_radius);
+            ctx.setColor(m_background_color);
+            ctx.fillRect(m_x, m_y, m_width, m_height, m_border_radius);
         }
 
         if (m_border_width > 0 && m_border_color.a > 0.001f)
         {
-            gc.setColor(m_border_color);
-            gc.drawRect(m_x, m_y, m_width, m_height, m_border_radius, (float)m_border_width);
+            ctx.setColor(m_border_color);
+            ctx.drawRect(m_x, m_y, m_width, m_height, m_border_radius, (float)m_border_width);
         }
     }
 
@@ -577,7 +601,16 @@ namespace horizon
         }
     }
 
-    void Widget::invalidate()
+    void Widget::set_window_recursive(Window *window)
+    {
+        m_window = window;
+        for (auto &child : m_children)
+        {
+            child->set_window_recursive(window);
+        }
+    }
+
+    void Widget::invalidate(Widget *widget)
     {
         m_dirty = true;
         Widget *p = m_parent;
@@ -589,10 +622,9 @@ namespace horizon
             p = p->m_parent;
         }
 
-        Application *app = application();
-        if (app)
+        if (window())
         {
-            app->invalidate(this);
+            window()->invalidate(widget ? widget : this);
         }
     }
 

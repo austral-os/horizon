@@ -1,5 +1,6 @@
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/Toolbar.hpp>
 #include <horizon/Widget.hpp>
 

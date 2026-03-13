@@ -6,6 +6,7 @@
 #include <horizon/MessageManager.hpp>
 #include <horizon/RequestRouter.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/Window.hpp>
 #include <linux/input-event-codes.h>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -253,7 +254,7 @@ int main(int argc, char *argv[])
             },
             true);
 
-        app->set_root(std::move(root));
+        app->main_window()->add_child(std::move(root));
 
         LOG_INFO << "Horizon Menu Manager Daemon started.";
         LOG_INFO << "IPC Target: /tmp/horizon_session.sock";

@@ -3,6 +3,7 @@
 #include <horizon/LayerApplication.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/Window.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <memory>
 
@@ -73,7 +74,7 @@ int main(int argc, char *argv[])
             { LOG_INFO << "[HORIZON WALL] Wallpaper clicked with button: " << button; });
 
         root->add_child(std::move(wallpaper));
-        app->set_root(std::move(root));
+        app->main_window()->add_child(std::move(root));
 
         LOG_INFO << "Horizon Wallpaper started (Background Layer).";
 

@@ -85,10 +85,18 @@ namespace horizon::arkfm
         m_fs_model->signal_manager().connect(arkutils::FileSystemModel::SIGNAL_DIRECTORY_CHANGED,
                                              [this](SignalContext &ctx)
                                              {
-                                                 std::string *path = (std::string *)ctx.data;
-                                                 if (path && *path == m_current_path)
+                                                 std::string *path_ptr = (std::string *)ctx.data;
+                                                 if (path_ptr)
                                                  {
-                                                     this->refresh(*path);
+                                                     std::string path = *path_ptr;
+                                                     if (path == m_current_path && application())
+                                                     {
+                                                         application()->post_task(
+                                                             [this, path]()
+                                                             {
+                                                                 this->refresh(path);
+                                                             });
+                                                     }
                                                  }
                                              });
 

@@ -51,6 +51,7 @@ namespace horizon
     class AppEventContext : public EventContext
     {
     public:
+        class Application* app{nullptr};
         int width{0};
         int height{0};
     };

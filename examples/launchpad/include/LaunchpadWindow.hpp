@@ -3,6 +3,7 @@
 #include "AppItem.hpp"
 #include <horizon/IconView.hpp>
 #include <horizon/SearchBox.hpp>
+#include <horizon/Window.hpp>
 #include <horizon/Widget.hpp>
 #include <string>
 #include <vector>
@@ -10,10 +11,10 @@
 namespace horizon
 {
 
-    class LaunchpadWindow : public Widget
+    class LaunchpadWindow : public Window
     {
     public:
-        LaunchpadWindow();
+        LaunchpadWindow(Application* app);
 
         void draw(GraphicsContext &gc) override;
 

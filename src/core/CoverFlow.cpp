@@ -3,8 +3,10 @@
 #include <cstring>
 #include <horizon/Application.hpp>
 #include <horizon/CoverFlow.hpp>
+#include <horizon/Window.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Matrix.hpp>
+#include <horizon/ThemeManager.hpp>
 
 namespace horizon
 {
@@ -128,8 +130,9 @@ namespace horizon
                 Application::GLDrawCall call;
                 call.texture_id = pair.second.texture_id;
                 call.delete_texture = true;
+                call.delete_texture = true;
                 call.opacity = -1.0f; // Convention for "just delete"
-                m_app->queue_gl_draw(call);
+                if (window()) window()->queue_gl_draw(call);
             }
         }
         m_texture_cache.clear();
@@ -408,8 +411,8 @@ namespace horizon
             Matrix::identity(mvp);
 
             float aspect = (float)m_width / m_height;
-            float proj[16];
-            Matrix::perspective(proj, 60.0f * 3.14159f / 180.0f, aspect, 0.1f, 100.0f);
+            float projection[16];
+            Matrix::perspective(projection, 45.0f * (3.14159f / 180.0f), (float)m_app->width() / (float)m_app->height(), 0.1f, 1000.0f);
 
             double pivot_x = child->x() + (double)child->width() / 2.0;
             double pivot_y = child->y() + (double)capture_h / 2.0;
@@ -447,11 +450,18 @@ namespace horizon
             Matrix::scale(mvp, scene_scale_x, scene_scale_y, 1.0f);
 
             // Apply portal transform last (pre-multiply logic)
-            Matrix::multiply(mvp, proj, mvp);
+            Matrix::multiply(mvp, projection, mvp);
             Matrix::multiply(mvp, portal, mvp);
 
             float opacity = 1.0f - std::min(0.7f, (float)std::abs(dist) * 0.15f);
-            gc.drawTexture3D(tex_id, tex_w, tex_h, mvp, opacity, false);
+            if (window()) {
+                Application::GLDrawCall call;
+                call.texture_id = tex_id;
+                memcpy(call.mvp, mvp, 16 * sizeof(float));
+                call.opacity = opacity;
+                call.delete_texture = false;
+                window()->queue_gl_draw(call);
+            }
         }
 
         gc.restore();

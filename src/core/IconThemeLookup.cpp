@@ -15,6 +15,7 @@ namespace horizon
 {
     std::map<std::string, IconThemeLookup::ThemeInfo> IconThemeLookup::s_theme_cache;
     std::map<std::string, std::string> IconThemeLookup::s_resolution_cache;
+    std::recursive_mutex IconThemeLookup::s_cache_mutex;
 
     // ---------------------------------------------------------------------------
     // Utility: trim whitespace
@@ -124,6 +125,7 @@ namespace horizon
     // ---------------------------------------------------------------------------
     IconThemeLookup::ThemeInfo IconThemeLookup::parse_index_theme(const std::string &theme_dir)
     {
+        std::lock_guard<std::recursive_mutex> lock(s_cache_mutex);
         if (s_theme_cache.count(theme_dir))
             return s_theme_cache[theme_dir];
 
@@ -328,8 +330,14 @@ namespace horizon
     // ---------------------------------------------------------------------------
     std::string IconThemeLookup::lookup_icon_in_theme(const std::string &icon_name, int size,
                                                       const std::string &theme_name,
-                                                      const std::vector<std::string> &base_dirs)
+                                                      const std::vector<std::string> &base_dirs,
+                                                      int depth)
     {
+        if (depth > 20)
+        {
+            LOG_ERROR << "[IconThemeLookup] Max recursion depth reached for icon: " << icon_name;
+            return "";
+        }
         // Find the theme directory
         std::string theme_dir;
         for (const auto &base : base_dirs)
@@ -379,7 +387,7 @@ namespace horizon
             if (parent == theme_name)
                 continue; // avoid infinite loop
 
-            std::string result = lookup_icon_in_theme(icon_name, size, parent, base_dirs);
+            std::string result = lookup_icon_in_theme(icon_name, size, parent, base_dirs, depth + 1);
             if (!result.empty())
                 return result;
         }
@@ -419,8 +427,11 @@ namespace horizon
             return "";
 
         std::string cache_key = icon_name + ":" + std::to_string(size) + ":" + theme;
-        if (s_resolution_cache.count(cache_key))
-            return s_resolution_cache[cache_key];
+        {
+            std::lock_guard<std::recursive_mutex> lock(s_cache_mutex);
+            if (s_resolution_cache.count(cache_key))
+                return s_resolution_cache[cache_key];
+        }
 
         // LOG_INFO << "[IconThemeLookup] Finding icon for: \"" << icon_name << "\" (size: " << size
         //          << ")";
@@ -436,9 +447,10 @@ namespace horizon
         {
             LOG_INFO << "[IconThemeLookup] Fallback for " << icon_name
                      << ": found actual icon name \"" << desktop_icon << "\" in desktop file.";
-            std::string result = lookup_icon_in_theme(desktop_icon, size, theme_name, base_dirs);
+            std::string result = lookup_icon_in_theme(desktop_icon, size, theme_name, base_dirs, 0);
             if (!result.empty())
             {
+                std::lock_guard<std::recursive_mutex> lock(s_cache_mutex);
                 s_resolution_cache[cache_key] = result;
                 return result;
             }
@@ -447,15 +459,16 @@ namespace horizon
             result = lookup_fallback_icon(desktop_icon, base_dirs);
             if (!result.empty())
             {
+                std::lock_guard<std::recursive_mutex> lock(s_cache_mutex);
                 s_resolution_cache[cache_key] = result;
                 return result;
             }
         }
 
-        // 2. Search requested theme with the ORIGINAL name (if not found/different in desktop)
-        std::string result = lookup_icon_in_theme(icon_name, size, theme_name, base_dirs);
+        std::string result = lookup_icon_in_theme(icon_name, size, theme_name, base_dirs, 0);
         if (!result.empty())
         {
+            std::lock_guard<std::recursive_mutex> lock(s_cache_mutex);
             s_resolution_cache[cache_key] = result;
             return result;
         }
@@ -463,15 +476,20 @@ namespace horizon
         // 3. Fallback to hicolor
         if (theme_name != "hicolor")
         {
-            result = lookup_icon_in_theme(icon_name, size, "hicolor", base_dirs);
+            result = lookup_icon_in_theme(icon_name, size, "hicolor", base_dirs, 0);
             if (!result.empty())
+            {
+                std::lock_guard<std::recursive_mutex> lock(s_cache_mutex);
+                s_resolution_cache[cache_key] = result;
                 return result;
+            }
 
             if (!desktop_icon.empty() && desktop_icon != icon_name)
             {
-                result = lookup_icon_in_theme(desktop_icon, size, "hicolor", base_dirs);
+                result = lookup_icon_in_theme(desktop_icon, size, "hicolor", base_dirs, 0);
                 if (!result.empty())
                 {
+                    std::lock_guard<std::recursive_mutex> lock(s_cache_mutex);
                     s_resolution_cache[cache_key] = result;
                     return result;
                 }
@@ -482,6 +500,7 @@ namespace horizon
         result = lookup_fallback_icon(icon_name, base_dirs);
         if (!result.empty())
         {
+            std::lock_guard<std::recursive_mutex> lock(s_cache_mutex);
             s_resolution_cache[cache_key] = result;
             return result;
         }
@@ -491,12 +510,16 @@ namespace horizon
             result = lookup_fallback_icon(desktop_icon, base_dirs);
             if (!result.empty())
             {
+                std::lock_guard<std::recursive_mutex> lock(s_cache_mutex);
                 s_resolution_cache[cache_key] = result;
                 return result;
             }
         }
 
-        s_resolution_cache[cache_key] = "";
+        {
+            std::lock_guard<std::recursive_mutex> lock(s_cache_mutex);
+            s_resolution_cache[cache_key] = "";
+        }
         return "";
     }
 

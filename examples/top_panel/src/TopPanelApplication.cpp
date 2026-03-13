@@ -3,6 +3,7 @@
 #include <horizon/Widget.hpp>
 #include <horizon/DesktopEntry.hpp>
 #include <horizon/Logger.hpp>
+#include <horizon/Window.hpp>
 #include <nlohmann/json.hpp>
 
 using namespace horizon;
@@ -27,7 +28,7 @@ TopPanelApplication::TopPanelApplication()
     m_root_widget = panel_widget.get();
     
     root->add_child(std::move(panel_widget));
-    set_root(std::move(root));
+    main_window()->add_child(std::move(root));
 }
 
 void TopPanelApplication::setup_window()

@@ -11,7 +11,7 @@ int main(int argc, char **argv)
 
     app.set_name("Menubar Demo");
 
-    auto window = std::make_unique<Window>("MenuBar Demo");
+    auto window = std::make_unique<Window>(&app, "MenuBar Demo");
     window->set_layout_type(WIDGET_LAYOUT_VERTICAL);
 
     auto menubar = std::make_unique<MenuBar>();

@@ -30,7 +30,7 @@ namespace horizon
         DockApplication();
         ~DockApplication() override;
 
-        CompositorAppInterface *compositor_apps() override;
+        CompositorAppInterface *compositor_apps();
 
         // Shows the dock context menu at the given screen position.
         void show_dock_context_menu(int x, int y, int pid, const std::string &run_id, const std::string &app_id, uintptr_t instance_id = 0);

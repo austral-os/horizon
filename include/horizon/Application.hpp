@@ -1,71 +1,89 @@
+#pragma once
+
+#include <deque>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <vector>
+#include <string>
+#include <unordered_map>
+#include <map>
+
 #include "horizon/EventsManager.hpp"
 #include "horizon/SignalManager.hpp"
 #include "horizon/ThemeManager.hpp"
 #include "horizon/WaylandEventListener.hpp"
-#include <GLES2/gl2.h>
-#include <deque>
-#include <functional>
-#include <horizon/CompositorAppInterface.hpp>
-#include <horizon/WaylandSurface.hpp>
-#include <map>
-#include <memory>
-#include <mutex>
-#include <vector>
+#include "horizon/CompositorAppInterface.hpp"
 
-#pragma once // Solo se incluye una vez.
+#include <GLES2/gl2.h>
+#include <EGL/egl.h>
+
+// Forward declarations in global namespace
+struct wl_display;
+struct wl_registry;
+struct wl_compositor;
+struct wl_shm;
+struct xdg_wm_base;
+struct zwlr_layer_shell_v1;
+struct xdg_activation_v1;
+struct wl_seat;
+struct wl_surface;
+struct xkb_context;
+struct xkb_keymap;
+struct xkb_state;
 
 namespace horizon
 {
-
     class Widget;
-    class GraphicsContext;
+    class Window;
     class Menu;
-    class ClientMenu;
-    class IpcClient;
-    class CompositorContext;
+    class WaylandSurface;
+
+    void registry_global(void *data, struct ::wl_registry *registry, uint32_t id, const char *interface, uint32_t version);
 
     /**
      * @class Application
-     * @brief Main application class that orchestrates the Wayland surface, widgets, and event loop.
-     *
-     * The Application class is responsible for initializing the Wayland surface,
-     * managing the widget tree (starting from the root widget), and running the
-     * main event loop that dispatches input and system events.
+     * @brief Main application class that orchestrates the Wayland connection and multiple windows.
      */
     class Application : public WaylandEventListener
     {
+        friend class Window;
+        friend class WaylandSurface;
         friend class CairoGraphicContext;
+        friend void registry_global(void *data, struct ::wl_registry *registry, uint32_t id, const char *interface, uint32_t version);
 
     public:
-        /**
-         * @brief Constructs an Application with a window of specified size.
-         * @param app_id Unique identifier for the application.
-         * @param w Width of the application window.
-         * @param h Height of the application window.
-         */
-        explicit Application(const std::string &app_id, int w, int h);
+        struct GLDrawCall
+        {
+            GLuint texture_id;
+            float mvp[16];
+            float opacity;
+            bool use_scissor;
+            int scissor_x, scissor_y, scissor_w, scissor_h;
+            bool delete_texture;
+        };
+ 
+        enum Modifier {
+            NONE = 0,
+            SHIFT = 1 << 0,
+            CTRL = 1 << 1,
+            ALT = 1 << 2,
+            LOGO = 1 << 3,
+        };
 
-        /**
-         * @brief Destructor. Ensures proper cleanup of resources.
-         */
-        ~Application();
+        explicit Application(const std::string &app_id, int w = 1280, int h = 720, bool is_service = false);
+        virtual ~Application();
 
-        // Application copy is disabled to prevent resource management issues.
+        struct Timer {
+            size_t id;
+            int interval;
+            std::function<void()> callback;
+            bool repeat;
+            std::chrono::steady_clock::time_point next_run;
+        };
+
         Application(const Application &) = delete;
         Application &operator=(const Application &) = delete;
-
-        /**
-         * @brief Move constructor.
-         * @param other The application to move from.
-         */
-        Application(Application &&) noexcept;
-
-        /**
-         * @brief Move assignment operator.
-         * @param other The application to move from.
-         * @return Reference to this application.
-         */
-        Application &operator=(Application &&) noexcept;
 
         std::unique_ptr<ThemeManager> theme_manager;
         SignalManager signal_manager;
@@ -75,388 +93,140 @@ namespace horizon
         EventsManager<AppEventContext> when_close;
         EventsManager<AppListEventContext> when_foreign_update;
 
-        /**
-         * @brief Sets the global menu for the application.
-         * The menus will be automatically provided to the system when the app gains focus.
-         * @param menus A list of root menus.
-         */
         void set_global_menu(const std::vector<Menu *> &menus);
-        void init_global_menu();
+        
+        void set_root_window(std::unique_ptr<Window> window);
+        void set_root(std::unique_ptr<Window> window);
+        void register_window(Window* window);
+        void unregister_window(Window* window);
 
-        /**
-         * @brief Sets the root widget of the application's widget tree.
-         * @param root Unique pointer to the new root widget.
-         */
-        void set_root(std::unique_ptr<Widget> root);
+        Window* active_window() const { return m_active_window; }
+        Window* pointer_window() const { return m_pointer_window; }
+        Window* keyboard_window() const { return m_keyboard_window; }
 
-        /**
-         * @brief Gets the underlying WaylandSurface.
-         * @return Pointer to the WaylandSurface managed by this application.
-         */
-        WaylandSurface *w_surface() const;
-
-        /**
-         * @brief Starts the main application loop.
-         * This method blocks until the application is quit.
-         */
         void run();
-
-        /**
-         * @brief Signals the application to stop its event loop and exit.
-         */
         void quit();
-
-        /**
-         * @brief Signals the application to wake up its event loop (e.g. from another thread).
-         */
         void wakeup();
 
-        /**
-         * @brief Invalidates the entire application or a specific widget.
-         * @param widget The widget to invalidate. If nullptr, the entire window is repainted.
-         */
-        void invalidate(Widget *widget = nullptr);
-
-        /**
-         * @brief Posts a task to be executed on the main application thread.
-         * This method is thread-safe.
-         * @param task The function to execute.
-         */
         void post_task(std::function<void()> task);
 
-        /**
-         * @brief Returns whether this application uses a transparent surface.
-         * @return true for LayerApplication, false for regular applications.
-         */
-        virtual bool is_transparent_surface() const
-        {
-            return true;
-        }
+        size_t add_timer(int interval_ms, std::function<void()> callback, bool repeat = false);
+        void stop_timer(size_t timer_id);
 
-        /**
-         * @brief Requests a window move from the Wayland compositor.
-         */
-        void request_move();
+        int width() const { return m_width; }
+        int height() const { return m_height; }
 
-        /**
-         * @brief Requests the window to be maximized.
-         */
-        void maximize();
+        const std::string &app_id() const { return m_app_id; }
+        
+        void set_name(const std::string &name) { m_name = name; }
+        const std::string &name() const { return m_name; }
+        
+        void set_icon_name(const std::string &icon_name) { m_icon_name = icon_name; }
+        const std::string &icon_name() const { return m_icon_name; }
+        
+        void set_show_in_dock(bool show) { m_show_in_dock = show; }
+        bool show_in_dock() const { return m_show_in_dock; }
+        
+        void set_show_in_system_tray(bool show) { m_show_in_system_tray = show; }
+        bool show_in_system_tray() const { return m_show_in_system_tray; }
 
-        /**
-         * @brief Requests the window to be minimized.
-         */
-        void minimize();
+        void send_remote_signal(pid_t target_pid, const std::string &signal_name, const std::string &data = "");
+        
+        virtual bool is_transparent_surface() const { return false; }
+        WaylandSurface* w_surface() const;
+        
+        // Wayland globals (shared)
+        struct ::wl_display* wl_display() const { return m_display; }
+        struct ::wl_compositor* wl_compositor() const { return m_compositor; }
+        struct ::wl_shm* wl_shm() const { return m_shm; }
+        struct ::xdg_wm_base* xdg_wm_base() const { return m_xdg_wm_base; }
+        struct ::zwlr_layer_shell_v1* wl_layer_shell() const { return m_layer_shell; }
+        struct ::wl_seat* wl_seat() const { return m_seat; }
+        struct ::xdg_activation_v1* xdg_activation() const { return m_activation; }
 
-        /**
-         * @brief Requests the window to be restored from maximized state.
-         */
-        void restore(const std::string &token = "");
-
-        /**
-         * @return True if the window is maximized.
-         */
-        bool is_maximized() const;
-
-        /**
-         * @brief Requests the window to enter fullscreen mode.
-         */
-        void fullscreen();
-
-        /**
-         * @brief Requests the window to exit fullscreen mode.
-         */
-        void unfullscreen();
-        void set_blur(bool enabled);
-
-        /**
-         * @return True if the window is in fullscreen mode.
-         */
-        bool is_fullscreen() const;
-
-        /**
-         * @return True if the window is minimized.
-         */
-        bool is_minimized() const;
-
-        /**
-         * @return True if the window was maximized before being minimized.
-         */
-        bool was_maximized_before_minimize() const;
-
-        /**
-         * @brief Returns the graphics context for this application.
-         */
-        virtual GraphicsContext &get_graphics_context() const;
-
-        GLuint gl_program() const
-        {
-            return m_gl_program;
-        }
-        GLuint gl_vbo() const
-        {
-            return m_gl_vbo;
-        }
-
-        struct GLDrawCall
-        {
-            uint32_t texture_id;
-            float mvp[16];
-            float opacity;
-            bool delete_texture;
-            bool use_scissor;
-            int scissor_x, scissor_y, scissor_w, scissor_h;
-        };
-
-        void queue_gl_draw(const GLDrawCall &call) const;
-
-        int width() const;
-        int height() const;
-
-        /**
-         * @brief Implementation of the WaylandEventListener pointer event callback.
-         * @param event The pointer event details.
-         */
+        // WaylandEventListener implementation (routing)
         void on_pointer_event(const PointerEvent &event) override;
         void on_key_event(const KeyEvent &event) override;
         void on_modifiers_event(uint32_t modifiers) override;
         void on_resize(int width, int height) override;
         void on_activated(bool active) override;
         void on_foreign_toplevel_event() override;
-        virtual void on_close() override;
+        void on_close() override;
 
-        /**
-         * @brief Returns the compositor context for this application.
-         */
-        virtual CompositorContext &get_compositor_context() const;
-
-        // --- Application Events (Multi-Callback) ---
-        size_t add_on_start(std::function<void()> handler);
-        void remove_on_start(size_t id);
-
-        size_t add_on_exit(std::function<void()> handler);
-        void remove_on_exit(size_t id);
-
-        size_t add_on_resize(std::function<void(int, int)> handler);
-        void remove_on_resize(size_t id);
-
-        size_t add_on_maximize(std::function<void(bool)> handler);
-        void remove_on_maximize(size_t id);
-
-        size_t add_on_minimize(std::function<void()> handler);
-        void remove_on_minimize(size_t id);
-
-        size_t add_timer(int ms, std::function<void()> callback, bool repeat = false);
-        void stop_timer(size_t id);
-
-        /**
-         * @brief Unregisters a widget from internal application state (e.g. dirty lists, focus).
-         * Called when a widget is destroyed.
-         */
-        void unregister_widget(Widget *widget);
-
-        /**
-         * @brief Sends a signal to another application via the IPC mechanism.
-         * @param target_pid The PID of the target application.
-         * @param signal The signal name (e.g., "maximize", "close").
-         * @param token Optional token for the signal.
-         */
-        void send_remote_signal(int target_pid, const std::string &signal,
-                                const std::string &token = "");
-
-        // --- Application Metadata ---
-        const std::string &app_id() const
-        {
-            return m_app_id;
-        }
-
-        void set_name(const std::string &name)
-        {
-            m_name = name;
-        }
-        const std::string &name() const
-        {
-            return m_name;
-        }
-
-        void set_icon_name(const std::string &icon_name)
-        {
-            m_icon_name = icon_name;
-        }
-        const std::string &icon_name() const
-        {
-            return m_icon_name;
-        }
-
-        void set_show_in_dock(bool show)
-        {
-            m_show_in_dock = show;
-        }
-        bool show_in_dock() const
-        {
-            return m_show_in_dock;
-        }
-
-        void set_show_in_system_tray(bool show)
-        {
-            m_show_in_system_tray = show;
-        }
-        bool show_in_system_tray() const
-        {
-            return m_show_in_system_tray;
-        }
-
-        virtual CompositorAppInterface *compositor_apps()
-        {
-            return nullptr;
-        }
-
-        // Modifiers
-        enum Modifier
-        {
-            SHIFT = (1 << 0),
-            CTRL = (1 << 1),
-            ALT = (1 << 2),
-            CAPSLOCK = (1 << 3)
-        };
-
-    protected:
-        /**
-         * @brief Protected constructor for derived classes that need custom initialization.
-         */
-        Application(const std::string &app_id, int w, int h, bool defer_init);
+        void unregister_widget(Widget* w) {}
+        void invalidate(Widget* w = nullptr);
+        void render_gl_ui(int iteration = 0);
 
     private:
-        /**
-         * @brief Internal event dispatcher.
-         */
         void dispatch_events();
+        void init_wayland();
+        void init_egl();
 
-        /**
-         * @brief Notifies the application manager about lifecycle events.
-         * @param type Event type (e.g., "app_started", "app_stopped").
-         */
-        void notify_app_manager(const std::string &type);
-        void notify_window_state(bool minimized);
+        std::string m_app_id;
+        std::string m_name;
+        
+        // Shared Wayland State
+        struct ::wl_display *m_display = nullptr;
+        struct ::wl_registry *m_registry = nullptr;
+        struct ::wl_compositor *m_compositor = nullptr;
+        struct ::wl_shm *m_shm = nullptr;
+        struct ::xdg_wm_base *m_xdg_wm_base = nullptr;
+        struct ::zwlr_layer_shell_v1 *m_layer_shell = nullptr;
+        struct ::xdg_activation_v1 *m_activation = nullptr;
+        struct ::wl_seat *m_seat = nullptr;
+        
+        // EGL Shared context
+        EGLDisplay m_egl_display = EGL_NO_DISPLAY;
+        EGLConfig m_egl_config;
+        EGLContext m_egl_context = EGL_NO_CONTEXT;
 
-    private:
-        std::unique_ptr<WaylandSurface>
-            m_surface;               /**< The Wayland surface representing the main window. */
-        bool m_is_running = false;   /**< Flag indicating if the event loop is active. */
-        bool m_is_activated = false; /**< Flag indicating if the application is currently active. */
+        // GLES2 Resources (Shared)
+        GLuint m_program = 0;
+        GLuint m_v_shader = 0;
+        GLuint m_f_shader = 0;
+        GLuint m_vbo = 0;
+        GLint m_mvp_loc = -1;
+        GLint m_opacity_loc = -1;
+        GLint m_tex_loc = -1;
+        GLint m_pos_loc = -1;
+        GLint m_uv_loc = -1;
 
-        std::vector<Menu *> m_global_menus;
-        std::unique_ptr<Menu> m_app_menu;
-        std::shared_ptr<ClientMenu> m_client_menu;
+        // Window Management
+        std::unordered_map<struct ::wl_surface*, Window*> m_window_map;
+        std::vector<std::unique_ptr<Window>> m_windows;
+        
+        Window* m_active_window = nullptr;
+        Window* m_pointer_window = nullptr;
+        Window* m_keyboard_window = nullptr;
 
-        bool m_full_repaint = true; /**< Flag indicating if the entire UI needs re-rendering. */
-        std::vector<Widget *> m_dirty_widgets; /**< List of widgets that need re-rendering. */
+        // Global Caches (moved back to Application as they are sharable resources)
+        std::unordered_map<std::string, void *> m_svg_cache;
+        std::unordered_map<std::string, void *> m_surface_cache;
+        std::recursive_mutex m_cache_mutex;
 
-        int m_wakeup_fd{-1}; /**< File descriptor for waking up the event loop. */
+        int m_wakeup_fd{-1};
+        std::deque<std::function<void()>> m_task_queue;
+        std::recursive_mutex m_task_mutex;
 
-        Widget *m_hovered = nullptr; /**< The widget currently under the mouse pointer. */
-        Widget *m_pressed = nullptr; /**< The widget currently being pressed by a mouse button. */
-        Widget *m_focused = nullptr; /**< The widget currently having keyboard focus. */
-
-        double m_pointer_x = 0.0;   /**< Last known X position of the pointer. */
-        double m_pointer_y = 0.0;   /**< Last known Y position of the pointer. */
-        uint32_t m_last_serial = 0; /**< Last received Wayland serial. */
-
-        uint32_t m_resize_edge = 0;       /**< Current edge being hovered for resize. */
-        const int m_resize_proximity = 8; /**< Distance to edge to trigger resize. */
-
-        uint32_t m_modifiers{0};
-
-        uint64_t m_blink_last_time{0}; /**< Last time the focused widget was blinked. */
-        uint64_t m_last_commit_time{
-            0}; /**< Timestamp of last wl_surface_commit (for frame limiter). */
-
-        // Key repeat tracking
-        uint32_t m_repeat_key = 0;
-        uint64_t m_repeat_delay = 500; // ms
-        uint64_t m_repeat_rate = 100;  // ms
-        uint64_t m_repeat_start_time = 0;
-        uint64_t m_repeat_last_time = 0;
-        bool m_is_repeating = false;
-        KeyEvent m_repeat_event; /**< Full last key event (keysym, text) used for repeats. */
-
-        /**
-         * @brief Internal handler for pointer movement events.
-         */
-        void handle_move(const PointerEvent &event);
-
-        /**
-         * @brief Internal handler for pointer button press events.
-         */
-        void handle_press(const PointerEvent &event);
-
-        /**
-         * @brief Internal handler for pointer button release events.
-         */
-        void handle_release(const PointerEvent &event);
-        void handle_wheel(const PointerEvent &event);
-
-        /**
-         * @brief Internal handler for keyboard key press events.
-         */
-        void handle_key_press(const KeyEvent &event);
-
-        /**
-         * @brief Internal handler for keyboard key release events.
-         */
-        void handle_key_release(const KeyEvent &event);
-
-        // Handler maps
-        std::map<size_t, std::function<void()>> m_on_start_handlers;
-        std::map<size_t, std::function<void()>> m_on_exit_handlers;
-        std::map<size_t, std::function<void(int, int)>> m_on_resize_handlers;
-        std::map<size_t, std::function<void(bool)>> m_on_maximize_handlers;
-        std::map<size_t, std::function<void()>> m_on_minimize_handlers;
-
-        size_t m_next_app_handler_id{0};
-
-        struct Timer
-        {
-            size_t id;
-            int interval_ms;
-            uint64_t next_expiry;
-            bool repeat;
-            std::function<void()> callback;
-        };
-        std::map<size_t, Timer> m_timers;
+        std::vector<Timer> m_timers;
         size_t m_next_timer_id{1};
+        std::recursive_mutex m_timer_mutex;
 
-        // Application Metadata
-        std::string m_app_id{"horizon.app"};
-        std::string m_name{"Horizon Application"};
-        std::string m_icon_name{""};
+        bool m_is_running{false};
+        bool m_is_service{false};
         bool m_show_in_dock{true};
         bool m_show_in_system_tray{false};
-        bool m_is_minimized{false};
-        bool m_was_maximized_before_minimize{false};
-
-        std::deque<std::function<void()>> m_task_queue;
-        std::mutex m_task_mutex;
-
-        // m_root is last: destroyed FIRST so widget dtors can safely call
-        // stop_timer/unregister_widget
-        std::unique_ptr<Widget> m_root; /**< The root of the UI widget hierarchy. */
-
-        std::unique_ptr<IpcClient> m_ipc_subscriber;
-
-        void init_gl_resources();
-        void render_gl_ui();
-
-        GLuint m_gl_program{0};
-        GLuint m_gl_vbo{0};
-        GLuint m_gl_texture{0};
-        mutable std::vector<GLDrawCall> m_gl_queue;
-
-        mutable std::unique_ptr<GraphicsContext> m_gc;
-        std::unique_ptr<CompositorContext> m_compositor_context;
-
-        // Image caching
-        mutable std::map<std::string, void *> m_svg_cache;
-        mutable std::map<std::string, void *> m_surface_cache;
+        std::string m_icon_name;
+        int m_width{1280};
+        int m_height{720};
+        
+        // Input state
+        uint32_t m_last_serial{0};
+        ::xkb_context *m_xkb_context{nullptr};
+        ::xkb_keymap *m_xkb_keymap{nullptr};
+        ::xkb_state *m_xkb_state{nullptr};
+        double m_pointer_x{0};
+        double m_pointer_y{0};
     };
+
 } // namespace horizon

@@ -94,7 +94,7 @@ int main(int argc, char **argv)
     app.set_icon_name("folder");
     app.set_show_in_dock(true);
 
-    auto window = std::make_unique<ApplicationWindow>("Horizon Toolbar Demo");
+    auto window = std::make_unique<ApplicationWindow>(&app, "Horizon Toolbar Demo");
     window->set_size(800, 600);
     window->show_status_bar();
     window->set_status_text("Horizon OS - Alpha");

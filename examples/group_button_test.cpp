@@ -17,7 +17,7 @@ int main()
         Application app("org.horizon.group_button_test", 400, 400);
         app.set_name("GroupButton & ToggleGroupButton Test");
 
-        auto wnd = std::make_unique<Window>("GroupButton Test");
+        auto wnd = std::make_unique<Window>(&app, "GroupButton Test");
         wnd->set_size(400, 400);
 
         auto container = std::make_unique<Widget>();

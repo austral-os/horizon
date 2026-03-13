@@ -14,6 +14,7 @@ pkg_check_modules(XKBCOMMON REQUIRED xkbcommon)
 pkg_check_modules(RSVG REQUIRED librsvg-2.0)
 pkg_check_modules(EGL REQUIRED egl)
 pkg_check_modules(GLESV2 REQUIRED glesv2)
+pkg_check_modules(FONTCONFIG REQUIRED fontconfig)
 
 file(GLOB_RECURSE SOURCES 
     "src/*.cpp" 
@@ -37,6 +38,7 @@ target_include_directories(horizon
         ${RSVG_INCLUDE_DIRS}
         ${EGL_INCLUDE_DIRS}
         ${GLESV2_INCLUDE_DIRS}
+        ${FONTCONFIG_INCLUDE_DIRS}
 )
 
 target_link_libraries(horizon
@@ -48,6 +50,7 @@ target_link_libraries(horizon
         ${RSVG_LIBRARIES}
         ${EGL_LIBRARIES}
         ${GLESV2_LIBRARIES}
+        ${FONTCONFIG_LIBRARIES}
 )
 
 add_executable(minimal
@@ -179,11 +182,11 @@ target_link_libraries(mouse_wheel_test
         horizon
 )
 
-add_executable(launcher_demo
-    examples/launcher_demo.cpp
+add_executable(multi_window_demo
+    examples/multi_window_demo.cpp
 )
 
-target_link_libraries(launcher_demo
+target_link_libraries(multi_window_demo
     PRIVATE
         horizon
 )

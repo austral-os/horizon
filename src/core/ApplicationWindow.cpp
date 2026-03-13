@@ -4,8 +4,8 @@
 
 namespace horizon
 {
-    ApplicationWindow::ApplicationWindow(std::string title)
-        : Window(std::make_unique<Toolbar>(std::move(title)))
+    ApplicationWindow::ApplicationWindow(Application* app, std::string title)
+        : Window(app, std::make_unique<Toolbar>(std::move(title)))
     {
         auto content = std::make_unique<Widget>();
         content->set_margin(1);
@@ -15,7 +15,6 @@ namespace horizon
 
     Toolbar *ApplicationWindow::toolbar() const
     {
-        // m_titlebar is Titlebar*, but in ApplicationWindow it points to a Toolbar
         return static_cast<Toolbar *>(m_titlebar);
     }
 

@@ -12,7 +12,7 @@
 
 namespace horizon
 {
-    AboutWindow::AboutWindow() : ApplicationWindow("About System")
+    AboutWindow::AboutWindow(Application* app) : ApplicationWindow(app, "About System")
     {
 
         auto tool_widget = std::make_unique<Widget>();

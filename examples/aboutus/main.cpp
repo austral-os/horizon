@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
     app->set_name("About System");
     app->set_icon_name("computer");
 
-    auto window = std::make_unique<AboutWindow>();
+    auto window = std::make_unique<AboutWindow>(app.get());
 
     app->set_root(std::move(window));
 

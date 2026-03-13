@@ -8,7 +8,7 @@
 namespace horizon::arkfm
 {
 
-    ArkfmWindow::ArkfmWindow(int w, int h) : ApplicationWindow("Ark File Manager")
+    ArkfmWindow::ArkfmWindow(Application* app, int w, int h) : ApplicationWindow(app, "Ark File Manager")
     {
         set_size(w, h);
         auto ark_toolbar = std::make_unique<ArkToolbar>();

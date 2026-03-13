@@ -11,7 +11,7 @@ namespace horizon
     class ApplicationWindow : public Window
     {
     public:
-        ApplicationWindow(std::string title);
+        ApplicationWindow(Application* app, std::string title);
         ~ApplicationWindow() = default;
 
         Toolbar *toolbar() const;

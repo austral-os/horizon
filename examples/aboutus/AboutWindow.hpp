@@ -7,7 +7,7 @@ namespace horizon
     class AboutWindow : public ApplicationWindow
     {
     public:
-        AboutWindow();
+        AboutWindow(Application* app);
         ~AboutWindow() = default;
 
     private:

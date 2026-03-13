@@ -11,6 +11,7 @@
 #include <horizon/WayfireAppAdapter.hpp>
 #include <horizon/WaylandSurface.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/Window.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <set>
 
@@ -87,7 +88,7 @@ namespace horizon
         root->add_child(std::move(shelf));
         root->add_child(std::move(right_spacer));
 
-        set_root(std::move(root));
+        main_window()->add_child(std::move(root));
     }
 
     void DockApplication::setup_ipc()

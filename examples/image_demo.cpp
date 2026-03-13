@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
 
     app.set_name("Image Demo");
 
-    auto window = std::make_unique<ApplicationWindow>("Image Widget Demo");
+    auto window = std::make_unique<ApplicationWindow>(&app, "Image Widget Demo");
 
     auto root_panel = std::make_unique<VPanel>();
     root_panel->set_spacing(10);

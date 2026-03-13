@@ -1,6 +1,7 @@
 #include <horizon/Application.hpp>
 #include <horizon/Frame.hpp>
 #include <horizon/GraphicsContext.hpp>
+#include <horizon/Logger.hpp>
 
 namespace horizon
 {
@@ -9,7 +10,6 @@ namespace horizon
 
     void Frame::draw(GraphicsContext &gc)
     {
-
         auto *tm = application()->theme_manager.get();
 
         int radius = 10;

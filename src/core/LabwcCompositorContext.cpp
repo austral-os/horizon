@@ -6,49 +6,49 @@
 
 namespace horizon
 {
-    LabwcCompositorContext::LabwcCompositorContext(Application *app) : m_app(app) {}
+    LabwcCompositorContext::LabwcCompositorContext(Window *window) : m_window(window) {}
 
     void LabwcCompositorContext::request_move(uint32_t serial)
     {
-        if (m_app && m_app->w_surface())
+        if (m_window && m_window->w_surface())
         {
-            m_app->w_surface()->request_move(serial);
+            m_window->w_surface()->request_move(serial);
         }
     }
 
     void LabwcCompositorContext::request_resize(uint32_t serial, uint32_t edge)
     {
-        if (m_app && m_app->w_surface())
+        if (m_window && m_window->w_surface())
         {
-            m_app->w_surface()->request_resize(serial, edge);
+            m_window->w_surface()->request_resize(serial, edge);
         }
     }
 
     void LabwcCompositorContext::maximize()
     {
-        if (m_app && m_app->w_surface())
+        if (m_window && m_window->w_surface())
         {
-            m_app->w_surface()->request_maximize();
-            // We'll let Application handle internal state updates like m_is_minimized
+            m_window->w_surface()->request_maximize();
+            // We'll let Window handle internal state updates like m_is_minimized
             // but the protocol request happens here.
         }
     }
 
     void LabwcCompositorContext::minimize()
     {
-        if (m_app && m_app->w_surface())
+        if (m_window && m_window->w_surface())
         {
             LOG_INFO << "[LabwcContext] Minimizing window...";
-            m_app->w_surface()->request_minimize();
+            m_window->w_surface()->request_minimize();
         }
     }
 
     void LabwcCompositorContext::restore(const std::string &token)
     {
-        if (!m_app || !m_app->w_surface())
+        if (!m_window || !m_window->w_surface())
             return;
 
-        auto *surface = m_app->w_surface();
+        auto *surface = m_window->w_surface();
 
         // Protocol sequence:
         // 1. If we have an activation token, use it FIRST.
@@ -58,9 +58,9 @@ namespace horizon
         }
 
         // 2. Request the compositor to un-minimize/maximize
-        if (m_app->is_minimized() || m_app->was_maximized_before_minimize())
+        if (m_window->is_minimized() || m_window->was_maximized_before_minimize())
         {
-            if (m_app->was_maximized_before_minimize())
+            if (m_window->was_maximized_before_minimize())
             {
                 surface->request_maximize();
             }
@@ -69,7 +69,7 @@ namespace horizon
                 surface->request_restore();
             }
         }
-        else if (m_app->is_maximized())
+        else if (m_window->is_maximized())
         {
             surface->request_restore();
         }
@@ -84,35 +84,35 @@ namespace horizon
 
     void LabwcCompositorContext::fullscreen()
     {
-        if (m_app && m_app->w_surface())
+        if (m_window && m_window->w_surface())
         {
-            m_app->w_surface()->request_fullscreen();
+            m_window->w_surface()->request_fullscreen();
         }
     }
 
     void LabwcCompositorContext::unfullscreen()
     {
-        if (m_app && m_app->w_surface())
+        if (m_window && m_window->w_surface())
         {
-            m_app->w_surface()->request_unfullscreen();
+            m_window->w_surface()->request_unfullscreen();
         }
     }
 
     bool LabwcCompositorContext::is_maximized() const
     {
-        return m_app && m_app->w_surface() && m_app->w_surface()->is_maximized();
+        return m_window && m_window->w_surface() && m_window->w_surface()->is_maximized();
     }
 
     bool LabwcCompositorContext::is_fullscreen() const
     {
-        return m_app && m_app->w_surface() && m_app->w_surface()->is_fullscreen();
+        return m_window && m_window->w_surface() && m_window->w_surface()->is_fullscreen();
     }
 
     void LabwcCompositorContext::set_blur(bool enabled)
     {
-        if (m_app && m_app->w_surface())
+        if (m_window && m_window->w_surface())
         {
-            m_app->w_surface()->set_blur(enabled);
+            m_window->w_surface()->set_blur(enabled);
         }
     }
 } // namespace horizon

@@ -51,7 +51,6 @@ namespace horizon
     class WaylandSurface
     {
         // Friend declarations for Wayland callbacks
-        friend void registry_global(void *, struct wl_registry *, uint32_t, const char *, uint32_t);
         friend void foreign_toplevel_manager_toplevel(void *,
                                                       struct zwlr_foreign_toplevel_manager_v1 *,
                                                       struct zwlr_foreign_toplevel_handle_v1 *);
@@ -88,10 +87,11 @@ namespace horizon
             LayerShell
         };
 
-        explicit WaylandSurface(int w, int h);
+        WaylandSurface(Application *app, int w, int h);
         ~WaylandSurface();
 
         // Registry setters (called during init)
+        void set_wl_display(struct wl_display *display);
         void set_wl_compositor(struct wl_compositor *compositor);
         void set_wl_shm(struct wl_shm *shm);
         void set_xdg_wm_base(struct xdg_wm_base *xdg_wm_base);
@@ -102,6 +102,10 @@ namespace horizon
         void set_xdg_activation(struct xdg_activation_v1 *activation);
         void set_zwlr_foreign_toplevel_manager(struct zwlr_foreign_toplevel_manager_v1 *manager);
         void set_ext_background_effect_manager(struct ext_background_effect_manager_v1 *manager);
+        
+        void set_egl_display(EGLDisplay display);
+        void set_egl_config(EGLConfig config);
+        void set_egl_context(EGLContext context);
 
         void set_event_listener(WaylandEventListener *listener);
 
@@ -149,11 +153,6 @@ namespace horizon
         int width() const;
         int height() const;
         int monitor_height() const { return m_monitor_height; }
-
-        /**
-         * @brief Initializes the Wayland connection and binds globals.
-         */
-        void init_display();
 
         /**
          * @brief Sets up the surface as a standard desktop window.
@@ -283,6 +282,9 @@ namespace horizon
         void swap_buffers();
 
         void update_blur_region();
+        
+        static void registry_global(void *data, struct wl_registry *registry, uint32_t id, 
+                                   const char *interface, uint32_t version);
     private:
         int m_width;
         int m_height;
@@ -341,9 +343,9 @@ namespace horizon
         struct wl_surface *m_cursor_surface = nullptr;
         CursorType m_current_cursor_type = CursorType::Default;
 
-        struct xkb_context *m_xkb_context = nullptr;
-        struct xkb_keymap *m_xkb_keymap = nullptr;
-        struct xkb_state *m_xkb_state = nullptr;
+        ::xkb_context *m_xkb_context = nullptr;
+        ::xkb_keymap *m_xkb_keymap = nullptr;
+        ::xkb_state *m_xkb_state = nullptr;
 
         // Foreign toplevel tracking
         std::map<struct zwlr_foreign_toplevel_handle_v1 *, ForeignToplevel> m_foreign_toplevels;

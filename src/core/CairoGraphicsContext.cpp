@@ -6,14 +6,16 @@
 #include <horizon/StbImageDriver.hpp>
 #include <horizon/SvgImageDriver.hpp>
 #include <librsvg/rsvg.h>
+#include <horizon/Logger.hpp>
+#include <horizon/Window.hpp>
 #include <memory>
 #include <string>
 
 namespace horizon
 {
 
-    CairoGraphicContext::CairoGraphicContext(const Application *app, void *data, int w, int h)
-        : m_app(app), m_width(w), m_height(h)
+    CairoGraphicContext::CairoGraphicContext(const Application *app, Window* window, void *data, int w, int h)
+        : m_app(app), m_window(window), m_width(w), m_height(h)
     {
         cairo_s = cairo_image_surface_create_for_data((unsigned char *)data, CAIRO_FORMAT_ARGB32, w,
                                                       h, w * 4);
@@ -174,11 +176,11 @@ namespace horizon
         cairo_set_source_rgba(cr, color.r, color.g, color.b, color.a);
     }
 
-    void CairoGraphicContext::clearRect(int x, int y, int w, int h, CornerRadius radius)
+    void CairoGraphicContext::clearRect(int x, int y, int width, int height, CornerRadius radius)
     {
         cairo_save(cr);
         cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
-        rounded_rectangle(cr, x, y, (double)w, (double)h, radius);
+        rounded_rectangle(cr, (double)x, (double)y, (double)width, (double)height, radius);
         cairo_fill(cr);
         cairo_restore(cr);
     }
@@ -188,9 +190,12 @@ namespace horizon
         cairo_paint(cr);
     }
 
+    static std::recursive_mutex s_font_mutex;
+
     TextMetrics CairoGraphicContext::getTextMetrics(const char *text, const char *font, int size,
                                                     FontSlant slant, FontWeight weight) const
     {
+        std::lock_guard<std::recursive_mutex> lock(s_font_mutex);
         TextMetrics metrics;
         cairo_font_slant_t cairo_slant;
         cairo_font_weight_t cairo_weight;
@@ -215,18 +220,23 @@ namespace horizon
             cairo_weight = CAIRO_FONT_WEIGHT_BOLD;
             break;
         }
+        
+        cairo_save(cr);
         cairo_select_font_face(cr, font, cairo_slant, cairo_weight);
         cairo_set_font_size(cr, size);
         cairo_text_extents_t text_extents;
         cairo_text_extents(cr, text, &text_extents);
         metrics.width = text_extents.x_advance;
         metrics.height = text_extents.height;
+        cairo_restore(cr);
+
         return metrics;
     }
 
     void CairoGraphicContext::setDrawFont(const char *font, int size, FontSlant slant,
                                           FontWeight weight)
     {
+        std::lock_guard<std::recursive_mutex> lock(s_font_mutex);
         cairo_font_slant_t cairo_slant;
         cairo_font_weight_t cairo_weight;
         switch (slant)
@@ -256,6 +266,7 @@ namespace horizon
 
     void CairoGraphicContext::drawText(int x, int y, const char *text)
     {
+        std::lock_guard<std::recursive_mutex> lock(s_font_mutex);
         cairo_move_to(cr, x, y);
         cairo_show_text(cr, text);
     }
@@ -283,11 +294,17 @@ namespace horizon
             std::string cache_key = path + "@" + std::to_string(w) + "x" + std::to_string(h);
             cairo_surface_t *img = nullptr;
 
-            if (m_app && m_app->m_surface_cache.count(cache_key))
+            if (m_app)
             {
-                img = static_cast<cairo_surface_t *>(m_app->m_surface_cache[cache_key]);
+                std::lock_guard<std::recursive_mutex> lock(const_cast<Application *>(m_app)->m_cache_mutex);
+                auto it = m_app->m_surface_cache.find(cache_key);
+                if (it != m_app->m_surface_cache.end())
+                {
+                    img = static_cast<cairo_surface_t *>(it->second);
+                }
             }
-            else
+ 
+            if (!img)
             {
                 // Render SVG to a new image surface
                 img = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
@@ -305,7 +322,8 @@ namespace horizon
 
                 if (m_app)
                 {
-                    m_app->m_surface_cache[cache_key] = img;
+                    std::lock_guard<std::recursive_mutex> lock(const_cast<Application *>(m_app)->m_cache_mutex);
+                    const_cast<Application *>(m_app)->m_surface_cache[cache_key] = img;
                 }
             }
 
@@ -324,11 +342,17 @@ namespace horizon
         {
             // --- PNG rendering via cairo ---
             cairo_surface_t *img = nullptr;
-            if (m_app && m_app->m_surface_cache.count(path))
+            if (m_app)
             {
-                img = static_cast<cairo_surface_t *>(m_app->m_surface_cache[path]);
+                std::lock_guard<std::recursive_mutex> lock(const_cast<Application *>(m_app)->m_cache_mutex);
+                auto it = m_app->m_surface_cache.find(path);
+                if (it != m_app->m_surface_cache.end())
+                {
+                    img = static_cast<cairo_surface_t *>(it->second);
+                }
             }
-            else
+
+            if (!img)
             {
                 img = cairo_image_surface_create_from_png(path.c_str());
                 if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS)
@@ -339,7 +363,8 @@ namespace horizon
                 }
                 if (m_app)
                 {
-                    m_app->m_surface_cache[path] = img;
+                    std::lock_guard<std::recursive_mutex> lock(const_cast<Application *>(m_app)->m_cache_mutex);
+                    const_cast<Application *>(m_app)->m_surface_cache[path] = img;
                 }
             }
 
@@ -380,7 +405,10 @@ namespace horizon
 
     void CairoGraphicContext::fillRect(int x, int y, int width, int height, CornerRadius radius)
     {
-        rounded_rectangle(cr, x, y, width, height, radius);
+        if (width <= 0 || height <= 0)
+            return;
+
+        rounded_rectangle(cr, (double)x, (double)y, (double)width, (double)height, radius);
         cairo_fill(cr);
     }
 
@@ -515,9 +543,11 @@ namespace horizon
 
     void CairoGraphicContext::restore()
     {
+        if (m_clip_stack.size() <= 1) {
+            return;
+        }
         cairo_restore(cr);
-        if (!m_clip_stack.empty())
-            m_clip_stack.pop_back();
+        m_clip_stack.pop_back();
     }
 
     void CairoGraphicContext::clip(int x, int y, int width, int height)
@@ -704,8 +734,12 @@ namespace horizon
         if (!m_app)
             return nullptr;
 
-        if (m_app->m_svg_cache.count(path))
-            return m_app->m_svg_cache[path];
+        {
+            std::lock_guard<std::recursive_mutex> lock(const_cast<Application *>(m_app)->m_cache_mutex);
+            auto it = m_app->m_svg_cache.find(path);
+            if (it != m_app->m_svg_cache.end())
+                return it->second;
+        }
 
         GError *error = nullptr;
         GFile *gfile = g_file_new_for_path(path.c_str());
@@ -715,7 +749,8 @@ namespace horizon
 
         if (handle)
         {
-            m_app->m_svg_cache[path] = handle;
+            std::lock_guard<std::recursive_mutex> lock(const_cast<Application *>(m_app)->m_cache_mutex);
+            const_cast<Application *>(m_app)->m_svg_cache[path] = handle;
         }
         else if (error)
         {
@@ -813,7 +848,12 @@ namespace horizon
             call.use_scissor = false;
         }
 
-        m_app->queue_gl_draw(call);
+        if (m_window) {
+            m_window->queue_gl_draw(call);
+        } else if (m_app) {
+            // Fallback if no window (though we should always have one now)
+            // app->queue_gl_draw(call); 
+        }
     }
 
     void CairoGraphicContext::deleteTexture(uint32_t texture_id)

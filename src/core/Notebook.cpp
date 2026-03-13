@@ -2,6 +2,7 @@
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Notebook.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/SolidObject.hpp>
 #include <horizon/Widget.hpp>
 #include <memory>
@@ -36,6 +37,10 @@ namespace horizon
         m_header = header.get();
         m_margin_top = margin_top.get();
         m_body = body.get();
+
+        set_name("Notebook");
+        m_header->set_name("NotebookHeader");
+        m_body->set_name("NotebookBody");
 
         add_child(std::move(margin_top));
         add_child(std::move(body)); // Body added before header so header is on top

@@ -14,7 +14,7 @@ int main(int argc, char **argv)
     app.set_icon_name("applications-graphics");
     app.set_show_in_dock(true);
 
-    auto window = std::make_unique<Window>("AquaPolygon Demo");
+    auto window = std::make_unique<Window>(&app, "AquaPolygon Demo");
     window->set_size(800, 600);
 
     // 1. Triangle

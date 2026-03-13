@@ -18,7 +18,7 @@ namespace horizon::demo
         m_app = std::make_unique<Application>("org.horizon.files_demo", 800, 600);
         m_app->set_name("Files Demo");
 
-        auto window = std::make_unique<ApplicationWindow>("FileSystem Model Demo");
+        auto window = std::make_unique<ApplicationWindow>(m_app.get(), "FileSystem Model Demo");
         window->set_size(800, 600);
         window->show_status_bar();
         window->set_status_text("Ready");

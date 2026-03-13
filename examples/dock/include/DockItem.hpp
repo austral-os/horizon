@@ -9,10 +9,11 @@
 namespace horizon
 {
 
+    class DockApplication;
     class DockItem : public Icon
     {
     public:
-        DockItem(LayerApplication *app, const std::string &icon_name, bool is_wayfire);
+        DockItem(DockApplication *app, const std::string &icon_name, bool is_wayfire);
 
         void set_app_info(const ApplicationInfo &info);
         void set_pinned_data(const std::string &run_id);
@@ -32,7 +33,7 @@ namespace horizon
         void setup_running_behavior();
         void setup_pinned_behavior();
 
-        LayerApplication *_app;
+        DockApplication *_app;
         bool _is_wayfire;
         int _pid = -1;
         std::string _app_id;

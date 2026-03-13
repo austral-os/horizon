@@ -142,7 +142,7 @@ namespace horizon
 
         // Create a temporary context just for measuring text (4 bytes for 1x1 ARGB pixel)
         unsigned char tmp_buf[4] = {0};
-        CairoGraphicContext measure_ctx(nullptr, tmp_buf, 1, 1);
+        CairoGraphicContext measure_ctx(nullptr, nullptr, tmp_buf, 1, 1);
 
         int icon_width = (m_icon || m_reserve_icon_space) ? 24 : 0;
         int arrow_width = m_has_submenu ? 20 : 0;
@@ -189,7 +189,7 @@ namespace horizon
         {
             auto font = application()->theme_manager->get_font("window");
             unsigned char tmp_buf[4] = {0};
-            CairoGraphicContext measure_ctx(nullptr, tmp_buf, 1, 1);
+            CairoGraphicContext measure_ctx(nullptr, nullptr, tmp_buf, 1, 1);
             auto metrics =
                 measure_ctx.getTextMetrics(m_shortcut_text.c_str(), font.family.c_str(), font.size,
                                            FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);

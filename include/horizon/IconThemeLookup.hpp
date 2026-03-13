@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -60,7 +61,8 @@ namespace horizon
 
         static std::string lookup_icon_in_theme(const std::string &icon_name, int size,
                                                 const std::string &theme_name,
-                                                const std::vector<std::string> &base_dirs);
+                                                const std::vector<std::string> &base_dirs,
+                                                int depth = 0);
 
         static std::string lookup_fallback_icon(const std::string &icon_name,
                                                 const std::vector<std::string> &base_dirs);
@@ -73,6 +75,7 @@ namespace horizon
         // --- Caching ---
         static std::map<std::string, ThemeInfo> s_theme_cache;
         static std::map<std::string, std::string> s_resolution_cache;
+        static std::recursive_mutex s_cache_mutex;
     };
 
 } // namespace horizon

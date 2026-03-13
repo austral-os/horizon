@@ -1,4 +1,5 @@
 #include "DockItem.hpp"
+#include "DockApplication.hpp"
 #include <horizon/ApplicationLauncher.hpp>
 #include <horizon/IpcClient.hpp>
 #include <horizon/Logger.hpp>
@@ -6,7 +7,7 @@
 namespace horizon
 {
 
-    DockItem::DockItem(LayerApplication *app, const std::string &icon_name, bool is_wayfire)
+    DockItem::DockItem(DockApplication *app, const std::string &icon_name, bool is_wayfire)
         : _app(app), _is_wayfire(is_wayfire)
     {
         set_application_recursive(app);

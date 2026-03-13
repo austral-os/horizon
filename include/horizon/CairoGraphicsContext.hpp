@@ -8,10 +8,12 @@ namespace horizon
 
     class Application;
 
+    class Window;
+
     class CairoGraphicContext : public GraphicsContext
     {
     public:
-        CairoGraphicContext(const Application *app, void *data, int w, int h);
+        CairoGraphicContext(const Application *app, Window* window, void *data, int w, int h);
         ~CairoGraphicContext();
 
         int width() const override
@@ -94,6 +96,7 @@ namespace horizon
 
     private:
         const Application *m_app;
+        Window* m_window;
         cairo_surface_t *cairo_s;
         cairo_t *cr;
         int m_width, m_height;

@@ -57,7 +57,7 @@ int main()
         app.set_icon_name("system-help");
         app.set_show_in_dock(true);
 
-        auto wnd = std::make_unique<Window>("Horizon Application toolkit demo");
+        auto wnd = std::make_unique<Window>(&app, "Horizon Application toolkit demo");
         wnd->set_size(800, 600);
 
         auto notebook = std::make_unique<Notebook>();
@@ -143,11 +143,13 @@ int main()
         tb_container->set_margin(40);
         tb_container->set_spacing(10);
         auto textbox = std::make_unique<TextBox<horizon::TextPolicy>>();
+        textbox->set_name("MainTextBox");
         textbox->set_placeholder("Nombre");
         textbox->set_text("");
         tb_container->add_child(std::move(textbox));
 
         auto searchbox = std::make_unique<horizon::SearchBox>();
+        searchbox->set_name("MainSearchBox");
         searchbox->set_placeholder("Buscar...");
         tb_container->add_child(std::move(searchbox));
 
@@ -482,8 +484,9 @@ int main()
         textarea_container->set_spacing(15);
 
         auto textarea = std::make_unique<horizon::Textarea>();
+        textarea->set_name("MainTextarea");
         textarea->set_placeholder("Escribe aquí tu texto multilínea...");
-        textarea->set_text("Este es un ejemplo de Textarea.\nSoporta múltiples líneas.\nPuedes "
+        textarea->set_text("Este es un ejemplo de Textarea.\nSoporta multiples lineas.\nPuedes "
                            "navegar con las flechas.\nIncluso moverte arriba y abajo!");
 
         textarea_container->add_child(std::move(textarea));
@@ -536,7 +539,7 @@ int main()
 
         notebook->add_tab(NotebookPage("Menus", std::move(menu_demo_container)));
 
-        notebook->set_current_tab(10);
+        notebook->set_current_tab(1);
 
         wnd->add_child(std::move(notebook));
 

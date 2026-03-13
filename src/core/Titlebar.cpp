@@ -3,6 +3,7 @@
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Titlebar.hpp>
+#include <horizon/Window.hpp>
 #include <memory>
 #include <unistd.h>
 
@@ -64,9 +65,9 @@ namespace horizon
             m_minimize_button->when_mouse_press.connect(
                 [this](MouseButtonEventContext &context)
                 {
-                    if (application())
+                    if (window())
                     {
-                        application()->minimize();
+                        window()->minimize();
                     }
                 });
         }
@@ -77,15 +78,15 @@ namespace horizon
             m_maximize_button->when_mouse_press.connect(
                 [this](MouseButtonEventContext &context)
                 {
-                    if (application())
+                    if (window())
                     {
-                        if (application()->is_maximized())
+                        if (window()->is_maximized())
                         {
-                            application()->restore();
+                            window()->restore();
                         }
                         else
                         {
-                            application()->maximize();
+                            window()->maximize();
                         }
                     }
                 });
@@ -97,9 +98,9 @@ namespace horizon
         when_mouse_drag.connect(
             [this](MouseMoveEventContext &context)
             {
-                if (!m_dragging_requested && application())
+                if (!m_dragging_requested && window())
                 {
-                    application()->request_move();
+                    window()->request_move();
                     m_dragging_requested = true;
                 }
             });

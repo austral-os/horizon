@@ -12,7 +12,7 @@ namespace fs = std::filesystem;
 namespace horizon
 {
 
-    LaunchpadWindow::LaunchpadWindow() : Widget()
+    LaunchpadWindow::LaunchpadWindow(Application* app) : Window(app, "Launchpad")
     {
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_spacing(40);

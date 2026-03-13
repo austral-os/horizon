@@ -2,6 +2,7 @@
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Textarea.hpp>
+#include <horizon/Logger.hpp>
 #include <linux/input-event-codes.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 
@@ -238,6 +239,16 @@ namespace horizon
                     }
                 }
             });
+
+        when_mouse_wheel.connect(
+            [this](MouseWheelEventContext &ev)
+            {
+                int scroll_amount = (int)(ev.dy * 10.0f); // Faster scroll for text
+                m_scroll_offset_y = std::max(0, m_scroll_offset_y + scroll_amount);
+                // Clamp to content height if needed, but layout_text might change
+                invalidate();
+                ev.stop_propagation = true;
+            });
     }
 
     std::vector<Textarea::LineInfo> Textarea::layout_text(GraphicsContext &gc, int width_limit)
@@ -368,9 +379,9 @@ namespace horizon
         auto *tm = application()->theme_manager.get();
         auto font = tm->get_font("window");
 
-        Color bg_color = Color(1.0f, 1.0f, 1.0f, 1.0f);
-        Color border_color = Color(0.6f, 0.6f, 0.6f, 1.0f);
-        Color focus_color = Color(0.4f, 0.7f, 1.0f, 0.8f);
+        Color bg_color = tm->get_color("window_bg");
+        Color border_color = tm->get_color("window_border");
+        Color focus_color = tm->get_color("accent_color");
 
         gc.setColor(bg_color);
         gc.fillRect(m_x, m_y, m_width, m_height, {m_corner_radius});
@@ -398,7 +409,6 @@ namespace horizon
         }
 
         gc.save();
-        gc.clip(m_x + 2, m_y + 2, m_width - 4, m_height - 4);
 
         int font_size = font.size * 0.8;
         gc.setDrawFont(font.family.c_str(), font_size, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
@@ -418,6 +428,14 @@ namespace horizon
         }
 
         ensure_cursor_visible(lines, m_height - m_padding_top - m_padding_bottom);
+
+        // Calculate total content height for clamping
+        int total_content_height = 0;
+        if (!lines.empty()) {
+            total_content_height = lines.back().y_offset + font_size + m_line_spacing;
+        }
+        int visible_height = m_height - m_padding_top - m_padding_bottom;
+        m_scroll_offset_y = std::clamp(m_scroll_offset_y, 0, std::max(0, total_content_height - visible_height));
 
         int draw_y_base = m_y + m_padding_top - m_scroll_offset_y;
 
@@ -445,7 +463,6 @@ namespace horizon
                         int line_start = line.start_index;
                         int line_end = line.start_index + line.length;
 
-                        // Check if selection overlaps with this line
                         if (sel_min < line_end && sel_max > line_start)
                         {
                             int start_in_line = std::max(0, sel_min - line_start);
@@ -463,15 +480,15 @@ namespace horizon
 
                             gc.setColor(0.4f, 0.7f, 1.0f, 0.4f);
 
-                            // If selection goes to next line, extend the highlight box
                             int extra_w = (sel_max > line_end && line_end < (int)m_text.length() &&
                                            m_text[line_end] != '\n')
                                               ? 0
                                               : (sel_max > line_end ? 8 : 0);
 
-                            gc.fillRect(m_x + m_padding_left + lead_m.width, line_y,
-                                        sel_m.width - lead_m.width + extra_w,
-                                        font_size + m_line_spacing);
+                            int sel_x = m_x + m_padding_left + lead_m.width;
+                            int sel_w = sel_m.width - lead_m.width + extra_w;
+
+                            gc.fillRect(sel_x, line_y, sel_w, font_size + m_line_spacing);
                         }
                     }
 
@@ -590,7 +607,7 @@ namespace horizon
                 }
                 else if (cursor_y_bottom > m_scroll_offset_y + visible_height)
                 {
-                    m_scroll_offset_y = cursor_y_bottom - visible_height;
+                    m_scroll_offset_y = std::max(0, cursor_y_bottom - visible_height);
                 }
                 break;
             }
