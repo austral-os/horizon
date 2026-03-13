@@ -1,3 +1,4 @@
+#include "horizon/HznSurface.hpp"
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Widget.hpp>
@@ -263,7 +264,7 @@ namespace horizon
         return m_parent;
     }
 
-    Application *Widget::application() const
+    HznSurface *Widget::application() const
     {
         if (m_app)
             return m_app;
@@ -568,7 +569,7 @@ namespace horizon
         }
     }
 
-    void Widget::set_application_recursive(Application *app)
+    void Widget::set_application_recursive(HznSurface *app)
     {
         m_app = app;
         for (auto &child : m_children)
@@ -589,7 +590,7 @@ namespace horizon
             p = p->m_parent;
         }
 
-        Application *app = application();
+        HznSurface *app = application();
         if (app)
         {
             app->invalidate(this);

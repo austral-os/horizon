@@ -6,12 +6,12 @@
 namespace horizon
 {
 
-    class Application;
+    class HznSurface;
 
     class CairoGraphicContext : public GraphicsContext
     {
     public:
-        CairoGraphicContext(const Application *app, void *data, int w, int h);
+        CairoGraphicContext(const HznSurface *app, void *data, int w, int h);
         ~CairoGraphicContext();
 
         int width() const override
@@ -93,7 +93,7 @@ namespace horizon
         void getSvgSize(const std::string &path, int &w, int &h) override;
 
     private:
-        const Application *m_app;
+        const HznSurface *m_app;
         cairo_surface_t *cairo_s;
         cairo_t *cr;
         int m_width, m_height;

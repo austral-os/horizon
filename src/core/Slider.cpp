@@ -1,3 +1,4 @@
+#include "horizon/HznSurface.hpp"
 #include <cmath>
 #include <horizon/Application.hpp>
 #include <horizon/AquaPolygon.hpp>
@@ -35,7 +36,7 @@ namespace horizon
 
     Slider::~Slider() = default;
 
-    void Slider::set_application_recursive(Application *app)
+    void Slider::set_application_recursive(HznSurface *app)
     {
         Widget::set_application_recursive(app);
         if (m_thumb_poly)

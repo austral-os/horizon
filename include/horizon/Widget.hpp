@@ -2,6 +2,7 @@
 
 #include "horizon/Color.hpp"
 #include "horizon/EventsManager.hpp"
+
 #include <chrono>
 #include <functional>
 #include <map>
@@ -12,6 +13,7 @@ namespace horizon
 {
 
     class Application;
+    class HznSurface;
     class GraphicsContext;
 
     enum WidgetPositionTypes
@@ -214,7 +216,7 @@ namespace horizon
         void remove_child(Widget *child);
         void remove_child_at(int index);
         Widget *parent() const;
-        Application *application() const;
+        HznSurface *application() const;
 
         const std::vector<std::unique_ptr<Widget>> &children() const;
         void clear_children();
@@ -251,7 +253,7 @@ namespace horizon
         EventsManager<EventContext> when_focus;
         EventsManager<EventContext> when_blur;
 
-        virtual void set_application_recursive(Application *app);
+        virtual void set_application_recursive(HznSurface *app);
 
         void map_draw_state(WidgetEvent event, WidgetDrawState draw_state);
 
@@ -299,7 +301,7 @@ namespace horizon
         int m_free_children_count{0};
 
         Widget *m_parent{nullptr};
-        Application *m_app{nullptr};
+        HznSurface *m_app{nullptr};
         std::vector<std::unique_ptr<Widget>> m_children;
 
         size_t m_next_handler_id{0};

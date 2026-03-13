@@ -1,6 +1,6 @@
-#include "horizon/EventsManager.hpp"
+
+#include "horizon/HznSurface.hpp"
 #include "horizon/SignalManager.hpp"
-#include "horizon/ThemeManager.hpp"
 #include "horizon/WaylandEventListener.hpp"
 #include <GLES2/gl2.h>
 #include <deque>
@@ -18,7 +18,7 @@ namespace horizon
 {
 
     class Widget;
-    class GraphicsContext;
+
     class Menu;
     class ClientMenu;
     class IpcClient;
@@ -32,9 +32,8 @@ namespace horizon
      * managing the widget tree (starting from the root widget), and running the
      * main event loop that dispatches input and system events.
      */
-    class Application : public WaylandEventListener
+    class Application : public HznSurface
     {
-        friend class CairoGraphicContext;
 
     public:
         /**
@@ -67,13 +66,7 @@ namespace horizon
          */
         Application &operator=(Application &&) noexcept;
 
-        std::unique_ptr<ThemeManager> theme_manager;
         SignalManager signal_manager;
-
-        EventsManager<AppEventContext> when_activated;
-        EventsManager<AppEventContext> when_deactivated;
-        EventsManager<AppEventContext> when_close;
-        EventsManager<AppListEventContext> when_foreign_update;
 
         /**
          * @brief Sets the global menu for the application.
@@ -82,18 +75,6 @@ namespace horizon
          */
         void set_global_menu(const std::vector<Menu *> &menus);
         void init_global_menu();
-
-        /**
-         * @brief Sets the root widget of the application's widget tree.
-         * @param root Unique pointer to the new root widget.
-         */
-        void set_root(std::unique_ptr<Widget> root);
-
-        /**
-         * @brief Gets the underlying WaylandSurface.
-         * @return Pointer to the WaylandSurface managed by this application.
-         */
-        WaylandSurface *w_surface() const;
 
         /**
          * @brief Starts the main application loop.
@@ -107,31 +88,11 @@ namespace horizon
         void quit();
 
         /**
-         * @brief Signals the application to wake up its event loop (e.g. from another thread).
-         */
-        void wakeup();
-
-        /**
-         * @brief Invalidates the entire application or a specific widget.
-         * @param widget The widget to invalidate. If nullptr, the entire window is repainted.
-         */
-        void invalidate(Widget *widget = nullptr);
-
-        /**
          * @brief Posts a task to be executed on the main application thread.
          * This method is thread-safe.
          * @param task The function to execute.
          */
         void post_task(std::function<void()> task);
-
-        /**
-         * @brief Returns whether this application uses a transparent surface.
-         * @return true for LayerApplication, false for regular applications.
-         */
-        virtual bool is_transparent_surface() const
-        {
-            return true;
-        }
 
         /**
          * @brief Requests a window move from the Wayland compositor.
@@ -185,35 +146,6 @@ namespace horizon
         bool was_maximized_before_minimize() const;
 
         /**
-         * @brief Returns the graphics context for this application.
-         */
-        virtual GraphicsContext &get_graphics_context() const;
-
-        GLuint gl_program() const
-        {
-            return m_gl_program;
-        }
-        GLuint gl_vbo() const
-        {
-            return m_gl_vbo;
-        }
-
-        struct GLDrawCall
-        {
-            uint32_t texture_id;
-            float mvp[16];
-            float opacity;
-            bool delete_texture;
-            bool use_scissor;
-            int scissor_x, scissor_y, scissor_w, scissor_h;
-        };
-
-        void queue_gl_draw(const GLDrawCall &call) const;
-
-        int width() const;
-        int height() const;
-
-        /**
          * @brief Implementation of the WaylandEventListener pointer event callback.
          * @param event The pointer event details.
          */
@@ -245,15 +177,6 @@ namespace horizon
 
         size_t add_on_minimize(std::function<void()> handler);
         void remove_on_minimize(size_t id);
-
-        size_t add_timer(int ms, std::function<void()> callback, bool repeat = false);
-        void stop_timer(size_t id);
-
-        /**
-         * @brief Unregisters a widget from internal application state (e.g. dirty lists, focus).
-         * Called when a widget is destroyed.
-         */
-        void unregister_widget(Widget *widget);
 
         /**
          * @brief Sends a signal to another application via the IPC mechanism.
@@ -340,23 +263,13 @@ namespace horizon
         void notify_window_state(bool minimized);
 
     private:
-        std::unique_ptr<WaylandSurface>
-            m_surface;               /**< The Wayland surface representing the main window. */
+        /**< The Wayland surface representing the main window. */
         bool m_is_running = false;   /**< Flag indicating if the event loop is active. */
         bool m_is_activated = false; /**< Flag indicating if the application is currently active. */
 
         std::vector<Menu *> m_global_menus;
         std::unique_ptr<Menu> m_app_menu;
         std::shared_ptr<ClientMenu> m_client_menu;
-
-        bool m_full_repaint = true; /**< Flag indicating if the entire UI needs re-rendering. */
-        std::vector<Widget *> m_dirty_widgets; /**< List of widgets that need re-rendering. */
-
-        int m_wakeup_fd{-1}; /**< File descriptor for waking up the event loop. */
-
-        Widget *m_hovered = nullptr; /**< The widget currently under the mouse pointer. */
-        Widget *m_pressed = nullptr; /**< The widget currently being pressed by a mouse button. */
-        Widget *m_focused = nullptr; /**< The widget currently having keyboard focus. */
 
         double m_pointer_x = 0.0;   /**< Last known X position of the pointer. */
         double m_pointer_y = 0.0;   /**< Last known Y position of the pointer. */
@@ -415,17 +328,6 @@ namespace horizon
 
         size_t m_next_app_handler_id{0};
 
-        struct Timer
-        {
-            size_t id;
-            int interval_ms;
-            uint64_t next_expiry;
-            bool repeat;
-            std::function<void()> callback;
-        };
-        std::map<size_t, Timer> m_timers;
-        size_t m_next_timer_id{1};
-
         // Application Metadata
         std::string m_app_id{"horizon.app"};
         std::string m_name{"Horizon Application"};
@@ -438,25 +340,6 @@ namespace horizon
         std::deque<std::function<void()>> m_task_queue;
         std::mutex m_task_mutex;
 
-        // m_root is last: destroyed FIRST so widget dtors can safely call
-        // stop_timer/unregister_widget
-        std::unique_ptr<Widget> m_root; /**< The root of the UI widget hierarchy. */
-
         std::unique_ptr<IpcClient> m_ipc_subscriber;
-
-        void init_gl_resources();
-        void render_gl_ui();
-
-        GLuint m_gl_program{0};
-        GLuint m_gl_vbo{0};
-        GLuint m_gl_texture{0};
-        mutable std::vector<GLDrawCall> m_gl_queue;
-
-        mutable std::unique_ptr<GraphicsContext> m_gc;
-        std::unique_ptr<CompositorContext> m_compositor_context;
-
-        // Image caching
-        mutable std::map<std::string, void *> m_svg_cache;
-        mutable std::map<std::string, void *> m_surface_cache;
     };
 } // namespace horizon

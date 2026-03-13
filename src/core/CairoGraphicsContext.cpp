@@ -1,3 +1,4 @@
+#include "horizon/HznSurface.hpp"
 #include <GLES2/gl2.h>
 #include <algorithm>
 #include <cmath>
@@ -12,7 +13,7 @@
 namespace horizon
 {
 
-    CairoGraphicContext::CairoGraphicContext(const Application *app, void *data, int w, int h)
+    CairoGraphicContext::CairoGraphicContext(const HznSurface *app, void *data, int w, int h)
         : m_app(app), m_width(w), m_height(h)
     {
         cairo_s = cairo_image_surface_create_for_data((unsigned char *)data, CAIRO_FORMAT_ARGB32, w,
@@ -358,7 +359,7 @@ namespace horizon
             }
 
             // Note: We don't destroy the surface here because it's cached in m_app
-            // If m_app is null (shouldn't happen), we'd need to destroy it, but 
+            // If m_app is null (shouldn't happen), we'd need to destroy it, but
             // the cache persists for the life of the app.
             if (!m_app && img)
             {
