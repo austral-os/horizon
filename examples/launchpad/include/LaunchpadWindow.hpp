@@ -11,10 +11,10 @@
 namespace horizon
 {
 
-    class LaunchpadWindow : public Window
+    class LaunchpadWidget : public Widget
     {
     public:
-        LaunchpadWindow(Application* app);
+        LaunchpadWidget(Application* app);
 
         void draw(GraphicsContext &gc) override;
 

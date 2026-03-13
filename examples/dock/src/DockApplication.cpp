@@ -217,18 +217,25 @@ namespace horizon
         // El dock está anclado al borde inferior, así que su posición global en Y
         // es monitor_height - dock_height. Sumamos ese offset para la coordenada
         // global de pantalla que espera el menu manager.
+        // La coordenada 'x' recibida es local al shelf. Debemos sumar shelf->x() 
+        // para tener la coordenada local a la ventana del Dock, que al estar 
+        // anclada a (0, screen_h - dock_h) y ocupar todo el ancho, coincide
+        // con la coordenada global X de la pantalla.
         int screen_h = w_surface()->monitor_height();
         int dock_height = height();
+        int global_x = x;
         int global_y = y;
+
         if (screen_h > 0)
         {
             global_y = (screen_h - dock_height) + y;
             LOG_INFO << "[DOCK] screen_h=" << screen_h << " dock_h=" << dock_height
-                     << " local_y=" << y << " global_y=" << global_y;
+                     << " global_x=" << global_x << " local_y=" << y << " global_y=" << global_y;
         }
         else
         {
-            LOG_INFO << "[DOCK] monitor_height unknown, using local y=" << y;
+            LOG_INFO << "[DOCK] monitor_height unknown, using local y=" << y 
+                     << " global_x=" << global_x;
         }
 
         // Build the context menu
@@ -277,8 +284,8 @@ namespace horizon
             launch_item->set_id("dock_launch:" + run_id);
         }
 
-        LOG_INFO << "[DOCK] Showing context menu at (" << x << ", " << global_y << ") for pid=" << pid;
-        _client_menu.show_menu(menu.get(), x, global_y, -1, "org.horizon.dock");
+        LOG_INFO << "[DOCK] Showing context menu at (" << global_x << ", " << global_y << ") for pid=" << pid;
+        _client_menu.show_menu(menu.get(), global_x, global_y, -1, "org.horizon.dock");
 
         // menu is kept alive long enough for show_menu() to serialize it
     }

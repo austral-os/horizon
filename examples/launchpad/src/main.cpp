@@ -25,11 +25,11 @@ int main(int argc, char *argv[])
     // Enable background blur
     app->set_blur(true);
 
-    // Create the launchpad window
-    auto launchpad_window = std::make_unique<LaunchpadWindow>(app.get());
+    // Create the launchpad widget
+    auto launchpad_widget = std::make_unique<LaunchpadWidget>(app.get());
 
-    // Set as root and run
-    app->set_root(std::move(launchpad_window));
+    // Add to the main window provided by LayerApplication
+    app->main_window()->add_child(std::move(launchpad_widget));
     app->set_visible(true);
 
     app->run();

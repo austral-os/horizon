@@ -50,6 +50,7 @@ int main(int argc, char *argv[])
 
         // State for managing global menu locking
         bool menu_visible = false;
+        std::chrono::steady_clock::time_point last_show_time = std::chrono::steady_clock::now();
 
         // Register the "create_menu" handler
         router.register_handler(
@@ -128,6 +129,15 @@ int main(int argc, char *argv[])
         root_ptr->add_on_mouse_press(
             [&](int btn)
             {
+                auto now = std::chrono::steady_clock::now();
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_show_time).count();
+
+                if (elapsed < 500)
+                {
+                    LOG_INFO << "[MENU MANAGER] Ignoring background click (" << btn << ") during grace period (" << elapsed << "ms)";
+                    return;
+                }
+
                 LOG_INFO << "Click on background at unknown coordinates (button " << btn
                          << "), hiding menu manager.";
                 for (auto &child : root_ptr->children())
@@ -234,10 +244,47 @@ int main(int argc, char *argv[])
                                     root_ptr->add_child(std::move(menu));
                                 }
 
-                                // Ensure layout is calculated before showing
+                                // 1. Calculate layout to know the menu height
+                                root_menu_ptr->calculate_layout();
+
+                                // 2. Apply directional growth logic
+                                int screen_w = app->main_window()->width();
+                                int screen_h = app->main_window()->height();
+
+                                // If triggered in the bottom half of the screen, grow UPWARDS
+                                if (root_menu_ptr->y() > screen_h / 2)
+                                {
+                                    int new_y = root_menu_ptr->y() - root_menu_ptr->height();
+                                    LOG_INFO << "[MENU MANAGER] Bottom half detected. Adjusting Y from " 
+                                             << root_menu_ptr->y() << " to " << new_y;
+                                    root_menu_ptr->set_position(root_menu_ptr->x(), new_y);
+                                }
+
+                                // 3. Clamp to screen boundaries
+                                int final_x = root_menu_ptr->x();
+                                int final_y = root_menu_ptr->y();
+
+                                if (final_x + root_menu_ptr->width() > screen_w)
+                                    final_x = screen_w - root_menu_ptr->width() - 5;
+                                if (final_x < 5)
+                                    final_x = 5;
+
+                                if (final_y + root_menu_ptr->height() > screen_h)
+                                    final_y = screen_h - root_menu_ptr->height() - 5;
+                                if (final_y < 5)
+                                    final_y = 5;
+
+                                if (final_x != root_menu_ptr->x() || final_y != root_menu_ptr->y())
+                                {
+                                    LOG_INFO << "[MENU MANAGER] Clamping position to (" << final_x << ", " << final_y << ")";
+                                    root_menu_ptr->set_position(final_x, final_y);
+                                }
+
+                                // Ensure layout is finalized with new position
                                 root_menu_ptr->calculate_layout();
                                 root_menu_ptr->set_visible(true);
                                 menu_visible = true;
+                                last_show_time = std::chrono::steady_clock::now();
                                 app->set_visible(true);
                                 root_ptr->invalidate();
 

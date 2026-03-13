@@ -12,8 +12,9 @@ namespace fs = std::filesystem;
 namespace horizon
 {
 
-    LaunchpadWindow::LaunchpadWindow(Application* app) : Window(app, "Launchpad")
+    LaunchpadWidget::LaunchpadWidget(Application* app) : Widget()
     {
+        m_app = app;
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_spacing(40);
 
@@ -90,7 +91,7 @@ namespace horizon
         load_apps();
     }
 
-    void LaunchpadWindow::load_apps()
+    void LaunchpadWidget::load_apps()
     {
         m_all_apps.clear();
         auto dirs = DesktopEntry::get_desktop_search_dirs();
@@ -133,7 +134,7 @@ namespace horizon
         m_icon_view->set_data(m_filtered_apps);
     }
 
-    void LaunchpadWindow::filter_apps(const std::string &query)
+    void LaunchpadWidget::filter_apps(const std::string &query)
     {
         if (query.empty())
         {
@@ -158,7 +159,7 @@ namespace horizon
         m_icon_view->set_data(m_filtered_apps);
     }
 
-    void LaunchpadWindow::draw(GraphicsContext &gc)
+    void LaunchpadWidget::draw(GraphicsContext &gc)
     {
         // 70% transparent dark background
         gc.setColor(Color(0.0f, 0.0f, 0.0f, 0.7f));
