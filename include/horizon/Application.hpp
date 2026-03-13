@@ -4,19 +4,18 @@
 #include <functional>
 #include <memory>
 #include <mutex>
-#include <vector>
 #include <string>
 #include <unordered_map>
-#include <map>
+#include <vector>
 
+#include "horizon/CompositorAppInterface.hpp"
 #include "horizon/EventsManager.hpp"
 #include "horizon/SignalManager.hpp"
 #include "horizon/ThemeManager.hpp"
 #include "horizon/WaylandEventListener.hpp"
-#include "horizon/CompositorAppInterface.hpp"
 
-#include <GLES2/gl2.h>
 #include <EGL/egl.h>
+#include <GLES2/gl2.h>
 
 // Forward declarations in global namespace
 struct wl_display;
@@ -39,7 +38,8 @@ namespace horizon
     class Menu;
     class WaylandSurface;
 
-    void registry_global(void *data, struct ::wl_registry *registry, uint32_t id, const char *interface, uint32_t version);
+    void registry_global(void *data, struct ::wl_registry *registry, uint32_t id,
+                         const char *interface, uint32_t version);
 
     /**
      * @class Application
@@ -50,7 +50,8 @@ namespace horizon
         friend class Window;
         friend class WaylandSurface;
         friend class CairoGraphicContext;
-        friend void registry_global(void *data, struct ::wl_registry *registry, uint32_t id, const char *interface, uint32_t version);
+        friend void registry_global(void *data, struct ::wl_registry *registry, uint32_t id,
+                                    const char *interface, uint32_t version);
 
     public:
         struct GLDrawCall
@@ -62,8 +63,9 @@ namespace horizon
             int scissor_x, scissor_y, scissor_w, scissor_h;
             bool delete_texture;
         };
- 
-        enum Modifier {
+
+        enum Modifier
+        {
             NONE = 0,
             SHIFT = 1 << 0,
             CTRL = 1 << 1,
@@ -71,10 +73,12 @@ namespace horizon
             LOGO = 1 << 3,
         };
 
-        explicit Application(const std::string &app_id, int w = 1280, int h = 720, bool is_service = false);
+        explicit Application(const std::string &app_id, int w = 1280, int h = 720,
+                             bool is_service = false);
         virtual ~Application();
 
-        struct Timer {
+        struct Timer
+        {
             size_t id;
             int interval;
             std::function<void()> callback;
@@ -94,15 +98,24 @@ namespace horizon
         EventsManager<AppListEventContext> when_foreign_update;
 
         void set_global_menu(const std::vector<Menu *> &menus);
-        
+
         void set_root_window(std::unique_ptr<Window> window);
         void set_root(std::unique_ptr<Window> window);
-        void register_window(Window* window);
-        void unregister_window(Window* window);
+        void register_window(Window *window);
+        void unregister_window(Window *window);
 
-        Window* active_window() const { return m_active_window; }
-        Window* pointer_window() const { return m_pointer_window; }
-        Window* keyboard_window() const { return m_keyboard_window; }
+        Window *active_window() const
+        {
+            return m_active_window;
+        }
+        Window *pointer_window() const
+        {
+            return m_pointer_window;
+        }
+        Window *keyboard_window() const
+        {
+            return m_keyboard_window;
+        }
 
         void run();
         void quit();
@@ -113,36 +126,94 @@ namespace horizon
         size_t add_timer(int interval_ms, std::function<void()> callback, bool repeat = false);
         void stop_timer(size_t timer_id);
 
-        int width() const { return m_width; }
-        int height() const { return m_height; }
+        int width() const
+        {
+            return m_width;
+        }
+        int height() const
+        {
+            return m_height;
+        }
 
-        const std::string &app_id() const { return m_app_id; }
-        
-        void set_name(const std::string &name) { m_name = name; }
-        const std::string &name() const { return m_name; }
-        
-        void set_icon_name(const std::string &icon_name) { m_icon_name = icon_name; }
-        const std::string &icon_name() const { return m_icon_name; }
-        
-        void set_show_in_dock(bool show) { m_show_in_dock = show; }
-        bool show_in_dock() const { return m_show_in_dock; }
-        
-        void set_show_in_system_tray(bool show) { m_show_in_system_tray = show; }
-        bool show_in_system_tray() const { return m_show_in_system_tray; }
+        const std::string &app_id() const
+        {
+            return m_app_id;
+        }
 
-        void send_remote_signal(pid_t target_pid, const std::string &signal_name, const std::string &data = "");
-        
-        virtual bool is_transparent_surface() const { return false; }
-        WaylandSurface* w_surface() const;
-        
+        void set_name(const std::string &name)
+        {
+            m_name = name;
+        }
+        const std::string &name() const
+        {
+            return m_name;
+        }
+
+        void set_icon_name(const std::string &icon_name)
+        {
+            m_icon_name = icon_name;
+        }
+        const std::string &icon_name() const
+        {
+            return m_icon_name;
+        }
+
+        void set_show_in_dock(bool show)
+        {
+            m_show_in_dock = show;
+        }
+        bool show_in_dock() const
+        {
+            return m_show_in_dock;
+        }
+
+        void set_show_in_system_tray(bool show)
+        {
+            m_show_in_system_tray = show;
+        }
+        bool show_in_system_tray() const
+        {
+            return m_show_in_system_tray;
+        }
+
+        void send_remote_signal(pid_t target_pid, const std::string &signal_name,
+                                const std::string &data = "");
+
+        virtual bool is_transparent_surface() const
+        {
+            return false;
+        }
+        WaylandSurface *w_surface() const;
+
         // Wayland globals (shared)
-        struct ::wl_display* wl_display() const { return m_display; }
-        struct ::wl_compositor* wl_compositor() const { return m_compositor; }
-        struct ::wl_shm* wl_shm() const { return m_shm; }
-        struct ::xdg_wm_base* xdg_wm_base() const { return m_xdg_wm_base; }
-        struct ::zwlr_layer_shell_v1* wl_layer_shell() const { return m_layer_shell; }
-        struct ::wl_seat* wl_seat() const { return m_seat; }
-        struct ::xdg_activation_v1* xdg_activation() const { return m_activation; }
+        struct ::wl_display *wl_display() const
+        {
+            return m_display;
+        }
+        struct ::wl_compositor *wl_compositor() const
+        {
+            return m_compositor;
+        }
+        struct ::wl_shm *wl_shm() const
+        {
+            return m_shm;
+        }
+        struct ::xdg_wm_base *xdg_wm_base() const
+        {
+            return m_xdg_wm_base;
+        }
+        struct ::zwlr_layer_shell_v1 *wl_layer_shell() const
+        {
+            return m_layer_shell;
+        }
+        struct ::wl_seat *wl_seat() const
+        {
+            return m_seat;
+        }
+        struct ::xdg_activation_v1 *xdg_activation() const
+        {
+            return m_activation;
+        }
 
         // WaylandEventListener implementation (routing)
         void on_pointer_event(const PointerEvent &event) override;
@@ -153,8 +224,8 @@ namespace horizon
         void on_foreign_toplevel_event() override;
         void on_close() override;
 
-        void unregister_widget(Widget* w) {}
-        void invalidate(Widget* w = nullptr);
+        void unregister_widget(Widget *w) {}
+        void invalidate(Widget *w = nullptr);
         void render_gl_ui(int iteration = 0);
 
     private:
@@ -164,7 +235,7 @@ namespace horizon
 
         std::string m_app_id;
         std::string m_name;
-        
+
         // Shared Wayland State
         struct ::wl_display *m_display = nullptr;
         struct ::wl_registry *m_registry = nullptr;
@@ -174,7 +245,7 @@ namespace horizon
         struct ::zwlr_layer_shell_v1 *m_layer_shell = nullptr;
         struct ::xdg_activation_v1 *m_activation = nullptr;
         struct ::wl_seat *m_seat = nullptr;
-        
+
         // EGL Shared context
         EGLDisplay m_egl_display = EGL_NO_DISPLAY;
         EGLConfig m_egl_config;
@@ -192,12 +263,12 @@ namespace horizon
         GLint m_uv_loc = -1;
 
         // Window Management
-        std::unordered_map<struct ::wl_surface*, Window*> m_window_map;
+        std::unordered_map<struct ::wl_surface *, Window *> m_window_map;
         std::vector<std::unique_ptr<Window>> m_windows;
-        
-        Window* m_active_window = nullptr;
-        Window* m_pointer_window = nullptr;
-        Window* m_keyboard_window = nullptr;
+
+        Window *m_active_window = nullptr;
+        Window *m_pointer_window = nullptr;
+        Window *m_keyboard_window = nullptr;
 
         // Global Caches (moved back to Application as they are sharable resources)
         std::unordered_map<std::string, void *> m_svg_cache;
@@ -219,7 +290,7 @@ namespace horizon
         std::string m_icon_name;
         int m_width{1280};
         int m_height{720};
-        
+
         // Input state
         uint32_t m_last_serial{0};
         ::xkb_context *m_xkb_context{nullptr};

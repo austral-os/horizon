@@ -1,3 +1,4 @@
+#include "horizon/EventsManager.hpp"
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/SidebarItem.hpp>
@@ -36,12 +37,6 @@ namespace horizon
             [this](EventContext &)
             {
                 // Note: Blur doesn't clear selection anymore
-            });
-
-        set_on_click(
-            [this]()
-            {
-                // We will let Sidebar handle the exclusive selection
             });
     }
 

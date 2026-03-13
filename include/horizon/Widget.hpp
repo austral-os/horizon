@@ -144,9 +144,15 @@ namespace horizon
         int border_radius() const;
         int border_width() const;
         Color border_color() const;
-        
-        void set_name(const std::string &name) { m_name = name; }
-        std::string name() const { return m_name; }
+
+        void set_name(const std::string &name)
+        {
+            m_name = name;
+        }
+        std::string name() const
+        {
+            return m_name;
+        }
 
         // --- Estado ---
         void set_visible(bool visible);
@@ -209,7 +215,6 @@ namespace horizon
                         handler();
                 });
         }
-        void set_on_click(std::function<void()> handler);
 
         // --- Árbol ---
         virtual void add_child(std::unique_ptr<Widget> child);
@@ -242,6 +247,7 @@ namespace horizon
         }
 
         EventsManager<MouseButtonEventContext> when_mouse_press;
+        EventsManager<MouseButtonEventContext> when_click;
         EventsManager<MouseButtonEventContext> when_dbl_click;
         EventsManager<EventContext> when_mouse_enter;
         EventsManager<EventContext> when_mouse_leave;
@@ -314,6 +320,7 @@ namespace horizon
 
         std::string m_name;
         std::chrono::steady_clock::time_point m_last_click_time;
+        size_t m_click_timer;
         uint32_t m_last_click_button{0};
     };
 

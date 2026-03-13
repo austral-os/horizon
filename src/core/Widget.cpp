@@ -1,8 +1,8 @@
-#include <horizon/Widget.hpp>
-#include <horizon/Window.hpp>
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Logger.hpp>
+#include <horizon/Widget.hpp>
+#include <horizon/Window.hpp>
 #include <linux/input-event-codes.h>
 
 namespace horizon
@@ -24,27 +24,37 @@ namespace horizon
         // Gestión de estados de interacción
         when_mouse_enter.connect([this](EventContext &) { m_is_hovered = true; });
         when_mouse_leave.connect([this](EventContext &) { m_is_hovered = false; });
+
         when_mouse_press.connect(
             [this](MouseButtonEventContext &ev)
             {
-                m_is_pressed = true;
                 auto now = std::chrono::steady_clock::now();
                 auto duration =
                     std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_click_time)
                         .count();
-                if (m_last_click_button == ev.button && duration < 500)
+
+                if (m_last_click_button == ev.button && duration < 200)
                 {
+                    if (m_click_timer)
+                        application()->stop_timer(m_click_timer);
+
                     when_dbl_click.run(ev);
-                    m_last_click_button =
-                        0; // Prevent triple click from triggering another double click
+                    m_last_click_button = 0;
+                    return;
                 }
-                else
-                {
-                    m_last_click_time = now;
-                    m_last_click_button = ev.button;
-                }
+
+                m_last_click_time = now;
+                m_last_click_button = ev.button;
+
+                m_click_timer = application()->add_timer(200,
+                                                         [this, &ev]()
+                                                         {
+                                                             when_click.run(ev);
+                                                             m_last_click_button = 0;
+                                                         });
             });
-        when_mouse_release.connect([this](MouseButtonEventContext &) { m_is_pressed = false; });
+
+        when_mouse_release.connect([this](MouseButtonEventContext &ev) { m_is_pressed = false; });
     }
 
     Widget::~Widget()
@@ -324,7 +334,8 @@ namespace horizon
 
     void Widget::set_position(int x, int y)
     {
-        if (m_x != x || m_y != y) {
+        if (m_x != x || m_y != y)
+        {
             m_x = x;
             m_y = y;
         }
@@ -576,8 +587,10 @@ namespace horizon
 
     void Widget::draw(GraphicsContext &ctx)
     {
-        if (m_name == "NotebookHeader" || m_name == "NotebookBody" || m_name == "MainTextarea") {
-            LOG_INFO << "[DRAW] " << m_name << " at " << m_x << "," << m_y << " " << m_width << "x" << m_height;
+        if (m_name == "NotebookHeader" || m_name == "NotebookBody" || m_name == "MainTextarea")
+        {
+            LOG_INFO << "[DRAW] " << m_name << " at " << m_x << "," << m_y << " " << m_width << "x"
+                     << m_height;
         }
         if (m_background_color.a > 0.001f)
         {
@@ -685,16 +698,6 @@ namespace horizon
     void Widget::remove_on_mouse_hover(size_t id)
     {
         when_mouse_hover.disconnect(id);
-    }
-
-    void Widget::set_on_click(std::function<void()> handler)
-    {
-        when_mouse_press.connect(
-            [handler](MouseButtonEventContext &ev)
-            {
-                if (ev.button == 0x110)
-                    handler();
-            });
     }
 
 } // namespace horizon

@@ -57,8 +57,8 @@ namespace horizon
 
             if (sidebar_item)
             {
-                sidebar_item->set_on_click(
-                    [this, sidebar_item]()
+                sidebar_item->when_click.connect(
+                    [this, sidebar_item](EventContext &ev)
                     {
                         if (m_selected_item)
                         {
