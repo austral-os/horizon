@@ -13,6 +13,7 @@
 #include "horizon/SignalManager.hpp"
 #include "horizon/ThemeManager.hpp"
 #include "horizon/WaylandEventListener.hpp"
+#include <nlohmann/json.hpp>
 
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
@@ -41,6 +42,7 @@ namespace horizon
     class Widget;
     class Window;
     class Menu;
+    class MenuItem;
     class WaylandSurface;
 
     void registry_global(void *data, struct ::wl_registry *registry, uint32_t id,
@@ -254,6 +256,10 @@ namespace horizon
         void render_gl_ui(int iteration = 0);
 
     private:
+        void send_app_status(const std::string &type);
+        nlohmann::json serialize_menu(Menu *menu);
+        nlohmann::json serialize_menu_item(MenuItem *item);
+        void ensure_default_menu();
         void dispatch_events();
         void init_wayland();
         void init_egl();
@@ -317,10 +323,15 @@ namespace horizon
         bool m_is_service{false};
         bool m_show_in_dock{true};
         bool m_show_in_system_tray{false};
+        bool m_has_registered{false};
         std::string m_icon_name;
         int m_width{1280};
         int m_height{720};
 
+        std::vector<Menu *> m_global_menus;
+        std::vector<std::unique_ptr<Menu>> m_default_menus;
+
+        size_t m_clear_menu_timer_id{0};
         // Input state
         uint32_t m_last_serial{0};
         ::xkb_context *m_xkb_context{nullptr};

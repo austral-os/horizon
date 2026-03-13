@@ -40,10 +40,13 @@ void TopPanelMenuBar::setup_router()
             auto menus_json = request.value("menus", nlohmann::json::array());
             bool is_empty = menus_json.empty();
 
-            LOG_INFO << "[TOP PANEL] [IPC THREAD] Received set_global_menu from PID "
-                     << request_pid << " (menus count: " << menus_json.size() << ")";
-
             m_app->post_task([this, request, request_pid, is_empty]() {
+                if (m_menu_daemon_visible) {
+                    m_cached_menu_request = request;
+                    m_has_cached_menu_request = true;
+                    return;
+                }
+
                 if (!is_empty) {
                     if (m_clear_menu_timer_id) {
                         m_app->stop_timer(m_clear_menu_timer_id);
@@ -86,6 +89,15 @@ void TopPanelMenuBar::setup_router()
             } else if (item_id == "force_quit") {
                 if (m_current_owner_pid != -1) {
                     m_app->send_remote_signal(m_current_owner_pid, "kill");
+                }
+            } else if (item_id == "quit_app") {
+                if (m_current_owner_pid != -1) {
+                    LOG_INFO << "[TOP PANEL] Sending quit signal to PID " << m_current_owner_pid;
+                    m_app->send_remote_signal(m_current_owner_pid, "quit");
+                }
+            } else if (item_id == "about_app") {
+                 if (m_current_owner_pid != -1) {
+                    m_app->send_remote_signal(m_current_owner_pid, "about");
                 }
             }
 

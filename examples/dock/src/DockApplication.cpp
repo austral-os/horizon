@@ -292,14 +292,12 @@ namespace horizon
 
     void DockApplication::update_dock(const std::vector<ApplicationInfo> &apps)
     {
-        LOG_INFO << "Updating Dock icons... Found " << apps.size() << " apps.";
+        LOG_INFO << "[DOCK-DEBUG] update_dock called with " << apps.size() << " apps.";
         for (const auto &app : apps)
         {
-            LOG_INFO << "[DOCK-DEBUG] App: " << app.app_id << " | Title: " << app.title
-                     << " | Icon: " << app.icon << " | PID: " << app.pid
-                     << " | Active: " << (app.is_active ? "yes" : "no")
-                     << " | Minimized: " << (app.is_minimized ? "yes" : "no")
-                     << " | ShowInDock: " << (app.show_in_dock ? "yes" : "no");
+            LOG_INFO << "[DOCK-DEBUG] Received App: id='" << app.app_id << "' title='" << app.title
+                     << "' icon='" << app.icon << "' pid=" << app.pid
+                     << " show_in_dock=" << (app.show_in_dock ? "yes" : "no");
         }
 
         _shelf_ptr->clear_children();
@@ -370,10 +368,8 @@ namespace horizon
             {
                 if (running_pinned_ids.find(app_info.app_id) != running_pinned_ids.end())
                 {
-                    // This is an additional instance of a pinned app
-                    // We still show it if it's not the primary one pinned at the start
-                    // But we want to keep it grouped? Uniquely identified?
-                    // For now, continue showing it as a separate icon as requested by behavior
+                    // This is an instance of a pinned app that was already handled in Step 1
+                    continue;
                 }
 
                 std::string icon = app_info.icon;

@@ -621,6 +621,12 @@ namespace horizon
         struct zwlr_foreign_toplevel_manager_v1 *manager)
     {
         m_foreign_toplevel_manager = manager;
+        if (m_foreign_toplevel_manager)
+        {
+            LOG_INFO << "[SURFACE] Adding listener to foreign toplevel manager";
+            zwlr_foreign_toplevel_manager_v1_add_listener(m_foreign_toplevel_manager,
+                                                          &foreign_toplevel_manager_listener, this);
+        }
     }
 
     void WaylandSurface::set_xdg_wm_base(struct xdg_wm_base *xdg_wm_base)
@@ -642,6 +648,12 @@ namespace horizon
     void WaylandSurface::set_ext_foreign_toplevel_list(struct ext_foreign_toplevel_list_v1 *list)
     {
         m_ext_foreign_toplevel_list = list;
+        if (m_ext_foreign_toplevel_list)
+        {
+            LOG_INFO << "[SURFACE] Adding listener to ext foreign toplevel list";
+            ext_foreign_toplevel_list_v1_add_listener(m_ext_foreign_toplevel_list,
+                                                      &ext_foreign_toplevel_list_listener, this);
+        }
     }
 
     void WaylandSurface::set_blur_manager(struct org_kde_kwin_blur_manager *manager)

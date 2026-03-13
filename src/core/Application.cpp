@@ -37,6 +37,8 @@ namespace horizon
                          uint32_t version)
     {
         Application *app = static_cast<Application *>(data);
+        LOG_INFO << "[APP-DEBUG] Global: " << interface << " (v" << version << ")";
+
         if (strcmp(interface, "wl_compositor") == 0) {
             app->m_compositor = static_cast<struct ::wl_compositor *>(wl_registry_bind(registry, id, &wl_compositor_interface, 4));
         } else if (strcmp(interface, "wl_shm") == 0) {
@@ -513,8 +515,87 @@ namespace horizon
     }
     void Application::on_modifiers_event(uint32_t m) { if (m_keyboard_window) m_keyboard_window->on_modifiers_event(m); }
     void Application::on_resize(int w, int h) {}
-    void Application::on_activated(bool a) {}
-    void Application::on_foreign_toplevel_event() {}
+    void Application::on_activated(bool a) {
+        if (m_is_service) return;
+
+        if (a) {
+            if (m_clear_menu_timer_id) {
+                stop_timer(m_clear_menu_timer_id);
+                m_clear_menu_timer_id = 0;
+            }
+            ensure_default_menu();
+            set_global_menu(m_global_menus);
+        } else {
+            // Debounce clearing to avoid flickers or immediate focus loss issues
+            m_clear_menu_timer_id = add_timer(150, [this]() {
+                nlohmann::json msg;
+                msg["type"] = "set_global_menu";
+                msg["receiver_id"] = "top_panel";
+                msg["pid"] = getpid();
+                msg["menus"] = nlohmann::json::array();
+
+                IpcClient client("/tmp/horizon_session.sock");
+                client.send(msg.dump());
+                m_clear_menu_timer_id = 0;
+            });
+        }
+    }
+    void Application::on_foreign_toplevel_event()
+    {
+        if (m_windows.empty())
+            return;
+
+        WaylandSurface *ws = w_surface();
+        if (!ws)
+            return;
+
+        AppListEventContext ctx;
+
+        // 1. Add foreign toplevels (other apps) from zwlr protocol
+        for (const auto &pair : ws->get_foreign_toplevels())
+        {
+            const auto &ft = pair.second;
+            ApplicationInfo info;
+            info.app_id = ft.app_id;
+            info.title = ft.title;
+            info.is_active = ft.active;
+            info.is_minimized = ft.minimized;
+            info.instance_id = reinterpret_cast<uintptr_t>(ft.handle);
+            // Default show_in_dock to true for foreign apps unless they match our own ID
+            info.show_in_dock = (ft.app_id != m_app_id);
+            ctx.apps.push_back(info);
+        }
+
+        // 2. Add ext-foreign-toplevels if any
+        for (const auto &pair : ws->get_ext_foreign_toplevels())
+        {
+            const auto &ft = pair.second;
+            // Avoid duplicates if we already have it from zwlr
+            bool duplicate = false;
+            for (const auto &existing : ctx.apps)
+            {
+                if (existing.app_id == ft.app_id && existing.title == ft.title)
+                {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (duplicate)
+                continue;
+
+            ApplicationInfo info;
+            info.app_id = ft.app_id;
+            info.title = ft.title;
+            info.is_active = ft.active;
+            info.is_minimized = ft.minimized;
+            info.instance_id = reinterpret_cast<uintptr_t>(ft.ext_handle);
+            info.show_in_dock = (ft.app_id != m_app_id);
+            ctx.apps.push_back(info);
+        }
+
+        LOG_INFO << "[APP-DEBUG] on_foreign_toplevel_event - reporting " << ctx.apps.size() << " apps";
+        when_foreign_update.run(ctx);
+    }
  
     void Application::send_remote_signal(pid_t target_pid, const std::string &signal_name, const std::string &data)
     {
@@ -534,23 +615,91 @@ namespace horizon
  
     void Application::set_global_menu(const std::vector<Menu *> &menus)
     {
+        m_global_menus = menus;
+
         nlohmann::json msg;
         msg["type"] = "set_global_menu";
+        msg["receiver_id"] = "top_panel"; // CRITICAL: Top panel filters by this
         msg["pid"] = getpid();
         
         nlohmann::json menus_json = nlohmann::json::array();
         for (auto* m : menus) {
-            nlohmann::json mj;
-            mj["title"] = m->title();
-            mj["bold"] = m->bold();
-            mj["icon"] = m->icon_name();
-            // In a real implementation, we'd serialize items here
-             menus_json.push_back(mj);
+            if (m) {
+                menus_json.push_back(serialize_menu(m));
+            }
         }
         msg["menus"] = menus_json;
 
         IpcClient client("/tmp/horizon_session.sock");
-        client.send(msg.dump());
+        if (!client.send(msg.dump())) {
+            LOG_ERROR << "[APP] Failed to send global menu IPC message.";
+        } else {
+            LOG_INFO << "[APP] Global menu message sent successfully to /tmp/horizon_session.sock";
+        }
+    }
+
+    nlohmann::json Application::serialize_menu(Menu *menu)
+    {
+        nlohmann::json j;
+        j["id"] = menu->title().empty() ? "menu" : menu->title();
+        j["title"] = menu->title();
+        j["bold"] = menu->bold();
+        j["icon"] = menu->icon_name();
+        
+        if (menu->max_width() > 0) {
+            j["max_width"] = menu->max_width();
+        }
+
+        nlohmann::json items = nlohmann::json::array();
+        for (const auto &child : menu->children()) {
+            if (dynamic_cast<MenuSeparator *>(child.get())) {
+                items.push_back({{"type", "separator"}});
+                continue;
+            }
+
+            auto *item = dynamic_cast<MenuItem *>(child.get());
+            if (item) {
+                items.push_back(serialize_menu_item(item));
+            }
+        }
+        j["items"] = items;
+
+        return j;
+    }
+
+    nlohmann::json Application::serialize_menu_item(MenuItem *item)
+    {
+        nlohmann::json j;
+        j["id"] = item->id().empty() ? item->text() : item->id();
+        j["text"] = item->text();
+        j["shortcut"] = item->shortcut();
+        
+        if (item->submenu()) {
+            j["submenu"] = serialize_menu(item->submenu());
+        }
+
+        return j;
+    }
+
+    void Application::ensure_default_menu()
+    {
+        if (m_is_service || !m_global_menus.empty()) return;
+
+        auto app_menu = std::make_unique<Menu>();
+        app_menu->set_title(m_name);
+        app_menu->set_bold(true);
+
+        // About item
+        std::string about_text = "About " + m_name;
+        app_menu->add_item(about_text, "", "about_app");
+        
+        app_menu->add_separator();
+        
+        // Quit item
+        app_menu->add_item("Quit " + m_name, "Cmd+Q", "quit_app");
+
+        m_global_menus.push_back(app_menu.get());
+        m_default_menus.push_back(std::move(app_menu));
     }
 
     void Application::render_gl_ui(int iter)

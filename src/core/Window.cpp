@@ -215,7 +215,12 @@ namespace horizon
         if (m_app) m_app->unregister_window(this);
     }
 
-    void Window::on_foreign_toplevel_event() {}
+    void Window::on_foreign_toplevel_event()
+    {
+        if (m_app)
+            m_app->on_foreign_toplevel_event();
+    }
+
 
     void Window::handle_move(const PointerEvent &event)
     {

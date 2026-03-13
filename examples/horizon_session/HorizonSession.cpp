@@ -448,7 +448,7 @@ std::string HorizonSession::handle_ipc_message(const std::string &msg)
             changed = true;
             LOG_INFO << "[EVENT] App Unregistered: " << app_id << std::endl;
         }
-        else if (type == "send_signal")
+        else if (type == "send_signal" || type == "remote_signal")
         {
             int target_pid = j.value("target_pid", -1);
             std::string signal = j.value("signal", "unknown");
@@ -470,6 +470,16 @@ std::string HorizonSession::handle_ipc_message(const std::string &msg)
                     remove_app(target_pid);
                 }
                 return "{\"status\": \"killed\"}";
+            }
+
+            if (signal == "quit")
+            {
+                LOG_INFO << "[SIGNAL] Requested graceful quit for PID " << target_pid << std::endl;
+                if (target_pid > 0)
+                {
+                    kill(target_pid, SIGTERM);
+                }
+                return "{\"status\": \"quit_sent\"}";
             }
 
             if (signal == "logout")
