@@ -27,7 +27,7 @@ namespace horizon
         : Application("org.horizon.dock", 800, 100, true, true),
           _router(std::make_unique<RequestRouter>(_message_manager))
     {
-        m_window = create_layer_window("org.horizon.dock", 3); // ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
+        m_window = create_layer_window("org.horizon.dock", 2); // ZWLR_LAYER_SHELL_V1_LAYER_TOP
 
         m_window->set_name("Dock");
         m_window->set_anchor(2 | 4 | 8); // BOTTOM | LEFT | RIGHT
