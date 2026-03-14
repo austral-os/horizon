@@ -135,6 +135,15 @@ target_link_libraries(mouse_wheel_test
         horizon
 )
 
+add_executable(multiwindow
+    examples/multiwindow/main.cpp
+)
+
+target_link_libraries(multiwindow
+    PRIVATE
+        horizon
+)
+
 add_subdirectory(examples/launchpad)
 
 # Agregamos un target "run" para compilar y ejecutar de una vez
