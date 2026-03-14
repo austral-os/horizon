@@ -281,6 +281,29 @@ namespace horizon
         void init_global_menu();
 
         /**
+         * @brief Adds a menu to the window's collection.
+         * @param menu The menu to add.
+         */
+        void add_menu(std::unique_ptr<Menu> menu);
+
+        /**
+         * @brief Deletes a menu from the window's collection by its title.
+         * @param title The title of the menu to delete.
+         */
+        void delete_menu(const std::string &title);
+
+        /**
+         * @brief Deletes all menus from the window's collection.
+         */
+        void delete_all_menues();
+
+        /**
+         * @brief Sets the application-specific menu.
+         * @param menu The menu to set as the application menu.
+         */
+        void set_app_menu(std::unique_ptr<Menu> menu);
+
+        /**
          * @brief Returns the compositor context for this application.
          */
         virtual CompositorContext &get_compositor_context() const;
@@ -333,6 +356,7 @@ namespace horizon
 
         std::vector<Menu *> m_global_menus;
         std::unique_ptr<Menu> m_app_menu;
+        std::vector<std::unique_ptr<Menu>> m_menues;
         std::shared_ptr<ClientMenu> m_client_menu;
 
         // Application Metadata

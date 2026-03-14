@@ -629,6 +629,80 @@ namespace horizon
         }
     }
 
+    void WaylandWindow::add_menu(std::unique_ptr<Menu> menu)
+    {
+        if (!menu)
+            return;
+
+        Menu *ptr = menu.get();
+        m_menues.push_back(std::move(menu));
+        m_global_menus.push_back(ptr);
+
+        if (m_client_menu && m_is_activated)
+        {
+            m_client_menu->set_global_menu(m_global_menus);
+        }
+    }
+
+    void WaylandWindow::delete_menu(const std::string &title)
+    {
+        auto it = std::find_if(m_menues.begin(), m_menues.end(),
+                               [&title](const std::unique_ptr<Menu> &m)
+                               { return m->title() == title; });
+
+        if (it != m_menues.end())
+        {
+            Menu *ptr = it->get();
+            m_global_menus.erase(std::remove(m_global_menus.begin(), m_global_menus.end(), ptr),
+                                 m_global_menus.end());
+            m_menues.erase(it);
+
+            if (m_client_menu && m_is_activated)
+            {
+                m_client_menu->set_global_menu(m_global_menus);
+            }
+        }
+    }
+
+    void WaylandWindow::delete_all_menues()
+    {
+        for (auto &menu : m_menues)
+        {
+            Menu *ptr = menu.get();
+            m_global_menus.erase(std::remove(m_global_menus.begin(), m_global_menus.end(), ptr),
+                                 m_global_menus.end());
+        }
+        m_menues.clear();
+
+        if (m_client_menu && m_is_activated)
+        {
+            m_client_menu->set_global_menu(m_global_menus);
+        }
+    }
+
+    void WaylandWindow::set_app_menu(std::unique_ptr<Menu> menu)
+    {
+        if (m_app_menu)
+        {
+            Menu *old_ptr = m_app_menu.get();
+            m_global_menus.erase(
+                std::remove(m_global_menus.begin(), m_global_menus.end(), old_ptr),
+                m_global_menus.end());
+        }
+
+        m_app_menu = std::move(menu);
+
+        if (m_app_menu)
+        {
+            m_global_menus.insert(m_global_menus.begin(), m_app_menu.get());
+        }
+
+        if (m_client_menu && m_is_activated)
+        {
+            m_client_menu->set_global_menu(m_global_menus);
+        }
+    }
+
     void WaylandWindow::on_pointer_event(const PointerEvent &event)
     {
         m_pointer_x = event.x;
