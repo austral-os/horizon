@@ -24,17 +24,19 @@ namespace horizon
         {"firefox", "Web Browser", "firefox", "firefox"}};
 
     DockApplication::DockApplication()
-        : WaylandLayerWindow("org.horizon.dock", ZWLR_LAYER_SHELL_V1_LAYER_TOP),
+        : Application("org.horizon.dock", 800, 100, true, true),
           _router(std::make_unique<RequestRouter>(_message_manager))
     {
-        set_name("Dock");
-        set_anchor(2 | 4 | 8); // BOTTOM | LEFT | RIGHT
-        set_size(0, 100);
-        set_exclusive_zone(100);
-        set_show_in_dock(false);
-        set_show_in_system_tray(false);
-        set_visible(true);
-        set_keyboard_interactivity(0);
+        m_window = create_layer_window("org.horizon.dock", 3); // ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
+
+        m_window->set_name("Dock");
+        m_window->set_anchor(2 | 4 | 8); // BOTTOM | LEFT | RIGHT
+        m_window->set_size(0, 100);
+        m_window->set_exclusive_zone(100);
+        m_window->set_show_in_dock(false);
+        m_window->set_show_in_system_tray(false);
+        m_window->set_visible(true);
+        m_window->set_keyboard_interactivity(0);
 
         // Add custom search path for .desktop files
         DesktopEntry::add_search_path(
@@ -47,11 +49,6 @@ namespace horizon
 
     DockApplication::~DockApplication() = default;
 
-    CompositorAppInterface *DockApplication::compositor_apps()
-    {
-        return _compositor_apps.get();
-    }
-
     void DockApplication::detect_environment()
     {
         const char *desktop_env = getenv("XDG_CURRENT_DESKTOP");
@@ -62,12 +59,12 @@ namespace horizon
         if (_is_wayfire)
         {
             LOG_INFO << "[DOCK] Wayfire detected, using WayfireAppAdapter.";
-            _compositor_apps = std::make_unique<WayfireAppAdapter>(this);
+            _compositor_apps = std::make_unique<WayfireAppAdapter>(m_window);
         }
         else
         {
             LOG_INFO << "[DOCK] Labwc detected, using LabwcAppAdapter.";
-            _compositor_apps = std::make_unique<LabwcAppAdapter>(this);
+            _compositor_apps = std::make_unique<LabwcAppAdapter>(m_window);
         }
     }
 
@@ -97,7 +94,7 @@ namespace horizon
 
         _compositor_apps->when_update.connect(
             [this](AppListEventContext &ctx)
-            { post_task([this, apps = ctx.apps]() { update_dock(apps); }); });
+            { m_window->post_task([this, apps = ctx.apps]() { update_dock(apps); }); });
 
         setup_context_menu_ipc();
     }
@@ -113,32 +110,32 @@ namespace horizon
                 std::string item_id = request.value("id", "");
                 LOG_INFO << "[DOCK] Context menu item clicked: " << item_id;
 
-                post_task(
+                m_window->post_task(
                     [this, item_id]()
                     {
                         if (item_id.find("dock_exit:") == 0)
                         {
                             int pid = std::stoi(item_id.substr(10));
                             LOG_INFO << "[DOCK] Exit requested for pid: " << pid;
-                            send_remote_signal(pid, "close");
+                            m_window->send_remote_signal(pid, "close");
                         }
                         else if (item_id.find("dock_exit_id:") == 0)
                         {
                             std::string app_id = item_id.substr(13);
                             LOG_INFO << "[DOCK] Exit requested for app_id: " << app_id;
-                            compositor_apps()->close(app_id);
+                            _compositor_apps->close(app_id);
                         }
                         else if (item_id.find("dock_fullscreen:") == 0)
                         {
                             int pid = std::stoi(item_id.substr(16));
                             LOG_INFO << "[DOCK] Fullscreen toggle requested for pid: " << pid;
-                            send_remote_signal(pid, "toggle_fullscreen");
+                            m_window->send_remote_signal(pid, "toggle_fullscreen");
                         }
                         else if (item_id.find("dock_fullscreen_id:") == 0)
                         {
                             std::string app_id = item_id.substr(19);
                             LOG_INFO << "[DOCK] Fullscreen toggle requested for app_id: " << app_id;
-                            compositor_apps()->toggle_fullscreen(app_id);
+                            _compositor_apps->toggle_fullscreen(app_id);
                         }
                         else if (item_id.find("dock_launch:") == 0)
                         {
@@ -150,14 +147,14 @@ namespace horizon
                         {
                             uintptr_t instance_id = std::stoull(item_id.substr(19));
                             LOG_INFO << "[DOCK] Exit requested for instance: " << instance_id;
-                            compositor_apps()->close_instance(instance_id);
+                            _compositor_apps->close_instance(instance_id);
                         }
                         else if (item_id.find("dock_fullscreen_instance:") == 0)
                         {
                             uintptr_t instance_id = std::stoull(item_id.substr(25));
                             LOG_INFO << "[DOCK] Fullscreen toggle requested for instance: "
                                      << instance_id;
-                            compositor_apps()->toggle_fullscreen_instance(instance_id);
+                            _compositor_apps->toggle_fullscreen_instance(instance_id);
                         }
                     });
 
@@ -187,7 +184,7 @@ namespace horizon
                                     });
 
         // Process incoming messages on the main thread every 50ms
-        add_timer(
+        m_window->add_timer(
             50,
             [this]()
             {
@@ -215,8 +212,8 @@ namespace horizon
         // El dock está anclado al borde inferior, así que su posición global en Y
         // es monitor_height - dock_height. Sumamos ese offset para la coordenada
         // global de pantalla que espera el menu manager.
-        int screen_h = w_surface()->monitor_height();
-        int dock_height = height();
+        int screen_h = m_window->w_surface()->monitor_height();
+        int dock_height = m_window->height();
         int global_y = y;
         if (screen_h > 0)
         {
@@ -315,7 +312,7 @@ namespace horizon
                 }
             }
 
-            auto item = std::make_unique<DockItem>(this, pinned.icon, _is_wayfire);
+            auto item = std::make_unique<DockItem>(m_window, pinned.icon, _is_wayfire);
             item->on_right_click = [this, item_ptr = item.get()](int x, int y)
             {
                 show_dock_context_menu(x, y, item_ptr->pid(), item_ptr->run_id(),
@@ -375,7 +372,7 @@ namespace horizon
                 if (icon.empty())
                     icon = app_info.app_id;
 
-                auto item = std::make_unique<DockItem>(this, icon, _is_wayfire);
+                auto item = std::make_unique<DockItem>(m_window, icon, _is_wayfire);
                 item->set_app_info(app_info);
 
                 // Try to find the run_id for this app_id from PINNED_APPS
@@ -398,7 +395,7 @@ namespace horizon
         }
 
         _shelf_ptr->calculate_layout();
-        invalidate();
+        m_window->invalidate();
     }
 
 } // namespace horizon

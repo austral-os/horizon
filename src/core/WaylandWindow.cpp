@@ -301,6 +301,9 @@ namespace horizon
 
     void WaylandWindow::initialize()
     {
+        if (m_surface->is_configured())
+            return;
+
         m_surface->init_display();
         m_surface->setup_xdg_toplevel(m_name, m_app_id);
     }

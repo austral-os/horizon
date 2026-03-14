@@ -61,9 +61,10 @@ void HorizonSession::init(const std::string &compositor)
     }
 
     // Example of default core services
-    m_startup_services.push_back("/home/horacio/Desarrollo/austral-os/horizon/build/horizon_wall");
     m_startup_services.push_back(
-        "/home/horacio/Desarrollo/austral-os/horizon/build/horizon_menu_manager_d");
+        "/home/horacio/Desarrollo/austral-os/horizon/build/examples/horizon_wall/horizon_wall");
+    m_startup_services.push_back("/home/horacio/Desarrollo/austral-os/horizon/build/examples/"
+                                 "horizon_menu_manager_d/horizon_menu_manager_d");
     m_startup_services.push_back(
         "/home/horacio/Desarrollo/austral-os/horizon/build/examples/top_panel/top_panel");
     m_startup_services.push_back(

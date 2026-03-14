@@ -640,6 +640,9 @@ namespace horizon
 
     void WaylandSurface::init_display()
     {
+        if (m_display)
+            return;
+
         m_display = wl_display_connect(nullptr);
         if (!m_display)
             throw std::runtime_error("Failed to connect to Wayland display");
@@ -812,6 +815,12 @@ namespace horizon
 
         zwlr_layer_surface_v1_add_listener(m_layer_surface, &layer_surface_listener, this);
 
+        // Apply any properties that might have been set before setup
+        zwlr_layer_surface_v1_set_anchor(m_layer_surface, m_anchor);
+        zwlr_layer_surface_v1_set_exclusive_zone(m_layer_surface, m_exclusive_zone);
+        zwlr_layer_surface_v1_set_keyboard_interactivity(m_layer_surface, m_interactivity);
+        zwlr_layer_surface_v1_set_size(m_layer_surface, (uint32_t)m_width, (uint32_t)m_height);
+
         wl_surface_commit(m_surface);
         wl_display_roundtrip(m_display);
 
@@ -853,6 +862,8 @@ namespace horizon
 
     void WaylandSurface::set_layer_size(uint32_t width, uint32_t height)
     {
+        m_width = (int)width;
+        m_height = (int)height;
         if (m_layer_surface)
         {
             zwlr_layer_surface_v1_set_size(m_layer_surface, width, height);

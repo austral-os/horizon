@@ -27,7 +27,7 @@ namespace horizon
         /**
          * @brief Destructor. Ensures proper cleanup of resources.
          */
-        ~Application();
+        virtual ~Application();
 
         // Application copy is disabled to prevent resource management issues.
         Application(const Application &) = delete;
@@ -79,7 +79,7 @@ namespace horizon
         /**
          * @brief Protected constructor for derived classes that need custom initialization.
          */
-        Application(const std::string &app_id, int w, int h, bool defer_init);
+        Application(const std::string &app_id, int w, int h, bool defer_init, bool skip_window = false);
 
     protected:
         std::string m_app_id;

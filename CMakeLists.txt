@@ -71,25 +71,11 @@ target_link_libraries(main_window
 add_subdirectory(examples/top_panel)
 
 
-add_executable(horizon_menu_manager_d
-    examples/horizon_menu_manager_d/main.cpp
-)
-
-target_link_libraries(horizon_menu_manager_d
-    PRIVATE
-        horizon
-)
+add_subdirectory(examples/horizon_menu_manager_d)
 
 add_subdirectory(examples/dock)
 
-add_executable(horizon_wall
-    examples/horizon_wall/main.cpp
-)
-
-target_link_libraries(horizon_wall
-    PRIVATE
-        horizon
-)
+add_subdirectory(examples/horizon_wall)
 
 
 add_executable(horizon_session

@@ -31,13 +31,16 @@ namespace horizon
     {
     }
 
-    Application::Application(const std::string &app_id, int w, int h, bool defer_init)
+    Application::Application(const std::string &app_id, int w, int h, bool defer_init, bool skip_window)
         : m_app_id(app_id)
     {
         // Global safeguard: ignore SIGPIPE to prevent crash when writing to broken sockets
         signal(SIGPIPE, SIG_IGN);
         m_name = "Horizon Application";
-        create_window(w, h); // Create initial main window
+        if (!skip_window)
+        {
+            create_window(w, h); // Create initial main window
+        }
     }
 
     Application::~Application()

@@ -10,10 +10,11 @@ using namespace horizon;
 const int PANEL_HEIGHT = 32;
 
 TopPanelApplication::TopPanelApplication()
-    : WaylandLayerWindow("top_panel", 2) // 2 = ZWLR_LAYER_SHELL_V1_LAYER_TOP
+    : Application("org.horizon.top_panel", 800, 32, true, true)
 {
-    set_name("Top Panel");
-    set_show_in_dock(false);
+    m_window = create_layer_window("top_panel", 2); // 2 = ZWLR_LAYER_SHELL_V1_LAYER_TOP
+    m_window->set_name("Top Panel");
+    m_window->set_show_in_dock(false);
 
     DesktopEntry::add_search_path(
         "/home/horacio/Desarrollo/austral-os/horizon/examples/config/apps/");
@@ -28,16 +29,18 @@ TopPanelApplication::TopPanelApplication()
     m_root_widget = panel_widget.get();
 
     root->add_child(std::move(panel_widget));
-    set_root(std::move(root));
+    m_window->set_root(std::move(root));
 }
+
+TopPanelApplication::~TopPanelApplication() = default;
 
 void TopPanelApplication::setup_window()
 {
-    set_anchor(1 | 4 | 8); // TOP | LEFT | RIGHT
-    set_size(0, PANEL_HEIGHT);
-    set_exclusive_zone(PANEL_HEIGHT);
-    set_keyboard_interactivity(0); // NONE
-    set_visible(true);
+    m_window->set_anchor(1 | 4 | 8); // TOP | LEFT | RIGHT
+    m_window->set_size(0, PANEL_HEIGHT);
+    m_window->set_exclusive_zone(PANEL_HEIGHT);
+    m_window->set_keyboard_interactivity(0); // NONE
+    m_window->set_visible(true);
 }
 
 void TopPanelApplication::setup_ipc()

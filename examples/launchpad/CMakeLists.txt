@@ -1,5 +1,6 @@
 set(SOURCES
     src/main.cpp
+    src/LaunchpadApplication.cpp
     src/LaunchpadWindow.cpp
     src/AppItem.cpp
 )

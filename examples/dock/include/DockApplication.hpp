@@ -5,6 +5,7 @@
 #include <horizon/IpcClient.hpp>
 #include <horizon/MessageManager.hpp>
 #include <horizon/RequestRouter.hpp>
+#include <horizon/Application.hpp>
 #include <horizon/WaylandLayerWindow.hpp>
 #include <memory>
 #include <mutex>
@@ -24,13 +25,13 @@ namespace horizon
         std::string run_id;
     };
 
-    class DockApplication : public WaylandLayerWindow
+    class DockApplication : public Application
     {
     public:
         DockApplication();
         ~DockApplication() override;
 
-        CompositorAppInterface *compositor_apps() override;
+        WaylandLayerWindow *window() const { return m_window; }
 
         // Shows the dock context menu at the given screen position.
         void show_dock_context_menu(int x, int y, int pid, const std::string &run_id,
@@ -44,6 +45,7 @@ namespace horizon
         void update_dock(const std::vector<ApplicationInfo> &apps);
 
         bool _is_wayfire = false;
+        WaylandLayerWindow *m_window = nullptr;
         DockShelf *_shelf_ptr = nullptr;
         std::unique_ptr<CompositorAppInterface> _compositor_apps;
         static const std::vector<PinnedApp> PINNED_APPS;
