@@ -2,8 +2,10 @@
 #include "ArkfmSidebar.hpp"
 #include "ArkfmToolbar.hpp"
 #include "ArkfmView.hpp"
+#include "dialogs/NewFolderDialog.hpp"
 #include "horizon/ApplicationWindow.hpp"
 #include "horizon/VPanel.hpp"
+#include "horizon/arkutils/FileOperations.hpp"
 
 namespace horizon::arkfm
 {
@@ -55,8 +57,30 @@ namespace horizon::arkfm
 
         vpanel->add_child(std::move(sidebar));
         vpanel->add_child(std::move(view));
-
         set_content(std::move(vpanel));
+
+        this->when_application_load.connect(
+            [this, view_ptr](EventContext &)
+            {
+                if (application())
+                {
+                    application()->signal_manager.connect(
+                        "new-folder",
+                        [this, view_ptr](SignalContext &)
+                        {
+                            auto dialog = std::make_unique<NewFolderDialog>();
+                            dialog->when_accepted.connect(
+                                [this, view_ptr](NewFolderEvent &ctx)
+                                {
+                                    std::string full_path =
+                                        view_ptr->current_path() + "/" + ctx.folder_name;
+                                    arkutils::FileOperations::create_directory(full_path);
+                                    view_ptr->navigate_to(view_ptr->current_path());
+                                });
+                            dialog->run();
+                        });
+                }
+            });
     }
 
 } // namespace horizon::arkfm

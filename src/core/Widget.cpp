@@ -617,6 +617,12 @@ namespace horizon
     void Widget::set_application_recursive(WaylandWindow *app)
     {
         m_app = app;
+        if (m_app)
+        {
+            EventContext ev;
+            ev.sender = this;
+            when_application_load.run(ev);
+        }
         for (auto &child : m_children)
         {
             child->set_application_recursive(app);

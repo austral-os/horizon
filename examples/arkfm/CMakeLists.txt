@@ -9,6 +9,7 @@ add_executable(arkfm
     src/ArkfmView.cpp
     src/ArkfmWindow.cpp
     src/ArkfmIconProvider.cpp
+    src/dialogs/NewFolderDialog.cpp
 )
 
 target_include_directories(arkfm

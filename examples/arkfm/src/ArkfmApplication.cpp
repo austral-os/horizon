@@ -1,5 +1,6 @@
 #include "ArkfmApplication.hpp"
 #include "ArkfmWindow.hpp"
+#include "horizon/EventsManager.hpp"
 #include "horizon/Menu.hpp"
 
 namespace horizon::arkfm

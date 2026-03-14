@@ -221,6 +221,7 @@ namespace horizon
         EventsManager<KeyEventContext> when_key_release;
         EventsManager<EventContext> when_focus;
         EventsManager<EventContext> when_blur;
+        EventsManager<EventContext> when_application_load;
 
         virtual void set_application_recursive(WaylandWindow *app);
 
