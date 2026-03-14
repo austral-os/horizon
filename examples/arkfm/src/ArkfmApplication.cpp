@@ -10,7 +10,9 @@ namespace horizon::arkfm
     ArkfmApplication::ArkfmApplication()
         : WaylandWindow("org.horizon.arkfm", ARK_APP_DEFAULT_WIDTH, ARK_APP_DEFAULT_HEIGHT)
     {
+        set_name("Ark File Manager");
         auto window = std::make_unique<ArkfmWindow>(ARK_APP_DEFAULT_WIDTH, ARK_APP_DEFAULT_HEIGHT);
+
         set_root(std::move(window));
     }
 
