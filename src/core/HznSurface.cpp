@@ -1,4 +1,5 @@
 #include "horizon/CairoGraphicsContext.hpp"
+#include "horizon/IpcClient.hpp"
 #include <GLES2/gl2.h>
 #include <algorithm>
 #include <glib-object.h>
@@ -28,7 +29,7 @@ namespace horizon
         "    gl_FragColor = texture2D(u_texture, v_texcoord).bgra * u_opacity;\n"
         "}\n";
 
-    HznSurface::HznSurface() {};
+    HznSurface::HznSurface(std::string app_id) : m_app_id(app_id) {};
 
     HznSurface::~HznSurface()
     {
@@ -284,6 +285,137 @@ namespace horizon
             }
         }
         wakeup();
+    }
+
+    void HznSurface::quit()
+    {
+        if (m_is_running)
+        {
+            m_is_running = false;
+            for (auto const &[id, handler] : m_on_exit_handlers)
+            {
+                if (handler)
+                    handler();
+            }
+            notify_app_manager("app_stopped");
+        }
+    }
+
+    void HznSurface::post_task(std::function<void()> task)
+    {
+        {
+            std::lock_guard<std::mutex> lock(m_task_mutex);
+            m_task_queue.push_back(std::move(task));
+        }
+        wakeup();
+    }
+
+    void HznSurface::request_move()
+    {
+        if (m_compositor_context)
+        {
+            m_compositor_context->request_move(m_last_serial);
+        }
+    }
+
+    void HznSurface::notify_app_manager(const std::string &type)
+    {
+        // Capture necessary data to avoid use-after-free in the thread
+        std::string app_id = m_app_id;
+        std::string name = m_name;
+        std::string icon = m_icon_name;
+        bool show_dock = m_show_in_dock;
+        bool show_tray = m_show_in_system_tray;
+        bool is_min = m_is_minimized;
+        pid_t pid = getpid();
+
+        std::thread(
+            [app_id, name, icon, show_dock, show_tray, is_min, pid, type]()
+            {
+                try
+                {
+                    nlohmann::json msg;
+                    msg["type"] = type;
+                    msg["app_id"] = app_id;
+                    msg["name"] = name;
+                    msg["icon"] = icon;
+                    msg["show_in_dock"] = show_dock;
+                    msg["show_in_system_tray"] = show_tray;
+                    msg["is_minimized"] = is_min;
+                    msg["pid"] = pid;
+
+                    IpcClient client("/tmp/horizon_session.sock");
+                    // Simple retry logic
+                    for (int i = 0; i < 3; ++i)
+                    {
+                        if (client.send(msg.dump()))
+                            break;
+                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    }
+                }
+                catch (...)
+                {
+                }
+            })
+            .detach();
+    }
+
+    void HznSurface::notify_window_state(bool minimized)
+    {
+        m_is_minimized = minimized;
+        notify_app_manager("window_state_changed");
+    }
+
+    void HznSurface::maximize()
+    {
+        if (m_compositor_context)
+        {
+            m_compositor_context->maximize();
+            m_is_minimized = false;
+            notify_app_manager("app_started"); // Notify state change
+            invalidate();                      // Ensure we repaint and commit a new buffer
+            for (auto const &[id, handler] : m_on_maximize_handlers)
+            {
+                if (handler)
+                    handler(true);
+            }
+        }
+    }
+
+    void HznSurface::minimize()
+    {
+        if (m_compositor_context)
+        {
+            m_was_maximized_before_minimize = is_maximized();
+            m_compositor_context->minimize();
+            notify_window_state(true);
+            for (auto const &[id, handler] : m_on_minimize_handlers)
+            {
+                if (handler)
+                    handler();
+            }
+        }
+    }
+
+    void HznSurface::restore(const std::string &token)
+    {
+        if (m_compositor_context)
+        {
+            m_compositor_context->restore(token);
+            notify_window_state(false);
+            invalidate(); // Ensure we repaint and commit a new buffer
+
+            for (auto const &[id, handler] : m_on_maximize_handlers)
+            {
+                if (handler)
+                    handler(m_was_maximized_before_minimize);
+            }
+        }
+    }
+
+    bool HznSurface::is_maximized() const
+    {
+        return m_surface && m_surface->is_maximized();
     }
 
 }; // namespace horizon

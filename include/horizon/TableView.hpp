@@ -75,7 +75,7 @@ namespace horizon
 
         virtual ~TableView() = default;
 
-        void set_application_recursive(Application *app) override
+        void set_application_recursive(HznSurface *app) override
         {
             Widget::set_application_recursive(app);
             rebuild_header();

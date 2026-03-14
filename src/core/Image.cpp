@@ -1,6 +1,6 @@
 #include "horizon/Image.hpp"
 #include "horizon/Application.hpp"
-#include <algorithm>
+#include "horizon/HznSurface.hpp"
 
 namespace horizon
 {
@@ -27,7 +27,7 @@ namespace horizon
         invalidate();
     }
 
-    void Image::set_application_recursive(Application *app)
+    void Image::set_application_recursive(HznSurface *app)
     {
         Widget::set_application_recursive(app);
         if (app && !m_driver && !m_path.empty())

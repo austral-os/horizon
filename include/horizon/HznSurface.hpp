@@ -3,10 +3,13 @@
 #include "horizon/CompositorAppInterface.hpp"
 #include "horizon/CompositorContext.hpp"
 #include "horizon/EventsManager.hpp"
+#include "horizon/SignalManager.hpp"
 #include "horizon/ThemeManager.hpp"
 #include "horizon/WaylandSurface.hpp"
 #include "horizon/Widget.hpp"
+#include <deque>
 #include <horizon/WaylandEventListener.hpp>
+#include <mutex>
 namespace horizon
 {
 
@@ -17,7 +20,7 @@ namespace horizon
         friend class CairoGraphicContext;
 
     public:
-        HznSurface();
+        HznSurface(std::string app_id = "horizon.app");
         virtual ~HznSurface();
 
         std::unique_ptr<ThemeManager> theme_manager;
@@ -26,6 +29,33 @@ namespace horizon
         EventsManager<AppEventContext> when_deactivated;
         EventsManager<AppEventContext> when_close;
         EventsManager<AppListEventContext> when_foreign_update;
+
+        SignalManager signal_manager;
+
+        /**
+         * @brief Requests the window to be maximized.
+         */
+        void maximize();
+
+        /**
+         * @brief Requests the window to be minimized.
+         */
+        void minimize();
+
+        /**
+         * @brief Requests the window to be restored from maximized state.
+         */
+        void restore(const std::string &token = "");
+
+        /**
+         * @return True if the window is maximized.
+         */
+        bool is_maximized() const;
+
+        /**
+         * @brief Requests a window move from the Wayland compositor.
+         */
+        void request_move();
 
         /**
          * @brief Returns whether this application uses a transparent surface.
@@ -97,7 +127,38 @@ namespace horizon
 
         void queue_gl_draw(const GLDrawCall &call) const;
 
+        /**
+         * @brief Signals the application to stop its event loop and exit.
+         */
+        void quit();
+
+        /**
+         * @brief Posts a task to be executed on the main application thread.
+         * This method is thread-safe.
+         * @param task The function to execute.
+         */
+        void post_task(std::function<void()> task);
+
     protected:
+        /**
+         * @brief Notifies the application manager about lifecycle events.
+         * @param type Event type (e.g., "app_started", "app_stopped").
+         */
+        void notify_app_manager(const std::string &type);
+        void notify_window_state(bool minimized);
+
+    protected:
+        bool m_is_running = false; /**< Flag indicating if the event loop is active. */
+
+        // Application Metadata
+        std::string m_app_id{"horizon.app"};
+        std::string m_name{"Horizon Application"};
+        std::string m_icon_name{""};
+        bool m_show_in_dock{true};
+        bool m_show_in_system_tray{false};
+
+        uint32_t m_last_serial = 0; /**< Last received Wayland serial. */
+
         std::unique_ptr<WaylandSurface> m_surface;
         std::unique_ptr<Widget> m_root;
         bool m_full_repaint = true; /**< Flag indicating if the entire UI needs re-rendering. */
@@ -133,6 +194,17 @@ namespace horizon
         // Image caching
         mutable std::map<std::string, void *> m_svg_cache;
         mutable std::map<std::string, void *> m_surface_cache;
+
+        bool m_is_minimized{false};
+
+        std::map<size_t, std::function<void()>> m_on_exit_handlers;
+        std::map<size_t, std::function<void(bool)>> m_on_maximize_handlers;
+        std::map<size_t, std::function<void()>> m_on_minimize_handlers;
+
+        std::deque<std::function<void()>> m_task_queue;
+        std::mutex m_task_mutex;
+
+        bool m_was_maximized_before_minimize{false};
     };
 
 }; // namespace horizon

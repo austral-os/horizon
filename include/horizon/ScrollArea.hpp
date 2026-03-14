@@ -6,6 +6,7 @@
 
 namespace horizon
 {
+    class HznSurface;
     /**
      * @class ScrollArea
      * @brief A widget that provides horizontal and vertical scrolling for a single child.
@@ -31,7 +32,7 @@ namespace horizon
         void calculate_layout() override;
         void render(GraphicsContext &gc, int cx, int cy, int cw, int ch,
                     bool force = false) override;
-        void set_application_recursive(Application *app) override;
+        void set_application_recursive(HznSurface *app) override;
 
         // --- Events ---
         EventsManager<EventContext> when_scroll;

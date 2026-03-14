@@ -4,6 +4,7 @@
 
 namespace horizon
 {
+    class HznSurface;
     /**
      * @brief A progress bar widget with Aqua styling.
      */
@@ -14,7 +15,7 @@ namespace horizon
         ~ProgressBar();
 
         void draw(GraphicsContext &gc) override;
-        void set_application_recursive(Application *app) override;
+        void set_application_recursive(HznSurface *app) override;
 
         /**
          * @brief Set the current progress (0.0 to 1.0).

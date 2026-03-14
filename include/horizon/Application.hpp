@@ -1,15 +1,14 @@
 
 #include "horizon/HznSurface.hpp"
-#include "horizon/SignalManager.hpp"
 #include "horizon/WaylandEventListener.hpp"
 #include <GLES2/gl2.h>
-#include <deque>
+
 #include <functional>
 #include <horizon/CompositorAppInterface.hpp>
 #include <horizon/WaylandSurface.hpp>
 #include <map>
 #include <memory>
-#include <mutex>
+
 #include <vector>
 
 #pragma once // Solo se incluye una vez.
@@ -66,8 +65,6 @@ namespace horizon
          */
         Application &operator=(Application &&) noexcept;
 
-        SignalManager signal_manager;
-
         /**
          * @brief Sets the global menu for the application.
          * The menus will be automatically provided to the system when the app gains focus.
@@ -81,43 +78,6 @@ namespace horizon
          * This method blocks until the application is quit.
          */
         void run();
-
-        /**
-         * @brief Signals the application to stop its event loop and exit.
-         */
-        void quit();
-
-        /**
-         * @brief Posts a task to be executed on the main application thread.
-         * This method is thread-safe.
-         * @param task The function to execute.
-         */
-        void post_task(std::function<void()> task);
-
-        /**
-         * @brief Requests a window move from the Wayland compositor.
-         */
-        void request_move();
-
-        /**
-         * @brief Requests the window to be maximized.
-         */
-        void maximize();
-
-        /**
-         * @brief Requests the window to be minimized.
-         */
-        void minimize();
-
-        /**
-         * @brief Requests the window to be restored from maximized state.
-         */
-        void restore(const std::string &token = "");
-
-        /**
-         * @return True if the window is maximized.
-         */
-        bool is_maximized() const;
 
         /**
          * @brief Requests the window to enter fullscreen mode.
@@ -255,25 +215,17 @@ namespace horizon
          */
         void dispatch_events();
 
-        /**
-         * @brief Notifies the application manager about lifecycle events.
-         * @param type Event type (e.g., "app_started", "app_stopped").
-         */
-        void notify_app_manager(const std::string &type);
-        void notify_window_state(bool minimized);
-
     private:
         /**< The Wayland surface representing the main window. */
-        bool m_is_running = false;   /**< Flag indicating if the event loop is active. */
+
         bool m_is_activated = false; /**< Flag indicating if the application is currently active. */
 
         std::vector<Menu *> m_global_menus;
         std::unique_ptr<Menu> m_app_menu;
         std::shared_ptr<ClientMenu> m_client_menu;
 
-        double m_pointer_x = 0.0;   /**< Last known X position of the pointer. */
-        double m_pointer_y = 0.0;   /**< Last known Y position of the pointer. */
-        uint32_t m_last_serial = 0; /**< Last received Wayland serial. */
+        double m_pointer_x = 0.0; /**< Last known X position of the pointer. */
+        double m_pointer_y = 0.0; /**< Last known Y position of the pointer. */
 
         uint32_t m_resize_edge = 0;       /**< Current edge being hovered for resize. */
         const int m_resize_proximity = 8; /**< Distance to edge to trigger resize. */
@@ -321,24 +273,10 @@ namespace horizon
 
         // Handler maps
         std::map<size_t, std::function<void()>> m_on_start_handlers;
-        std::map<size_t, std::function<void()>> m_on_exit_handlers;
+
         std::map<size_t, std::function<void(int, int)>> m_on_resize_handlers;
-        std::map<size_t, std::function<void(bool)>> m_on_maximize_handlers;
-        std::map<size_t, std::function<void()>> m_on_minimize_handlers;
 
         size_t m_next_app_handler_id{0};
-
-        // Application Metadata
-        std::string m_app_id{"horizon.app"};
-        std::string m_name{"Horizon Application"};
-        std::string m_icon_name{""};
-        bool m_show_in_dock{true};
-        bool m_show_in_system_tray{false};
-        bool m_is_minimized{false};
-        bool m_was_maximized_before_minimize{false};
-
-        std::deque<std::function<void()>> m_task_queue;
-        std::mutex m_task_mutex;
 
         std::unique_ptr<IpcClient> m_ipc_subscriber;
     };

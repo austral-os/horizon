@@ -1,3 +1,4 @@
+#include "horizon/HznSurface.hpp"
 #include <algorithm>
 #include <cmath>
 #include <horizon/Application.hpp>
@@ -256,7 +257,7 @@ namespace horizon
         return this;
     }
 
-    void ScrollArea::set_application_recursive(Application *app)
+    void ScrollArea::set_application_recursive(HznSurface *app)
     {
         Widget::set_application_recursive(app);
         if (m_h_thumb)
