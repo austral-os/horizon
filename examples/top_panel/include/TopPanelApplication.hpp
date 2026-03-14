@@ -1,15 +1,15 @@
 #pragma once
 
-#include <horizon/LayerApplication.hpp>
 #include <horizon/IpcClient.hpp>
+#include <horizon/WaylandLayerWindow.hpp>
 #include <memory>
 #include <mutex>
-#include <vector>
 #include <string>
+#include <vector>
 
 class TopPanelWidget;
 
-class TopPanelApplication : public horizon::LayerApplication
+class TopPanelApplication : public horizon::WaylandLayerWindow
 {
 public:
     TopPanelApplication();
@@ -22,9 +22,9 @@ private:
     void setup_ipc();
     void process_messages();
 
-    TopPanelWidget* m_root_widget;
+    TopPanelWidget *m_root_widget;
     std::unique_ptr<horizon::IpcClient> m_ipc_client;
-    
+
     std::mutex m_queue_mutex;
     std::vector<std::string> m_pending_messages;
 };

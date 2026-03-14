@@ -1,10 +1,10 @@
 #include <horizon/IpcClient.hpp>
 
 #include <horizon/Label.hpp>
-#include <horizon/LayerApplication.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/MessageManager.hpp>
 #include <horizon/RequestRouter.hpp>
+#include <horizon/WaylandLayerWindow.hpp>
 #include <horizon/Widget.hpp>
 #include <linux/input-event-codes.h>
 #include <memory>
@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     try
     {
         // Create the Menu Manager Daemon
-        auto app = std::make_unique<LayerApplication>(
+        auto app = std::make_unique<WaylandLayerWindow>(
             "horizon_menu_manager_d", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY); // 3 = OVERLAY layer
 
         app->set_name("Horizon Menu Manager");

@@ -13,7 +13,7 @@ namespace horizon
 {
 
     class Application;
-    class HznSurface;
+    class WaylandWindow;
     class GraphicsContext;
 
     enum WidgetPositionTypes
@@ -216,7 +216,7 @@ namespace horizon
         void remove_child(Widget *child);
         void remove_child_at(int index);
         Widget *parent() const;
-        HznSurface *application() const;
+        WaylandWindow *application() const;
 
         const std::vector<std::unique_ptr<Widget>> &children() const;
         void clear_children();
@@ -253,7 +253,7 @@ namespace horizon
         EventsManager<EventContext> when_focus;
         EventsManager<EventContext> when_blur;
 
-        virtual void set_application_recursive(HznSurface *app);
+        virtual void set_application_recursive(WaylandWindow *app);
 
         void map_draw_state(WidgetEvent event, WidgetDrawState draw_state);
 
@@ -301,7 +301,7 @@ namespace horizon
         int m_free_children_count{0};
 
         Widget *m_parent{nullptr};
-        HznSurface *m_app{nullptr};
+        WaylandWindow *m_app{nullptr};
         std::vector<std::unique_ptr<Widget>> m_children;
 
         size_t m_next_handler_id{0};

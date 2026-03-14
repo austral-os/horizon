@@ -27,7 +27,7 @@ namespace horizon
      * Value changes are notified via when_value_changed. The current float
      * value is passed as ev.data (reinterpret_cast<float*>(ev.data)).
      */
-    class HznSurface;
+    class WaylandWindow;
     class AquaPolygon;
     class Slider : public Widget
     {
@@ -35,7 +35,7 @@ namespace horizon
         Slider();
         virtual ~Slider();
 
-        void set_application_recursive(HznSurface *app) override;
+        void set_application_recursive(WaylandWindow *app) override;
 
         void draw(GraphicsContext &gc) override;
 

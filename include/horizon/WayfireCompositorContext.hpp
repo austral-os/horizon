@@ -4,7 +4,7 @@
 
 namespace horizon
 {
-    class HznSurface;
+    class WaylandWindow;
 
     /**
      * @class WayfireCompositorContext
@@ -13,7 +13,7 @@ namespace horizon
     class WayfireCompositorContext : public CompositorContext
     {
     public:
-        explicit WayfireCompositorContext(HznSurface *app);
+        explicit WayfireCompositorContext(WaylandWindow *app);
         ~WayfireCompositorContext() override = default;
 
         void request_move(uint32_t serial) override;
@@ -29,6 +29,6 @@ namespace horizon
         bool is_fullscreen() const override;
 
     private:
-        HznSurface *m_app;
+        WaylandWindow *m_app;
     };
 } // namespace horizon

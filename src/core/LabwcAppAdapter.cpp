@@ -1,11 +1,12 @@
 #include "horizon/LabwcAppAdapter.hpp"
-#include <horizon/Application.hpp>
+#include "horizon/WaylandWindow.hpp"
 #include <horizon/Logger.hpp>
 
 namespace horizon
 {
-    LabwcAppAdapter::LabwcAppAdapter(Application *app) : m_app(app)
+    LabwcAppAdapter::LabwcAppAdapter(WaylandWindow *app)
     {
+        m_app = app;
         if (m_app)
         {
             m_app->when_foreign_update.connect([this](AppListEventContext &ctx)

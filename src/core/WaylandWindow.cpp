@@ -7,8 +7,8 @@
 #include <GLES2/gl2.h>
 #include <algorithm>
 #include <glib-object.h>
-#include <horizon/HznSurface.hpp>
 #include <horizon/Logger.hpp>
+#include <horizon/WaylandWindow.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
 #include <linux/input-event-codes.h>
 #include <memory>
@@ -38,7 +38,8 @@ namespace horizon
         "    gl_FragColor = texture2D(u_texture, v_texcoord).bgra * u_opacity;\n"
         "}\n";
 
-    HznSurface::HznSurface(std::string app_id, int w, int h, bool defer_init) : m_app_id(app_id)
+    WaylandWindow::WaylandWindow(std::string app_id, int w, int h, bool defer_init)
+        : m_app_id(app_id)
     {
         // Inicialización del sistema
         m_surface = std::make_unique<WaylandSurface>(w, h);
@@ -122,7 +123,7 @@ namespace horizon
         m_app_menu = std::make_unique<Menu>();
     };
 
-    HznSurface::~HznSurface()
+    WaylandWindow::~WaylandWindow()
     {
         // Cleanup image cache
         for (auto const &[path, handle] : m_svg_cache)
@@ -145,8 +146,8 @@ namespace horizon
         }
     }
 
-    void HznSurface::send_remote_signal(int target_pid, const std::string &signal,
-                                        const std::string &token)
+    void WaylandWindow::send_remote_signal(int target_pid, const std::string &signal,
+                                           const std::string &token)
     {
         std::thread(
             [target_pid, signal, token]()
@@ -178,62 +179,62 @@ namespace horizon
             .detach();
     }
 
-    size_t HznSurface::add_on_start(std::function<void()> handler)
+    size_t WaylandWindow::add_on_start(std::function<void()> handler)
     {
         size_t id = m_next_app_handler_id++;
         m_on_start_handlers[id] = handler;
         return id;
     }
-    void HznSurface::remove_on_start(size_t id)
+    void WaylandWindow::remove_on_start(size_t id)
     {
         m_on_start_handlers.erase(id);
     }
 
-    size_t HznSurface::add_on_exit(std::function<void()> handler)
+    size_t WaylandWindow::add_on_exit(std::function<void()> handler)
     {
         size_t id = m_next_app_handler_id++;
         m_on_exit_handlers[id] = handler;
         return id;
     }
-    void HznSurface::remove_on_exit(size_t id)
+    void WaylandWindow::remove_on_exit(size_t id)
     {
         m_on_exit_handlers.erase(id);
     }
 
-    size_t HznSurface::add_on_resize(std::function<void(int, int)> handler)
+    size_t WaylandWindow::add_on_resize(std::function<void(int, int)> handler)
     {
         size_t id = m_next_app_handler_id++;
         m_on_resize_handlers[id] = handler;
         return id;
     }
-    void HznSurface::remove_on_resize(size_t id)
+    void WaylandWindow::remove_on_resize(size_t id)
     {
         m_on_resize_handlers.erase(id);
     }
 
-    size_t HznSurface::add_on_maximize(std::function<void(bool)> handler)
+    size_t WaylandWindow::add_on_maximize(std::function<void(bool)> handler)
     {
         size_t id = m_next_app_handler_id++;
         m_on_maximize_handlers[id] = handler;
         return id;
     }
-    void HznSurface::remove_on_maximize(size_t id)
+    void WaylandWindow::remove_on_maximize(size_t id)
     {
         m_on_maximize_handlers.erase(id);
     }
 
-    size_t HznSurface::add_on_minimize(std::function<void()> handler)
+    size_t WaylandWindow::add_on_minimize(std::function<void()> handler)
     {
         size_t id = m_next_app_handler_id++;
         m_on_minimize_handlers[id] = handler;
         return id;
     }
-    void HznSurface::remove_on_minimize(size_t id)
+    void WaylandWindow::remove_on_minimize(size_t id)
     {
         m_on_minimize_handlers.erase(id);
     }
 
-    void HznSurface::on_close()
+    void WaylandWindow::on_close()
     {
         AppEventContext ev;
         ev.sender = this;
@@ -250,12 +251,12 @@ namespace horizon
         }
     }
 
-    CompositorContext &HznSurface::get_compositor_context() const
+    CompositorContext &WaylandWindow::get_compositor_context() const
     {
         return *m_compositor_context;
     }
 
-    void HznSurface::on_foreign_toplevel_event()
+    void WaylandWindow::on_foreign_toplevel_event()
     {
         AppListEventContext ctx;
         if (m_surface)
@@ -298,7 +299,7 @@ namespace horizon
         when_foreign_update.run(ctx);
     }
 
-    void HznSurface::run()
+    void WaylandWindow::run()
     {
 
         m_is_running = true;
@@ -585,12 +586,12 @@ namespace horizon
         }
     }
 
-    void HznSurface::set_global_menu(const std::vector<Menu *> &menus)
+    void WaylandWindow::set_global_menu(const std::vector<Menu *> &menus)
     {
         m_global_menus = menus;
     }
 
-    void HznSurface::init_global_menu()
+    void WaylandWindow::init_global_menu()
     {
 
         m_app_menu->set_title(m_name);
@@ -619,7 +620,7 @@ namespace horizon
         }
     }
 
-    void HznSurface::on_pointer_event(const PointerEvent &event)
+    void WaylandWindow::on_pointer_event(const PointerEvent &event)
     {
         m_pointer_x = event.x;
         m_pointer_y = event.y;
@@ -655,7 +656,7 @@ namespace horizon
         }
     }
 
-    void HznSurface::on_resize(int width, int height)
+    void WaylandWindow::on_resize(int width, int height)
     {
         if (m_root)
         {
@@ -671,7 +672,7 @@ namespace horizon
         }
     }
 
-    void HznSurface::on_activated(bool active)
+    void WaylandWindow::on_activated(bool active)
     {
         m_is_activated = active;
         LOG_INFO << "[APP] on_activated: " << active << " (PID: " << getpid() << ")";
@@ -713,7 +714,7 @@ namespace horizon
         }
     }
 
-    void HznSurface::on_key_event(const KeyEvent &event)
+    void WaylandWindow::on_key_event(const KeyEvent &event)
     {
         switch (event.type)
         {
@@ -730,12 +731,12 @@ namespace horizon
         }
     }
 
-    void HznSurface::on_modifiers_event(uint32_t modifiers)
+    void WaylandWindow::on_modifiers_event(uint32_t modifiers)
     {
         m_modifiers = modifiers;
     }
 
-    void HznSurface::handle_key_press(const KeyEvent &event)
+    void WaylandWindow::handle_key_press(const KeyEvent &event)
     {
         if (event.key == KEY_ESC)
         {
@@ -784,7 +785,7 @@ namespace horizon
         }
     }
 
-    void HznSurface::handle_key_release(const KeyEvent &event)
+    void WaylandWindow::handle_key_release(const KeyEvent &event)
     {
         if (!m_root)
             return;
@@ -806,7 +807,7 @@ namespace horizon
         target->when_key_release.run(new_ev);
     }
 
-    void HznSurface::handle_move(const PointerEvent &event)
+    void WaylandWindow::handle_move(const PointerEvent &event)
     {
         if (!m_root)
             return;
@@ -990,7 +991,7 @@ namespace horizon
         }
     }
 
-    void HznSurface::handle_press(const PointerEvent &event)
+    void WaylandWindow::handle_press(const PointerEvent &event)
     {
         if (!m_root)
             return;
@@ -1058,7 +1059,7 @@ namespace horizon
         }
     }
 
-    void HznSurface::handle_release(const PointerEvent &event)
+    void WaylandWindow::handle_release(const PointerEvent &event)
     {
         if (!m_pressed)
             return;
@@ -1090,7 +1091,7 @@ namespace horizon
         m_pressed = nullptr;
     }
 
-    void HznSurface::handle_wheel(const PointerEvent &event)
+    void WaylandWindow::handle_wheel(const PointerEvent &event)
     {
         if (!m_root)
             return;
@@ -1118,7 +1119,7 @@ namespace horizon
         }
     }
 
-    void HznSurface::set_blur(bool enabled)
+    void WaylandWindow::set_blur(bool enabled)
     {
         if (m_compositor_context)
         {
@@ -1126,12 +1127,12 @@ namespace horizon
         }
     }
 
-    bool HznSurface::is_fullscreen() const
+    bool WaylandWindow::is_fullscreen() const
     {
         return m_surface && m_surface->is_fullscreen();
     }
 
-    void HznSurface::fullscreen()
+    void WaylandWindow::fullscreen()
     {
         if (m_compositor_context)
         {
@@ -1140,7 +1141,7 @@ namespace horizon
         }
     }
 
-    void HznSurface::unfullscreen()
+    void WaylandWindow::unfullscreen()
     {
         if (m_compositor_context)
         {
@@ -1149,17 +1150,17 @@ namespace horizon
         }
     }
 
-    bool HznSurface::was_maximized_before_minimize() const
+    bool WaylandWindow::was_maximized_before_minimize() const
     {
         return m_was_maximized_before_minimize;
     }
 
-    bool HznSurface::is_minimized() const
+    bool WaylandWindow::is_minimized() const
     {
         return m_is_minimized;
     }
 
-    WaylandSurface *HznSurface::w_surface() const
+    WaylandSurface *WaylandWindow::w_surface() const
     {
         return m_surface.get();
     }
@@ -1180,7 +1181,7 @@ namespace horizon
         return shader;
     }
 
-    void HznSurface::init_gl_resources()
+    void WaylandWindow::init_gl_resources()
     {
         if (m_gl_program)
             return;
@@ -1210,7 +1211,7 @@ namespace horizon
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     }
 
-    void HznSurface::render_gl_ui()
+    void WaylandWindow::render_gl_ui()
     {
         if (!m_surface || !m_surface->data())
             return;
@@ -1285,7 +1286,7 @@ namespace horizon
         m_surface->swap_buffers();
     }
 
-    GraphicsContext &HznSurface::get_graphics_context() const
+    GraphicsContext &WaylandWindow::get_graphics_context() const
     {
         int w = width();
         int h = height();
@@ -1299,12 +1300,12 @@ namespace horizon
         return *m_gc;
     }
 
-    void HznSurface::queue_gl_draw(const GLDrawCall &call) const
+    void WaylandWindow::queue_gl_draw(const GLDrawCall &call) const
     {
         m_gl_queue.push_back(call);
     }
 
-    size_t HznSurface::add_timer(int ms, std::function<void()> callback, bool repeat)
+    size_t WaylandWindow::add_timer(int ms, std::function<void()> callback, bool repeat)
     {
         size_t id = m_next_timer_id++;
         uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -1323,22 +1324,22 @@ namespace horizon
         return id;
     }
 
-    void HznSurface::stop_timer(size_t id)
+    void WaylandWindow::stop_timer(size_t id)
     {
         m_timers.erase(id);
     }
 
-    int HznSurface::width() const
+    int WaylandWindow::width() const
     {
         return m_surface ? m_surface->width() : 0;
     }
 
-    int HznSurface::height() const
+    int WaylandWindow::height() const
     {
         return m_surface ? m_surface->height() : 0;
     }
 
-    void HznSurface::unregister_widget(Widget *widget)
+    void WaylandWindow::unregister_widget(Widget *widget)
     {
         if (!widget)
             return;
@@ -1356,7 +1357,7 @@ namespace horizon
             m_pressed = nullptr;
     }
 
-    void HznSurface::set_root(std::unique_ptr<Widget> root)
+    void WaylandWindow::set_root(std::unique_ptr<Widget> root)
     {
         m_root = std::move(root);
         if (m_root)
@@ -1368,7 +1369,7 @@ namespace horizon
         }
     }
 
-    void HznSurface::wakeup()
+    void WaylandWindow::wakeup()
     {
         if (m_wakeup_fd >= 0)
         {
@@ -1380,7 +1381,7 @@ namespace horizon
         }
     }
 
-    void HznSurface::invalidate(Widget *widget)
+    void WaylandWindow::invalidate(Widget *widget)
     {
         if (!widget)
         {
@@ -1397,7 +1398,7 @@ namespace horizon
         wakeup();
     }
 
-    void HznSurface::quit()
+    void WaylandWindow::quit()
     {
         if (m_is_running)
         {
@@ -1411,7 +1412,7 @@ namespace horizon
         }
     }
 
-    void HznSurface::post_task(std::function<void()> task)
+    void WaylandWindow::post_task(std::function<void()> task)
     {
         {
             std::lock_guard<std::mutex> lock(m_task_mutex);
@@ -1420,7 +1421,7 @@ namespace horizon
         wakeup();
     }
 
-    void HznSurface::request_move()
+    void WaylandWindow::request_move()
     {
         if (m_compositor_context)
         {
@@ -1428,7 +1429,7 @@ namespace horizon
         }
     }
 
-    void HznSurface::notify_app_manager(const std::string &type)
+    void WaylandWindow::notify_app_manager(const std::string &type)
     {
         // Capture necessary data to avoid use-after-free in the thread
         std::string app_id = m_app_id;
@@ -1470,13 +1471,13 @@ namespace horizon
             .detach();
     }
 
-    void HznSurface::notify_window_state(bool minimized)
+    void WaylandWindow::notify_window_state(bool minimized)
     {
         m_is_minimized = minimized;
         notify_app_manager("window_state_changed");
     }
 
-    void HznSurface::maximize()
+    void WaylandWindow::maximize()
     {
         if (m_compositor_context)
         {
@@ -1492,7 +1493,7 @@ namespace horizon
         }
     }
 
-    void HznSurface::minimize()
+    void WaylandWindow::minimize()
     {
         if (m_compositor_context)
         {
@@ -1507,7 +1508,7 @@ namespace horizon
         }
     }
 
-    void HznSurface::restore(const std::string &token)
+    void WaylandWindow::restore(const std::string &token)
     {
         if (m_compositor_context)
         {
@@ -1523,7 +1524,7 @@ namespace horizon
         }
     }
 
-    bool HznSurface::is_maximized() const
+    bool WaylandWindow::is_maximized() const
     {
         return m_surface && m_surface->is_maximized();
     }

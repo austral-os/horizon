@@ -1,3 +1,4 @@
+#include "horizon/WaylandWindow.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -125,7 +126,7 @@ namespace horizon
                 // We need to delete via application or queue if no GC is here.
                 // For now, let's assume we can't easily get a GC here,
                 // but we can queue it in the app.
-                Application::GLDrawCall call;
+                WaylandWindow::GLDrawCall call;
                 call.texture_id = pair.second.texture_id;
                 call.delete_texture = true;
                 call.opacity = -1.0f; // Convention for "just delete"

@@ -1,5 +1,4 @@
 #include "horizon/Widget.hpp"
-#include <horizon/Application.hpp>
 #include <horizon/ApplicationWindow.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/ClientMenu.hpp>
@@ -14,6 +13,7 @@
 #include <horizon/TableView.hpp>
 #include <horizon/ToggleGroupButton.hpp>
 #include <horizon/VPanel.hpp>
+#include <horizon/WaylandWindow.hpp>
 
 #include <memory>
 
@@ -89,7 +89,7 @@ public:
 
 int main(int argc, char **argv)
 {
-    Application app("org.horizon.main_window", 800, 600);
+    WaylandWindow app("org.horizon.main_window", 800, 600);
     app.set_name("Toolbar Demo");
     app.set_icon_name("folder");
     app.set_show_in_dock(true);

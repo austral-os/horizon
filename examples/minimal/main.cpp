@@ -1,4 +1,3 @@
-#include <horizon/Application.hpp>
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Checkbox.hpp>
@@ -25,11 +24,11 @@
 #include <horizon/TextBox.hpp>
 #include <horizon/Textarea.hpp>
 #include <horizon/VPanel.hpp>
+#include <horizon/WaylandWindow.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/Window.hpp>
 #include <unistd.h>
 
-using horizon::Application;
 using horizon::AquaObject;
 using horizon::Button;
 using horizon::Checkbox;
@@ -44,6 +43,7 @@ using horizon::Slider;
 using horizon::SolidObject;
 using horizon::TextAlignment;
 using horizon::TextBox;
+using horizon::WaylandWindow;
 using horizon::Widget;
 using horizon::WidgetAccentColor;
 using horizon::Window;
@@ -52,7 +52,7 @@ int main()
 {
     try
     {
-        Application app("horizon.minimal", 800, 600);
+        WaylandWindow app("horizon.minimal", 800, 600);
         app.set_name("Minimal Demo");
         app.set_icon_name("system-help");
         app.set_show_in_dock(true);

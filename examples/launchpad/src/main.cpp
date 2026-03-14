@@ -1,5 +1,5 @@
 #include "LaunchpadWindow.hpp"
-#include <horizon/LayerApplication.hpp>
+#include <horizon/WaylandLayerWindow.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 
 using namespace horizon;
@@ -8,8 +8,8 @@ int main(int argc, char *argv[])
 {
     // Create a LayerApplication for the launchpad
     // Namespace: "horizon.launchpad", Layer: Overlay
-    auto app = std::make_unique<LayerApplication>("org.horizon.launchpad",
-                                                  ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
+    auto app = std::make_unique<WaylandLayerWindow>("org.horizon.launchpad",
+                                                    ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
     app->set_name("Launchpad");
 
     // Full screen anchor

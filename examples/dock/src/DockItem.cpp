@@ -6,7 +6,7 @@
 namespace horizon
 {
 
-    DockItem::DockItem(LayerApplication *app, const std::string &icon_name, bool is_wayfire)
+    DockItem::DockItem(WaylandLayerWindow *app, const std::string &icon_name, bool is_wayfire)
         : _app(app), _is_wayfire(is_wayfire)
     {
         set_application_recursive(app);

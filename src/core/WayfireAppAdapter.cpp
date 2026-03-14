@@ -1,10 +1,10 @@
 #include "horizon/WayfireAppAdapter.hpp"
-#include <horizon/Application.hpp>
+#include "horizon/WaylandWindow.hpp"
 #include <horizon/Logger.hpp>
 
 namespace horizon
 {
-    WayfireAppAdapter::WayfireAppAdapter(Application *app) : m_app(app)
+    WayfireAppAdapter::WayfireAppAdapter(WaylandWindow *app) : m_app(app)
     {
         if (m_app)
         {

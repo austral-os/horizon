@@ -31,14 +31,12 @@ namespace horizon
     }
 
     Application::Application(const std::string &app_id, int w, int h, bool defer_init)
-        : HznSurface(app_id)
     {
         // Global safeguard: ignore SIGPIPE to prevent crash when writing to broken sockets
         signal(SIGPIPE, SIG_IGN);
+        current_window = std::make_unique<WaylandWindow>(app_id, w, h, defer_init);
     }
 
     Application::~Application() {}
-
-    void Application::dispatch_events() {}
 
 } // namespace horizon

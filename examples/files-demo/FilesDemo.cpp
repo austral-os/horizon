@@ -15,7 +15,7 @@ namespace horizon::demo
         m_fs_model = std::make_unique<arkutils::FileSystemModel>();
         m_current_path = "/home/horacio"; // Default path
 
-        m_app = std::make_unique<Application>("org.horizon.files_demo", 800, 600);
+        m_app = std::make_unique<WaylandWindow>("org.horizon.files_demo", 800, 600);
         m_app->set_name("Files Demo");
 
         auto window = std::make_unique<ApplicationWindow>("FileSystem Model Demo");

@@ -75,7 +75,7 @@ namespace horizon
 
         virtual ~TableView() = default;
 
-        void set_application_recursive(HznSurface *app) override
+        void set_application_recursive(WaylandWindow *app) override
         {
             Widget::set_application_recursive(app);
             rebuild_header();
@@ -375,7 +375,7 @@ namespace horizon
                     {
                         if (ctx.button == 0x110) // Left click
                         {
-                            bool ctrl_pressed = (ctx.modifiers & Application::Modifier::CTRL);
+                            bool ctrl_pressed = (ctx.modifiers & WaylandWindow::Modifier::CTRL);
 
                             if (ctrl_pressed)
                             {

@@ -24,7 +24,7 @@ namespace horizon
         {"firefox", "Web Browser", "firefox", "firefox"}};
 
     DockApplication::DockApplication()
-        : LayerApplication("org.horizon.dock", ZWLR_LAYER_SHELL_V1_LAYER_TOP),
+        : WaylandLayerWindow("org.horizon.dock", ZWLR_LAYER_SHELL_V1_LAYER_TOP),
           _router(std::make_unique<RequestRouter>(_message_manager))
     {
         set_name("Dock");
@@ -155,7 +155,8 @@ namespace horizon
                         else if (item_id.find("dock_fullscreen_instance:") == 0)
                         {
                             uintptr_t instance_id = std::stoull(item_id.substr(25));
-                            LOG_INFO << "[DOCK] Fullscreen toggle requested for instance: " << instance_id;
+                            LOG_INFO << "[DOCK] Fullscreen toggle requested for instance: "
+                                     << instance_id;
                             compositor_apps()->toggle_fullscreen_instance(instance_id);
                         }
                     });
@@ -207,7 +208,8 @@ namespace horizon
             true);
     }
 
-    void DockApplication::show_dock_context_menu(int x, int y, int pid, const std::string &run_id, const std::string &app_id, uintptr_t instance_id)
+    void DockApplication::show_dock_context_menu(int x, int y, int pid, const std::string &run_id,
+                                                 const std::string &app_id, uintptr_t instance_id)
     {
         // La coordenada 'y' recibida es local dentro del dock.
         // El dock está anclado al borde inferior, así que su posición global en Y
@@ -273,7 +275,8 @@ namespace horizon
             launch_item->set_id("dock_launch:" + run_id);
         }
 
-        LOG_INFO << "[DOCK] Showing context menu at (" << x << ", " << global_y << ") for pid=" << pid;
+        LOG_INFO << "[DOCK] Showing context menu at (" << x << ", " << global_y
+                 << ") for pid=" << pid;
         _client_menu.show_menu(menu.get(), x, global_y, -1, "org.horizon.dock");
 
         // menu is kept alive long enough for show_menu() to serialize it
@@ -314,7 +317,10 @@ namespace horizon
 
             auto item = std::make_unique<DockItem>(this, pinned.icon, _is_wayfire);
             item->on_right_click = [this, item_ptr = item.get()](int x, int y)
-            { show_dock_context_menu(x, y, item_ptr->pid(), item_ptr->run_id(), item_ptr->app_id(), item_ptr->instance_id()); };
+            {
+                show_dock_context_menu(x, y, item_ptr->pid(), item_ptr->run_id(),
+                                       item_ptr->app_id(), item_ptr->instance_id());
+            };
 
             if (is_running)
             {

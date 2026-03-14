@@ -1,12 +1,12 @@
 #include "horizon/WayfireCompositorContext.hpp"
-#include "horizon/HznSurface.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/WaylandSurface.hpp"
+#include "horizon/WaylandWindow.hpp"
 #include <unistd.h>
 
 namespace horizon
 {
-    WayfireCompositorContext::WayfireCompositorContext(HznSurface *app) : m_app(app) {}
+    WayfireCompositorContext::WayfireCompositorContext(WaylandWindow *app) : m_app(app) {}
 
     void WayfireCompositorContext::request_move(uint32_t serial)
     {

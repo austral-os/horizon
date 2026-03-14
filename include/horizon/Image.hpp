@@ -17,7 +17,7 @@ namespace horizon
         Repeat   ///< Tile the image to fill the entire area.
     };
 
-    class HznSurface;
+    class WaylandWindow;
 
     /**
      * @brief A widget that displays an image from a file path.
@@ -41,7 +41,7 @@ namespace horizon
          * @brief Set the image display mode.
          */
         void set_mode(ImageMode mode);
-        void set_application_recursive(HznSurface *app) override;
+        void set_application_recursive(WaylandWindow *app) override;
         ImageMode mode() const
         {
             return m_mode;

@@ -1,5 +1,5 @@
 
-#include "horizon/HznSurface.hpp"
+#include "horizon/WaylandWindow.hpp"
 #include <GLES2/gl2.h>
 #include <horizon/CompositorAppInterface.hpp>
 #include <horizon/WaylandSurface.hpp>
@@ -17,7 +17,7 @@ namespace horizon
      * managing the widget tree (starting from the root widget), and running the
      * main event loop that dispatches input and system events.
      */
-    class Application : public HznSurface
+    class Application
     {
 
     public:
@@ -38,24 +38,14 @@ namespace horizon
         Application(const Application &) = delete;
         Application &operator=(const Application &) = delete;
 
-        virtual CompositorAppInterface *compositor_apps()
-        {
-            return nullptr;
-        }
-
     protected:
         /**
          * @brief Protected constructor for derived classes that need custom initialization.
          */
         Application(const std::string &app_id, int w, int h, bool defer_init);
 
-    private:
-        /**
-         * @brief Internal event dispatcher.
-         */
-        void dispatch_events();
-
-    private:
+    protected:
         /**< The Wayland surface representing the main window. */
+        std::unique_ptr<WaylandWindow> current_window;
     };
 } // namespace horizon

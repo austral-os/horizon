@@ -59,15 +59,6 @@ target_link_libraries(minimal
         horizon
 )
 
-add_executable(polygon_demo
-    examples/polygon_demo.cpp
-)
-
-target_link_libraries(polygon_demo
-    PRIVATE
-        horizon
-)
-
 add_executable(main_window
     examples/main_window/main_window.cpp
 )
@@ -79,14 +70,6 @@ target_link_libraries(main_window
 
 add_subdirectory(examples/top_panel)
 
-add_executable(menubar_demo
-    examples/menubar_demo.cpp
-)
-
-target_link_libraries(menubar_demo
-    PRIVATE
-        horizon
-)
 
 add_executable(horizon_menu_manager_d
     examples/horizon_menu_manager_d/main.cpp
@@ -108,24 +91,6 @@ target_link_libraries(horizon_wall
         horizon
 )
 
-
-add_executable(image_demo
-    examples/image_demo.cpp
-)
-
-target_link_libraries(image_demo
-    PRIVATE
-        horizon
-)
-
-add_executable(iconview_demo
-    examples/iconview_demo.cpp
-)
-
-target_link_libraries(iconview_demo
-    PRIVATE
-        horizon
-)
 
 add_executable(horizon_session
     examples/horizon_session/main.cpp
@@ -150,15 +115,6 @@ target_link_libraries(aboutus
         horizon
 )
 
-add_executable(group_button_test
-    examples/group_button_test.cpp
-)
-
-target_link_libraries(group_button_test
-    PRIVATE
-        horizon
-)
-
 add_executable(files_demo
     examples/files-demo/FilesDemo.cpp
 )
@@ -175,15 +131,6 @@ add_executable(mouse_wheel_test
 )
 
 target_link_libraries(mouse_wheel_test
-    PRIVATE
-        horizon
-)
-
-add_executable(launcher_demo
-    examples/launcher_demo.cpp
-)
-
-target_link_libraries(launcher_demo
     PRIVATE
         horizon
 )

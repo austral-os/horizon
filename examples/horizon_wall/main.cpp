@@ -1,7 +1,7 @@
 #include <filesystem>
 #include <horizon/Image.hpp>
-#include <horizon/LayerApplication.hpp>
 #include <horizon/Logger.hpp>
+#include <horizon/WaylandLayerWindow.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <memory>
@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
     try
     {
         // Create a layer application in the BACKGROUND layer (0)
-        auto app = std::make_unique<LayerApplication>("horizon_wall", 0);
+        auto app = std::make_unique<WaylandLayerWindow>("horizon_wall", 0);
         app->set_name("Horizon Wallpaper");
         app->set_icon_name("preferences-desktop-wallpaper");
 

@@ -1,4 +1,4 @@
-#include "horizon/HznSurface.hpp"
+#include "horizon/WaylandWindow.hpp"
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Widget.hpp>
@@ -264,7 +264,7 @@ namespace horizon
         return m_parent;
     }
 
-    HznSurface *Widget::application() const
+    WaylandWindow *Widget::application() const
     {
         if (m_app)
             return m_app;
@@ -569,7 +569,7 @@ namespace horizon
         }
     }
 
-    void Widget::set_application_recursive(HznSurface *app)
+    void Widget::set_application_recursive(WaylandWindow *app)
     {
         m_app = app;
         for (auto &child : m_children)
@@ -590,7 +590,7 @@ namespace horizon
             p = p->m_parent;
         }
 
-        HznSurface *app = application();
+        WaylandWindow *app = application();
         if (app)
         {
             app->invalidate(this);

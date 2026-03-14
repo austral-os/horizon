@@ -1,4 +1,4 @@
-#include "horizon/HznSurface.hpp"
+#include "horizon/WaylandWindow.hpp"
 #include <algorithm>
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
@@ -21,7 +21,7 @@ namespace horizon
         }
     }
 
-    void ProgressBar::set_application_recursive(HznSurface *app)
+    void ProgressBar::set_application_recursive(WaylandWindow *app)
     {
         if (m_app && m_timer_id != 0)
         {

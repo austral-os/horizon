@@ -1,15 +1,16 @@
 #pragma once
 
-#include "horizon/Application.hpp"
+#include "horizon/WaylandWindow.hpp"
 #include <string>
 
 namespace horizon
 {
+
     /**
      * @class LayerApplication
      * @brief A specialized Application for surfaces using wlr-layer-shell.
      */
-    class LayerApplication : public Application
+    class WaylandLayerWindow : public WaylandWindow
     {
     public:
         /**
@@ -17,8 +18,8 @@ namespace horizon
          * @param namespace_id A string identifying the application.
          * @param layer The layer to place the surface in (default is overlay).
          */
-        LayerApplication(const std::string &namespace_id,
-                         uint32_t layer = 3); // 3 = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
+        WaylandLayerWindow(const std::string &namespace_id,
+                           uint32_t layer = 3); // 3 = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
 
         /**
          * @brief Sets the anchor for the layer surface.
@@ -59,6 +60,4 @@ namespace horizon
         bool m_visible{false};
     };
 
-    // For backward compatibility
-    using OverlayApplication = LayerApplication;
 } // namespace horizon

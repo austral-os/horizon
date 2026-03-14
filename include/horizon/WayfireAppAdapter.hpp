@@ -5,7 +5,7 @@
 
 namespace horizon
 {
-    class Application;
+    class WaylandWindow;
 
     /**
      * @class WayfireAppAdapter
@@ -15,7 +15,7 @@ namespace horizon
     class WayfireAppAdapter : public CompositorAppInterface
     {
     public:
-        WayfireAppAdapter(Application *app);
+        WayfireAppAdapter(WaylandWindow *app);
         ~WayfireAppAdapter() override = default;
 
         std::vector<ApplicationInfo> get_running_applications() override;
@@ -36,7 +36,7 @@ namespace horizon
         void handle_ipc_message(const std::string &msg);
         void handle_foreign_update(AppListEventContext &ctx);
 
-        Application *m_app;
+        WaylandWindow *m_app;
         std::vector<ApplicationInfo> m_foreign_apps;
     };
 } // namespace horizon

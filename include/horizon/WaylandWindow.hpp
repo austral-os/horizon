@@ -17,14 +17,14 @@ namespace horizon
     class ClientMenu;
     class IpcClient;
 
-    class HznSurface : public WaylandEventListener
+    class WaylandWindow : public WaylandEventListener
     {
         friend class CairoGraphicContext;
 
     public:
-        HznSurface(std::string app_id = "horizon.app", int w = 800, int h = 600,
-                   bool defer_init = false);
-        virtual ~HznSurface();
+        WaylandWindow(std::string app_id = "horizon.app", int w = 800, int h = 600,
+                      bool defer_init = false);
+        virtual ~WaylandWindow();
 
         // Modifiers
         enum Modifier
@@ -298,6 +298,11 @@ namespace horizon
                                 const std::string &token = "");
 
         virtual void on_close() override;
+
+        virtual CompositorAppInterface *compositor_apps()
+        {
+            return nullptr;
+        }
 
     protected:
         /**

@@ -1,11 +1,12 @@
 #pragma once
 
 #include "horizon/CompositorAppInterface.hpp"
+#include "horizon/WaylandWindow.hpp"
 #include <vector>
 
 namespace horizon
 {
-    class Application;
+    class WaylandWindow;
 
     /**
      * @class LabwcAppAdapter
@@ -14,7 +15,7 @@ namespace horizon
     class LabwcAppAdapter : public CompositorAppInterface
     {
     public:
-        LabwcAppAdapter(Application *app);
+        LabwcAppAdapter(WaylandWindow *app);
         ~LabwcAppAdapter() override = default;
 
         std::vector<ApplicationInfo> get_running_applications() override;
@@ -35,7 +36,7 @@ namespace horizon
         void handle_ipc_message(const std::string &msg);
         void handle_foreign_update(AppListEventContext &ctx);
 
-        Application *m_app;
+        WaylandWindow *m_app;
         std::vector<ApplicationInfo> m_foreign_apps;
     };
 } // namespace horizon
