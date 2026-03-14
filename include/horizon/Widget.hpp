@@ -1,10 +1,7 @@
 #pragma once
-
 #include "horizon/Color.hpp"
 #include "horizon/EventsManager.hpp"
-
 #include <chrono>
-#include <functional>
 #include <map>
 #include <memory>
 #include <vector>
@@ -179,44 +176,6 @@ namespace horizon
         void set_cursor_type(CursorType type);
         CursorType cursor_type() const;
 
-        // --- Events (Universal Multi-Callback) ---
-
-        // Mouse Leave
-        size_t add_on_mouse_leave(std::function<void()> handler);
-        void remove_on_mouse_leave(size_t id);
-
-        // Mouse Move
-        size_t add_on_mouse_move(std::function<void(int x, int y)> handler);
-        void remove_on_mouse_move(size_t id);
-
-        // Mouse Press
-        size_t add_on_mouse_press(std::function<void(int button)> handler);
-        void remove_on_mouse_press(size_t id);
-
-        // Mouse Release
-        size_t add_on_mouse_release(std::function<void(int button)> handler);
-        void remove_on_mouse_release(size_t id);
-
-        // Mouse Drag
-        size_t add_on_mouse_drag(std::function<void(int x, int y)> handler);
-        void remove_on_mouse_drag(size_t id);
-
-        // Mouse Hover
-        size_t add_on_mouse_hover(std::function<void(int x, int y)> handler);
-        void remove_on_mouse_hover(size_t id);
-
-        // Backward compatibility for click
-        size_t add_on_click(std::function<void()> handler)
-        {
-            return add_on_mouse_press(
-                [handler](int btn)
-                {
-                    if (btn == 0x110)
-                        handler();
-                });
-        }
-        void set_on_click(std::function<void()> handler);
-
         // --- Árbol ---
         virtual void add_child(std::unique_ptr<Widget> child);
         virtual void add_child_at(int index, std::unique_ptr<Widget> child);
@@ -247,7 +206,10 @@ namespace horizon
         }
 
         EventsManager<MouseButtonEventContext> when_mouse_press;
+        EventsManager<MouseButtonEventContext> when_click;
         EventsManager<MouseButtonEventContext> when_dbl_click;
+        EventsManager<MouseButtonEventContext> when_middle_click;
+        EventsManager<MouseButtonEventContext> when_right_click;
         EventsManager<EventContext> when_mouse_enter;
         EventsManager<EventContext> when_mouse_leave;
         EventsManager<MouseMoveEventContext> when_mouse_move;
@@ -316,6 +278,7 @@ namespace horizon
         bool m_child_dirty{true};
 
         std::chrono::steady_clock::time_point m_last_click_time;
+        size_t m_click_timer;
         uint32_t m_last_click_button{0};
     };
 

@@ -26,24 +26,44 @@ namespace horizon
         when_mouse_press.connect(
             [this](MouseButtonEventContext &ev)
             {
-                m_is_pressed = true;
                 auto now = std::chrono::steady_clock::now();
                 auto duration =
                     std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_click_time)
                         .count();
-                if (m_last_click_button == ev.button && duration < 500)
+
+                if (m_last_click_button == ev.button && duration < 200)
                 {
+                    if (m_click_timer)
+                    {
+                        application()->stop_timer(m_click_timer);
+                        m_click_timer = 0;
+                    }
+
                     when_dbl_click.run(ev);
-                    m_last_click_button =
-                        0; // Prevent triple click from triggering another double click
+                    m_last_click_button = 0;
+                    return;
                 }
-                else
-                {
-                    m_last_click_time = now;
-                    m_last_click_button = ev.button;
-                }
+
+                m_last_click_time = now;
+                m_last_click_button = ev.button;
+
+                m_click_timer = application()->add_timer(
+                    200,
+                    [this, ev]() mutable
+                    {
+                        if (ev.button == BTN_LEFT)
+                            when_click.run(ev);
+                        else if (ev.button == BTN_MIDDLE)
+                            when_middle_click.run(ev);
+                        else if (ev.button == BTN_RIGHT)
+                            when_right_click.run(ev);
+
+                        m_last_click_button = 0;
+                        m_click_timer = 0;
+                    });
             });
-        when_mouse_release.connect([this](MouseButtonEventContext &) { m_is_pressed = false; });
+
+        when_mouse_release.connect([this](MouseButtonEventContext &ev) { m_is_pressed = false; });
     }
 
     Widget::~Widget()
@@ -622,6 +642,8 @@ namespace horizon
         }
     }
 
+    /*
+
     size_t Widget::add_on_mouse_leave(std::function<void()> handler)
     {
         return when_mouse_leave.connect([handler](EventContext &) { handler(); });
@@ -690,5 +712,25 @@ namespace horizon
                     handler();
             });
     }
+
+    size_t Widget::add_on_middle_click(std::function<void()> handler)
+    {
+        return when_middle_click.connect([handler](MouseButtonEventContext &) { handler(); });
+    }
+
+    void Widget::remove_on_middle_click(size_t id)
+    {
+        when_middle_click.disconnect(id);
+    }
+
+    size_t Widget::add_on_right_click(std::function<void()> handler)
+    {
+        return when_right_click.connect([handler](MouseButtonEventContext &) { handler(); });
+    }
+
+    void Widget::remove_on_right_click(size_t id)
+    {
+        when_right_click.disconnect(id);
+    }*/
 
 } // namespace horizon

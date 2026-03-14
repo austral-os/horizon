@@ -37,12 +37,6 @@ namespace horizon
             {
                 // Note: Blur doesn't clear selection anymore
             });
-
-        set_on_click(
-            [this]()
-            {
-                // We will let Sidebar handle the exclusive selection
-            });
     }
 
     void SidebarItem::calculate_layout()

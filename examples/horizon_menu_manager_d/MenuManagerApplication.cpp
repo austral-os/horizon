@@ -12,7 +12,7 @@ namespace horizon
         : Application("org.horizon.menu_manager_d", 800, 600, true, true)
     {
         m_window = create_layer_window("horizon_menu_manager_d", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
-        
+
         m_window->set_name("Horizon Menu Manager");
         m_window->set_show_in_dock(false);
 
@@ -35,10 +35,12 @@ namespace horizon
 
     void MenuManagerApplication::setup_window()
     {
-        m_window->set_anchor(ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |
-                             ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
+        m_window->set_anchor(
+            ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |
+            ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
         m_window->set_exclusive_zone(-1);
-        m_window->set_keyboard_interactivity(ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
+        m_window->set_keyboard_interactivity(
+            ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE);
     }
 
     void MenuManagerApplication::setup_ipc()
@@ -47,7 +49,8 @@ namespace horizon
 
         m_router->register_handler(
             "create_menu",
-            [this](const std::string &request_id, const nlohmann::json &request, MessageManager &mgr) -> nlohmann::json
+            [this](const std::string &request_id, const nlohmann::json &request,
+                   MessageManager &mgr) -> nlohmann::json
             {
                 if (!request.contains("menu") || !request["menu"].is_object())
                 {
@@ -98,8 +101,8 @@ namespace horizon
 
     void MenuManagerApplication::setup_event_handlers()
     {
-        m_root_ptr->add_on_mouse_press(
-            [this](int btn)
+        m_root_ptr->when_mouse_press.connect(
+            [this](EventContext &)
             {
                 LOG_INFO << "Click on background, hiding menu manager.";
                 hide_daemon();
@@ -122,7 +125,8 @@ namespace horizon
         std::vector<std::string> to_process;
         {
             std::lock_guard<std::mutex> lock(m_queue_mutex);
-            if (m_pending_messages.empty()) return;
+            if (m_pending_messages.empty())
+                return;
             to_process = std::move(m_pending_messages);
             m_pending_messages.clear();
         }
@@ -178,8 +182,9 @@ namespace horizon
 
                             if (adjusted_x != x || adjusted_y != y)
                             {
-                                LOG_INFO << "Menu position adjusted from (" << x << ", " << y << ") to (" 
-                                         << adjusted_x << ", " << adjusted_y << ") to stay within screen boundaries.";
+                                LOG_INFO << "Menu position adjusted from (" << x << ", " << y
+                                         << ") to (" << adjusted_x << ", " << adjusted_y
+                                         << ") to stay within screen boundaries.";
                                 root_menu_ptr->set_position(adjusted_x, adjusted_y);
                                 root_menu_ptr->calculate_layout();
                             }
@@ -202,11 +207,10 @@ namespace horizon
                         m_root_ptr->invalidate();
 
                         IpcClient global_menu_client("/tmp/horizon_session.sock");
-                        global_menu_client.send(nlohmann::json{
-                            {"type", "menu_daemon_status"},
-                            {"visible", true},
-                            {"receiver_id", "top_panel"}
-                        }.dump());
+                        global_menu_client.send(nlohmann::json{{"type", "menu_daemon_status"},
+                                                               {"visible", true},
+                                                               {"receiver_id", "top_panel"}}
+                                                    .dump());
                     }
                 }
             }
@@ -224,9 +228,7 @@ namespace horizon
 
         IpcClient global_menu_client("/tmp/horizon_session.sock");
         global_menu_client.send(nlohmann::json{
-            {"type", "menu_daemon_status"},
-            {"visible", false},
-            {"receiver_id", "top_panel"}
-        }.dump());
+            {"type", "menu_daemon_status"}, {"visible", false}, {"receiver_id", "top_panel"}}
+                                    .dump());
     }
 } // namespace horizon

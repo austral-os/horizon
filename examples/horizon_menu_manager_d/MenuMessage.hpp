@@ -88,8 +88,8 @@ namespace horizon
                     {
                         item->set_id(item_id);
                         LOG_INFO << "[MENU MESSAGE] Adding click handler for item: " << item_id;
-                        item->add_on_click(
-                            [item_id, this]()
+                        item->when_click.connect(
+                            [item_id, this](EventContext &)
                             {
                                 LOG_INFO << "[MENU MANAGER] MenuItem clicked! ID: " << item_id
                                          << ". Reporting to /tmp/horizon_global_menu.sock";

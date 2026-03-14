@@ -1,6 +1,7 @@
 #include "DockApplication.hpp"
 #include "DockItem.hpp"
 #include "DockShelf.hpp"
+#include "horizon/EventsManager.hpp"
 #include <algorithm>
 #include <horizon/ApplicationLauncher.hpp>
 #include <horizon/DesktopEntry.hpp>
@@ -294,12 +295,13 @@ namespace horizon
             }
 
             auto item = std::make_unique<DockItem>(m_window, pinned.icon, _is_wayfire);
-            item->on_right_click = [this, item_ptr = item.get()](int x, int y)
-            {
-                auto position = item_ptr->get_absolute_position();
-                show_dock_context_menu(x, position.y, item_ptr->pid(), item_ptr->run_id(),
-                                       item_ptr->app_id(), item_ptr->instance_id());
-            };
+            item->when_right_click.connect(
+                [this, item_ptr = item.get()](MouseButtonEventContext &ev)
+                {
+                    auto position = item_ptr->get_absolute_position();
+                    show_dock_context_menu(ev.x, position.y, item_ptr->pid(), item_ptr->run_id(),
+                                           item_ptr->app_id(), item_ptr->instance_id());
+                });
 
             if (is_running)
             {
@@ -367,12 +369,14 @@ namespace horizon
                     }
                 }
 
-                item->on_right_click = [this, item_ptr = item.get()](int x, int y)
-                {
-                    auto position = item_ptr->get_absolute_position();
-                    show_dock_context_menu(x, position.y, item_ptr->pid(), item_ptr->run_id(),
-                                           item_ptr->app_id(), item_ptr->instance_id());
-                };
+                item->when_right_click.connect(
+                    [this, item_ptr = item.get()](MouseButtonEventContext &ev)
+                    {
+                        auto position = item_ptr->get_absolute_position();
+                        show_dock_context_menu(ev.x, position.y, item_ptr->pid(),
+                                               item_ptr->run_id(), item_ptr->app_id(),
+                                               item_ptr->instance_id());
+                    });
                 _shelf_ptr->add_child(std::move(item));
             }
         }

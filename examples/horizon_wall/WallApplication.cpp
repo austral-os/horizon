@@ -1,4 +1,5 @@
 #include "WallApplication.hpp"
+#include "horizon/EventsManager.hpp"
 #include <filesystem>
 #include <horizon/Image.hpp>
 #include <horizon/Logger.hpp>
@@ -12,7 +13,7 @@ namespace horizon
         : Application("org.horizon.wall", 1920, 1080, true, true)
     {
         m_window = create_layer_window("horizon_wall", 0); // Background layer
-        
+
         m_window->set_name("Horizon Wallpaper");
         m_window->set_icon_name("preferences-desktop-wallpaper");
         m_window->set_show_in_dock(false);
@@ -28,8 +29,9 @@ namespace horizon
 
     void WallApplication::setup_window()
     {
-        m_window->set_anchor(ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |
-                             ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
+        m_window->set_anchor(
+            ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |
+            ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
         m_window->set_exclusive_zone(-1);
     }
 
@@ -68,9 +70,9 @@ namespace horizon
             LOG_ERROR << "[HORIZON WALL] Warning: No wallpaper image found.";
         }
 
-        wallpaper->add_on_mouse_press(
-            [](int button)
-            { LOG_INFO << "[HORIZON WALL] Wallpaper clicked with button: " << button; });
+        wallpaper->when_mouse_press.connect(
+            [](MouseButtonEventContext &ev)
+            { LOG_INFO << "[HORIZON WALL] Wallpaper clicked with button: " << ev.button; });
 
         root->add_child(std::move(wallpaper));
         m_window->set_root(std::move(root));

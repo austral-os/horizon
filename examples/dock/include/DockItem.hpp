@@ -1,6 +1,5 @@
 #pragma once
 
-#include <functional>
 #include <horizon/CompositorAppInterface.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/WaylandLayerWindow.hpp>
@@ -20,9 +19,6 @@ namespace horizon
         {
             _run_id = run_id;
         }
-
-        // Called when the user right-clicks this item. Receives absolute screen (x, y).
-        std::function<void(int, int)> on_right_click;
 
         int pid() const
         {
