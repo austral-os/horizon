@@ -80,22 +80,6 @@ namespace horizon
         void run();
 
         /**
-         * @brief Requests the window to enter fullscreen mode.
-         */
-        void fullscreen();
-
-        /**
-         * @brief Requests the window to exit fullscreen mode.
-         */
-        void unfullscreen();
-        void set_blur(bool enabled);
-
-        /**
-         * @return True if the window is in fullscreen mode.
-         */
-        bool is_fullscreen() const;
-
-        /**
          * @brief Implementation of the WaylandEventListener pointer event callback.
          * @param event The pointer event details.
          */

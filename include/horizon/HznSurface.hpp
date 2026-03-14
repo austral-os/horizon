@@ -150,6 +150,23 @@ namespace horizon
          */
         bool was_maximized_before_minimize() const;
 
+        /**
+         * @return True if the window is in fullscreen mode.
+         */
+        bool is_fullscreen() const;
+
+        /**
+         * @brief Requests the window to enter fullscreen mode.
+         */
+        void fullscreen();
+
+        /**
+         * @brief Requests the window to exit fullscreen mode.
+         */
+        void unfullscreen();
+
+        void set_blur(bool enabled);
+
     protected:
         /**
          * @brief Notifies the application manager about lifecycle events.

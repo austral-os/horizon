@@ -76,6 +76,31 @@ namespace horizon
                 LOG_INFO << "Theme changed";
                 this->invalidate();
             });
+
+        signal_manager.connect("quit",
+                               [this](SignalContext &p)
+                               {
+                                   LOG_INFO << "[SIGNAL] Quit signal received" << std::endl;
+                                   this->post_task([this]() { this->on_close(); });
+                               });
+
+        signal_manager.connect("fullscreen",
+                               [this](SignalContext &p)
+                               {
+                                   {
+                                       LOG_INFO
+                                           << "[SIGNAL] Fullscreen signal received, toggling state"
+                                           << std::endl;
+                                       this->post_task(
+                                           [this]()
+                                           {
+                                               if (this->is_fullscreen())
+                                                   this->unfullscreen();
+                                               else
+                                                   this->fullscreen();
+                                           });
+                                   }
+                               });
     };
 
     HznSurface::~HznSurface()
@@ -94,6 +119,37 @@ namespace horizon
 
         // Limpieza
         m_surface->free();
+    }
+
+    void HznSurface::set_blur(bool enabled)
+    {
+        if (m_compositor_context)
+        {
+            m_compositor_context->set_blur(enabled);
+        }
+    }
+
+    bool HznSurface::is_fullscreen() const
+    {
+        return m_surface && m_surface->is_fullscreen();
+    }
+
+    void HznSurface::fullscreen()
+    {
+        if (m_compositor_context)
+        {
+            m_compositor_context->fullscreen();
+            invalidate();
+        }
+    }
+
+    void HznSurface::unfullscreen()
+    {
+        if (m_compositor_context)
+        {
+            m_compositor_context->unfullscreen();
+            invalidate();
+        }
     }
 
     bool HznSurface::was_maximized_before_minimize() const

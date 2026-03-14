@@ -30,8 +30,6 @@
 #include <wayland-client-protocol.h>
 #include <wayland-client.h>
 
-#include <iostream>
-
 namespace horizon
 {
 
@@ -57,31 +55,6 @@ namespace horizon
         }
 
         m_app_menu = std::make_unique<Menu>();
-
-        signal_manager.connect("quit",
-                               [this](SignalContext &p)
-                               {
-                                   LOG_INFO << "[SIGNAL] Quit signal received" << std::endl;
-                                   this->post_task([this]() { this->on_close(); });
-                               });
-
-        signal_manager.connect("fullscreen",
-                               [this](SignalContext &p)
-                               {
-                                   {
-                                       LOG_INFO
-                                           << "[SIGNAL] Fullscreen signal received, toggling state"
-                                           << std::endl;
-                                       this->post_task(
-                                           [this]()
-                                           {
-                                               if (this->is_fullscreen())
-                                                   this->unfullscreen();
-                                               else
-                                                   this->fullscreen();
-                                           });
-                                   }
-                               });
     }
 
     // Operador de asignación de movimiento
@@ -929,37 +902,6 @@ namespace horizon
                 }
             }
         }
-    }
-
-    void Application::fullscreen()
-    {
-        if (m_compositor_context)
-        {
-            m_compositor_context->fullscreen();
-            invalidate();
-        }
-    }
-
-    void Application::unfullscreen()
-    {
-        if (m_compositor_context)
-        {
-            m_compositor_context->unfullscreen();
-            invalidate();
-        }
-    }
-
-    void Application::set_blur(bool enabled)
-    {
-        if (m_compositor_context)
-        {
-            m_compositor_context->set_blur(enabled);
-        }
-    }
-
-    bool Application::is_fullscreen() const
-    {
-        return m_surface && m_surface->is_fullscreen();
     }
 
     void Application::send_remote_signal(int target_pid, const std::string &signal,
