@@ -14,6 +14,8 @@ namespace horizon
 {
 
     class GraphicsContext;
+    class ClientMenu;
+    class IpcClient;
 
     class HznSurface : public WaylandEventListener
     {
@@ -24,6 +26,15 @@ namespace horizon
                    bool defer_init = false);
         virtual ~HznSurface();
 
+        // Modifiers
+        enum Modifier
+        {
+            SHIFT = (1 << 0),
+            CTRL = (1 << 1),
+            ALT = (1 << 2),
+            CAPSLOCK = (1 << 3)
+        };
+
         std::unique_ptr<ThemeManager> theme_manager;
 
         EventsManager<AppEventContext> when_activated;
@@ -32,6 +43,12 @@ namespace horizon
         EventsManager<AppListEventContext> when_foreign_update;
 
         SignalManager signal_manager;
+
+        /**
+         * @brief Starts the main application loop.
+         * This method blocks until the application is quit.
+         */
+        void run();
 
         /**
          * @brief Requests the window to be maximized.
@@ -167,6 +184,121 @@ namespace horizon
 
         void set_blur(bool enabled);
 
+        // --- Application Metadata ---
+        const std::string &app_id() const
+        {
+            return m_app_id;
+        }
+
+        void set_name(const std::string &name)
+        {
+            m_name = name;
+        }
+        const std::string &name() const
+        {
+            return m_name;
+        }
+
+        void set_icon_name(const std::string &icon_name)
+        {
+            m_icon_name = icon_name;
+        }
+        const std::string &icon_name() const
+        {
+            return m_icon_name;
+        }
+
+        void set_show_in_dock(bool show)
+        {
+            m_show_in_dock = show;
+        }
+        bool show_in_dock() const
+        {
+            return m_show_in_dock;
+        }
+
+        void set_show_in_system_tray(bool show)
+        {
+            m_show_in_system_tray = show;
+        }
+        bool show_in_system_tray() const
+        {
+            return m_show_in_system_tray;
+        }
+
+        void on_pointer_event(const PointerEvent &event) override;
+        void on_key_event(const KeyEvent &event) override;
+        void on_modifiers_event(uint32_t modifiers) override;
+        void on_resize(int width, int height) override;
+        void on_activated(bool active) override;
+        void on_foreign_toplevel_event() override;
+
+        /**
+         * @brief Internal handler for pointer movement events.
+         */
+        void handle_move(const PointerEvent &event);
+
+        /**
+         * @brief Internal handler for pointer button press events.
+         */
+        void handle_press(const PointerEvent &event);
+
+        /**
+         * @brief Internal handler for pointer button release events.
+         */
+        void handle_release(const PointerEvent &event);
+        void handle_wheel(const PointerEvent &event);
+
+        /**
+         * @brief Internal handler for keyboard key press events.
+         */
+        void handle_key_press(const KeyEvent &event);
+
+        /**
+         * @brief Internal handler for keyboard key release events.
+         */
+        void handle_key_release(const KeyEvent &event);
+
+        /**
+         * @brief Sets the global menu for the application.
+         * The menus will be automatically provided to the system when the app gains focus.
+         * @param menus A list of root menus.
+         */
+        void set_global_menu(const std::vector<Menu *> &menus);
+        void init_global_menu();
+
+        /**
+         * @brief Returns the compositor context for this application.
+         */
+        virtual CompositorContext &get_compositor_context() const;
+
+        // --- Application Events (Multi-Callback) ---
+        size_t add_on_start(std::function<void()> handler);
+        void remove_on_start(size_t id);
+
+        size_t add_on_exit(std::function<void()> handler);
+        void remove_on_exit(size_t id);
+
+        size_t add_on_resize(std::function<void(int, int)> handler);
+        void remove_on_resize(size_t id);
+
+        size_t add_on_maximize(std::function<void(bool)> handler);
+        void remove_on_maximize(size_t id);
+
+        size_t add_on_minimize(std::function<void()> handler);
+        void remove_on_minimize(size_t id);
+
+        /**
+         * @brief Sends a signal to another application via the IPC mechanism.
+         * @param target_pid The PID of the target application.
+         * @param signal The signal name (e.g., "maximize", "close").
+         * @param token Optional token for the signal.
+         */
+        void send_remote_signal(int target_pid, const std::string &signal,
+                                const std::string &token = "");
+
+        virtual void on_close() override;
+
     protected:
         /**
          * @brief Notifies the application manager about lifecycle events.
@@ -175,8 +307,15 @@ namespace horizon
         void notify_app_manager(const std::string &type);
         void notify_window_state(bool minimized);
 
-    protected:
-        bool m_is_running = false; /**< Flag indicating if the event loop is active. */
+    private:
+        bool m_is_running = false;   /**< Flag indicating if the event loop is active. */
+        bool m_is_activated = false; /**< Flag indicating if the application is currently active. */
+
+        uint32_t m_modifiers{0};
+
+        std::vector<Menu *> m_global_menus;
+        std::unique_ptr<Menu> m_app_menu;
+        std::shared_ptr<ClientMenu> m_client_menu;
 
         // Application Metadata
         std::string m_app_id{"horizon.app"};
@@ -184,6 +323,9 @@ namespace horizon
         std::string m_icon_name{""};
         bool m_show_in_dock{true};
         bool m_show_in_system_tray{false};
+
+        double m_pointer_x = 0.0; /**< Last known X position of the pointer. */
+        double m_pointer_y = 0.0; /**< Last known Y position of the pointer. */
 
         uint32_t m_last_serial = 0; /**< Last received Wayland serial. */
 
@@ -225,6 +367,7 @@ namespace horizon
 
         bool m_is_minimized{false};
 
+        std::map<size_t, std::function<void(int, int)>> m_on_resize_handlers;
         std::map<size_t, std::function<void()>> m_on_exit_handlers;
         std::map<size_t, std::function<void(bool)>> m_on_maximize_handlers;
         std::map<size_t, std::function<void()>> m_on_minimize_handlers;
@@ -233,6 +376,29 @@ namespace horizon
         std::mutex m_task_mutex;
 
         bool m_was_maximized_before_minimize{false};
+
+        // Key repeat tracking
+        uint32_t m_repeat_key = 0;
+        uint64_t m_repeat_delay = 500; // ms
+        uint64_t m_repeat_rate = 100;  // ms
+        uint64_t m_repeat_start_time = 0;
+        uint64_t m_repeat_last_time = 0;
+        bool m_is_repeating = false;
+        KeyEvent m_repeat_event;
+
+        uint32_t m_resize_edge = 0;       /**< Current edge being hovered for resize. */
+        const int m_resize_proximity = 8; /**< Distance to edge to trigger resize. */
+
+        uint64_t m_blink_last_time{0}; /**< Last time the focused widget was blinked. */
+        uint64_t m_last_commit_time{
+            0}; /**< Timestamp of last wl_surface_commit (for frame limiter). */
+
+        // Handler maps
+        std::map<size_t, std::function<void()>> m_on_start_handlers;
+
+        size_t m_next_app_handler_id{0};
+
+        std::unique_ptr<IpcClient> m_ipc_subscriber;
     };
 
 }; // namespace horizon
