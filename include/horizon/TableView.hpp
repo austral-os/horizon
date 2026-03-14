@@ -8,6 +8,7 @@
 #include <horizon/TableColumn.hpp>
 #include <horizon/TableRow.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/Menu.hpp>
 #include <memory>
 #include <set>
 #include <vector>
@@ -152,6 +153,11 @@ namespace horizon
                 m_selected_rows.insert(index);
             }
             update_selection_visuals();
+        }
+
+        void set_row_menu_factory(std::function<std::unique_ptr<Menu>(const T &)> factory)
+        {
+            m_row_menu_factory = factory;
         }
 
         EventsManager<TableViewRowMouseClickContext<T>> when_row_click;
@@ -427,6 +433,11 @@ namespace horizon
                     row_widget->add_child(std::move(cell));
                 }
 
+                if (m_row_menu_factory)
+                {
+                    row_widget->set_context_menu(m_row_menu_factory(row_data));
+                }
+
                 content->add_child(std::move(row_widget));
             }
             invalidate();
@@ -490,5 +501,6 @@ namespace horizon
         bool m_use_alternate_colors{true};
 
         std::set<int> m_selected_rows;
+        std::function<std::unique_ptr<Menu>(const T &)> m_row_menu_factory;
     };
 } // namespace horizon

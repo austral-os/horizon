@@ -3,6 +3,7 @@
 #include "horizon/Logger.hpp"
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/Menu.hpp>
 namespace horizon::arkfm
 {
     ArkfmListView::ArkfmListView(std::string path)
@@ -91,6 +92,16 @@ namespace horizon::arkfm
                                                      this->refresh(*path);
                                                  }
                                              });
+
+        set_row_menu_factory(
+            [](const arkutils::FileInfo &f)
+            {
+                auto menu = std::make_unique<Menu>();
+                menu->set_title(f.name);
+                menu->add_item("Eliminar");
+                menu->add_item("Propiedades");
+                return menu;
+            });
 
         refresh(m_current_path);
     }

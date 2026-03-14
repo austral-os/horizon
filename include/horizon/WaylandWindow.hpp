@@ -114,6 +114,8 @@ namespace horizon
          */
         void invalidate(Widget *widget = nullptr);
 
+        void show_context_menu(Menu *menu, int x, int y);
+
         /**
          * @brief Signals the application to wake up its event loop (e.g. from another thread).
          */
@@ -162,6 +164,12 @@ namespace horizon
             m_screen_x = x;
             m_screen_y = y;
         }
+
+        /**
+         * @brief Returns the current pointer position relative to the monitor's top-left corner.
+         */
+        widget_position get_global_pointer_position() const;
+
         void set_resizable(bool resizable);
         bool is_resizable() const { return m_resizable; }
 

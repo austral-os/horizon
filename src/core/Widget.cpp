@@ -1,6 +1,7 @@
 #include "horizon/WaylandWindow.hpp"
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
+#include <horizon/Menu.hpp>
 #include <horizon/Widget.hpp>
 #include <linux/input-event-codes.h>
 
@@ -56,7 +57,15 @@ namespace horizon
                         else if (ev.button == BTN_MIDDLE)
                             when_middle_click.run(ev);
                         else if (ev.button == BTN_RIGHT)
+                        {
                             when_right_click.run(ev);
+                            if (m_context_menu)
+                            {
+                                auto global_pos = application()->get_global_pointer_position();
+                                application()->show_context_menu(m_context_menu.get(), global_pos.x,
+                                                                 global_pos.y);
+                            }
+                        }
 
                         m_last_click_button = 0;
                         m_click_timer = 0;
@@ -738,5 +747,15 @@ namespace horizon
     {
         when_right_click.disconnect(id);
     }*/
+
+    void Widget::set_context_menu(std::unique_ptr<Menu> menu)
+    {
+        m_context_menu = std::move(menu);
+    }
+
+    Menu *Widget::context_menu() const
+    {
+        return m_context_menu.get();
+    }
 
 } // namespace horizon

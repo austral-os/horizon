@@ -12,6 +12,7 @@ namespace horizon
     class Application;
     class WaylandWindow;
     class GraphicsContext;
+    class Menu;
 
     enum WidgetPositionTypes
     {
@@ -176,6 +177,10 @@ namespace horizon
         void set_cursor_type(CursorType type);
         CursorType cursor_type() const;
 
+        // --- Context Menu ---
+        void set_context_menu(std::unique_ptr<Menu> menu);
+        Menu *context_menu() const;
+
         // --- Árbol ---
         virtual void add_child(std::unique_ptr<Widget> child);
         virtual void add_child_at(int index, std::unique_ptr<Widget> child);
@@ -262,6 +267,7 @@ namespace horizon
         bool m_is_hovered{false};
         bool m_is_pressed{false};
         CursorType m_cursor_type{CursorType::Default};
+        std::unique_ptr<Menu> m_context_menu;
 
         int m_start_draw_x{0};
         int m_start_draw_y{0};

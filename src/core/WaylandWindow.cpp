@@ -1641,4 +1641,18 @@ namespace horizon
         return m_surface && m_surface->is_maximized();
     }
 
+    void WaylandWindow::show_context_menu(Menu *menu, int x, int y)
+    {
+        if (!m_client_menu)
+        {
+            m_client_menu = std::make_shared<ClientMenu>();
+        }
+        m_client_menu->show_menu(menu, x, y, -1, "", getpid());
+    }
+
+    widget_position WaylandWindow::get_global_pointer_position() const
+    {
+        return {m_screen_x + (int)m_pointer_x, m_screen_y + (int)m_pointer_y};
+    }
+
 }; // namespace horizon
