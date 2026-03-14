@@ -208,24 +208,6 @@ namespace horizon
     void DockApplication::show_dock_context_menu(int x, int y, int pid, const std::string &run_id,
                                                  const std::string &app_id, uintptr_t instance_id)
     {
-        // La coordenada 'y' recibida es local dentro del dock.
-        // El dock está anclado al borde inferior, así que su posición global en Y
-        // es monitor_height - dock_height. Sumamos ese offset para la coordenada
-        // global de pantalla que espera el menu manager.
-        int screen_h = m_window->w_surface()->monitor_height();
-        int dock_height = m_window->height();
-        int global_y = y;
-        if (screen_h > 0)
-        {
-            global_y = (screen_h - dock_height) + y;
-            LOG_INFO << "[DOCK] screen_h=" << screen_h << " dock_h=" << dock_height
-                     << " local_y=" << y << " global_y=" << global_y;
-        }
-        else
-        {
-            LOG_INFO << "[DOCK] monitor_height unknown, using local y=" << y;
-        }
-
         // Build the context menu
         auto menu = std::make_unique<Menu>();
         menu->set_title("dock_context");
@@ -272,9 +254,8 @@ namespace horizon
             launch_item->set_id("dock_launch:" + run_id);
         }
 
-        LOG_INFO << "[DOCK] Showing context menu at (" << x << ", " << global_y
-                 << ") for pid=" << pid;
-        _client_menu.show_menu(menu.get(), x, global_y, -1, "org.horizon.dock");
+        LOG_INFO << "[DOCK] Showing context menu at (" << x << ", " << y << ") for pid=" << pid;
+        _client_menu.show_menu(menu.get(), x, y, -1, "org.horizon.dock");
 
         // menu is kept alive long enough for show_menu() to serialize it
     }
@@ -315,7 +296,8 @@ namespace horizon
             auto item = std::make_unique<DockItem>(m_window, pinned.icon, _is_wayfire);
             item->on_right_click = [this, item_ptr = item.get()](int x, int y)
             {
-                show_dock_context_menu(x, y, item_ptr->pid(), item_ptr->run_id(),
+                auto position = item_ptr->get_absolute_position();
+                show_dock_context_menu(x, position.y, item_ptr->pid(), item_ptr->run_id(),
                                        item_ptr->app_id(), item_ptr->instance_id());
             };
 
@@ -387,7 +369,8 @@ namespace horizon
 
                 item->on_right_click = [this, item_ptr = item.get()](int x, int y)
                 {
-                    show_dock_context_menu(x, y, item_ptr->pid(), item_ptr->run_id(),
+                    auto position = item_ptr->get_absolute_position();
+                    show_dock_context_menu(x, position.y, item_ptr->pid(), item_ptr->run_id(),
                                            item_ptr->app_id(), item_ptr->instance_id());
                 };
                 _shelf_ptr->add_child(std::move(item));
