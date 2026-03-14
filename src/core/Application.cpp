@@ -43,21 +43,18 @@ namespace horizon
     {
         m_is_running = false;
         
+        std::lock_guard<std::mutex> lock(m_windows_mutex);
+        for (auto &mw : m_managed_windows)
         {
-            std::lock_guard<std::mutex> lock(m_windows_mutex);
-            for (auto &mw : m_managed_windows)
-            {
-                mw.window->quit();
-            }
+            mw.window->quit();
         }
 
-        for (auto &t : m_window_threads)
+        for (auto &mw : m_managed_windows)
         {
-            if (t.joinable())
-                t.join();
+            if (mw.thread.joinable())
+                mw.thread.join();
         }
         
-        std::lock_guard<std::mutex> lock(m_windows_mutex);
         m_managed_windows.clear();
     }
 
@@ -90,6 +87,31 @@ namespace horizon
         }
     }
 
+    void Application::remove_window(WaylandWindow *ptr)
+    {
+        // Must be called from the main thread to avoid deadlocks and ensure safety
+        // if we are destroying windows that might be in use by other main-thread logic.
+        
+        std::lock_guard<std::mutex> lock(m_windows_mutex);
+        if (m_managed_windows.empty()) return;
+
+        // Never remove the main window via this method
+        if (ptr == m_managed_windows[0].window.get()) return;
+
+        auto it = std::find_if(m_managed_windows.begin() + 1, m_managed_windows.end(),
+            [ptr](const ManagedWindow &mw) { return mw.window.get() == ptr; });
+        
+        if (it != m_managed_windows.end())
+        {
+            LOG_INFO << "[APP] Removing window: " << ptr->name();
+            // We can't join the thread if we are currently IN it, 
+            // but this method is intended to be called via post_task on main thread.
+            if (it->thread.joinable())
+                it->thread.detach(); // Detach since it's already finished or finishing
+            m_managed_windows.erase(it);
+        }
+    }
+
     WaylandWindow *Application::create_window(int w, int h)
     {
         // We use defer_init=true so that initialization happens in the target thread
@@ -100,15 +122,26 @@ namespace horizon
         
         {
             std::lock_guard<std::mutex> lock(m_windows_mutex);
-            m_managed_windows.push_back({std::move(window), nullptr});
+            m_managed_windows.push_back({std::move(window), nullptr, {}});
         }
 
         if (m_is_running)
         {
-            m_window_threads.emplace_back([ptr]() {
+            // Find the newly added ManagedWindow to set its thread
+            std::lock_guard<std::mutex> lock(m_windows_mutex);
+            auto& mw = m_managed_windows.back();
+            mw.thread = std::thread([this, ptr]() {
                 ptr->w_surface()->init_display();
                 ptr->w_surface()->setup_xdg_toplevel(ptr->name(), ptr->app_id());
                 ptr->run();
+                
+                // Once run returns, clean up
+                std::lock_guard<std::mutex> lock(m_windows_mutex);
+                if (m_managed_windows.empty()) return;
+                WaylandWindow* mainWinPtr = m_managed_windows[0].window.get();
+                mainWinPtr->post_task([this, ptr]() {
+                    this->remove_window(ptr);
+                });
             });
         }
         
@@ -124,15 +157,24 @@ namespace horizon
         
         {
             std::lock_guard<std::mutex> lock(m_windows_mutex);
-            m_managed_windows.push_back({std::move(window), parent});
+            m_managed_windows.push_back({std::move(window), parent, {}});
         }
 
         if (m_is_running)
         {
-            m_window_threads.emplace_back([ptr]() {
+            std::lock_guard<std::mutex> lock(m_windows_mutex);
+            auto& mw = m_managed_windows.back();
+            mw.thread = std::thread([this, ptr]() {
                 ptr->w_surface()->init_display();
                 ptr->w_surface()->setup_xdg_toplevel(ptr->name(), ptr->app_id());
                 ptr->run();
+                
+                std::lock_guard<std::mutex> lock(m_windows_mutex);
+                if (m_managed_windows.empty()) return;
+                WaylandWindow* mainWinPtr = m_managed_windows[0].window.get();
+                mainWinPtr->post_task([this, ptr]() {
+                    this->remove_window(ptr);
+                });
             });
         }
         
@@ -152,10 +194,17 @@ namespace horizon
             for (size_t i = 1; i < m_managed_windows.size(); ++i)
             {
                 WaylandWindow *ptr = m_managed_windows[i].window.get();
-                m_window_threads.emplace_back([ptr]() {
+                m_managed_windows[i].thread = std::thread([this, ptr]() {
                     ptr->w_surface()->init_display();
                     ptr->w_surface()->setup_xdg_toplevel(ptr->name(), ptr->app_id());
                     ptr->run();
+                    
+                    std::lock_guard<std::mutex> lock(m_windows_mutex);
+                    if (m_managed_windows.empty()) return;
+                    WaylandWindow* mainWinPtr = m_managed_windows[0].window.get();
+                    mainWinPtr->post_task([this, ptr]() {
+                        this->remove_window(ptr);
+                    });
                 });
             }
         }
@@ -166,7 +215,7 @@ namespace horizon
         mainWin->w_surface()->setup_xdg_toplevel(mainWin->name(), mainWin->app_id());
         mainWin->run();
 
-        // Shutdown sequence
+        // Shutdown sequence: main window closed, stop everything else
         m_is_running = false;
         
         {
@@ -176,10 +225,19 @@ namespace horizon
             }
         }
 
-        for (auto &t : m_window_threads)
+        // Join threads safely
+        std::vector<std::thread> threads_to_join;
         {
-            if (t.joinable())
-                t.join();
+            std::lock_guard<std::mutex> lock(m_windows_mutex);
+            for (auto &mw : m_managed_windows) {
+                if (mw.thread.joinable()) {
+                    threads_to_join.push_back(std::move(mw.thread));
+                }
+            }
+        }
+
+        for (auto &t : threads_to_join) {
+            t.join();
         }
     }
 

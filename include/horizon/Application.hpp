@@ -64,6 +64,12 @@ namespace horizon
          */
         WaylandWindow *create_dialog(WaylandWindow *parent, int w, int h);
 
+    private:
+        /**
+         * @brief Removes a window and its thread.
+         */
+        void remove_window(WaylandWindow *window);
+
     protected:
         /**
          * @brief Protected constructor for derived classes that need custom initialization.
@@ -78,13 +84,13 @@ namespace horizon
         struct ManagedWindow {
             std::unique_ptr<WaylandWindow> window;
             WaylandWindow* parent{nullptr};
+            std::thread thread;
         };
 
         /**< The list of managed windows. The first one is considered the main window. */
         std::vector<ManagedWindow> m_managed_windows;
 
         std::atomic<bool> m_is_running{false};
-        std::vector<std::thread> m_window_threads;
         std::mutex m_windows_mutex;
     };
 } // namespace horizon
