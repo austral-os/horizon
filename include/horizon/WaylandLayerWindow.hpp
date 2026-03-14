@@ -22,6 +22,7 @@ namespace horizon
                            uint32_t layer = 3, bool defer_init = false); // 3 = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
 
         void initialize() override;
+        void on_resize(int width, int height) override;
 
         /**
          * @brief Sets the anchor for the layer surface.
@@ -60,6 +61,8 @@ namespace horizon
         uint32_t m_layer;
         uint32_t m_interactivity{0}; // 0 = ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE
         bool m_visible{false};
+
+        void update_screen_position();
     };
 
 } // namespace horizon

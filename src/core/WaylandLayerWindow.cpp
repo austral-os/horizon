@@ -24,6 +24,12 @@ namespace horizon
             });
     }
 
+    void WaylandLayerWindow::on_resize(int w, int h)
+    {
+        WaylandWindow::on_resize(w, h);
+        update_screen_position();
+    }
+
     void WaylandLayerWindow::initialize()
     {
         w_surface()->init_display();
@@ -83,6 +89,57 @@ namespace horizon
         if (output)
         {
             w_surface()->move_layer_to_monitor(output);
+            update_screen_position();
         }
+    }
+
+    void WaylandLayerWindow::update_screen_position()
+    {
+        int mw = w_surface()->monitor_width();
+        int mh = w_surface()->monitor_height();
+        int ww = width();
+        int wh = height();
+        uint32_t anchor = w_surface()->anchor();
+
+        int x = 0;
+        int y = 0;
+
+        // X calculation
+        if ((anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT) && !(anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT))
+        {
+            x = 0;
+        }
+        else if ((anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT) && !(anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT))
+        {
+            x = mw - ww;
+        }
+        else if ((anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT) && (anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT))
+        {
+            x = 0;
+        }
+        else
+        {
+            x = (mw - ww) / 2;
+        }
+
+        // Y calculation
+        if ((anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP) && !(anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM))
+        {
+            y = 0;
+        }
+        else if ((anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM) && !(anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP))
+        {
+            y = mh - wh;
+        }
+        else if ((anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP) && (anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM))
+        {
+            y = 0;
+        }
+        else
+        {
+            y = (mh - wh) / 2;
+        }
+
+        set_screen_position(x, y);
     }
 } // namespace horizon

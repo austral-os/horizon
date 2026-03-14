@@ -165,6 +165,24 @@ namespace horizon
                             {
                                 m_window->move_to_monitor(json_msg["monitor"]);
                             }
+
+                            // Adjust position if it goes out of bounds
+                            root_menu_ptr->calculate_layout();
+                            int menu_w = root_menu_ptr->width();
+                            int menu_h = root_menu_ptr->height();
+                            int screen_w = m_window->width();
+                            int screen_h = m_window->height();
+
+                            int adjusted_x = std::max(0, std::min(x, screen_w - menu_w));
+                            int adjusted_y = std::max(0, std::min(y, screen_h - menu_h));
+
+                            if (adjusted_x != x || adjusted_y != y)
+                            {
+                                LOG_INFO << "Menu position adjusted from (" << x << ", " << y << ") to (" 
+                                         << adjusted_x << ", " << adjusted_y << ") to stay within screen boundaries.";
+                                root_menu_ptr->set_position(adjusted_x, adjusted_y);
+                                root_menu_ptr->calculate_layout();
+                            }
                         }
                         catch (...)
                         {

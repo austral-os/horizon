@@ -148,7 +148,9 @@ namespace horizon
         double pointer_y() const;
         int width() const;
         int height() const;
+        int monitor_width() const { return m_monitor_width; }
         int monitor_height() const { return m_monitor_height; }
+        uint32_t anchor() const { return m_anchor; }
 
         /**
          * @brief Initializes the Wayland connection and binds globals.
