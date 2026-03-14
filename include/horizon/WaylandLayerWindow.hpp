@@ -19,7 +19,9 @@ namespace horizon
          * @param layer The layer to place the surface in (default is overlay).
          */
         WaylandLayerWindow(const std::string &namespace_id,
-                           uint32_t layer = 3); // 3 = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
+                           uint32_t layer = 3, bool defer_init = false); // 3 = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
+
+        void initialize() override;
 
         /**
          * @brief Sets the anchor for the layer surface.

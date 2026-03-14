@@ -1,3 +1,4 @@
+#include <horizon/WaylandLayerWindow.hpp>
 #include "horizon/CairoGraphicsContext.hpp"
 #include "horizon/Widget.hpp"
 #include <cstdio>
@@ -131,8 +132,7 @@ namespace horizon
             std::lock_guard<std::mutex> lock(m_windows_mutex);
             auto& mw = m_managed_windows.back();
             mw.thread = std::thread([this, ptr]() {
-                ptr->w_surface()->init_display();
-                ptr->w_surface()->setup_xdg_toplevel(ptr->name(), ptr->app_id());
+                ptr->initialize();
                 ptr->run();
                 
                 // Once run returns, clean up
@@ -165,8 +165,37 @@ namespace horizon
             std::lock_guard<std::mutex> lock(m_windows_mutex);
             auto& mw = m_managed_windows.back();
             mw.thread = std::thread([this, ptr]() {
-                ptr->w_surface()->init_display();
-                ptr->w_surface()->setup_xdg_toplevel(ptr->name(), ptr->app_id());
+                ptr->initialize();
+                ptr->run();
+                
+                std::lock_guard<std::mutex> lock(m_windows_mutex);
+                if (m_managed_windows.empty()) return;
+                WaylandWindow* mainWinPtr = m_managed_windows[0].window.get();
+                mainWinPtr->post_task([this, ptr]() {
+                    this->remove_window(ptr);
+                });
+            });
+        }
+        
+        return ptr;
+    }
+
+    WaylandLayerWindow *Application::create_layer_window(const std::string &namespace_id, uint32_t layer)
+    {
+        auto window = std::make_unique<WaylandLayerWindow>(namespace_id, layer, true);
+        WaylandLayerWindow *ptr = window.get();
+        
+        {
+            std::lock_guard<std::mutex> lock(m_windows_mutex);
+            m_managed_windows.push_back({std::move(window), nullptr, {}});
+        }
+
+        if (m_is_running)
+        {
+            std::lock_guard<std::mutex> lock(m_windows_mutex);
+            auto& mw = m_managed_windows.back();
+            mw.thread = std::thread([this, ptr]() {
+                ptr->initialize();
                 ptr->run();
                 
                 std::lock_guard<std::mutex> lock(m_windows_mutex);
@@ -195,8 +224,7 @@ namespace horizon
             {
                 WaylandWindow *ptr = m_managed_windows[i].window.get();
                 m_managed_windows[i].thread = std::thread([this, ptr]() {
-                    ptr->w_surface()->init_display();
-                    ptr->w_surface()->setup_xdg_toplevel(ptr->name(), ptr->app_id());
+                    ptr->initialize();
                     ptr->run();
                     
                     std::lock_guard<std::mutex> lock(m_windows_mutex);
@@ -211,8 +239,7 @@ namespace horizon
 
         // Run primary window in main thread
         WaylandWindow *mainWin = m_managed_windows[0].window.get();
-        mainWin->w_surface()->init_display();
-        mainWin->w_surface()->setup_xdg_toplevel(mainWin->name(), mainWin->app_id());
+        mainWin->initialize();
         mainWin->run();
 
         // Shutdown sequence: main window closed, stop everything else

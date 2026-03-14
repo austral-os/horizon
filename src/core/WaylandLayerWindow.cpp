@@ -4,13 +4,14 @@
 
 namespace horizon
 {
-    WaylandLayerWindow::WaylandLayerWindow(const std::string &namespace_id, uint32_t layer)
+    WaylandLayerWindow::WaylandLayerWindow(const std::string &namespace_id, uint32_t layer, bool defer_init)
         : WaylandWindow(namespace_id, 0, 0, true), m_namespace(namespace_id), m_layer(layer),
           m_interactivity(0)
     {
-        // Initialization for Layer Shell
-        w_surface()->init_display();
-        w_surface()->setup_layer_surface(m_layer, m_namespace);
+        if (!defer_init)
+        {
+            initialize();
+        }
 
         // Update input region whenever the surface size changes
         add_on_resize(
@@ -21,6 +22,12 @@ namespace horizon
                     w_surface()->set_input_region(0, 0, w, h);
                 }
             });
+    }
+
+    void WaylandLayerWindow::initialize()
+    {
+        w_surface()->init_display();
+        w_surface()->setup_layer_surface(m_layer, m_namespace);
     }
 
     void WaylandLayerWindow::set_anchor(uint32_t anchor)

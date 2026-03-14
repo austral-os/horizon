@@ -299,6 +299,12 @@ namespace horizon
         when_foreign_update.run(ctx);
     }
 
+    void WaylandWindow::initialize()
+    {
+        m_surface->init_display();
+        m_surface->setup_xdg_toplevel(m_name, m_app_id);
+    }
+
     void WaylandWindow::run()
     {
 

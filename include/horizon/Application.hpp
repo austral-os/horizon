@@ -64,6 +64,11 @@ namespace horizon
          */
         WaylandWindow *create_dialog(WaylandWindow *parent, int w, int h);
 
+        /**
+         * @brief Creates a new layer-shell window.
+         */
+        class WaylandLayerWindow *create_layer_window(const std::string &namespace_id, uint32_t layer = 3);
+
     private:
         /**
          * @brief Removes a window and its thread.

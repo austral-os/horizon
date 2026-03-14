@@ -146,6 +146,11 @@ namespace horizon
         void queue_gl_draw(const GLDrawCall &call) const;
 
         /**
+         * @brief Initializes the window. Should be called from the thread where the event loop will run.
+         */
+        virtual void initialize();
+
+        /**
          * @brief Signals the application to stop its event loop and exit.
          */
         void quit();
