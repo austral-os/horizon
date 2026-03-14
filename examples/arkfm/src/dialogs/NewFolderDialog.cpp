@@ -24,7 +24,6 @@ namespace horizon::arkfm
         root_panel->set_margin(20);
 
         auto prompt_label = std::make_unique<horizon::Label>("Nombre de la carpeta:");
-        prompt_label->set_font_size(14);
         prompt_label->set_fixed_size(25);
         root_panel->add_child(std::move(prompt_label));
 
@@ -40,9 +39,7 @@ namespace horizon::arkfm
         button_container->set_fixed_size(40);
         button_container->set_spacing(10);
 
-        auto spacer = std::make_unique<horizon::Widget>();
-        spacer->set_position_type(FILL);
-        button_container->add_child(std::move(spacer));
+        button_container->add_child(std::move(Spacer()));
 
         auto cancel_btn = std::make_unique<horizon::Button<horizon::AquaObject>>();
         cancel_btn->set_text("Cancelar");
