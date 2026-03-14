@@ -58,7 +58,7 @@ namespace horizon
             if (sidebar_item)
             {
                 sidebar_item->when_click.connect(
-                    [this, sidebar_item](EventContext &)
+                    [this, sidebar_item](EventContext &ev)
                     {
                         if (m_selected_item)
                         {
@@ -66,6 +66,9 @@ namespace horizon
                         }
                         m_selected_item = sidebar_item;
                         m_selected_item->set_selected(true);
+                        SidebarItemSelectedContext ctx;
+                        ctx.item = sidebar_item;
+                        when_item_selected.run(ctx);
                     });
             }
 
