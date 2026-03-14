@@ -8,7 +8,8 @@
 
 namespace horizon::arkfm
 {
-    NewFolderDialog::NewFolderDialog() : WaylandWindow("horizon.arkfm.new_folder", 400, 210)
+    NewFolderDialog::NewFolderDialog()
+        : WaylandWindow("horizon.arkfm.new_folder", 400, 210, false, false)
     {
         set_name("Nueva Carpeta");
         setup_ui();

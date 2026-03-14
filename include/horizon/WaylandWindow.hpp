@@ -23,7 +23,7 @@ namespace horizon
 
     public:
         WaylandWindow(std::string app_id = "horizon.app", int w = 800, int h = 600,
-                      bool defer_init = false);
+                      bool defer_init = false, bool resizable = true);
         virtual ~WaylandWindow();
 
         // Modifiers
@@ -162,6 +162,8 @@ namespace horizon
             m_screen_x = x;
             m_screen_y = y;
         }
+        void set_resizable(bool resizable);
+        bool is_resizable() const { return m_resizable; }
 
         /**
          * @brief Posts a task to be executed on the main application thread.
@@ -445,6 +447,8 @@ namespace horizon
         size_t m_next_app_handler_id{0};
 
         std::unique_ptr<IpcClient> m_ipc_subscriber;
+
+        bool m_resizable = true;
     };
 
 }; // namespace horizon

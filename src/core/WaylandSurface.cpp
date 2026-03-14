@@ -1099,6 +1099,22 @@ namespace horizon
         }
     }
 
+    void WaylandSurface::set_min_size(int w, int h)
+    {
+        if (m_xdg_toplevel)
+        {
+            xdg_toplevel_set_min_size(m_xdg_toplevel, w, h);
+        }
+    }
+
+    void WaylandSurface::set_max_size(int w, int h)
+    {
+        if (m_xdg_toplevel)
+        {
+            xdg_toplevel_set_max_size(m_xdg_toplevel, w, h);
+        }
+    }
+
     void WaylandSurface::request_maximize()
     {
         if (m_xdg_toplevel)

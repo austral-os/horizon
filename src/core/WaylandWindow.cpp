@@ -38,8 +38,8 @@ namespace horizon
         "    gl_FragColor = texture2D(u_texture, v_texcoord).bgra * u_opacity;\n"
         "}\n";
 
-    WaylandWindow::WaylandWindow(std::string app_id, int w, int h, bool defer_init)
-        : m_app_id(app_id)
+    WaylandWindow::WaylandWindow(std::string app_id, int w, int h, bool defer_init, bool resizable)
+        : m_app_id(app_id), m_resizable(resizable)
     {
         // Inicialización del sistema
         m_surface = std::make_unique<WaylandSurface>(w, h);
@@ -47,6 +47,11 @@ namespace horizon
         {
             m_surface->init_display();
             m_surface->setup_xdg_toplevel(m_name, m_app_id);
+            if (!m_resizable)
+            {
+                m_surface->set_min_size(w, h);
+                m_surface->set_max_size(w, h);
+            }
         }
         m_surface->set_event_listener(this);
 
@@ -306,6 +311,30 @@ namespace horizon
 
         m_surface->init_display();
         m_surface->setup_xdg_toplevel(m_name, m_app_id);
+
+        if (!m_resizable)
+        {
+            m_surface->set_min_size(m_surface->width(), m_surface->height());
+            m_surface->set_max_size(m_surface->width(), m_surface->height());
+        }
+    }
+
+    void WaylandWindow::set_resizable(bool resizable)
+    {
+        m_resizable = resizable;
+        if (m_surface)
+        {
+            if (!m_resizable)
+            {
+                m_surface->set_min_size(m_surface->width(), m_surface->height());
+                m_surface->set_max_size(m_surface->width(), m_surface->height());
+            }
+            else
+            {
+                m_surface->set_min_size(0, 0);
+                m_surface->set_max_size(0, 0);
+            }
+        }
     }
 
     void WaylandWindow::run()
@@ -900,7 +929,7 @@ namespace horizon
 
         // Detectar borde para redimensionado
         uint32_t edge = XDG_TOPLEVEL_RESIZE_EDGE_NONE;
-        if (!is_maximized())
+        if (!is_maximized() && m_resizable)
         {
             bool top = event.y < m_resize_proximity;
             bool bottom = event.y > m_surface->height() - m_resize_proximity;

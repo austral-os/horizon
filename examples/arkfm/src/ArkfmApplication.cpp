@@ -10,7 +10,7 @@ namespace horizon::arkfm
     const int ARK_APP_DEFAULT_HEIGHT = 700;
 
     ArkfmApplication::ArkfmApplication()
-        : WaylandWindow("org.horizon.arkfm", ARK_APP_DEFAULT_WIDTH, ARK_APP_DEFAULT_HEIGHT)
+        : WaylandWindow("org.horizon.arkfm", ARK_APP_DEFAULT_WIDTH, ARK_APP_DEFAULT_HEIGHT, false)
     {
         set_name("Ark File Manager");
         auto window = std::make_unique<ArkfmWindow>(ARK_APP_DEFAULT_WIDTH, ARK_APP_DEFAULT_HEIGHT);

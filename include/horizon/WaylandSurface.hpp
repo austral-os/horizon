@@ -207,6 +207,9 @@ namespace horizon
         void request_move(uint32_t serial);
         void request_resize(uint32_t serial, uint32_t edge);
 
+        void set_min_size(int w, int h);
+        void set_max_size(int w, int h);
+
         void update_xkb_keymap(uint32_t format, int32_t fd, uint32_t size);
         void update_xkb_modifiers(uint32_t mods_depressed, uint32_t mods_latched,
                                   uint32_t mods_locked, uint32_t group);
