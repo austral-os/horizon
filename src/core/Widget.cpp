@@ -439,6 +439,31 @@ namespace horizon
     {
         return m_y;
     }
+
+    widget_position Widget::get_absolute_position() const
+    {
+        widget_position pos;
+        pos.x = m_x;
+        pos.y = m_y;
+
+        Widget *p = m_parent;
+        while (p)
+        {
+            pos.x += p->x();
+            pos.y += p->y();
+            p = p->parent();
+        }
+
+        WaylandWindow *app = application();
+        if (app)
+        {
+            pos.x += app->screen_x();
+            pos.y += app->screen_y();
+        }
+
+        return pos;
+    }
+
     int Widget::width() const
     {
         return m_width;

@@ -121,6 +121,15 @@ target_link_libraries(mouse_wheel_test
         horizon
 )
 
+add_executable(absolute_position_test
+    tests/absolute_position_test.cpp
+)
+
+target_link_libraries(absolute_position_test
+    PRIVATE
+        horizon
+)
+
 add_executable(multiwindow
     examples/multiwindow/main.cpp
 )

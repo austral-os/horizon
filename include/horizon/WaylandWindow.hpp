@@ -155,6 +155,14 @@ namespace horizon
          */
         void quit();
 
+        int screen_x() const { return m_screen_x; }
+        int screen_y() const { return m_screen_y; }
+        void set_screen_position(int x, int y)
+        {
+            m_screen_x = x;
+            m_screen_y = y;
+        }
+
         /**
          * @brief Posts a task to be executed on the main application thread.
          * This method is thread-safe.
@@ -340,6 +348,10 @@ namespace horizon
         uint32_t m_last_serial = 0; /**< Last received Wayland serial. */
 
         std::unique_ptr<WaylandSurface> m_surface;
+
+        int m_screen_x{0};
+        int m_screen_y{0};
+
         std::unique_ptr<Widget> m_root;
         bool m_full_repaint = true; /**< Flag indicating if the entire UI needs re-rendering. */
         std::vector<Widget *> m_dirty_widgets; /**< List of widgets that need re-rendering. */

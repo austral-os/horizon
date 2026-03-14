@@ -92,6 +92,12 @@ namespace horizon
         CUSTOM_10
     };
 
+    struct widget_position
+    {
+        int x;
+        int y;
+    };
+
     class Widget
     {
     public:
@@ -146,6 +152,7 @@ namespace horizon
         int border_radius() const;
         int border_width() const;
         Color border_color() const;
+        widget_position get_absolute_position() const;
 
         // --- Estado ---
         void set_visible(bool visible);
