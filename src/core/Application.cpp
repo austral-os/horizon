@@ -56,50 +56,7 @@ namespace horizon
             LOG_ERROR << "[APP] Failed to create eventfd: " << strerror(errno);
         }
 
-        // Inicialización del sistema
-        m_surface = std::make_unique<WaylandSurface>(w, h);
-        if (!defer_init)
-        {
-            m_surface->init_display();
-            m_surface->setup_xdg_toplevel(m_name, m_app_id);
-        }
-        m_surface->set_event_listener(this);
-
-        theme_manager = std::make_unique<ThemeManager>();
-
-        theme_manager->when_change.connect(
-            [this](ThemeEventContext &p)
-            {
-                LOG_INFO << "Theme changed";
-                this->invalidate();
-            });
-
         m_app_menu = std::make_unique<Menu>();
-        // Detect current compositor
-        const char *xdg_current_desktop = std::getenv("XDG_CURRENT_DESKTOP");
-        std::string desktop = xdg_current_desktop ? xdg_current_desktop : "";
-        std::transform(desktop.begin(), desktop.end(), desktop.begin(), ::tolower);
-
-        LOG_INFO << "[APP] Detecting compositor (XDG_CURRENT_DESKTOP=" << desktop << ")";
-
-        if (desktop.find("wayfire") != std::string::npos ||
-            desktop.find("hzn-wayfire") != std::string::npos)
-        {
-            LOG_INFO << "[APP] Recognized Wayfire compositor, using WayfireCompositorContext";
-            m_compositor_context = std::make_unique<WayfireCompositorContext>(this);
-        }
-        else if (desktop.find("labwc") != std::string::npos ||
-                 desktop.find("hzn-labwc") != std::string::npos)
-        {
-            LOG_INFO << "[APP] Recognized Labwc compositor, using LabwcCompositorContext";
-            m_compositor_context = std::make_unique<LabwcCompositorContext>(this);
-        }
-        else
-        {
-            LOG_INFO << "[APP] Unknown or generic compositor, defaulting to LabwcCompositorContext "
-                        "(XDG-Shell)";
-            m_compositor_context = std::make_unique<LabwcCompositorContext>(this);
-        }
 
         signal_manager.connect("quit",
                                [this](SignalContext &p)
@@ -1003,16 +960,6 @@ namespace horizon
     bool Application::is_fullscreen() const
     {
         return m_surface && m_surface->is_fullscreen();
-    }
-
-    bool Application::is_minimized() const
-    {
-        return m_is_minimized;
-    }
-
-    bool Application::was_maximized_before_minimize() const
-    {
-        return m_was_maximized_before_minimize;
     }
 
     void Application::send_remote_signal(int target_pid, const std::string &signal,

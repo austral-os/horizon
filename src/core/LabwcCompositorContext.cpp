@@ -1,12 +1,12 @@
 #include "horizon/LabwcCompositorContext.hpp"
-#include "horizon/Application.hpp"
+#include "horizon/HznSurface.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/WaylandSurface.hpp"
 #include <unistd.h>
 
 namespace horizon
 {
-    LabwcCompositorContext::LabwcCompositorContext(Application *app) : m_app(app) {}
+    LabwcCompositorContext::LabwcCompositorContext(HznSurface *app) : m_app(app) {}
 
     void LabwcCompositorContext::request_move(uint32_t serial)
     {

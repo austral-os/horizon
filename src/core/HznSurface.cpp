@@ -1,5 +1,7 @@
 #include "horizon/CairoGraphicsContext.hpp"
 #include "horizon/IpcClient.hpp"
+#include "horizon/LabwcCompositorContext.hpp"
+#include "horizon/WayfireCompositorContext.hpp"
 #include <GLES2/gl2.h>
 #include <algorithm>
 #include <glib-object.h>
@@ -29,7 +31,52 @@ namespace horizon
         "    gl_FragColor = texture2D(u_texture, v_texcoord).bgra * u_opacity;\n"
         "}\n";
 
-    HznSurface::HznSurface(std::string app_id) : m_app_id(app_id) {};
+    HznSurface::HznSurface(std::string app_id, int w, int h, bool defer_init) : m_app_id(app_id)
+    {
+        // Inicialización del sistema
+        m_surface = std::make_unique<WaylandSurface>(w, h);
+        if (!defer_init)
+        {
+            m_surface->init_display();
+            m_surface->setup_xdg_toplevel(m_name, m_app_id);
+        }
+        m_surface->set_event_listener(this);
+
+        // Detect current compositor
+        const char *xdg_current_desktop = std::getenv("XDG_CURRENT_DESKTOP");
+        std::string desktop = xdg_current_desktop ? xdg_current_desktop : "";
+        std::transform(desktop.begin(), desktop.end(), desktop.begin(), ::tolower);
+
+        LOG_INFO << "[APP] Detecting compositor (XDG_CURRENT_DESKTOP=" << desktop << ")";
+
+        if (desktop.find("wayfire") != std::string::npos ||
+            desktop.find("hzn-wayfire") != std::string::npos)
+        {
+            LOG_INFO << "[APP] Recognized Wayfire compositor, using WayfireCompositorContext";
+            m_compositor_context = std::make_unique<WayfireCompositorContext>(this);
+        }
+        else if (desktop.find("labwc") != std::string::npos ||
+                 desktop.find("hzn-labwc") != std::string::npos)
+        {
+            LOG_INFO << "[APP] Recognized Labwc compositor, using LabwcCompositorContext";
+            m_compositor_context = std::make_unique<LabwcCompositorContext>(this);
+        }
+        else
+        {
+            LOG_INFO << "[APP] Unknown or generic compositor, defaulting to LabwcCompositorContext "
+                        "(XDG-Shell)";
+            m_compositor_context = std::make_unique<LabwcCompositorContext>(this);
+        }
+
+        theme_manager = std::make_unique<ThemeManager>();
+
+        theme_manager->when_change.connect(
+            [this](ThemeEventContext &p)
+            {
+                LOG_INFO << "Theme changed";
+                this->invalidate();
+            });
+    };
 
     HznSurface::~HznSurface()
     {
@@ -47,6 +94,16 @@ namespace horizon
 
         // Limpieza
         m_surface->free();
+    }
+
+    bool HznSurface::was_maximized_before_minimize() const
+    {
+        return m_was_maximized_before_minimize;
+    }
+
+    bool HznSurface::is_minimized() const
+    {
+        return m_is_minimized;
     }
 
     WaylandSurface *HznSurface::w_surface() const

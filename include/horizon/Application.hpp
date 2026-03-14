@@ -96,16 +96,6 @@ namespace horizon
         bool is_fullscreen() const;
 
         /**
-         * @return True if the window is minimized.
-         */
-        bool is_minimized() const;
-
-        /**
-         * @return True if the window was maximized before being minimized.
-         */
-        bool was_maximized_before_minimize() const;
-
-        /**
          * @brief Implementation of the WaylandEventListener pointer event callback.
          * @param event The pointer event details.
          */

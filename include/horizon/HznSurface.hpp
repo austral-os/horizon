@@ -20,7 +20,8 @@ namespace horizon
         friend class CairoGraphicContext;
 
     public:
-        HznSurface(std::string app_id = "horizon.app");
+        HznSurface(std::string app_id = "horizon.app", int w = 800, int h = 600,
+                   bool defer_init = false);
         virtual ~HznSurface();
 
         std::unique_ptr<ThemeManager> theme_manager;
@@ -138,6 +139,16 @@ namespace horizon
          * @param task The function to execute.
          */
         void post_task(std::function<void()> task);
+
+        /**
+         * @return True if the window is minimized.
+         */
+        bool is_minimized() const;
+
+        /**
+         * @return True if the window was maximized before being minimized.
+         */
+        bool was_maximized_before_minimize() const;
 
     protected:
         /**
