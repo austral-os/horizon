@@ -167,6 +167,7 @@ namespace horizon
 
                             if (x == -1 && y == -1)
                             {
+                                m_window->w_surface()->commit();
                                 x = m_window->w_surface()->pointer_x();
                                 y = m_window->w_surface()->pointer_y();
                             }
