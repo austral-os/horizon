@@ -38,6 +38,49 @@ namespace horizon
         "    gl_FragColor = texture2D(u_texture, v_texcoord).bgra * u_opacity;\n"
         "}\n";
 
+    class PopupProxy : public WaylandEventListener
+    {
+    public:
+        PopupProxy(WaylandWindow *window, WaylandWindow::Popup *popup)
+            : m_window(window), m_popup(popup)
+        {
+        }
+
+        void on_pointer_event(const PointerEvent &event) override
+        {
+            m_window->handle_popup_pointer_event(m_popup, event);
+        }
+
+        void on_key_event(const KeyEvent &event) override
+        {
+            m_window->on_key_event(event);
+        }
+
+        void on_modifiers_event(uint32_t modifiers) override
+        {
+            m_window->on_modifiers_event(modifiers);
+        }
+
+        void on_resize(int width, int height) override
+        {
+            m_popup->gc = std::make_unique<CairoGraphicContext>(m_window, m_popup->surface->data(),
+                                                                width, height);
+            m_window->invalidate();
+        }
+
+        void on_activated(bool active) override {}
+
+        void on_close() override
+        {
+            m_popup->closing = true;
+            m_window->invalidate();
+        }
+
+    private:
+        WaylandWindow *m_window;
+        WaylandWindow::Popup *m_popup;
+    };
+
     WaylandWindow::WaylandWindow(std::string app_id, int w, int h, bool defer_init, bool resizable)
         : m_app_id(app_id), m_resizable(resizable)
     {
@@ -734,6 +777,13 @@ namespace horizon
 
     void WaylandWindow::on_pointer_event(const PointerEvent &event)
     {
+        m_last_serial = event.serial;
+
+        // Cleanup closed popups
+        m_popups.erase(std::remove_if(m_popups.begin(), m_popups.end(),
+                                      [](const auto &p) { return p->closing; }),
+                       m_popups.end());
+
         m_pointer_x = event.x;
         m_pointer_y = event.y;
 
@@ -1396,6 +1446,67 @@ namespace horizon
         m_gl_queue.clear();
 
         m_surface->swap_buffers();
+
+        for (auto &popup : m_popups)
+        {
+            render_popup(*popup);
+        }
+    }
+
+    void WaylandWindow::render_popup(Popup &popup)
+    {
+        if (!popup.surface || !popup.surface->data())
+            return;
+
+        // Render the menu
+        popup.menu->render(*popup.gc, 0, 0, popup.surface->width(), popup.surface->height(), false);
+        popup.gc->flush();
+
+        EGLDisplay display = m_surface->egl_display();
+        EGLContext context = m_surface->egl_context();
+        EGLSurface surface = popup.surface->egl_surface();
+
+        eglMakeCurrent(display, surface, surface, context);
+
+        glViewport(0, 0, popup.surface->width(), popup.surface->height());
+        glClearColor(0, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+        glUseProgram(m_gl_program);
+
+        GLuint tex;
+        glGenTextures(1, &tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, popup.surface->width(), popup.surface->height(), 0,
+                     GL_RGBA, GL_UNSIGNED_BYTE, popup.surface->data());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        float identity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+        GLint mvp_loc = glGetUniformLocation(m_gl_program, "u_mvp");
+        glUniformMatrix4fv(mvp_loc, 1, GL_FALSE, identity);
+        GLint opacity_loc = glGetUniformLocation(m_gl_program, "u_opacity");
+        glUniform1f(opacity_loc, 1.0f);
+
+        GLint pos_attr = glGetAttribLocation(m_gl_program, "position");
+        GLint tex_attr = glGetAttribLocation(m_gl_program, "texcoord");
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_gl_vbo);
+        glVertexAttribPointer(pos_attr, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+        glEnableVertexAttribArray(pos_attr);
+        glVertexAttribPointer(tex_attr, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                              (void *)(3 * sizeof(float)));
+        glEnableVertexAttribArray(tex_attr);
+
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+        popup.surface->swap_buffers();
+        glDeleteTextures(1, &tex);
+
+        eglMakeCurrent(display, m_surface->egl_surface(), m_surface->egl_surface(), context);
     }
 
     GraphicsContext &WaylandWindow::get_graphics_context() const
@@ -1643,11 +1754,92 @@ namespace horizon
 
     void WaylandWindow::show_context_menu(Menu *menu, int x, int y)
     {
-        if (!m_client_menu)
+        int menu_w = 220;
+        int menu_h = 300;
+
+        auto popup = std::make_unique<Popup>();
+        popup->menu = menu;
+        popup->surface = std::make_unique<WaylandSurface>(m_surface.get(), menu_w, menu_h);
+
+        popup->surface->setup_xdg_popup(m_surface.get(), x, y, menu_w, menu_h, m_last_serial);
+
+        // Proxy listener to route events back to this window
+        popup->listener = std::make_unique<PopupProxy>(this, popup.get());
+        popup->surface->set_event_listener(popup->listener.get());
+
+        popup->gc =
+            std::make_unique<CairoGraphicContext>(this, popup->surface->data(), menu_w, menu_h);
+
+        m_popups.push_back(std::move(popup));
+        invalidate();
+    }
+
+    void WaylandWindow::handle_popup_pointer_event(Popup *popup, const PointerEvent &event)
+    {
+        m_last_serial = event.serial;
+        Widget *under = popup->menu->hit_test(event.x, event.y);
+
+        if (event.type == PointerEvent::Type::Move)
         {
-            m_client_menu = std::make_shared<ClientMenu>();
+            if (under != m_hovered)
+            {
+                if (m_hovered)
+                {
+                    EventContext leave_ctx;
+                    leave_ctx.sender = m_hovered;
+                    m_hovered->when_mouse_leave.run(leave_ctx);
+                    m_hovered->set_hovered(false);
+                }
+                m_hovered = under;
+                if (m_hovered)
+                {
+                    EventContext enter_ctx;
+                    enter_ctx.sender = m_hovered;
+                    m_hovered->when_mouse_enter.run(enter_ctx);
+                    m_hovered->set_hovered(true);
+                }
+            }
+
+            if (under)
+            {
+                MouseMoveEventContext ctx;
+                ctx.sender = under;
+                ctx.x = event.x;
+                ctx.y = event.y;
+                ctx.modifiers = m_modifiers;
+                under->when_mouse_move.run(ctx);
+            }
         }
-        m_client_menu->show_menu(menu, x, y, -1, "", getpid());
+        else if (event.type == PointerEvent::Type::Press)
+        {
+            if (under)
+            {
+                MouseButtonEventContext ctx;
+                ctx.sender = under;
+                ctx.button = event.button;
+                ctx.x = event.x;
+                ctx.y = event.y;
+                ctx.serial = event.serial;
+                ctx.modifiers = m_modifiers;
+                under->when_mouse_press.run(ctx);
+            }
+        }
+        else if (event.type == PointerEvent::Type::Release)
+        {
+            if (under)
+            {
+                MouseButtonEventContext ctx;
+                ctx.sender = under;
+                ctx.button = event.button;
+                ctx.x = event.x;
+                ctx.y = event.y;
+                ctx.serial = event.serial;
+                ctx.modifiers = m_modifiers;
+                under->when_mouse_release.run(ctx);
+            }
+        }
+
+        invalidate();
     }
 
     widget_position WaylandWindow::get_global_pointer_position() const

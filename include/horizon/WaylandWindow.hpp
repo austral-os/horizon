@@ -8,14 +8,18 @@
 #include "horizon/WaylandSurface.hpp"
 #include "horizon/Widget.hpp"
 #include <deque>
+#include <functional>
+#include <GLES2/gl2.h>
 #include <horizon/WaylandEventListener.hpp>
 #include <mutex>
+
 namespace horizon
 {
 
     class GraphicsContext;
     class ClientMenu;
     class IpcClient;
+    class Menu;
 
     class WaylandWindow : public WaylandEventListener
     {
@@ -461,6 +465,20 @@ namespace horizon
         std::unique_ptr<IpcClient> m_ipc_subscriber;
 
         bool m_resizable = true;
+
+    public:
+        struct Popup
+        {
+            std::unique_ptr<WaylandSurface> surface;
+            std::unique_ptr<GraphicsContext> gc;
+            std::unique_ptr<WaylandEventListener> listener;
+            Menu *menu;
+            bool closing = false;
+        };
+        std::vector<std::unique_ptr<Popup>> m_popups;
+
+        void render_popup(Popup &popup);
+        void handle_popup_pointer_event(Popup *popup, const PointerEvent &event);
     };
 
 }; // namespace horizon

@@ -1,0 +1,255 @@
+ninja: Entering directory `build'
+[1/50] Building CXX object CMakeFiles/horizon.dir/src/core/WaylandSurface.cpp.o
+FAILED: CMakeFiles/horizon.dir/src/core/WaylandSurface.cpp.o 
+/usr/bin/c++  -I/home/horacio/Desarrollo/austral-os/horizon/include -I/home/horacio/Desarrollo/austral-os/horizon/src -I/usr/include/cairo -I/usr/include/libpng16 -I/usr/include/freetype2 -I/usr/include/pixman-1 -I/usr/include/librsvg-2.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/sysprof-6 -I/usr/include/libmount -I/usr/include/blkid -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/webp -I/usr/include/harfbuzz -I/usr/include/libxml2 -I/usr/include/pango-1.0 -I/usr/include/fribidi -std=c++17 -MD -MT CMakeFiles/horizon.dir/src/core/WaylandSurface.cpp.o -MF CMakeFiles/horizon.dir/src/core/WaylandSurface.cpp.o.d -o CMakeFiles/horizon.dir/src/core/WaylandSurface.cpp.o -c /home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp: In member function ‘void horizon::WaylandSurface::setup_xdg_toplevel(const std::string&, const std::string&)’:
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:730:41: error: ‘xdg_surface’ is not a type
+  730 |             .configure = [](void *data, xdg_surface *xdg_s, uint32_t serial)
+      |                                         ^~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp: In lambda function:
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:734:43: error: cannot convert ‘int*’ to ‘xdg_surface*’
+  734 |                 xdg_surface_ack_configure(xdg_s, serial);
+      |                                           ^~~~~
+      |                                           |
+      |                                           int*
+In file included from /home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:9:
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:1238:47: note:   initializing argument 1 of ‘void xdg_surface_ack_configure(xdg_surface*, uint32_t)’
+ 1238 | xdg_surface_ack_configure(struct xdg_surface *xdg_surface, uint32_t serial)
+      |                           ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp: In member function ‘void horizon::WaylandSurface::setup_xdg_toplevel(const std::string&, const std::string&)’:
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:730:26: error: invalid user-defined conversion from ‘horizon::WaylandSurface::setup_xdg_toplevel(const std::string&, const std::string&)::<lambda(void*, int*, uint32_t)>’ to ‘void (*)(void*, xdg_surface*, uint32_t)’ {aka ‘void (*)(void*, xdg_surface*, unsigned int)’} [-fpermissive]
+  730 |             .configure = [](void *data, xdg_surface *xdg_s, uint32_t serial)
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  731 |             {
+      |             ~             
+  732 |                 WaylandSurface *self = static_cast<WaylandSurface *>(data);
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  733 |                 self->m_configured = true;
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+  734 |                 xdg_surface_ack_configure(xdg_s, serial);
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  735 |             }};
+      |             ~             
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:730:26: note: candidate is: ‘constexpr horizon::WaylandSurface::setup_xdg_toplevel(const std::string&, const std::string&)::<lambda(void*, int*, uint32_t)>::operator void (*)(void*, int*, uint32_t)() const’ (near match)
+  730 |             .configure = [](void *data, xdg_surface *xdg_s, uint32_t serial)
+      |                          ^
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:730:26: note:   no known conversion from ‘void (*)(void*, int*, uint32_t)’ {aka ‘void (*)(void*, int*, unsigned int)’} to ‘void (*)(void*, xdg_surface*, uint32_t)’ {aka ‘void (*)(void*, xdg_surface*, unsigned int)’}
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp: In member function ‘void horizon::WaylandSurface::setup_xdg_popup(horizon::WaylandSurface*, int, int, int, int, uint32_t)’:
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:816:57: error: cannot convert ‘xdg_positioner*’ to ‘horizon::xdg_positioner*’ in assignment
+  816 |         m_xdg_positioner = xdg_wm_base_create_positioner(m_xdg_wm_base);
+      |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~
+      |                                                         |
+      |                                                         xdg_positioner*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:56:8: note: class type ‘xdg_positioner’ is incomplete
+   56 | struct xdg_positioner;
+      |        ^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:817:33: error: cannot convert ‘horizon::xdg_positioner*’ to ‘xdg_positioner*’
+  817 |         xdg_positioner_set_size(m_xdg_positioner, w, h);
+      |                                 ^~~~~~~~~~~~~~~~
+      |                                 |
+      |                                 horizon::xdg_positioner*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:811:48: note:   initializing argument 1 of ‘void xdg_positioner_set_size(xdg_positioner*, int32_t, int32_t)’
+  811 | xdg_positioner_set_size(struct xdg_positioner *xdg_positioner, int32_t width, int32_t height)
+      |                         ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~
+In file included from /home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:6:
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:335:16: note: class type ‘horizon::xdg_positioner’ is incomplete
+  335 |         struct xdg_positioner *m_xdg_positioner = nullptr;
+      |                ^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:818:40: error: cannot convert ‘horizon::xdg_positioner*’ to ‘xdg_positioner*’
+  818 |         xdg_positioner_set_anchor_rect(m_xdg_positioner, x, y, 1, 1);
+      |                                        ^~~~~~~~~~~~~~~~
+      |                                        |
+      |                                        horizon::xdg_positioner*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:832:55: note:   initializing argument 1 of ‘void xdg_positioner_set_anchor_rect(xdg_positioner*, int32_t, int32_t, int32_t, int32_t)’
+  832 | xdg_positioner_set_anchor_rect(struct xdg_positioner *xdg_positioner, int32_t x, int32_t y, int32_t width, int32_t height)
+      |                                ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:335:16: note: class type ‘horizon::xdg_positioner’ is incomplete
+  335 |         struct xdg_positioner *m_xdg_positioner = nullptr;
+      |                ^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:819:36: error: cannot convert ‘horizon::xdg_positioner*’ to ‘xdg_positioner*’
+  819 |         xdg_positioner_set_gravity(m_xdg_positioner, XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT);
+      |                                    ^~~~~~~~~~~~~~~~
+      |                                    |
+      |                                    horizon::xdg_positioner*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:867:51: note:   initializing argument 1 of ‘void xdg_positioner_set_gravity(xdg_positioner*, uint32_t)’
+  867 | xdg_positioner_set_gravity(struct xdg_positioner *xdg_positioner, uint32_t gravity)
+      |                            ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:335:16: note: class type ‘horizon::xdg_positioner’ is incomplete
+  335 |         struct xdg_positioner *m_xdg_positioner = nullptr;
+      |                ^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:820:35: error: cannot convert ‘horizon::xdg_positioner*’ to ‘xdg_positioner*’
+  820 |         xdg_positioner_set_anchor(m_xdg_positioner, XDG_POSITIONER_ANCHOR_TOP_LEFT);
+      |                                   ^~~~~~~~~~~~~~~~
+      |                                   |
+      |                                   horizon::xdg_positioner*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:849:50: note:   initializing argument 1 of ‘void xdg_positioner_set_anchor(xdg_positioner*, uint32_t)’
+  849 | xdg_positioner_set_anchor(struct xdg_positioner *xdg_positioner, uint32_t anchor)
+      |                           ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:335:16: note: class type ‘horizon::xdg_positioner’ is incomplete
+  335 |         struct xdg_positioner *m_xdg_positioner = nullptr;
+      |                ^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:824:41: error: ‘xdg_surface’ is not a type
+  824 |             .configure = [](void *data, xdg_surface *xdg_s, uint32_t serial)
+      |                                         ^~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp: In lambda function:
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:828:43: error: cannot convert ‘int*’ to ‘xdg_surface*’
+  828 |                 xdg_surface_ack_configure(xdg_s, serial);
+      |                                           ^~~~~
+      |                                           |
+      |                                           int*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:1238:47: note:   initializing argument 1 of ‘void xdg_surface_ack_configure(xdg_surface*, uint32_t)’
+ 1238 | xdg_surface_ack_configure(struct xdg_surface *xdg_surface, uint32_t serial)
+      |                           ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp: In member function ‘void horizon::WaylandSurface::setup_xdg_popup(horizon::WaylandSurface*, int, int, int, int, uint32_t)’:
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:824:26: error: invalid user-defined conversion from ‘horizon::WaylandSurface::setup_xdg_popup(horizon::WaylandSurface*, int, int, int, int, uint32_t)::<lambda(void*, int*, uint32_t)>’ to ‘void (*)(void*, xdg_surface*, uint32_t)’ {aka ‘void (*)(void*, xdg_surface*, unsigned int)’} [-fpermissive]
+  824 |             .configure = [](void *data, xdg_surface *xdg_s, uint32_t serial)
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  825 |             {
+      |             ~             
+  826 |                 WaylandSurface *self = static_cast<WaylandSurface *>(data);
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  827 |                 self->m_configured = true;
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+  828 |                 xdg_surface_ack_configure(xdg_s, serial);
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  829 |             }};
+      |             ~             
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:824:26: note: candidate is: ‘constexpr horizon::WaylandSurface::setup_xdg_popup(horizon::WaylandSurface*, int, int, int, int, uint32_t)::<lambda(void*, int*, uint32_t)>::operator void (*)(void*, int*, uint32_t)() const’ (near match)
+  824 |             .configure = [](void *data, xdg_surface *xdg_s, uint32_t serial)
+      |                          ^
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:824:26: note:   no known conversion from ‘void (*)(void*, int*, uint32_t)’ {aka ‘void (*)(void*, int*, unsigned int)’} to ‘void (*)(void*, xdg_surface*, uint32_t)’ {aka ‘void (*)(void*, xdg_surface*, unsigned int)’}
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:832:83: error: cannot convert ‘horizon::xdg_positioner*’ to ‘xdg_positioner*’
+  832 |         m_xdg_popup = xdg_surface_get_popup(m_xdg_surface, parent->m_xdg_surface, m_xdg_positioner);
+      |                                                                                   ^~~~~~~~~~~~~~~~
+      |                                                                                   |
+      |                                                                                   horizon::xdg_positioner*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:1143:107: note:   initializing argument 3 of ‘xdg_popup* xdg_surface_get_popup(xdg_surface*, xdg_surface*, xdg_positioner*)’
+ 1143 | xdg_surface_get_popup(struct xdg_surface *xdg_surface, struct xdg_surface *parent, struct xdg_positioner *positioner)
+      |                                                                                    ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:335:16: note: class type ‘horizon::xdg_positioner’ is incomplete
+  335 |         struct xdg_positioner *m_xdg_positioner = nullptr;
+      |                ^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:835:26: error: invalid user-defined conversion from ‘horizon::WaylandSurface::setup_xdg_popup(horizon::WaylandSurface*, int, int, int, int, uint32_t)::<lambda(void*, horizon::xdg_popup*, int32_t, int32_t, int32_t, int32_t)>’ to ‘void (*)(void*, xdg_popup*, int32_t, int32_t, int32_t, int32_t)’ {aka ‘void (*)(void*, xdg_popup*, int, int, int, int)’} [-fpermissive]
+  835 |             .configure = [](void *data, xdg_popup *popup, int32_t x, int32_t y, int32_t width,
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  836 |                             int32_t height)
+      |                             ~~~~~~~~~~~~~~~
+  837 |             {
+      |             ~             
+  838 |                 WaylandSurface *self = static_cast<WaylandSurface *>(data);
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  839 |                 self->m_configured = true;
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+  840 |             },
+      |             ~             
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:835:26: note: candidate is: ‘constexpr horizon::WaylandSurface::setup_xdg_popup(horizon::WaylandSurface*, int, int, int, int, uint32_t)::<lambda(void*, horizon::xdg_popup*, int32_t, int32_t, int32_t, int32_t)>::operator void (*)(void*, horizon::xdg_popup*, int32_t, int32_t, int32_t, int32_t)() const’ (near match)
+  835 |             .configure = [](void *data, xdg_popup *popup, int32_t x, int32_t y, int32_t width,
+      |                          ^
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:835:26: note:   no known conversion from ‘void (*)(void*, horizon::xdg_popup*, int32_t, int32_t, int32_t, int32_t)’ {aka ‘void (*)(void*, horizon::xdg_popup*, int, int, int, int)’} to ‘void (*)(void*, xdg_popup*, int32_t, int32_t, int32_t, int32_t)’ {aka ‘void (*)(void*, xdg_popup*, int, int, int, int)’}
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:841:27: error: invalid user-defined conversion from ‘horizon::WaylandSurface::setup_xdg_popup(horizon::WaylandSurface*, int, int, int, int, uint32_t)::<lambda(void*, horizon::xdg_popup*)>’ to ‘void (*)(void*, xdg_popup*)’ [-fpermissive]
+  841 |             .popup_done = [](void *data, xdg_popup *popup)
+      |                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  842 |             {
+      |             ~              
+  843 |                 WaylandSurface *self = static_cast<WaylandSurface *>(data);
+      |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  844 |                 if (self->m_listener)
+      |                 ~~~~~~~~~~~~~~~~~~~~~
+  845 |                     self->m_listener->on_close();
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  846 |             }};
+      |             ~              
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:841:27: note: candidate is: ‘constexpr horizon::WaylandSurface::setup_xdg_popup(horizon::WaylandSurface*, int, int, int, int, uint32_t)::<lambda(void*, horizon::xdg_popup*)>::operator void (*)(void*, horizon::xdg_popup*)() const’ (near match)
+  841 |             .popup_done = [](void *data, xdg_popup *popup)
+      |                           ^
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:841:27: note:   no known conversion from ‘void (*)(void*, horizon::xdg_popup*)’ to ‘void (*)(void*, xdg_popup*)’
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:847:32: error: cannot convert ‘horizon::xdg_popup*’ to ‘xdg_popup*’
+  847 |         xdg_popup_add_listener(m_xdg_popup, &popup_listener, this);
+      |                                ^~~~~~~~~~~
+      |                                |
+      |                                horizon::xdg_popup*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:2222:42: note:   initializing argument 1 of ‘int xdg_popup_add_listener(xdg_popup*, const xdg_popup_listener*, void*)’
+ 2222 | xdg_popup_add_listener(struct xdg_popup *xdg_popup,
+      |                        ~~~~~~~~~~~~~~~~~~^~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:334:16: note: class type ‘horizon::xdg_popup’ is incomplete
+  334 |         struct xdg_popup *m_xdg_popup = nullptr;
+      |                ^~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:851:28: error: cannot convert ‘horizon::xdg_popup*’ to ‘xdg_popup*’
+  851 |             xdg_popup_grab(m_xdg_popup, m_seat, serial);
+      |                            ^~~~~~~~~~~
+      |                            |
+      |                            horizon::xdg_popup*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:2337:34: note:   initializing argument 1 of ‘void xdg_popup_grab(xdg_popup*, wl_seat*, uint32_t)’
+ 2337 | xdg_popup_grab(struct xdg_popup *xdg_popup, struct wl_seat *seat, uint32_t serial)
+      |                ~~~~~~~~~~~~~~~~~~^~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:334:16: note: class type ‘horizon::xdg_popup’ is incomplete
+  334 |         struct xdg_popup *m_xdg_popup = nullptr;
+      |                ^~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp: In member function ‘void horizon::WaylandSurface::free()’:
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:1066:31: error: cannot convert ‘horizon::xdg_popup*’ to ‘xdg_popup*’
+ 1066 |             xdg_popup_destroy(m_xdg_popup);
+      |                               ^~~~~~~~~~~
+      |                               |
+      |                               horizon::xdg_popup*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:2289:37: note:   initializing argument 1 of ‘void xdg_popup_destroy(xdg_popup*)’
+ 2289 | xdg_popup_destroy(struct xdg_popup *xdg_popup)
+      |                   ~~~~~~~~~~~~~~~~~~^~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:334:16: note: class type ‘horizon::xdg_popup’ is incomplete
+  334 |         struct xdg_popup *m_xdg_popup = nullptr;
+      |                ^~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:1071:36: error: cannot convert ‘horizon::xdg_positioner*’ to ‘xdg_positioner*’
+ 1071 |             xdg_positioner_destroy(m_xdg_positioner);
+      |                                    ^~~~~~~~~~~~~~~~
+      |                                    |
+      |                                    horizon::xdg_positioner*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:795:47: note:   initializing argument 1 of ‘void xdg_positioner_destroy(xdg_positioner*)’
+  795 | xdg_positioner_destroy(struct xdg_positioner *xdg_positioner)
+      |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:335:16: note: class type ‘horizon::xdg_positioner’ is incomplete
+  335 |         struct xdg_positioner *m_xdg_positioner = nullptr;
+      |                ^~~~~~~~~~~~~~
+[2/50] Building CXX object CMakeFiles/aboutus.dir/examples/aboutus/main.cpp.o
+[3/50] Building CXX object examples/top_panel/CMakeFiles/top_panel.dir/src/main.cpp.o
+[4/50] Building CXX object CMakeFiles/absolute_position_test.dir/tests/absolute_position_test.cpp.o
+[5/50] Building CXX object CMakeFiles/mouse_wheel_test.dir/tests/mouse_wheel_test.cpp.o
+[6/50] Building CXX object CMakeFiles/horizon.dir/src/core/WaylandWindow.cpp.o
+FAILED: CMakeFiles/horizon.dir/src/core/WaylandWindow.cpp.o 
+/usr/bin/c++  -I/home/horacio/Desarrollo/austral-os/horizon/include -I/home/horacio/Desarrollo/austral-os/horizon/src -I/usr/include/cairo -I/usr/include/libpng16 -I/usr/include/freetype2 -I/usr/include/pixman-1 -I/usr/include/librsvg-2.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/sysprof-6 -I/usr/include/libmount -I/usr/include/blkid -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/webp -I/usr/include/harfbuzz -I/usr/include/libxml2 -I/usr/include/pango-1.0 -I/usr/include/fribidi -std=c++17 -MD -MT CMakeFiles/horizon.dir/src/core/WaylandWindow.cpp.o -MF CMakeFiles/horizon.dir/src/core/WaylandWindow.cpp.o.d -o CMakeFiles/horizon.dir/src/core/WaylandWindow.cpp.o -c /home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandWindow.cpp
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandWindow.cpp:44:58: error: ‘struct horizon::WaylandWindow::Popup’ is private within this context
+   44 |         PopupProxy(WaylandWindow *window, WaylandWindow::Popup *popup)
+      |                                                          ^~~~~
+In file included from /home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandWindow.cpp:11:
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandWindow.hpp:469:16: note: declared private here
+  469 |         struct Popup
+      |                ^~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandWindow.cpp:81:24: error: ‘struct horizon::WaylandWindow::Popup’ is private within this context
+   81 |         WaylandWindow::Popup *m_popup;
+      |                        ^~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandWindow.hpp:469:16: note: declared private here
+  469 |         struct Popup
+      |                ^~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandWindow.cpp: In member function ‘virtual void horizon::PopupProxy::on_pointer_event(const horizon::PointerEvent&)’:
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandWindow.cpp:51:49: error: ‘void horizon::WaylandWindow::handle_popup_pointer_event(Popup*, const horizon::PointerEvent&)’ is private within this context
+   51 |             m_window->handle_popup_pointer_event(m_popup, event);
+      |             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandWindow.hpp:480:14: note: declared private here
+  480 |         void handle_popup_pointer_event(Popup *popup, const PointerEvent &event);
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandWindow.cpp: In member function ‘void horizon::WaylandWindow::render_popup(Popup&)’:
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandWindow.cpp:1462:21: error: ‘class horizon::Menu’ has no member named ‘set_geometry’
+ 1462 |         popup.menu->set_geometry({0, 0, popup.surface->width(), popup.surface->height()});
+      |                     ^~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandWindow.cpp:1463:27: error: no matching function for call to ‘horizon::Menu::render(horizon::GraphicsContext&)’
+ 1463 |         popup.menu->render(*popup.gc);
+      |         ~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
+In file included from /home/horacio/Desarrollo/austral-os/horizon/include/horizon/ClientMenu.hpp:4,
+                 from /home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandWindow.cpp:2:
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/Menu.hpp:20:14: note: candidate: ‘virtual void horizon::Menu::render(horizon::GraphicsContext&, int, int, int, int, bool)’
+   20 |         void render(GraphicsContext &ctx, int cx, int cy, int cw, int ch,
+      |              ^~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/Menu.hpp:20:14: note:   candidate expects 6 arguments, 1 provided
+[7/50] Building CXX object CMakeFiles/aboutus.dir/examples/aboutus/AboutWindow.cpp.o
+[8/50] Building CXX object CMakeFiles/multiwindow.dir/examples/multiwindow/main.cpp.o
+[9/50] Building CXX object CMakeFiles/files_demo.dir/examples/files-demo/FilesDemo.cpp.o
+[10/50] Building CXX object CMakeFiles/main_window.dir/examples/main_window/main_window.cpp.o
+ninja: build stopped: subcommand failed.

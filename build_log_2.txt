@@ -1,0 +1,154 @@
+ninja: Entering directory `build'
+[1/90] Building CXX object CMakeFiles/horizon.dir/src/core/Frame.cpp.o
+[2/90] Building CXX object CMakeFiles/horizon.dir/src/core/IconView.cpp.o
+[3/90] Building CXX object CMakeFiles/horizon.dir/src/core/GroupButton.cpp.o
+[4/90] Building CXX object CMakeFiles/horizon.dir/src/core/AquaPolygon.cpp.o
+[5/90] Building CXX object CMakeFiles/horizon.dir/src/core/CategorizedBar.cpp.o
+[6/90] Building CXX object CMakeFiles/horizon.dir/src/core/AquaObject.cpp.o
+[7/90] Building CXX object CMakeFiles/horizon.dir/src/core/CairoGraphicsContext.cpp.o
+[8/90] Building CXX object CMakeFiles/horizon.dir/src/core/CoverFlow.cpp.o
+[9/90] Building CXX object CMakeFiles/horizon.dir/src/core/Application.cpp.o
+[10/90] Building CXX object CMakeFiles/horizon.dir/src/core/ColorPicker.cpp.o
+[11/90] Building CXX object CMakeFiles/horizon.dir/src/core/LabwcCompositorContext.cpp.o
+[12/90] Building CXX object CMakeFiles/horizon.dir/src/core/LabwcAppAdapter.cpp.o
+[13/90] Building CXX object CMakeFiles/horizon.dir/src/core/Image.cpp.o
+[14/90] Building CXX object CMakeFiles/horizon.dir/src/core/Label.cpp.o
+[15/90] Building CXX object CMakeFiles/horizon.dir/src/core/Menu.cpp.o
+[16/90] Building CXX object CMakeFiles/horizon.dir/src/core/Notebook.cpp.o
+[17/90] Building CXX object CMakeFiles/horizon.dir/src/core/MenuItem.cpp.o
+[18/90] Building CXX object CMakeFiles/horizon.dir/src/core/MenuBar.cpp.o
+[19/90] Building CXX object CMakeFiles/horizon.dir/src/core/Panel.cpp.o
+[20/90] Building CXX object CMakeFiles/horizon.dir/src/core/ProgressBar.cpp.o
+[21/90] Building CXX object CMakeFiles/horizon.dir/src/core/Sidebar.cpp.o
+[22/90] Building CXX object CMakeFiles/horizon.dir/src/core/SidebarItem.cpp.o
+[23/90] Building CXX object CMakeFiles/horizon.dir/src/core/ScrollArea.cpp.o
+[24/90] Building CXX object CMakeFiles/horizon.dir/src/core/Statusbar.cpp.o
+[25/90] Building CXX object CMakeFiles/horizon.dir/src/core/Slider.cpp.o
+[26/90] Building CXX object CMakeFiles/horizon.dir/src/core/SolidObject.cpp.o
+[27/90] Building CXX object CMakeFiles/horizon.dir/src/core/SearchBox.cpp.o
+[28/90] Building CXX object CMakeFiles/horizon.dir/src/core/TextBox.cpp.o
+[29/90] Building CXX object CMakeFiles/horizon.dir/src/core/Textarea.cpp.o
+[30/90] Building CXX object CMakeFiles/horizon.dir/src/core/WaylandSurface.cpp.o
+FAILED: CMakeFiles/horizon.dir/src/core/WaylandSurface.cpp.o 
+/usr/bin/c++  -I/home/horacio/Desarrollo/austral-os/horizon/include -I/home/horacio/Desarrollo/austral-os/horizon/src -I/usr/include/cairo -I/usr/include/libpng16 -I/usr/include/freetype2 -I/usr/include/pixman-1 -I/usr/include/librsvg-2.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/sysprof-6 -I/usr/include/libmount -I/usr/include/blkid -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/webp -I/usr/include/harfbuzz -I/usr/include/libxml2 -I/usr/include/pango-1.0 -I/usr/include/fribidi -std=c++17 -MD -MT CMakeFiles/horizon.dir/src/core/WaylandSurface.cpp.o -MF CMakeFiles/horizon.dir/src/core/WaylandSurface.cpp.o.d -o CMakeFiles/horizon.dir/src/core/WaylandSurface.cpp.o -c /home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp: In member function ‘void horizon::WaylandSurface::setup_xdg_popup(horizon::WaylandSurface*, int, int, int, int, uint32_t)’:
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:816:57: error: cannot convert ‘xdg_positioner*’ to ‘horizon::xdg_positioner*’ in assignment
+  816 |         m_xdg_positioner = xdg_wm_base_create_positioner(m_xdg_wm_base);
+      |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~
+      |                                                         |
+      |                                                         xdg_positioner*
+In file included from /home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:9:
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:56:8: note: class type ‘xdg_positioner’ is incomplete
+   56 | struct xdg_positioner;
+      |        ^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:817:33: error: cannot convert ‘horizon::xdg_positioner*’ to ‘xdg_positioner*’
+  817 |         xdg_positioner_set_size(m_xdg_positioner, w, h);
+      |                                 ^~~~~~~~~~~~~~~~
+      |                                 |
+      |                                 horizon::xdg_positioner*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:811:48: note:   initializing argument 1 of ‘void xdg_positioner_set_size(xdg_positioner*, int32_t, int32_t)’
+  811 | xdg_positioner_set_size(struct xdg_positioner *xdg_positioner, int32_t width, int32_t height)
+      |                         ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~
+In file included from /home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:6:
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:335:16: note: class type ‘horizon::xdg_positioner’ is incomplete
+  335 |         struct xdg_positioner *m_xdg_positioner = nullptr;
+      |                ^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:818:40: error: cannot convert ‘horizon::xdg_positioner*’ to ‘xdg_positioner*’
+  818 |         xdg_positioner_set_anchor_rect(m_xdg_positioner, x, y, 1, 1);
+      |                                        ^~~~~~~~~~~~~~~~
+      |                                        |
+      |                                        horizon::xdg_positioner*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:832:55: note:   initializing argument 1 of ‘void xdg_positioner_set_anchor_rect(xdg_positioner*, int32_t, int32_t, int32_t, int32_t)’
+  832 | xdg_positioner_set_anchor_rect(struct xdg_positioner *xdg_positioner, int32_t x, int32_t y, int32_t width, int32_t height)
+      |                                ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:335:16: note: class type ‘horizon::xdg_positioner’ is incomplete
+  335 |         struct xdg_positioner *m_xdg_positioner = nullptr;
+      |                ^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:819:36: error: cannot convert ‘horizon::xdg_positioner*’ to ‘xdg_positioner*’
+  819 |         xdg_positioner_set_gravity(m_xdg_positioner, XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT);
+      |                                    ^~~~~~~~~~~~~~~~
+      |                                    |
+      |                                    horizon::xdg_positioner*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:867:51: note:   initializing argument 1 of ‘void xdg_positioner_set_gravity(xdg_positioner*, uint32_t)’
+  867 | xdg_positioner_set_gravity(struct xdg_positioner *xdg_positioner, uint32_t gravity)
+      |                            ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:335:16: note: class type ‘horizon::xdg_positioner’ is incomplete
+  335 |         struct xdg_positioner *m_xdg_positioner = nullptr;
+      |                ^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:820:35: error: cannot convert ‘horizon::xdg_positioner*’ to ‘xdg_positioner*’
+  820 |         xdg_positioner_set_anchor(m_xdg_positioner, XDG_POSITIONER_ANCHOR_TOP_LEFT);
+      |                                   ^~~~~~~~~~~~~~~~
+      |                                   |
+      |                                   horizon::xdg_positioner*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:849:50: note:   initializing argument 1 of ‘void xdg_positioner_set_anchor(xdg_positioner*, uint32_t)’
+  849 | xdg_positioner_set_anchor(struct xdg_positioner *xdg_positioner, uint32_t anchor)
+      |                           ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:335:16: note: class type ‘horizon::xdg_positioner’ is incomplete
+  335 |         struct xdg_positioner *m_xdg_positioner = nullptr;
+      |                ^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:832:83: error: cannot convert ‘horizon::xdg_positioner*’ to ‘xdg_positioner*’
+  832 |         m_xdg_popup = xdg_surface_get_popup(m_xdg_surface, parent->m_xdg_surface, m_xdg_positioner);
+      |                                                                                   ^~~~~~~~~~~~~~~~
+      |                                                                                   |
+      |                                                                                   horizon::xdg_positioner*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:1143:107: note:   initializing argument 3 of ‘xdg_popup* xdg_surface_get_popup(xdg_surface*, xdg_surface*, xdg_positioner*)’
+ 1143 | xdg_surface_get_popup(struct xdg_surface *xdg_surface, struct xdg_surface *parent, struct xdg_positioner *positioner)
+      |                                                                                    ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:335:16: note: class type ‘horizon::xdg_positioner’ is incomplete
+  335 |         struct xdg_positioner *m_xdg_positioner = nullptr;
+      |                ^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:847:32: error: cannot convert ‘horizon::xdg_popup*’ to ‘xdg_popup*’
+  847 |         xdg_popup_add_listener(m_xdg_popup, &popup_listener, this);
+      |                                ^~~~~~~~~~~
+      |                                |
+      |                                horizon::xdg_popup*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:2222:42: note:   initializing argument 1 of ‘int xdg_popup_add_listener(xdg_popup*, const xdg_popup_listener*, void*)’
+ 2222 | xdg_popup_add_listener(struct xdg_popup *xdg_popup,
+      |                        ~~~~~~~~~~~~~~~~~~^~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:334:16: note: class type ‘horizon::xdg_popup’ is incomplete
+  334 |         struct xdg_popup *m_xdg_popup = nullptr;
+      |                ^~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:851:28: error: cannot convert ‘horizon::xdg_popup*’ to ‘xdg_popup*’
+  851 |             xdg_popup_grab(m_xdg_popup, m_seat, serial);
+      |                            ^~~~~~~~~~~
+      |                            |
+      |                            horizon::xdg_popup*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:2337:34: note:   initializing argument 1 of ‘void xdg_popup_grab(xdg_popup*, wl_seat*, uint32_t)’
+ 2337 | xdg_popup_grab(struct xdg_popup *xdg_popup, struct wl_seat *seat, uint32_t serial)
+      |                ~~~~~~~~~~~~~~~~~~^~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:334:16: note: class type ‘horizon::xdg_popup’ is incomplete
+  334 |         struct xdg_popup *m_xdg_popup = nullptr;
+      |                ^~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp: In member function ‘void horizon::WaylandSurface::free()’:
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:1066:33: error: cannot convert ‘horizon::xdg_popup*’ to ‘xdg_popup*’
+ 1066 |             ::xdg_popup_destroy(m_xdg_popup);
+      |                                 ^~~~~~~~~~~
+      |                                 |
+      |                                 horizon::xdg_popup*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:2289:37: note:   initializing argument 1 of ‘void xdg_popup_destroy(xdg_popup*)’
+ 2289 | xdg_popup_destroy(struct xdg_popup *xdg_popup)
+      |                   ~~~~~~~~~~~~~~~~~~^~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:334:16: note: class type ‘horizon::xdg_popup’ is incomplete
+  334 |         struct xdg_popup *m_xdg_popup = nullptr;
+      |                ^~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/src/core/WaylandSurface.cpp:1071:38: error: cannot convert ‘horizon::xdg_positioner*’ to ‘xdg_positioner*’
+ 1071 |             ::xdg_positioner_destroy(m_xdg_positioner);
+      |                                      ^~~~~~~~~~~~~~~~
+      |                                      |
+      |                                      horizon::xdg_positioner*
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/xdg-shell-client-protocol.h:795:47: note:   initializing argument 1 of ‘void xdg_positioner_destroy(xdg_positioner*)’
+  795 | xdg_positioner_destroy(struct xdg_positioner *xdg_positioner)
+      |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~
+/home/horacio/Desarrollo/austral-os/horizon/include/horizon/WaylandSurface.hpp:335:16: note: class type ‘horizon::xdg_positioner’ is incomplete
+  335 |         struct xdg_positioner *m_xdg_positioner = nullptr;
+      |                ^~~~~~~~~~~~~~
+[31/90] Building CXX object CMakeFiles/horizon.dir/src/core/Titlebar.cpp.o
+[32/90] Building CXX object CMakeFiles/horizon.dir/src/core/TitlebarCircleButton.cpp.o
+[33/90] Building CXX object CMakeFiles/horizon.dir/src/core/Toolbar.cpp.o
+[34/90] Building CXX object CMakeFiles/horizon.dir/src/core/VPanel.cpp.o
+[35/90] Building CXX object CMakeFiles/horizon.dir/src/core/WaylandLayerWindow.cpp.o
+[36/90] Building CXX object CMakeFiles/horizon.dir/src/core/WayfireAppAdapter.cpp.o
+[37/90] Building CXX object CMakeFiles/horizon.dir/src/core/ToggleGroupButton.cpp.o
+[38/90] Building CXX object CMakeFiles/horizon.dir/src/core/WayfireCompositorContext.cpp.o
+[39/90] Building CXX object CMakeFiles/horizon.dir/src/core/WaylandWindow.cpp.o
+ninja: build stopped: subcommand failed.

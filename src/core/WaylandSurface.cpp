@@ -559,6 +559,36 @@ namespace horizon
     WaylandSurface::WaylandSurface(int w, int h) : m_width(w), m_height(h)
     {
         m_xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+        m_is_shared = false;
+    }
+
+    WaylandSurface::WaylandSurface(WaylandSurface *parent, int w, int h) : m_width(w), m_height(h)
+    {
+        m_xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+        m_is_shared = true;
+
+        if (parent)
+        {
+            m_display = parent->m_display;
+            m_registry = parent->m_registry;
+            m_compositor = parent->m_compositor;
+            m_shm = parent->m_shm;
+            m_xdg_wm_base = parent->m_xdg_wm_base;
+            m_layer_shell = parent->m_layer_shell;
+            m_activation = parent->m_activation;
+            m_foreign_toplevel_manager = parent->m_foreign_toplevel_manager;
+            m_background_effect_manager = parent->m_background_effect_manager;
+            m_blur_manager = parent->m_blur_manager;
+
+            m_egl_display = parent->m_egl_display;
+            m_egl_config = parent->m_egl_config;
+            m_egl_context = parent->m_egl_context;
+
+            m_seat = parent->m_seat;
+            m_pointer = parent->m_pointer;
+            m_keyboard = parent->m_keyboard;
+            m_outputs = parent->m_outputs;
+        }
     }
 
     int WaylandSurface::width() const
@@ -697,7 +727,7 @@ namespace horizon
 
         m_xdg_surface = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
         static const xdg_surface_listener xdg_surf_ptr = {
-            .configure = [](void *data, xdg_surface *xdg_s, uint32_t serial)
+            .configure = [](void *data, struct ::xdg_surface *xdg_s, uint32_t serial)
             {
                 WaylandSurface *self = static_cast<WaylandSurface *>(data);
                 self->m_configured = true;
@@ -772,6 +802,58 @@ namespace horizon
             m_cursor_surface = wl_compositor_create_surface(m_compositor);
 
         resize_buffer(m_width, m_height);
+    }
+
+    void WaylandSurface::setup_xdg_popup(WaylandSurface *parent, int x, int y, int w, int h,
+                                         uint32_t serial)
+    {
+        m_role = Role::XdgPopup;
+        m_width = w;
+        m_height = h;
+
+        m_surface = wl_compositor_create_surface(m_compositor);
+
+        m_xdg_positioner = ::xdg_wm_base_create_positioner(m_xdg_wm_base);
+        ::xdg_positioner_set_size(m_xdg_positioner, w, h);
+        ::xdg_positioner_set_anchor_rect(m_xdg_positioner, x, y, 1, 1);
+        ::xdg_positioner_set_gravity(m_xdg_positioner, XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT);
+        ::xdg_positioner_set_anchor(m_xdg_positioner, XDG_POSITIONER_ANCHOR_TOP_LEFT);
+
+        m_xdg_surface = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
+        static const xdg_surface_listener xdg_surf_listener = {
+            .configure = [](void *data, struct ::xdg_surface *xdg_s, uint32_t serial)
+            {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                self->m_configured = true;
+                xdg_surface_ack_configure(xdg_s, serial);
+            }};
+        xdg_surface_add_listener(m_xdg_surface, &xdg_surf_listener, this);
+
+        m_xdg_popup = ::xdg_surface_get_popup(m_xdg_surface, parent->m_xdg_surface, m_xdg_positioner);
+
+        static const xdg_popup_listener popup_listener = {
+            .configure = [](void *data, struct ::xdg_popup *popup, int32_t x, int32_t y, int32_t width,
+                            int32_t height)
+            {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                self->m_configured = true;
+            },
+            .popup_done = [](void *data, struct ::xdg_popup *popup)
+            {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                if (self->m_listener)
+                    self->m_listener->on_close();
+            }};
+        xdg_popup_add_listener(m_xdg_popup, &popup_listener, this);
+
+        if (m_seat && serial > 0)
+        {
+            ::xdg_popup_grab(m_xdg_popup, m_seat, serial);
+        }
+
+        wl_surface_commit(m_surface);
+
+        resize_buffer(w, h);
     }
 
     void WaylandSurface::setup_layer_surface(uint32_t layer, const std::string &namespace_id)
@@ -979,14 +1061,44 @@ namespace horizon
 
     void WaylandSurface::free()
     {
+        if (m_xdg_popup)
+        {
+            ::xdg_popup_destroy(m_xdg_popup);
+            m_xdg_popup = nullptr;
+        }
+        if (m_xdg_positioner)
+        {
+            ::xdg_positioner_destroy(m_xdg_positioner);
+            m_xdg_positioner = nullptr;
+        }
+        if (m_xdg_toplevel)
+        {
+            xdg_toplevel_destroy(m_xdg_toplevel);
+            m_xdg_toplevel = nullptr;
+        }
+        if (m_xdg_surface)
+        {
+            xdg_surface_destroy(m_xdg_surface);
+            m_xdg_surface = nullptr;
+        }
+        if (m_layer_surface)
+        {
+            zwlr_layer_surface_v1_destroy(m_layer_surface);
+            m_layer_surface = nullptr;
+        }
+
         if (m_egl_display != EGL_NO_DISPLAY)
         {
             if (m_egl_surface != EGL_NO_SURFACE)
                 eglDestroySurface(m_egl_display, m_egl_surface);
-            if (m_egl_context != EGL_NO_CONTEXT)
-                eglDestroyContext(m_egl_display, m_egl_context);
 
-            eglTerminate(m_egl_display);
+            if (!m_is_shared)
+            {
+                if (m_egl_context != EGL_NO_CONTEXT)
+                    eglDestroyContext(m_egl_display, m_egl_context);
+
+                eglTerminate(m_egl_display);
+            }
             m_egl_display = EGL_NO_DISPLAY;
             m_egl_surface = EGL_NO_SURFACE;
             m_egl_context = EGL_NO_CONTEXT;
@@ -998,88 +1110,78 @@ namespace horizon
             m_egl_window = nullptr;
         }
 
-        if (m_pointer)
-        {
-            wl_pointer_destroy(m_pointer);
-            m_pointer = nullptr;
-        }
-        if (m_keyboard)
-        {
-            wl_keyboard_destroy(m_keyboard);
-            m_keyboard = nullptr;
-        }
-        if (m_seat)
-        {
-            wl_seat_destroy(m_seat);
-            m_seat = nullptr;
-        }
-
         if (m_data)
         {
             // Note: m_width/m_height might have changed, but this is a rough cleanup
-            // In a real app we'd track allocation size
             m_data = nullptr;
         }
 
-        if (m_xdg_wm_base)
+        if (m_surface)
         {
-            xdg_wm_base_destroy(m_xdg_wm_base);
-            m_xdg_wm_base = nullptr;
+            wl_surface_destroy(m_surface);
+            m_surface = nullptr;
         }
 
-        if (m_layer_shell)
+        if (!m_is_shared)
         {
-            zwlr_layer_shell_v1_destroy(m_layer_shell);
-            m_layer_shell = nullptr;
-        }
-
-        if (m_compositor)
-        {
-            wl_compositor_destroy(m_compositor);
-            m_compositor = nullptr;
-        }
-        if (m_shm)
-        {
-            wl_shm_destroy(m_shm);
-            m_shm = nullptr;
-        }
-        if (m_registry)
-        {
-            wl_registry_destroy(m_registry);
-            m_registry = nullptr;
-        }
-
-        if (m_xdg_toplevel)
-        {
-            xdg_toplevel_destroy(m_xdg_toplevel);
-            m_xdg_toplevel = nullptr;
-        }
-
-        if (m_xdg_surface)
-        {
-            xdg_surface_destroy(m_xdg_surface);
-            m_xdg_surface = nullptr;
-        }
-
-        if (m_layer_surface)
-        {
-            zwlr_layer_surface_v1_destroy(m_layer_surface);
-            m_layer_surface = nullptr;
-        }
-        if (m_display)
-        {
-            if (m_cursor_theme)
+            if (m_pointer)
             {
-                wl_cursor_theme_destroy(m_cursor_theme);
-                m_cursor_theme = nullptr;
+                wl_pointer_destroy(m_pointer);
+                m_pointer = nullptr;
             }
-            if (m_cursor_surface)
+            if (m_keyboard)
             {
-                wl_surface_destroy(m_cursor_surface);
-                m_cursor_surface = nullptr;
+                wl_keyboard_destroy(m_keyboard);
+                m_keyboard = nullptr;
             }
-            wl_display_disconnect(m_display);
-            m_display = nullptr;
+            if (m_seat)
+            {
+                wl_seat_destroy(m_seat);
+                m_seat = nullptr;
+            }
+
+            if (m_xdg_wm_base)
+            {
+                xdg_wm_base_destroy(m_xdg_wm_base);
+                m_xdg_wm_base = nullptr;
+            }
+
+            if (m_layer_shell)
+            {
+                zwlr_layer_shell_v1_destroy(m_layer_shell);
+                m_layer_shell = nullptr;
+            }
+
+            if (m_compositor)
+            {
+                wl_compositor_destroy(m_compositor);
+                m_compositor = nullptr;
+            }
+            if (m_shm)
+            {
+                wl_shm_destroy(m_shm);
+                m_shm = nullptr;
+            }
+            if (m_registry)
+            {
+                wl_registry_destroy(m_registry);
+                m_registry = nullptr;
+            }
+            if (m_display)
+            {
+                if (m_cursor_theme)
+                {
+                    wl_cursor_theme_destroy(m_cursor_theme);
+                    m_cursor_theme = nullptr;
+                }
+                if (m_cursor_surface)
+                {
+                    wl_surface_destroy(m_cursor_surface);
+                    m_cursor_surface = nullptr;
+                }
+                wl_display_disconnect(m_display);
+                m_display = nullptr;
+            }
         }
     }
 

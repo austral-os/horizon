@@ -171,6 +171,7 @@ namespace horizon
         bool has_focus() const;
 
         bool is_hovered() const;
+        void set_hovered(bool hovered);
         bool is_pressed() const;
 
         // --- Cursors ---

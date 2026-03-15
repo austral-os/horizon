@@ -592,6 +592,15 @@ namespace horizon
     {
         return m_is_hovered;
     }
+
+    void Widget::set_hovered(bool hovered)
+    {
+        if (m_is_hovered != hovered)
+        {
+            m_is_hovered = hovered;
+            invalidate();
+        }
+    }
     bool Widget::is_pressed() const
     {
         return m_is_pressed;

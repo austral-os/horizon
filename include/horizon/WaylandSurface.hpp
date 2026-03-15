@@ -41,6 +41,8 @@ struct ext_background_effect_surface_v1;
 struct ext_foreign_toplevel_list_v1;
 struct ext_foreign_toplevel_handle_v1;
 struct wl_egl_window;
+struct xdg_popup;
+struct xdg_positioner;
 
 namespace horizon
 {
@@ -85,10 +87,12 @@ namespace horizon
         {
             None,
             XdgToplevel,
-            LayerShell
+            LayerShell,
+            XdgPopup
         };
 
         explicit WaylandSurface(int w, int h);
+        WaylandSurface(WaylandSurface *parent, int w, int h);
         ~WaylandSurface();
 
         // Registry setters (called during init)
@@ -109,24 +113,31 @@ namespace horizon
         void set_pointer_y(double y);
 
         // Getters
-        struct wl_pointer *pointer() const;
-        struct wl_keyboard *keyboard() const;
-        struct wl_seat *seat() const;
-        struct xdg_wm_base *xdg_wm_base() const;
-        struct zwlr_layer_shell_v1 *layer_shell() const;
-        struct zwlr_foreign_toplevel_manager_v1 *foreign_toplevel_manager() const
+        struct ::wl_pointer *pointer() const;
+        struct ::wl_keyboard *keyboard() const;
+        struct ::wl_seat *seat() const;
+        struct ::xdg_wm_base *xdg_wm_base() const;
+        struct ::zwlr_layer_shell_v1 *layer_shell() const;
+        struct ::zwlr_foreign_toplevel_manager_v1 *foreign_toplevel_manager() const
         {
             return m_foreign_toplevel_manager;
         }
         void *data() const;
-        struct wl_surface *surface() const;
-        struct ext_background_effect_manager_v1 *background_effect_manager() const
+        struct ::wl_surface *surface() const;
+        struct ::xdg_surface *xdg_surface() const { return m_xdg_surface; }
+
+        EGLDisplay egl_display() const { return m_egl_display; }
+        EGLSurface egl_surface() const { return m_egl_surface; }
+        EGLContext egl_context() const { return m_egl_context; }
+        struct ::wl_egl_window *egl_window() const { return m_egl_window; }
+
+        struct ::ext_background_effect_manager_v1 *background_effect_manager() const
         {
             return m_background_effect_manager;
         }
-        struct wl_buffer *buffer() const;
-        struct wl_display *display() const;
-        const std::vector<struct wl_output *> &monitors() const
+        struct ::wl_buffer *buffer() const;
+        struct ::wl_display *display() const;
+        const std::vector<struct ::wl_output *> &monitors() const
         {
             return m_outputs;
         }
@@ -180,6 +191,17 @@ namespace horizon
         void set_layer_exclusive_zone(int32_t zone);
         void set_layer_keyboard_interactivity(uint32_t interactivity);
         void set_layer_size(uint32_t width, uint32_t height);
+
+        /**
+         * @brief Sets up the surface as an xdg_popup.
+         * @param parent The parent surface.
+         * @param x X offset relative to parent.
+         * @param y Y offset relative to parent.
+         * @param w Width of the popup.
+         * @param h Height of the popup.
+         * @param serial The serial of the event that triggered the popup (e.g. button press).
+         */
+        void setup_xdg_popup(WaylandSurface *parent, int x, int y, int w, int h, uint32_t serial);
 
         /**
          * @brief Sets the input region for the surface.
@@ -273,18 +295,6 @@ namespace horizon
             return m_xkb_state;
         }
 
-        EGLDisplay egl_display() const
-        {
-            return m_egl_display;
-        }
-        EGLSurface egl_surface() const
-        {
-            return m_egl_surface;
-        }
-        EGLContext egl_context() const
-        {
-            return m_egl_context;
-        }
         void swap_buffers();
 
         void update_blur_region();
@@ -320,9 +330,11 @@ namespace horizon
         void init_egl();
 
         // Role specific objects
-        struct xdg_surface *m_xdg_surface = nullptr;
-        struct xdg_toplevel *m_xdg_toplevel = nullptr;
-        struct zwlr_layer_surface_v1 *m_layer_surface = nullptr;
+        struct ::xdg_surface *m_xdg_surface = nullptr;
+        struct ::xdg_toplevel *m_xdg_toplevel = nullptr;
+        struct ::zwlr_layer_surface_v1 *m_layer_surface = nullptr;
+        struct ::xdg_popup *m_xdg_popup = nullptr;
+        struct ::xdg_positioner *m_xdg_positioner = nullptr;
 
         void *m_data = nullptr;
         struct wl_surface *m_surface = nullptr;
@@ -361,5 +373,6 @@ namespace horizon
         int32_t m_exclusive_zone = 0;
         uint32_t m_interactivity = 0;
         bool m_configured = false;
+        bool m_is_shared = false;
     };
 } // namespace horizon
