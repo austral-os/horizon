@@ -61,9 +61,7 @@ namespace horizon
                             when_right_click.run(ev);
                             if (m_context_menu)
                             {
-                                auto global_pos = application()->get_global_pointer_position();
-                                application()->show_context_menu(m_context_menu.get(), global_pos.x,
-                                                                 global_pos.y);
+                                application()->show_context_menu(m_context_menu.get(), -1, -1);
                             }
                         }
 

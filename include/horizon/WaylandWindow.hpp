@@ -159,6 +159,10 @@ namespace horizon
 
         int screen_x() const { return m_screen_x; }
         int screen_y() const { return m_screen_y; }
+
+        int pointer_x() const { return (int)m_pointer_x; }
+        int pointer_y() const { return (int)m_pointer_y; }
+
         void set_screen_position(int x, int y)
         {
             m_screen_x = x;

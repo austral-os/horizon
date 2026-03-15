@@ -164,6 +164,13 @@ namespace horizon
                             auto json_msg = nlohmann::json::parse(msg);
                             int x = json_msg.value("x", 0);
                             int y = json_msg.value("y", 0);
+
+                            if (x == -1 && y == -1)
+                            {
+                                x = m_window->w_surface()->pointer_x();
+                                y = m_window->w_surface()->pointer_y();
+                            }
+
                             root_menu_ptr->set_position(x, y);
                             if (json_msg.contains("monitor"))
                             {
