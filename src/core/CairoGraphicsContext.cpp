@@ -4,6 +4,7 @@
 #include <cmath>
 #include <horizon/Application.hpp>
 #include <horizon/CairoGraphicsContext.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/StbImageDriver.hpp>
 #include <horizon/SvgImageDriver.hpp>
 #include <librsvg/rsvg.h>
@@ -16,10 +17,22 @@ namespace horizon
     CairoGraphicContext::CairoGraphicContext(const WaylandWindow *app, void *data, int w, int h)
         : m_app(app), m_width(w), m_height(h)
     {
+        LOG_INFO << "[DEBUG] CairoGraphicContext START data=" << data << " size=" << w << "x" << h;
+        if (!data) {
+             LOG_ERROR << "[DEBUG] CairoGraphicContext ERROR: data is NULL";
+             return;
+        }
         cairo_s = cairo_image_surface_create_for_data((unsigned char *)data, CAIRO_FORMAT_ARGB32, w,
                                                       h, w * 4);
+        if (!cairo_s || cairo_surface_status(cairo_s) != CAIRO_STATUS_SUCCESS) {
+             LOG_ERROR << "[DEBUG] CairoGraphicContext ERROR: surface creation failed status=" << (cairo_s ? cairo_surface_status(cairo_s) : -1);
+        }
         cr = cairo_create(cairo_s);
+        if (!cr || cairo_status(cr) != CAIRO_STATUS_SUCCESS) {
+             LOG_ERROR << "[DEBUG] CairoGraphicContext ERROR: context creation failed status=" << (cr ? cairo_status(cr) : -1);
+        }
         m_clip_stack.push_back({0, 0, w, h});
+        LOG_INFO << "[DEBUG] CairoGraphicContext SUCCESS";
     }
 
     CairoGraphicContext::~CairoGraphicContext()
@@ -172,7 +185,9 @@ namespace horizon
 
     void CairoGraphicContext::setColor(Color color)
     {
+        LOG_INFO << "[DEBUG] CairoGraphicContext::setColor START (" << color.r << "," << color.g << "," << color.b << "," << color.a << ")";
         cairo_set_source_rgba(cr, color.r, color.g, color.b, color.a);
+        LOG_INFO << "[DEBUG] CairoGraphicContext::setColor END";
     }
 
     void CairoGraphicContext::clearRect(int x, int y, int w, int h, CornerRadius radius)
@@ -192,6 +207,7 @@ namespace horizon
     TextMetrics CairoGraphicContext::getTextMetrics(const char *text, const char *font, int size,
                                                     FontSlant slant, FontWeight weight) const
     {
+        LOG_INFO << "[DEBUG] CairoGraphicContext::getTextMetrics START text=" << (text ? text : "NULL") << " cr=" << (void*)cr;
         TextMetrics metrics;
         cairo_font_slant_t cairo_slant;
         cairo_font_weight_t cairo_weight;
@@ -373,16 +389,20 @@ namespace horizon
     void CairoGraphicContext::drawRect(int x, int y, int width, int height, CornerRadius radius,
                                        float lineWidth)
     {
+        LOG_INFO << "[DEBUG] CairoGraphicContext::drawRect START x=" << x << " y=" << y << " w=" << width << " h=" << height;
         cairo_set_line_width(cr, lineWidth);
         cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
         rounded_rectangle(cr, x, y, width, height, radius);
         cairo_stroke(cr);
+        LOG_INFO << "[DEBUG] CairoGraphicContext::drawRect END";
     }
 
     void CairoGraphicContext::fillRect(int x, int y, int width, int height, CornerRadius radius)
     {
+        LOG_INFO << "[DEBUG] CairoGraphicContext::fillRect START x=" << x << " y=" << y << " w=" << width << " h=" << height;
         rounded_rectangle(cr, x, y, width, height, radius);
         cairo_fill(cr);
+        LOG_INFO << "[DEBUG] CairoGraphicContext::fillRect END";
     }
 
     void CairoGraphicContext::drawLine(int x1, int y1, int x2, int y2, float lineWidth)
@@ -540,11 +560,12 @@ namespace horizon
         }
     }
 
-    void CairoGraphicContext::clipRoundedRect(int x, int y, int width, int height,
-                                              CornerRadius radius)
+    void CairoGraphicContext::clipRoundedRect(int x, int y, int width, int height, CornerRadius radius)
     {
+        LOG_INFO << "[DEBUG] CairoGraphicContext::clipRoundedRect START x=" << x << " y=" << y << " w=" << width << " h=" << height;
         rounded_rectangle(cr, (double)x, (double)y, (double)width, (double)height, radius);
         cairo_clip(cr);
+        LOG_INFO << "[DEBUG] CairoGraphicContext::clipRoundedRect END";
     }
 
     void CairoGraphicContext::translate(float dx, float dy)

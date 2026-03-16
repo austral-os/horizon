@@ -20,6 +20,21 @@ namespace horizon
     class WaylandWindow : public WaylandEventListener
     {
         friend class CairoGraphicContext;
+    class PopupEventListener : public WaylandEventListener
+    {
+        WaylandWindow *m_window;
+        Widget *m_hovered = nullptr;
+
+    public:
+        PopupEventListener(WaylandWindow *window) : m_window(window) {}
+
+        void on_pointer_event(const PointerEvent &event) override;
+        void on_key_event(const KeyEvent &event) override {}
+        void on_modifiers_event(uint32_t modifiers) override {}
+        void on_resize(int width, int height) override {}
+        void on_activated(bool active) override {}
+        void on_close() override;
+    };
 
     public:
         WaylandWindow(std::string app_id = "horizon.app", int w = 800, int h = 600,
@@ -113,8 +128,8 @@ namespace horizon
          * @param widget The widget to invalidate. If nullptr, the entire window is repainted.
          */
         void invalidate(Widget *widget = nullptr);
-
         void show_context_menu(Menu *menu, int x, int y);
+        void close_context_menu();
 
         /**
          * @brief Signals the application to wake up its event loop (e.g. from another thread).
@@ -417,6 +432,7 @@ namespace horizon
 
         void init_gl_resources();
         void render_gl_ui();
+        void render_gl_popup();
 
         mutable std::unique_ptr<GraphicsContext> m_gc;
         std::unique_ptr<CompositorContext> m_compositor_context;
@@ -461,6 +477,10 @@ namespace horizon
         std::unique_ptr<IpcClient> m_ipc_subscriber;
 
         bool m_resizable = true;
+
+        std::unique_ptr<WaylandSurface> m_popup_surface;
+        Menu *m_popup_menu = nullptr;
+        std::unique_ptr<PopupEventListener> m_popup_listener;
     };
 
 }; // namespace horizon

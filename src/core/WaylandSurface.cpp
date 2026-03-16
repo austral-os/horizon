@@ -22,6 +22,7 @@
 
 namespace horizon
 {
+    static WaylandSurface *g_pointer_focus = nullptr;
 
     /**
      * @brief Handler for seat capability changes (pointer, keyboard).
@@ -219,7 +220,7 @@ namespace horizon
     static void pointer_handle_motion(void *data, wl_pointer *, uint32_t, wl_fixed_t sx,
                                       wl_fixed_t sy)
     {
-        WaylandSurface *self = static_cast<WaylandSurface *>(data);
+        WaylandSurface *self = g_pointer_focus ? g_pointer_focus : static_cast<WaylandSurface *>(data);
 
         self->set_pointer_x(wl_fixed_to_double(sx));
         self->set_pointer_y(wl_fixed_to_double(sy));
@@ -237,7 +238,7 @@ namespace horizon
     static void pointer_handle_button(void *data, wl_pointer *pointer, uint32_t serial,
                                       uint32_t time, uint32_t button, uint32_t state)
     {
-        WaylandSurface *self = static_cast<WaylandSurface *>(data);
+        WaylandSurface *self = g_pointer_focus ? g_pointer_focus : static_cast<WaylandSurface *>(data);
         self->set_last_serial(serial);
 
         if (self->listener())
@@ -283,7 +284,11 @@ namespace horizon
     static void pointer_handle_enter(void *data, wl_pointer *pointer, uint32_t serial,
                                      struct wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy)
     {
-        WaylandSurface *self = static_cast<WaylandSurface *>(data);
+        WaylandSurface *self = static_cast<WaylandSurface *>(wl_surface_get_user_data(surface));
+        if (!self)
+            self = static_cast<WaylandSurface *>(data);
+
+        g_pointer_focus = self;
 
         self->set_pointer_x(wl_fixed_to_double(sx));
         self->set_pointer_y(wl_fixed_to_double(sy));
@@ -303,7 +308,13 @@ namespace horizon
     static void pointer_handle_leave(void *data, wl_pointer *pointer, uint32_t serial,
                                      struct wl_surface *surface)
     {
-        WaylandSurface *self = static_cast<WaylandSurface *>(data);
+        WaylandSurface *self = static_cast<WaylandSurface *>(wl_surface_get_user_data(surface));
+        if (!self)
+            self = static_cast<WaylandSurface *>(data);
+
+        if (g_pointer_focus == self)
+            g_pointer_focus = nullptr;
+
         self->set_last_serial(serial);
 
         if (self->listener())
@@ -656,6 +667,30 @@ namespace horizon
         init_egl();
     }
 
+    void WaylandSurface::share_connection_from(WaylandSurface *other)
+    {
+        if (!other)
+            return;
+
+        m_display = other->m_display;
+        m_registry = other->m_registry;
+        m_compositor = other->m_compositor;
+        m_shm = other->m_shm;
+        m_xdg_wm_base = other->m_xdg_wm_base;
+        m_layer_shell = other->m_layer_shell;
+        m_seat = other->m_seat;
+        m_pointer = other->m_pointer;
+        m_keyboard = other->m_keyboard;
+        m_activation = other->m_activation;
+        m_foreign_toplevel_manager = other->m_foreign_toplevel_manager;
+        m_background_effect_manager = other->m_background_effect_manager;
+        m_outputs = other->m_outputs;
+
+        m_egl_display = other->m_egl_display;
+        m_egl_config = other->m_egl_config;
+        m_egl_context = other->m_egl_context;
+    }
+
     void WaylandSurface::init_egl()
     {
         m_egl_display = eglGetDisplay((EGLNativeDisplayType)m_display);
@@ -694,6 +729,7 @@ namespace horizon
     {
         m_role = Role::XdgToplevel;
         m_surface = wl_compositor_create_surface(m_compositor);
+        wl_surface_set_user_data(m_surface, this);
 
         m_xdg_surface = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
         static const xdg_surface_listener xdg_surf_ptr = {
@@ -780,6 +816,7 @@ namespace horizon
         m_layer_num = layer;
         m_layer_namespace = namespace_id;
         m_surface = wl_compositor_create_surface(m_compositor);
+        wl_surface_set_user_data(m_surface, this);
 
         if (!m_layer_shell)
             throw std::runtime_error("Compositor does not support wlr-layer-shell");
@@ -829,6 +866,76 @@ namespace horizon
             m_cursor_theme = wl_cursor_theme_load(nullptr, 24, m_shm);
         if (m_compositor)
             m_cursor_surface = wl_compositor_create_surface(m_compositor);
+
+        resize_buffer(m_width, m_height);
+    }
+
+    void WaylandSurface::setup_xdg_popup(WaylandSurface *parent, int x, int y, int w, int h)
+    {
+        m_role = Role::XdgPopup;
+        share_connection_from(parent);
+
+        m_width = w;
+        m_height = h;
+
+        m_surface = wl_compositor_create_surface(m_compositor);
+        wl_surface_set_user_data(m_surface, this);
+        resize_buffer(w, h); // Initialize m_data and EGL window
+
+        m_xdg_positioner = xdg_wm_base_create_positioner(m_xdg_wm_base);
+        xdg_positioner_set_size(m_xdg_positioner, w, h);
+        xdg_positioner_set_anchor_rect(m_xdg_positioner, x, y, 1, 1);
+        xdg_positioner_set_anchor(m_xdg_positioner, XDG_POSITIONER_ANCHOR_TOP_LEFT);
+        xdg_positioner_set_gravity(m_xdg_positioner, XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT);
+
+        m_xdg_surface = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
+        
+        static const struct xdg_surface_listener popup_xdg_surf_listener = {
+            .configure = [](void *data, struct xdg_surface *surf, uint32_t serial)
+            {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                self->m_configured = true;
+                xdg_surface_ack_configure(surf, serial);
+            }
+        };
+        xdg_surface_add_listener(m_xdg_surface, &popup_xdg_surf_listener, this);
+
+        m_xdg_popup = xdg_surface_get_popup(m_xdg_surface, parent->m_xdg_surface, m_xdg_positioner);
+
+        static const struct xdg_popup_listener popup_listener = {
+            .configure = [](void *data, struct xdg_popup *popup, int32_t x, int32_t y, int32_t width, int32_t height)
+            {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                if (width > 0 && height > 0)
+                {
+                    self->resize_buffer(width, height);
+                    if (self->m_listener)
+                        self->m_listener->on_resize(width, height);
+                }
+            },
+            .popup_done = [](void *data, struct xdg_popup *popup)
+            {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                if (self->m_listener)
+                {
+                    self->m_listener->on_close();
+                }
+            },
+            .repositioned = [](void *data, struct xdg_popup *popup, uint32_t token)
+            {
+                // Handle repositioning if needed
+            }
+        };
+        xdg_popup_add_listener(m_xdg_popup, &popup_listener, this);
+
+        // Grab pointer for the popup
+        if (m_seat)
+        {
+            xdg_popup_grab(m_xdg_popup, m_seat, parent->last_serial());
+        }
+
+        wl_surface_commit(m_surface);
+        wl_display_roundtrip(m_display);
 
         resize_buffer(m_width, m_height);
     }
@@ -1053,6 +1160,18 @@ namespace horizon
         {
             xdg_toplevel_destroy(m_xdg_toplevel);
             m_xdg_toplevel = nullptr;
+        }
+
+        if (m_xdg_popup)
+        {
+            xdg_popup_destroy(m_xdg_popup);
+            m_xdg_popup = nullptr;
+        }
+
+        if (m_xdg_positioner)
+        {
+            xdg_positioner_destroy(m_xdg_positioner);
+            m_xdg_positioner = nullptr;
         }
 
         if (m_xdg_surface)
@@ -1298,11 +1417,6 @@ namespace horizon
         return m_keyboard;
     }
 
-    // Devuelve el puntero a xdg_wm_base
-    struct xdg_wm_base *WaylandSurface::xdg_wm_base() const
-    {
-        return m_xdg_wm_base;
-    }
 
     // Devuelve el puntero al buffer de memoria
     void *WaylandSurface::data() const

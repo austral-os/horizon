@@ -3,6 +3,7 @@
 #include <horizon/CairoGraphicsContext.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Menu.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/MenuItem.hpp>
 #include <horizon/ThemeManager.hpp>
 
@@ -175,8 +176,10 @@ namespace horizon
 
     void MenuItem::calculate_layout()
     {
+        LOG_INFO << "[DEBUG] MenuItem::calculate_layout START " << (void*)this << " content=" << (void*)m_content << " app=" << (void*)application();
         // Essential: Refresh m_start_draw_x/y from parent
         Widget::calculate_layout();
+        LOG_INFO << "[DEBUG] MenuItem::calculate_layout AFTER Widget::calculate_layout";
 
         int icon_width = (m_icon || m_reserve_icon_space) ? 24 : 0;
         int arrow_width = m_has_submenu ? 20 : 0; // Fix: only subtract if we have an arrow
@@ -234,6 +237,7 @@ namespace horizon
 
     void MenuItem::draw(GraphicsContext &gc)
     {
+        LOG_INFO << "[DEBUG] MenuItem::draw START " << (void*)this << " text=" << text() << " app=" << (void*)application();
 
         if (m_selected)
         {
@@ -246,22 +250,32 @@ namespace horizon
             // White text for selected items
             if (auto *label = dynamic_cast<Label *>(m_content))
             {
+                LOG_INFO << "[DEBUG] MenuItem::draw setting label white";
                 label->set_text_color({1.0f, 1.0f, 1.0f, 1.0f});
             }
-            m_shortcut_label->set_text_color({1.0f, 1.0f, 1.0f, 0.8f});
+            if (m_shortcut_label) {
+                LOG_INFO << "[DEBUG] MenuItem::draw setting shortcut color";
+                m_shortcut_label->set_text_color({1.0f, 1.0f, 1.0f, 0.8f});
+            }
         }
         else
         {
             // Default text color
             if (auto *label = dynamic_cast<Label *>(m_content))
             {
+                LOG_INFO << "[DEBUG] MenuItem::draw setting label black";
                 label->set_text_color({0.0f, 0.0f, 0.0f, 1.0f});
             }
-            m_shortcut_label->set_text_color({0.4f, 0.4f, 0.4f, 1.0f});
+            if (m_shortcut_label) {
+                LOG_INFO << "[DEBUG] MenuItem::draw setting shortcut black";
+                m_shortcut_label->set_text_color({0.4f, 0.4f, 0.4f, 1.0f});
+            }
         }
 
         // Draw children (items) via base class
+        LOG_INFO << "[DEBUG] MenuItem::draw BEFORE Widget::draw";
         Widget::draw(gc);
+        LOG_INFO << "[DEBUG] MenuItem::draw AFTER Widget::draw";
 
         if (m_has_submenu)
         {

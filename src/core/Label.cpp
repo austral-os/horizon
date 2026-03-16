@@ -1,3 +1,4 @@
+#include <horizon/Logger.hpp>
 #include <cmath>
 #include <horizon/Application.hpp>
 #include <horizon/CairoGraphicsContext.hpp>
@@ -67,7 +68,15 @@ namespace horizon
     void Label::draw(GraphicsContext &gc)
     {
         Widget::draw(gc);
+        if (!application()) {
+             LOG_ERROR << "[ERROR] Label::draw application is NULL for " << (void*)this;
+             return;
+        }
         auto *tm = application()->theme_manager.get();
+        if (!tm) {
+             LOG_ERROR << "[ERROR] Label::draw ThemeManager is NULL";
+             return;
+        }
         auto theme_font = tm->get_font("window");
 
         std::string family = theme_font.family;

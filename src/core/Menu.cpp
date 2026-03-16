@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
 
 namespace horizon
@@ -13,6 +14,8 @@ namespace horizon
 
         // Stop propagation of mouse events to prevent background clicks
         when_mouse_press.connect([](MouseButtonEventContext &ev) { ev.stop_propagation = true; });
+
+        LOG_INFO << "[DEBUG] Menu created " << (void *)this;
     }
 
     void Menu::add_item(std::unique_ptr<MenuItem> item)
@@ -45,8 +48,11 @@ namespace horizon
 
     void Menu::calculate_layout()
     {
+        LOG_INFO << "[DEBUG] Menu::calculate_layout START " << (void *)this;
         // Update m_start_draw_x/y based on current m_x/y
         Widget::calculate_layout();
+        LOG_INFO << "[DEBUG] Menu::calculate_layout after Widget::calculate_layout "
+                 << (void *)this;
 
         int padding_top = 10;
         int padding_bottom = 10;
@@ -157,6 +163,8 @@ namespace horizon
 
     void Menu::render(GraphicsContext &ctx, int cx, int cy, int cw, int ch, bool force)
     {
+        LOG_INFO << "[DEBUG] Menu::render CALLED vis=" << m_visible << " (x,y)=(" << m_x << ","
+                 << m_y << ")";
         // Handle visibility transition: if was visible but now hidden, clear the area
         if (!m_visible)
         {
@@ -201,14 +209,20 @@ namespace horizon
         // 3. Draw children with clipping
         CornerRadius radius(0, 0, 10, 10);
         ctx.save();
+        LOG_INFO << "[DEBUG] Menu::render BEFORE clipRoundedRect " << (void *)this;
         ctx.clipRoundedRect(m_start_draw_x, m_start_draw_y, m_width, m_height, radius);
+        LOG_INFO << "[DEBUG] Menu::render AFTER clipRoundedRect " << (void *)this;
 
+        size_t child_idx = 0;
         for (const auto &child : m_children)
         {
             if (child->is_visible())
             {
+                LOG_INFO << "[DEBUG] Menu::render child " << child_idx << " "
+                         << (void *)child.get();
                 child->render(ctx, cx, cy, cw, ch, should_draw);
             }
+            child_idx++;
         }
 
         ctx.restore();
@@ -219,6 +233,8 @@ namespace horizon
 
     void Menu::draw(GraphicsContext &gc)
     {
+        LOG_INFO << "[DEBUG] Menu::draw START " << (void *)this << " start_draw=(" << m_start_draw_x
+                 << "," << m_start_draw_y << ") size=" << m_width << "x" << m_height;
         // macOS Menu style
         // Straight top corners, rounded bottom corners
         CornerRadius radius(0, 0, 10, 10);

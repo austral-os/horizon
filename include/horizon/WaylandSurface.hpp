@@ -23,6 +23,8 @@ struct wl_surface;
 struct xdg_wm_base;
 struct xdg_toplevel;
 struct xdg_surface;
+struct xdg_popup;
+struct xdg_positioner;
 struct wl_buffer;
 struct wl_seat;
 struct wl_pointer;
@@ -41,6 +43,11 @@ struct ext_background_effect_surface_v1;
 struct ext_foreign_toplevel_list_v1;
 struct ext_foreign_toplevel_handle_v1;
 struct wl_egl_window;
+struct xdg_popup;
+struct xdg_positioner;
+struct xdg_surface;
+struct xdg_toplevel;
+struct xdg_wm_base;
 
 namespace horizon
 {
@@ -85,7 +92,8 @@ namespace horizon
         {
             None,
             XdgToplevel,
-            LayerShell
+            LayerShell,
+            XdgPopup
         };
 
         explicit WaylandSurface(int w, int h);
@@ -112,7 +120,7 @@ namespace horizon
         struct wl_pointer *pointer() const;
         struct wl_keyboard *keyboard() const;
         struct wl_seat *seat() const;
-        struct xdg_wm_base *xdg_wm_base() const;
+        struct ::xdg_wm_base *xdg_wm_base() const { return m_xdg_wm_base; }
         struct zwlr_layer_shell_v1 *layer_shell() const;
         struct zwlr_foreign_toplevel_manager_v1 *foreign_toplevel_manager() const
         {
@@ -126,6 +134,9 @@ namespace horizon
         }
         struct wl_buffer *buffer() const;
         struct wl_display *display() const;
+        struct wl_registry *registry() const { return m_registry; }
+        struct wl_compositor *compositor() const { return m_compositor; }
+        struct wl_shm *shm() const { return m_shm; }
         const std::vector<struct wl_output *> &monitors() const
         {
             return m_outputs;
@@ -158,6 +169,11 @@ namespace horizon
         void init_display();
 
         /**
+         * @brief Shares the Wayland connection and globals from another surface.
+         */
+        void share_connection_from(WaylandSurface *other);
+
+        /**
          * @brief Sets up the surface as a standard desktop window.
          */
         void setup_xdg_toplevel(const std::string &title, const std::string &app_id);
@@ -168,6 +184,16 @@ namespace horizon
          * @param namespace_id A string identifying the application/role.
          */
         void setup_layer_surface(uint32_t layer, const std::string &namespace_id);
+ 
+        /**
+         * @brief Sets up the surface as a popup.
+         * @param parent The parent surface.
+         * @param x X coordinate relative to parent.
+         * @param y Y coordinate relative to parent.
+         * @param w Popup width.
+         * @param h Popup height.
+         */
+        void setup_xdg_popup(WaylandSurface *parent, int x, int y, int w, int h);
 
         /**
          * @brief Sets the anchor for a layer surface.
@@ -320,9 +346,11 @@ namespace horizon
         void init_egl();
 
         // Role specific objects
-        struct xdg_surface *m_xdg_surface = nullptr;
-        struct xdg_toplevel *m_xdg_toplevel = nullptr;
+        struct ::xdg_surface *m_xdg_surface = nullptr;
+        struct ::xdg_toplevel *m_xdg_toplevel = nullptr;
         struct zwlr_layer_surface_v1 *m_layer_surface = nullptr;
+        struct ::xdg_popup *m_xdg_popup = nullptr;
+        struct ::xdg_positioner *m_xdg_positioner = nullptr;
 
         void *m_data = nullptr;
         struct wl_surface *m_surface = nullptr;

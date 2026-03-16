@@ -39,7 +39,7 @@ namespace horizon
         "}\n";
 
     WaylandWindow::WaylandWindow(std::string app_id, int w, int h, bool defer_init, bool resizable)
-        : m_app_id(app_id), m_resizable(resizable)
+        : m_app_id(app_id), m_resizable(resizable), m_popup_menu(nullptr)
     {
         // Inicialización del sistema
         m_surface = std::make_unique<WaylandSurface>(w, h);
@@ -337,6 +337,7 @@ namespace horizon
         }
     }
 
+
     void WaylandWindow::run()
     {
 
@@ -449,6 +450,7 @@ namespace horizon
 
                         if (m_root)
                         {
+                            LOG_INFO << "[DEBUG] run: Starting render";
                             m_full_repaint = false;
                             m_dirty_widgets.clear();
 
@@ -466,8 +468,29 @@ namespace horizon
                                            true);
                             ctx.popGroup();
                             ctx.flush();
+                            LOG_INFO << "[DEBUG] run: Main render finished";
 
+                            if (m_popup_menu && m_popup_surface && m_popup_surface->data())
+                            {
+                                LOG_INFO << "[DEBUG] run: Rendering popup at data=" << m_popup_surface->data();
+                                CairoGraphicContext pctx(this, m_popup_surface->data(),
+                                                         m_popup_surface->width(),
+                                                         m_popup_surface->height());
+                                pctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+                                pctx.clearRect(0, 0, m_popup_surface->width(),
+                                               m_popup_surface->height());
+
+                                m_popup_menu->render(pctx, 0, 0, m_popup_surface->width(),
+                                                     m_popup_surface->height(), true);
+                                pctx.flush();
+                                LOG_INFO << "[DEBUG] run: Rendering GL popup";
+                                render_gl_popup();
+                                LOG_INFO << "[DEBUG] run: Popup render finished";
+                            }
+
+                            LOG_INFO << "[DEBUG] run: Calling render_gl_ui";
                             render_gl_ui();
+                            LOG_INFO << "[DEBUG] run: render_gl_ui finished";
                             m_last_commit_time = frame_now;
                         }
                     }
@@ -787,27 +810,25 @@ namespace horizon
     void WaylandWindow::on_activated(bool active)
     {
         m_is_activated = active;
-        LOG_INFO << "[APP] on_activated: " << active << " (PID: " << getpid() << ")";
+        LOG_INFO << "[DEBUG] on_activated: Entering with active=" << active;
 
         if (m_client_menu)
         {
-            if (active)
-            {
-                LOG_INFO << "[APP] Sending global menu to panel.";
-                m_client_menu->set_global_menu(m_global_menus);
-            }
-            else
-            {
-                LOG_INFO << "[APP] Clearing global menu from panel.";
-                m_client_menu->set_global_menu({});
+            try {
+                LOG_INFO << "[DEBUG] on_activated: Calling set_global_menu";
+                if (active)
+                    m_client_menu->set_global_menu(m_global_menus);
+                else
+                    m_client_menu->set_global_menu({});
+                LOG_INFO << "[DEBUG] on_activated: set_global_menu finished";
+            } catch (...) {
+                LOG_ERROR << "[DEBUG] on_activated: set_global_menu CRASHED";
             }
         }
 
         if (active && m_is_minimized)
         {
-            LOG_INFO << "[APP] Window activated while minimized, marking as restored and "
-                        "triggering repaint (PID: "
-                     << getpid() << ")";
+            LOG_INFO << "[DEBUG] on_activated: Restoring minimized window";
             m_is_minimized = false;
             m_full_repaint = true;
             notify_app_manager("window_state_changed");
@@ -816,14 +837,19 @@ namespace horizon
 
         AppEventContext ev;
         ev.sender = this;
-        if (active)
-        {
-            when_activated.run(ev);
+        try {
+            if (active) {
+                LOG_INFO << "[DEBUG] on_activated: Running when_activated";
+                when_activated.run(ev);
+            } else {
+                LOG_INFO << "[DEBUG] on_activated: Running when_deactivated";
+                when_deactivated.run(ev);
+            }
+            LOG_INFO << "[DEBUG] on_activated: Signals finished";
+        } catch (...) {
+            LOG_ERROR << "[DEBUG] on_activated: Signals CRASHED";
         }
-        else
-        {
-            when_deactivated.run(ev);
-        }
+        LOG_INFO << "[DEBUG] on_activated: Exiting";
     }
 
     void WaylandWindow::on_key_event(const KeyEvent &event)
@@ -917,6 +943,133 @@ namespace horizon
         new_ev.keysym = event.keysym;
         new_ev.text = event.text;
         target->when_key_release.run(new_ev);
+    }
+
+    void WaylandWindow::PopupEventListener::on_pointer_event(const PointerEvent &event)
+    {
+        if (!m_window->m_popup_menu)
+            return;
+
+        int x = (int)event.x;
+        int y = (int)event.y;
+
+        Widget *under = m_window->m_popup_menu->hit_test(x, y);
+
+        // 1. Hover tracking (Enter/Leave)
+        if (event.type == PointerEvent::Type::Move || event.type == PointerEvent::Type::Enter)
+        {
+            if (under != m_hovered)
+            {
+                std::vector<Widget *> old_path;
+                Widget *temp = m_hovered;
+                while (temp)
+                {
+                    old_path.push_back(temp);
+                    temp = temp->parent();
+                }
+
+                std::vector<Widget *> new_path;
+                temp = under;
+                while (temp)
+                {
+                    new_path.push_back(temp);
+                    temp = temp->parent();
+                }
+
+                // Send MouseLeave to widgets in old path that are NOT in new path
+                for (Widget *w : old_path)
+                {
+                    if (std::find(new_path.begin(), new_path.end(), w) == new_path.end())
+                    {
+                        EventContext leave_ev;
+                        leave_ev.sender = w;
+                        w->when_mouse_leave.run(leave_ev);
+                    }
+                }
+
+                // Send MouseEnter to widgets in new path that were NOT in old path
+                for (auto it = new_path.rbegin(); it != new_path.rend(); ++it)
+                {
+                    Widget *w = *it;
+                    if (std::find(old_path.begin(), old_path.end(), w) == old_path.end())
+                    {
+                        EventContext enter_ev;
+                        enter_ev.sender = w;
+                        w->when_mouse_enter.run(enter_ev);
+                    }
+                }
+
+                m_hovered = under;
+            }
+        }
+
+        // 2. Event Dispatching with Propagation
+        if (under)
+        {
+            std::vector<Widget *> chain;
+            Widget *temp = under;
+            while (temp)
+            {
+                chain.push_back(temp);
+                temp = temp->parent();
+            }
+
+            if (event.type == PointerEvent::Type::Move || event.type == PointerEvent::Type::Enter)
+            {
+                MouseMoveEventContext mv;
+                mv.x = (double)x;
+                mv.y = (double)y;
+                mv.modifiers = m_window->m_modifiers;
+                for (Widget *w : chain)
+                {
+                    mv.sender = w;
+                    w->when_mouse_move.run(mv);
+                    if (mv.stop_propagation)
+                        break;
+                }
+            }
+            else if (event.type == PointerEvent::Type::Press)
+            {
+                MouseButtonEventContext ev;
+                ev.button = event.button;
+                ev.x = (double)x;
+                ev.y = (double)y;
+                ev.modifiers = m_window->m_modifiers;
+                ev.serial = event.serial;
+                for (Widget *w : chain)
+                {
+                    ev.sender = w;
+                    w->when_mouse_press.run(ev);
+                    if (ev.stop_propagation)
+                        break;
+                }
+            }
+            else if (event.type == PointerEvent::Type::Release)
+            {
+                MouseButtonEventContext ev;
+                ev.button = event.button;
+                ev.x = (double)x;
+                ev.y = (double)y;
+                ev.modifiers = m_window->m_modifiers;
+                ev.serial = event.serial;
+                for (Widget *w : chain)
+                {
+                    ev.sender = w;
+                    w->when_mouse_release.run(ev);
+                    if (ev.stop_propagation)
+                        break;
+                }
+                // Finally run click on the direct hit widget
+                under->when_click.run(ev);
+            }
+        }
+
+        m_window->invalidate();
+    }
+
+    void WaylandWindow::PopupEventListener::on_close()
+    {
+        m_window->close_context_menu();
     }
 
     void WaylandWindow::handle_move(const PointerEvent &event)
@@ -1398,6 +1551,58 @@ namespace horizon
         m_surface->swap_buffers();
     }
 
+    void WaylandWindow::render_gl_popup()
+    {
+        if (!m_popup_surface || !m_popup_surface->data())
+            return;
+
+        // Make popup context current
+        eglMakeCurrent(m_popup_surface->egl_display(), m_popup_surface->egl_surface(),
+                       m_popup_surface->egl_surface(), m_popup_surface->egl_context());
+
+        init_gl_resources(); // Ensure same resources are available
+
+        glViewport(0, 0, m_popup_surface->width(), m_popup_surface->height());
+        glClearColor(0, 0, 0, 0); // Always transparent background for popup
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+        glUseProgram(m_gl_program);
+
+        float identity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+        GLint mvp_loc = glGetUniformLocation(m_gl_program, "u_mvp");
+        glUniformMatrix4fv(mvp_loc, 1, GL_FALSE, identity);
+
+        GLint opacity_loc = glGetUniformLocation(m_gl_program, "u_opacity");
+        glUniform1f(opacity_loc, 1.0f);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_gl_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_popup_surface->width(),
+                     m_popup_surface->height(), 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                     m_popup_surface->data());
+
+        GLint pos_attr = glGetAttribLocation(m_gl_program, "position");
+        GLint tex_attr = glGetAttribLocation(m_gl_program, "texcoord");
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_gl_vbo);
+        glVertexAttribPointer(pos_attr, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+        glEnableVertexAttribArray(pos_attr);
+        glVertexAttribPointer(tex_attr, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                              (void *)(3 * sizeof(float)));
+        glEnableVertexAttribArray(tex_attr);
+
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+        m_popup_surface->swap_buffers();
+
+        // Restore main surface context
+        eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(),
+                       m_surface->egl_surface(), m_surface->egl_context());
+    }
+
     GraphicsContext &WaylandWindow::get_graphics_context() const
     {
         int w = width();
@@ -1643,11 +1848,51 @@ namespace horizon
 
     void WaylandWindow::show_context_menu(Menu *menu, int x, int y)
     {
-        if (!m_client_menu)
+        LOG_INFO << "[DEBUG] show_context_menu CALLED for menu=" << (void*)menu << " at (" << x << "," << y << ")";
+        if (!m_surface || !menu)
+            return;
+
+        close_context_menu();
+
+        if (x == -1 && y == -1)
         {
-            m_client_menu = std::make_shared<ClientMenu>();
+            x = (int)m_pointer_x;
+            y = (int)m_pointer_y;
         }
-        m_client_menu->show_menu(menu, x, y, -1, "", getpid());
+
+        m_popup_menu = menu;
+        m_popup_menu->set_application_recursive(this);
+        m_popup_menu->set_visible(true);
+        m_popup_menu->set_position(0, 0);
+        m_popup_menu->calculate_layout();
+
+        int w = m_popup_menu->width();
+        int h = m_popup_menu->height();
+
+        m_popup_surface = std::make_unique<WaylandSurface>(w, h);
+        
+        m_popup_listener = std::make_unique<PopupEventListener>(this);
+        m_popup_surface->set_event_listener(m_popup_listener.get());
+        
+        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, w, h);
+        
+        invalidate();
+    }
+
+    void WaylandWindow::close_context_menu()
+    {
+        if (m_popup_menu)
+        {
+            m_popup_menu->set_visible(false);
+            m_popup_menu = nullptr;
+        }
+        if (m_popup_surface)
+        {
+            m_popup_surface->free();
+            m_popup_surface.reset();
+        }
+        m_popup_listener.reset();
+        invalidate();
     }
 
     widget_position WaylandWindow::get_global_pointer_position() const
