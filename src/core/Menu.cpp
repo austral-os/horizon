@@ -14,8 +14,6 @@ namespace horizon
 
         // Stop propagation of mouse events to prevent background clicks
         when_mouse_press.connect([](MouseButtonEventContext &ev) { ev.stop_propagation = true; });
-
-        LOG_INFO << "[DEBUG] Menu created " << (void *)this;
     }
 
     void Menu::add_item(std::unique_ptr<MenuItem> item)
@@ -48,11 +46,8 @@ namespace horizon
 
     void Menu::calculate_layout()
     {
-        LOG_INFO << "[DEBUG] Menu::calculate_layout START " << (void *)this;
         // Update m_start_draw_x/y based on current m_x/y
         Widget::calculate_layout();
-        LOG_INFO << "[DEBUG] Menu::calculate_layout after Widget::calculate_layout "
-                 << (void *)this;
 
         int padding_top = 10;
         int padding_bottom = 10;

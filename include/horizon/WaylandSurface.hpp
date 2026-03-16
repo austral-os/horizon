@@ -389,5 +389,7 @@ namespace horizon
         int32_t m_exclusive_zone = 0;
         uint32_t m_interactivity = 0;
         bool m_configured = false;
+        bool m_owns_connection = true;
+        size_t m_mapped_size = 0;
     };
 } // namespace horizon

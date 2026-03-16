@@ -450,29 +450,29 @@ namespace horizon
 
                         if (m_root)
                         {
-                            LOG_INFO << "[DEBUG] run: Starting render";
                             m_full_repaint = false;
                             m_dirty_widgets.clear();
 
-                            CairoGraphicContext ctx(this, m_surface->data(), m_surface->width(),
-                                                    m_surface->height());
-
-                            if (is_transparent_surface())
+                            if (m_surface->data())
                             {
-                                ctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
-                                ctx.clearRect(0, 0, m_surface->width(), m_surface->height());
-                            }
+                                CairoGraphicContext ctx(this, m_surface->data(), m_surface->width(),
+                                                        m_surface->height());
 
-                            ctx.pushGroup();
-                            m_root->render(ctx, 0, 0, m_surface->width(), m_surface->height(),
-                                           true);
-                            ctx.popGroup();
-                            ctx.flush();
-                            LOG_INFO << "[DEBUG] run: Main render finished";
+                                if (is_transparent_surface())
+                                {
+                                    ctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+                                    ctx.clearRect(0, 0, m_surface->width(), m_surface->height());
+                                }
+
+                                ctx.pushGroup();
+                                m_root->render(ctx, 0, 0, m_surface->width(), m_surface->height(),
+                                               true);
+                                ctx.popGroup();
+                                ctx.flush();
+                            }
 
                             if (m_popup_menu && m_popup_surface && m_popup_surface->data())
                             {
-                                LOG_INFO << "[DEBUG] run: Rendering popup at data=" << m_popup_surface->data();
                                 CairoGraphicContext pctx(this, m_popup_surface->data(),
                                                          m_popup_surface->width(),
                                                          m_popup_surface->height());
@@ -483,14 +483,10 @@ namespace horizon
                                 m_popup_menu->render(pctx, 0, 0, m_popup_surface->width(),
                                                      m_popup_surface->height(), true);
                                 pctx.flush();
-                                LOG_INFO << "[DEBUG] run: Rendering GL popup";
                                 render_gl_popup();
-                                LOG_INFO << "[DEBUG] run: Popup render finished";
                             }
 
-                            LOG_INFO << "[DEBUG] run: Calling render_gl_ui";
                             render_gl_ui();
-                            LOG_INFO << "[DEBUG] run: render_gl_ui finished";
                             m_last_commit_time = frame_now;
                         }
                     }
@@ -587,13 +583,11 @@ namespace horizon
 
                 if (ret > 0)
                 {
-                    // Always dispatch Wayland events FIRST, before anything else,
-                    // so physical key events update m_is_repeating state before the repeat check.
                     if (fds[0].revents & POLLIN)
                     {
                         if (wl_display_dispatch(m_surface->display()) == -1)
                         {
-                            LOG_ERROR << "[APP] wl_display_dispatch() failed, exiting loop.";
+                            LOG_ERROR << "[WINDOW] wl_display_dispatch failed";
                             m_is_running = false;
                             break;
                         }
@@ -1052,19 +1046,19 @@ namespace horizon
                 ev.y = (double)y;
                 ev.modifiers = m_window->m_modifiers;
                 ev.serial = event.serial;
+                ev.stop_propagation = true; // IMPORTANT: Prevent propagation to main window
                 for (Widget *w : chain)
                 {
                     ev.sender = w;
                     w->when_mouse_release.run(ev);
-                    if (ev.stop_propagation)
-                        break;
                 }
+                m_window->invalidate();
                 // Finally run click on the direct hit widget
+                // IMPORTANT: under might belong to the popup menu which might be destroyed 
+                // inside when_click.run(ev). We must not access this listener after this call.
                 under->when_click.run(ev);
             }
         }
-
-        m_window->invalidate();
     }
 
     void WaylandWindow::PopupEventListener::on_close()
@@ -1672,6 +1666,11 @@ namespace horizon
             m_hovered = nullptr;
         if (m_pressed == widget)
             m_pressed = nullptr;
+
+        // CRITICAL: If the widget being destroyed is the current popup menu,
+        // we MUST clear the reference to avoid a dangling pointer.
+        if (m_popup_menu == (Menu *)widget)
+            m_popup_menu = nullptr;
     }
 
     void WaylandWindow::set_root(std::unique_ptr<Widget> root)
@@ -1848,7 +1847,6 @@ namespace horizon
 
     void WaylandWindow::show_context_menu(Menu *menu, int x, int y)
     {
-        LOG_INFO << "[DEBUG] show_context_menu CALLED for menu=" << (void*)menu << " at (" << x << "," << y << ")";
         if (!m_surface || !menu)
             return;
 
@@ -1886,12 +1884,21 @@ namespace horizon
             m_popup_menu->set_visible(false);
             m_popup_menu = nullptr;
         }
-        if (m_popup_surface)
+
+        if (m_popup_surface || m_popup_listener)
         {
-            m_popup_surface->free();
-            m_popup_surface.reset();
+            // Defer cleanup to next event loop iteration to avoid use-after-free
+            // if we are inside a callback of the popup surface itself.
+            // We use shared_ptr because std::function requires copyable functors.
+            std::shared_ptr<WaylandSurface> s = std::move(m_popup_surface);
+            std::shared_ptr<PopupEventListener> l = std::move(m_popup_listener);
+
+            post_task([s, l]() {
+                if (s)
+                    s->free();
+                // l and s destroyed here when lambda ends
+            });
         }
-        m_popup_listener.reset();
         invalidate();
     }
 

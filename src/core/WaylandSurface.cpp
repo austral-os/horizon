@@ -284,7 +284,8 @@ namespace horizon
     static void pointer_handle_enter(void *data, wl_pointer *pointer, uint32_t serial,
                                      struct wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy)
     {
-        WaylandSurface *self = static_cast<WaylandSurface *>(wl_surface_get_user_data(surface));
+        WaylandSurface *self =
+            surface ? static_cast<WaylandSurface *>(wl_surface_get_user_data(surface)) : nullptr;
         if (!self)
             self = static_cast<WaylandSurface *>(data);
 
@@ -308,7 +309,8 @@ namespace horizon
     static void pointer_handle_leave(void *data, wl_pointer *pointer, uint32_t serial,
                                      struct wl_surface *surface)
     {
-        WaylandSurface *self = static_cast<WaylandSurface *>(wl_surface_get_user_data(surface));
+        WaylandSurface *self =
+            surface ? static_cast<WaylandSurface *>(wl_surface_get_user_data(surface)) : nullptr;
         if (!self)
             self = static_cast<WaylandSurface *>(data);
 
@@ -679,6 +681,7 @@ namespace horizon
         m_xdg_wm_base = other->m_xdg_wm_base;
         m_layer_shell = other->m_layer_shell;
         m_seat = other->m_seat;
+        m_owns_connection = false;
         m_pointer = other->m_pointer;
         m_keyboard = other->m_keyboard;
         m_activation = other->m_activation;
@@ -1012,7 +1015,6 @@ namespace horizon
     void WaylandSurface::init()
     {
         init_display();
-        setup_xdg_toplevel("Horizon Application", "horizon");
     }
 
     void WaylandSurface::resize_buffer(int width, int height)
@@ -1023,14 +1025,16 @@ namespace horizon
         // 1. Cairo/SHM data allocation (Hybrid mode: we still draw with Cairo to CPU)
         if (m_data)
         {
-            munmap(m_data, m_width * m_height * 4);
+            munmap(m_data, m_mapped_size);
+            m_data = nullptr;
         }
 
         m_width = width;
         m_height = height;
+        m_mapped_size = (size_t)m_width * m_height * 4;
 
         int stride = m_width * 4;
-        int size = stride * m_height;
+        int size = (int)m_mapped_size;
         int fd = memfd_create("buffer", MFD_CLOEXEC);
         if (fd < 0)
         {
@@ -1086,17 +1090,26 @@ namespace horizon
 
     void WaylandSurface::free()
     {
-        if (m_egl_display != EGL_NO_DISPLAY)
-        {
-            if (m_egl_surface != EGL_NO_SURFACE)
-                eglDestroySurface(m_egl_display, m_egl_surface);
-            if (m_egl_context != EGL_NO_CONTEXT)
-                eglDestroyContext(m_egl_display, m_egl_context);
+        if (g_pointer_focus == this)
+            g_pointer_focus = nullptr;
 
-            eglTerminate(m_egl_display);
-            m_egl_display = EGL_NO_DISPLAY;
+        m_configured = false;
+        m_listener = nullptr;
+
+        // 1. Role objects (Release handles while connection is alive)
+        if (m_xdg_toplevel) { xdg_toplevel_destroy(m_xdg_toplevel); m_xdg_toplevel = nullptr; }
+        if (m_xdg_popup) { xdg_popup_destroy(m_xdg_popup); m_xdg_popup = nullptr; }
+        if (m_xdg_positioner) { xdg_positioner_destroy(m_xdg_positioner); m_xdg_positioner = nullptr; }
+        if (m_layer_surface) { zwlr_layer_surface_v1_destroy(m_layer_surface); m_layer_surface = nullptr; }
+        if (m_xdg_surface) { xdg_surface_destroy(m_xdg_surface); m_xdg_surface = nullptr; }
+
+        // 2. Cursor cleanup (needs SHM and Compositor)
+        if (m_cursor_theme) { wl_cursor_theme_destroy(m_cursor_theme); m_cursor_theme = nullptr; }
+        if (m_cursor_surface) { wl_surface_destroy(m_cursor_surface); m_cursor_surface = nullptr; }
+
+        if (m_egl_display != EGL_NO_DISPLAY && m_egl_surface != EGL_NO_SURFACE) {
+            eglDestroySurface(m_egl_display, m_egl_surface);
             m_egl_surface = EGL_NO_SURFACE;
-            m_egl_context = EGL_NO_CONTEXT;
         }
 
         if (m_egl_window)
@@ -1105,100 +1118,43 @@ namespace horizon
             m_egl_window = nullptr;
         }
 
-        if (m_pointer)
-        {
-            wl_pointer_destroy(m_pointer);
-            m_pointer = nullptr;
-        }
-        if (m_keyboard)
-        {
-            wl_keyboard_destroy(m_keyboard);
-            m_keyboard = nullptr;
-        }
-        if (m_seat)
-        {
-            wl_seat_destroy(m_seat);
-            m_seat = nullptr;
+        // 5. wl_surface
+        if (m_surface) { 
+            wl_surface_destroy(m_surface); 
+            m_surface = nullptr; 
         }
 
-        if (m_data)
-        {
-            // Note: m_width/m_height might have changed, but this is a rough cleanup
-            // In a real app we'd track allocation size
+        // 6. Data/SHM map release
+        if (m_data) {
+            munmap(m_data, m_mapped_size);
             m_data = nullptr;
         }
 
-        if (m_xdg_wm_base)
-        {
-            xdg_wm_base_destroy(m_xdg_wm_base);
-            m_xdg_wm_base = nullptr;
-        }
+        // 7. Shared connection (only if owned)
+        if (m_owns_connection) {
+            if (m_pointer) { wl_pointer_destroy(m_pointer); m_pointer = nullptr; }
+            if (m_keyboard) { wl_keyboard_destroy(m_keyboard); m_keyboard = nullptr; }
+            if (m_seat) { wl_seat_destroy(m_seat); m_seat = nullptr; }
+            if (m_xdg_wm_base) { xdg_wm_base_destroy(m_xdg_wm_base); m_xdg_wm_base = nullptr; }
+            if (m_layer_shell) { zwlr_layer_shell_v1_destroy(m_layer_shell); m_layer_shell = nullptr; }
+            
+            if (m_shm) { wl_shm_destroy(m_shm); m_shm = nullptr; }
+            if (m_compositor) { wl_compositor_destroy(m_compositor); m_compositor = nullptr; }
+            if (m_registry) { wl_registry_destroy(m_registry); m_registry = nullptr; }
 
-        if (m_layer_shell)
-        {
-            zwlr_layer_shell_v1_destroy(m_layer_shell);
-            m_layer_shell = nullptr;
-        }
-
-        if (m_compositor)
-        {
-            wl_compositor_destroy(m_compositor);
-            m_compositor = nullptr;
-        }
-        if (m_shm)
-        {
-            wl_shm_destroy(m_shm);
-            m_shm = nullptr;
-        }
-        if (m_registry)
-        {
-            wl_registry_destroy(m_registry);
-            m_registry = nullptr;
-        }
-
-        if (m_xdg_toplevel)
-        {
-            xdg_toplevel_destroy(m_xdg_toplevel);
-            m_xdg_toplevel = nullptr;
-        }
-
-        if (m_xdg_popup)
-        {
-            xdg_popup_destroy(m_xdg_popup);
-            m_xdg_popup = nullptr;
-        }
-
-        if (m_xdg_positioner)
-        {
-            xdg_positioner_destroy(m_xdg_positioner);
-            m_xdg_positioner = nullptr;
-        }
-
-        if (m_xdg_surface)
-        {
-            xdg_surface_destroy(m_xdg_surface);
-            m_xdg_surface = nullptr;
-        }
-
-        if (m_layer_surface)
-        {
-            zwlr_layer_surface_v1_destroy(m_layer_surface);
-            m_layer_surface = nullptr;
-        }
-        if (m_display)
-        {
-            if (m_cursor_theme)
-            {
-                wl_cursor_theme_destroy(m_cursor_theme);
-                m_cursor_theme = nullptr;
+            if (m_egl_display != EGL_NO_DISPLAY) {
+                if (m_egl_context != EGL_NO_CONTEXT) {
+                    eglDestroyContext(m_egl_display, m_egl_context);
+                    m_egl_context = EGL_NO_CONTEXT;
+                }
+                eglTerminate(m_egl_display);
+                m_egl_display = EGL_NO_DISPLAY;
             }
-            if (m_cursor_surface)
-            {
-                wl_surface_destroy(m_cursor_surface);
-                m_cursor_surface = nullptr;
+
+            if (m_display) {
+                wl_display_disconnect(m_display);
+                m_display = nullptr;
             }
-            wl_display_disconnect(m_display);
-            m_display = nullptr;
         }
     }
 

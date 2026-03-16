@@ -47,6 +47,26 @@ namespace horizon
                     ev.stop_propagation = true;
                 }
             });
+
+        when_click.connect(
+            [this](MouseButtonEventContext &)
+            {
+                auto app = application();
+                if (app)
+                {
+                    // Capture necessary state before potential destruction
+                    std::string signal_name = m_id.empty() ? text() : m_id;
+                    bool has_sub = m_has_submenu;
+                    
+                    // Emit signal - THIS WIDGET MAY BE DESTROYED AFTER THIS
+                    app->signal_manager.emit(signal_name, this);
+
+                    if (!has_sub)
+                    {
+                        app->close_context_menu();
+                    }
+                }
+            });
     }
 
     MenuItem::MenuItem(const std::string &text) : MenuItem()
@@ -176,10 +196,8 @@ namespace horizon
 
     void MenuItem::calculate_layout()
     {
-        LOG_INFO << "[DEBUG] MenuItem::calculate_layout START " << (void*)this << " content=" << (void*)m_content << " app=" << (void*)application();
         // Essential: Refresh m_start_draw_x/y from parent
         Widget::calculate_layout();
-        LOG_INFO << "[DEBUG] MenuItem::calculate_layout AFTER Widget::calculate_layout";
 
         int icon_width = (m_icon || m_reserve_icon_space) ? 24 : 0;
         int arrow_width = m_has_submenu ? 20 : 0; // Fix: only subtract if we have an arrow
