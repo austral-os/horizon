@@ -62,7 +62,7 @@ namespace horizon
                             when_right_click.run(ev);
                             if (m_context_menu)
                             {
-                                application()->show_context_menu(m_context_menu.get(), -1, -1);
+                                application()->show_context_menu(m_context_menu.get(), -1, -1, ev.serial);
                             }
                         }
 

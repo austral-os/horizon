@@ -1257,6 +1257,11 @@ namespace horizon
 
         m_last_serial = event.serial;
 
+        if (m_popup_menu)
+        {
+            close_context_menu();
+        }
+
         if (m_resize_edge != XDG_TOPLEVEL_RESIZE_EDGE_NONE)
         {
             m_surface->request_resize(event.serial, m_resize_edge);
@@ -1845,7 +1850,7 @@ namespace horizon
         return m_surface && m_surface->is_maximized();
     }
 
-    void WaylandWindow::show_context_menu(Menu *menu, int x, int y)
+    void WaylandWindow::show_context_menu(Menu *menu, int x, int y, uint32_t serial)
     {
         if (!m_surface || !menu)
             return;
@@ -1871,6 +1876,11 @@ namespace horizon
         
         m_popup_listener = std::make_unique<PopupEventListener>(this);
         m_popup_surface->set_event_listener(m_popup_listener.get());
+        
+        // Update surface serial before setup if provided
+        if (serial > 0) {
+            m_surface->set_last_serial(serial);
+        }
         
         m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, w, h);
         
