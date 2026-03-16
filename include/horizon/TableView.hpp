@@ -376,45 +376,51 @@ namespace horizon
                 // Capture row data by value to avoid out-of-bounds access if m_data is updated
                 T row_data = m_data[row_idx];
 
-                row_widget->when_mouse_press.connect(
+                row_widget->when_click.connect(
                     [this, row_idx, row_data](MouseButtonEventContext &ctx)
                     {
-                        if (ctx.button == 0x110) // Left click
+                        bool ctrl_pressed = (ctx.modifiers & WaylandWindow::Modifier::CTRL);
+
+                        if (ctrl_pressed)
                         {
-                            bool ctrl_pressed = (ctx.modifiers & WaylandWindow::Modifier::CTRL);
-
-                            if (ctrl_pressed)
-                            {
-                                if (m_selected_rows.count((int)row_idx))
-                                    m_selected_rows.erase((int)row_idx);
-                                else
-                                    m_selected_rows.insert((int)row_idx);
-                            }
+                            if (m_selected_rows.count((int)row_idx))
+                                m_selected_rows.erase((int)row_idx);
                             else
-                            {
-                                m_selected_rows.clear();
                                 m_selected_rows.insert((int)row_idx);
-                            }
+                        }
+                        else
+                        {
+                            m_selected_rows.clear();
+                            m_selected_rows.insert((int)row_idx);
+                        }
 
+                        update_selection_visuals();
+
+                        TableViewRowMouseClickContext<T> click_ctx;
+                        click_ctx.row_index = (int)row_idx;
+                        click_ctx.row_data = row_data;
+                        when_row_click.run(click_ctx);
+                    });
+
+                row_widget->when_right_click.connect(
+                    [this, row_idx, row_data](MouseButtonEventContext &ctx)
+                    {
+                        // If row not already selected, select it exclusively
+                        if (m_selected_rows.count((int)row_idx) == 0)
+                        {
+                            m_selected_rows.clear();
+                            m_selected_rows.insert((int)row_idx);
                             update_selection_visuals();
-
-                            TableViewRowMouseClickContext<T> click_ctx;
-                            click_ctx.row_index = (int)row_idx;
-                            click_ctx.row_data = row_data;
-                            when_row_click.run(click_ctx);
                         }
                     });
 
                 row_widget->when_dbl_click.connect(
                     [this, row_idx, row_data](MouseButtonEventContext &ctx)
                     {
-                        if (ctx.button == 0x110) // Left click
-                        {
-                            TableViewRowMouseClickContext<T> click_ctx;
-                            click_ctx.row_index = (int)row_idx;
-                            click_ctx.row_data = row_data;
-                            when_row_dbl_click.run(click_ctx);
-                        }
+                        TableViewRowMouseClickContext<T> click_ctx;
+                        click_ctx.row_index = (int)row_idx;
+                        click_ctx.row_data = row_data;
+                        when_row_dbl_click.run(click_ctx);
                     });
 
                 for (size_t col_idx = 0; col_idx < m_columns.size(); ++col_idx)

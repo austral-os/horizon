@@ -236,12 +236,6 @@ namespace horizon
 
         m_content->set_position(m_start_draw_x + content_x, m_start_draw_y);
         m_content->set_size(available_content_width, m_height);
-        m_content->set_application_recursive(application());
-        if (m_shortcut_label)
-            m_shortcut_label->set_application_recursive(application());
-        if (m_icon)
-            m_icon->set_application_recursive(application());
-
         m_content->calculate_layout();
 
         if (!m_shortcut_text.empty() && m_shortcut_label)
