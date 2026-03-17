@@ -65,7 +65,7 @@ namespace horizon::arkfm
             row->set_fixed_size(24);
 
             auto lbl = std::make_unique<horizon::Label>(label + ":");
-            lbl->set_fixed_size(100);
+            lbl->set_fixed_size(150);
             row->add_child(std::move(lbl));
 
             auto val = std::make_unique<horizon::Label>(value);
