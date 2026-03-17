@@ -44,6 +44,22 @@ int main(int argc, char **argv)
     });
 
     main_container->add_child(std::move(combo));
+
+    auto info_label2 = std::make_unique<Label>("Select an item (no icons):");
+    main_container->add_child(std::move(info_label2));
+
+    auto combo2 = std::make_unique<Combo>();
+    combo2->add_item("c2_1", "Opcion A");
+    combo2->add_item("c2_2", "Opcion B");
+    combo2->add_item("c2_3", "Opcion C");
+    
+    auto *combo2_ptr = combo2.get();
+    combo2_ptr->when_item_selected.connect([result_ptr](ComboItemSelectedContext &ctx) {
+        LOG_INFO << "Combo 2 selected: " << ctx.item.text;
+        result_ptr->set_text("Selected (Combo 2): " + ctx.item.text);
+    });
+    main_container->add_child(std::move(combo2));
+
     main_container->add_child(std::move(result_label));
 
     wnd->add_child(std::move(main_container));
