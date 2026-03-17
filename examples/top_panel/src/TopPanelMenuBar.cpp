@@ -11,36 +11,30 @@ TopPanelMenuBar::TopPanelMenuBar(TopPanelApplication* app)
     : m_app(app)
 {
     set_spacing(2);
-    m_router = std::make_unique<RequestRouter>(m_message_manager);
-    setup_router();
     setup_system_menu();
 
-    // Wire up click callback
+    // Wire up click callback to use the new direct menu system
     when_menu_click.connect([this](MenuBarClickContext& ctx) {
-        m_menu_daemon_visible = true;
-        LOG_INFO << "MenuBar click: " << ctx.menu->title() << " at x=" << ctx.x
+        LOG_INFO << "[TOP PANEL] MenuBar click: " << ctx.menu->title() << " at x=" << ctx.x
                  << " (Owner PID: " << m_current_owner_pid << ")";
         
-        // y=32 because panel height is 32
-        m_client_menu.show_menu(ctx.menu, ctx.x, 32, -1, "top_panel", m_current_owner_pid);
+        // y=32 because panel height is 32. Using show_context_menu directly.
+        m_app->window()->show_context_menu(ctx.menu, ctx.x, 32);
     });
 }
 
 void TopPanelMenuBar::handle_message(const std::string& msg)
 {
-    m_router->route(msg);
-}
+    try {
+        auto request = nlohmann::json::parse(msg);
+        std::string type = request.value("type", "");
 
-void TopPanelMenuBar::setup_router()
-{
-    m_router->register_handler(
-        "set_global_menu",
-        [this](const std::string& request_id, const nlohmann::json& request, MessageManager& mgr) -> nlohmann::json {
+        if (type == "set_global_menu") {
             int request_pid = request.value("pid", -1);
             auto menus_json = request.value("menus", nlohmann::json::array());
             bool is_empty = menus_json.empty();
 
-            LOG_INFO << "[TOP PANEL] [IPC THREAD] Received set_global_menu from PID "
+            LOG_INFO << "[TOP PANEL] Received set_global_menu from PID "
                      << request_pid << " (menus count: " << menus_json.size() << ")";
 
             m_app->post_task([this, request, request_pid, is_empty]() {
@@ -64,40 +58,8 @@ void TopPanelMenuBar::setup_router()
                     }
                 }
             });
-
-            nlohmann::json response;
-            response["status"] = "ok";
-            response["request_id"] = request_id;
-            return response;
-        });
-
-    m_router->register_handler(
-        "menu_item_clicked",
-        [this](const std::string& request_id, const nlohmann::json& request, MessageManager& mgr) -> nlohmann::json {
-            std::string item_id = request.value("id", "");
-            LOG_INFO << "[TOP PANEL] Menu item clicked: " << item_id;
-
-            if (item_id == "run_terminal") {
-                m_app->send_remote_signal(-1, "run_app", "konsole");
-            } else if (item_id == "run_aboutus") {
-                ApplicationLauncher::launch("aboutus");
-            } else if (item_id == "run_logout") {
-                m_app->send_remote_signal(-1, "logout");
-            } else if (item_id == "force_quit") {
-                if (m_current_owner_pid != -1) {
-                    m_app->send_remote_signal(m_current_owner_pid, "kill");
-                }
-            }
-
-            nlohmann::json response;
-            response["status"] = "ok";
-            response["request_id"] = request_id;
-            return response;
-        });
-
-    m_router->register_handler(
-        "menu_daemon_status",
-        [this](const std::string& request_id, const nlohmann::json& request, MessageManager& mgr) -> nlohmann::json {
+        }
+        else if (type == "menu_daemon_status") {
             m_menu_daemon_visible = request.value("visible", false);
             
             if (!m_menu_daemon_visible && m_has_cached_menu_request && !m_apply_cache_timer_id) {
@@ -112,12 +74,15 @@ void TopPanelMenuBar::setup_router()
             } else {
                 set_menu_open(m_menu_daemon_visible);
             }
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR << "[TOP PANEL] Error parsing menu message: " << e.what();
+    }
+}
 
-            nlohmann::json response;
-            response["status"] = "ok";
-            response["request_id"] = request_id;
-            return response;
-        });
+void TopPanelMenuBar::setup_router()
+{
+    // No longer used, logic moved to handle_message
 }
 
 void TopPanelMenuBar::setup_system_menu()
@@ -127,7 +92,32 @@ void TopPanelMenuBar::setup_system_menu()
 
 void TopPanelMenuBar::apply_global_menu(const nlohmann::json& request)
 {
-    auto new_menus = GlobalMenuMessage::parse(request);
+    // Handler for clicks on app-specific menu items
+    auto on_item_click = [this](MenuItem* item) {
+        std::string item_id = item->id();
+        if (item_id.empty()) item_id = item->text();
+
+        LOG_INFO << "[TOP PANEL] Global menu item clicked: " << item_id 
+                 << " (Owner PID: " << m_current_owner_pid << ")";
+
+        // Check if it's a system menu item we know how to handle
+        if (item_id == "run_terminal") {
+            m_app->send_remote_signal(-1, "run_app", "konsole");
+        } else if (item_id == "run_aboutus") {
+            ApplicationLauncher::launch("aboutus");
+        } else if (item_id == "run_logout") {
+            m_app->send_remote_signal(-1, "logout");
+        } else if (item_id == "force_quit") {
+            if (m_current_owner_pid != -1) {
+                m_app->send_remote_signal(m_current_owner_pid, "kill");
+            }
+        } else if (m_current_owner_pid != -1) {
+            // It's a normal menu item from another app, send the click back via IPC
+            m_app->send_remote_signal(m_current_owner_pid, "menu_item_clicked", item_id);
+        }
+    };
+
+    auto new_menus = GlobalMenuMessage::parse(request, on_item_click);
     clear_menus();
 
     // Always add system menu first
@@ -148,22 +138,50 @@ std::unique_ptr<Menu> TopPanelMenuBar::create_system_menu()
         menu->set_icon_name("start-here");
     }
 
-    menu->add_item("About This System", "", "run_aboutus");
+    // Since we use the same on_item_click handler in apply_global_menu, 
+    // and that handler checks for IDs, we don't need to manually connect signals here
+    // IF we use GlobalMenuMessage::parse or similar logic, but create_system_menu
+    // manually adds items. So we DO need to connect signals here if we don't call
+    // the common handler.
+    
+    auto add_sys_item = [&](const std::string& text, const std::string& shortcut = "", const std::string& id = "") {
+        auto* item = menu->add_item(text, shortcut);
+        if (!id.empty()) item->set_id(id);
+        
+        item->when_click.connect([this, id, text](auto&) {
+            std::string item_id = id.empty() ? text : id;
+            LOG_INFO << "[TOP PANEL] System menu item clicked: " << item_id;
+            
+            if (item_id == "run_terminal") {
+                m_app->send_remote_signal(-1, "run_app", "konsole");
+            } else if (item_id == "run_aboutus") {
+                ApplicationLauncher::launch("aboutus");
+            } else if (item_id == "run_logout") {
+                m_app->send_remote_signal(-1, "logout");
+            } else if (item_id == "force_quit") {
+                if (m_current_owner_pid != -1) {
+                    m_app->send_remote_signal(m_current_owner_pid, "kill");
+                }
+            }
+        });
+    };
+
+    add_sys_item("About This System", "", "run_aboutus");
     menu->add_separator();
-    menu->add_item("Terminal", "", "run_terminal");
-    menu->add_item("System Settings...");
-    menu->add_item("App Store...");
+    add_sys_item("Terminal", "", "run_terminal");
+    add_sys_item("System Settings...");
+    add_sys_item("App Store...");
     menu->add_separator();
-    menu->add_item("Recent Items");
+    add_sys_item("Recent Items");
     menu->add_separator();
-    menu->add_item("Force Quit...", "", "force_quit");
+    add_sys_item("Force Quit...", "", "force_quit");
     menu->add_separator();
-    menu->add_item("Sleep");
-    menu->add_item("Restart...");
-    menu->add_item("Shut Down...");
+    add_sys_item("Sleep");
+    add_sys_item("Restart...");
+    add_sys_item("Shut Down...");
     menu->add_separator();
-    menu->add_item("Lock Screen");
-    menu->add_item("Log Out...", "", "run_logout");
+    add_sys_item("Lock Screen");
+    add_sys_item("Log Out...", "", "run_logout");
 
     return menu;
 }

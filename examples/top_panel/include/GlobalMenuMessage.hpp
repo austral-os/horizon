@@ -10,7 +10,8 @@ namespace horizon
     class GlobalMenuMessage
     {
     public:
-        static std::vector<std::unique_ptr<Menu>> parse(const nlohmann::json &json)
+        static std::vector<std::unique_ptr<Menu>> parse(const nlohmann::json &json,
+                                                         const std::function<void(MenuItem *)> &on_click = nullptr)
         {
             std::vector<std::unique_ptr<Menu>> menus;
 
@@ -28,7 +29,7 @@ namespace horizon
                         menu->set_max_width(menu_json["max_width"]);
                     }
 
-                    build_menu_items(menu.get(), menu_json);
+                    build_menu_items(menu.get(), menu_json, on_click);
                     menus.push_back(std::move(menu));
                 }
             }
@@ -37,7 +38,8 @@ namespace horizon
         }
 
     private:
-        static void build_menu_items(Menu *menu, const nlohmann::json &json)
+        static void build_menu_items(Menu *menu, const nlohmann::json &json,
+                                     const std::function<void(MenuItem *)> &on_click)
         {
             if (json.contains("items") && json["items"].is_array())
             {
@@ -65,6 +67,12 @@ namespace horizon
                         item->set_icon(icon);
                     }
 
+                    if (on_click)
+                    {
+                        item->when_click.connect([on_click, item](auto &)
+                                                  { on_click(item); });
+                    }
+
                     if (item_json.contains("submenu") && item_json["submenu"].is_object())
                     {
                         auto submenu = std::make_unique<Menu>();
@@ -76,14 +84,9 @@ namespace horizon
                             submenu->set_max_width(item_json["submenu"]["max_width"]);
                         }
 
-                        build_menu_items(submenu.get(), item_json["submenu"]);
+                        build_menu_items(submenu.get(), item_json["submenu"], on_click);
 
                         item->set_submenu(submenu.get());
-                        // Important: Submenus for the global menu need to be sent together
-                        // when clicked, so we don't need to keep them at the top_panel level.
-                        // Wait, Menu objects take ownership of their children? No, Menu takes
-                        // ownership of MenuItem, but MenuItem takes ownership of its submenu?
-                        // Let's check MenuItem::set_submenu.
                     }
                 }
             }

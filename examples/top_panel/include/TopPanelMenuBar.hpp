@@ -1,9 +1,6 @@
 #pragma once
 
 #include <horizon/MenuBar.hpp>
-#include <horizon/MessageManager.hpp>
-#include <horizon/RequestRouter.hpp>
-#include <horizon/ClientMenu.hpp>
 #include <horizon/Menu.hpp>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -26,9 +23,6 @@ private:
     std::unique_ptr<horizon::Menu> create_system_menu();
 
     TopPanelApplication* m_app;
-    horizon::MessageManager m_message_manager;
-    std::unique_ptr<horizon::RequestRouter> m_router;
-    horizon::ClientMenu m_client_menu;
 
     // Global Menu State
     bool m_menu_daemon_visible = false;
