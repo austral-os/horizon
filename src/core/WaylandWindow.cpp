@@ -441,6 +441,10 @@ namespace horizon
 
                     if (m_surface->is_configured() && (frame_now - m_last_commit_time) >= FRAME_MS)
                     {
+                        // Ensure correct context is bound for this window
+                        eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(),
+                                       m_surface->egl_surface(), m_surface->egl_context());
+
                         if (is_transparent_surface())
                             glClearColor(0, 0, 0, 0);
                         else

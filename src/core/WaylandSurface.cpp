@@ -1108,6 +1108,10 @@ namespace horizon
         if (m_cursor_surface) { wl_surface_destroy(m_cursor_surface); m_cursor_surface = nullptr; }
 
         if (m_egl_display != EGL_NO_DISPLAY && m_egl_surface != EGL_NO_SURFACE) {
+            if (eglGetCurrentSurface(EGL_READ) == m_egl_surface || 
+                eglGetCurrentSurface(EGL_DRAW) == m_egl_surface) {
+                eglMakeCurrent(m_egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+            }
             eglDestroySurface(m_egl_display, m_egl_surface);
             m_egl_surface = EGL_NO_SURFACE;
         }
