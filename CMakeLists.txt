@@ -70,9 +70,6 @@ target_link_libraries(main_window
 
 add_subdirectory(examples/top_panel)
 
-
-add_subdirectory(examples/horizon_menu_manager_d)
-
 add_subdirectory(examples/dock)
 
 add_subdirectory(examples/horizon_wall)
