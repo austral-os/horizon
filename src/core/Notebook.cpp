@@ -50,11 +50,6 @@ namespace horizon
         m_header->set_size(width(), 40);
 
         Widget::render(ctx, cx, cy, cw, ch, force);
-
-        if (m_current_tab < 0 && m_body->children().size() > 0)
-        {
-            set_current_tab(0);
-        }
     }
 
     void Notebook::draw(GraphicsContext &ctx)
@@ -152,6 +147,11 @@ namespace horizon
 
         m_header->add_child_at(index, std::move(button));
         configure_header();
+
+        if (m_current_tab < 0)
+        {
+            set_current_tab(0);
+        }
     }
 
 } // namespace horizon

@@ -532,6 +532,17 @@ namespace horizon
                             blink_ms = 0;
                         timeout = (timeout == -1) ? blink_ms : std::min(timeout, blink_ms);
                     }
+
+                    // Redraw heartbeat: if we have pending redraws but were rate-limited,
+                    // wake up exactly when 16ms have passed.
+                    bool has_pending = m_full_repaint || !m_dirty_widgets.empty();
+                    if (has_pending)
+                    {
+                        static constexpr uint64_t FRAME_MS = 16;
+                        uint64_t elapsed = now - m_last_commit_time;
+                        int redraw_ms = (elapsed >= FRAME_MS) ? 0 : (int)(FRAME_MS - elapsed);
+                        timeout = (timeout == -1) ? redraw_ms : std::min(timeout, redraw_ms);
+                    }
                 }
 
                 int ret = poll(fds, 2, timeout);
