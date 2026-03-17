@@ -497,7 +497,6 @@ int main()
 
         // Submenu (starts hidden)
         auto sub_menu = std::make_unique<horizon::Menu>();
-        auto *sub_menu_ptr = sub_menu.get();
         sub_menu->set_visible(false);
         sub_menu->set_position_type(horizon::FREE);
         sub_menu->add_item("Undo", "Cmd+Z");
@@ -516,7 +515,7 @@ int main()
         main_menu->add_separator();
 
         auto edit_item = std::make_unique<horizon::MenuItem>("Edit");
-        edit_item->set_submenu(sub_menu_ptr);
+        edit_item->set_submenu(std::move(sub_menu));
         main_menu->add_item(std::move(edit_item));
 
         main_menu->add_item("Save", "Cmd+S");
@@ -532,7 +531,6 @@ int main()
             });
 
         menu_demo_container->add_child(std::move(main_menu));
-        menu_demo_container->add_child(std::move(sub_menu));
 
         notebook->add_tab(NotebookPage("Menus", std::move(menu_demo_container)));
 

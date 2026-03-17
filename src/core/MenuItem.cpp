@@ -33,7 +33,7 @@ namespace horizon
                 set_selected(true);
                 if (auto *p = dynamic_cast<Menu *>(parent()))
                 {
-                    p->set_active_submenu(m_submenu);
+                    p->set_active_submenu(m_submenu.get());
                 }
             });
 
@@ -52,15 +52,12 @@ namespace horizon
             [this](MouseButtonEventContext &)
             {
                 auto app = application();
-                if (app)
+                if (app && m_emit_signal_manager)
                 {
                     // Capture necessary state before potential destruction
                     std::string signal_name = m_id.empty() ? text() : m_id;
-                    bool has_sub = m_has_submenu;
                     
                     // Emit signal - THIS WIDGET MAY BE DESTROYED AFTER THIS
-                    // The menu dismissal is now handled by WaylandWindow::PopupEventListener::on_pointer_event
-                    // using a deferred post_task to ensure the close command reaches the server.
                     app->signal_manager.emit(signal_name, this);
                 }
             });
@@ -145,10 +142,10 @@ namespace horizon
         add_child(std::move(widget));
     }
 
-    void MenuItem::set_submenu(Menu *submenu)
+    void MenuItem::set_submenu(std::unique_ptr<Menu> submenu)
     {
-        m_submenu = submenu;
-        set_has_submenu(submenu != nullptr);
+        m_submenu = std::move(submenu);
+        set_has_submenu(m_submenu != nullptr);
     }
 
     int MenuItem::preferred_width() const

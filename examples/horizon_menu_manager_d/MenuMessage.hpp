@@ -52,11 +52,6 @@ namespace horizon
             std::vector<std::unique_ptr<Menu>> all;
             if (m_menu)
                 all.push_back(std::move(m_menu));
-            for (auto &sm : m_submenus)
-            {
-                all.push_back(std::move(sm));
-            }
-            m_submenus.clear();
             return all;
         }
 
@@ -141,8 +136,7 @@ namespace horizon
                         }
                         build_menu(submenu.get(), item_json["submenu"]);
 
-                        item->set_submenu(submenu.get());
-                        m_submenus.push_back(std::move(submenu));
+                        item->set_submenu(std::move(submenu));
                     }
                 }
             }
@@ -153,6 +147,5 @@ namespace horizon
         int m_requester_pid;
         std::function<void()> m_on_action;
         std::unique_ptr<Menu> m_menu;
-        std::vector<std::unique_ptr<Menu>> m_submenus; // Keep submenus alive
     };
 } // namespace horizon

@@ -151,6 +151,9 @@ std::unique_ptr<Menu> TopPanelMenuBar::create_system_menu()
         auto* item = menu->add_item(text, shortcut);
         if (!id.empty()) item->set_id(id);
         
+        // Ensure these don't trigger local WaylandWindow signals like "quit"
+        item->set_emit_signal_manager(false);
+        
         item->when_click.connect([this, id, text](auto&) {
             std::string item_id = id.empty() ? text : id;
             LOG_INFO << "[TOP PANEL] System menu item clicked: " << item_id;

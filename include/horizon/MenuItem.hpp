@@ -53,10 +53,19 @@ namespace horizon
         // Allow setting a custom widget for the main content
         void set_content_widget(std::unique_ptr<Widget> widget);
 
-        void set_submenu(Menu *submenu);
+        void set_submenu(std::unique_ptr<Menu> submenu);
         Menu *submenu() const
         {
-            return m_submenu;
+            return m_submenu.get();
+        }
+
+        void set_emit_signal_manager(bool emit)
+        {
+            m_emit_signal_manager = emit;
+        }
+        bool emit_signal_manager() const
+        {
+            return m_emit_signal_manager;
         }
 
         // Returns the minimum width needed to display this item without truncation
@@ -77,10 +86,11 @@ namespace horizon
         Label *m_shortcut_label = nullptr;
 
         std::string m_shortcut_text;
-        Menu *m_submenu = nullptr;
+        std::unique_ptr<Menu> m_submenu;
         bool m_has_submenu = false;
         bool m_selected = false;
         bool m_reserve_icon_space = false;
+        bool m_emit_signal_manager = true;
         std::string m_id;
 
         void calculate_layout() override;

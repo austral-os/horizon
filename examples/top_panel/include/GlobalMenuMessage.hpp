@@ -86,8 +86,12 @@ namespace horizon
 
                         build_menu_items(submenu.get(), item_json["submenu"], on_click);
 
-                        item->set_submenu(submenu.get());
+                        item->set_submenu(std::move(submenu));
                     }
+
+                    // Disable local signal manager emission for global items.
+                    // This prevents Top Panel from reacting to "quit" or other common IDs.
+                    item->set_emit_signal_manager(false);
                 }
             }
         }
