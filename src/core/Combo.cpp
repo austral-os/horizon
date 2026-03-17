@@ -164,11 +164,11 @@ namespace horizon
         gc.setColor(Color(0.4f, 0.4f, 0.4f, 1.0f));
         
         // Down arrow
-        gc.drawLine(arrow_x + 10, centerY - 2, arrow_x + 15, centerY + 3, 1.5f);
-        gc.drawLine(arrow_x + 15, centerY + 3, arrow_x + 20, centerY - 2, 1.5f);
+        gc.drawLine(arrow_x + 10, centerY + 1, arrow_x + 15, centerY + 5, 1.5f);
+        gc.drawLine(arrow_x + 15, centerY + 5, arrow_x + 20, centerY + 1, 1.5f);
         
         // Up arrow
-        gc.drawLine(arrow_x + 10, centerY - 5, arrow_x + 15, centerY - 10, 1.0f);
-        gc.drawLine(arrow_x + 15, centerY - 10, arrow_x + 20, centerY - 5, 1.0f);
+        gc.drawLine(arrow_x + 10, centerY - 1, arrow_x + 15, centerY - 5, 1.2f);
+        gc.drawLine(arrow_x + 15, centerY - 5, arrow_x + 20, centerY - 1, 1.2f);
     }
 } // namespace horizon
