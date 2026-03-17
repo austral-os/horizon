@@ -14,7 +14,7 @@
 namespace horizon::arkfm
 {
     PropertiesDialog::PropertiesDialog(const arkutils::FileInfo &file_info)
-        : WaylandWindow("horizon.arkfm.properties", 650, 500, false, false), m_file_info(file_info)
+        : WaylandWindow("horizon.arkfm.properties", 650, 500, false, true), m_file_info(file_info)
     {
         set_name("Propiedades - " + m_file_info.name);
         setup_ui();
