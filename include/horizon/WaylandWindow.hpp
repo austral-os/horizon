@@ -38,7 +38,8 @@ namespace horizon
 
     public:
         WaylandWindow(std::string app_id = "horizon.app", int w = 800, int h = 600,
-                      bool defer_init = false, bool resizable = true);
+                      bool defer_init = false, bool resizable = true,
+                      int min_w = -1, int min_h = -1);
         virtual ~WaylandWindow();
 
         // Modifiers
@@ -200,6 +201,10 @@ namespace horizon
 
         void set_resizable(bool resizable);
         bool is_resizable() const { return m_resizable; }
+
+        void set_min_size(int w, int h);
+        int min_width() const { return m_min_width; }
+        int min_height() const { return m_min_height; }
 
         /**
          * @brief Posts a task to be executed on the main application thread.
@@ -486,6 +491,9 @@ namespace horizon
         std::unique_ptr<IpcClient> m_ipc_subscriber;
 
         bool m_resizable = true;
+
+        int m_min_width = -1;
+        int m_min_height = -1;
 
         std::unique_ptr<WaylandSurface> m_popup_surface;
         Menu *m_popup_menu = nullptr;

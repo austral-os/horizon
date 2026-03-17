@@ -38,8 +38,10 @@ namespace horizon
         "    gl_FragColor = texture2D(u_texture, v_texcoord).bgra * u_opacity;\n"
         "}\n";
 
-    WaylandWindow::WaylandWindow(std::string app_id, int w, int h, bool defer_init, bool resizable)
-        : m_app_id(app_id), m_resizable(resizable), m_popup_menu(nullptr)
+    WaylandWindow::WaylandWindow(std::string app_id, int w, int h, bool defer_init, bool resizable,
+                                 int min_w, int min_h)
+        : m_app_id(app_id), m_resizable(resizable), m_min_width(min_w), m_min_height(min_h),
+          m_popup_menu(nullptr)
     {
         // Inicialización del sistema
         m_surface = std::make_unique<WaylandSurface>(w, h);
@@ -51,6 +53,10 @@ namespace horizon
             {
                 m_surface->set_min_size(w, h);
                 m_surface->set_max_size(w, h);
+            }
+            else if (m_min_width > 0 || m_min_height > 0)
+            {
+                m_surface->set_min_size(std::max(0, m_min_width), std::max(0, m_min_height));
             }
         }
         m_surface->set_event_listener(this);
@@ -317,6 +323,10 @@ namespace horizon
             m_surface->set_min_size(m_surface->width(), m_surface->height());
             m_surface->set_max_size(m_surface->width(), m_surface->height());
         }
+        else if (m_min_width > 0 || m_min_height > 0)
+        {
+            m_surface->set_min_size(std::max(0, m_min_width), std::max(0, m_min_height));
+        }
     }
 
     void WaylandWindow::set_resizable(bool resizable)
@@ -331,9 +341,20 @@ namespace horizon
             }
             else
             {
-                m_surface->set_min_size(0, 0);
+                m_surface->set_min_size(std::max(0, m_min_width), std::max(0, m_min_height));
                 m_surface->set_max_size(0, 0);
             }
+        }
+    }
+
+    void WaylandWindow::set_min_size(int w, int h)
+    {
+        m_min_width = w;
+        m_min_height = h;
+
+        if (m_surface && m_resizable)
+        {
+            m_surface->set_min_size(std::max(0, m_min_width), std::max(0, m_min_height));
         }
     }
 

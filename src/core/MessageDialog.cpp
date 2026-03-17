@@ -12,10 +12,11 @@ namespace horizon
 {
     MessageDialog::MessageDialog(const std::string &title, const std::string &message,
                                  MessageType type, bool show_cancel)
-        : WaylandWindow("horizon.dialog", 400, 180, true, true)
+        : WaylandWindow("horizon.dialog", 700, 215, true, true)
     {
         set_name(title);
         setup_ui(message, type, show_cancel);
+        set_min_size(400, 215);
     }
 
     void MessageDialog::setup_ui(const std::string &message, MessageType type, bool show_cancel)

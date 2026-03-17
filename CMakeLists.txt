@@ -156,6 +156,15 @@ target_link_libraries(dialog_demo
         horizon
 )
 
+add_executable(min_size_test
+    examples/min_size_test.cpp
+)
+
+target_link_libraries(min_size_test
+    PRIVATE
+        horizon
+)
+
 # Agregamos un target "run" para compilar y ejecutar de una vez
 
 add_custom_target(run
