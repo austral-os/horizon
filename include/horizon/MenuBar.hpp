@@ -37,6 +37,7 @@ namespace horizon
 
         std::vector<std::unique_ptr<Menu>> m_menus;
         bool m_menu_open = false;
+        size_t m_dismiss_subscription = 0;
     };
 
     class MenuBarItem : public Label

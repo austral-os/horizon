@@ -78,6 +78,11 @@ namespace horizon
         int y;
     };
 
+    class PopupDismissedContext : public EventContext
+    {
+    public:
+    };
+
     /**
      * @class EventsManager
      * @brief Templated manager for event callbacks.

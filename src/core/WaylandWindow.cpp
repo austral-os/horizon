@@ -1879,7 +1879,7 @@ namespace horizon
         if (!m_surface || !menu)
             return;
 
-        close_context_menu();
+        close_context_menu(false);
 
         if (x == -1 && y == -1)
         {
@@ -1911,7 +1911,7 @@ namespace horizon
         invalidate();
     }
 
-    void WaylandWindow::close_context_menu()
+    void WaylandWindow::close_context_menu(bool emit_signal)
     {
         if (m_popup_menu)
         {
@@ -1936,6 +1936,11 @@ namespace horizon
             });
         }
         invalidate();
+        if (emit_signal)
+        {
+            PopupDismissedContext ctx;
+            when_popup_dismissed.run(ctx);
+        }
     }
 
     widget_position WaylandWindow::get_global_pointer_position() const

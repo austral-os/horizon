@@ -129,7 +129,7 @@ namespace horizon
          */
         void invalidate(Widget *widget = nullptr);
         void show_context_menu(Menu *menu, int x = -1, int y = -1, uint32_t serial = 0);
-        void close_context_menu();
+        void close_context_menu(bool emit_signal = true);
 
         /**
          * @brief Signals the application to wake up its event loop (e.g. from another thread).
@@ -140,6 +140,9 @@ namespace horizon
          * @brief Returns the graphics context for this application.
          */
         virtual GraphicsContext &get_graphics_context() const;
+
+        // Signal emitted when a context menu is closed
+        EventsManager<PopupDismissedContext> when_popup_dismissed;
 
         GLuint gl_program() const
         {

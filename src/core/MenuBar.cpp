@@ -13,7 +13,6 @@ namespace horizon
 
     void MenuBar::add_menu(std::unique_ptr<Menu> menu)
     {
-        LOG_INFO << "[MenuBar] Adding menu: " << menu->title();
         auto item = std::make_unique<MenuBarItem>(menu->title(), menu.get());
         item->set_bold(menu->bold());
         item->set_icon_name(menu->icon_name());
@@ -34,6 +33,16 @@ namespace horizon
                     update_selection(item_ptr);
                 }
             });
+        
+        if (auto *win = dynamic_cast<WaylandWindow *>(application()))
+        {
+            if (m_dismiss_subscription == 0)
+            {
+                m_dismiss_subscription = win->when_popup_dismissed.connect([this](PopupDismissedContext &)
+                                                                           { set_menu_open(false); });
+            }
+        }
+
         m_menus.push_back(std::move(menu));
         add_child(std::move(item));
         invalidate();
@@ -61,6 +70,15 @@ namespace horizon
                     update_selection(item_ptr);
                 }
             });
+        if (auto *win = dynamic_cast<WaylandWindow *>(application()))
+        {
+            if (m_dismiss_subscription == 0)
+            {
+                m_dismiss_subscription = win->when_popup_dismissed.connect([this](PopupDismissedContext &)
+                                                                           { set_menu_open(false); });
+            }
+        }
+
         m_menus.insert(m_menus.begin() + index, std::move(menu));
         add_child_at(index, std::move(item));
         invalidate();
@@ -78,8 +96,13 @@ namespace horizon
     void MenuBar::clear_menus()
     {
         LOG_INFO << "[MenuBar] Clearing all menus.";
-        m_menus.clear();
+        auto *win = dynamic_cast<WaylandWindow *>(application());
+        if (win)
+        {
+            win->close_context_menu();
+        }
         clear_children();
+        m_menus.clear();
         invalidate();
     }
 
