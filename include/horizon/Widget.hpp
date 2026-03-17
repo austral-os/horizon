@@ -14,6 +14,26 @@ namespace horizon
     class GraphicsContext;
     class Menu;
 
+    /**
+     * @brief Text alignment options for widgets.
+     */
+    enum class TextAlignment
+    {
+        Left,
+        Center,
+        Right
+    };
+
+    /**
+     * @brief Vertical alignment options for widgets.
+     */
+    enum class VerticalAlignment
+    {
+        Top,
+        Middle,
+        Bottom
+    };
+
     enum WidgetPositionTypes
     {
         FILL,

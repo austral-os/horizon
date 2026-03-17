@@ -8,26 +8,6 @@
 namespace horizon
 {
     /**
-     * @brief Text alignment options for the Label widget.
-     */
-    enum class TextAlignment
-    {
-        Left,
-        Center,
-        Right
-    };
-
-    /**
-     * @brief Vertical alignment options for the Label widget.
-     */
-    enum class VerticalAlignment
-    {
-        Top,
-        Middle,
-        Bottom
-    };
-
-    /**
      * @brief A widget that displays multi-line, styled text.
      */
     class Label : public Widget

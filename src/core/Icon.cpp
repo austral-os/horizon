@@ -48,6 +48,20 @@ namespace horizon
         return m_resolved_path;
     }
 
+    void Icon::set_vertical_alignment(VerticalAlignment alignment)
+    {
+        if (m_vertical_alignment == alignment)
+            return;
+
+        m_vertical_alignment = alignment;
+        invalidate();
+    }
+
+    VerticalAlignment Icon::vertical_alignment() const
+    {
+        return m_vertical_alignment;
+    }
+
     void Icon::resolve_icon()
     {
         std::string name_to_find = m_icon_name.empty() ? "application-x-executable" : m_icon_name;
@@ -75,7 +89,16 @@ namespace horizon
         int draw_size = m_icon_size;
 
         int icon_x = m_start_draw_x + (m_available_draw_width - draw_size) / 2;
-        int icon_y = m_start_draw_y + (m_available_draw_height - draw_size) / 2;
+        int icon_y = m_start_draw_y;
+
+        if (m_vertical_alignment == VerticalAlignment::Middle)
+        {
+            icon_y += (m_available_draw_height - draw_size) / 2;
+        }
+        else if (m_vertical_alignment == VerticalAlignment::Bottom)
+        {
+            icon_y += (m_available_draw_height - draw_size);
+        }
 
         ctx.drawImage(m_resolved_path, icon_x, icon_y, draw_size, draw_size);
     }

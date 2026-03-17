@@ -33,6 +33,7 @@ namespace horizon
         auto icon = std::make_unique<Icon>();
         icon->set_icon_name(get_icon_for_type(type));
         icon->set_icon_size(64);
+        icon->set_vertical_alignment(VerticalAlignment::Top);
 
         auto label = std::make_unique<Label>(message);
         label->set_position_type(FILL);
