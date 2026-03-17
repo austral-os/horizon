@@ -5,12 +5,10 @@
 #include <algorithm>
 #include <horizon/ApplicationLauncher.hpp>
 #include <horizon/DesktopEntry.hpp>
-#include <horizon/IpcClient.hpp>
 #include <horizon/LabwcAppAdapter.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/WayfireAppAdapter.hpp>
-#include <horizon/WaylandSurface.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <set>
@@ -25,8 +23,7 @@ namespace horizon
         {"firefox", "Web Browser", "firefox", "firefox"}};
 
     DockApplication::DockApplication()
-        : Application("org.horizon.dock", 800, 100, true, true),
-          _router(std::make_unique<RequestRouter>(_message_manager))
+        : Application("org.horizon.dock", 800, 100, true, true)
     {
         m_window = create_layer_window("org.horizon.dock", 2); // ZWLR_LAYER_SHELL_V1_LAYER_TOP
 
@@ -92,127 +89,22 @@ namespace horizon
     {
         // Initial update
         update_dock(_compositor_apps->get_running_applications());
-
+ 
         _compositor_apps->when_update.connect(
             [this](AppListEventContext &ctx)
             { m_window->post_task([this, apps = ctx.apps]() { update_dock(apps); }); });
-
-        setup_context_menu_ipc();
     }
-
-    void DockApplication::setup_context_menu_ipc()
+ 
+    std::unique_ptr<Menu> DockApplication::create_context_menu(DockItem *item)
     {
-        // Register handler for menu_item_clicked sent back by horizon_menu_manager_d
-        _router->register_handler(
-            "menu_item_clicked",
-            [this](const std::string &request_id, const nlohmann::json &request,
-                   MessageManager &) -> nlohmann::json
-            {
-                std::string item_id = request.value("id", "");
-                LOG_INFO << "[DOCK] Context menu item clicked: " << item_id;
-
-                m_window->post_task(
-                    [this, item_id]()
-                    {
-                        if (item_id.find("dock_exit:") == 0)
-                        {
-                            int pid = std::stoi(item_id.substr(10));
-                            LOG_INFO << "[DOCK] Exit requested for pid: " << pid;
-                            m_window->send_remote_signal(pid, "close");
-                        }
-                        else if (item_id.find("dock_exit_id:") == 0)
-                        {
-                            std::string app_id = item_id.substr(13);
-                            LOG_INFO << "[DOCK] Exit requested for app_id: " << app_id;
-                            _compositor_apps->close(app_id);
-                        }
-                        else if (item_id.find("dock_fullscreen:") == 0)
-                        {
-                            int pid = std::stoi(item_id.substr(16));
-                            LOG_INFO << "[DOCK] Fullscreen toggle requested for pid: " << pid;
-                            m_window->send_remote_signal(pid, "toggle_fullscreen");
-                        }
-                        else if (item_id.find("dock_fullscreen_id:") == 0)
-                        {
-                            std::string app_id = item_id.substr(19);
-                            LOG_INFO << "[DOCK] Fullscreen toggle requested for app_id: " << app_id;
-                            _compositor_apps->toggle_fullscreen(app_id);
-                        }
-                        else if (item_id.find("dock_launch:") == 0)
-                        {
-                            std::string run_id = item_id.substr(12);
-                            LOG_INFO << "[DOCK] Launch requested for run_id: " << run_id;
-                            ApplicationLauncher::launch(run_id);
-                        }
-                        else if (item_id.find("dock_exit_instance:") == 0)
-                        {
-                            uintptr_t instance_id = std::stoull(item_id.substr(19));
-                            LOG_INFO << "[DOCK] Exit requested for instance: " << instance_id;
-                            _compositor_apps->close_instance(instance_id);
-                        }
-                        else if (item_id.find("dock_fullscreen_instance:") == 0)
-                        {
-                            uintptr_t instance_id = std::stoull(item_id.substr(25));
-                            LOG_INFO << "[DOCK] Fullscreen toggle requested for instance: "
-                                     << instance_id;
-                            _compositor_apps->toggle_fullscreen_instance(instance_id);
-                        }
-                    });
-
-                nlohmann::json response;
-                response["status"] = "ok";
-                response["request_id"] = request_id;
-                return response;
-            });
-
-        // Subscribe to the session socket to receive menu_item_clicked messages
-        _menu_ipc_client = std::make_unique<IpcClient>("/tmp/horizon_session.sock");
-        _menu_ipc_client->subscribe("{\"type\": \"subscribe\"}",
-                                    [this](const std::string &msg)
-                                    {
-                                        try
-                                        {
-                                            auto j = nlohmann::json::parse(msg);
-                                            if (j.value("receiver_id", "") == "org.horizon.dock")
-                                            {
-                                                std::lock_guard<std::mutex> lock(_queue_mutex);
-                                                _pending_messages.push_back(msg);
-                                            }
-                                        }
-                                        catch (...)
-                                        {
-                                        }
-                                    });
-
-        // Process incoming messages on the main thread every 50ms
-        m_window->add_timer(
-            50,
-            [this]()
-            {
-                std::vector<std::string> to_process;
-                {
-                    std::lock_guard<std::mutex> lock(_queue_mutex);
-                    if (_pending_messages.empty())
-                        return;
-                    to_process = std::move(_pending_messages);
-                    _pending_messages.clear();
-                }
-                for (const auto &msg : to_process)
-                {
-                    LOG_INFO << "[DOCK] Routing IPC message: " << msg;
-                    _router->route(msg);
-                }
-            },
-            true);
-    }
-
-    void DockApplication::show_dock_context_menu(int x, int y, int pid, const std::string &run_id,
-                                                 const std::string &app_id, uintptr_t instance_id)
-    {
-        // Build the context menu
         auto menu = std::make_unique<Menu>();
         menu->set_title("dock_context");
-
+ 
+        int pid = item->pid();
+        std::string run_id = item->run_id();
+        std::string app_id = item->app_id();
+        uintptr_t instance_id = item->instance_id();
+ 
         if (pid != -1 || !app_id.empty())
         {
             // First option: Open new instance (if we have a way to launch it)
@@ -221,44 +113,59 @@ namespace horizon
             {
                 launch_id = app_id;
             }
-
+ 
             if (!launch_id.empty())
             {
                 auto *new_instance_item = menu->add_item("Abrir nueva instancia");
-                new_instance_item->set_id("dock_launch:" + launch_id);
+                new_instance_item->when_click.connect(
+                    [launch_id](auto &)
+                    {
+                        LOG_INFO << "[DOCK] Launch requested code for run_id: " << launch_id;
+                        ApplicationLauncher::launch(launch_id);
+                    });
             }
-
+ 
             // Second option: Fullscreen
             auto *fullscreen_item = menu->add_item("Entrar en pantalla completa");
-            if (instance_id != 0)
-                fullscreen_item->set_id("dock_fullscreen_instance:" + std::to_string(instance_id));
-            else if (pid != -1)
-                fullscreen_item->set_id("dock_fullscreen:" + std::to_string(pid));
-            else
-                fullscreen_item->set_id("dock_fullscreen_id:" + app_id);
-
+            fullscreen_item->when_click.connect(
+                [this, instance_id, pid, app_id](auto &)
+                {
+                    if (instance_id != 0)
+                        _compositor_apps->toggle_fullscreen_instance(instance_id);
+                    else if (pid != -1)
+                        m_window->send_remote_signal(pid, "toggle_fullscreen");
+                    else
+                        _compositor_apps->toggle_fullscreen(app_id);
+                });
+ 
             // Separator
             menu->add_separator();
-
+ 
             // Third option: Exit
             auto *exit_item = menu->add_item("Salir");
-            if (instance_id != 0)
-                exit_item->set_id("dock_exit_instance:" + std::to_string(instance_id));
-            else if (pid != -1)
-                exit_item->set_id("dock_exit:" + std::to_string(pid));
-            else
-                exit_item->set_id("dock_exit_id:" + app_id);
+            exit_item->when_click.connect(
+                [this, instance_id, pid, app_id](auto &)
+                {
+                    if (instance_id != 0)
+                        _compositor_apps->close_instance(instance_id);
+                    else if (pid != -1)
+                        m_window->send_remote_signal(pid, "close");
+                    else
+                        _compositor_apps->close(app_id);
+                });
         }
         else if (!run_id.empty())
         {
             auto *launch_item = menu->add_item("Lanzar aplicación");
-            launch_item->set_id("dock_launch:" + run_id);
+            launch_item->when_click.connect(
+                [run_id](auto &)
+                {
+                    LOG_INFO << "[DOCK] Launch requested for run_id: " << run_id;
+                    ApplicationLauncher::launch(run_id);
+                });
         }
-
-        LOG_INFO << "[DOCK] Showing context menu at (" << x << ", " << y << ") for pid=" << pid;
-        _client_menu.show_menu(menu.get(), x, y, -1, "org.horizon.dock");
-
-        // menu is kept alive long enough for show_menu() to serialize it
+ 
+        return menu;
     }
 
     void DockApplication::update_dock(const std::vector<ApplicationInfo> &apps)
@@ -295,14 +202,6 @@ namespace horizon
             }
 
             auto item = std::make_unique<DockItem>(m_window, pinned.icon, _is_wayfire);
-            item->when_right_click.connect(
-                [this, item_ptr = item.get()](MouseButtonEventContext &ev)
-                {
-                    auto position = item_ptr->get_absolute_position();
-                    show_dock_context_menu(ev.x, position.y, item_ptr->pid(), item_ptr->run_id(),
-                                           item_ptr->app_id(), item_ptr->instance_id());
-                });
-
             if (is_running)
             {
                 item->set_app_info(running_app_data);
@@ -313,6 +212,7 @@ namespace horizon
             {
                 item->set_pinned_data(pinned.run_id);
             }
+            item->set_context_menu(create_context_menu(item.get()));
             _shelf_ptr->add_child(std::move(item));
         }
 
@@ -369,14 +269,7 @@ namespace horizon
                     }
                 }
 
-                item->when_right_click.connect(
-                    [this, item_ptr = item.get()](MouseButtonEventContext &ev)
-                    {
-                        auto position = item_ptr->get_absolute_position();
-                        show_dock_context_menu(ev.x, position.y, item_ptr->pid(),
-                                               item_ptr->run_id(), item_ptr->app_id(),
-                                               item_ptr->instance_id());
-                    });
+                item->set_context_menu(create_context_menu(item.get()));
                 _shelf_ptr->add_child(std::move(item));
             }
         }

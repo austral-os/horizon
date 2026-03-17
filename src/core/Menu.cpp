@@ -158,8 +158,6 @@ namespace horizon
 
     void Menu::render(GraphicsContext &ctx, int cx, int cy, int cw, int ch, bool force)
     {
-        LOG_INFO << "[DEBUG] Menu::render CALLED vis=" << m_visible << " (x,y)=(" << m_x << ","
-                 << m_y << ")";
         // Handle visibility transition: if was visible but now hidden, clear the area
         if (!m_visible)
         {
@@ -228,8 +226,6 @@ namespace horizon
 
     void Menu::draw(GraphicsContext &gc)
     {
-        LOG_INFO << "[DEBUG] Menu::draw START " << (void *)this << " start_draw=(" << m_start_draw_x
-                 << "," << m_start_draw_y << ") size=" << m_width << "x" << m_height;
         // macOS Menu style
         // Straight top corners, rounded bottom corners
         CornerRadius radius(0, 0, 10, 10);

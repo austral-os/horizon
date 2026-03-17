@@ -46,6 +46,16 @@ namespace horizon
                     return;
                 }
 
+                if (ev.button == BTN_RIGHT)
+                {
+                    when_right_click.run(ev);
+                    if (m_context_menu)
+                    {
+                        application()->show_context_menu(m_context_menu.get(), -1, -1, ev.serial);
+                    }
+                    return;
+                }
+
                 m_last_click_time = now;
                 m_last_click_button = ev.button;
 
@@ -57,14 +67,6 @@ namespace horizon
                             when_click.run(ev);
                         else if (ev.button == BTN_MIDDLE)
                             when_middle_click.run(ev);
-                        else if (ev.button == BTN_RIGHT)
-                        {
-                            when_right_click.run(ev);
-                            if (m_context_menu)
-                            {
-                                application()->show_context_menu(m_context_menu.get(), -1, -1, ev.serial);
-                            }
-                        }
 
                         m_last_click_button = 0;
                         m_click_timer = 0;
@@ -614,7 +616,6 @@ namespace horizon
 
     void Widget::draw(GraphicsContext &gc)
     {
-        LOG_INFO << "[DEBUG] Widget::draw START " << (void*)this << " start_draw=(" << m_start_draw_x << "," << m_start_draw_y << ") size=" << m_width << "x" << m_height;
         if (m_background_color.a > 0.001f)
         {
             gc.setColor(m_background_color);
@@ -630,15 +631,12 @@ namespace horizon
 
     void Widget::set_application_recursive(WaylandWindow *app)
     {
-        LOG_INFO << "[DEBUG] Widget::set_application_recursive START " << (void*)this << " app=" << (void*)app;
         m_app = app;
         if (m_app)
         {
             EventContext ev;
             ev.sender = this;
-            LOG_INFO << "[DEBUG] Widget::set_application_recursive calling signal run " << (void*)this;
             when_application_load.run(ev);
-            LOG_INFO << "[DEBUG] Widget::set_application_recursive signal run finished " << (void*)this;
         }
         for (auto &child : m_children)
         {

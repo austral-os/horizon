@@ -827,6 +827,19 @@ namespace horizon
         m_layer_surface = zwlr_layer_shell_v1_get_layer_surface(m_layer_shell, m_surface, nullptr,
                                                                 layer, namespace_id.c_str());
 
+        // CRITICAL: Even for layer surfaces, xdg_popup requires an xdg_surface parent.
+        // We create the xdg_surface wrapper here but we don't give it a toplevel role.
+        m_xdg_surface = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
+        static const struct xdg_surface_listener layer_xdg_surf_listener = {
+            .configure = [](void *data, struct xdg_surface *surf, uint32_t serial)
+            {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                self->m_configured = true;
+                xdg_surface_ack_configure(surf, serial);
+            }
+        };
+        xdg_surface_add_listener(m_xdg_surface, &layer_xdg_surf_listener, this);
+
         static const zwlr_layer_surface_v1_listener layer_surface_listener = {
             .configure =
                 [](void *data, zwlr_layer_surface_v1 *layer_surface, uint32_t serial,

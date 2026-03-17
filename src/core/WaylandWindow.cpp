@@ -1693,10 +1693,8 @@ namespace horizon
         if (m_pressed == widget)
             m_pressed = nullptr;
 
-        // CRITICAL: If the widget being destroyed is the current popup menu,
-        // we MUST clear the reference to avoid a dangling pointer.
         if (m_popup_menu == (Menu *)widget)
-            m_popup_menu = nullptr;
+            close_context_menu();
     }
 
     void WaylandWindow::set_root(std::unique_ptr<Widget> root)
@@ -1918,9 +1916,11 @@ namespace horizon
 
         if (m_popup_surface || m_popup_listener)
         {
+            if (m_popup_surface)
+                m_popup_surface->free();
+
             // Defer cleanup to next event loop iteration to avoid use-after-free
             // if we are inside a callback of the popup surface itself.
-            // We use shared_ptr because std::function requires copyable functors.
             std::shared_ptr<WaylandSurface> s = std::move(m_popup_surface);
             std::shared_ptr<PopupEventListener> l = std::move(m_popup_listener);
 
