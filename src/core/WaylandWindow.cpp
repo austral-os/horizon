@@ -1057,10 +1057,16 @@ namespace horizon
                     w->when_mouse_release.run(ev);
                 }
                 m_window->invalidate();
+                
                 // Finally run click on the direct hit widget
-                // IMPORTANT: under might belong to the popup menu which might be destroyed 
-                // inside when_click.run(ev). We must not access this listener after this call.
-                under->when_click.run(ev);
+                // DEFERRED ACTION: Close menu first, then run action in next cycle.
+                // This ensures the Wayland server receives the "close" request
+                // and the main window completes its render cycle BEFORE 
+                // any blocking operation (like a modal dialog) starts.
+                m_window->close_context_menu();
+                m_window->post_task([under, ev]() mutable {
+                    under->when_click.run(ev);
+                });
             }
         }
     }

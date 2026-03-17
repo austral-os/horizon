@@ -59,12 +59,9 @@ namespace horizon
                     bool has_sub = m_has_submenu;
                     
                     // Emit signal - THIS WIDGET MAY BE DESTROYED AFTER THIS
+                    // The menu dismissal is now handled by WaylandWindow::PopupEventListener::on_pointer_event
+                    // using a deferred post_task to ensure the close command reaches the server.
                     app->signal_manager.emit(signal_name, this);
-
-                    if (!has_sub)
-                    {
-                        app->close_context_menu();
-                    }
                 }
             });
     }
