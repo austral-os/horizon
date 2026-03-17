@@ -138,6 +138,15 @@ target_link_libraries(multiwindow
 
 add_subdirectory(examples/launchpad)
 
+add_executable(combo_demo
+    examples/combo_demo/main.cpp
+)
+
+target_link_libraries(combo_demo
+    PRIVATE
+        horizon
+)
+
 # Agregamos un target "run" para compilar y ejecutar de una vez
 
 add_custom_target(run

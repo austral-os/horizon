@@ -65,6 +65,15 @@ namespace horizon
             return m_max_width;
         }
 
+        void set_min_width(int min_width)
+        {
+            m_min_width = min_width;
+        }
+        int min_width() const
+        {
+            return m_min_width;
+        }
+
     protected:
         void draw(GraphicsContext &gc) override;
 
