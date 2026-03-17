@@ -9,6 +9,9 @@
 
 #pragma once // Solo se incluye una vez.
 
+#include <horizon/MessageDialog.hpp>
+#include <future>
+
 namespace horizon
 {
 
@@ -68,6 +71,16 @@ namespace horizon
          * @brief Creates a new layer-shell window.
          */
         class WaylandLayerWindow *create_layer_window(const std::string &namespace_id, uint32_t layer = 3);
+
+        /**
+         * @brief Shows an alert dialog.
+         */
+        void alert(const std::string &message, const std::string &title = "Alert", MessageType type = MessageType::Info);
+
+        /**
+         * @brief Shows a confirmation dialog and returns true if accepted.
+         */
+        bool confirm(const std::string &message, const std::string &title = "Confirm", MessageType type = MessageType::Question);
 
     private:
         /**

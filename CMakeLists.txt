@@ -147,6 +147,15 @@ target_link_libraries(combo_demo
         horizon
 )
 
+add_executable(dialog_demo
+    examples/dialog_demo.cpp
+)
+
+target_link_libraries(dialog_demo
+    PRIVATE
+        horizon
+)
+
 # Agregamos un target "run" para compilar y ejecutar de una vez
 
 add_custom_target(run

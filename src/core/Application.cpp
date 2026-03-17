@@ -271,4 +271,69 @@ namespace horizon
         }
     }
 
+    void Application::alert(const std::string &message, const std::string &title, MessageType type)
+    {
+        auto dialog = std::make_unique<MessageDialog>(title, message, type, false);
+        WaylandWindow *ptr = dialog.get();
+        
+        {
+            std::lock_guard<std::mutex> lock(m_windows_mutex);
+            m_managed_windows.push_back({std::move(dialog), nullptr, {}});
+        }
+
+        if (m_is_running)
+        {
+            std::lock_guard<std::mutex> lock(m_windows_mutex);
+            auto& mw = m_managed_windows.back();
+            mw.thread = std::thread([this, ptr]() {
+                ptr->initialize();
+                ptr->run();
+                
+                std::lock_guard<std::mutex> lock(m_windows_mutex);
+                if (m_managed_windows.empty()) return;
+                WaylandWindow* mainWinPtr = m_managed_windows[0].window.get();
+                mainWinPtr->post_task([this, ptr]() {
+                    this->remove_window(ptr);
+                });
+            });
+        }
+    }
+
+    bool Application::confirm(const std::string &message, const std::string &title, MessageType type)
+    {
+        auto dialog = std::make_unique<MessageDialog>(title, message, type, true);
+        WaylandWindow *ptr = dialog.get();
+        
+        std::promise<bool> promise;
+        std::future<bool> future = promise.get_future();
+
+        dialog->when_responded.connect([&promise](MessageResponseEvent res) {
+            promise.set_value(res.response == MessageResponse::Accept);
+        });
+
+        {
+            std::lock_guard<std::mutex> lock(m_windows_mutex);
+            m_managed_windows.push_back({std::move(dialog), nullptr, {}});
+        }
+
+        if (m_is_running)
+        {
+            std::lock_guard<std::mutex> lock(m_windows_mutex);
+            auto& mw = m_managed_windows.back();
+            mw.thread = std::thread([this, ptr]() {
+                ptr->initialize();
+                ptr->run();
+                
+                std::lock_guard<std::mutex> lock(m_windows_mutex);
+                if (m_managed_windows.empty()) return;
+                WaylandWindow* mainWinPtr = m_managed_windows[0].window.get();
+                mainWinPtr->post_task([this, ptr]() {
+                    this->remove_window(ptr);
+                });
+            });
+        }
+
+        return future.get();
+    }
+
 } // namespace horizon
