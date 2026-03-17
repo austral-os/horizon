@@ -5,7 +5,7 @@
 namespace horizon
 {
     WaylandLayerWindow::WaylandLayerWindow(const std::string &namespace_id, uint32_t layer, bool defer_init)
-        : WaylandWindow(namespace_id, 0, 0, true), m_namespace(namespace_id), m_layer(layer),
+        : WaylandWindow(namespace_id, 0, 0, true, false), m_namespace(namespace_id), m_layer(layer),
           m_interactivity(0)
     {
         if (!defer_init)
