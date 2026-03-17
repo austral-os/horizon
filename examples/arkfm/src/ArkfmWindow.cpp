@@ -4,8 +4,13 @@
 #include "ArkfmView.hpp"
 #include "dialogs/NewFolderDialog.hpp"
 #include "horizon/ApplicationWindow.hpp"
+#include "horizon/Label.hpp"
+#include "horizon/ProgressBar.hpp"
 #include "horizon/VPanel.hpp"
+#include "horizon/Logger.hpp"
 #include "horizon/arkutils/FileOperations.hpp"
+#include <filesystem>
+#include <thread>
 
 namespace horizon::arkfm
 {
@@ -23,7 +28,22 @@ namespace horizon::arkfm
 
         auto sidebar = std::make_unique<ArkfmSidebar>();
         auto view = std::make_unique<ArkfmView>(getenv("HOME") ? getenv("HOME") : "~/");
-        auto *view_ptr = view.get();
+        m_view_ptr = view.get();
+        auto *view_ptr = m_view_ptr;
+
+        show_status_bar();
+        auto *sb = statusbar();
+        auto lbl = std::make_unique<horizon::Label>("");
+        m_status_label = lbl.get();
+        sb->add_child(std::move(lbl));
+
+        auto pb = std::make_unique<horizon::ProgressBar>();
+
+        m_progress_bar = pb.get();
+        m_progress_bar->set_visible(false);
+        m_progress_bar->set_fixed_size(200);
+        sb->add_child(std::move(pb));
+
 
         ark_toolbar_ptr->when_navigation_clicked.connect(
             [view_ptr](NavigationButtonClickEvent &ctx)
@@ -81,6 +101,96 @@ namespace horizon::arkfm
                         });
                 }
             });
+    }
+
+    void ArkfmWindow::handle_copy(const std::string &path)
+    {
+        m_clipboard_path = path;
+        show_status_message("Copiado al portapapeles");
+    }
+
+    void ArkfmWindow::handle_paste(const std::string &target_dir)
+    {
+        if (m_clipboard_path.empty())
+            return;
+
+        std::filesystem::path src(m_clipboard_path);
+        std::filesystem::path dst_dir(target_dir);
+
+        if (src == dst_dir || dst_dir.string().find(src.string() + "/") == 0)
+        {
+            show_status_message("No fue posible realizar la accion");
+            return;
+        }
+
+        m_progress_bar->set_progress(0.0f);
+        m_progress_bar->set_visible(true);
+        show_status_message("Copiando...");
+
+        auto future = arkutils::FileOperations::copy(
+            m_clipboard_path, target_dir,
+            [this](double progress)
+            {
+                application()->post_task([this, progress]()
+                                             { m_progress_bar->set_progress(static_cast<float>(progress)); });
+
+            });
+
+        std::thread([this, f = std::move(future)]() mutable
+                    {
+                        auto result = f.get();
+                        if (application())
+                        {
+                            application()->post_task(
+                                [this, result]()
+                                {
+                                    m_progress_bar->set_visible(false);
+                                    if (result == arkutils::FileOperations::Result::Success)
+                                    {
+                                        show_status_message("Copiado con éxito");
+                                        if (m_view_ptr)
+                                            m_view_ptr->navigate_to(m_view_ptr->current_path());
+                                    }
+                                    else
+                                    {
+                                        show_status_message("No fue posible realizar la accion");
+                                    }
+                                });
+                        }
+                    })
+            .detach();
+    }
+
+    void ArkfmWindow::handle_delete(const std::string &path)
+    {
+        LOG_INFO << "borrando... " << path;
+        show_status_message("Eliminando " + std::filesystem::path(path).filename().string());
+        
+        // For now just logging as requested, but we could do:
+        // auto future = arkutils::FileOperations::remove(path);
+        // ... and refresh view on success.
+        
+        // Let's pretend it worked for the sake of the log message
+        show_status_message("Elemento eliminado (simulado)", 3000);
+    }
+
+    void ArkfmWindow::show_status_message(const std::string &msg, int timeout_ms)
+    {
+        if (!m_status_label)
+            return;
+        m_status_label->set_text(msg);
+
+        if (application() && timeout_ms > 0)
+        {
+            application()->add_timer(timeout_ms,
+                                     [this, msg]()
+                                     {
+                                         if (m_status_label && m_status_label->text() == msg)
+                                         {
+                                             m_status_label->set_text("");
+                                         }
+                                     });
+        }
     }
 
 } // namespace horizon::arkfm

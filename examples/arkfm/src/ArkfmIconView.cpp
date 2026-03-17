@@ -1,5 +1,6 @@
 #include "ArkfmIconView.hpp"
 #include "ArkfmIconProvider.hpp"
+#include "ArkfmWindow.hpp"
 #include "dialogs/PropertiesDialog.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/Icon.hpp"
@@ -7,6 +8,8 @@
 #include "horizon/Logger.hpp"
 #include "horizon/Menu.hpp"
 #include "horizon/ThemeManager.hpp"
+#include "horizon/WaylandWindow.hpp"
+#include <filesystem>
 
 namespace horizon::arkfm
 {
@@ -116,22 +119,57 @@ namespace horizon::arkfm
         set_side_margin(20);
 
         set_item_factory(
-            [](const arkutils::FileInfo &f, float zoom, bool selected)
+            [this](const arkutils::FileInfo &f, float zoom, bool selected)
             {
                 auto item = std::make_unique<ArkfmIconItem>();
                 item->set_data(f, zoom, selected);
 
-                auto menu = std::make_unique<Menu>();
+                auto menu = std::make_unique<horizon::Menu>();
                 menu->set_title(f.name);
+
+                auto copy_item = menu->add_item("Copiar");
+                
+                ArkfmWindow* win = nullptr;
+                if (auto *app = application())
+                {
+                    win = dynamic_cast<ArkfmWindow *>(app->root());
+                }
+
+                copy_item->when_click.connect(
+                    [win, f](horizon::MouseButtonEventContext &)
+                    {
+                        if (win) win->handle_copy(f.path);
+                    });
+
+
+                if (win && win->has_clipboard_content())
+                {
+                    auto paste_item = menu->add_item("Pegar");
+                    paste_item->when_click.connect(
+                        [this, win](horizon::MouseButtonEventContext &)
+                        {
+                            win->handle_paste(m_current_path);
+                        });
+                }
+
+                auto delete_item = menu->add_item("Eliminar");
+                delete_item->when_click.connect(
+                    [win, f](horizon::MouseButtonEventContext &)
+                    {
+                        if (win) win->handle_delete(f.path);
+                    });
+
                 auto prop_item = menu->add_item("Propiedades");
+
                 prop_item->when_click.connect(
-                    [f](auto &)
+                    [f](horizon::MouseButtonEventContext &)
                     {
                         auto dialog = std::make_unique<PropertiesDialog>(f);
                         dialog->run();
                     });
 
                 item->set_context_menu(std::move(menu));
+                item->when_right_click.connect([](horizon::MouseButtonEventContext &ctx) { ctx.stop_propagation = true; });
 
                 return item;
             });
@@ -146,7 +184,50 @@ namespace horizon::arkfm
                                                  }
                                              });
 
-        refresh(m_current_path);
+        when_right_click.connect(
+            [this](horizon::MouseButtonEventContext &ctx)
+            {
+                auto bg_menu = std::make_unique<horizon::Menu>();
+                bg_menu->set_title("Carpeta");
+                
+                ArkfmWindow* win = nullptr;
+                if (auto *app = application())
+                {
+                    win = dynamic_cast<ArkfmWindow *>(app->root());
+                }
+
+                if (win && win->has_clipboard_content())
+                {
+                    auto bg_paste_item = bg_menu->add_item("Pegar");
+                    bg_paste_item->when_click.connect(
+                        [this, win](horizon::MouseButtonEventContext &)
+                        {
+                            win->handle_paste(m_current_path);
+                        });
+                }
+
+                auto bg_prop_item = bg_menu->add_item("Propiedades");
+                bg_prop_item->when_click.connect(
+                    [this](horizon::MouseButtonEventContext &)
+                    {
+                        arkutils::FileInfo f;
+                        f.name = std::filesystem::path(m_current_path).filename().string();
+                        if (f.name.empty()) f.name = "/";
+                        f.path = m_current_path;
+                        f.type = arkutils::FileType::Directory;
+                        auto dialog = std::make_unique<PropertiesDialog>(f);
+                        dialog->run();
+                    });
+
+                set_context_menu(std::move(bg_menu));
+                ctx.stop_propagation = true;
+            });
+
+        when_application_load.connect(
+            [this](EventContext &)
+            {
+                this->refresh(m_current_path);
+            });
     }
 
     void ArkfmIconView::refresh(const std::string &path)

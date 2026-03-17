@@ -46,13 +46,7 @@ namespace horizon
         // Draw border around the statusbar to make it visible
         gc.setColor(m_border_color);
         gc.drawRect(m_x, m_y, m_width, m_height, m_corner_radius, 1.0f);
-
-        // Draw text
-        if (!m_text.empty())
-        {
-            gc.setColor(Color(0.2f, 0.2f, 0.2f)); // Dark grey for status text
-            gc.drawText(m_start_draw_x + 10, m_start_draw_y + 18, m_text.c_str());
-        }
     }
+
 
 } // namespace horizon

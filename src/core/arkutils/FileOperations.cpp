@@ -7,6 +7,61 @@ namespace fs = std::filesystem;
 
 namespace horizon::arkutils
 {
+    static uintmax_t calculate_total_size(const fs::path &path)
+    {
+        try
+        {
+            if (fs::is_regular_file(path))
+                return fs::file_size(path);
+            uintmax_t size = 0;
+            if (fs::is_directory(path))
+            {
+                for (const auto &entry : fs::recursive_directory_iterator(path))
+                {
+                    if (fs::is_regular_file(entry))
+                        size += fs::file_size(entry);
+                }
+            }
+            return size;
+        }
+        catch (...)
+        {
+            return 0;
+        }
+    }
+
+    static void copy_recursive(const fs::path &src, const fs::path &dest,
+                               uintmax_t &current_size, uintmax_t total_size,
+                               FileOperations::ProgressCallback on_progress)
+    {
+        if (fs::is_directory(src))
+        {
+            fs::create_directories(dest);
+            for (const auto &entry : fs::directory_iterator(src))
+            {
+                copy_recursive(entry.path(), dest / entry.path().filename(), current_size,
+                               total_size, on_progress);
+            }
+        }
+        else
+        {
+            std::ifstream source(src, std::ios::binary);
+            std::ofstream destination(dest, std::ios::binary);
+            char buffer[65536];
+            while (source.read(buffer, sizeof(buffer)))
+            {
+                destination.write(buffer, source.gcount());
+                current_size += source.gcount();
+                if (on_progress && total_size > 0)
+                    on_progress(static_cast<double>(current_size) / total_size);
+            }
+            destination.write(buffer, source.gcount());
+            current_size += source.gcount();
+            if (on_progress && total_size > 0)
+                on_progress(static_cast<double>(current_size) / total_size);
+        }
+    }
+
     std::future<FileOperations::Result> FileOperations::copy(const std::string &src,
                                                              const std::string &dest,
                                                              ProgressCallback on_progress)
@@ -16,15 +71,22 @@ namespace horizon::arkutils
                           {
                               try
                               {
-                                  if (!fs::exists(src))
+                                  fs::path s(src);
+                                  fs::path d(dest);
+
+                                  if (!fs::exists(s))
                                       return Result::NotFound;
 
-                                  // For a simple non-blocking copy of a large file, we could do
-                                  // block by block to report progress. For now, let's use
-                                  // std::filesystem::copy.
-                                  fs::copy(src, dest,
-                                           fs::copy_options::recursive |
-                                               fs::copy_options::overwrite_existing);
+                                  // If dest is a directory, append src filename
+                                  if (fs::exists(d) && fs::is_directory(d))
+                                  {
+                                      d /= s.filename();
+                                  }
+
+                                  uintmax_t total_size = calculate_total_size(s);
+                                  uintmax_t current_size = 0;
+
+                                  copy_recursive(s, d, current_size, total_size, on_progress);
 
                                   if (on_progress)
                                       on_progress(1.0);
@@ -34,8 +96,13 @@ namespace horizon::arkutils
                               {
                                   return Result::Error;
                               }
+                              catch (...)
+                              {
+                                  return Result::Error;
+                              }
                           });
     }
+
 
     std::future<FileOperations::Result> FileOperations::move(const std::string &src,
                                                              const std::string &dest)

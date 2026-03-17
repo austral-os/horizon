@@ -122,6 +122,8 @@ namespace horizon
          * @param root Unique pointer to the new root widget.
          */
         void set_root(std::unique_ptr<Widget> root);
+        Widget *root() const { return m_root.get(); }
+
 
         /**
          * @brief Invalidates the entire application or a specific widget.
