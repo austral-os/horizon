@@ -161,8 +161,8 @@ namespace horizon
          */
         bool is_effectively_visible() const;
 
-        void set_enabled(bool enabled);
-        bool is_enabled() const;
+        virtual void set_enabled(bool enabled);
+        virtual bool is_enabled() const;
 
         void set_focusable(bool focusable);
         bool is_focusable() const;

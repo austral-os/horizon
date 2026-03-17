@@ -51,6 +51,9 @@ namespace horizon
         when_click.connect(
             [this](MouseButtonEventContext &)
             {
+                if (!is_enabled())
+                    return;
+
                 auto app = application();
                 if (app && m_emit_signal_manager)
                 {
@@ -124,10 +127,19 @@ namespace horizon
         m_has_submenu = has_submenu;
     }
 
+    void MenuItem::set_enabled(bool enabled)
+    {
+        Widget::set_enabled(enabled);
+        invalidate();
+    }
+
     void MenuItem::set_selected(bool selected)
     {
         if (m_selected != selected)
         {
+            if (selected && !is_enabled())
+                return;
+
             m_selected = selected;
             invalidate();
         }
@@ -156,8 +168,8 @@ namespace horizon
         auto font = application()->theme_manager->get_font("window");
 
         // Create a temporary context just for measuring text (4 bytes for 1x1 ARGB pixel)
-        unsigned char tmp_buf[4] = {0};
-        CairoGraphicContext measure_ctx(nullptr, tmp_buf, 1, 1);
+        uint32_t tmp_pixel = 0;
+        CairoGraphicContext measure_ctx(nullptr, &tmp_pixel, 1, 1);
 
         int icon_width = (m_icon || m_reserve_icon_space) ? 24 : 0;
         int arrow_width = m_has_submenu ? 20 : 0;
@@ -203,8 +215,8 @@ namespace horizon
         if (!m_shortcut_text.empty() && application() && application()->theme_manager)
         {
             auto font = application()->theme_manager->get_font("window");
-            unsigned char tmp_buf[4] = {0};
-            CairoGraphicContext measure_ctx(nullptr, tmp_buf, 1, 1);
+            uint32_t tmp_pixel = 0;
+            CairoGraphicContext measure_ctx(nullptr, &tmp_pixel, 1, 1);
             auto metrics =
                 measure_ctx.getTextMetrics(m_shortcut_text.c_str(), font.family.c_str(), font.size,
                                            FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
@@ -263,13 +275,18 @@ namespace horizon
         }
         else
         {
+            float alpha = is_enabled() ? 1.0f : 0.4f;
             // Default text color
             if (auto *label = dynamic_cast<Label *>(m_content))
             {
-                label->set_text_color({0.0f, 0.0f, 0.0f, 1.0f});
+                label->set_text_color({0.0f, 0.0f, 0.0f, alpha});
             }
             if (m_shortcut_label) {
-                m_shortcut_label->set_text_color({0.4f, 0.4f, 0.4f, 1.0f});
+                m_shortcut_label->set_text_color({0.4f, 0.4f, 0.4f, alpha});
+            }
+            if (m_icon) {
+                // We don't have a specific set_opacity for Icon, but we could if needed.
+                // For now, text already communicates the state.
             }
         }
 

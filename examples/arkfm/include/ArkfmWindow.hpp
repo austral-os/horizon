@@ -21,13 +21,16 @@ namespace horizon::arkfm
 
         bool has_clipboard_content() const { return !m_clipboard_path.empty(); }
         void handle_copy(const std::string &path);
+        void handle_cut(const std::string &path);
         void handle_paste(const std::string &target_dir);
+        void handle_rename(const std::string &path);
         void handle_delete(const std::string &path);
 
     private:
         void show_status_message(const std::string &msg, int timeout_ms = 5000);
 
         std::string m_clipboard_path;
+        bool m_is_cut{false};
 
         horizon::Label *m_status_label{nullptr};
         horizon::ProgressBar *m_progress_bar{nullptr};

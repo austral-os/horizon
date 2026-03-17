@@ -16,6 +16,8 @@ namespace horizon
         explicit MenuItem(const std::string &text);
         virtual ~MenuItem() = default;
 
+        void set_enabled(bool enabled) override;
+
         void draw(GraphicsContext &gc) override;
 
         void set_text(const std::string &text);

@@ -111,15 +111,35 @@ namespace horizon::arkfm
                     win = dynamic_cast<ArkfmWindow *>(app->root());
                 }
 
+                auto copy_item = bg_menu->add_item("Copiar");
+                copy_item->set_enabled(false);
+
+                auto cut_item = bg_menu->add_item("Cortar");
+                cut_item->set_enabled(false);
+
+                auto paste_item = bg_menu->add_item("Pegar");
                 if (win && win->has_clipboard_content())
                 {
-                    auto bg_paste_item = bg_menu->add_item("Pegar");
-                    bg_paste_item->when_click.connect(
+                    paste_item->when_click.connect(
                         [this, win](horizon::MouseButtonEventContext &)
                         {
                             win->handle_paste(m_current_path);
                         });
                 }
+                else
+                {
+                    paste_item->set_enabled(false);
+                }
+
+                auto rename_item = bg_menu->add_item("Cambiar nombre");
+                rename_item->set_enabled(false);
+
+                bg_menu->add_separator();
+
+                auto delete_item = bg_menu->add_item("Eliminar");
+                delete_item->set_enabled(false);
+
+                bg_menu->add_separator();
 
                 auto bg_prop_item = bg_menu->add_item("Propiedades");
                 bg_prop_item->when_click.connect(
@@ -150,29 +170,54 @@ namespace horizon::arkfm
                 auto menu = std::make_unique<horizon::Menu>();
                 menu->set_title(f.name);
 
-                auto copy_item = menu->add_item("Copiar");
-                
                 ArkfmWindow* win = nullptr;
                 if (auto *app = application())
                 {
                     win = dynamic_cast<ArkfmWindow *>(app->root());
                 }
 
+                auto copy_item = menu->add_item("Copiar");
                 copy_item->when_click.connect(
                     [win, f](horizon::MouseButtonEventContext &)
                     {
                         if (win) win->handle_copy(f.path);
                     });
 
+                auto cut_item = menu->add_item("Cortar");
+                cut_item->when_click.connect(
+                    [win, f](horizon::MouseButtonEventContext &)
+                    {
+                        if (win) win->handle_cut(f.path);
+                    });
+
+                auto paste_item = menu->add_item("Pegar");
                 if (win && win->has_clipboard_content())
                 {
-                    auto paste_item = menu->add_item("Pegar");
                     paste_item->when_click.connect(
-                        [this, win](horizon::MouseButtonEventContext &)
+                        [this, win, f](horizon::MouseButtonEventContext &)
                         {
-                            win->handle_paste(m_current_path);
+                            if (win)
+                            {
+                                if (f.type == arkutils::FileType::Directory)
+                                    win->handle_paste(f.path);
+                                else
+                                    win->handle_paste(m_current_path);
+                            }
                         });
                 }
+                else
+                {
+                    paste_item->set_enabled(false);
+                }
+
+                auto rename_item = menu->add_item("Cambiar nombre");
+                rename_item->when_click.connect(
+                    [win, f](horizon::MouseButtonEventContext &)
+                    {
+                        if (win) win->handle_rename(f.path);
+                    });
+
+                menu->add_separator();
 
                 auto delete_item = menu->add_item("Eliminar");
                 delete_item->when_click.connect(
@@ -180,6 +225,8 @@ namespace horizon::arkfm
                     {
                         if (win) win->handle_delete(f.path);
                     });
+
+                menu->add_separator();
 
                 auto prop_item = menu->add_item("Propiedades");
                 prop_item->when_click.connect(
