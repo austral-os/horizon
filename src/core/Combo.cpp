@@ -1,6 +1,7 @@
 #include <horizon/Combo.hpp>
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
+#include <horizon/IconThemeLookup.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/WaylandWindow.hpp>
@@ -130,11 +131,24 @@ namespace horizon
         
         if (selected)
         {
+            // Draw Icon if present
+            if (!selected->icon_name.empty())
+            {
+                int icon_size = 18;
+                std::string icon_path = IconThemeLookup::find_icon(selected->icon_name, icon_size);
+                if (!icon_path.empty())
+                {
+                    int icon_y = m_start_draw_y + (m_height - icon_size) / 2;
+                    gc.drawImage(icon_path, text_x, icon_y, icon_size, icon_size);
+                    text_x += icon_size + 6; // Space after icon
+                }
+            }
+
             gc.setDrawFont(theme_font.family.c_str(), theme_font.size, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
             gc.setColor(tm->get_color("window_text"));
             
             std::string display_text = selected->text;
-            int max_text_width = m_width - margin - arrow_area_width;
+            int max_text_width = m_width - (text_x - m_start_draw_x) - arrow_area_width - margin;
 
             TextMetrics tm_text = gc.getTextMetrics(display_text.c_str(), theme_font.family.c_str(), theme_font.size, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
             
