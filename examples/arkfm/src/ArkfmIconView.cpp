@@ -1,9 +1,11 @@
 #include "ArkfmIconView.hpp"
 #include "ArkfmIconProvider.hpp"
+#include "dialogs/PropertiesDialog.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/Icon.hpp"
 #include "horizon/Label.hpp"
 #include "horizon/Logger.hpp"
+#include "horizon/Menu.hpp"
 #include "horizon/ThemeManager.hpp"
 
 namespace horizon::arkfm
@@ -118,6 +120,19 @@ namespace horizon::arkfm
             {
                 auto item = std::make_unique<ArkfmIconItem>();
                 item->set_data(f, zoom, selected);
+
+                auto menu = std::make_unique<Menu>();
+                menu->set_title(f.name);
+                auto prop_item = menu->add_item("Propiedades");
+                prop_item->when_click.connect(
+                    [f](auto &)
+                    {
+                        auto dialog = std::make_unique<PropertiesDialog>(f);
+                        dialog->run();
+                    });
+
+                item->set_context_menu(std::move(menu));
+
                 return item;
             });
 

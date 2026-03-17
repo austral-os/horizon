@@ -1,5 +1,6 @@
 #include "ArkfmListView.hpp"
 #include "ArkfmIconProvider.hpp"
+#include "dialogs/PropertiesDialog.hpp"
 #include "horizon/Logger.hpp"
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
@@ -99,7 +100,15 @@ namespace horizon::arkfm
                 auto menu = std::make_unique<Menu>();
                 menu->set_title(f.name);
                 menu->add_item("Eliminar");
-                menu->add_item("Propiedades");
+
+                auto prop_item = menu->add_item("Propiedades");
+                prop_item->when_click.connect(
+                    [f](auto &)
+                    {
+                        auto dialog = std::make_unique<PropertiesDialog>(f);
+                        dialog->run();
+                    });
+
                 return menu;
             });
 
