@@ -396,6 +396,11 @@ namespace horizon
                                                 this->fullscreen();
                                             else if (signal == "unfullscreen")
                                                 this->unfullscreen();
+                                            else if (signal == "menu_item_clicked" && !token.empty())
+                                            {
+                                                LOG_INFO << "[APP] Handling menu_item_clicked: " << token;
+                                                this->signal_manager.emit(token, nullptr);
+                                            }
                                         });
                                 }
                             }

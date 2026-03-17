@@ -109,10 +109,13 @@ void TopPanelMenuBar::apply_global_menu(const nlohmann::json& request)
             m_app->send_remote_signal(-1, "logout");
         } else if (item_id == "force_quit") {
             if (m_current_owner_pid != -1) {
+                LOG_INFO << "[TOP PANEL] [IPC] Sending force quit to PID " << m_current_owner_pid;
                 m_app->send_remote_signal(m_current_owner_pid, "kill");
             }
         } else if (m_current_owner_pid != -1) {
             // It's a normal menu item from another app, send the click back via IPC
+            LOG_INFO << "[TOP PANEL] [IPC] Sending menu_item_clicked (" << item_id 
+                     << ") to PID " << m_current_owner_pid;
             m_app->send_remote_signal(m_current_owner_pid, "menu_item_clicked", item_id);
         }
     };
