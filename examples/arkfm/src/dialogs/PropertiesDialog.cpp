@@ -2,6 +2,8 @@
 #include "ArkfmIconProvider.hpp"
 #include "horizon/AquaObject.hpp"
 #include "horizon/Button.hpp"
+#include "horizon/Checkbox.hpp"
+#include "horizon/Combo.hpp"
 #include "horizon/Icon.hpp"
 #include "horizon/Label.hpp"
 #include "horizon/Notebook.hpp"
@@ -95,9 +97,66 @@ namespace horizon::arkfm
         // --- Permissions Tab ---
         auto permissions_tab = std::make_unique<horizon::Widget>();
         permissions_tab->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        permissions_tab->set_spacing(10);
-        permissions_tab->set_margin(20);
-        permissions_tab->add_child(std::make_unique<horizon::Label>("Aquí van los permisos."));
+        permissions_tab->set_spacing(15);
+        permissions_tab->set_margin(30);
+
+        auto section_title = std::make_unique<horizon::Label>("Permisos de acceso");
+        section_title->set_font_weight(FONT_WEIGHT_BOLD);
+        section_title->set_alignment(TextAlignment::Center);
+        permissions_tab->add_child(std::move(section_title));
+
+        auto add_permission_row = [&](const std::string &label, const std::string &selected_id)
+        {
+            auto row = std::make_unique<horizon::Widget>();
+            row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+            row->set_spacing(15);
+            row->set_fixed_size(40);
+
+            auto lbl = std::make_unique<horizon::Label>(label + ":");
+            lbl->set_fixed_size(150);
+            lbl->set_alignment(TextAlignment::Right);
+            row->add_child(std::move(lbl));
+
+            auto combo = std::make_unique<horizon::Combo>();
+            combo->add_item("none", "Ninguno");
+            combo->add_item("read", "Solo puede ver");
+            combo->add_item("write", "Puede ver y modificar");
+            combo->set_selected_item_by_id(selected_id);
+            row->add_child(std::move(combo));
+
+            permissions_tab->add_child(std::move(row));
+        };
+
+        auto get_perm_id = [&](uint32_t p, uint32_t r, uint32_t w)
+        {
+            if ((p & r) && (p & w))
+                return "write";
+            if (p & r)
+                return "read";
+            return "none";
+        };
+
+        add_permission_row("Propietario", get_perm_id(m_file_info.permissions, S_IRUSR, S_IWUSR));
+        add_permission_row("Grupo", get_perm_id(m_file_info.permissions, S_IRGRP, S_IWGRP));
+        add_permission_row("Otros", get_perm_id(m_file_info.permissions, S_IROTH, S_IWOTH));
+
+        auto exec_row = std::make_unique<horizon::Widget>();
+        exec_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        exec_row->set_spacing(15);
+        exec_row->set_fixed_size(40);
+
+        auto exec_lbl = std::make_unique<horizon::Label>("Ejecutar:");
+        exec_lbl->set_fixed_size(150);
+        exec_lbl->set_alignment(TextAlignment::Right);
+        exec_row->add_child(std::move(exec_lbl));
+
+        auto exec_check = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
+        exec_check->set_text("Permitir la ejecución del archivo como programa");
+        exec_check->set_checked(m_file_info.permissions & (S_IXUSR | S_IXGRP | S_IXOTH));
+        exec_row->add_child(std::move(exec_check));
+
+        permissions_tab->add_child(std::move(exec_row));
+
         notebook->add_tab(NotebookPage("Permisos", std::move(permissions_tab)));
 
         // --- Details Tab ---
