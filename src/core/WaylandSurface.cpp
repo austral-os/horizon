@@ -1,6 +1,8 @@
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
+#include <algorithm>
 #include <cstring>
+
 #include <fcntl.h>
 #include <horizon/Logger.hpp>
 #include <horizon/WaylandSurface.hpp>
@@ -829,16 +831,33 @@ namespace horizon
 
         // CRITICAL: Even for layer surfaces, xdg_popup requires an xdg_surface parent.
         // We create the xdg_surface wrapper here but we don't give it a toplevel role.
-        m_xdg_surface = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
-        static const struct xdg_surface_listener layer_xdg_surf_listener = {
-            .configure = [](void *data, struct xdg_surface *surf, uint32_t serial)
-            {
-                WaylandSurface *self = static_cast<WaylandSurface *>(data);
-                self->m_configured = true;
-                xdg_surface_ack_configure(surf, serial);
-            }
-        };
-        xdg_surface_add_listener(m_xdg_surface, &layer_xdg_surf_listener, this);
+        // However, wlroots (labwc, wayfire) strictly forbids multiple roles.
+        // We only do this if we are not on a wlroots-based compositor.
+        const char *desktop_env = std::getenv("XDG_CURRENT_DESKTOP");
+        std::string desktop_str = desktop_env ? desktop_env : "";
+        std::transform(desktop_str.begin(), desktop_str.end(), desktop_str.begin(), ::tolower);
+
+        bool is_wlroots = (desktop_str.find("labwc") != std::string::npos ||
+                           desktop_str.find("wayfire") != std::string::npos ||
+                           desktop_str.find("hzn-labwc") != std::string::npos ||
+                           desktop_str.find("hzn-wayfire") != std::string::npos);
+
+        if (!is_wlroots)
+        {
+            m_xdg_surface = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
+            static const struct xdg_surface_listener layer_xdg_surf_listener = {
+                .configure = [](void *data, struct xdg_surface *surf, uint32_t serial)
+                {
+                    WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                    self->m_configured = true;
+                    xdg_surface_ack_configure(surf, serial);
+                }};
+            xdg_surface_add_listener(m_xdg_surface, &layer_xdg_surf_listener, this);
+        }
+        else
+        {
+            LOG_INFO << "[SURFACE] Skipping xdg_surface wrapper for layer surface on " << desktop_str;
+        }
 
         static const zwlr_layer_surface_v1_listener layer_surface_listener = {
             .configure =
@@ -904,50 +923,67 @@ namespace horizon
         xdg_positioner_set_anchor(m_xdg_positioner, XDG_POSITIONER_ANCHOR_TOP_LEFT);
         xdg_positioner_set_gravity(m_xdg_positioner, XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT);
 
-        m_xdg_surface = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
-        
-        static const struct xdg_surface_listener popup_xdg_surf_listener = {
-            .configure = [](void *data, struct xdg_surface *surf, uint32_t serial)
-            {
-                WaylandSurface *self = static_cast<WaylandSurface *>(data);
-                self->m_configured = true;
-                xdg_surface_ack_configure(surf, serial);
-            }
-        };
-        xdg_surface_add_listener(m_xdg_surface, &popup_xdg_surf_listener, this);
-
-        m_xdg_popup = xdg_surface_get_popup(m_xdg_surface, parent->m_xdg_surface, m_xdg_positioner);
-
-        static const struct xdg_popup_listener popup_listener = {
-            .configure = [](void *data, struct xdg_popup *popup, int32_t x, int32_t y, int32_t width, int32_t height)
-            {
-                WaylandSurface *self = static_cast<WaylandSurface *>(data);
-                if (width > 0 && height > 0)
-                {
-                    self->resize_buffer(width, height);
-                    if (self->m_listener)
-                        self->m_listener->on_resize(width, height);
-                }
-            },
-            .popup_done = [](void *data, struct xdg_popup *popup)
-            {
-                WaylandSurface *self = static_cast<WaylandSurface *>(data);
-                if (self->m_listener)
-                {
-                    self->m_listener->on_close();
-                }
-            },
-            .repositioned = [](void *data, struct xdg_popup *popup, uint32_t token)
-            {
-                // Handle repositioning if needed
-            }
-        };
-        xdg_popup_add_listener(m_xdg_popup, &popup_listener, this);
-
-        // Grab pointer for the popup
-        if (m_seat)
+        if (parent->m_xdg_surface || parent->m_layer_surface)
         {
-            xdg_popup_grab(m_xdg_popup, m_seat, parent->last_serial());
+            m_xdg_surface = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
+
+            static const struct xdg_surface_listener popup_xdg_surf_listener = {
+                .configure = [](void *data, struct xdg_surface *surf, uint32_t serial)
+                {
+                    WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                    self->m_configured = true;
+                    xdg_surface_ack_configure(surf, serial);
+                }};
+            xdg_surface_add_listener(m_xdg_surface, &popup_xdg_surf_listener, this);
+
+            // If the parent is a layer surface, we MUST pass NULL as the parent to get_popup
+            // and then call zwlr_layer_surface_v1_get_popup.
+            struct xdg_surface *xdg_parent = parent->m_xdg_surface;
+            m_xdg_popup = xdg_surface_get_popup(m_xdg_surface, xdg_parent, m_xdg_positioner);
+
+            if (parent->m_layer_surface)
+            {
+                zwlr_layer_surface_v1_get_popup(parent->m_layer_surface, m_xdg_popup);
+            }
+        }
+        else
+        {
+            LOG_ERROR << "[SURFACE] Cannot create popup: Parent surface has no xdg_surface wrapper and is not a layer shell surface.";
+        }
+
+        if (m_xdg_popup)
+        {
+            static const struct xdg_popup_listener popup_listener = {
+                .configure = [](void *data, struct xdg_popup *popup, int32_t x, int32_t y, int32_t width, int32_t height)
+                {
+                    WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                    if (width > 0 && height > 0)
+                    {
+                        self->resize_buffer(width, height);
+                        if (self->m_listener)
+                            self->m_listener->on_resize(width, height);
+                    }
+                },
+                .popup_done = [](void *data, struct xdg_popup *popup)
+                {
+                    WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                    if (self->m_listener)
+                    {
+                        self->m_listener->on_close();
+                    }
+                },
+                .repositioned = [](void *data, struct xdg_popup *popup, uint32_t token)
+                {
+                    // Handle repositioning if needed
+                }};
+
+            xdg_popup_add_listener(m_xdg_popup, &popup_listener, this);
+
+            // Grab pointer for the popup
+            if (m_seat)
+            {
+                xdg_popup_grab(m_xdg_popup, m_seat, parent->last_serial());
+            }
         }
 
         wl_surface_commit(m_surface);

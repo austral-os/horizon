@@ -163,6 +163,16 @@ namespace horizon
         int monitor_height() const { return m_monitor_height; }
         uint32_t anchor() const { return m_anchor; }
 
+        void set_screen_position(int x, int y)
+        {
+            m_screen_x = x;
+            m_screen_y = y;
+        }
+        int screen_x() const { return m_screen_x; }
+        int screen_y() const { return m_screen_y; }
+
+        Role role() const { return m_role; }
+
         /**
          * @brief Initializes the Wayland connection and binds globals.
          */
@@ -319,6 +329,8 @@ namespace horizon
         int m_height;
         int m_monitor_width{0};
         int m_monitor_height{0};
+        int m_screen_x{0};
+        int m_screen_y{0};
         Role m_role = Role::None;
         bool m_blur_enabled = false;
 

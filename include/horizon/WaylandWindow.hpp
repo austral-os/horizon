@@ -185,6 +185,10 @@ namespace horizon
         {
             m_screen_x = x;
             m_screen_y = y;
+            if (m_surface)
+            {
+                m_surface->set_screen_position(x, y);
+            }
         }
 
         /**
