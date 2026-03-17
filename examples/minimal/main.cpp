@@ -1,3 +1,4 @@
+#include <horizon/AirObject.hpp>
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Checkbox.hpp>
@@ -29,6 +30,7 @@
 #include <horizon/Window.hpp>
 #include <unistd.h>
 
+using horizon::AirObject;
 using horizon::AquaObject;
 using horizon::Button;
 using horizon::Checkbox;
@@ -75,6 +77,7 @@ int main()
         auto btn4 = std::make_unique<Button<AquaObject>>();
         auto btn5 = std::make_unique<Button<AquaObject>>();
         auto btn6 = std::make_unique<Button<AquaObject>>();
+        auto btn_air = std::make_unique<Button<AirObject>>();
 
         btn->set_text("Aceptar");
         btn->set_corner_radius({0, 20, 20, 0});
@@ -102,9 +105,13 @@ int main()
         btn5->set_fixed_size(40);
         btn5->set_accent_color(WidgetAccentColor::Info);
 
-        btn6->set_text("Cancelar");
         btn6->set_fixed_size(40);
         btn6->set_accent_color(WidgetAccentColor::Warning);
+
+        btn_air->set_text("Air Button");
+        btn_air->set_fixed_size(40);
+        btn_air->set_corner_radius({10, 10, 10, 10});
+        btn_air->set_accent_color(WidgetAccentColor::Default); // Normal accent color
 
         container->add_child(std::move(spacer1));
         container->add_child(std::move(btn));
@@ -113,6 +120,7 @@ int main()
         container->add_child(std::move(btn4));
         container->add_child(std::move(btn5));
         container->add_child(std::move(btn6));
+        container->add_child(std::move(btn_air));
         container->add_child(std::move(spacer2));
 
         notebook->add_tab(NotebookPage("Buttons", "", std::move(container)));
