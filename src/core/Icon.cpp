@@ -7,7 +7,8 @@ namespace horizon
 
     Icon::Icon() : Widget()
     {
-        set_fixed_size(m_icon_size);
+        // Default to FILL so we can center content in available space (e.g. inside Buttons)
+        m_fixed_size = -1;
     }
 
     Icon::~Icon() = default;
@@ -76,6 +77,30 @@ namespace horizon
         return m_horizontal_alignment;
     }
 
+    void Icon::set_fixed_size(int size)
+    {
+        // Ignore 0 as it's often a sign of uninitialized layout in parent
+        if (size == 0)
+            return;
+
+        Widget::set_fixed_size(size);
+    }
+
+    int Icon::preferred_width() const
+    {
+        return m_fixed_size > 0 ? m_fixed_size : m_icon_size;
+    }
+
+    int Icon::preferred_height() const
+    {
+        return m_fixed_size > 0 ? m_fixed_size : m_icon_size;
+    }
+
+    int Icon::preferred_height(int /*width*/) const
+    {
+        return preferred_height();
+    }
+
     void Icon::resolve_icon()
     {
         if (m_icon_name.empty())
@@ -116,20 +141,20 @@ namespace horizon
         int icon_x = m_start_draw_x; 
         int icon_y = m_start_draw_y;
 
-        if (m_horizontal_alignment == TextAlignment::Center)
+        if (m_horizontal_alignment == TextAlignment::Center && m_available_draw_width > draw_size)
         {
             icon_x += (m_available_draw_width - draw_size) / 2;
         }
-        else if (m_horizontal_alignment == TextAlignment::Right)
+        else if (m_horizontal_alignment == TextAlignment::Right && m_available_draw_width > draw_size)
         {
             icon_x += (m_available_draw_width - draw_size);
         }
 
-        if (m_vertical_alignment == VerticalAlignment::Middle)
+        if (m_vertical_alignment == VerticalAlignment::Middle && m_available_draw_height > draw_size)
         {
             icon_y += (m_available_draw_height - draw_size) / 2;
         }
-        else if (m_vertical_alignment == VerticalAlignment::Bottom)
+        else if (m_vertical_alignment == VerticalAlignment::Bottom && m_available_draw_height > draw_size)
         {
             icon_y += (m_available_draw_height - draw_size);
         }

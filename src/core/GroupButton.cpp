@@ -71,6 +71,7 @@ namespace horizon
 
         auto button = std::make_unique<Button<SolidObject>>();
         button->set_text(text);
+
         auto ptr_button = button.get();
 
         int index = children().size();
@@ -92,6 +93,7 @@ namespace horizon
 
         auto button = std::make_unique<Button<SolidObject>>();
         icon->set_fixed_size(m_available_draw_height);
+        icon->set_vertical_alignment(VerticalAlignment::Middle);
         button->add_child(std::move(icon));
         auto ptr_button = button.get();
 

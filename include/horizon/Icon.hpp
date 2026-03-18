@@ -52,6 +52,15 @@ namespace horizon
         void set_vertical_alignment(VerticalAlignment alignment);
         VerticalAlignment vertical_alignment() const;
 
+        /**
+         * @brief Shadow Widget::set_fixed_size to ignore 0.
+         */
+        void set_fixed_size(int size);
+
+        int preferred_width() const override;
+        int preferred_height() const override;
+        int preferred_height(int width) const override;
+
     protected:
         void draw(GraphicsContext &ctx) override;
 
@@ -59,7 +68,7 @@ namespace horizon
         std::string m_icon_name;
         int m_icon_size{24};
         VerticalAlignment m_vertical_alignment{VerticalAlignment::Middle};
-        TextAlignment m_horizontal_alignment{TextAlignment::Left};
+        TextAlignment m_horizontal_alignment{TextAlignment::Center};
         std::string m_resolved_path;
 
         void resolve_icon();
