@@ -64,13 +64,26 @@ namespace horizon
 
     void Icon::resolve_icon()
     {
-        std::string name_to_find = m_icon_name.empty() ? "application-x-executable" : m_icon_name;
-        m_resolved_path = IconThemeLookup::find_icon(name_to_find, m_icon_size);
-
-        if (m_resolved_path.empty() && name_to_find != "application-x-executable")
+        if (m_icon_name.empty())
         {
-            LOG_INFO << "[Icon] Failed to resolve icon: \"" << name_to_find
-                     << "\". Falling back to default.";
+            m_resolved_path = "";
+            return;
+        }
+
+        m_resolved_path = IconThemeLookup::find_icon(m_icon_name, m_icon_size);
+
+        if (m_resolved_path.empty())
+        {
+            // Fallback for arrows
+            if (m_icon_name.find("pan-") == 0 || m_icon_name.find("go-") == 0)
+            {
+                std::string alt = (m_icon_name.find("down") != std::string::npos) ? "arrow-down" : "arrow-right";
+                m_resolved_path = IconThemeLookup::find_icon(alt, m_icon_size);
+            }
+        }
+
+        if (m_resolved_path.empty() && m_icon_name != "application-x-executable")
+        {
             m_resolved_path = IconThemeLookup::find_icon("application-x-executable", m_icon_size);
         }
 
@@ -85,10 +98,8 @@ namespace horizon
         if (m_resolved_path.empty())
             return;
 
-        // Use the requested icon size
         int draw_size = m_icon_size;
-
-        int icon_x = m_start_draw_x + (m_available_draw_width - draw_size) / 2;
+        int icon_x = m_start_draw_x; // Left aligned in its allotted space
         int icon_y = m_start_draw_y;
 
         if (m_vertical_alignment == VerticalAlignment::Middle)

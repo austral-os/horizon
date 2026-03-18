@@ -165,6 +165,15 @@ target_link_libraries(min_size_test
         horizon
 )
 
+add_executable(treeview_demo
+    examples/treeview_demo/main.cpp
+)
+
+target_link_libraries(treeview_demo
+    PRIVATE
+        horizon
+)
+
 # Agregamos un target "run" para compilar y ejecutar de una vez
 
 add_custom_target(run
