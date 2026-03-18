@@ -1,5 +1,5 @@
 #include "ArkfmListView.hpp"
-#include "ArkfmIconProvider.hpp"
+#include "ArkfmFileProvider.hpp"
 #include "ArkfmWindow.hpp"
 #include "dialogs/PropertiesDialog.hpp"
 #include "horizon/Logger.hpp"
@@ -27,7 +27,7 @@ namespace horizon::arkfm
             auto icon = std::make_unique<Icon>();
             icon->set_icon_size(24);
 
-            icon->set_icon_name(ArkfmIconProvider::get_icon_name(f));
+            icon->set_icon_name(ArkfmFileProvider::get_icon_name(f));
             return icon;
         };
 
@@ -37,7 +37,7 @@ namespace horizon::arkfm
         col_name.width = 300;
         col_name.cell_factory = [](const arkutils::FileInfo &f)
         {
-            auto lbl = std::make_unique<Label>(f.name);
+            auto lbl = std::make_unique<Label>(ArkfmFileProvider::get_display_name(f));
             if (f.type == arkutils::FileType::Directory)
             {
                 lbl->set_font_weight(FONT_WEIGHT_BOLD);
@@ -168,7 +168,7 @@ namespace horizon::arkfm
             [this](const arkutils::FileInfo &f)
             {
                 auto menu = std::make_unique<horizon::Menu>();
-                menu->set_title(f.name);
+                menu->set_title(ArkfmFileProvider::get_display_name(f));
 
                 ArkfmWindow* win = nullptr;
                 if (auto *app = application())

@@ -1,5 +1,5 @@
 #include "dialogs/PropertiesDialog.hpp"
-#include "ArkfmIconProvider.hpp"
+#include "ArkfmFileProvider.hpp"
 #include "horizon/AquaObject.hpp"
 #include "horizon/Button.hpp"
 #include "horizon/Checkbox.hpp"
@@ -18,7 +18,7 @@ namespace horizon::arkfm
     PropertiesDialog::PropertiesDialog(const arkutils::FileInfo &file_info)
         : WaylandWindow("horizon.arkfm.properties", 650, 500, false, true), m_file_info(file_info)
     {
-        set_name("Propiedades - " + m_file_info.name);
+        set_name("Propiedades - " + ArkfmFileProvider::get_display_name(m_file_info));
         setup_ui();
     }
 
@@ -46,10 +46,10 @@ namespace horizon::arkfm
 
         auto icon = std::make_unique<horizon::Icon>();
         icon->set_icon_size(64);
-        icon->set_icon_name(ArkfmIconProvider::get_icon_name(m_file_info));
+        icon->set_icon_name(ArkfmFileProvider::get_icon_name(m_file_info));
         header_box->add_child(std::move(icon));
 
-        auto name_label = std::make_unique<horizon::Label>(m_file_info.name);
+        auto name_label = std::make_unique<horizon::Label>(ArkfmFileProvider::get_display_name(m_file_info));
         name_label->set_font_weight(FONT_WEIGHT_BOLD);
         header_box->add_child(std::move(name_label));
 

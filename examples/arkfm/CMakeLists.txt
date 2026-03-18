@@ -8,7 +8,7 @@ add_executable(arkfm
     src/ArkfmToolbar.cpp
     src/ArkfmView.cpp
     src/ArkfmWindow.cpp
-    src/ArkfmIconProvider.cpp
+    src/ArkfmFileProvider.cpp
     src/dialogs/NewFolderDialog.cpp
     src/dialogs/PropertiesDialog.cpp
     src/dialogs/RenameDialog.cpp

@@ -1,5 +1,5 @@
 #include "ArkfmIconView.hpp"
-#include "ArkfmIconProvider.hpp"
+#include "ArkfmFileProvider.hpp"
 #include "ArkfmWindow.hpp"
 #include "dialogs/PropertiesDialog.hpp"
 #include "horizon/Application.hpp"
@@ -39,9 +39,9 @@ namespace horizon::arkfm
         {
             m_zoom = zoom;
             m_selected = selected;
-            m_label_ptr->set_text(f.name);
+            m_label_ptr->set_text(ArkfmFileProvider::get_display_name(f));
 
-            std::string icon_name = ArkfmIconProvider::get_icon_name(f);
+            std::string icon_name = ArkfmFileProvider::get_icon_name(f);
 
             m_icon_size = static_cast<int>(48 * m_zoom);
             m_icon_ptr->set_icon_name(icon_name);
@@ -125,7 +125,7 @@ namespace horizon::arkfm
                 item->set_data(f, zoom, selected);
 
                 auto menu = std::make_unique<horizon::Menu>();
-                menu->set_title(f.name);
+                menu->set_title(ArkfmFileProvider::get_display_name(f));
 
                 
                 ArkfmWindow* win = nullptr;

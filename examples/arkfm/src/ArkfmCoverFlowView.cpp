@@ -1,5 +1,5 @@
 #include "ArkfmCoverFlowView.hpp"
-#include "ArkfmIconProvider.hpp"
+#include "ArkfmFileProvider.hpp"
 #include "ArkfmListView.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/CoverFlow.hpp"
@@ -32,7 +32,7 @@ namespace horizon::arkfm
 
         void set_data(const arkutils::FileInfo &f)
         {
-            m_icon->set_icon_name(ArkfmIconProvider::get_icon_name(f));
+            m_icon->set_icon_name(ArkfmFileProvider::get_icon_name(f));
         }
 
     private:
@@ -79,7 +79,7 @@ namespace horizon::arkfm
                 if (idx >= 0 && idx < (int)m_cover_flow->data().size())
                 {
                     const auto &f = m_cover_flow->data()[idx];
-                    m_navigation_label->set_text(f.name);
+                    m_navigation_label->set_text(ArkfmFileProvider::get_display_name(f));
                 }
             });
 
@@ -92,7 +92,7 @@ namespace horizon::arkfm
                 if (m_cover_flow)
                 {
                     m_cover_flow->set_selected_index(ctx.row_index);
-                    m_navigation_label->set_text(ctx.row_data.name);
+                    m_navigation_label->set_text(ArkfmFileProvider::get_display_name(ctx.row_data));
                 }
             });
 

@@ -1,9 +1,9 @@
-#include "ArkfmIconProvider.hpp"
+#include "ArkfmFileProvider.hpp"
 #include <horizon/DesktopEntry.hpp>
 
 namespace horizon::arkfm
 {
-    std::string ArkfmIconProvider::get_icon_name(const arkutils::FileInfo &f)
+    std::string ArkfmFileProvider::get_icon_name(const arkutils::FileInfo &f)
     {
         if (f.type == arkutils::FileType::Directory)
         {
@@ -85,5 +85,18 @@ namespace horizon::arkfm
         }
 
         return "text-x-generic";
+    }
+
+    std::string ArkfmFileProvider::get_display_name(const arkutils::FileInfo &f)
+    {
+        if (f.extension == "desktop")
+        {
+            std::string name = DesktopEntry::get_value_from_desktop_file(f.path, "Name");
+            if (!name.empty())
+            {
+                return name;
+            }
+        }
+        return f.name;
     }
 } // namespace horizon::arkfm
