@@ -1,5 +1,21 @@
 #include "PreferencesWindow.hpp"
 #include "views/DesktopView.hpp"
+#include "views/AppearanceView.hpp"
+#include "views/ScreensaverView.hpp"
+#include "views/NotificationsView.hpp"
+#include "views/DisplayView.hpp"
+#include "views/SoundView.hpp"
+#include "views/MouseView.hpp"
+#include "views/KeyboardView.hpp"
+#include "views/PrintersView.hpp"
+#include "views/PowerView.hpp"
+#include "views/WifiView.hpp"
+#include "views/BluetoothView.hpp"
+#include "views/NetworkView.hpp"
+#include "views/UsersView.hpp"
+#include "views/DateTimeView.hpp"
+#include "views/RegionView.hpp"
+#include "views/DetailsView.hpp"
 #include "ViewPanel.hpp"
 
 namespace horizon::preferences
@@ -34,14 +50,24 @@ namespace horizon::preferences
     void PreferencesWindow::load_view_by_id(const std::string& id, bool push_to_history)
     {
         std::unique_ptr<Widget> view;
-        if (id == "home")
-        {
-            view = std::make_unique<ViewPanel>();
-        }
-        else if (id == "desktop")
-        {
-            view = std::make_unique<DesktopView>();
-        }
+        if (id == "home") view = std::make_unique<ViewPanel>();
+        else if (id == "desktop") view = std::make_unique<DesktopView>();
+        else if (id == "appearance") view = std::make_unique<AppearanceView>();
+        else if (id == "screensaver") view = std::make_unique<ScreensaverView>();
+        else if (id == "notifications") view = std::make_unique<NotificationsView>();
+        else if (id == "display") view = std::make_unique<DisplayView>();
+        else if (id == "sound") view = std::make_unique<SoundView>();
+        else if (id == "mouse") view = std::make_unique<MouseView>();
+        else if (id == "keyboard") view = std::make_unique<KeyboardView>();
+        else if (id == "printers") view = std::make_unique<PrintersView>();
+        else if (id == "power") view = std::make_unique<PowerView>();
+        else if (id == "wi-fi") view = std::make_unique<WifiView>();
+        else if (id == "bluetooth") view = std::make_unique<BluetoothView>();
+        else if (id == "network") view = std::make_unique<NetworkView>();
+        else if (id == "users") view = std::make_unique<UsersView>();
+        else if (id == "datetime") view = std::make_unique<DateTimeView>();
+        else if (id == "region") view = std::make_unique<RegionView>();
+        else if (id == "details") view = std::make_unique<DetailsView>();
 
         if (view)
         {

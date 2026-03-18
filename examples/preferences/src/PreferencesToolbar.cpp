@@ -32,7 +32,7 @@ namespace horizon::preferences
         // Search Box
         auto search_box = std::make_unique<SearchBox>();
         search_box->set_placeholder("Buscar en ajustes");
-        search_box->set_fixed_size(200);
+        search_box->set_fixed_size(220);
         m_search_box = search_box.get();
         add_child(std::move(search_box));
     }

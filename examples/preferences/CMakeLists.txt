@@ -5,6 +5,22 @@ add_executable(preferences
     src/ContentView.cpp
     src/ViewPanel.cpp
     src/views/DesktopView.cpp
+    src/views/AppearanceView.cpp
+    src/views/ScreensaverView.cpp
+    src/views/NotificationsView.cpp
+    src/views/DisplayView.cpp
+    src/views/SoundView.cpp
+    src/views/MouseView.cpp
+    src/views/KeyboardView.cpp
+    src/views/PrintersView.cpp
+    src/views/PowerView.cpp
+    src/views/WifiView.cpp
+    src/views/BluetoothView.cpp
+    src/views/NetworkView.cpp
+    src/views/UsersView.cpp
+    src/views/DateTimeView.cpp
+    src/views/RegionView.cpp
+    src/views/DetailsView.cpp
 )
 
 target_link_libraries(preferences
