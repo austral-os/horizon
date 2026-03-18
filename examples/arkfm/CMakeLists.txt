@@ -11,6 +11,7 @@ add_executable(arkfm
     src/ArkfmIconProvider.cpp
     src/dialogs/NewFolderDialog.cpp
     src/dialogs/PropertiesDialog.cpp
+    src/dialogs/RenameDialog.cpp
 )
 
 target_include_directories(arkfm

@@ -3,6 +3,8 @@
 #include "ArkfmToolbar.hpp"
 #include "ArkfmView.hpp"
 #include "dialogs/NewFolderDialog.hpp"
+#include "dialogs/RenameDialog.hpp"
+#include "horizon/MessageDialog.hpp"
 #include "horizon/ApplicationWindow.hpp"
 #include "horizon/Label.hpp"
 #include "horizon/Logger.hpp"
@@ -137,78 +139,179 @@ namespace horizon::arkfm
 
         std::filesystem::path src(m_clipboard_path);
         std::filesystem::path dst_dir(target_dir);
+        std::filesystem::path dst = dst_dir / src.filename();
 
         if (src == dst_dir || dst_dir.string().find(src.string() + "/") == 0)
         {
-            show_status_message("No fue posible realizar la accion");
+            alert("No es posible realizar la acción: El destino es el mismo que el origen o un subdirectorio del mismo.", "Error", MessageType::Error);
+            return;
+        }
+
+        if (std::filesystem::exists(dst))
+        {
+            alert("Ya existe un archivo o carpeta con el mismo nombre en el destino.", "Acción Abortada", MessageType::Warning);
             return;
         }
 
         m_progress_bar->set_progress(0.0f);
         m_progress_bar->set_visible(true);
-        show_status_message("Copiando...");
+        show_status_message(m_is_cut ? "Moviendo..." : "Copiando...");
 
-        auto future = arkutils::FileOperations::copy(
-            m_clipboard_path, target_dir,
-            [this](double progress)
-            {
-                application()->post_task(
-                    [this, progress]()
-                    { m_progress_bar->set_progress(static_cast<float>(progress)); });
-            });
-
-        std::thread(
-            [this, f = std::move(future)]() mutable
-            {
+        if (m_is_cut)
+        {
+            auto future = arkutils::FileOperations::move(m_clipboard_path, dst.string());
+            std::thread([this, f = std::move(future)]() mutable {
                 auto result = f.get();
                 if (application())
                 {
-                    application()->post_task(
-                        [this, result]()
+                    application()->post_task([this, result]() {
+                        m_progress_bar->set_visible(false);
+                        if (result == arkutils::FileOperations::Result::Success)
                         {
-                            m_progress_bar->set_visible(false);
-                            if (result == arkutils::FileOperations::Result::Success)
-                            {
-                                show_status_message(m_is_cut ? "Movido con éxito"
-                                                             : "Copiado con éxito");
-                                if (m_is_cut)
-                                {
-                                    // TODO: In a real app we would delete src or use move()
-                                    // For now we just reset m_is_cut and m_clipboard_path
-                                    m_clipboard_path = "";
-                                    m_is_cut = false;
-                                }
-                                if (m_view_ptr)
-                                    m_view_ptr->navigate_to(m_view_ptr->current_path());
-                            }
-                            else
-                            {
-                                show_status_message("No fue posible realizar la accion");
-                            }
-                        });
+                            show_status_message("Movido con éxito");
+                            m_clipboard_path = "";
+                            m_is_cut = false;
+                            if (m_view_ptr)
+                                m_view_ptr->navigate_to(m_view_ptr->current_path());
+                        }
+                        else
+                        {
+                            alert("Error al intentar mover el archivo o carpeta.", "Error", MessageType::Error);
+                            show_status_message("Error al mover");
+                        }
+                    });
                 }
-            })
-            .detach();
+            }).detach();
+        }
+        else
+        {
+            auto future = arkutils::FileOperations::copy(
+                m_clipboard_path, target_dir,
+                [this](double progress)
+                {
+                    application()->post_task(
+                        [this, progress]()
+                        { m_progress_bar->set_progress(static_cast<float>(progress)); });
+                });
+
+            std::thread(
+                [this, f = std::move(future)]() mutable
+                {
+                    auto result = f.get();
+                    if (application())
+                    {
+                        application()->post_task(
+                            [this, result]()
+                            {
+                                m_progress_bar->set_visible(false);
+                                if (result == arkutils::FileOperations::Result::Success)
+                                {
+                                    show_status_message("Copiado con éxito");
+                                    if (m_view_ptr)
+                                        m_view_ptr->navigate_to(m_view_ptr->current_path());
+                                }
+                                else
+                                {
+                                    alert("Error al intentar copiar el archivo o carpeta.", "Error", MessageType::Error);
+                                    show_status_message("Error al copiar");
+                                }
+                            });
+                    }
+                })
+                .detach();
+        }
     }
 
     void ArkfmWindow::handle_rename(const std::string &path)
     {
-        LOG_INFO << "renombrando... " << path;
-        show_status_message("Renombrando " + std::filesystem::path(path).filename().string());
-        // TODO: Implementation with dialog
+        std::filesystem::path p(path);
+        auto dialog = std::make_unique<RenameDialog>(p.filename().string());
+        dialog->when_accepted.connect([this, path, p](RenameEvent &ctx) {
+            std::filesystem::path new_path = p.parent_path() / ctx.new_name;
+
+            if (std::filesystem::exists(new_path))
+            {
+                alert("Ya existe un archivo o carpeta con el nombre '" + ctx.new_name + "' en esta ubicación.", "Error al renombrar", MessageType::Error);
+                return;
+            }
+
+            auto future = arkutils::FileOperations::rename(path, new_path.string());
+            std::thread([this, f = std::move(future)]() mutable {
+                auto result = f.get();
+                if (application())
+                {
+                    application()->post_task([this, result]() {
+                        if (result == arkutils::FileOperations::Result::Success)
+                        {
+                            show_status_message("Renombrado con éxito");
+                            if (m_view_ptr)
+                                m_view_ptr->navigate_to(m_view_ptr->current_path());
+                        }
+                        else
+                        {
+                            alert("No se pudo renombrar el archivo o carpeta.", "Error", MessageType::Error);
+                        }
+                    });
+                }
+            }).detach();
+        });
+        dialog->run();
     }
 
     void ArkfmWindow::handle_delete(const std::string &path)
     {
-        LOG_INFO << "borrando... " << path;
-        show_status_message("Eliminando " + std::filesystem::path(path).filename().string());
+        std::string filename = std::filesystem::path(path).filename().string();
+        if (confirm("¿Está seguro que desea eliminar '" + filename + "'?", "Confirmar eliminación"))
+        {
+            show_status_message("Eliminando...");
+            auto future = arkutils::FileOperations::remove(path);
+            std::thread([this, f = std::move(future)]() mutable {
+                auto result = f.get();
+                if (application())
+                {
+                    application()->post_task([this, result]() {
+                        if (result == arkutils::FileOperations::Result::Success)
+                        {
+                            show_status_message("Eliminado con éxito");
+                            if (m_view_ptr)
+                                m_view_ptr->navigate_to(m_view_ptr->current_path());
+                        }
+                        else
+                        {
+                            alert("Error al intentar eliminar el archivo o carpeta.", "Error", MessageType::Error);
+                        }
+                    });
+                }
+            }).detach();
+        }
+    }
 
-        // For now just logging as requested, but we could do:
-        // auto future = arkutils::FileOperations::remove(path);
-        // ... and refresh view on success.
+    void ArkfmWindow::alert(const std::string &message, const std::string &title, horizon::MessageType type)
+    {
+        auto dialog = std::make_unique<horizon::MessageDialog>(title, message, type, false);
+        // We use a detached thread to run the dialog, similar to how Application does it but locally
+        std::thread([d = std::move(dialog)]() mutable {
+            d->initialize();
+            d->run();
+        }).detach();
+    }
 
-        // Let's pretend it worked for the sake of the log message
-        show_status_message("Elemento eliminado (simulado)", 3000);
+    bool ArkfmWindow::confirm(const std::string &message, const std::string &title)
+    {
+        auto dialog = std::make_unique<horizon::MessageDialog>(title, message, horizon::MessageType::Question, true);
+        std::promise<bool> promise;
+        auto future = promise.get_future();
+
+        dialog->when_responded.connect([&promise](horizon::MessageResponseEvent ev) {
+            promise.set_value(ev.response == horizon::MessageResponse::Accept);
+        });
+
+        std::thread([d = std::move(dialog)]() mutable {
+            d->initialize();
+            d->run();
+        }).detach();
+
+        return future.get();
     }
 
     void ArkfmWindow::show_status_message(const std::string &msg, int timeout_ms)

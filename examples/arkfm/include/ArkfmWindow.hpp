@@ -1,6 +1,7 @@
 #pragma once
 
 #include <horizon/ApplicationWindow.hpp>
+#include <horizon/MessageDialog.hpp>
 
 namespace horizon
 {
@@ -25,6 +26,9 @@ namespace horizon::arkfm
         void handle_paste(const std::string &target_dir);
         void handle_rename(const std::string &path);
         void handle_delete(const std::string &path);
+
+        void alert(const std::string &message, const std::string &title = "Alert", horizon::MessageType type = horizon::MessageType::Info);
+        bool confirm(const std::string &message, const std::string &title = "Confirm");
 
     private:
         void show_status_message(const std::string &msg, int timeout_ms = 5000);
