@@ -100,6 +100,12 @@ namespace horizon::arkfm
                 }
             });
 
+        ark_toolbar_ptr->when_search_changed.connect(
+            [view_ptr](SearchChangedEvent &ctx)
+            {
+                view_ptr->set_search_query(ctx.query);
+            });
+
         vpanel->add_child(std::move(sidebar));
         vpanel->add_child(std::move(view));
         set_content(std::move(vpanel));

@@ -28,6 +28,8 @@ namespace horizon::arkfm
         void navigate_back();
         void navigate_forward();
 
+        void set_search_query(const std::string &query);
+
         bool can_back() const;
         bool can_forward() const;
 
@@ -38,6 +40,7 @@ namespace horizon::arkfm
     private:
         ViewMode m_view_mode;
         std::string m_current_path;
+        std::string m_search_query;
         std::unique_ptr<class NavigationHistory> m_history;
     };
 

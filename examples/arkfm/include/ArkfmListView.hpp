@@ -12,7 +12,7 @@ namespace horizon::arkfm
         ArkfmListView(std::string path);
         ~ArkfmListView() override = default;
 
-        void refresh(const std::string &path);
+        void refresh(const std::string &path, const std::string &filter = "");
         void update_table(const std::vector<arkutils::FileInfo> &files);
 
     private:

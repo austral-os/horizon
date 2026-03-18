@@ -30,7 +30,7 @@ namespace horizon::arkfm
         ArkfmCoverFlowView(std::string path);
         ~ArkfmCoverFlowView() override;
 
-        void refresh(const std::string &path);
+        void refresh(const std::string &path, const std::string &filter = "");
 
         EventsManager<horizon::TableViewRowMouseClickContext<arkutils::FileInfo>>
             when_row_dbl_click;

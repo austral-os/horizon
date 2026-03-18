@@ -105,6 +105,17 @@ namespace horizon::arkfm
 
             add_child(std::move(view_mode_cover));
         }
+
+        // Apply existing search query if any
+        if (!m_search_query.empty())
+        {
+            if (auto *child = dynamic_cast<ArkfmListView *>(m_children.back().get()))
+                child->refresh(m_current_path, m_search_query);
+            else if (auto *child = dynamic_cast<ArkfmIconView *>(m_children.back().get()))
+                child->refresh(m_current_path, m_search_query);
+            else if (auto *child = dynamic_cast<ArkfmCoverFlowView *>(m_children.back().get()))
+                child->refresh(m_current_path, m_search_query);
+        }
     }
 
     void ArkfmView::navigate_to(const std::string &path, bool record_history)
@@ -136,6 +147,21 @@ namespace horizon::arkfm
         {
             navigate_to(m_history->forward(), false);
         }
+    }
+
+    void ArkfmView::set_search_query(const std::string &query)
+    {
+        m_search_query = query;
+        if (m_children.empty())
+            return;
+
+        // Refresh the active view with the new filter
+        if (auto *child = dynamic_cast<ArkfmListView *>(m_children.back().get()))
+            child->refresh(m_current_path, m_search_query);
+        else if (auto *child = dynamic_cast<ArkfmIconView *>(m_children.back().get()))
+            child->refresh(m_current_path, m_search_query);
+        else if (auto *child = dynamic_cast<ArkfmCoverFlowView *>(m_children.back().get()))
+            child->refresh(m_current_path, m_search_query);
     }
 
     bool ArkfmView::can_back() const

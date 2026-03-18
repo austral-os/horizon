@@ -7,6 +7,7 @@ namespace horizon
 {
     class GroupButton;
     class ToggleGroupButton;
+    class SearchBox;
 } // namespace horizon
 
 namespace horizon::arkfm
@@ -22,6 +23,11 @@ namespace horizon::arkfm
         int view_mode_index;
     };
 
+    struct SearchChangedEvent : public EventContext
+    {
+        std::string query;
+    };
+
     class ArkToolbar : public Widget
     {
     public:
@@ -30,10 +36,12 @@ namespace horizon::arkfm
 
         EventsManager<NavigationButtonClickEvent> when_navigation_clicked;
         EventsManager<ViewModeChangeEvent> when_view_mode_changed;
+        EventsManager<SearchChangedEvent> when_search_changed;
 
     private:
         horizon::GroupButton *m_navigation;
         horizon::ToggleGroupButton *m_view_modes;
+        horizon::SearchBox *m_search_box;
     };
 
 } // namespace horizon::arkfm

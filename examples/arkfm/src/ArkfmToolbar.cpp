@@ -74,8 +74,17 @@ namespace horizon::arkfm
             });
 
         auto search_box = std::make_unique<horizon::SearchBox>();
-        search_box->set_placeholder("Buscar...");
-        search_box->set_fixed_size(200);
+        m_search_box = search_box.get();
+        m_search_box->set_placeholder("Buscar...");
+        m_search_box->set_fixed_size(200);
+
+        m_search_box->when_text_changed.connect(
+            [this](KeyEventContext &)
+            {
+                SearchChangedEvent ev;
+                ev.query = m_search_box->text();
+                this->when_search_changed.run(ev);
+            });
 
         auto spacer = std::make_unique<Widget>();
         spacer->set_position_type(FILL);

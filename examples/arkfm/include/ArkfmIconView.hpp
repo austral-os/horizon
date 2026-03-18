@@ -14,7 +14,7 @@ namespace horizon::arkfm
         ArkfmIconView(std::string path);
         ~ArkfmIconView() override = default;
 
-        void refresh(const std::string &path);
+        void refresh(const std::string &path, const std::string &filter = "");
 
     private:
         void update_icons(const std::vector<arkutils::FileInfo> &files);

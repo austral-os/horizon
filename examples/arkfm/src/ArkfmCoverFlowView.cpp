@@ -8,6 +8,8 @@
 #include "horizon/Label.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/arkutils/FileSystemModel.hpp"
+#include <algorithm>
+#include <cctype>
 
 namespace horizon::arkfm
 {
@@ -114,19 +116,37 @@ namespace horizon::arkfm
 
     ArkfmCoverFlowView::~ArkfmCoverFlowView() = default;
 
-    void ArkfmCoverFlowView::refresh(const std::string &path)
+    void ArkfmCoverFlowView::refresh(const std::string &path, const std::string &filter)
     {
         m_current_path = path;
+        LOG_INFO << "Refreshing cover flow view for path: " << path << " with filter: " << filter;
         try
         {
             auto files = m_fs_model->list_directory(path);
             std::vector<arkutils::FileInfo> visible_files;
+
+            std::string filter_lower = filter;
+            std::transform(filter_lower.begin(), filter_lower.end(), filter_lower.begin(),
+                           ::tolower);
+
             for (const auto &f : files)
             {
-                if (!f.is_hidden)
+                if (f.is_hidden)
+                    continue;
+
+                if (!filter.empty())
                 {
-                    visible_files.push_back(f);
+                    std::string display_name = ArkfmFileProvider::get_display_name(f);
+                    std::transform(display_name.begin(), display_name.end(),
+                                   display_name.begin(), ::tolower);
+
+                    if (display_name.find(filter_lower) == std::string::npos)
+                    {
+                        continue;
+                    }
                 }
+
+                visible_files.push_back(f);
             }
             update_data(visible_files);
         }
