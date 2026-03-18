@@ -542,7 +542,7 @@ int main()
 
         notebook->add_tab(NotebookPage("Menus", std::move(menu_demo_container)));
 
-        notebook->set_current_tab(10);
+        notebook->set_current_tab(2);
 
         wnd->add_child(std::move(notebook));
 

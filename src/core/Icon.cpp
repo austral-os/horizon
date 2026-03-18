@@ -34,7 +34,8 @@ namespace horizon
             return;
 
         m_icon_size = size;
-        set_fixed_size(size);
+        // Do NOT call set_fixed_size here, so we can fill the parent's available space
+        // and center the icon internally.
         resolve_icon();
         invalidate();
     }
@@ -138,23 +139,24 @@ namespace horizon
             return;
 
         int draw_size = m_icon_size;
-        int icon_x = m_start_draw_x; 
+        int icon_x = m_start_draw_x;
         int icon_y = m_start_draw_y;
 
-        if (m_horizontal_alignment == TextAlignment::Center && m_available_draw_width > draw_size)
+
+        if (m_horizontal_alignment == TextAlignment::Center)
         {
             icon_x += (m_available_draw_width - draw_size) / 2;
         }
-        else if (m_horizontal_alignment == TextAlignment::Right && m_available_draw_width > draw_size)
+        else if (m_horizontal_alignment == TextAlignment::Right)
         {
             icon_x += (m_available_draw_width - draw_size);
         }
 
-        if (m_vertical_alignment == VerticalAlignment::Middle && m_available_draw_height > draw_size)
+        if (m_vertical_alignment == VerticalAlignment::Middle)
         {
             icon_y += (m_available_draw_height - draw_size) / 2;
         }
-        else if (m_vertical_alignment == VerticalAlignment::Bottom && m_available_draw_height > draw_size)
+        else if (m_vertical_alignment == VerticalAlignment::Bottom)
         {
             icon_y += (m_available_draw_height - draw_size);
         }
