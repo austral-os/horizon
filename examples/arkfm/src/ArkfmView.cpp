@@ -4,6 +4,7 @@
 #include "ArkfmListView.hpp"
 #include "NavigationHistory.hpp"
 #include "horizon/Application.hpp"
+#include <horizon/ApplicationLauncher.hpp>
 
 namespace horizon::arkfm
 {
@@ -42,6 +43,10 @@ namespace horizon::arkfm
                                                      { this->navigate_to(target_path); });
                         }
                     }
+                    else if (ctx.row_data.extension == "desktop")
+                    {
+                        ApplicationLauncher::launch_from_desktop_file(ctx.row_data.path);
+                    }
                 });
 
             add_child(std::move(view_mode_list));
@@ -61,6 +66,10 @@ namespace horizon::arkfm
                             application()->post_task([this, target_path]()
                                                      { this->navigate_to(target_path); });
                         }
+                    }
+                    else if (ctx.item_data.extension == "desktop")
+                    {
+                        ApplicationLauncher::launch_from_desktop_file(ctx.item_data.path);
                     }
                 });
 
@@ -87,6 +96,10 @@ namespace horizon::arkfm
                             application()->post_task([this, target_path]()
                                                      { this->navigate_to(target_path); });
                         }
+                    }
+                    else if (ctx.row_data.extension == "desktop")
+                    {
+                        ApplicationLauncher::launch_from_desktop_file(ctx.row_data.path);
                     }
                 });
 

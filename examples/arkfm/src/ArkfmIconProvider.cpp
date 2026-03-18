@@ -1,4 +1,5 @@
 #include "ArkfmIconProvider.hpp"
+#include <horizon/DesktopEntry.hpp>
 
 namespace horizon::arkfm
 {
@@ -10,6 +11,15 @@ namespace horizon::arkfm
         }
 
         const auto &ext = f.extension;
+
+        if (ext == "desktop")
+        {
+            std::string desktop_icon = DesktopEntry::get_value_from_desktop_file(f.path, "Icon");
+            if (!desktop_icon.empty())
+            {
+                return desktop_icon;
+            }
+        }
 
         // Images
         if (ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "svg" || ext == "gif" ||

@@ -418,6 +418,12 @@ namespace horizon
         if (icon_name.empty())
             return "";
 
+        // If it's an absolute path, return it if it exists
+        if (icon_name[0] == '/' && fs::exists(icon_name))
+        {
+            return icon_name;
+        }
+
         std::string cache_key = icon_name + ":" + std::to_string(size) + ":" + theme;
         if (s_resolution_cache.count(cache_key))
             return s_resolution_cache[cache_key];
