@@ -2,9 +2,10 @@
 #include "ArkfmCoverFlowView.hpp"
 #include "ArkfmIconView.hpp"
 #include "ArkfmListView.hpp"
+#include "ArkfmWindow.hpp"
 #include "NavigationHistory.hpp"
-#include "horizon/Application.hpp"
 #include <horizon/ApplicationLauncher.hpp>
+#include <sys/stat.h>
 
 namespace horizon::arkfm
 {
@@ -47,6 +48,17 @@ namespace horizon::arkfm
                     {
                         ApplicationLauncher::launch_from_desktop_file(ctx.row_data.path);
                     }
+                    else if (ctx.row_data.permissions & (S_IXUSR | S_IXGRP | S_IXOTH))
+                    {
+                        if (auto *win = dynamic_cast<ArkfmWindow *>(application()->root()))
+                        {
+                            if (win->confirm("¿Desea ejecutar esta aplicación?",
+                                             "Confirmar ejecución"))
+                            {
+                                ApplicationLauncher::launch_binary(ctx.row_data.path);
+                            }
+                        }
+                    }
                 });
 
             add_child(std::move(view_mode_list));
@@ -70,6 +82,17 @@ namespace horizon::arkfm
                     else if (ctx.item_data.extension == "desktop")
                     {
                         ApplicationLauncher::launch_from_desktop_file(ctx.item_data.path);
+                    }
+                    else if (ctx.item_data.permissions & (S_IXUSR | S_IXGRP | S_IXOTH))
+                    {
+                        if (auto *win = dynamic_cast<ArkfmWindow *>(application()->root()))
+                        {
+                            if (win->confirm("¿Desea ejecutar esta aplicación?",
+                                             "Confirmar ejecución"))
+                            {
+                                ApplicationLauncher::launch_binary(ctx.item_data.path);
+                            }
+                        }
                     }
                 });
 
@@ -100,6 +123,17 @@ namespace horizon::arkfm
                     else if (ctx.row_data.extension == "desktop")
                     {
                         ApplicationLauncher::launch_from_desktop_file(ctx.row_data.path);
+                    }
+                    else if (ctx.row_data.permissions & (S_IXUSR | S_IXGRP | S_IXOTH))
+                    {
+                        if (auto *win = dynamic_cast<ArkfmWindow *>(application()->root()))
+                        {
+                            if (win->confirm("¿Desea ejecutar esta aplicación?",
+                                             "Confirmar ejecución"))
+                            {
+                                ApplicationLauncher::launch_binary(ctx.row_data.path);
+                            }
+                        }
                     }
                 });
 
@@ -177,6 +211,16 @@ namespace horizon::arkfm
         else if (f.extension == "desktop")
         {
             ApplicationLauncher::launch_from_desktop_file(f.path);
+        }
+        else if (f.permissions & (S_IXUSR | S_IXGRP | S_IXOTH))
+        {
+            if (auto *win = dynamic_cast<ArkfmWindow *>(application()->root()))
+            {
+                if (win->confirm("¿Desea ejecutar esta aplicación?", "Confirmar ejecución"))
+                {
+                    ApplicationLauncher::launch_binary(f.path);
+                }
+            }
         }
     }
 
