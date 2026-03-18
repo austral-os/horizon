@@ -13,6 +13,7 @@ namespace horizon
         set_icon_name(icon_name);
         set_icon_size(48);
         set_margin(5);
+        set_fixed_size(48 + margin() * 2);
     }
 
     void DockItem::set_app_info(const ApplicationInfo &info)
