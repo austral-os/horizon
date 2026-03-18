@@ -42,7 +42,7 @@ namespace horizon
                     bool force = false) override;
         void calculate_layout() override;
 
-        EventsManager<EventContext> when_item_selected;
+        EventsManager<SidebarItemSelectedContext> when_item_selected;
 
     protected:
         void draw(GraphicsContext &gc) override;

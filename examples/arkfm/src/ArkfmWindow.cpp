@@ -32,9 +32,19 @@ namespace horizon::arkfm
         vpanel->set_spacing(10);
 
         auto sidebar = std::make_unique<ArkfmSidebar>();
+        auto *sidebar_ptr = sidebar.get();
         auto view = std::make_unique<ArkfmView>(getenv("HOME") ? getenv("HOME") : "~/");
         m_view_ptr = view.get();
         auto *view_ptr = m_view_ptr;
+
+        sidebar_ptr->when_item_selected.connect(
+            [view_ptr](horizon::SidebarItemSelectedContext &ctx)
+            {
+                if (!ctx.item->path().empty())
+                {
+                    view_ptr->navigate_to(ctx.item->path());
+                }
+            });
 
         show_status_bar();
         auto *sb = statusbar();

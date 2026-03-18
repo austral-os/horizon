@@ -30,9 +30,20 @@ namespace horizon
             return m_selected;
         }
 
+        void set_path(const std::string &path)
+        {
+            m_path = path;
+        }
+
+        std::string path() const
+        {
+            return m_path;
+        }
+
     private:
         Icon *m_icon_ptr{nullptr};
         Label *m_label_ptr{nullptr};
         bool m_selected{false};
+        std::string m_path;
     };
 } // namespace horizon
