@@ -4,6 +4,7 @@ add_executable(preferences
     src/PreferencesToolbar.cpp
     src/ContentView.cpp
     src/ViewPanel.cpp
+    src/views/DesktopView.cpp
 )
 
 target_link_libraries(preferences

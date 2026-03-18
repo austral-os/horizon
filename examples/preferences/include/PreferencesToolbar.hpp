@@ -4,7 +4,6 @@
 #include <horizon/GroupButton.hpp>
 #include <horizon/SearchBox.hpp>
 #include <horizon/Icon.hpp>
-#include <memory>
 
 namespace horizon::preferences
 {
@@ -15,6 +14,7 @@ namespace horizon::preferences
         ~PreferencesToolbar() override = default;
 
         SearchBox* search_box() const { return m_search_box; }
+        GroupButton* navigation() const { return m_navigation; }
         
     private:
         GroupButton* m_navigation{nullptr};
