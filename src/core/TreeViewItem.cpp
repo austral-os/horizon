@@ -39,10 +39,7 @@ namespace horizon
         disclosure->set_fixed_size(16);
         disclosure->set_vertical_alignment(VerticalAlignment::Middle);
         m_disclosure_icon = disclosure.get();
-        m_disclosure_icon->when_mouse_press.connect([this](MouseButtonEventContext &ev) {
-            set_expanded(!m_expanded);
-            ev.stop_propagation = true;
-        });
+        
         m_disclosure_container->add_child(std::move(disclosure));
         m_header->add_child(std::move(disc_container));
 
@@ -64,6 +61,12 @@ namespace horizon
         m_header->add_child(std::move(label));
 
         add_child(std::move(header));
+
+        // Interaction: click on the whole header to toggle expand
+        m_header->when_mouse_press.connect([this](MouseButtonEventContext &ev) {
+            set_expanded(!m_expanded);
+            ev.stop_propagation = true;
+        });
     }
 
     void TreeViewItem::set_expanded(bool expanded)
@@ -83,7 +86,13 @@ namespace horizon
             }
             
             invalidate();
-            // Upward invalidation is already handled by base Widget::invalidate()
+            
+            // Layout must be recalculated from the tree view down
+            Widget *p = parent();
+            while (p) {
+                p->calculate_layout();
+                p = p->parent();
+            }
         }
     }
 
@@ -115,14 +124,12 @@ namespace horizon
                 has_subitems = true;
                 if (m_expanded && item->is_visible()) {
                     item->set_fixed_size(item->total_height());
-                    // item->calculate_layout(); // Base Layout handles this
                 }
             }
         }
 
         if (m_disclosure_icon) m_disclosure_icon->set_visible(has_subitems);
 
-        // Root items in TreeView will have their fixed_size updated by TreeView
         Widget::calculate_layout();
     }
 
@@ -131,7 +138,7 @@ namespace horizon
         if (is_hovered() || (m_header && m_header->is_hovered()))
         {
             gc.setColor(Color(0.9f, 0.9f, 0.9f, 0.3f));
-            gc.fillRect(m_x, m_y, m_width, 24);
+            gc.fillRect(m_start_draw_x, m_start_draw_y, m_available_draw_width, 24);
         }
     }
 

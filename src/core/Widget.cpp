@@ -114,7 +114,7 @@ namespace horizon
             if (child->position_type() == FREE)
                 continue;
 
-            if (child->fixed_size() > 0)
+            if (child->fixed_size() >= 0)
             {
                 m_free_space -= child->fixed_size();
             }
@@ -186,7 +186,7 @@ namespace horizon
             if (!child->is_visible())
                 continue;
 
-            if (child->fixed_size() > 0)
+            if (child->fixed_size() >= 0)
             {
                 if (m_layout_type == WIDGET_LAYOUT_VERTICAL)
                 {
