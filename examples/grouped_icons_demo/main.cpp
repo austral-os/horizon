@@ -20,17 +20,25 @@ int main()
         view->set_position_type(FILL);
         view->set_alternate_colors(Color(1.0f, 1.0f, 1.0f, 1.0f), Color(0.95f, 0.95f, 0.95f, 1.0f));
 
+        view->when_item_click.connect([](const GroupedIconItem& item) {
+            LOG_INFO << "Item clicked: " << item.label << " (id: " << item.id << ")";
+        });
+
+        view->when_item_dbl_click.connect([](const GroupedIconItem& item) {
+            LOG_INFO << "Item double-clicked: " << item.label;
+        });
+
         // Personal Group
         IconGroup personal;
         personal.title = "Personal";
         personal.items = {
-            {"appearance", "Appearance", "preferences-desktop-theme", []() { LOG_INFO << "Appearance clicked"; }},
-            {"desktop", "Desktop & Screen Saver", "preferences-desktop-wallpaper", []() { LOG_INFO << "Desktop clicked"; }},
-            {"dock", "Dock", "preferences-system-notifications", []() { LOG_INFO << "Dock clicked"; }},
-            {"expose", "Exposé & Spaces", "preferences-desktop-screensaver", []() { LOG_INFO << "Exposé clicked"; }},
-            {"language", "Language & Text", "preferences-desktop-locale", []() { LOG_INFO << "Language clicked"; }},
-            {"security", "Security", "preferences-system-privacy", []() { LOG_INFO << "Security clicked"; }},
-            {"spotlight", "Spotlight", "system-search", []() { LOG_INFO << "Spotlight clicked"; }}
+            {"appearance", "Appearance", "preferences-desktop-theme"},
+            {"desktop", "Desktop & Screen Saver", "preferences-desktop-wallpaper"},
+            {"dock", "Dock", "preferences-system-notifications"},
+            {"expose", "Exposé & Spaces", "preferences-desktop-screensaver"},
+            {"language", "Language & Text", "preferences-desktop-locale"},
+            {"security", "Security", "preferences-system-privacy"},
+            {"spotlight", "Spotlight", "system-search"}
         };
         view->add_group(personal);
 
@@ -38,14 +46,14 @@ int main()
         IconGroup hardware;
         hardware.title = "Hardware";
         hardware.items = {
-            {"cds", "CDs & DVDs", "drive-optical", []() { LOG_INFO << "CDs clicked"; }},
-            {"displays", "Displays", "video-display", []() { LOG_INFO << "Displays clicked"; }},
-            {"energy", "Energy Saver", "preferences-system-power", []() { LOG_INFO << "Energy clicked"; }},
-            {"keyboard", "Keyboard", "input-keyboard", []() { LOG_INFO << "Keyboard clicked"; }},
-            {"mouse", "Mouse", "input-mouse", []() { LOG_INFO << "Mouse clicked"; }},
-            {"trackpad", "Trackpad", "input-tablet", []() { LOG_INFO << "Trackpad clicked"; }},
-            {"print", "Print & Fax", "printer", []() { LOG_INFO << "Print clicked"; }},
-            {"sound", "Sound", "audio-card", []() { LOG_INFO << "Sound clicked"; }}
+            {"cds", "CDs & DVDs", "drive-optical"},
+            {"displays", "Displays", "video-display"},
+            {"energy", "Energy Saver", "preferences-system-power"},
+            {"keyboard", "Keyboard", "input-keyboard"},
+            {"mouse", "Mouse", "input-mouse"},
+            {"trackpad", "Trackpad", "input-tablet"},
+            {"print", "Print & Fax", "printer"},
+            {"sound", "Sound", "audio-card"}
         };
         view->add_group(hardware);
 
@@ -53,10 +61,10 @@ int main()
         IconGroup internet;
         internet.title = "Internet & Wireless";
         internet.items = {
-            {"mobileme", "MobileMe", "user-info", []() { LOG_INFO << "MobileMe clicked"; }},
-            {"network", "Network", "network-workgroup", []() { LOG_INFO << "Network clicked"; }},
-            {"bluetooth", "Bluetooth", "preferences-system-bluetooth", []() { LOG_INFO << "Bluetooth clicked"; }},
-            {"sharing", "Sharing", "preferences-system-network", []() { LOG_INFO << "Sharing clicked"; }}
+            {"mobileme", "MobileMe", "user-info"},
+            {"network", "Network", "network-workgroup"},
+            {"bluetooth", "Bluetooth", "preferences-system-bluetooth"},
+            {"sharing", "Sharing", "preferences-system-network"}
         };
         view->add_group(internet);
 
@@ -64,14 +72,14 @@ int main()
         IconGroup system;
         system.title = "System";
         system.items = {
-            {"accounts", "Accounts", "user-available", []() { LOG_INFO << "Accounts clicked"; }},
-            {"datetime", "Date & Time", "preferences-system-time", []() { LOG_INFO << "Date & Time clicked"; }},
-            {"parental", "Parental Controls", "preferences-system-parental-controls", []() { LOG_INFO << "Parental clicked"; }},
-            {"software", "Software Update", "system-software-update", []() { LOG_INFO << "Software clicked"; }},
-            {"speech", "Speech", "audio-input-microphone", []() { LOG_INFO << "Speech clicked"; }},
-            {"startup", "Startup Disk", "drive-harddisk", []() { LOG_INFO << "Startup clicked"; }},
-            {"timemachine", "Time Machine", "system-run", []() { LOG_INFO << "Time Machine clicked"; }},
-            {"universal", "Universal Access", "preferences-desktop-accessibility", []() { LOG_INFO << "Universal clicked"; }}
+            {"accounts", "Accounts", "user-available"},
+            {"datetime", "Date & Time", "preferences-system-time"},
+            {"parental", "Parental Controls", "preferences-system-parental-controls"},
+            {"software", "Software Update", "system-software-update"},
+            {"speech", "Speech", "audio-input-microphone"},
+            {"startup", "Startup Disk", "drive-harddisk"},
+            {"timemachine", "Time Machine", "system-run"},
+            {"universal", "Universal Access", "preferences-desktop-accessibility"}
         };
         view->add_group(system);
 

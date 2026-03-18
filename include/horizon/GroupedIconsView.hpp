@@ -6,8 +6,6 @@
 #include <horizon/Icon.hpp>
 #include <string>
 #include <vector>
-#include <functional>
-#include <functional>
 
 namespace horizon
 {
@@ -20,7 +18,6 @@ namespace horizon
         std::string id;
         std::string label;
         std::string icon_name;
-        std::function<void()> on_click;
     };
 
     /**
@@ -60,6 +57,9 @@ namespace horizon
 
         void calculate_layout() override;
 
+        EventsManager<const GroupedIconItem&> when_item_click;
+        EventsManager<const GroupedIconItem&> when_item_dbl_click;
+
     private:
         ScrollArea *m_scroll_area{nullptr};
         Widget *m_content_pane{nullptr};
@@ -79,7 +79,7 @@ namespace horizon
     class GroupIconItemWidget : public Widget
     {
     public:
-        GroupIconItemWidget(const GroupedIconItem &item);
+        GroupIconItemWidget(GroupedIconsView* view, const GroupedIconItem &item);
         void calculate_layout() override;
         void draw(GraphicsContext &gc) override;
 
@@ -88,6 +88,7 @@ namespace horizon
     private:
         Icon *m_icon{nullptr};
         Label *m_label{nullptr};
+        GroupedIconsView* m_view{nullptr};
         GroupedIconItem m_item_data;
     };
 

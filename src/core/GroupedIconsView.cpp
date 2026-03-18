@@ -6,8 +6,8 @@ namespace horizon
 {
     // --- GroupIconItemWidget ---
 
-    GroupIconItemWidget::GroupIconItemWidget(const GroupedIconItem &item)
-        : Widget(), m_item_data(item)
+    GroupIconItemWidget::GroupIconItemWidget(GroupedIconsView *view, const GroupedIconItem &item)
+        : Widget(), m_view(view), m_item_data(item)
     {
         set_position_type(FREE); // Critical: Avoid size/position overwrite in grid
 
@@ -24,15 +24,21 @@ namespace horizon
         m_label = label.get();
         add_child(std::move(label));
 
-        when_mouse_press.connect(
-            [this](MouseButtonEventContext &ctx)
+        when_click.connect(
+            [this](MouseButtonEventContext &)
             {
-                if (ctx.button == 0x110)
-                { // Left click
-                    if (m_item_data.on_click)
-                    {
-                        m_item_data.on_click();
-                    }
+                if (m_view)
+                {
+                    m_view->when_item_click.run(m_item_data);
+                }
+            });
+
+        when_dbl_click.connect(
+            [this](MouseButtonEventContext &)
+            {
+                if (m_view)
+                {
+                    m_view->when_item_dbl_click.run(m_item_data);
                 }
             });
 
@@ -47,11 +53,11 @@ namespace horizon
 
     void GroupIconItemWidget::draw(GraphicsContext &gc)
     {
-        if (is_hovered())
+        /*if (is_hovered())
         {
             gc.setColor(0.9f, 0.9f, 0.9f, 0.5f);
             gc.fillRect(x(), y(), width(), height());
-        }
+        }*/
         Widget::draw(gc);
     }
 
@@ -228,7 +234,7 @@ namespace horizon
             auto grid = std::make_unique<GroupGrid>();
             for (const auto &item : group.items)
             {
-                grid->add_child(std::make_unique<GroupIconItemWidget>(item));
+                grid->add_child(std::make_unique<GroupIconItemWidget>(this, item));
             }
             group_container->add_child(std::move(grid));
 
