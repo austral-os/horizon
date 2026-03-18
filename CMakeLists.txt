@@ -137,6 +137,7 @@ target_link_libraries(multiwindow
 )
 
 add_subdirectory(examples/launchpad)
+add_subdirectory(examples/preferences)
 
 add_executable(combo_demo
     examples/combo_demo/main.cpp

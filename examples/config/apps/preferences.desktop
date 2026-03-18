@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Preferences
+Exec=/home/horacio/Desarrollo/austral-os/horizon/build/examples/preferences/preferences
+Icon=applications-system
+Comment=Preferences
+Terminal=false
+Categories=System;
