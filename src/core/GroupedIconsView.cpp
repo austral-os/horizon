@@ -20,7 +20,7 @@ namespace horizon
 
         auto label = std::make_unique<Label>(item.label);
         label->set_alignment(TextAlignment::Center);
-        label->set_font_size(11);
+        label->set_font_size(14);
         m_label = label.get();
         add_child(std::move(label));
 
