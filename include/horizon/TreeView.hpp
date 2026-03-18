@@ -16,12 +16,17 @@ namespace horizon
         virtual ~TreeView() = default;
 
         void add_root_item(std::unique_ptr<TreeViewItem> item);
+        void set_selected_item(TreeViewItem *item);
+        TreeViewItem *selected_item() const { return m_selected_item; }
 
         void calculate_layout() override;
         void draw(GraphicsContext &gc) override;
 
+        EventsManager<TreeViewItem *> when_item_selected;
+
     private:
         ScrollArea *m_scroll_area{nullptr};
         Widget *m_content_container{nullptr};
+        TreeViewItem *m_selected_item{nullptr};
     };
 } // namespace horizon

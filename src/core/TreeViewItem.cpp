@@ -1,7 +1,9 @@
 #include <horizon/TreeViewItem.hpp>
+#include <horizon/TreeView.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Application.hpp>
 #include <horizon/Spacer.hpp>
+#include <horizon/ThemeManager.hpp>
 
 namespace horizon
 {
@@ -62,11 +64,48 @@ namespace horizon
 
         add_child(std::move(header));
 
-        // Interaction: click on the whole header to toggle expand
+        // Interaction: click on the whole header to toggle expand or select
         m_header->when_mouse_press.connect([this](MouseButtonEventContext &ev) {
-            set_expanded(!m_expanded);
+            if (has_children())
+            {
+                set_expanded(!m_expanded);
+            }
+            else
+            {
+                // Find TreeView parent to set selection
+                Widget *p = parent();
+                while (p)
+                {
+                    auto *tv = dynamic_cast<TreeView *>(p);
+                    if (tv)
+                    {
+                        tv->set_selected_item(this);
+                        break;
+                    }
+                    p = p->parent();
+                }
+            }
             ev.stop_propagation = true;
         });
+    }
+
+    void TreeViewItem::set_selected(bool selected)
+    {
+        if (m_selected != selected)
+        {
+            m_selected = selected;
+            
+            // Update text color for label
+            if (m_selected) {
+                auto *tm = application()->theme_manager.get();
+                Color fg = tm->get_color("table_row_selected_fg");
+                if (m_label) m_label->set_text_color(fg);
+            } else {
+                if (m_label) m_label->set_text_color(Color(0.0f, 0.0f, 0.0f, 1.0f)); // Default black for now or use theme
+            }
+            
+            invalidate();
+        }
     }
 
     void TreeViewItem::set_expanded(bool expanded)
@@ -135,9 +174,11 @@ namespace horizon
 
     void TreeViewItem::draw(GraphicsContext &gc)
     {
-        if (is_hovered() || (m_header && m_header->is_hovered()))
+        if (m_selected)
         {
-            gc.setColor(Color(0.9f, 0.9f, 0.9f, 0.3f));
+            auto *tm = application()->theme_manager.get();
+            Color bg = tm->get_color("table_row_selected");
+            gc.setColor(bg);
             gc.fillRect(m_start_draw_x, m_start_draw_y, m_available_draw_width, 24);
         }
     }

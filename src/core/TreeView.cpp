@@ -28,6 +28,27 @@ namespace horizon
         invalidate();
     }
 
+    void TreeView::set_selected_item(TreeViewItem *item)
+    {
+        if (m_selected_item == item)
+            return;
+
+        if (m_selected_item)
+        {
+            m_selected_item->set_selected(false);
+        }
+
+        m_selected_item = item;
+
+        if (m_selected_item)
+        {
+            m_selected_item->set_selected(true);
+        }
+
+        when_item_selected.run(item);
+        invalidate();
+    }
+
     void TreeView::calculate_layout()
     {
         if (!m_content_container || !m_scroll_area)

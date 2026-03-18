@@ -23,6 +23,11 @@ namespace horizon
         void set_bold(bool bold);
         bool is_bold() const { return m_bold; }
 
+        void set_selected(bool selected);
+        bool is_selected() const { return m_selected; }
+
+        bool has_children() const { return !children().empty() && children().size() > 1; } // size > 1 because header is a child
+
         void add_item(std::unique_ptr<TreeViewItem> item);
 
         void calculate_layout() override;
@@ -36,6 +41,7 @@ namespace horizon
         std::string m_text;
         bool m_expanded{false};
         bool m_bold{false};
+        bool m_selected{false};
         int m_indentation_level{0};
 
         Widget *m_header{nullptr};

@@ -4,6 +4,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <type_traits>
 
 namespace horizon
 {
@@ -141,9 +142,13 @@ namespace horizon
                 if (handler.callback)
                 {
                     handler.callback(context);
-                    if (context.stop_propagation)
+
+                    if constexpr (std::is_base_of_v<EventContext, EventT>)
                     {
-                        break;
+                        if (context.stop_propagation)
+                        {
+                            break;
+                        }
                     }
                 }
             }
