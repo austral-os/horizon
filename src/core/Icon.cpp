@@ -62,6 +62,20 @@ namespace horizon
         return m_vertical_alignment;
     }
 
+    void Icon::set_horizontal_alignment(TextAlignment alignment)
+    {
+        if (m_horizontal_alignment == alignment)
+            return;
+
+        m_horizontal_alignment = alignment;
+        invalidate();
+    }
+
+    TextAlignment Icon::horizontal_alignment() const
+    {
+        return m_horizontal_alignment;
+    }
+
     void Icon::resolve_icon()
     {
         if (m_icon_name.empty())
@@ -99,8 +113,17 @@ namespace horizon
             return;
 
         int draw_size = m_icon_size;
-        int icon_x = m_start_draw_x; // Left aligned in its allotted space
+        int icon_x = m_start_draw_x; 
         int icon_y = m_start_draw_y;
+
+        if (m_horizontal_alignment == TextAlignment::Center)
+        {
+            icon_x += (m_available_draw_width - draw_size) / 2;
+        }
+        else if (m_horizontal_alignment == TextAlignment::Right)
+        {
+            icon_x += (m_available_draw_width - draw_size);
+        }
 
         if (m_vertical_alignment == VerticalAlignment::Middle)
         {

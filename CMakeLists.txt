@@ -174,6 +174,15 @@ target_link_libraries(treeview_demo
         horizon
 )
 
+add_executable(grouped_icons_demo
+    examples/grouped_icons_demo/main.cpp
+)
+
+target_link_libraries(grouped_icons_demo
+    PRIVATE
+        horizon
+)
+
 # Agregamos un target "run" para compilar y ejecutar de una vez
 
 add_custom_target(run

@@ -41,6 +41,12 @@ namespace horizon
         const std::string &resolved_path() const;
 
         /**
+         * @brief Set horizontal alignment of the icon.
+         */
+        void set_horizontal_alignment(TextAlignment alignment);
+        TextAlignment horizontal_alignment() const;
+
+        /**
          * @brief Set vertical alignment of the icon.
          */
         void set_vertical_alignment(VerticalAlignment alignment);
@@ -53,6 +59,7 @@ namespace horizon
         std::string m_icon_name;
         int m_icon_size{24};
         VerticalAlignment m_vertical_alignment{VerticalAlignment::Middle};
+        TextAlignment m_horizontal_alignment{TextAlignment::Left};
         std::string m_resolved_path;
 
         void resolve_icon();
