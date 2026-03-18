@@ -1,15 +1,16 @@
 #include "ArkfmListView.hpp"
 #include "ArkfmFileProvider.hpp"
+#include "ArkfmView.hpp"
 #include "ArkfmWindow.hpp"
 #include "dialogs/PropertiesDialog.hpp"
 #include "horizon/Logger.hpp"
+#include <algorithm>
+#include <cctype>
+#include <filesystem>
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/WaylandWindow.hpp>
-#include <algorithm>
-#include <cctype>
-#include <filesystem>
 
 namespace horizon::arkfm
 {
@@ -106,8 +107,8 @@ namespace horizon::arkfm
             {
                 auto bg_menu = std::make_unique<horizon::Menu>();
                 bg_menu->set_title("Carpeta");
-                
-                ArkfmWindow* win = nullptr;
+
+                ArkfmWindow *win = nullptr;
                 if (auto *app = application())
                 {
                     win = dynamic_cast<ArkfmWindow *>(app->root());
@@ -122,11 +123,8 @@ namespace horizon::arkfm
                 auto paste_item = bg_menu->add_item("Pegar");
                 if (win && win->has_clipboard_content())
                 {
-                    paste_item->when_click.connect(
-                        [this, win](horizon::MouseButtonEventContext &)
-                        {
-                            win->handle_paste(m_current_path);
-                        });
+                    paste_item->when_click.connect([this, win](horizon::MouseButtonEventContext &)
+                                                   { win->handle_paste(m_current_path); });
                 }
                 else
                 {
@@ -149,7 +147,8 @@ namespace horizon::arkfm
                     {
                         arkutils::FileInfo f;
                         f.name = std::filesystem::path(m_current_path).filename().string();
-                        if (f.name.empty()) f.name = "/";
+                        if (f.name.empty())
+                            f.name = "/";
                         f.path = m_current_path;
                         f.type = arkutils::FileType::Directory;
                         auto dialog = std::make_unique<PropertiesDialog>(f);
@@ -160,11 +159,7 @@ namespace horizon::arkfm
                 ctx.stop_propagation = true;
             });
 
-        when_application_load.connect(
-            [this](EventContext &)
-            {
-                this->refresh(m_current_path);
-            });
+        when_application_load.connect([this](EventContext &) { this->refresh(m_current_path); });
 
         set_row_menu_factory(
             [this](const arkutils::FileInfo &f)
@@ -172,24 +167,38 @@ namespace horizon::arkfm
                 auto menu = std::make_unique<horizon::Menu>();
                 menu->set_title(ArkfmFileProvider::get_display_name(f));
 
-                ArkfmWindow* win = nullptr;
+                ArkfmWindow *win = nullptr;
                 if (auto *app = application())
                 {
                     win = dynamic_cast<ArkfmWindow *>(app->root());
                 }
 
+                auto open_item = menu->add_item("Abrir");
+                open_item->when_click.connect(
+                    [this](horizon::MouseButtonEventContext &)
+                    {
+                        if (auto *view = dynamic_cast<ArkfmView *>(parent()))
+                        {
+                            view->open_selection();
+                        }
+                    });
+
+                menu->add_separator();
+
                 auto copy_item = menu->add_item("Copiar");
                 copy_item->when_click.connect(
                     [win, f](horizon::MouseButtonEventContext &)
                     {
-                        if (win) win->handle_copy(f.path);
+                        if (win)
+                            win->handle_copy(f.path);
                     });
 
                 auto cut_item = menu->add_item("Cortar");
                 cut_item->when_click.connect(
                     [win, f](horizon::MouseButtonEventContext &)
                     {
-                        if (win) win->handle_cut(f.path);
+                        if (win)
+                            win->handle_cut(f.path);
                     });
 
                 auto paste_item = menu->add_item("Pegar");
@@ -216,7 +225,8 @@ namespace horizon::arkfm
                 rename_item->when_click.connect(
                     [win, f](horizon::MouseButtonEventContext &)
                     {
-                        if (win) win->handle_rename(f.path);
+                        if (win)
+                            win->handle_rename(f.path);
                     });
 
                 menu->add_separator();
@@ -225,7 +235,8 @@ namespace horizon::arkfm
                 delete_item->when_click.connect(
                     [win, f](horizon::MouseButtonEventContext &)
                     {
-                        if (win) win->handle_delete(f.path);
+                        if (win)
+                            win->handle_delete(f.path);
                     });
 
                 menu->add_separator();
@@ -240,10 +251,7 @@ namespace horizon::arkfm
 
                 return menu;
             });
-
-
     }
-
 
     void ArkfmListView::refresh(const std::string &path, const std::string &filter)
     {
@@ -265,8 +273,8 @@ namespace horizon::arkfm
                 if (!filter.empty())
                 {
                     std::string display_name = ArkfmFileProvider::get_display_name(f);
-                    std::transform(display_name.begin(), display_name.end(),
-                                   display_name.begin(), ::tolower);
+                    std::transform(display_name.begin(), display_name.end(), display_name.begin(),
+                                   ::tolower);
 
                     if (display_name.find(filter_lower) == std::string::npos)
                     {

@@ -26,6 +26,8 @@ namespace horizon::arkfm
         void handle_paste(const std::string &target_dir);
         void handle_rename(const std::string &path);
         void handle_delete(const std::string &path);
+        void handle_open();
+        void handle_properties();
 
         void alert(const std::string &message, const std::string &title = "Alert", horizon::MessageType type = horizon::MessageType::Info);
         bool confirm(const std::string &message, const std::string &title = "Confirm");

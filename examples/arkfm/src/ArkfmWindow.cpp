@@ -4,6 +4,7 @@
 #include "ArkfmView.hpp"
 #include "dialogs/NewFolderDialog.hpp"
 #include "dialogs/RenameDialog.hpp"
+#include "dialogs/PropertiesDialog.hpp"
 #include "horizon/MessageDialog.hpp"
 #include "horizon/ApplicationWindow.hpp"
 #include "horizon/Label.hpp"
@@ -130,6 +131,37 @@ namespace horizon::arkfm
                                 });
                             dialog->run();
                         });
+
+                    application()->signal_manager.connect(
+                        "open", [this](SignalContext &)
+                        { handle_open(); });
+                    application()->signal_manager.connect(
+                        "copy", [this](SignalContext &)
+                        {
+                            auto sel = m_view_ptr->get_selection();
+                            if (!sel.empty())
+                                handle_copy(sel[0].path);
+                        });
+                    application()->signal_manager.connect(
+                        "cut", [this](SignalContext &)
+                        {
+                            auto sel = m_view_ptr->get_selection();
+                            if (!sel.empty())
+                                handle_cut(sel[0].path);
+                        });
+                    application()->signal_manager.connect(
+                        "paste", [this](SignalContext &)
+                        { handle_paste(m_view_ptr->current_path()); });
+                    application()->signal_manager.connect(
+                        "delete", [this](SignalContext &)
+                        {
+                            auto sel = m_view_ptr->get_selection();
+                            if (!sel.empty())
+                                handle_delete(sel[0].path);
+                        });
+                    application()->signal_manager.connect(
+                        "properties", [this](SignalContext &)
+                        { handle_properties(); });
                 }
             });
     }
@@ -300,6 +332,36 @@ namespace horizon::arkfm
                 }
             }).detach();
         }
+    }
+
+    void ArkfmWindow::handle_open()
+    {
+        if (m_view_ptr)
+            m_view_ptr->open_selection();
+    }
+
+    void ArkfmWindow::handle_properties()
+    {
+        if (!m_view_ptr)
+            return;
+
+        auto sel = m_view_ptr->get_selection();
+        arkutils::FileInfo f;
+        if (sel.empty())
+        {
+            f.name = std::filesystem::path(m_view_ptr->current_path()).filename().string();
+            if (f.name.empty())
+                f.name = "/";
+            f.path = m_view_ptr->current_path();
+            f.type = arkutils::FileType::Directory;
+        }
+        else
+        {
+            f = sel[0];
+        }
+
+        auto dialog = std::make_unique<PropertiesDialog>(f);
+        dialog->run();
     }
 
     void ArkfmWindow::alert(const std::string &message, const std::string &title, horizon::MessageType type)

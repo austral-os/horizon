@@ -149,6 +149,37 @@ namespace horizon::arkfm
         }
     }
 
+    std::vector<arkutils::FileInfo> ArkfmView::get_selection() const
+    {
+        if (m_children.empty())
+            return {};
+
+        if (auto *child = dynamic_cast<ArkfmListView *>(m_children.back().get()))
+            return child->get_selected_items();
+        else if (auto *child = dynamic_cast<ArkfmIconView *>(m_children.back().get()))
+            return child->get_selected_items();
+        // TODO: CoverFlowView if it supports selection
+
+        return {};
+    }
+
+    void ArkfmView::open_selection()
+    {
+        auto sel = get_selection();
+        if (sel.empty())
+            return;
+
+        const auto &f = sel[0];
+        if (f.type == arkutils::FileType::Directory)
+        {
+            navigate_to(f.path);
+        }
+        else if (f.extension == "desktop")
+        {
+            ApplicationLauncher::launch_from_desktop_file(f.path);
+        }
+    }
+
     void ArkfmView::set_search_query(const std::string &query)
     {
         m_search_query = query;

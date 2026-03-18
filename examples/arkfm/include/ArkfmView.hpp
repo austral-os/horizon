@@ -1,4 +1,6 @@
 #include "horizon/Widget.hpp"
+#include "horizon/arkutils/FileInfo.hpp"
+#include "horizon/arkutils/FileSystemModel.hpp"
 #include <memory>
 
 namespace horizon::arkfm
@@ -27,6 +29,9 @@ namespace horizon::arkfm
         void navigate_to(const std::string &path, bool record_history = true);
         void navigate_back();
         void navigate_forward();
+
+        std::vector<arkutils::FileInfo> get_selection() const;
+        void open_selection();
 
         void set_search_query(const std::string &query);
 

@@ -99,6 +99,20 @@ namespace horizon
             return m_data;
         }
 
+        /**
+         * @brief Returns the items currently selected in the icon view.
+         * @return A vector of data items of type T.
+         */
+        std::vector<T> get_selected_items() const
+        {
+            std::vector<T> selected_items;
+            if (m_selected_index >= 0 && (size_t)m_selected_index < m_data.size())
+            {
+                selected_items.push_back(m_data[m_selected_index]);
+            }
+            return selected_items;
+        }
+
         void set_item_factory(ItemFactory factory)
         {
             m_item_factory = factory;
