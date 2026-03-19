@@ -1,11 +1,15 @@
 #include <horizon/WaylandWindow.hpp>
 #include "PreferencesWindow.hpp"
+#include <horizon/Logger.hpp>
 #include <memory>
 
 int main()
 {
     try
     {
+        // 0. Initialize Logger
+        horizon::Logger::instance().init("preferences");
+
         // 1. Setup the basic Wayland/Horizon context
         horizon::WaylandWindow app("horizon.preferences", 800, 600);
         app.set_name("Preferencias del Sistema");

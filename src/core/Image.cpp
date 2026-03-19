@@ -1,6 +1,7 @@
 #include "horizon/Image.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/WaylandWindow.hpp"
+#include <horizon/Logger.hpp>
 
 namespace horizon
 {
@@ -42,9 +43,6 @@ namespace horizon
         if (m_path.empty() || !application())
             return;
 
-        // Image doesn't know about Stb or Svg anymore.
-        // It asks the current context to create a driver for it.
-        // This makes it compatible with future rendering backends.
         m_driver = application()->get_graphics_context().createImageDriver(m_path);
     }
 

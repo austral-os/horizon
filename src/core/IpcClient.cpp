@@ -10,7 +10,10 @@
 namespace horizon
 {
 
-    IpcClient::IpcClient(const std::string &socket_path) : m_socket_path(socket_path) {}
+    IpcClient::IpcClient(const std::string &socket_path)
+        : m_socket_path(socket_path), m_stop_subscription(false), m_subscription_fd(-1)
+    {
+    }
 
     IpcClient::~IpcClient()
     {

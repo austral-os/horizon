@@ -97,9 +97,11 @@ namespace horizon
             
             // Update text color for label
             if (m_selected) {
-                auto *tm = application()->theme_manager.get();
-                Color fg = tm->get_color("table_row_selected_fg");
-                if (m_label) m_label->set_text_color(fg);
+                if (auto *app = application()) {
+                    auto *tm = app->theme_manager.get();
+                    Color fg = tm->get_color("table_row_selected_fg");
+                    if (m_label) m_label->set_text_color(fg);
+                }
             } else {
                 if (m_label) m_label->set_text_color(Color(0.0f, 0.0f, 0.0f, 1.0f)); // Default black for now or use theme
             }
@@ -176,10 +178,12 @@ namespace horizon
     {
         if (m_selected)
         {
-            auto *tm = application()->theme_manager.get();
-            Color bg = tm->get_color("table_row_selected");
-            gc.setColor(bg);
-            gc.fillRect(m_start_draw_x, m_start_draw_y, m_available_draw_width, 24);
+            if (auto *app = application()) {
+                auto *tm = app->theme_manager.get();
+                Color bg = tm->get_color("table_row_selected");
+                gc.setColor(bg);
+                gc.fillRect(m_start_draw_x, m_start_draw_y, m_available_draw_width, 24);
+            }
         }
     }
 

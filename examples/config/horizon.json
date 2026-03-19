@@ -1,0 +1,40 @@
+{
+    "desktop": {
+        "backgrounds": {
+            "current": {
+                "change-time": 0,
+                "fit": "fill",
+                "name": "abstract-01.jpg",
+                "source": "abstract",
+                "type": "image"
+            },
+            "sources": [
+                {
+                    "name": "austral",
+                    "routes": [
+                        {
+                            "name": "abstract",
+                            "path": "/home/horacio/Desarrollo/austral-os/horizon/examples/config/backgrounds/abstract"
+                        },
+                        {
+                            "name": "nature",
+                            "path": "/home/horacio/Desarrollo/austral-os/horizon/examples/config/backgrounds/nature"
+                        },
+                        {
+                            "name": "pictures",
+                            "path": "/home/horacio/Desarrollo/austral-os/horizon/examples/config/backgrounds/pictures"
+                        },
+                        {
+                            "name": "plants",
+                            "path": "/home/horacio/Desarrollo/austral-os/horizon/examples/config/backgrounds/plants"
+                        },
+                        {
+                            "name": "colors",
+                            "path": "/home/horacio/Desarrollo/austral-os/horizon/examples/config/backgrounds/colors"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

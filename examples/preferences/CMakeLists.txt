@@ -4,6 +4,8 @@ add_executable(preferences
     src/PreferencesToolbar.cpp
     src/ContentView.cpp
     src/ViewPanel.cpp
+    src/ConfigManager.cpp
+    src/ImagesView.cpp
     src/views/DesktopView.cpp
     src/views/AppearanceView.cpp
     src/views/ScreensaverView.cpp

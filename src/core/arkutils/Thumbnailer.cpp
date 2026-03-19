@@ -10,7 +10,6 @@
 #include <iomanip>
 #include <cstdio>
 
-#define STB_IMAGE_IMPLEMENTATION
 #include <horizon/external/stb_image.h>
 
 namespace fs = std::filesystem;

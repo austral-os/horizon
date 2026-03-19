@@ -28,6 +28,13 @@ namespace horizon
         invalidate();
     }
 
+    void TreeView::clear_root_items()
+    {
+        m_content_container->clear_children();
+        m_selected_item = nullptr;
+        invalidate();
+    }
+
     void TreeView::set_selected_item(TreeViewItem *item)
     {
         if (m_selected_item == item)

@@ -1,4 +1,4 @@
-#include <horizon/Logger.hpp>
+#include "horizon/Widget.hpp"
 #include "horizon/WaylandWindow.hpp"
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>

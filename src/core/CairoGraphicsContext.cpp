@@ -15,24 +15,18 @@ namespace horizon
 {
 
     CairoGraphicContext::CairoGraphicContext(const WaylandWindow *app, void *data, int w, int h)
-        : m_app(app), m_width(w), m_height(h)
+        : m_app(app), cairo_s(nullptr), cr(nullptr), m_width(w), m_height(h)
     {
-        LOG_INFO << "[DEBUG] CairoGraphicContext START data=" << data << " size=" << w << "x" << h;
-        if (!data) {
-             LOG_ERROR << "[DEBUG] CairoGraphicContext ERROR: data is NULL";
+        if (!data || w <= 0 || h <= 0) {
              return;
         }
         cairo_s = cairo_image_surface_create_for_data((unsigned char *)data, CAIRO_FORMAT_ARGB32, w,
                                                       h, w * 4);
         if (!cairo_s || cairo_surface_status(cairo_s) != CAIRO_STATUS_SUCCESS) {
-             LOG_ERROR << "[DEBUG] CairoGraphicContext ERROR: surface creation failed status=" << (cairo_s ? cairo_surface_status(cairo_s) : -1);
+             return;
         }
         cr = cairo_create(cairo_s);
-        if (!cr || cairo_status(cr) != CAIRO_STATUS_SUCCESS) {
-             LOG_ERROR << "[DEBUG] CairoGraphicContext ERROR: context creation failed status=" << (cr ? cairo_status(cr) : -1);
-        }
         m_clip_stack.push_back({0, 0, w, h});
-        LOG_INFO << "[DEBUG] CairoGraphicContext SUCCESS";
     }
 
     CairoGraphicContext::~CairoGraphicContext()
@@ -46,6 +40,8 @@ namespace horizon
     static void rounded_rectangle(cairo_t *cr, double x, double y, double width, double height,
                                   CornerRadius radius)
     {
+        if (!cr || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(width) || !std::isfinite(height))
+            return;
         if (radius.top_left <= 0 && radius.top_right <= 0 && radius.bottom_right <= 0 &&
             radius.bottom_left <= 0)
         {
@@ -185,13 +181,14 @@ namespace horizon
 
     void CairoGraphicContext::setColor(Color color)
     {
-        LOG_INFO << "[DEBUG] CairoGraphicContext::setColor START (" << color.r << "," << color.g << "," << color.b << "," << color.a << ")";
-        cairo_set_source_rgba(cr, color.r, color.g, color.b, color.a);
-        LOG_INFO << "[DEBUG] CairoGraphicContext::setColor END";
+        if (cr) {
+            cairo_set_source_rgba(cr, color.r, color.g, color.b, color.a);
+        }
     }
 
     void CairoGraphicContext::clearRect(int x, int y, int w, int h, CornerRadius radius)
     {
+        if (!cr) return;
         cairo_save(cr);
         cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
         rounded_rectangle(cr, x, y, (double)w, (double)h, radius);
@@ -201,14 +198,16 @@ namespace horizon
 
     void CairoGraphicContext::paint()
     {
-        cairo_paint(cr);
+        if (cr) cairo_paint(cr);
     }
 
     TextMetrics CairoGraphicContext::getTextMetrics(const char *text, const char *font, int size,
                                                     FontSlant slant, FontWeight weight) const
     {
-        LOG_INFO << "[DEBUG] CairoGraphicContext::getTextMetrics START text=" << (text ? text : "NULL") << " cr=" << (void*)cr;
+        if (!text || !cr) return {0, 0};
+        
         TextMetrics metrics;
+        // ... (rest of the function)
         cairo_font_slant_t cairo_slant;
         cairo_font_weight_t cairo_weight;
         switch (slant)
@@ -232,10 +231,13 @@ namespace horizon
             cairo_weight = CAIRO_FONT_WEIGHT_BOLD;
             break;
         }
+        
         cairo_select_font_face(cr, font, cairo_slant, cairo_weight);
         cairo_set_font_size(cr, size);
+        
         cairo_text_extents_t text_extents;
         cairo_text_extents(cr, text, &text_extents);
+        
         metrics.width = text_extents.x_advance;
         metrics.height = text_extents.height;
         return metrics;
@@ -244,6 +246,7 @@ namespace horizon
     void CairoGraphicContext::setDrawFont(const char *font, int size, FontSlant slant,
                                           FontWeight weight)
     {
+        if (!cr) return;
         cairo_font_slant_t cairo_slant;
         cairo_font_weight_t cairo_weight;
         switch (slant)
@@ -273,17 +276,19 @@ namespace horizon
 
     void CairoGraphicContext::drawText(int x, int y, const char *text)
     {
+        if (!cr || !text) return;
         cairo_move_to(cr, x, y);
         cairo_show_text(cr, text);
     }
 
     void CairoGraphicContext::drawImage(const std::string &path, int x, int y, int w, int h)
     {
-        if (path.empty() || w <= 0 || h <= 0)
+        if (path.empty() || w <= 0 || h <= 0 || !cr)
             return;
 
         cairo_save(cr);
-
+        // ... (rest of the function remains the same, but using cr safely)
+        
         // Determine file type by extension
         bool is_svg = false;
         auto dot_pos = path.rfind('.');
@@ -389,20 +394,19 @@ namespace horizon
     void CairoGraphicContext::drawRect(int x, int y, int width, int height, CornerRadius radius,
                                        float lineWidth)
     {
-        LOG_INFO << "[DEBUG] CairoGraphicContext::drawRect START x=" << x << " y=" << y << " w=" << width << " h=" << height;
+        if (!cr) return;
         cairo_set_line_width(cr, lineWidth);
         cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
         rounded_rectangle(cr, x, y, width, height, radius);
         cairo_stroke(cr);
-        LOG_INFO << "[DEBUG] CairoGraphicContext::drawRect END";
     }
 
     void CairoGraphicContext::fillRect(int x, int y, int width, int height, CornerRadius radius)
     {
-        LOG_INFO << "[DEBUG] CairoGraphicContext::fillRect START x=" << x << " y=" << y << " w=" << width << " h=" << height;
+        if (!cr) return;
+        
         rounded_rectangle(cr, x, y, width, height, radius);
         cairo_fill(cr);
-        LOG_INFO << "[DEBUG] CairoGraphicContext::fillRect END";
     }
 
     void CairoGraphicContext::drawLine(int x1, int y1, int x2, int y2, float lineWidth)
@@ -529,14 +533,14 @@ namespace horizon
 
     void CairoGraphicContext::save()
     {
-        cairo_save(cr);
+        if (cr) cairo_save(cr);
         if (!m_clip_stack.empty())
             m_clip_stack.push_back(m_clip_stack.back());
     }
 
     void CairoGraphicContext::restore()
     {
-        cairo_restore(cr);
+        if (cr) cairo_restore(cr);
         if (!m_clip_stack.empty())
             m_clip_stack.pop_back();
     }
@@ -562,46 +566,50 @@ namespace horizon
 
     void CairoGraphicContext::clipRoundedRect(int x, int y, int width, int height, CornerRadius radius)
     {
-        LOG_INFO << "[DEBUG] CairoGraphicContext::clipRoundedRect START x=" << x << " y=" << y << " w=" << width << " h=" << height;
+        if (!cr) return;
         rounded_rectangle(cr, (double)x, (double)y, (double)width, (double)height, radius);
         cairo_clip(cr);
-        LOG_INFO << "[DEBUG] CairoGraphicContext::clipRoundedRect END";
     }
 
     void CairoGraphicContext::translate(float dx, float dy)
     {
-        cairo_translate(cr, dx, dy);
+        if (cr) cairo_translate(cr, dx, dy);
     }
 
     void CairoGraphicContext::scale(float sx, float sy)
     {
-        cairo_scale(cr, sx, sy);
+        if (cr) cairo_scale(cr, sx, sy);
     }
 
     void CairoGraphicContext::pushGroup()
     {
-        cairo_push_group(cr);
+        if (cr) cairo_push_group(cr);
     }
 
     void CairoGraphicContext::popGroup()
     {
-        cairo_pop_group_to_source(cr);
-        cairo_paint(cr);
+        if (cr)
+        {
+            cairo_pop_group_to_source(cr);
+            cairo_paint(cr);
+        }
     }
 
     void CairoGraphicContext::popGroupToSource()
     {
-        cairo_pop_group_to_source(cr);
+        if (cr) cairo_pop_group_to_source(cr);
     }
 
     void CairoGraphicContext::fillPolygon(const std::vector<PolygonPoint> &points)
     {
+        if (!cr) return;
         rounded_polygon_path(cr, points);
         cairo_fill(cr);
     }
 
     void CairoGraphicContext::drawPolygon(const std::vector<PolygonPoint> &points, float lineWidth)
     {
+        if (!cr) return;
         cairo_set_line_width(cr, lineWidth);
         cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
         rounded_polygon_path(cr, points);
@@ -611,10 +619,10 @@ namespace horizon
     void CairoGraphicContext::fillLinearGradientPolygon(const std::vector<PolygonPoint> &points,
                                                         Color c1, Color c2, bool vertical)
     {
-        if (points.empty())
+        if (points.empty() || !cr)
             return;
 
-        // Find bounding box for gradient
+        // ...
         int min_x = points[0].x, max_x = points[0].x;
         int min_y = points[0].y, max_y = points[0].y;
         for (const auto &p : points)
@@ -646,6 +654,7 @@ namespace horizon
 
     void CairoGraphicContext::clipPolygon(const std::vector<PolygonPoint> &points)
     {
+        if (!cr) return;
         rounded_polygon_path(cr, points);
         cairo_clip(cr);
     }
@@ -653,6 +662,7 @@ namespace horizon
     void CairoGraphicContext::maskLinearGradient(int x, int y, int w, int h, Color c1, Color c2,
                                                  bool vertical)
     {
+        if (!cr) return;
         cairo_pattern_t *mask = vertical ? cairo_pattern_create_linear(x, y, x, y + h)
                                          : cairo_pattern_create_linear(x, y, x + w, y);
         cairo_pattern_add_color_stop_rgba(mask, 0, c1.r, c1.g, c1.b, c1.a);
@@ -749,6 +759,7 @@ namespace horizon
 
     void CairoGraphicContext::drawSvg(const std::string &path, int x, int y, int w, int h)
     {
+        if (!cr) return;
         RsvgHandle *handle = static_cast<RsvgHandle *>(get_svg_handle(path));
         if (!handle)
             return;

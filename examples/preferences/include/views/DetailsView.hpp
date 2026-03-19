@@ -4,12 +4,12 @@
 
 namespace horizon::preferences
 {
-    class DetailsView : public Widget
+    class DetailsView : public horizon::Widget
     {
     public:
         DetailsView();
         ~DetailsView() override = default;
     private:
-        Label* m_title_label{nullptr};
+        horizon::Label* m_title_label{nullptr};
     };
 }

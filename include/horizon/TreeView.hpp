@@ -16,6 +16,7 @@ namespace horizon
         virtual ~TreeView() = default;
 
         void add_root_item(std::unique_ptr<TreeViewItem> item);
+        void clear_root_items();
         void set_selected_item(TreeViewItem *item);
         TreeViewItem *selected_item() const { return m_selected_item; }
 

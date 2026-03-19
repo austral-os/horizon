@@ -17,11 +17,13 @@
 #include "views/RegionView.hpp"
 #include "views/DetailsView.hpp"
 #include "ViewPanel.hpp"
+#include "ConfigManager.hpp"
 
 namespace horizon::preferences
 {
     PreferencesWindow::PreferencesWindow() : ApplicationWindow("Preferencias del Sistema")
     {
+        ConfigManager::instance().load();
         set_size(800, 600);
 
         // Custom Toolbar
@@ -44,7 +46,7 @@ namespace horizon::preferences
         set_content(std::move(content));
 
         // Initial Panel
-        load_view_by_id("home");
+        load_view_by_id("desktop");
     }
 
     void PreferencesWindow::load_view_by_id(const std::string& id, bool push_to_history)
