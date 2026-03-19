@@ -4,9 +4,9 @@
             "current": {
                 "change-time": 0,
                 "fit": "fill",
-                "name": "Wave.png",
-                "path": "/home/horacio/Desarrollo/austral-os/horizon/examples/config/backgrounds/pictures/Wave.png",
-                "source": "pictures",
+                "name": "Lake.jpg",
+                "path": "/home/horacio/Desarrollo/austral-os/horizon/examples/config/backgrounds/nature/Lake.jpg",
+                "source": "nature",
                 "type": "image"
             },
             "sources": [
