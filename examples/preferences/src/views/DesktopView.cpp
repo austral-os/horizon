@@ -59,6 +59,9 @@ namespace horizon::preferences
         fit_combo->add_item("stretch", "Estirar para rellenar");
         fit_combo->add_item("center", "Centrar");
         m_fit_combo = fit_combo.get();
+        m_fit_combo->when_item_selected.connect([this](const horizon::ComboItemSelectedContext&) {
+            save_config();
+        });
         right_vbox->add_child(std::move(fit_combo));
 
         parent->add_child(std::move(right_vbox));
@@ -85,6 +88,9 @@ namespace horizon::preferences
             m_preview_image->set_path(path);
             std::filesystem::path p(path);
             m_image_name_label->set_text(p.filename().string());
+            m_current_image_name = p.filename().string();
+            m_current_image_full_path = path;
+            save_config();
         });
 
         parent->add_child(std::move(images));
@@ -163,6 +169,24 @@ namespace horizon::preferences
         if (j.is_null() || !j.contains("backgrounds")) return;
 
         const auto& backgrounds = j["backgrounds"];
+        
+        // Load current
+        if (backgrounds.contains("current"))
+        {
+            const auto& current = backgrounds["current"];
+            m_current_image_name = current.value("name", "");
+            m_current_image_full_path = current.value("path", "");
+            m_current_source = current.value("source", "");
+            std::string fit = current.value("fit", "fill");
+            
+            if (m_fit_combo) m_fit_combo->set_selected_item_by_id(fit);
+            if (m_image_name_label) m_image_name_label->set_text(m_current_image_name);
+            if (m_preview_image && !m_current_image_full_path.empty())
+            {
+                m_preview_image->set_path(m_current_image_full_path);
+            }
+        }
+
         if (backgrounds.contains("sources") && backgrounds["sources"].is_array())
         {
             m_sources.clear();
@@ -209,8 +233,10 @@ namespace horizon::preferences
                 auto* route_item_ptr = route_item.get();
                 
                 std::string path = route.path;
-                m_tree_view->when_item_selected.connect([this, route_item_ptr, path](horizon::TreeViewItem* selected) {
+                std::string source_name = route.name;
+                m_tree_view->when_item_selected.connect([this, route_item_ptr, path, source_name](horizon::TreeViewItem* selected) {
                     if (selected == route_item_ptr) {
+                        m_current_source = source_name;
                         m_images_view->set_path(path);
                     }
                 });
@@ -253,10 +279,30 @@ namespace horizon::preferences
             });
         }
 
+        std::string fit = "fill";
+        if (m_fit_combo && m_fit_combo->selected_item())
+        {
+            fit = m_fit_combo->selected_item()->id;
+        }
+
         return {
             {"backgrounds", {
+                {"current", {
+                    {"change-time", 0},
+                    {"fit", fit},
+                    {"name", m_current_image_name},
+                    {"path", m_current_image_full_path},
+                    {"source", m_current_source},
+                    {"type", "image"}
+                }},
                 {"sources", sources_json}
             }}
         };
+    }
+
+    void DesktopView::save_config()
+    {
+        ConfigManager::instance().set_section("desktop", to_json());
+        ConfigManager::instance().save();
     }
 } // namespace horizon::preferences

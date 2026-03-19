@@ -4,8 +4,9 @@
             "current": {
                 "change-time": 0,
                 "fit": "fill",
-                "name": "abstract-01.jpg",
-                "source": "abstract",
+                "name": "bigsur.jpg",
+                "path": "/home/horacio/Desarrollo/austral-os/horizon/examples/config/backgrounds/pictures/bigsur.jpg",
+                "source": "pictures",
                 "type": "image"
             },
             "sources": [

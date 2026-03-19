@@ -55,6 +55,7 @@ namespace horizon::preferences
         void create_section_d(horizon::Widget* parent);
         
         void update_tree_view();
+        void save_config();
 
     private:
         // Section B: Preview
@@ -79,5 +80,9 @@ namespace horizon::preferences
         std::vector<BackgroundSource> m_sources;
         horizon::TreeViewItem* m_first_route_to_select{nullptr};
         bool m_initial_selection_done{false};
+
+        std::string m_current_image_name;
+        std::string m_current_image_full_path;
+        std::string m_current_source;
     };
 } // namespace horizon::preferences
