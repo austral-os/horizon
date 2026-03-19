@@ -1,21 +1,28 @@
 #include <ImagesView.hpp>
-#include <horizon/Logger.hpp>
-#include <horizon/arkutils/Thumbnailer.hpp>
-#include <horizon/ApplicationWindow.hpp>
-#include <horizon/WaylandWindow.hpp>
-#include <horizon/GraphicsContext.hpp>
-#include <horizon/Color.hpp>
-#include <filesystem>
 #include <algorithm>
+#include <filesystem>
+#include <horizon/ApplicationWindow.hpp>
+#include <horizon/Color.hpp>
+#include <horizon/GraphicsContext.hpp>
+#include <horizon/Logger.hpp>
+#include <horizon/WaylandWindow.hpp>
+#include <horizon/arkutils/Thumbnailer.hpp>
 
 namespace horizon::preferences
 {
+    const int THUMB_WIDTH = 130;
+    const int THUMB_HEIGHT = 86;
+    const int GRID_SPACING = 10;
+    const int SCROLLBAR_MARGIN = 10;
+    const int BOTTOM_PADDING = 20;
+
     // --- ThumbnailItem ---
-    ThumbnailItem::ThumbnailItem(const std::string& original_path, const std::string& thumbnail_path)
+    ThumbnailItem::ThumbnailItem(const std::string &original_path,
+                                 const std::string &thumbnail_path)
         : m_original_path(original_path)
     {
-        set_size(130, 86);
-        set_margin(5); // Padding around the image
+        set_size(THUMB_WIDTH, THUMB_HEIGHT);
+        set_margin(4); // Subtle padding
 
         auto img = std::make_unique<Image>();
         img->set_path(thumbnail_path);
@@ -23,11 +30,11 @@ namespace horizon::preferences
         img->set_position_type(horizon::WidgetPositionTypes::FILL);
         m_image = img.get();
         add_child(std::move(img));
-        
+
         set_cursor_type(CursorType::Pointer);
     }
 
-    void ThumbnailItem::draw(horizon::GraphicsContext& gc)
+    void ThumbnailItem::draw(horizon::GraphicsContext &gc)
     {
         horizon::Widget::draw(gc);
     }
@@ -36,20 +43,19 @@ namespace horizon::preferences
     class ThumbnailGrid : public horizon::Widget
     {
     public:
-        ThumbnailGrid() : horizon::Widget() {
-            set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL); 
+        ThumbnailGrid() : horizon::Widget()
+        {
+            set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
         }
 
         void calculate_layout() override
         {
-            const int item_width = 130;
-            const int row_height = 86;
-            const int spacing = 10;
             int width_avail = width();
-            if (width_avail <= 0) return;
+            if (width_avail <= 0)
+                return;
 
-            int columns = std::max(1, (width_avail + spacing) / (item_width + spacing));
-            
+            int columns = std::max(1, (width_avail + GRID_SPACING) / (THUMB_WIDTH + GRID_SPACING));
+
             int count = 0;
             for (auto const &child : m_children)
             {
@@ -57,12 +63,12 @@ namespace horizon::preferences
                 {
                     int row = count / columns;
                     int col = count % columns;
-                    
-                    int rel_x = col * (item_width + spacing) + spacing;
-                    int rel_y = row * (row_height + spacing) + spacing;
-                    
+
+                    int rel_x = col * (THUMB_WIDTH + GRID_SPACING) + GRID_SPACING;
+                    int rel_y = row * (THUMB_HEIGHT + GRID_SPACING) + GRID_SPACING;
+
                     child->set_position(x() + rel_x, y() + rel_y);
-                    child->set_size(item_width, row_height);
+                    child->set_size(THUMB_WIDTH, THUMB_HEIGHT);
                     count++;
                 }
             }
@@ -77,10 +83,10 @@ namespace horizon::preferences
 
         auto scroll = std::make_unique<ScrollArea>();
         m_scroll_area = scroll.get();
-        
+
         auto grid = std::make_unique<ThumbnailGrid>();
         m_grid_container = grid.get();
-        
+
         scroll->set_content(std::move(grid));
         add_child(std::move(scroll));
     }
@@ -91,14 +97,15 @@ namespace horizon::preferences
         stop_loading();
     }
 
-    void ImagesView::set_path(const std::string& path)
+    void ImagesView::set_path(const std::string &path)
     {
         LOG_INFO << "[ImagesView] set_path: " << path << " (Current: " << m_current_path << ")";
-        if (m_current_path == path) return;
+        if (m_current_path == path)
+            return;
         m_current_path = path;
-        
+
         stop_loading();
-        
+
         {
             std::lock_guard<std::mutex> lock(m_pending_mutex);
             m_pending_thumbnails.clear();
@@ -106,7 +113,7 @@ namespace horizon::preferences
 
         m_grid_container->clear_children();
         invalidate();
-        
+
         if (!path.empty())
         {
             LOG_INFO << "[ImagesView] Dispatching start_loading for " << path;
@@ -114,40 +121,50 @@ namespace horizon::preferences
         }
     }
 
-    void ImagesView::start_loading(const std::string& path)
+    void ImagesView::start_loading(const std::string &path)
     {
         m_stop_requested = false;
-        m_loading_thread = std::thread([this, path]() {
-            try {
-                std::vector<std::string> extensions = {".jpg", ".jpeg", ".png", ".bmp", ".svg"};
-                
-                if (!std::filesystem::exists(path)) return;
-
-                for (const auto& entry : std::filesystem::directory_iterator(path))
+        m_loading_thread = std::thread(
+            [this, path]()
+            {
+                try
                 {
-                    if (m_stop_requested) break;
-                    
-                    if (entry.is_regular_file())
+                    std::vector<std::string> extensions = {".jpg", ".jpeg", ".png", ".bmp", ".svg"};
+
+                    if (!std::filesystem::exists(path))
+                        return;
+
+                    for (const auto &entry : std::filesystem::directory_iterator(path))
                     {
-                        std::string ext = entry.path().extension().string();
-                        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-                        
-                        if (std::find(extensions.begin(), extensions.end(), ext) != extensions.end())
+                        if (m_stop_requested)
+                            break;
+
+                        if (entry.is_regular_file())
                         {
-        std::string original = entry.path().string();
-        LOG_INFO << "[ImagesView] Found image: " << original;
-        std::string thumb = arkutils::Thumbnailer::generate(original, THUMB_SIZE, THUMB_SIZE);
-        LOG_INFO << "[ImagesView] Thumbnail generated: " << thumb;
-                            
-                            if (!thumb.empty())
+                            std::string ext = entry.path().extension().string();
+                            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+                            if (std::find(extensions.begin(), extensions.end(), ext) !=
+                                extensions.end())
                             {
-                                add_thumbnail_safe(original, thumb);
+                                std::string original = entry.path().string();
+                                LOG_INFO << "[ImagesView] Found image: " << original;
+                                std::string thumb = arkutils::Thumbnailer::generate(
+                                    original, THUMB_WIDTH, THUMB_HEIGHT);
+                                LOG_INFO << "[ImagesView] Thumbnail generated: " << thumb;
+
+                                if (!thumb.empty())
+                                {
+                                    add_thumbnail_safe(original, thumb);
+                                }
                             }
                         }
                     }
                 }
-            } catch (...) {}
-        });
+                catch (...)
+                {
+                }
+            });
     }
 
     void ImagesView::stop_loading()
@@ -159,35 +176,43 @@ namespace horizon::preferences
         }
     }
 
-    void ImagesView::add_thumbnail_safe(const std::string& original_path, const std::string& thumbnail_path)
+    void ImagesView::add_thumbnail_safe(const std::string &original_path,
+                                        const std::string &thumbnail_path)
     {
-        auto* app = application();
+        auto *app = application();
         if (app)
         {
             LOG_INFO << "[ImagesView] add_thumbnail_safe: Posting task for " << original_path;
-            app->post_task([this, original_path, thumbnail_path]() {
-                if (m_stop_requested) return;
-                LOG_INFO << "[ImagesView] Task executing for " << original_path;
-                
-                auto item = std::make_unique<ThumbnailItem>(original_path, thumbnail_path);
-                item->set_position_type(horizon::WidgetPositionTypes::FREE);
-                
-                std::string path = original_path;
-                item->when_mouse_press.connect([this, path](MouseButtonEventContext& ev) {
-                    if (ev.button == 0x110) { // BTN_LEFT
-                        when_image_selected.run(path);
-                        ev.stop_propagation = true;
-                    }
-                });
+            app->post_task(
+                [this, original_path, thumbnail_path]()
+                {
+                    if (m_stop_requested)
+                        return;
+                    LOG_INFO << "[ImagesView] Task executing for " << original_path;
 
-                m_grid_container->add_child(std::move(item));
-                update_layout();
-                invalidate();
-            });
+                    auto item = std::make_unique<ThumbnailItem>(original_path, thumbnail_path);
+                    item->set_position_type(horizon::WidgetPositionTypes::FREE);
+
+                    std::string path = original_path;
+                    item->when_mouse_press.connect(
+                        [this, path](MouseButtonEventContext &ev)
+                        {
+                            if (ev.button == 0x110)
+                            { // BTN_LEFT
+                                when_image_selected.run(path);
+                                ev.stop_propagation = true;
+                            }
+                        });
+
+                    m_grid_container->add_child(std::move(item));
+                    update_layout();
+                    invalidate();
+                });
         }
         else
         {
-            LOG_INFO << "[ImagesView] add_thumbnail_safe: Buffering " << original_path << " (No Application context)";
+            LOG_INFO << "[ImagesView] add_thumbnail_safe: Buffering " << original_path
+                     << " (No Application context)";
             // Store pending thumbnail for when we are attached to window
             std::lock_guard<std::mutex> lock(m_pending_mutex);
             m_pending_thumbnails.push_back({original_path, thumbnail_path});
@@ -200,7 +225,7 @@ namespace horizon::preferences
         if (app)
         {
             std::lock_guard<std::mutex> lock(m_pending_mutex);
-            for (const auto& pending : m_pending_thumbnails)
+            for (const auto &pending : m_pending_thumbnails)
             {
                 add_thumbnail_safe(pending.original, pending.thumb);
             }
@@ -216,36 +241,34 @@ namespace horizon::preferences
 
     void ImagesView::update_layout()
     {
-        if (!m_grid_container || !m_scroll_area) return;
-        
+        if (!m_grid_container || !m_scroll_area)
+            return;
+
         int w = m_scroll_area->width();
         int h = m_scroll_area->height();
 
-        if (w <= 0) {
+        if (w <= 0)
+        {
             // Try to use our own width if scroll area is not ready
             w = width();
-            if (w <= 0) return;
+            if (w <= 0)
+                return;
         }
 
         // Available width for items depends on whether the vertical scrollbar is visible.
-        // For simplicity, we assume it's always there or just use a safe margin.
-        int available_width = w - 10; // 10px safety margin for scrollbar
-        
+        int available_width = w - SCROLLBAR_MARGIN;
+
         m_grid_container->set_width(available_width);
 
-        int inner_margin = m_grid_container->margin();
-        int item_spacing = SPACING;
-        int item_total_size = THUMB_SIZE + item_spacing;
-        
-        int draw_width = available_width - (inner_margin * 2);
-        int columns = std::max(1, (available_width + 10) / (130 + 10));
+        int columns = std::max(1, (available_width + GRID_SPACING) / (THUMB_WIDTH + GRID_SPACING));
         int count = m_grid_container->children().size();
         int rows = (count + columns - 1) / columns;
-        int total_height = rows * (86 + 10) + 20; 
+        int total_height = rows * (THUMB_HEIGHT + GRID_SPACING) + BOTTOM_PADDING;
 
         m_grid_container->set_height(std::max(h, total_height));
         m_scroll_area->calculate_layout();
-        
-        LOG_INFO << "[ImagesView] Layout updated: w=" << available_width << " col=" << columns << " items=" << count << " height=" << total_height;
+
+        LOG_INFO << "[ImagesView] Layout updated: w=" << available_width << " col=" << columns
+                 << " items=" << count << " height=" << total_height;
     }
 } // namespace horizon::preferences
