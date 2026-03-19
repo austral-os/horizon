@@ -196,7 +196,9 @@ namespace horizon
                     std::this_thread::sleep_for(std::chrono::milliseconds(200));
                     
                     LOG_INFO << "[HORIZON WALL] Config change detected, reloading...";
-                    load_wallpaper(m_wall_path);
+                    m_window->post_task([this]() {
+                        load_wallpaper(m_wall_path);
+                    });
                 }
             }
         }
