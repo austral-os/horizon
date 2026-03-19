@@ -80,6 +80,9 @@ namespace horizon::preferences
     {
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_position_type(WidgetPositionTypes::FILL);
+        set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+        set_border_color(Color(0.8f, 0.8f, 0.8f, 1.0f));
+        set_border_width(1);
 
         auto scroll = std::make_unique<ScrollArea>();
         m_scroll_area = scroll.get();

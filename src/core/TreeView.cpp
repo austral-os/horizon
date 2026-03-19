@@ -8,6 +8,9 @@ namespace horizon
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_spacing(0);
         set_margin(0);
+        set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+        set_border_color(Color(0.8f, 0.8f, 0.8f, 1.0f));
+        set_border_width(1);
 
         auto scroll_area = std::make_unique<ScrollArea>();
         m_scroll_area = scroll_area.get();
@@ -87,7 +90,6 @@ namespace horizon
 
     void TreeView::draw(GraphicsContext &gc)
     {
-        gc.setColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
-        gc.fillRect(m_x, m_y, m_width, m_height);
+        Widget::draw(gc);
     }
 } // namespace horizon
