@@ -1,23 +1,23 @@
 #include "PreferencesWindow.hpp"
-#include "views/DesktopView.hpp"
-#include "views/AppearanceView.hpp"
-#include "views/ScreensaverView.hpp"
-#include "views/NotificationsView.hpp"
-#include "views/DisplayView.hpp"
-#include "views/SoundView.hpp"
-#include "views/MouseView.hpp"
-#include "views/KeyboardView.hpp"
-#include "views/PrintersView.hpp"
-#include "views/PowerView.hpp"
-#include "views/WifiView.hpp"
-#include "views/BluetoothView.hpp"
-#include "views/NetworkView.hpp"
-#include "views/UsersView.hpp"
-#include "views/DateTimeView.hpp"
-#include "views/RegionView.hpp"
-#include "views/DetailsView.hpp"
-#include "ViewPanel.hpp"
 #include "ConfigManager.hpp"
+#include "ViewPanel.hpp"
+#include "views/AppearanceView.hpp"
+#include "views/BluetoothView.hpp"
+#include "views/DateTimeView.hpp"
+#include "views/DesktopView.hpp"
+#include "views/DetailsView.hpp"
+#include "views/DisplayView.hpp"
+#include "views/KeyboardView.hpp"
+#include "views/MouseView.hpp"
+#include "views/NetworkView.hpp"
+#include "views/NotificationsView.hpp"
+#include "views/PowerView.hpp"
+#include "views/PrintersView.hpp"
+#include "views/RegionView.hpp"
+#include "views/ScreensaverView.hpp"
+#include "views/SoundView.hpp"
+#include "views/UsersView.hpp"
+#include "views/WifiView.hpp"
 
 namespace horizon::preferences
 {
@@ -34,10 +34,14 @@ namespace horizon::preferences
         // Connect Navigation Buttons
         if (m_preferences_toolbar->navigation())
         {
-            m_preferences_toolbar->navigation()->when_button_clicked.connect([this](GroupButtonClickEvent &ev) {
-                if (ev.button_index == 0) go_back();
-                else if (ev.button_index == 1) go_forward();
-            });
+            m_preferences_toolbar->navigation()->when_button_clicked.connect(
+                [this](GroupButtonClickEvent &ev)
+                {
+                    if (ev.button_index == 0)
+                        go_back();
+                    else if (ev.button_index == 1)
+                        go_forward();
+                });
         }
 
         // Content View
@@ -46,30 +50,48 @@ namespace horizon::preferences
         set_content(std::move(content));
 
         // Initial Panel
-        load_view_by_id("desktop");
+        load_view_by_id("home");
     }
 
-    void PreferencesWindow::load_view_by_id(const std::string& id, bool push_to_history)
+    void PreferencesWindow::load_view_by_id(const std::string &id, bool push_to_history)
     {
         std::unique_ptr<Widget> view;
-        if (id == "home") view = std::make_unique<ViewPanel>();
-        else if (id == "desktop") view = std::make_unique<DesktopView>();
-        else if (id == "appearance") view = std::make_unique<AppearanceView>();
-        else if (id == "screensaver") view = std::make_unique<ScreensaverView>();
-        else if (id == "notifications") view = std::make_unique<NotificationsView>();
-        else if (id == "display") view = std::make_unique<DisplayView>();
-        else if (id == "sound") view = std::make_unique<SoundView>();
-        else if (id == "mouse") view = std::make_unique<MouseView>();
-        else if (id == "keyboard") view = std::make_unique<KeyboardView>();
-        else if (id == "printers") view = std::make_unique<PrintersView>();
-        else if (id == "power") view = std::make_unique<PowerView>();
-        else if (id == "wi-fi") view = std::make_unique<WifiView>();
-        else if (id == "bluetooth") view = std::make_unique<BluetoothView>();
-        else if (id == "network") view = std::make_unique<NetworkView>();
-        else if (id == "users") view = std::make_unique<UsersView>();
-        else if (id == "datetime") view = std::make_unique<DateTimeView>();
-        else if (id == "region") view = std::make_unique<RegionView>();
-        else if (id == "details") view = std::make_unique<DetailsView>();
+        if (id == "home")
+            view = std::make_unique<ViewPanel>();
+        else if (id == "desktop")
+            view = std::make_unique<DesktopView>();
+        else if (id == "appearance")
+            view = std::make_unique<AppearanceView>();
+        else if (id == "screensaver")
+            view = std::make_unique<ScreensaverView>();
+        else if (id == "notifications")
+            view = std::make_unique<NotificationsView>();
+        else if (id == "display")
+            view = std::make_unique<DisplayView>();
+        else if (id == "sound")
+            view = std::make_unique<SoundView>();
+        else if (id == "mouse")
+            view = std::make_unique<MouseView>();
+        else if (id == "keyboard")
+            view = std::make_unique<KeyboardView>();
+        else if (id == "printers")
+            view = std::make_unique<PrintersView>();
+        else if (id == "power")
+            view = std::make_unique<PowerView>();
+        else if (id == "wi-fi")
+            view = std::make_unique<WifiView>();
+        else if (id == "bluetooth")
+            view = std::make_unique<BluetoothView>();
+        else if (id == "network")
+            view = std::make_unique<NetworkView>();
+        else if (id == "users")
+            view = std::make_unique<UsersView>();
+        else if (id == "datetime")
+            view = std::make_unique<DateTimeView>();
+        else if (id == "region")
+            view = std::make_unique<RegionView>();
+        else if (id == "details")
+            view = std::make_unique<DetailsView>();
 
         if (view)
         {
@@ -90,13 +112,12 @@ namespace horizon::preferences
         }
     }
 
-    void PreferencesWindow::connect_view_signals(Widget* view)
+    void PreferencesWindow::connect_view_signals(Widget *view)
     {
-        if (auto home_panel = dynamic_cast<ViewPanel*>(view))
+        if (auto home_panel = dynamic_cast<ViewPanel *>(view))
         {
-            home_panel->when_item_click.connect([this](const GroupedIconItem& item) {
-                load_view_by_id(item.id);
-            });
+            home_panel->when_item_click.connect([this](const GroupedIconItem &item)
+                                                { load_view_by_id(item.id); });
         }
     }
 
@@ -120,7 +141,8 @@ namespace horizon::preferences
 
     void PreferencesWindow::update_navigation_buttons()
     {
-        if (!m_preferences_toolbar || !m_preferences_toolbar->navigation()) return;
+        if (!m_preferences_toolbar || !m_preferences_toolbar->navigation())
+            return;
 
         auto nav = m_preferences_toolbar->navigation();
         if (nav->children().size() >= 2)
