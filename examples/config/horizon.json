@@ -2,12 +2,13 @@
     "desktop": {
         "backgrounds": {
             "current": {
-                "change-time": 5,
+                "change-time": 0,
                 "fit": "fill",
-                "name": "Snow.jpg",
-                "path": "/home/horacio/Desarrollo/austral-os/horizon/examples/config/backgrounds/pictures/Snow.jpg",
+                "name": "Wave.png",
+                "order": "none",
+                "path": "/home/horacio/Desarrollo/austral-os/horizon/examples/config/backgrounds/pictures/Wave.png",
                 "source": "pictures",
-                "type": "gallery"
+                "type": "image"
             },
             "sources": [
                 {

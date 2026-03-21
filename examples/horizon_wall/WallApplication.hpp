@@ -17,7 +17,7 @@ namespace horizon
         void setup_window();
         void load_wallpaper(const std::string &wall_path);
 
-        void start_gallery(const std::string &directory, int interval_ms);
+        void start_gallery(const std::string &directory, int interval_ms, const std::string &order = "none");
         void stop_gallery();
         void next_gallery_image();
 

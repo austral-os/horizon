@@ -225,6 +225,12 @@ namespace horizon::preferences
                 m_change_check->set_checked(type == "gallery");
             }
 
+            if (m_random_check)
+            {
+                std::string order = current.value("order", "none");
+                m_random_check->set_checked(order == "random");
+            }
+
             if (m_timer_combo)
             {
                 int change_time = current.value("change-time", 0);
@@ -332,6 +338,7 @@ namespace horizon::preferences
 
         int change_time = 0;
         std::string type = "image";
+        std::string order = "none";
 
         if (m_change_check && m_change_check->is_checked())
         {
@@ -347,6 +354,11 @@ namespace horizon::preferences
                     change_time = 0;
                 }
             }
+
+            if (m_random_check && m_random_check->is_checked())
+            {
+                order = "random";
+            }
         }
 
         return {{"backgrounds",
@@ -356,7 +368,8 @@ namespace horizon::preferences
                     {"name", m_current_image_name},
                     {"path", m_current_image_full_path},
                     {"source", m_current_source},
-                    {"type", type}}},
+                    {"type", type},
+                    {"order", order}}},
                   {"sources", sources_json}}}};
     }
 

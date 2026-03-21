@@ -13,6 +13,7 @@
 #include <poll.h>
 #include <sys/inotify.h>
 #include <unistd.h>
+#include <random>
 
 namespace horizon
 {
@@ -65,6 +66,7 @@ namespace horizon
         std::string final_path = wall_path;
         std::string type = "image";
         int change_time = 0;
+        std::string order = "none";
 
         if (final_path.empty())
         {
@@ -85,13 +87,14 @@ namespace horizon
                         std::string fit = current.value("fit", "fill");
                         type = current.value("type", "image");
                         change_time = current.value("change-time", 0);
+                        order = current.value("order", "none");
                         
                         if (fit == "fill") mode = ImageMode::Stretch;
                         else if (fit == "fit") mode = ImageMode::Fit;
                         else if (fit == "stretch") mode = ImageMode::Stretch;
                         else if (fit == "center") mode = ImageMode::Normal;
                         
-                        LOG_INFO << "[HORIZON WALL] Loaded from config: " << final_path << " (fit: " << fit << ", type: " << type << ")";
+                        LOG_INFO << "[HORIZON WALL] Loaded from config: " << final_path << " (fit: " << fit << ", type: " << type << ", order: " << order << ")";
                     }
                 }
                 catch (const std::exception& e)
@@ -128,12 +131,12 @@ namespace horizon
         {
             if (std::filesystem::is_directory(final_path))
             {
-                start_gallery(final_path, change_time * 1000);
+                start_gallery(final_path, change_time * 1000, order);
             }
             else if (std::filesystem::exists(final_path))
             {
                 // If it's a file, use the parent directory
-                start_gallery(std::filesystem::path(final_path).parent_path().string(), change_time * 1000);
+                start_gallery(std::filesystem::path(final_path).parent_path().string(), change_time * 1000, order);
             }
         }
         else
@@ -158,7 +161,7 @@ namespace horizon
         m_window->set_root(std::move(root));
     }
 
-    void WallApplication::start_gallery(const std::string &directory, int interval_ms)
+    void WallApplication::start_gallery(const std::string &directory, int interval_ms, const std::string &order)
     {
         stop_gallery();
         m_gallery_images.clear();
@@ -189,9 +192,19 @@ namespace horizon
             return;
         }
 
-        std::sort(m_gallery_images.begin(), m_gallery_images.end());
+        if (order == "random")
+        {
+            LOG_INFO << "[HORIZON WALL] Shuffling gallery images";
+            auto rd = std::random_device {}; 
+            auto rng = std::default_random_engine { rd() };
+            std::shuffle(m_gallery_images.begin(), m_gallery_images.end(), rng);
+        }
+        else
+        {
+            std::sort(m_gallery_images.begin(), m_gallery_images.end());
+        }
 
-        LOG_INFO << "[HORIZON WALL] Starting gallery with " << m_gallery_images.size() << " images, interval: " << interval_ms << "ms";
+        LOG_INFO << "[HORIZON WALL] Starting gallery with " << m_gallery_images.size() << " images, interval: " << interval_ms << "ms, order: " << order;
         
         // Show the first image immediately
         if (m_wallpaper_widget)
