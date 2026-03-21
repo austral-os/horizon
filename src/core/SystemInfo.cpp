@@ -491,4 +491,73 @@ namespace horizon
 
         return info;
     }
+    std::vector<MonitorInfo> SystemInfo::get_monitors()
+    {
+        std::vector<MonitorInfo> monitors;
+        namespace fs = std::filesystem;
+
+        for (const auto &entry : fs::directory_iterator("/sys/class/drm"))
+        {
+            std::string name = entry.path().filename().string();
+            if (name.find("card0-") != 0)
+                continue;
+
+            std::string status = read_file(entry.path().string() + "/status");
+            if (status != "connected")
+                continue;
+
+            MonitorInfo info;
+            info.conn_name = name.substr(6); // Remove "card0-"
+            
+            // Get Resolution from modes
+            std::ifstream modes_file(entry.path().string() + "/modes");
+            std::string mode_line;
+            if (std::getline(modes_file, mode_line))
+            {
+                size_t x_pos = mode_line.find('x');
+                if (x_pos != std::string::npos)
+                {
+                    try {
+                        info.width = std::stoi(mode_line.substr(0, x_pos));
+                        info.height = std::stoi(mode_line.substr(x_pos + 1));
+                    } catch (...) {
+                        info.width = 1920;
+                        info.height = 1080;
+                    }
+                }
+            }
+
+            // Get Model from EDID
+            std::string edid_path = entry.path().string() + "/edid";
+            std::ifstream edid_file(edid_path, std::ios::binary);
+            info.model = "Generic Monitor";
+            if (edid_file.is_open())
+            {
+                char buffer[128];
+                if (edid_file.read(buffer, 128))
+                {
+                    for (int i = 0; i < 4; ++i)
+                    {
+                        int offset = 0x36 + i * 18;
+                        if (buffer[offset] == 0 && buffer[offset + 1] == 0 && buffer[offset + 2] == 0 &&
+                            (unsigned char)buffer[offset + 3] == 0xFC)
+                        {
+                            std::string mname(buffer + offset + 5, 13);
+                            mname.erase(mname.find_last_not_of(" \n\r\t") + 1);
+                            info.model = mname;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Placeholder for logical coordinates (0,0 for the first one)
+            info.x = monitors.empty() ? 0 : monitors.back().x + monitors.back().width;
+            info.y = 0;
+
+            monitors.push_back(info);
+        }
+
+        return monitors;
+    }
 } // namespace horizon

@@ -37,6 +37,16 @@ namespace horizon
         std::vector<MemorySlotInfo> slots;
     };
 
+    struct MonitorInfo
+    {
+        std::string conn_name;
+        std::string model;
+        int width;
+        int height;
+        int x;
+        int y;
+    };
+
     class SystemInfo
     {
     public:
@@ -52,5 +62,6 @@ namespace horizon
 
         static DiskInfo get_os_disk_info();
         static MemoryInfo get_memory_info();
+        static std::vector<MonitorInfo> get_monitors();
     };
 } // namespace horizon

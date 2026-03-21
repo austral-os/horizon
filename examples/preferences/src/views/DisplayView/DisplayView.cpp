@@ -13,5 +13,10 @@ namespace horizon::preferences
         title->set_fixed_size(30);
         m_title_label = title.get();
         add_child(std::move(title));
+
+        auto devices = std::make_unique<DisplayDevices>();
+        devices->set_position_type(WidgetPositionTypes::FILL);
+        m_display_devices = devices.get();
+        add_child(std::move(devices));
     }
 }

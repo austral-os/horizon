@@ -11,6 +11,7 @@ add_executable(preferences
     src/views/ScreensaverView/ScreensaverView.cpp
     src/views/NotificationsView/NotificationsView.cpp
     src/views/DisplayView/DisplayView.cpp
+    src/views/DisplayView/DisplayDevices.cpp
     src/views/SoundView/SoundView.cpp
     src/views/MouseView/MouseView.cpp
     src/views/KeyboardView/KeyboardView.cpp
