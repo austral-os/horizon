@@ -3,6 +3,7 @@
 #include <ConfigManager.hpp>
 #include <filesystem>
 #include <horizon/TreeViewItem.hpp>
+#include <memory>
 #include <views/DesktopView.hpp>
 
 namespace horizon::preferences
@@ -37,12 +38,12 @@ namespace horizon::preferences
     {
         parent->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
         parent->set_fixed_size(100);
-        parent->set_spacing(20);
+        parent->set_spacing(15);
 
         // Left side: Image preview
         auto img = std::make_unique<horizon::Image>();
-        img->set_size(120, 80);
         img->set_mode(horizon::ImageMode::Fit);
+        img->set_fixed_size(200);
         m_preview_image = img.get();
         parent->add_child(std::move(img));
 
@@ -55,7 +56,12 @@ namespace horizon::preferences
         m_image_name_label = name_label.get();
         right_vbox->add_child(std::move(name_label));
 
+        auto container_cbo = std::make_unique<horizon::Widget>();
+        container_cbo->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        container_cbo->set_fixed_size(32);
+
         auto fit_combo = std::make_unique<horizon::Combo>();
+        fit_combo->set_fixed_size(250);
         fit_combo->add_item("fill", "Rellenar pantalla");
         fit_combo->add_item("fit", "Ajustar a pantalla");
         fit_combo->add_item("stretch", "Estirar para rellenar");
@@ -63,7 +69,12 @@ namespace horizon::preferences
         m_fit_combo = fit_combo.get();
         m_fit_combo->when_item_selected.connect([this](const horizon::ComboItemSelectedContext &)
                                                 { save_config(); });
-        right_vbox->add_child(std::move(fit_combo));
+
+        container_cbo->add_child(std::move(fit_combo));
+        container_cbo->add_child(horizon::Spacer());
+
+        right_vbox->add_child(horizon::Spacer());
+        right_vbox->add_child(std::move(container_cbo));
 
         parent->add_child(std::move(right_vbox));
     }
@@ -113,15 +124,17 @@ namespace horizon::preferences
         auto buttons_hbox = std::make_unique<horizon::Widget>();
         buttons_hbox->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
         buttons_hbox->set_spacing(5);
-        buttons_hbox->set_fixed_size(38);
+        buttons_hbox->set_fixed_size(32);
 
         auto add_btn = std::make_unique<horizon::Button<horizon::SolidObject>>();
         add_btn->set_text("+");
+        add_btn->set_fixed_size(32);
         m_add_button = add_btn.get();
         buttons_hbox->add_child(std::move(add_btn));
 
         auto rem_btn = std::make_unique<horizon::Button<horizon::SolidObject>>();
         rem_btn->set_text("-");
+        rem_btn->set_fixed_size(32);
         m_remove_button = rem_btn.get();
         buttons_hbox->add_child(std::move(rem_btn));
         buttons_hbox->add_child(horizon::Spacer());
