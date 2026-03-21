@@ -6,23 +6,23 @@ add_executable(preferences
     src/ViewPanel.cpp
     src/ConfigManager.cpp
     src/ImagesView.cpp
-    src/views/DesktopView.cpp
-    src/views/AppearanceView.cpp
-    src/views/ScreensaverView.cpp
-    src/views/NotificationsView.cpp
-    src/views/DisplayView.cpp
-    src/views/SoundView.cpp
-    src/views/MouseView.cpp
-    src/views/KeyboardView.cpp
-    src/views/PrintersView.cpp
-    src/views/PowerView.cpp
-    src/views/WifiView.cpp
-    src/views/BluetoothView.cpp
-    src/views/NetworkView.cpp
-    src/views/UsersView.cpp
-    src/views/DateTimeView.cpp
-    src/views/RegionView.cpp
-    src/views/DetailsView.cpp
+    src/views/DesktopView/DesktopView.cpp
+    src/views/AppearanceView/AppearanceView.cpp
+    src/views/ScreensaverView/ScreensaverView.cpp
+    src/views/NotificationsView/NotificationsView.cpp
+    src/views/DisplayView/DisplayView.cpp
+    src/views/SoundView/SoundView.cpp
+    src/views/MouseView/MouseView.cpp
+    src/views/KeyboardView/KeyboardView.cpp
+    src/views/PrintersView/PrintersView.cpp
+    src/views/PowerView/PowerView.cpp
+    src/views/WifiView/WifiView.cpp
+    src/views/BluetoothView/BluetoothView.cpp
+    src/views/NetworkView/NetworkView.cpp
+    src/views/UsersView/UsersView.cpp
+    src/views/DateTimeView/DateTimeView.cpp
+    src/views/RegionView/RegionView.cpp
+    src/views/DetailsView/DetailsView.cpp
 )
 
 target_link_libraries(preferences

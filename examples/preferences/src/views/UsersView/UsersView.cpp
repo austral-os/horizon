@@ -1,4 +1,4 @@
-#include <views/UsersView.hpp>
+#include <views/UsersView/UsersView.hpp>
 
 namespace horizon::preferences
 {

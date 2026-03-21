@@ -1,15 +1,15 @@
-#include <views/SoundView.hpp>
+#include <views/DateTimeView/DateTimeView.hpp>
 
 namespace horizon::preferences
 {
-    SoundView::SoundView() : Widget()
+    DateTimeView::DateTimeView() : Widget()
     {
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_position_type(WidgetPositionTypes::FILL);
         set_margin(20);
         set_spacing(10);
 
-        auto title = std::make_unique<Label>("Sonido");
+        auto title = std::make_unique<Label>("Fecha y Hora");
         title->set_fixed_size(30);
         m_title_label = title.get();
         add_child(std::move(title));

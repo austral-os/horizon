@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <horizon/TreeViewItem.hpp>
 #include <memory>
-#include <views/DesktopView.hpp>
+#include <views/DesktopView/DesktopView.hpp>
 
 namespace horizon::preferences
 {

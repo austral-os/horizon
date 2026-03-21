@@ -1,4 +1,4 @@
-#include <views/DetailsView.hpp>
+#include <views/DetailsView/DetailsView.hpp>
 
 namespace horizon::preferences
 {

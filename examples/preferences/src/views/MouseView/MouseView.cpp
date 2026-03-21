@@ -1,4 +1,4 @@
-#include <views/MouseView.hpp>
+#include <views/MouseView/MouseView.hpp>
 
 namespace horizon::preferences
 {
