@@ -162,6 +162,7 @@ namespace horizon::preferences
         row1->add_child(std::move(change_chk));
 
         auto timer_combo = std::make_unique<horizon::Combo>();
+        timer_combo->add_item("5", "Cada 5 segundos");
         timer_combo->add_item("1800", "Cada 30 minutos");
         timer_combo->add_item("3600", "Cada hora");
         timer_combo->set_fixed_size(250); // Width because it's in a horizontal row

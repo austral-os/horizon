@@ -1,5 +1,6 @@
 #include "WallApplication.hpp"
 #include "horizon/EventsManager.hpp"
+#include <algorithm>
 #include <filesystem>
 #include <horizon/Image.hpp>
 #include <horizon/Logger.hpp>
@@ -41,6 +42,7 @@ namespace horizon
 
     WallApplication::~WallApplication()
     {
+        stop_gallery();
         stop_watcher();
     }
 
@@ -61,6 +63,9 @@ namespace horizon
         ImageMode mode = ImageMode::Stretch;
 
         std::string final_path = wall_path;
+        std::string type = "image";
+        int change_time = 0;
+
         if (final_path.empty())
         {
             // Try to load from horizon.json
@@ -78,13 +83,15 @@ namespace horizon
                         const auto& current = j["desktop"]["backgrounds"]["current"];
                         final_path = current.value("path", "");
                         std::string fit = current.value("fit", "fill");
+                        type = current.value("type", "image");
+                        change_time = current.value("change-time", 0);
                         
                         if (fit == "fill") mode = ImageMode::Stretch;
                         else if (fit == "fit") mode = ImageMode::Fit;
                         else if (fit == "stretch") mode = ImageMode::Stretch;
                         else if (fit == "center") mode = ImageMode::Normal;
                         
-                        LOG_INFO << "[HORIZON WALL] Loaded from config: " << final_path << " (fit: " << fit << ")";
+                        LOG_INFO << "[HORIZON WALL] Loaded from config: " << final_path << " (fit: " << fit << ", type: " << type << ")";
                     }
                 }
                 catch (const std::exception& e)
@@ -114,15 +121,33 @@ namespace horizon
             }
         }
 
-        if (!final_path.empty())
+        m_wallpaper_widget = wallpaper.get();
+        wallpaper->set_mode(mode);
+
+        if (type == "gallery" && !final_path.empty())
         {
-            LOG_INFO << "[HORIZON WALL] Loading wallpaper: " << final_path;
-            wallpaper->set_path(final_path);
-            wallpaper->set_mode(mode);
+            if (std::filesystem::is_directory(final_path))
+            {
+                start_gallery(final_path, change_time * 1000);
+            }
+            else if (std::filesystem::exists(final_path))
+            {
+                // If it's a file, use the parent directory
+                start_gallery(std::filesystem::path(final_path).parent_path().string(), change_time * 1000);
+            }
         }
         else
         {
-            LOG_ERROR << "[HORIZON WALL] Warning: No wallpaper image found.";
+            stop_gallery();
+            if (!final_path.empty())
+            {
+                LOG_INFO << "[HORIZON WALL] Loading wallpaper: " << final_path;
+                wallpaper->set_path(final_path);
+            }
+            else
+            {
+                LOG_ERROR << "[HORIZON WALL] Warning: No wallpaper image found.";
+            }
         }
 
         wallpaper->when_mouse_press.connect(
@@ -131,6 +156,78 @@ namespace horizon
 
         root->add_child(std::move(wallpaper));
         m_window->set_root(std::move(root));
+    }
+
+    void WallApplication::start_gallery(const std::string &directory, int interval_ms)
+    {
+        stop_gallery();
+        m_gallery_images.clear();
+        m_current_gallery_index = 0;
+
+        if (!std::filesystem::exists(directory) || !std::filesystem::is_directory(directory))
+        {
+            LOG_ERROR << "[HORIZON WALL] Gallery directory does not exist: " << directory;
+            return;
+        }
+
+        for (const auto &entry : std::filesystem::directory_iterator(directory))
+        {
+            if (entry.is_regular_file())
+            {
+                std::string ext = entry.path().extension().string();
+                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+                if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
+                {
+                    m_gallery_images.push_back(entry.path().string());
+                }
+            }
+        }
+
+        if (m_gallery_images.empty())
+        {
+            LOG_ERROR << "[HORIZON WALL] No images found in gallery directory: " << directory;
+            return;
+        }
+
+        std::sort(m_gallery_images.begin(), m_gallery_images.end());
+
+        LOG_INFO << "[HORIZON WALL] Starting gallery with " << m_gallery_images.size() << " images, interval: " << interval_ms << "ms";
+        
+        // Show the first image immediately
+        if (m_wallpaper_widget)
+        {
+            m_wallpaper_widget->set_path(m_gallery_images[0]);
+        }
+
+        if (interval_ms > 0)
+        {
+            m_gallery_timer_id = m_window->add_timer(interval_ms, [this]() {
+                next_gallery_image();
+            }, true);
+        }
+    }
+
+    void WallApplication::stop_gallery()
+    {
+        if (m_gallery_timer_id != 0)
+        {
+            m_window->stop_timer(m_gallery_timer_id);
+            m_gallery_timer_id = 0;
+        }
+    }
+
+    void WallApplication::next_gallery_image()
+    {
+        if (m_gallery_images.empty()) return;
+
+        m_current_gallery_index = (m_current_gallery_index + 1) % m_gallery_images.size();
+        
+        if (m_wallpaper_widget)
+        {
+            LOG_INFO << "[HORIZON WALL] Switching to next gallery image: " << m_gallery_images[m_current_gallery_index];
+            m_wallpaper_widget->set_path(m_gallery_images[m_current_gallery_index]);
+            m_window->invalidate();
+        }
     }
 
     void WallApplication::start_watcher()
