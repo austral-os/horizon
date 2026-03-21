@@ -1,6 +1,10 @@
 #include <views/DisplayView/DisplayDevices.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Logger.hpp>
+#include <horizon/WaylandWindow.hpp>
+#include <horizon/Application.hpp>
+#include <horizon/WaylandSurface.hpp>
+#include <horizon/SystemInfo.hpp>
 #include <algorithm>
 #include <cmath>
 
@@ -13,8 +17,6 @@ namespace horizon::preferences
         set_border_width(1);
         set_border_color(Color(0.3f, 0.3f, 0.35f, 1.0f));
 
-        refresh_monitors();
-
         when_mouse_press.connect([this](MouseButtonEventContext &ev) {
             int idx = get_monitor_at((int)ev.x, (int)ev.y);
             if (idx != -1)
@@ -24,6 +26,8 @@ namespace horizon::preferences
                 m_drag_start_y = (int)ev.y;
                 m_drag_offset_x = m_monitors[idx].info.x;
                 m_drag_offset_y = m_monitors[idx].info.y;
+                int selected_idx = idx;
+                when_monitor_selected.run(selected_idx);
                 invalidate();
             }
         });
@@ -67,13 +71,57 @@ namespace horizon::preferences
 
     void DisplayDevices::refresh_monitors()
     {
-        auto infos = SystemInfo::get_monitors();
         m_monitors.clear();
-        for (const auto &info : infos)
+        if (auto *app = application())
         {
-            m_monitors.push_back({info, 0, 0, 0, 0, false});
+            auto *surface = app->w_surface();
+            if (surface)
+            {
+                const auto &details = surface->monitor_details();
+                for (const auto &d : details)
+                {
+                    MonitorInfo info;
+                    info.conn_name = "Monitor"; // Wayland doesn't easily give the connector name
+                    info.model = "Monitor";
+                    
+                    for (const auto &m : d.modes)
+                    {
+                        MonitorMode mode;
+                        mode.width = m.width;
+                        mode.height = m.height;
+                        mode.refresh_rate = (float)m.refresh / 1000.0f;
+                        info.modes.push_back(mode);
+                        
+                        if (m.current)
+                        {
+                            info.width = m.width;
+                            info.height = m.height;
+                            info.current_mode_index = (int)info.modes.size() - 1;
+                        }
+                    }
+
+                    // Placeholder for logical coordinates
+                    info.x = m_monitors.empty() ? 0 : m_monitors.back().info.x + m_monitors.back().info.width;
+                    info.y = 0;
+
+                    m_monitors.push_back({info, 0, 0, 0, 0, false});
+                }
+            }
+        }
+        
+        if (m_monitors.empty()) {
+            // Fallback to SystemInfo if Wayland surface is not ready
+            auto infos = SystemInfo::get_monitors();
+            for (const auto &info : infos)
+            {
+                m_monitors.push_back({info, 0, 0, 0, 0, false});
+            }
         }
         update_render_rects();
+        if (!m_monitors.empty()) {
+            int first = 0;
+            when_monitor_selected.run(first);
+        }
     }
 
     void DisplayDevices::update_render_rects()
@@ -142,6 +190,11 @@ namespace horizon::preferences
 
     void DisplayDevices::calculate_layout()
     {
+        if (!m_initialized && application())
+        {
+            refresh_monitors();
+            m_initialized = true;
+        }
         Widget::calculate_layout();
         update_render_rects();
     }

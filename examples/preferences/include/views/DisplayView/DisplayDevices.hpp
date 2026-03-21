@@ -19,6 +19,8 @@ namespace horizon::preferences
         void draw(GraphicsContext &gc) override;
         void calculate_layout() override;
 
+        EventsManager<int> when_monitor_selected;
+
     private:
         struct MonitorRect
         {
@@ -41,5 +43,6 @@ namespace horizon::preferences
         float m_scale = 1.0f;
         int m_offset_x = 0;
         int m_offset_y = 0;
+        bool m_initialized = false;
     };
 }

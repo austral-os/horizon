@@ -37,6 +37,13 @@ namespace horizon
         std::vector<MemorySlotInfo> slots;
     };
 
+    struct MonitorMode
+    {
+        int width;
+        int height;
+        float refresh_rate;
+    };
+
     struct MonitorInfo
     {
         std::string conn_name;
@@ -45,6 +52,9 @@ namespace horizon
         int height;
         int x;
         int y;
+        std::vector<MonitorMode> modes;
+        int current_mode_index = -1;
+        int rotation = 0; // 0, 90, 180, 270
     };
 
     class SystemInfo

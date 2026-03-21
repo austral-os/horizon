@@ -1526,18 +1526,39 @@ namespace horizon
         LOG_INFO << "Added Wayland output: " << output << " (Total: " << m_outputs.size() + 1
                  << ")";
         m_outputs.push_back(output);
+        m_monitor_details.push_back({output, {}});
 
         // Registrar listener para capturar el tamaño del monitor
         static const wl_output_listener s_output_listener = {
             // geometry
             [](void *, wl_output *, int32_t, int32_t, int32_t, int32_t, int32_t,
                const char *, const char *, int32_t) {},
-            // mode: capturamos width y height del modo current
-            [](void *data, wl_output *, uint32_t flags, int32_t width, int32_t height, int32_t)
+            // mode: capturamos width y height de todos los modos
+            [](void *data, wl_output *output, uint32_t flags, int32_t width, int32_t height, int32_t refresh)
             {
+                auto *self = static_cast<WaylandSurface *>(data);
+                
+                // Buscar el MonitorDetail correspondiente
+                auto it = std::find_if(self->m_monitor_details.begin(), self->m_monitor_details.end(),
+                                       [output](const MonitorDetail &d) { return d.output == output; });
+                
+                if (it != self->m_monitor_details.end()) {
+                    MonitorModeInfo mode;
+                    mode.width = width;
+                    mode.height = height;
+                    mode.refresh = refresh; // in mHz
+                    mode.current = (flags & WL_OUTPUT_MODE_CURRENT);
+                    mode.preferred = (flags & WL_OUTPUT_MODE_PREFERRED);
+                    it->modes.push_back(mode);
+                    
+                    LOG_INFO << "[SURFACE] Mode received for output " << output << ": " 
+                             << width << "x" << height << " @ " << (refresh/1000.0f) << "Hz"
+                             << (mode.current ? " (current)" : "") 
+                             << (mode.preferred ? " (preferred)" : "");
+                }
+
                 if (flags & WL_OUTPUT_MODE_CURRENT)
                 {
-                    auto *self = static_cast<WaylandSurface *>(data);
                     self->m_monitor_width  = width;
                     self->m_monitor_height = height;
                     LOG_INFO << "[SURFACE] Monitor size from wl_output mode: "

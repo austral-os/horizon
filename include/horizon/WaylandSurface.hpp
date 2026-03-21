@@ -141,6 +141,27 @@ namespace horizon
         {
             return m_outputs;
         }
+
+        struct MonitorModeInfo
+        {
+            int width;
+            int height;
+            int refresh;
+            bool current;
+            bool preferred;
+        };
+
+        struct MonitorDetail
+        {
+            struct wl_output *output;
+            std::vector<MonitorModeInfo> modes;
+        };
+
+        const std::vector<MonitorDetail> &monitor_details() const
+        {
+            return m_monitor_details;
+        }
+
         struct wl_output *get_monitor(size_t index) const
         {
             if (index < m_outputs.size())
@@ -374,6 +395,7 @@ namespace horizon
         struct wl_pointer *m_pointer = nullptr;
         struct wl_keyboard *m_keyboard = nullptr;
         std::vector<struct wl_output *> m_outputs;
+        std::vector<MonitorDetail> m_monitor_details;
 
         uint32_t m_last_serial = 0;
         double m_pointer_x = 0;

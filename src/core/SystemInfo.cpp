@@ -551,6 +551,29 @@ namespace horizon
                 }
             }
 
+            // Get all modes
+            std::ifstream all_modes_file(entry.path().string() + "/modes");
+            std::string line;
+            while (std::getline(all_modes_file, line))
+            {
+                size_t x_pos = line.find('x');
+                if (x_pos != std::string::npos)
+                {
+                    try {
+                        MonitorMode m;
+                        m.width = std::stoi(line.substr(0, x_pos));
+                        m.height = std::stoi(line.substr(x_pos + 1));
+                        m.refresh_rate = 60.0f; // Default for now
+                        info.modes.push_back(m);
+                        
+                        // Check if this is current
+                        if (m.width == info.width && m.height == info.height && info.current_mode_index == -1) {
+                            info.current_mode_index = (int)info.modes.size() - 1;
+                        }
+                    } catch (...) {}
+                }
+            }
+
             // Placeholder for logical coordinates (0,0 for the first one)
             info.x = monitors.empty() ? 0 : monitors.back().x + monitors.back().width;
             info.y = 0;
