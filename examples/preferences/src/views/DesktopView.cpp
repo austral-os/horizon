@@ -102,7 +102,7 @@ namespace horizon::preferences
     void DesktopView::create_section_d(horizon::Widget *parent)
     {
         parent->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
-        parent->set_fixed_size(100);
+        parent->set_fixed_size(120);
         parent->set_spacing(20);
 
         // Left side: Add/Remove buttons
@@ -138,18 +138,18 @@ namespace horizon::preferences
 
         auto row1 = std::make_unique<horizon::Widget>();
         row1->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
-        row1->set_spacing(15);
+        row1->set_fixed_size(32);
 
         auto change_chk = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
         change_chk->set_text("Cambiar imagen:");
-        change_chk->set_fixed_size(180); // Width because it's in a horizontal row
+        change_chk->set_fixed_size(230); // Width because it's in a horizontal row
         m_change_check = change_chk.get();
         row1->add_child(std::move(change_chk));
 
         auto timer_combo = std::make_unique<horizon::Combo>();
         timer_combo->add_item("30m", "Cada 30 minutos");
         timer_combo->add_item("1h", "Cada hora");
-        timer_combo->set_fixed_size(160); // Width because it's in a horizontal row
+        timer_combo->set_fixed_size(250); // Width because it's in a horizontal row
         m_timer_combo = timer_combo.get();
         row1->add_child(std::move(timer_combo));
 
