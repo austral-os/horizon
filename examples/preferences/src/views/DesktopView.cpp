@@ -157,13 +157,17 @@ namespace horizon::preferences
         change_chk->set_text("Cambiar imagen:");
         change_chk->set_fixed_size(230); // Width because it's in a horizontal row
         m_change_check = change_chk.get();
+        m_change_check->set_on_toggle([this](bool)
+                                      { save_config(); });
         row1->add_child(std::move(change_chk));
 
         auto timer_combo = std::make_unique<horizon::Combo>();
-        timer_combo->add_item("30m", "Cada 30 minutos");
-        timer_combo->add_item("1h", "Cada hora");
+        timer_combo->add_item("1800", "Cada 30 minutos");
+        timer_combo->add_item("3600", "Cada hora");
         timer_combo->set_fixed_size(250); // Width because it's in a horizontal row
         m_timer_combo = timer_combo.get();
+        m_timer_combo->when_item_selected.connect([this](const horizon::ComboItemSelectedContext &)
+                                                  { save_config(); });
         row1->add_child(std::move(timer_combo));
 
         settings_vbox->add_child(std::move(row1));
@@ -172,12 +176,16 @@ namespace horizon::preferences
         random_chk->set_text("Orden aleatorio");
         random_chk->set_fixed_size(30); // Height because it's in a vertical vbox
         m_random_check = random_chk.get();
+        m_random_check->set_on_toggle([this](bool)
+                                      { save_config(); });
         settings_vbox->add_child(std::move(random_chk));
 
         auto translucent_chk = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
         translucent_chk->set_text("Barra de menú translúcida");
         translucent_chk->set_fixed_size(30); // Height because it's in a vertical vbox
         m_translucent_check = translucent_chk.get();
+        m_translucent_check->set_on_toggle([this](bool)
+                                           { save_config(); });
         settings_vbox->add_child(std::move(translucent_chk));
 
         parent->add_child(std::move(settings_vbox));
@@ -208,6 +216,18 @@ namespace horizon::preferences
             if (m_preview_image && !m_current_image_full_path.empty())
             {
                 m_preview_image->set_path(m_current_image_full_path);
+            }
+
+            if (m_change_check)
+            {
+                std::string type = current.value("type", "image");
+                m_change_check->set_checked(type == "gallery");
+            }
+
+            if (m_timer_combo)
+            {
+                int change_time = current.value("change-time", 0);
+                m_timer_combo->set_selected_item_by_id(std::to_string(change_time));
             }
         }
 
@@ -309,14 +329,33 @@ namespace horizon::preferences
             fit = m_fit_combo->selected_item()->id;
         }
 
+        int change_time = 0;
+        std::string type = "image";
+
+        if (m_change_check && m_change_check->is_checked())
+        {
+            type = "gallery";
+            if (m_timer_combo && m_timer_combo->selected_item())
+            {
+                try
+                {
+                    change_time = std::stoi(m_timer_combo->selected_item()->id);
+                }
+                catch (...)
+                {
+                    change_time = 0;
+                }
+            }
+        }
+
         return {{"backgrounds",
                  {{"current",
-                   {{"change-time", 0},
+                   {{"change-time", change_time},
                     {"fit", fit},
                     {"name", m_current_image_name},
                     {"path", m_current_image_full_path},
                     {"source", m_current_source},
-                    {"type", "image"}}},
+                    {"type", type}}},
                   {"sources", sources_json}}}};
     }
 

@@ -6,7 +6,7 @@
                 "fit": "fill",
                 "name": "Wave.png",
                 "path": "/home/horacio/Desarrollo/austral-os/horizon/examples/config/backgrounds/pictures/Wave.png",
-                "source": "pictures",
+                "source": "abstract",
                 "type": "image"
             },
             "sources": [
