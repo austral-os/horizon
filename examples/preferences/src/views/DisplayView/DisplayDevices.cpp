@@ -119,8 +119,11 @@ namespace horizon::preferences
         }
         update_render_rects();
         if (!m_monitors.empty()) {
-            int first = 0;
-            when_monitor_selected.run(first);
+            int to_select = 0;
+            // In a more complex app, we'd match by connector name, but here we just keep the index if valid
+            // unless it's the first time (when nothing is selected yet).
+            // For now, let's just always select 0 if it's the first initialization.
+            when_monitor_selected.run(to_select);
         }
     }
 
@@ -192,6 +195,9 @@ namespace horizon::preferences
     {
         if (!m_initialized && application())
         {
+            application()->w_surface()->when_monitor_update.connect([this](struct wl_output* ) {
+                refresh_monitors();
+            });
             refresh_monitors();
             m_initialized = true;
         }

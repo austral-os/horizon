@@ -3,6 +3,8 @@
 #include <horizon/Label.hpp>
 #include <horizon/TableView.hpp>
 #include <horizon/Combo.hpp>
+#include <horizon/Checkbox.hpp>
+#include <horizon/AquaObject.hpp>
 #include <horizon/SystemInfo.hpp>
 #include <views/DisplayView/DisplayDevices.hpp>
 
@@ -22,6 +24,7 @@ namespace horizon::preferences
         TableView<MonitorMode>* m_res_table{nullptr};
         Combo* m_rotation_combo{nullptr};
         Combo* m_refresh_combo{nullptr};
+        Checkbox<AquaObject>* m_native_res_checkbox{nullptr};
 
         std::vector<MonitorInfo> m_monitors;
         int m_selected_monitor_idx = -1;

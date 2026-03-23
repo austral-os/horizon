@@ -463,7 +463,7 @@ namespace horizon
         else if (strcmp(interface, "wl_output") == 0)
         {
             struct wl_output *output =
-                static_cast<wl_output *>(wl_registry_bind(registry, id, &wl_output_interface, 1));
+                static_cast<wl_output *>(wl_registry_bind(registry, id, &wl_output_interface, std::min(version, 4u)));
             ws->add_wl_output(output);
         }
         else if (strcmp(interface, ext_background_effect_manager_v1_interface.name) == 0)
@@ -667,6 +667,7 @@ namespace horizon
         wl_registry_add_listener(m_registry, &listener, this);
 
         wl_display_roundtrip(m_display);
+        wl_display_roundtrip(m_display); // Wait for output events (modes, etc.)
 
         init_egl();
     }
@@ -1551,24 +1552,27 @@ namespace horizon
                     mode.preferred = (flags & WL_OUTPUT_MODE_PREFERRED);
                     it->modes.push_back(mode);
                     
-                    LOG_INFO << "[SURFACE] Mode received for output " << output << ": " 
-                             << width << "x" << height << " @ " << (refresh/1000.0f) << "Hz"
-                             << (mode.current ? " (current)" : "") 
-                             << (mode.preferred ? " (preferred)" : "");
+                    auto *out_ptr = output;
                 }
 
                 if (flags & WL_OUTPUT_MODE_CURRENT)
                 {
                     self->m_monitor_width  = width;
                     self->m_monitor_height = height;
-                    LOG_INFO << "[SURFACE] Monitor size from wl_output mode: "
-                             << width << "x" << height;
                 }
             },
             // done
-            [](void *, wl_output *) {},
+            [](void *data, wl_output *output) {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                auto *out_ptr = output;
+                self->when_monitor_update.run(out_ptr);
+            },
             // scale
             [](void *, wl_output *, int32_t) {},
+            // name (v4)
+            [](void *, wl_output *, const char *) {},
+            // description (v4)
+            [](void *, wl_output *, const char *) {},
         };
         wl_output_add_listener(output, &s_output_listener, this);
     }

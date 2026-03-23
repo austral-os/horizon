@@ -1,6 +1,8 @@
 #include <views/DisplayView/DisplayView.hpp>
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/Application.hpp>
+#include <horizon/Logger.hpp>
+#include <algorithm>
 
 namespace horizon::preferences
 {
@@ -37,6 +39,18 @@ namespace horizon::preferences
         
         res_section->add_child(std::make_unique<Label>("Resolución"));
 
+        auto native_check = std::make_unique<Checkbox<AquaObject>>();
+        m_native_res_checkbox = native_check.get();
+        m_native_res_checkbox->set_text("Usar resolución nativa");
+        m_native_res_checkbox->set_checked(true);
+        m_native_res_checkbox->set_on_toggle([this](bool checked) {
+            m_res_table->set_enabled(!checked);
+            if (checked) {
+                on_monitor_selected(m_selected_monitor_idx);
+            }
+        });
+        res_section->add_child(std::move(native_check));
+
         auto table = std::make_unique<TableView<MonitorMode>>();
         m_res_table = table.get();
         
@@ -56,6 +70,7 @@ namespace horizon::preferences
         };
         m_res_table->add_column(col_hz);
         m_res_table->set_header_visible(false);
+        m_res_table->set_enabled(false); // Initial state (checked=true)
 
         res_section->add_child(std::move(table));
         controls_container->add_child(std::move(res_section));
@@ -102,6 +117,73 @@ namespace horizon::preferences
             mode.refresh_rate = (float)m.refresh / 1000.0f;
             modes.push_back(mode);
             if (m.current) current_idx = (int)modes.size() - 1;
+        }
+
+        // Incorporate standard scaled resolutions (similar to what xrandr/compositors offer)
+        if (!modes.empty()) {
+            int native_w = modes[0].width;
+            int native_h = modes[0].height;
+            // Native is usually the first one or the one with max area. 
+            // We'll find the max area to be sure.
+            for (const auto& m : modes) {
+                if (m.width * m.height > native_w * native_h) {
+                    native_w = m.width;
+                    native_h = m.height;
+                }
+            }
+
+            std::vector<std::pair<int, int>> standard_resolutions = {
+                {1920, 1080}, {1600, 900}, {1440, 900}, {1366, 768}, {1280, 800},
+                {1280, 720}, {1152, 864}, {1024, 768}, {800, 600}, {640, 480}
+            };
+
+            for (const auto& res : standard_resolutions) {
+                if (res.first <= native_w && res.second <= native_h) {
+                    // Check if already present
+                    bool present = false;
+                    for (const auto& m : modes) {
+                        if (m.width == res.first && m.height == res.second) {
+                            present = true;
+                            break;
+                        }
+                    }
+                    if (!present) {
+                        modes.push_back({res.first, res.second, 60.0f});
+                    }
+                }
+            }
+
+            // Sort by resolution area descending
+            std::sort(modes.begin(), modes.end(), [](const MonitorMode& a, const MonitorMode& b) {
+                if (a.width * a.height != b.width * b.height)
+                    return (a.width * a.height) > (b.width * b.height);
+                return a.refresh_rate > b.refresh_rate;
+            });
+
+            // Re-find current index after sort
+            if (m_native_res_checkbox->is_checked()) {
+                // Select native resolution (max area)
+                int max_area = 0;
+                int best_idx = 0;
+                for (size_t i = 0; i < modes.size(); ++i) {
+                    int area = modes[i].width * modes[i].height;
+                    if (area > max_area) {
+                        max_area = area;
+                        best_idx = (int)i;
+                    }
+                }
+                current_idx = best_idx;
+            } else if (current_idx != -1) {
+                // Find by values since indices changed
+                int cur_w = d.modes[current_idx].width;
+                int cur_h = d.modes[current_idx].height;
+                for (size_t i = 0; i < modes.size(); ++i) {
+                    if (modes[i].width == cur_w && modes[i].height == cur_h) {
+                        current_idx = (int)i;
+                        break;
+                    }
+                }
+            }
         }
 
         m_res_table->set_data(modes);

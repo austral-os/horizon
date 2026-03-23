@@ -6,6 +6,7 @@
 #include <map>
 #include <protocols/blur-client-protocol.h>
 #include <protocols/ext-background-effect-v1-client-protocol.h>
+#include <horizon/EventsManager.hpp>
 #include <string>
 #include <vector>
 #include <xkbcommon/xkbcommon.h>
@@ -161,6 +162,8 @@ namespace horizon
         {
             return m_monitor_details;
         }
+
+        EventsManager<struct wl_output*> when_monitor_update;
 
         struct wl_output *get_monitor(size_t index) const
         {
