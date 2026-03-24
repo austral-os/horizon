@@ -160,6 +160,9 @@ namespace horizon
             m_row_menu_factory = factory;
         }
 
+        const std::vector<T>& data() const { return m_data; }
+        int selected_index() const { return m_selected_rows.empty() ? -1 : *m_selected_rows.begin(); }
+
         EventsManager<TableViewRowMouseClickContext<T>> when_row_click;
         EventsManager<TableViewRowMouseClickContext<T>> when_row_dbl_click;
 

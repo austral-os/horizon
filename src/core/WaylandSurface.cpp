@@ -1532,8 +1532,16 @@ namespace horizon
         // Registrar listener para capturar el tamaño del monitor
         static const wl_output_listener s_output_listener = {
             // geometry
-            [](void *, wl_output *, int32_t, int32_t, int32_t, int32_t, int32_t,
-               const char *, const char *, int32_t) {},
+            [](void *data, wl_output *output, int32_t x, int32_t y, int32_t, int32_t, int32_t,
+               const char *, const char *, int32_t) {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                auto it = std::find_if(self->m_monitor_details.begin(), self->m_monitor_details.end(),
+                                       [output](const MonitorDetail &d) { return d.output == output; });
+                if (it != self->m_monitor_details.end()) {
+                    it->x = x;
+                    it->y = y;
+                }
+            },
             // mode: capturamos width y height de todos los modos
             [](void *data, wl_output *output, uint32_t flags, int32_t width, int32_t height, int32_t refresh)
             {
@@ -1552,7 +1560,10 @@ namespace horizon
                     mode.preferred = (flags & WL_OUTPUT_MODE_PREFERRED);
                     it->modes.push_back(mode);
                     
-                    auto *out_ptr = output;
+                    if (flags & WL_OUTPUT_MODE_CURRENT) {
+                        it->width = width;
+                        it->height = height;
+                    }
                 }
 
                 if (flags & WL_OUTPUT_MODE_CURRENT)
@@ -1570,7 +1581,15 @@ namespace horizon
             // scale
             [](void *, wl_output *, int32_t) {},
             // name (v4)
-            [](void *, wl_output *, const char *) {},
+            [](void *data, wl_output *output, const char *name) {
+                WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                auto it = std::find_if(self->m_monitor_details.begin(), self->m_monitor_details.end(),
+                                       [output](const MonitorDetail &d) { return d.output == output; });
+                if (it != self->m_monitor_details.end()) {
+                    it->name = name;
+                    LOG_INFO << "[SURFACE] Monitor " << (void*)output << " name set to: " << name;
+                }
+            },
             // description (v4)
             [](void *, wl_output *, const char *) {},
         };

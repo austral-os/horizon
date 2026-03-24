@@ -2,7 +2,13 @@
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/Application.hpp>
 #include <horizon/Logger.hpp>
+#include <horizon/Spacer.hpp>
+#include <horizon/SolidObject.hpp>
+#include <horizon/AquaObject.hpp>
 #include <algorithm>
+#include <views/DisplayView/LabwcAdapter.hpp>
+#include <views/DisplayView/KwinAdapter.hpp>
+#include <views/DisplayView/WayfireAdapter.hpp>
 
 namespace horizon::preferences
 {
@@ -13,10 +19,42 @@ namespace horizon::preferences
         set_margin(20);
         set_spacing(20);
 
+        // Detect compositor and initialize adapter
+        const char* desktop = std::getenv("XDG_CURRENT_DESKTOP");
+        std::string desktop_str = desktop ? desktop : "";
+        LOG_INFO << "[VIEW] Detected desktop: " << desktop_str;
+
+        if (desktop_str.find("KDE") != std::string::npos) {
+            m_adapter = std::make_unique<KwinAdapter>();
+        } else if (desktop_str == "Wayfire") {
+            m_adapter = std::make_unique<WayfireAdapter>();
+        } else {
+            m_adapter = std::make_unique<LabwcAdapter>();
+        }
+
         auto title = std::make_unique<Label>("Pantalla");
         title->set_fixed_size(30);
         m_title_label = title.get();
         add_child(std::move(title));
+
+        // Wait for monitor details to be populated safely
+        when_application_load.connect([this](EventContext&) {
+            if (!m_monitors.empty()) return;
+            auto* app = application();
+            if (app && app->w_surface()) {
+                for (const auto& d : app->w_surface()->monitor_details()) {
+                    MonitorInfo info;
+                    info.conn_name = d.name;
+                    info.x = d.x;
+                    info.y = d.y;
+                    info.width = d.width;
+                    info.height = d.height;
+                    info.rotation = 0; 
+                    m_monitors.push_back(info);
+                    LOG_INFO << "[VIEW] Added monitor: " << info.conn_name << " at " << info.x << "," << info.y;
+                }
+            }
+        });
 
         // 1. Display Devices (Upper Part)
         auto devices = std::make_unique<DisplayDevices>();
@@ -95,8 +133,176 @@ namespace horizon::preferences
         m_refresh_combo = ref_combo.get();
         settings_section->add_child(std::move(ref_combo));
 
+        // 2.2.3 Apply Button
+        auto apply_btn = std::make_unique<Button<AquaObject>>();
+        m_apply_button = apply_btn.get();
+        m_apply_button->set_text("Aplicar Cambios");
+        m_apply_button->set_size(150, 40);
+        m_apply_button->when_mouse_press.connect([this](MouseButtonEventContext &ctx) {
+            if (ctx.button == 0x110 && m_adapter) {
+                std::vector<MonitorConfig> current_configs;
+                std::vector<MonitorConfig> configs;
+                for (size_t i = 0; i < m_monitors.size(); ++i) {
+                    const auto& m = m_monitors[i];
+                    MonitorConfig cfg;
+                    cfg.name = m.conn_name;
+                    cfg.x = m.x;
+                    cfg.y = m.y;
+                    cfg.width = m.width;
+                    cfg.height = m.height;
+                    cfg.refresh = 60.0f;
+                    cfg.enabled = true;
+                    cfg.rotation = m.rotation;
+
+                    current_configs.push_back(cfg); // Save current as old before change
+
+                    // If it's the selected monitor, use current selections from UI
+                    if ((int)i == m_selected_monitor_idx) {
+                        auto selected_mode_idx = m_res_table->selected_index();
+                        if (selected_mode_idx != -1) {
+                            auto mode = m_res_table->data()[selected_mode_idx];
+                            cfg.width = mode.width;
+                            cfg.height = mode.height;
+                            cfg.refresh = mode.refresh_rate;
+                        }
+                        // Also get rotation
+                        auto* rot_item = m_rotation_combo->selected_item();
+                        if (rot_item) {
+                            cfg.rotation = std::stoi(rot_item->id);
+                        }
+                    }
+                    configs.push_back(cfg);
+                }
+                
+                LOG_INFO << "DisplayView: Applying " << configs.size() << " configs";
+                for (const auto& c : configs) {
+                    LOG_INFO << "  Monitor: " << c.name << " Res: " << c.width << "x" << c.height << "@" << (int)c.refresh << " Rot: " << c.rotation;
+                }
+
+                m_adapter->apply_configs(configs);
+                
+                // Show confirmation
+                m_previous_configs = current_configs; // Capture old
+                show_confirmation();
+            }
+        });
+        settings_section->add_child(std::move(apply_btn));
+
         controls_container->add_child(std::move(settings_section));
         add_child(std::move(controls_container));
+
+        // Create hidden overlay
+        auto overlay = std::make_unique<SolidObject>();
+        m_overlay = overlay.get();
+        m_overlay->set_background_color(Color(0.0f, 0.0f, 0.0f, 0.6f));
+        m_overlay->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        m_overlay->set_position_type(FREE); // Overlap
+        m_overlay->set_visible(false);
+        
+        m_overlay->add_child(Spacer()); // Vertical center - top spacer
+
+        auto h_container = std::make_unique<Widget>();
+        h_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        h_container->add_child(Spacer()); // Horizontal center - left spacer
+
+        auto box = std::make_unique<AquaObject>();
+        box->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        box->set_margin(30);
+        box->set_spacing(20);
+        box->set_fixed_size(450); // Square-ish
+        box->set_corner_radius({12, 12, 12, 12});
+
+        auto msg = std::make_unique<Label>("¿Desea mantener esta configuración de pantalla?");
+        msg->set_font_size(18);
+        msg->set_alignment(TextAlignment::Center);
+        box->add_child(std::move(msg));
+
+        auto countdown = std::make_unique<Label>("Revirtiendo en 10 segundos...");
+        m_countdown_label = countdown.get();
+        m_countdown_label->set_alignment(TextAlignment::Center);
+        box->add_child(std::move(countdown));
+
+        auto btns = std::make_unique<Widget>();
+        btns->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        btns->set_spacing(20);
+        
+        btns->add_child(Spacer()); // Buttons center - left
+        
+        auto keep = std::make_unique<Button<AquaObject>>();
+        keep->set_text("Mantener");
+        keep->set_size(140, 40);
+        keep->when_mouse_press.connect([this](MouseButtonEventContext &ctx) {
+            if (ctx.button == 0x110) {
+                if (m_confirmation_timer_id != 0) {
+                    application()->stop_timer(m_confirmation_timer_id);
+                    m_confirmation_timer_id = 0;
+                }
+                m_overlay->set_visible(false);
+                invalidate();
+            }
+        });
+        btns->add_child(std::move(keep));
+
+        auto revert_btn = std::make_unique<Button<SolidObject>>();
+        revert_btn->set_text("Revertir");
+        revert_btn->set_size(140, 40);
+        revert_btn->when_mouse_press.connect([this](MouseButtonEventContext &ctx) {
+            if (ctx.button == 0x110) {
+                revert_settings();
+            }
+        });
+        btns->add_child(std::move(revert_btn));
+        
+        btns->add_child(Spacer()); // Buttons center - right
+
+        box->add_child(std::move(btns));
+        h_container->add_child(std::move(box));
+        h_container->add_child(Spacer()); // Horizontal center - right spacer
+        
+        m_overlay->add_child(std::move(h_container));
+        m_overlay->add_child(Spacer()); // Vertical center - bottom spacer
+        
+        add_child(std::move(overlay));
+    }
+
+    void DisplayView::show_confirmation()
+    {
+        m_countdown = 10;
+        m_countdown_label->set_text("Revirtiendo en " + std::to_string(m_countdown) + " segundos...");
+        m_overlay->set_visible(true);
+        m_overlay->set_size(this->width(), this->height());
+        
+        if (m_confirmation_timer_id != 0) {
+            application()->stop_timer(m_confirmation_timer_id);
+        }
+
+        m_confirmation_timer_id = application()->add_timer(1000, [this]() {
+            m_countdown--;
+            if (m_countdown <= 0) {
+                revert_settings();
+            } else {
+                m_countdown_label->set_text("Revirtiendo en " + std::to_string(m_countdown) + " segundos...");
+                invalidate();
+            }
+        }, true);
+        
+        invalidate();
+    }
+
+    void DisplayView::revert_settings()
+    {
+        if (m_confirmation_timer_id != 0) {
+            application()->stop_timer(m_confirmation_timer_id);
+            m_confirmation_timer_id = 0;
+        }
+        
+        if (m_adapter && !m_previous_configs.empty()) {
+            m_adapter->apply_configs(m_previous_configs);
+        }
+        
+        m_overlay->set_visible(false);
+        on_monitor_selected(m_selected_monitor_idx); // Refresh UI to match reverted state
+        invalidate();
     }
 
     void DisplayView::on_monitor_selected(int index)
@@ -119,40 +325,7 @@ namespace horizon::preferences
             if (m.current) current_idx = (int)modes.size() - 1;
         }
 
-        // Incorporate standard scaled resolutions (similar to what xrandr/compositors offer)
         if (!modes.empty()) {
-            int native_w = modes[0].width;
-            int native_h = modes[0].height;
-            // Native is usually the first one or the one with max area. 
-            // We'll find the max area to be sure.
-            for (const auto& m : modes) {
-                if (m.width * m.height > native_w * native_h) {
-                    native_w = m.width;
-                    native_h = m.height;
-                }
-            }
-
-            std::vector<std::pair<int, int>> standard_resolutions = {
-                {1920, 1080}, {1600, 900}, {1440, 900}, {1366, 768}, {1280, 800},
-                {1280, 720}, {1152, 864}, {1024, 768}, {800, 600}, {640, 480}
-            };
-
-            for (const auto& res : standard_resolutions) {
-                if (res.first <= native_w && res.second <= native_h) {
-                    // Check if already present
-                    bool present = false;
-                    for (const auto& m : modes) {
-                        if (m.width == res.first && m.height == res.second) {
-                            present = true;
-                            break;
-                        }
-                    }
-                    if (!present) {
-                        modes.push_back({res.first, res.second, 60.0f});
-                    }
-                }
-            }
-
             // Sort by resolution area descending
             std::sort(modes.begin(), modes.end(), [](const MonitorMode& a, const MonitorMode& b) {
                 if (a.width * a.height != b.width * b.height)
@@ -185,6 +358,7 @@ namespace horizon::preferences
                 }
             }
         }
+
 
         m_res_table->set_data(modes);
         if (current_idx != -1) {

@@ -5,7 +5,9 @@
 #include <horizon/Combo.hpp>
 #include <horizon/Checkbox.hpp>
 #include <horizon/AquaObject.hpp>
+#include <horizon/Button.hpp>
 #include <horizon/SystemInfo.hpp>
+#include <views/DisplayView/IDisplayAdapter.hpp>
 #include <views/DisplayView/DisplayDevices.hpp>
 
 namespace horizon::preferences
@@ -17,6 +19,8 @@ namespace horizon::preferences
         ~DisplayView() override = default;
     private:
         void on_monitor_selected(int index);
+        void show_confirmation();
+        void revert_settings();
 
         Label* m_title_label{nullptr};
         DisplayDevices* m_display_devices{nullptr};
@@ -25,8 +29,16 @@ namespace horizon::preferences
         Combo* m_rotation_combo{nullptr};
         Combo* m_refresh_combo{nullptr};
         Checkbox<AquaObject>* m_native_res_checkbox{nullptr};
+        Button<AquaObject>* m_apply_button{nullptr};
+        std::unique_ptr<IDisplayAdapter> m_adapter;
 
         std::vector<MonitorInfo> m_monitors;
+        std::vector<MonitorConfig> m_previous_configs;
+        size_t m_confirmation_timer_id{0};
+        int m_countdown{10};
+        Widget* m_overlay{nullptr};
+        Label* m_countdown_label{nullptr};
+
         int m_selected_monitor_idx = -1;
     };
 }
