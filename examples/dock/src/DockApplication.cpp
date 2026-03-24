@@ -20,10 +20,10 @@ namespace horizon
         {"org.horizon.launchpad", "Launchpad", "slingscold", "launchpad"},
         {"arkfm", "Ark File Manager", "arkfm", "arkfm"},
         {"alacritty", "Terminal", "utilities-terminal", "terminal"},
-        {"firefox", "Web Browser", "firefox", "firefox"}};
+        {"firefox", "Web Browser", "firefox", "firefox"},
+        {"horizon.preferences", "Preferences", "applications-system", "preferences"}};
 
-    DockApplication::DockApplication()
-        : Application("org.horizon.dock", 800, 100, true, true)
+    DockApplication::DockApplication() : Application("org.horizon.dock", 800, 100, true, true)
     {
         m_window = create_layer_window("org.horizon.dock", 2); // ZWLR_LAYER_SHELL_V1_LAYER_TOP
 
@@ -89,22 +89,22 @@ namespace horizon
     {
         // Initial update
         update_dock(_compositor_apps->get_running_applications());
- 
+
         _compositor_apps->when_update.connect(
             [this](AppListEventContext &ctx)
             { m_window->post_task([this, apps = ctx.apps]() { update_dock(apps); }); });
     }
- 
+
     std::unique_ptr<Menu> DockApplication::create_context_menu(DockItem *item)
     {
         auto menu = std::make_unique<Menu>();
         menu->set_title("dock_context");
- 
+
         int pid = item->pid();
         std::string run_id = item->run_id();
         std::string app_id = item->app_id();
         uintptr_t instance_id = item->instance_id();
- 
+
         if (pid != -1 || !app_id.empty())
         {
             // First option: Open new instance (if we have a way to launch it)
@@ -113,7 +113,7 @@ namespace horizon
             {
                 launch_id = app_id;
             }
- 
+
             if (!launch_id.empty())
             {
                 auto *new_instance_item = menu->add_item("Abrir nueva instancia");
@@ -124,7 +124,7 @@ namespace horizon
                         ApplicationLauncher::launch(launch_id);
                     });
             }
- 
+
             // Second option: Fullscreen
             auto *fullscreen_item = menu->add_item("Entrar en pantalla completa");
             fullscreen_item->when_click.connect(
@@ -137,10 +137,10 @@ namespace horizon
                     else
                         _compositor_apps->toggle_fullscreen(app_id);
                 });
- 
+
             // Separator
             menu->add_separator();
- 
+
             // Third option: Exit
             auto *exit_item = menu->add_item("Salir");
             exit_item->when_click.connect(
@@ -164,7 +164,7 @@ namespace horizon
                     ApplicationLauncher::launch(run_id);
                 });
         }
- 
+
         return menu;
     }
 

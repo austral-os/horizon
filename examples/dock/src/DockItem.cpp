@@ -30,6 +30,7 @@ namespace horizon
             set_icon_name(info.app_id);
 
         setup_running_behavior();
+        invalidate();
     }
 
     void DockItem::set_pinned_data(const std::string &run_id)
@@ -37,6 +38,7 @@ namespace horizon
         _run_id = run_id;
         _is_running = false;
         setup_pinned_behavior();
+        invalidate();
     }
 
     void DockItem::send_sig(const std::string &sig_name, const std::string &token)
@@ -96,6 +98,25 @@ namespace horizon
                 LOG_INFO << "[DOCK] Requesting to run app: " << _run_id;
                 ApplicationLauncher::launch(_run_id);
             });
+    }
+
+    void DockItem::draw(GraphicsContext &ctx)
+    {
+        Icon::draw(ctx);
+
+        if (_is_running)
+        {
+            int indicator_size = 4;
+            int x = m_start_draw_x + m_available_draw_width / 2;
+            int y = m_start_draw_y + m_available_draw_height - 6;
+
+            // Draw a glowing blue dot
+            Color center_color("#00AAFF");
+            Color edge_color("#00AAFF00");
+
+            ctx.fillGradientCircle(x, y, indicator_size, center_color, edge_color, GradientDirection::Radial);
+            ctx.fillCircle(x, y, indicator_size / 2); // Core of the dot
+        }
     }
 
 } // namespace horizon

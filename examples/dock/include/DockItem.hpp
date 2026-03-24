@@ -41,6 +41,8 @@ namespace horizon
             return _is_running;
         }
 
+        void draw(GraphicsContext &ctx) override;
+
     private:
         void send_sig(const std::string &sig_name, const std::string &token = "");
         void setup_running_behavior();
