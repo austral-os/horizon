@@ -24,7 +24,21 @@ namespace horizon
         auto body = std::make_unique<Frame>();
 
         header->set_layout_type(WidgetLayoutTypes::WIDGET_LAYOUT_HORIZONTAL);
-        body->set_layout_type(WidgetLayoutTypes::WIDGET_LAYOUT_HORIZONTAL);
+
+        body->set_layout_type(WidgetLayoutTypes::WIDGET_LAYOUT_VERTICAL);
+        body->set_position_type(WidgetPositionTypes::FILL);
+
+        auto tab_spacer = std::make_unique<Widget>();
+        tab_spacer->set_fixed_size(20); // 40px for header + 20px margin
+
+        auto tab_content = std::make_unique<Widget>();
+        tab_content->set_layout_type(WidgetLayoutTypes::WIDGET_LAYOUT_VERTICAL);
+        tab_content->set_position_type(WidgetPositionTypes::FILL);
+
+        m_tab_content = tab_content.get();
+        body->add_child(std::move(tab_spacer));
+        body->add_child(std::move(tab_content));
+
         margin_top->set_layout_type(WidgetLayoutTypes::WIDGET_LAYOUT_HORIZONTAL);
 
         header->set_position_type(WidgetPositionTypes::FREE);
@@ -101,7 +115,7 @@ namespace horizon
     void Notebook::set_current_tab(int index)
     {
 
-        if (index < 0 || index >= m_body->children().size())
+        if (index < 0 || index >= m_tab_content->children().size())
             return;
 
         if (m_current_tab == index)
@@ -109,11 +123,11 @@ namespace horizon
 
         if (m_current_tab >= 0)
         {
-            m_body->children()[m_current_tab]->set_visible(false);
+            m_tab_content->children()[m_current_tab]->set_visible(false);
         }
 
-        m_body->children()[index]->set_visible(true);
-        m_body->children()[index]->invalidate();
+        m_tab_content->children()[index]->set_visible(true);
+        m_tab_content->children()[index]->invalidate();
         m_current_tab = index;
 
         configure_header();
@@ -128,7 +142,7 @@ namespace horizon
 
         page.body->set_visible(false);
 
-        m_body->add_child(std::move(page.body));
+        m_tab_content->add_child(std::move(page.body));
 
         auto button = std::make_unique<Button<AquaObject>>();
         button->set_text(page.label);

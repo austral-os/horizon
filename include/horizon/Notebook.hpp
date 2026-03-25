@@ -45,6 +45,7 @@ namespace horizon
         Widget *m_margin_top;
         Widget *m_header;
         Frame *m_body;
+        Widget *m_tab_content;
 
         int m_current_tab{-1};
     };
