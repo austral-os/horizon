@@ -20,11 +20,6 @@ namespace horizon::preferences
         auto size_title = std::make_unique<horizon::Label>("Tamaño de Iconos");
         size_container->add_child(std::move(size_title));
 
-        auto slider_hbox = std::make_unique<horizon::Widget>();
-        slider_hbox->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
-        slider_hbox->set_spacing(15);
-        slider_hbox->set_height(40);
-
         auto slider = std::make_unique<horizon::Slider>();
         slider->set_orientation(horizon::SliderOrientation::Horizontal);
         slider->set_min(32.0f);
@@ -42,24 +37,16 @@ namespace horizon::preferences
                 save_config();
             });
 
-        slider_hbox->add_child(std::move(slider));
+        size_container->add_child(std::move(slider));
 
         auto size_val_label = std::make_unique<horizon::Label>("64 px");
         m_size_label = size_val_label.get();
-        slider_hbox->add_child(std::move(size_val_label));
-        slider_hbox->add_child(horizon::Spacer());
-
-        size_container->add_child(std::move(slider_hbox));
-        add_child(std::move(size_container));
-
-        // --- Magnification Section ---
-        auto mag_container = std::make_unique<horizon::Widget>();
-        mag_container->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
-        mag_container->set_height(40);
+        size_container->add_child(std::move(size_val_label));
+        size_container->add_child(horizon::Spacer());
 
         auto mag_check = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
         mag_check->set_text("Usar Magnificación");
-        mag_check->set_width(250);
+        mag_check->set_fixed_size(25);
         m_magnification_check = mag_check.get();
 
         m_magnification_check->set_on_toggle(
@@ -69,10 +56,11 @@ namespace horizon::preferences
                 save_config();
             });
 
-        mag_container->add_child(std::move(mag_check));
-        mag_container->add_child(horizon::Spacer());
+        size_container->add_child(std::move(mag_check));
+        size_container->add_child(horizon::Spacer());
 
-        add_child(std::move(mag_container));
+        add_child(std::move(size_container));
+
         add_child(horizon::Spacer());
 
         // Load configuration
