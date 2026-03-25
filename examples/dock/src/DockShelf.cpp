@@ -47,8 +47,6 @@ namespace horizon
 
     void DockShelf::calculate_layout()
     {
-        const int base_size = 64;
-        const int max_extra = 64;
         const float radius = 120.0f; // Distance of influence pixels
 
         // 1. Calculate the required content width based on children (with magnification)
@@ -60,7 +58,7 @@ namespace horizon
             if (child->is_visible())
             {
                 Icon *icon_child = dynamic_cast<Icon *>(child.get());
-                int current_icon_size = base_size;
+                int current_icon_size = m_base_size;
 
                 if (m_magnification_enabled && m_mouse_over)
                 {
@@ -81,12 +79,12 @@ namespace horizon
                     float scale_y = std::exp(-(dist_y * dist_y) / (2 * radius_y * radius_y));
                     float scale = scale_x * scale_y;
 
-                    current_icon_size = base_size + (int)(max_extra * scale);
+                    current_icon_size = m_base_size + (int)(m_max_extra_size * scale);
                     child->set_fixed_size(current_icon_size + child->margin() * 2);
                 }
                 else
                 {
-                    child->set_fixed_size(base_size + child->margin() * 2);
+                    child->set_fixed_size(m_base_size + child->margin() * 2);
                 }
 
                 if (icon_child)

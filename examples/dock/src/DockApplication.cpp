@@ -12,6 +12,11 @@
 #include <horizon/Widget.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <set>
+#include <fstream>
+#include <nlohmann/json.hpp>
+#include <poll.h>
+#include <sys/inotify.h>
+#include <unistd.h>
 
 namespace horizon
 {
@@ -42,10 +47,23 @@ namespace horizon
 
         detect_environment();
         setup_ui();
+
+        const char* home = std::getenv("HOME");
+        if (home)
+        {
+            m_config_path = std::string(home) + "/.config/horizon/horizon.json";
+        }
+
+        load_config();
+        start_watcher();
+
         setup_ipc();
     }
 
-    DockApplication::~DockApplication() = default;
+    DockApplication::~DockApplication()
+    {
+        stop_watcher();
+    }
 
     void DockApplication::detect_environment()
     {
@@ -280,6 +298,112 @@ namespace horizon
         _shelf_ptr->calculate_layout();
         m_window->invalidate();
 
+    }
+
+    void DockApplication::load_config()
+    {
+        if (m_config_path.empty() || !std::filesystem::exists(m_config_path))
+        {
+            LOG_ERROR << "[DOCK] Config file not found: " << m_config_path;
+            return;
+        }
+
+        try
+        {
+            std::ifstream file(m_config_path);
+            nlohmann::json j;
+            file >> j;
+
+            if (j.contains("dock"))
+            {
+                const auto &dock_config = j["dock"];
+                int icon_size = dock_config.value("icon_size", 64);
+                bool magnification_enabled = dock_config.value("magnification_enabled", true);
+
+                if (_shelf_ptr)
+                {
+                    _shelf_ptr->set_base_size(icon_size);
+                    _shelf_ptr->set_magnification_enabled(magnification_enabled);
+                    LOG_INFO << "[DOCK] Loaded config: icon_size=" << icon_size 
+                             << ", magnification=" << (magnification_enabled ? "on" : "off");
+                }
+            }
+        }
+        catch (const std::exception &e)
+        {
+            LOG_ERROR << "[DOCK] Error parsing JSON: " << e.what();
+        }
+    }
+
+    void DockApplication::start_watcher()
+    {
+        if (m_config_path.empty()) return;
+
+        inotify_fd = inotify_init();
+        if (inotify_fd < 0)
+        {
+            LOG_ERROR << "[DOCK] Failed to initialize inotify";
+            return;
+        }
+
+        watch_fd = inotify_add_watch(inotify_fd, m_config_path.c_str(),
+                                     IN_CLOSE_WRITE | IN_MOVED_TO);
+        
+        if (watch_fd < 0)
+        {
+            LOG_ERROR << "[DOCK] Failed to add watch for: " << m_config_path;
+            return;
+        }
+
+        running = true;
+        watcher_thread = std::thread(&DockApplication::watch_loop, this);
+        LOG_INFO << "[DOCK] Started config watcher for: " << m_config_path;
+    }
+
+    void DockApplication::stop_watcher()
+    {
+        running = false;
+        if (watcher_thread.joinable())
+        {
+            watcher_thread.join();
+        }
+
+        if (watch_fd >= 0)
+        {
+            inotify_rm_watch(inotify_fd, watch_fd);
+        }
+
+        if (inotify_fd >= 0)
+        {
+            close(inotify_fd);
+        }
+    }
+
+    void DockApplication::watch_loop()
+    {
+        char buffer[1024];
+        struct pollfd pfd = {inotify_fd, POLLIN, 0};
+
+        while (running)
+        {
+            int ret = poll(&pfd, 1, 500); // 500 ms timeout
+
+            if (ret > 0 && (pfd.revents & POLLIN))
+            {
+                int length = read(inotify_fd, buffer, sizeof(buffer));
+
+                if (length > 0)
+                {
+                    // Debounce a bit
+                    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                    
+                    LOG_INFO << "[DOCK] Config change detected, reloading...";
+                    m_window->post_task([this]() {
+                        load_config();
+                    });
+                }
+            }
+        }
     }
 
 } // namespace horizon
