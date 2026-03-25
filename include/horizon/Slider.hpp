@@ -56,6 +56,9 @@ namespace horizon
         void set_show_ticks(bool show);
         bool show_ticks() const;
 
+        void add_custom_tick(float value);
+        void clear_custom_ticks();
+
         // --- Thumb ---
         void set_thumb_shape(ThumbShape shape);
         ThumbShape thumb_shape() const;
@@ -77,6 +80,7 @@ namespace horizon
         float m_max{1.0f};
         SliderOrientation m_orientation{SliderOrientation::Horizontal};
         int m_tick_count{0};
+        std::vector<float> m_custom_ticks;
         bool m_show_ticks{true};
         ThumbShape m_thumb_shape{ThumbShape::Marker};
         bool m_dragging{false};

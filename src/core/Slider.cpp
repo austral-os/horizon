@@ -1,5 +1,6 @@
 #include "horizon/WaylandWindow.hpp"
 #include <cmath>
+#include <vector>
 #include <horizon/Application.hpp>
 #include <horizon/AquaPolygon.hpp>
 #include <horizon/GraphicsContext.hpp>
@@ -96,6 +97,18 @@ namespace horizon
     void Slider::set_show_ticks(bool show)
     {
         m_show_ticks = show;
+        invalidate();
+    }
+
+    void Slider::add_custom_tick(float v)
+    {
+        m_custom_ticks.push_back(v);
+        invalidate();
+    }
+
+    void Slider::clear_custom_ticks()
+    {
+        m_custom_ticks.clear();
         invalidate();
     }
 
@@ -296,6 +309,25 @@ namespace horizon
             }
         }
 
+        // --- Custom tick-mark snapping ---
+        if (!m_custom_ticks.empty())
+        {
+            for (float tick_val : m_custom_ticks)
+            {
+                float t_i = (m_max > m_min) ? (tick_val - m_min) / (m_max - m_min) : 0.0f;
+                int tick_px = (int)(t_i * track_len);
+                int px = (m_orientation == SliderOrientation::Horizontal)
+                             ? cursor_px
+                             : (track_len - cursor_px);
+                int dist = std::abs(px - tick_px);
+                if (dist <= SNAP_PX)
+                {
+                    t = t_i; // snap!
+                    break;
+                }
+            }
+        }
+
         set_value(m_min + t * (m_max - m_min));
     }
 
@@ -383,6 +415,32 @@ namespace horizon
                 for (int i = 0; i < m_tick_count; ++i)
                 {
                     float t_i = (float)i / (float)(m_tick_count - 1);
+                    int ty = track_y + (int)((1.0f - t_i) * track_h);
+                    gc.fillRect(tick_x, ty, TICK_H, TICK_W);
+                }
+            }
+        }
+
+        // --- 2b. Custom Tick marks ---
+        if (!m_custom_ticks.empty() && m_show_ticks)
+        {
+            gc.setColor(Color(0.5f, 0.5f, 0.5f, 0.9f));
+            if (horiz)
+            {
+                int tick_y = track_y + track_h + 5;
+                for (float tick_val : m_custom_ticks)
+                {
+                    float t_i = (m_max > m_min) ? (tick_val - m_min) / (m_max - m_min) : 0.0f;
+                    int tx = track_x + (int)(t_i * track_w);
+                    gc.fillRect(tx, tick_y, TICK_W, TICK_H);
+                }
+            }
+            else
+            {
+                int tick_x = track_x + track_w + 5;
+                for (float tick_val : m_custom_ticks)
+                {
+                    float t_i = (m_max > m_min) ? (tick_val - m_min) / (m_max - m_min) : 0.0f;
                     int ty = track_y + (int)((1.0f - t_i) * track_h);
                     gc.fillRect(tick_x, ty, TICK_H, TICK_W);
                 }

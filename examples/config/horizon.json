@@ -40,7 +40,7 @@
         }
     },
     "dock": {
-        "icon_size": 64,
+        "icon_size": 68,
         "magnification_enabled": true
     }
 }

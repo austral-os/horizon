@@ -27,6 +27,11 @@ namespace horizon::preferences
         slider->set_value(64.0f);
         slider->set_width(300);
         m_size_slider = slider.get();
+        m_size_slider->set_show_ticks(true);
+        m_size_slider->add_custom_tick(48.0f);
+        m_size_slider->add_custom_tick(64.0f);
+        m_size_slider->add_custom_tick(72.0f);
+        m_size_slider->add_custom_tick(96.0f);
 
         m_size_slider->when_value_changed.connect(
             [this](const horizon::EventContext &)
