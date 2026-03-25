@@ -84,8 +84,8 @@ namespace horizon
                 // MANUALLY SET ABSOLUTE POSITION AND SIZE:
                 // Note: In this framework, FREE children need absolute window coordinates.
                 // X: shelf absolute x + shelf margin + cumulative width
-                // Y: shelf absolute y + fixed bottom 5px above tray lip (y=150)
-                int icon_bottom_y = 150 - 5; 
+                // Y: shelf absolute y + fixed bottom 9px above tray lip (y=150)
+                int icon_bottom_y = 150 - 9; 
                 child->set_position(x() + margin() + total_children_width, y() + icon_bottom_y - child->fixed_size());
                 child->set_size(child->fixed_size(), child->fixed_size());
                 child->calculate_layout();
