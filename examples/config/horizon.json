@@ -38,5 +38,9 @@
                 }
             ]
         }
+    },
+    "dock": {
+        "icon_size": 64,
+        "magnification_enabled": true
     }
 }

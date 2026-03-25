@@ -7,6 +7,8 @@ add_executable(preferences
     src/ConfigManager.cpp
     src/ImagesView.cpp
     src/views/DesktopView/DesktopView.cpp
+    src/views/DesktopView/WallpaperView.cpp
+    src/views/DesktopView/DockView.cpp
     src/views/AppearanceView/AppearanceView.cpp
     src/views/ScreensaverView/ScreensaverView.cpp
     src/views/NotificationsView/NotificationsView.cpp
