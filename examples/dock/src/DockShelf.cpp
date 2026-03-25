@@ -46,7 +46,7 @@ namespace horizon
     void DockShelf::calculate_layout()
     {
         const int base_size = 64;
-        const int max_extra = 48;
+        const int max_extra = 64;
         const float radius = 120.0f; // Distance of influence pixels
 
         // 1. Calculate the required content width based on children (with magnification)
@@ -81,10 +81,14 @@ namespace horizon
                     icon_child->set_icon_size(current_icon_size);
                 }
 
-                // Center icons on the 'tray center' (y=105 in the 160px shelf)
-                // Surface starts at 60 and ends at 150. (60+150)/2 = 105.
-                int tray_center_y = 105; 
-                child->set_position(child->x(), tray_center_y - child->fixed_size() / 2);
+                // MANUALLY SET ABSOLUTE POSITION AND SIZE:
+                // Note: In this framework, FREE children need absolute window coordinates.
+                // X: shelf absolute x + shelf margin + cumulative width
+                // Y: shelf absolute y + fixed bottom 5px above tray lip (y=150)
+                int icon_bottom_y = 150 - 5; 
+                child->set_position(x() + margin() + total_children_width, y() + icon_bottom_y - child->fixed_size());
+                child->set_size(child->fixed_size(), child->fixed_size());
+                child->calculate_layout();
 
                 total_children_width += child->fixed_size();
                 if (count > 0) total_children_width += spacing();
@@ -96,6 +100,7 @@ namespace horizon
         int content_width = total_children_width + (margin() * 2);
         set_size(content_width, 160); // Full height for magnification room
         set_width(content_width);
+
 
         Widget::calculate_layout();
     }

@@ -212,6 +212,7 @@ namespace horizon
             {
                 item->set_pinned_data(pinned.run_id);
             }
+            item->set_position_type(FREE);
             item->set_context_menu(create_context_menu(item.get()));
             _shelf_ptr->add_child(std::move(item));
         }
@@ -236,6 +237,7 @@ namespace horizon
             separator->set_fixed_size(2);
             separator->set_margin(10);
             separator->set_background_color({1.0f, 1.0f, 1.0f, 0.3f});
+            separator->set_position_type(FREE);
             _shelf_ptr->add_child(std::move(separator));
         }
 
@@ -269,6 +271,7 @@ namespace horizon
                     }
                 }
 
+                item->set_position_type(FREE);
                 item->set_context_menu(create_context_menu(item.get()));
                 _shelf_ptr->add_child(std::move(item));
             }
