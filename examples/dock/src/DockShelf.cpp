@@ -24,7 +24,9 @@ namespace horizon
                     // ctx.x is window-relative, but we need shelf-local for calculate_layout
                     widget_position pos = get_absolute_position();
                     int window_x = pos.x - (application() ? application()->screen_x() : 0);
+                    int window_y = pos.y - (application() ? application()->screen_y() : 0);
                     m_mouse_x = ctx.x - window_x;
+                    m_mouse_y = ctx.y - window_y;
                     m_mouse_over = true;
                     invalidate();
                     calculate_layout();
@@ -62,11 +64,22 @@ namespace horizon
 
                 if (m_magnification_enabled && m_mouse_over)
                 {
-                    // Calculate center relative to drawing area start
+                    // 1. Calculate horizontal distance
                     float child_center_x = (float)total_children_width + child->fixed_size() / 2.0f;
-                    // Mouse x is shelf-local, content starts at margin()
-                    float dist = std::abs((child_center_x + margin()) - m_mouse_x);
-                    float scale = std::exp(-(dist * dist) / (2 * radius * radius));
+                    float dist_x = std::abs((child_center_x + margin()) - m_mouse_x);
+                    
+                    // 2. Calculate vertical distance from the 'active strip'
+                    // The icon strip is centered horizontally around its base position
+                    // We'll use the 'seated' bottom position as the reference for Y
+                    float active_y = 141.0f - 32.0f; // Center of a 64px icon at the 141px bottom
+                    float dist_y = std::abs(active_y - m_mouse_y);
+
+                    // 3. Combined 2D Gaussian Scale
+                    // We use a tighter radius for Y to make it feel more responsive vertically
+                    float radius_y = 80.0f; 
+                    float scale_x = std::exp(-(dist_x * dist_x) / (2 * radius * radius));
+                    float scale_y = std::exp(-(dist_y * dist_y) / (2 * radius_y * radius_y));
+                    float scale = scale_x * scale_y;
 
                     current_icon_size = base_size + (int)(max_extra * scale);
                     child->set_fixed_size(current_icon_size + child->margin() * 2);

@@ -816,6 +816,17 @@ namespace horizon
             break;
 
         case PointerEvent::Type::Leave:
+            if (m_hovered)
+            {
+                Widget *temp = m_hovered;
+                while (temp)
+                {
+                    EventContext leave_ev;
+                    leave_ev.sender = temp;
+                    temp->when_mouse_leave.run(leave_ev);
+                    temp = temp->parent();
+                }
+            }
             m_pressed = nullptr;
             m_hovered = nullptr;
             break;

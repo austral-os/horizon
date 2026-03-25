@@ -18,10 +18,12 @@ namespace horizon
 
         void set_magnification_enabled(bool enabled) { m_magnification_enabled = enabled; }
         bool is_magnification_enabled() const { return m_magnification_enabled; }
+        void reset_magnification() { m_mouse_over = false; calculate_layout(); invalidate(); }
 
     private:
         bool m_magnification_enabled = true;
         int m_mouse_x = -1;
+        int m_mouse_y = -1;
         bool m_mouse_over = false;
     };
 

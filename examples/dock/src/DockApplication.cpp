@@ -279,6 +279,7 @@ namespace horizon
 
         _shelf_ptr->calculate_layout();
         m_window->invalidate();
+
     }
 
 } // namespace horizon
