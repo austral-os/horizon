@@ -34,8 +34,11 @@ namespace horizon
         "varying vec2 v_texcoord;\n"
         "uniform sampler2D u_texture;\n"
         "uniform float u_opacity;\n"
+        "uniform float u_gradient_start;\n"
+        "uniform float u_gradient_end;\n"
         "void main() {\n"
-        "    gl_FragColor = texture2D(u_texture, v_texcoord).bgra * u_opacity;\n"
+        "    float gradient = mix(u_gradient_start, u_gradient_end, v_texcoord.y);\n"
+        "    gl_FragColor = texture2D(u_texture, v_texcoord).bgra * u_opacity * gradient;\n"
         "}\n";
 
     WaylandWindow::WaylandWindow(std::string app_id, int w, int h, bool defer_init, bool resizable,
@@ -1547,6 +1550,10 @@ namespace horizon
 
         GLint opacity_loc = glGetUniformLocation(m_gl_program, "u_opacity");
         glUniform1f(opacity_loc, 1.0f);
+        GLint grad_start_loc = glGetUniformLocation(m_gl_program, "u_gradient_start");
+        glUniform1f(grad_start_loc, 1.0f);
+        GLint grad_end_loc = glGetUniformLocation(m_gl_program, "u_gradient_end");
+        glUniform1f(grad_end_loc, 1.0f);
 
         // Upload Cairo buffer to texture
         glActiveTexture(GL_TEXTURE0);
@@ -1583,6 +1590,8 @@ namespace horizon
 
             glUniformMatrix4fv(mvp_loc, 1, GL_FALSE, draw.mvp);
             glUniform1f(opacity_loc, draw.opacity);
+            glUniform1f(grad_start_loc, draw.gradient_start);
+            glUniform1f(grad_end_loc, draw.gradient_end);
             glBindTexture(GL_TEXTURE_2D, draw.texture_id);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 

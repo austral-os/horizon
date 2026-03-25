@@ -831,6 +831,8 @@ namespace horizon
         std::memcpy(call.mvp, matrix_4x4, 16 * sizeof(float));
         call.opacity = opacity;
         call.delete_texture = delete_texture;
+        call.gradient_start = 1.0f;
+        call.gradient_end = 1.0f;
 
         if (!m_clip_stack.empty())
         {

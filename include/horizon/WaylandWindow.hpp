@@ -164,6 +164,8 @@ namespace horizon
             bool delete_texture;
             bool use_scissor;
             int scissor_x, scissor_y, scissor_w, scissor_h;
+            float gradient_start;
+            float gradient_end;
         };
 
         void queue_gl_draw(const GLDrawCall &call) const;
