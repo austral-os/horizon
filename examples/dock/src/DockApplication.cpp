@@ -23,13 +23,13 @@ namespace horizon
         {"firefox", "Web Browser", "firefox", "firefox"},
         {"horizon.preferences", "Preferences", "applications-system", "preferences"}};
 
-    DockApplication::DockApplication() : Application("org.horizon.dock", 800, 100, true, true)
+    DockApplication::DockApplication() : Application("org.horizon.dock", 800, 160, true, true)
     {
         m_window = create_layer_window("org.horizon.dock", 2); // ZWLR_LAYER_SHELL_V1_LAYER_TOP
 
         m_window->set_name("Dock");
         m_window->set_anchor(2 | 4 | 8); // BOTTOM | LEFT | RIGHT
-        m_window->set_size(0, 100);
+        m_window->set_size(0, 160);
         m_window->set_exclusive_zone(100);
         m_window->set_show_in_dock(false);
         m_window->set_show_in_system_tray(false);

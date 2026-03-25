@@ -1,5 +1,7 @@
 #include "DockShelf.hpp"
 #include <horizon/GraphicsContext.hpp>
+#include <horizon/Icon.hpp>
+#include <horizon/WaylandWindow.hpp>
 #include <vector>
 
 namespace horizon
@@ -11,31 +13,89 @@ namespace horizon
         set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         set_spacing(10);
         // Leave space at the bottom for the 3D lip of the shelf
-        set_margin(20);
+        set_margin(20); // Changed from 10 to 20
         set_size(0, 100);
+
+        when_mouse_move.connect(
+            [this](MouseMoveEventContext &ctx)
+            {
+                if (m_magnification_enabled)
+                {
+                    // ctx.x is window-relative, but we need shelf-local for calculate_layout
+                    widget_position pos = get_absolute_position();
+                    int window_x = pos.x - (application() ? application()->screen_x() : 0);
+                    m_mouse_x = ctx.x - window_x;
+                    m_mouse_over = true;
+                    invalidate();
+                    calculate_layout();
+                }
+            });
+
+        when_mouse_leave.connect(
+            [this](EventContext &ctx)
+            {
+                if (m_magnification_enabled)
+                {
+                    m_mouse_over = false;
+                    invalidate();
+                    calculate_layout();
+                }
+            });
     }
 
     void DockShelf::calculate_layout()
     {
-        // 1. Calculate the required content width based on children
-        int content_width = 0;
+        const int base_size = 64;
+        const int max_extra = 48;
+        const float radius = 120.0f; // Distance of influence pixels
+
+        // 1. Calculate the required content width based on children (with magnification)
+        int total_children_width = 0;
+        int count = 0;
+
         for (const auto &child : children())
         {
-            if (child->is_visible() && child->fixed_size() > 0)
+            if (child->is_visible())
             {
-                content_width += child->fixed_size() + spacing();
+                Icon *icon_child = dynamic_cast<Icon *>(child.get());
+                int current_icon_size = base_size;
+
+                if (m_magnification_enabled && m_mouse_over)
+                {
+                    // Calculate center relative to drawing area start
+                    float child_center_x = (float)total_children_width + child->fixed_size() / 2.0f;
+                    // Mouse x is shelf-local, content starts at margin()
+                    float dist = std::abs((child_center_x + margin()) - m_mouse_x);
+                    float scale = std::exp(-(dist * dist) / (2 * radius * radius));
+
+                    current_icon_size = base_size + (int)(max_extra * scale);
+                    child->set_fixed_size(current_icon_size + child->margin() * 2);
+                }
+                else
+                {
+                    child->set_fixed_size(base_size + child->margin() * 2);
+                }
+
+                if (icon_child)
+                {
+                    icon_child->set_icon_size(current_icon_size);
+                }
+
+                // Center icons on the 'tray center' (y=105 in the 160px shelf)
+                // Surface starts at 60 and ends at 150. (60+150)/2 = 105.
+                int tray_center_y = 105; 
+                child->set_position(child->x(), tray_center_y - child->fixed_size() / 2);
+
+                total_children_width += child->fixed_size();
+                if (count > 0) total_children_width += spacing();
+                count++;
             }
         }
-        if (!children().empty() && content_width > 0)
-        {
-            content_width -= spacing();
-        }
 
-        content_width += 40; // Simulated Left + Right padding
-
-        // 2. Update size BEFORE base calculate_layout so parents and centering use new dimensions
-        set_size(content_width, height());
-        set_fixed_size(content_width);
+        // 2. Update size: content width + margins on both sides
+        int content_width = total_children_width + (margin() * 2);
+        set_size(content_width, 160); // Full height for magnification room
+        set_width(content_width);
 
         Widget::calculate_layout();
     }
@@ -47,12 +107,13 @@ namespace horizon
 
         // Draw the 3D OS X Mountain Lion Shelf
         float w = width();
-        float h = height();
+        float h = height(); // 160
 
         // Shelf geometry measurements
+        float tray_height = 100.0f;
         float lip_height = 10.0f;
-        float tray_top_y = 15.0f; // Tray starts 15px down from the top bounds
-        float tray_bottom_y = h - lip_height - 2.0f;
+        float tray_top_y = h - tray_height; // Tray starts at y=60
+        float tray_bottom_y = h - lip_height; // End surface at 150
 
         float perspective_offset = 20.0f; // Trapezoid slant width
 
