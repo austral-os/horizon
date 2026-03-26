@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
     try
     {
         DockApplication app;
-        LOG_INFO << "Starting Mountain Lion OS X Dock Overlay...";
+        LOG_INFO << "Starting Dock Overlay...";
         app.run();
     }
     catch (const std::exception &e)
