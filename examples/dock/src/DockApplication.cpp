@@ -326,6 +326,17 @@ namespace horizon
                     _shelf_ptr->set_magnification_enabled(magnification_enabled);
                     LOG_INFO << "[DOCK] Loaded config: icon_size=" << icon_size 
                              << ", magnification=" << (magnification_enabled ? "on" : "off");
+
+                    // Proportional sizing
+                    int total_height = static_cast<int>(icon_size * 2.5f);
+                    int exclusive_zone = static_cast<int>(icon_size * 1.5625f);
+                    
+                    if (m_window)
+                    {
+                        m_window->set_size(0, total_height);
+                        m_window->set_exclusive_zone(exclusive_zone);
+                        m_window->invalidate();
+                    }
                 }
             }
         }

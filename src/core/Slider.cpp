@@ -32,7 +32,14 @@ namespace horizon
 
         when_mouse_press.connect([this](MouseButtonEventContext &ev) { handle_mouse_press(ev); });
         when_mouse_drag.connect([this](MouseMoveEventContext &ev) { handle_mouse_drag(ev); });
-        when_mouse_release.connect([this](MouseButtonEventContext &) { m_dragging = false; });
+        when_mouse_release.connect([this](MouseButtonEventContext &) { 
+            if (m_dragging) {
+                m_dragging = false; 
+                EventContext ev;
+                ev.sender = this;
+                when_changed.run(ev);
+            }
+        });
     }
 
     Slider::~Slider() = default;

@@ -66,6 +66,8 @@ namespace horizon
         // --- Events ---
         EventsManager<EventContext>
             when_value_changed; // ev.data = reinterpret_cast<float*>(&value)
+        EventsManager<EventContext>
+            when_changed; // Fires when the user finishes dragging
 
     private:
         // Helpers

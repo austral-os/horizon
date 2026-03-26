@@ -468,7 +468,8 @@ namespace horizon
                     // eglSwapBuffers/wl_display_dispatch when the compositor might not be giving us
                     // frame callbacks.
 
-                    if (m_surface->is_configured() && (frame_now - m_last_commit_time) >= FRAME_MS)
+                    if (m_surface->is_configured() && m_surface->width() > 0 && m_surface->height() > 0 &&
+                        (frame_now - m_last_commit_time) >= FRAME_MS)
                     {
                         // Ensure correct context is bound for this window
                         eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(),

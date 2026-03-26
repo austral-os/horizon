@@ -176,12 +176,16 @@ namespace horizon
 
     void CairoGraphicContext::setColor(float r, float g, float b, float a)
     {
-        cairo_set_source_rgba(cr, r, g, b, a);
+        if (cr)
+        {
+            cairo_set_source_rgba(cr, r, g, b, a);
+        }
     }
 
     void CairoGraphicContext::setColor(Color color)
     {
-        if (cr) {
+        if (cr)
+        {
             cairo_set_source_rgba(cr, color.r, color.g, color.b, color.a);
         }
     }
@@ -198,7 +202,10 @@ namespace horizon
 
     void CairoGraphicContext::paint()
     {
-        if (cr) cairo_paint(cr);
+        if (cr)
+        {
+            cairo_paint(cr);
+        }
     }
 
     TextMetrics CairoGraphicContext::getTextMetrics(const char *text, const char *font, int size,
@@ -276,7 +283,8 @@ namespace horizon
 
     void CairoGraphicContext::drawText(int x, int y, const char *text)
     {
-        if (!cr || !text) return;
+        if (!cr || !text)
+            return;
         cairo_move_to(cr, x, y);
         cairo_show_text(cr, text);
     }
@@ -403,14 +411,17 @@ namespace horizon
 
     void CairoGraphicContext::fillRect(int x, int y, int width, int height, CornerRadius radius)
     {
-        if (!cr) return;
-        
+        if (!cr)
+            return;
+
         rounded_rectangle(cr, x, y, width, height, radius);
         cairo_fill(cr);
     }
 
     void CairoGraphicContext::drawLine(int x1, int y1, int x2, int y2, float lineWidth)
     {
+        if (!cr)
+            return;
         cairo_save(cr);
         cairo_set_line_width(cr, (double)lineWidth);
         cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
@@ -424,6 +435,8 @@ namespace horizon
     void CairoGraphicContext::fillLinearGradientRect(int x, int y, int width, int height, Color c1,
                                                      Color c2, bool vertical, CornerRadius radius)
     {
+        if (!cr)
+            return;
         cairo_pattern_t *pat;
         if (vertical)
         {
@@ -447,6 +460,8 @@ namespace horizon
                                                      Color c2, float lineWidth, bool vertical,
                                                      CornerRadius radius)
     {
+        if (!cr)
+            return;
         cairo_pattern_t *pat;
         if (vertical)
         {
@@ -494,6 +509,8 @@ namespace horizon
     void CairoGraphicContext::drawGradientCircle(int x, int y, int radius, Color c1, Color c2,
                                                  GradientDirection direction, float lineWidth)
     {
+        if (!cr)
+            return;
         cairo_pattern_t *pat = create_circle_gradient(x, y, radius, c1, c2, direction);
         cairo_set_source(cr, pat);
         cairo_set_line_width(cr, lineWidth);
@@ -505,6 +522,8 @@ namespace horizon
     void CairoGraphicContext::fillGradientCircle(int x, int y, int radius, Color c1, Color c2,
                                                  GradientDirection direction)
     {
+        if (!cr)
+            return;
         cairo_pattern_t *pat = create_circle_gradient(x, y, radius, c1, c2, direction);
         cairo_set_source(cr, pat);
         cairo_arc(cr, x, y, radius, 0, 2 * M_PI);
@@ -514,6 +533,8 @@ namespace horizon
 
     void CairoGraphicContext::drawCircle(int x, int y, int radius, float lineWidth)
     {
+        if (!cr)
+            return;
         cairo_new_path(cr); // ← levanta el lápiz
         cairo_set_line_width(cr, lineWidth);
         cairo_arc(cr, x, y, radius, 0, 2 * M_PI);
@@ -522,31 +543,38 @@ namespace horizon
 
     void CairoGraphicContext::fillCircle(int x, int y, int radius)
     {
+        if (!cr)
+            return;
         cairo_arc(cr, x, y, radius, 0, 2 * M_PI);
         cairo_fill(cr);
     }
 
     void CairoGraphicContext::flush()
     {
-        cairo_surface_flush(cairo_s);
+        if (cairo_s)
+            cairo_surface_flush(cairo_s);
     }
 
     void CairoGraphicContext::save()
     {
-        if (cr) cairo_save(cr);
+        if (cr)
+            cairo_save(cr);
         if (!m_clip_stack.empty())
             m_clip_stack.push_back(m_clip_stack.back());
     }
 
     void CairoGraphicContext::restore()
     {
-        if (cr) cairo_restore(cr);
+        if (cr)
+            cairo_restore(cr);
         if (!m_clip_stack.empty())
             m_clip_stack.pop_back();
     }
 
     void CairoGraphicContext::clip(int x, int y, int width, int height)
     {
+        if (!cr)
+            return;
         cairo_rectangle(cr, x, y, width, height);
         cairo_clip(cr);
 
@@ -573,17 +601,20 @@ namespace horizon
 
     void CairoGraphicContext::translate(float dx, float dy)
     {
-        if (cr) cairo_translate(cr, dx, dy);
+        if (cr)
+            cairo_translate(cr, dx, dy);
     }
 
     void CairoGraphicContext::scale(float sx, float sy)
     {
-        if (cr) cairo_scale(cr, sx, sy);
+        if (cr)
+            cairo_scale(cr, sx, sy);
     }
 
     void CairoGraphicContext::pushGroup()
     {
-        if (cr) cairo_push_group(cr);
+        if (cr)
+            cairo_push_group(cr);
     }
 
     void CairoGraphicContext::popGroup()
@@ -597,19 +628,22 @@ namespace horizon
 
     void CairoGraphicContext::popGroupToSource()
     {
-        if (cr) cairo_pop_group_to_source(cr);
+        if (cr)
+            cairo_pop_group_to_source(cr);
     }
 
     void CairoGraphicContext::fillPolygon(const std::vector<PolygonPoint> &points)
     {
-        if (!cr) return;
+        if (!cr || points.empty())
+            return;
         rounded_polygon_path(cr, points);
         cairo_fill(cr);
     }
 
     void CairoGraphicContext::drawPolygon(const std::vector<PolygonPoint> &points, float lineWidth)
     {
-        if (!cr) return;
+        if (!cr || points.empty())
+            return;
         cairo_set_line_width(cr, lineWidth);
         cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
         rounded_polygon_path(cr, points);
@@ -654,7 +688,8 @@ namespace horizon
 
     void CairoGraphicContext::clipPolygon(const std::vector<PolygonPoint> &points)
     {
-        if (!cr) return;
+        if (!cr || points.empty())
+            return;
         rounded_polygon_path(cr, points);
         cairo_clip(cr);
     }
@@ -788,6 +823,9 @@ namespace horizon
 
     void CairoGraphicContext::popGroupToTexture(uint32_t &texture_id, int x, int y, int w, int h)
     {
+        if (!cr || w <= 0 || h <= 0)
+            return;
+
         cairo_pattern_t *group = cairo_pop_group(cr);
         if (!group)
             return;

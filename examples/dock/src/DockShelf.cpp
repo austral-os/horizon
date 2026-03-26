@@ -69,7 +69,9 @@ namespace horizon
                     // 2. Calculate vertical distance from the 'active strip'
                     // The icon strip is centered horizontally around its base position
                     // We'll use the 'seated' bottom position as the reference for Y
-                    float active_y = 141.0f - 32.0f; // Center of a 64px icon at the 141px bottom
+                    float total_h = m_base_size * 2.5f;
+                    float lip_height = 10.0f;
+                    float active_y = (total_h - lip_height - 9) - (m_base_size / 2.0f);
                     float dist_y = std::abs(active_y - m_mouse_y);
 
                     // 3. Combined 2D Gaussian Scale
@@ -95,8 +97,10 @@ namespace horizon
                 // MANUALLY SET ABSOLUTE POSITION AND SIZE:
                 // Note: In this framework, FREE children need absolute window coordinates.
                 // X: shelf absolute x + shelf margin + cumulative width
-                // Y: shelf absolute y + fixed bottom 9px above tray lip (y=150)
-                int icon_bottom_y = 150 - 9; 
+                // Y: shelf absolute y + fixed bottom 9px above tray lip
+                float lip_height = 10.0f;
+                float total_h = m_base_size * 2.5f;
+                int icon_bottom_y = total_h - lip_height - 9; 
                 child->set_position(x() + margin() + total_children_width, y() + icon_bottom_y - child->fixed_size());
                 child->set_size(child->fixed_size(), child->fixed_size());
                 child->calculate_layout();
@@ -109,7 +113,8 @@ namespace horizon
 
         // 2. Update size: content width + margins on both sides
         int content_width = total_children_width + (margin() * 2);
-        set_size(content_width, 160); // Full height for magnification room
+        float total_height = m_base_size * 2.5f;
+        set_size(content_width, total_height);
         set_width(content_width);
 
 
@@ -126,10 +131,10 @@ namespace horizon
         float h = height(); // 160
 
         // Shelf geometry measurements
-        float tray_height = 100.0f;
         float lip_height = 10.0f;
-        float tray_top_y = h - tray_height; // Tray starts at y=60
-        float tray_bottom_y = h - lip_height; // End surface at 150
+        float tray_height = m_base_size * 1.5625f;
+        float tray_top_y = h - tray_height;
+        float tray_bottom_y = h - lip_height;
 
         float perspective_offset = 20.0f; // Trapezoid slant width
 

@@ -39,6 +39,11 @@ namespace horizon::preferences
                 float val = m_size_slider->value();
                 m_icon_size = static_cast<int>(val);
                 m_size_label->set_text(std::to_string(m_icon_size) + " px");
+            });
+
+        m_size_slider->when_changed.connect(
+            [this](const horizon::EventContext &)
+            {
                 save_config();
             });
 
