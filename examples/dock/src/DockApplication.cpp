@@ -189,14 +189,8 @@ namespace horizon
     void DockApplication::update_dock(const std::vector<ApplicationInfo> &apps)
     {
         LOG_INFO << "Updating Dock icons... Found " << apps.size() << " apps.";
-        for (const auto &app : apps)
-        {
-            LOG_INFO << "[DOCK-DEBUG] App: " << app.app_id << " | Title: " << app.title
-                     << " | Icon: " << app.icon << " | PID: " << app.pid
-                     << " | Active: " << (app.is_active ? "yes" : "no")
-                     << " | Minimized: " << (app.is_minimized ? "yes" : "no")
-                     << " | ShowInDock: " << (app.show_in_dock ? "yes" : "no");
-        }
+        // Cache the current app list so config reloads can rebuild icons
+        m_last_apps = apps;
 
         _shelf_ptr->clear_children();
 
@@ -335,8 +329,10 @@ namespace horizon
                     {
                         m_window->set_size(0, total_height);
                         m_window->set_exclusive_zone(exclusive_zone);
-                        m_window->invalidate();
                     }
+
+                    // Recreate all dock icons at the new size to get fresh rendering state
+                    update_dock(m_last_apps);
                 }
             }
         }

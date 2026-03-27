@@ -58,6 +58,10 @@ namespace horizon
         int watch_fd = -1;
         std::thread watcher_thread;
         std::atomic<bool> running{false};
+
+        // Last known app list — used to rebuild icons after a config change
+        std::vector<ApplicationInfo> m_last_apps;
+
     };
 
 } // namespace horizon

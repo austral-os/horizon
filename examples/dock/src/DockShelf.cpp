@@ -21,12 +21,13 @@ namespace horizon
             {
                 if (m_magnification_enabled)
                 {
-                    // ctx.x is window-relative, but we need shelf-local for calculate_layout
                     widget_position pos = get_absolute_position();
-                    int window_x = pos.x - (application() ? application()->screen_x() : 0);
-                    int window_y = pos.y - (application() ? application()->screen_y() : 0);
-                    m_mouse_x = ctx.x - window_x;
-                    m_mouse_y = ctx.y - window_y;
+                    int sx = application() ? application()->screen_x() : 0;
+                    int sy = application() ? application()->screen_y() : 0;
+                    int shelf_x = pos.x - sx;
+                    int shelf_y = pos.y - sy;
+                    m_mouse_x = (int)ctx.x - shelf_x;
+                    m_mouse_y = (int)ctx.y - shelf_y;
                     m_mouse_over = true;
                     invalidate();
                     calculate_layout();
@@ -47,9 +48,8 @@ namespace horizon
 
     void DockShelf::calculate_layout()
     {
-        const float radius = 120.0f; // Distance of influence pixels
+        const float radius = 120.0f;
 
-        // 1. Calculate the required content width based on children (with magnification)
         int total_children_width = 0;
         int count = 0;
 
@@ -75,7 +75,6 @@ namespace horizon
                     float dist_y = std::abs(active_y - m_mouse_y);
 
                     // 3. Combined 2D Gaussian Scale
-                    // We use a tighter radius for Y to make it feel more responsive vertically
                     float radius_y = 80.0f; 
                     float scale_x = std::exp(-(dist_x * dist_x) / (2 * radius * radius));
                     float scale_y = std::exp(-(dist_y * dist_y) / (2 * radius_y * radius_y));
