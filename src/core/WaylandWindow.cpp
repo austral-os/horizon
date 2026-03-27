@@ -151,6 +151,23 @@ namespace horizon
                 cairo_surface_destroy(static_cast<cairo_surface_t *>(surface));
         }
 
+        // Cleanup GL resources
+        if (m_gl_program)
+        {
+            glDeleteProgram(m_gl_program);
+            m_gl_program = 0;
+        }
+        if (m_gl_vbo)
+        {
+            glDeleteBuffers(1, &m_gl_vbo);
+            m_gl_vbo = 0;
+        }
+        if (m_gl_texture)
+        {
+            glDeleteTextures(1, &m_gl_texture);
+            m_gl_texture = 0;
+        }
+
         // Limpieza
         m_surface->free();
 

@@ -1201,6 +1201,7 @@ namespace horizon
                     eglDestroyContext(m_egl_display, m_egl_context);
                     m_egl_context = EGL_NO_CONTEXT;
                 }
+                eglReleaseThread();
                 eglTerminate(m_egl_display);
                 m_egl_display = EGL_NO_DISPLAY;
             }

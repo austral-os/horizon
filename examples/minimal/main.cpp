@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include <horizon/AirObject.hpp>
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
@@ -56,6 +57,7 @@ int main()
     {
         WaylandWindow app("horizon.minimal", 800, 600);
         app.set_name("Minimal Demo");
+
         app.set_icon_name("system-help");
         app.set_show_in_dock(true);
 
@@ -550,11 +552,11 @@ int main()
 
         // Register handler for "on_exit" signal
         app.signal_manager.connect("on_exit",
-                                   [](horizon::SignalContext &ctx)
+                                   [&app](horizon::SignalContext &ctx)
                                    {
                                        LOG_INFO
                                            << "Signal 'on_exit' received. Closing application.";
-                                       exit(0);
+                                       app.quit();
                                    });
 
         auto window_menu = new horizon::Menu();
@@ -576,5 +578,5 @@ int main()
         LOG_ERROR << "Error: " << e.what();
         return 1;
     }
-    return 0;
+    _exit(0);
 }
