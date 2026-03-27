@@ -193,6 +193,7 @@ namespace horizon
         m_last_apps = apps;
 
         _shelf_ptr->clear_children();
+        LOG_INFO << "[DOCK] update_dock: children cleared. Adding " << apps.size() << " apps.";
 
         std::set<std::string> running_pinned_ids;
 
@@ -318,13 +319,10 @@ namespace horizon
                 {
                     _shelf_ptr->set_base_size(icon_size);
                     _shelf_ptr->set_magnification_enabled(magnification_enabled);
-                    LOG_INFO << "[DOCK] Loaded config: icon_size=" << icon_size 
-                             << ", magnification=" << (magnification_enabled ? "on" : "off")
-                             << ", current window size: " << m_window->width() << "x" << m_window->height();
-
                     // Proportional sizing
                     int total_height = static_cast<int>(icon_size * 2.5f);
                     int exclusive_zone = static_cast<int>(icon_size * 1.5625f);
+                    LOG_INFO << "[DOCK] Configuration reloaded. New total_height: " << total_height << ", window width: " << m_window->width();
                     
                     if (m_window)
                     {

@@ -103,22 +103,12 @@ namespace horizon
 
     void DockItem::draw(GraphicsContext &ctx)
     {
-        // 1. Capture the icon + indicator into a group to get it as a texture
+        // Capture the icon + indicator into a group to get it as a texture
         // BUT we also want it to remain on the Cairo buffer for the main draw
         // (actually, we could draw it via OpenGL too, which is what we'll do for consistency)
-        static int draw_count = 0;
-        if (draw_count++ % 30 == 0)
-            LOG_INFO << "[DOCK-ITEM-DRAW] avail_w=" << m_available_draw_width << " avail_h=" << m_available_draw_height << " x=" << m_start_draw_x << " y=" << m_start_draw_y;
-
         ctx.pushGroup();
         
         Icon::draw(ctx);
-        // Debug: tint icon red when magnified (width > base+10)
-        if (m_available_draw_width > 58)
-        {
-            ctx.setColor(Color(1.0f, 0.0f, 0.0f, 0.3f));
-            ctx.fillRect(m_start_draw_x, m_start_draw_y, m_available_draw_width, m_available_draw_height);
-        }
         if (_is_running)
         {
             int indicator_size = 4;

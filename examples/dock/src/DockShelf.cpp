@@ -2,7 +2,6 @@
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/WaylandWindow.hpp>
-#include <horizon/Logger.hpp>
 #include <vector>
 
 namespace horizon
@@ -50,7 +49,6 @@ namespace horizon
     void DockShelf::calculate_layout()
     {
         const float radius = 120.0f;
-        LOG_INFO << "[DOCK] Shelf calculate_layout: mouse_over=" << m_mouse_over << ", base_size=" << m_base_size << ", window width=" << width() << ", height=" << height();
 
         int total_children_width = 0;
         int count = 0;
