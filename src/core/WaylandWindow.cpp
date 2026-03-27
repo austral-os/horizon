@@ -860,6 +860,9 @@ namespace horizon
 
     void WaylandWindow::on_resize(int width, int height)
     {
+        LOG_INFO << "[WINDOW] on_resize: " << width << "x" << height;
+        if (width <= 0 || height <= 0) return;
+
         if (m_root)
         {
             m_root->set_size(width, height);

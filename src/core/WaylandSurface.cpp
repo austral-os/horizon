@@ -1022,8 +1022,8 @@ namespace horizon
 
     void WaylandSurface::set_layer_size(uint32_t width, uint32_t height)
     {
-        m_width = (int)width;
-        m_height = (int)height;
+        if (width > 0) m_width = (int)width;
+        if (height > 0) m_height = (int)height;
         if (m_layer_surface)
         {
             zwlr_layer_surface_v1_set_size(m_layer_surface, width, height);

@@ -18,7 +18,7 @@ namespace horizon
 
         void set_magnification_enabled(bool enabled) { m_magnification_enabled = enabled; }
         bool is_magnification_enabled() const { return m_magnification_enabled; }
-        void set_base_size(int size) { m_base_size = size; m_max_extra_size = size; m_mouse_over = false; m_mouse_x = -1; m_mouse_y = -1; calculate_layout(); invalidate(); }
+        void set_base_size(int size) { m_base_size = size; m_max_extra_size = size; calculate_layout(); invalidate(); }
         void reset_magnification() { m_mouse_over = false; calculate_layout(); invalidate(); }
         int base_size() const { return m_base_size; }
 

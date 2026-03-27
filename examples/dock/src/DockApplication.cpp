@@ -319,7 +319,8 @@ namespace horizon
                     _shelf_ptr->set_base_size(icon_size);
                     _shelf_ptr->set_magnification_enabled(magnification_enabled);
                     LOG_INFO << "[DOCK] Loaded config: icon_size=" << icon_size 
-                             << ", magnification=" << (magnification_enabled ? "on" : "off");
+                             << ", magnification=" << (magnification_enabled ? "on" : "off")
+                             << ", current window size: " << m_window->width() << "x" << m_window->height();
 
                     // Proportional sizing
                     int total_height = static_cast<int>(icon_size * 2.5f);
@@ -329,6 +330,10 @@ namespace horizon
                     {
                         m_window->set_size(0, total_height);
                         m_window->set_exclusive_zone(exclusive_zone);
+                        
+                        // Force local synchronization of root widget size to ensure hit-testing
+                        // works correctly before the compositor responds with a configure event.
+                        m_window->on_resize(m_window->width(), total_height);
                     }
 
                     // Recreate all dock icons at the new size to get fresh rendering state

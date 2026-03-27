@@ -19,7 +19,12 @@ namespace horizon
             {
                 if (m_visible)
                 {
-                    w_surface()->set_input_region(0, 0, w, h);
+                    // For layer surfaces, we default to the full surface being interactive
+                    // to avoid issues with stale regions or 0-width stretching.
+                    if (w > 0 && h > 0)
+                        w_surface()->set_input_region(0, 0, w, h);
+                    else
+                        w_surface()->clear_input_region(); // Reset to full surface
                 }
             });
     }
@@ -67,7 +72,11 @@ namespace horizon
         if (visible)
         {
             // Restore full input region
-            w_surface()->set_input_region(0, 0, w_surface()->width(), w_surface()->height());
+            if (w_surface()->width() > 0 && w_surface()->height() > 0)
+                w_surface()->set_input_region(0, 0, w_surface()->width(), w_surface()->height());
+            else
+                w_surface()->clear_input_region(); // Reset to full surface
+            
             w_surface()->set_layer_keyboard_interactivity(m_interactivity);
             w_surface()->commit();
         }
