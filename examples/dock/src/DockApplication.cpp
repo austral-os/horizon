@@ -291,6 +291,8 @@ namespace horizon
         }
 
         _shelf_ptr->calculate_layout();
+        if (m_window->root())
+            m_window->root()->calculate_layout();
         m_window->invalidate();
 
     }

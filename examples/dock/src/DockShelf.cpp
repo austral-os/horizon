@@ -100,12 +100,15 @@ namespace horizon
                 float lip_height = 10.0f;
                 float total_h = m_base_size * 2.5f;
                 int icon_bottom_y = total_h - lip_height - 9; 
+
+                // Add spacing before each child (except the first one)
+                if (count > 0) total_children_width += spacing();
+
                 child->set_position(x() + margin() + total_children_width, y() + icon_bottom_y - child->fixed_size());
                 child->set_size(child->fixed_size(), child->fixed_size());
                 child->calculate_layout();
 
                 total_children_width += child->fixed_size();
-                if (count > 0) total_children_width += spacing();
                 count++;
             }
         }
@@ -115,7 +118,7 @@ namespace horizon
         float total_height = m_base_size * 2.5f;
         set_size(content_width, total_height);
         set_width(content_width);
-
+        set_fixed_size(content_width);
 
         Widget::calculate_layout();
     }
