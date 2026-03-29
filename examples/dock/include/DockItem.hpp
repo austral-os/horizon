@@ -4,6 +4,7 @@
 #include <horizon/Icon.hpp>
 #include <horizon/WaylandLayerWindow.hpp>
 #include <string>
+#include <vector>
 
 namespace horizon
 {
@@ -13,21 +14,18 @@ namespace horizon
     public:
         DockItem(WaylandLayerWindow *app, const std::string &icon_name, bool is_wayfire);
 
-        void set_app_info(const ApplicationInfo &info);
+        void add_instance(const ApplicationInfo &info);
         void set_pinned_data(const std::string &run_id);
         void set_run_id(const std::string &run_id)
         {
             _run_id = run_id;
         }
 
-        int pid() const
+        const std::vector<ApplicationInfo>& instances() const
         {
-            return _pid;
+            return _instances;
         }
-        uintptr_t instance_id() const
-        {
-            return _instance_id;
-        }
+
         const std::string &app_id() const
         {
             return _app_id;
@@ -38,7 +36,7 @@ namespace horizon
         }
         bool is_running() const
         {
-            return _is_running;
+            return !_instances.empty();
         }
 
         void draw(GraphicsContext &ctx) override;
@@ -50,12 +48,9 @@ namespace horizon
 
         WaylandLayerWindow *_app;
         bool _is_wayfire;
-        int _pid = -1;
         std::string _app_id;
         std::string _run_id;
-        bool _is_minimized = false;
-        bool _is_running = false;
-        uintptr_t _instance_id = 0;
+        std::vector<ApplicationInfo> _instances;
     };
 
 } // namespace horizon

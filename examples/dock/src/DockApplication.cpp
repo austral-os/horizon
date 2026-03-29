@@ -118,59 +118,61 @@ namespace horizon
         auto menu = std::make_unique<Menu>();
         menu->set_title("dock_context");
 
-        int pid = item->pid();
+        const auto &instances = item->instances();
         std::string run_id = item->run_id();
         std::string app_id = item->app_id();
-        uintptr_t instance_id = item->instance_id();
 
-        if (pid != -1 || !app_id.empty())
+        if (!instances.empty() || !app_id.empty())
         {
-            // First option: Open new instance (if we have a way to launch it)
-            std::string launch_id = run_id;
-            if (launch_id.empty() && !app_id.empty())
-            {
-                launch_id = app_id;
-            }
-
+            // 1. Open new instance
+            std::string launch_id = run_id.empty() ? app_id : run_id;
             if (!launch_id.empty())
             {
                 auto *new_instance_item = menu->add_item("Abrir nueva instancia");
                 new_instance_item->when_click.connect(
                     [launch_id](auto &)
                     {
-                        LOG_INFO << "[DOCK] Launch requested code for run_id: " << launch_id;
+                        LOG_INFO << "[DOCK] Launch requested for: " << launch_id;
                         ApplicationLauncher::launch(launch_id);
                     });
             }
 
-            // Second option: Fullscreen
-            auto *fullscreen_item = menu->add_item("Entrar en pantalla completa");
-            fullscreen_item->when_click.connect(
-                [this, instance_id, pid, app_id](auto &)
+            if (!instances.empty())
+            {
+                menu->add_separator();
+                
+                // 2. List all open windows/instances
+                for (const auto &info : instances)
                 {
-                    if (instance_id != 0)
-                        _compositor_apps->toggle_fullscreen_instance(instance_id);
-                    else if (pid != -1)
-                        m_window->send_remote_signal(pid, "toggle_fullscreen");
-                    else
-                        _compositor_apps->toggle_fullscreen(app_id);
-                });
+                    std::string title = info.title.empty() ? "Ventana sin título" : info.title;
+                    auto *window_item = menu->add_item(title);
+                    
+                    uintptr_t inst_id = info.instance_id;
+                    int pid = info.pid;
+                    std::string aid = info.app_id;
 
-            // Separator
-            menu->add_separator();
+                    window_item->when_click.connect(
+                        [this, inst_id, pid, aid](auto &)
+                        {
+                            if (inst_id != 0)
+                                _compositor_apps->activate_instance(inst_id);
+                            else if (pid != -1)
+                                m_window->send_remote_signal(pid, "activate");
+                            else
+                                _compositor_apps->activate(aid);
+                        });
+                }
 
-            // Third option: Exit
-            auto *exit_item = menu->add_item("Salir");
-            exit_item->when_click.connect(
-                [this, instance_id, pid, app_id](auto &)
-                {
-                    if (instance_id != 0)
-                        _compositor_apps->close_instance(instance_id);
-                    else if (pid != -1)
-                        m_window->send_remote_signal(pid, "close");
-                    else
+                menu->add_separator();
+
+                // 3. Global actions for the app
+                auto *exit_item = menu->add_item("Salir de la aplicación");
+                exit_item->when_click.connect(
+                    [this, app_id](auto &)
+                    {
                         _compositor_apps->close(app_id);
-                });
+                    });
+            }
         }
         else if (!run_id.empty())
         {
@@ -188,59 +190,65 @@ namespace horizon
 
     void DockApplication::update_dock(const std::vector<ApplicationInfo> &apps)
     {
-        LOG_INFO << "Updating Dock icons... Found " << apps.size() << " apps.";
-        // Cache the current app list so config reloads can rebuild icons
+        LOG_INFO << "Updating Dock icons... Found " << apps.size() << " windows/instances.";
         m_last_apps = apps;
-
         _shelf_ptr->clear_children();
-        LOG_INFO << "[DOCK] update_dock: children cleared. Adding " << apps.size() << " apps.";
 
-        std::set<std::string> running_pinned_ids;
+        // 1. Group all apps by app_id
+        std::map<std::string, std::vector<ApplicationInfo>> grouped_running_apps;
+        for (const auto &app_info : apps)
+        {
+            if (app_info.show_in_dock)
+            {
+                grouped_running_apps[app_info.app_id].push_back(app_info);
+            }
+        }
 
-        // 1. Add Pinned Apps
+        std::set<std::string> handled_app_ids;
+
+        // 2. Add Pinned Apps
         for (const auto &pinned : PINNED_APPS)
         {
-            bool is_running = false;
-            ApplicationInfo running_app_data;
+            auto item = std::make_unique<DockItem>(m_window, pinned.icon, _is_wayfire);
+            item->set_run_id(pinned.run_id);
 
-            for (const auto &app_info : apps)
+            // Check if any running app matches this pinned app_id
+            bool is_running = false;
+            for (auto it = grouped_running_apps.begin(); it != grouped_running_apps.end(); ++it)
             {
-                if (app_info.app_id.find(pinned.app_id) != std::string::npos)
+                // Robust matching: check if either is a substring of the other (e.g., "horizon.preferences" vs "preferences")
+                if (it->first.find(pinned.app_id) != std::string::npos || 
+                    pinned.app_id.find(it->first) != std::string::npos)
                 {
                     is_running = true;
-                    running_app_data = app_info;
-                    running_pinned_ids.insert(app_info.app_id);
-                    break;
+                    for (const auto& info : it->second)
+                    {
+                        item->add_instance(info);
+                    }
+                    handled_app_ids.insert(it->first);
+                    // Don't break, continue grouping if multiple app_ids match? 
+                    // Usually 1:1, but find might match multiple.
                 }
             }
 
-            auto item = std::make_unique<DockItem>(m_window, pinned.icon, _is_wayfire);
-            if (is_running)
-            {
-                item->set_app_info(running_app_data);
-                // Also set run_id so we can launch new instances
-                item->set_run_id(pinned.run_id);
-            }
-            else
+            if (!is_running)
             {
                 item->set_pinned_data(pinned.run_id);
             }
+
             item->set_position_type(FREE);
             item->set_context_menu(create_context_menu(item.get()));
             _shelf_ptr->add_child(std::move(item));
         }
 
-        // 2. Add Separator
+        // 3. Add Separator if there are other running apps
         bool has_other_apps = false;
-        for (const auto &app_info : apps)
+        for (const auto &pair : grouped_running_apps)
         {
-            if (app_info.show_in_dock)
+            if (handled_app_ids.find(pair.first) == handled_app_ids.end())
             {
-                if (running_pinned_ids.find(app_info.app_id) == running_pinned_ids.end())
-                {
-                    has_other_apps = true;
-                    break;
-                }
+                has_other_apps = true;
+                break;
             }
         }
 
@@ -254,40 +262,38 @@ namespace horizon
             _shelf_ptr->add_child(std::move(separator));
         }
 
-        // 3. Add Other Running Apps
-        for (const auto &app_info : apps)
+        // 4. Add Other Running Apps (unpinned)
+        for (auto &pair : grouped_running_apps)
         {
-            if (app_info.show_in_dock)
+            const std::string& app_id = pair.first;
+            if (handled_app_ids.find(app_id) != handled_app_ids.end())
+                continue;
+
+            const auto& instances = pair.second;
+            if (instances.empty()) continue;
+
+            std::string icon = instances[0].icon;
+            if (icon.empty()) icon = app_id;
+
+            auto item = std::make_unique<DockItem>(m_window, icon, _is_wayfire);
+            for (const auto& info : instances)
             {
-                if (running_pinned_ids.find(app_info.app_id) != running_pinned_ids.end())
-                {
-                    // This is an additional instance of a pinned app
-                    // We still show it if it's not the primary one pinned at the start
-                    // But we want to keep it grouped? Uniquely identified?
-                    // For now, continue showing it as a separate icon as requested by behavior
-                }
-
-                std::string icon = app_info.icon;
-                if (icon.empty())
-                    icon = app_info.app_id;
-
-                auto item = std::make_unique<DockItem>(m_window, icon, _is_wayfire);
-                item->set_app_info(app_info);
-
-                // Try to find the run_id for this app_id from PINNED_APPS
-                for (const auto &pinned : PINNED_APPS)
-                {
-                    if (app_info.app_id.find(pinned.app_id) != std::string::npos)
-                    {
-                        item->set_run_id(pinned.run_id);
-                        break;
-                    }
-                }
-
-                item->set_position_type(FREE);
-                item->set_context_menu(create_context_menu(item.get()));
-                _shelf_ptr->add_child(std::move(item));
+                item->add_instance(info);
             }
+
+            // Try to find the run_id for this app_id from PINNED_APPS (if it was partially matched)
+            for (const auto &pinned : PINNED_APPS)
+            {
+                if (app_id.find(pinned.app_id) != std::string::npos)
+                {
+                    item->set_run_id(pinned.run_id);
+                    break;
+                }
+            }
+
+            item->set_position_type(FREE);
+            item->set_context_menu(create_context_menu(item.get()));
+            _shelf_ptr->add_child(std::move(item));
         }
 
         _shelf_ptr->calculate_layout();

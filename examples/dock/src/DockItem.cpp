@@ -1,4 +1,5 @@
 #include "DockItem.hpp"
+#include <horizon/DesktopEntry.hpp>
 #include <horizon/ApplicationLauncher.hpp>
 #include <horizon/IpcClient.hpp>
 #include <horizon/Logger.hpp>
@@ -17,18 +18,21 @@ namespace horizon
         set_fixed_size(48 + margin() * 2);
     }
 
-    void DockItem::set_app_info(const ApplicationInfo &info)
+    void DockItem::add_instance(const ApplicationInfo &info)
     {
-        _pid = info.pid;
+        _instances.push_back(info);
         _app_id = info.app_id;
-        _is_minimized = info.is_minimized;
-        _is_running = true;
-        _instance_id = info.instance_id;
 
         if (!info.icon.empty())
             set_icon_name(info.icon);
-        else if (icon_name().empty())
-            set_icon_name(info.app_id);
+        else if (icon_name().empty() || icon_name() == _app_id)
+        {
+            std::string resolved_icon = DesktopEntry::get_icon_name(info.app_id);
+            if (!resolved_icon.empty())
+                set_icon_name(resolved_icon);
+            else if (icon_name().empty())
+                set_icon_name(info.app_id);
+        }
 
         setup_running_behavior();
         invalidate();
@@ -37,20 +41,20 @@ namespace horizon
     void DockItem::set_pinned_data(const std::string &run_id)
     {
         _run_id = run_id;
-        _is_running = false;
+        _instances.clear();
         setup_pinned_behavior();
         invalidate();
     }
 
     void DockItem::send_sig(const std::string &sig_name, const std::string &token)
     {
-        if (_pid == -1)
+        if (_instances.empty() || _instances[0].pid == -1)
             return;
         try
         {
             nlohmann::json sig;
             sig["type"] = "send_signal";
-            sig["target_pid"] = _pid;
+            sig["target_pid"] = _instances[0].pid;
             sig["signal"] = sig_name;
             if (!token.empty())
                 sig["token"] = token;
@@ -70,23 +74,28 @@ namespace horizon
             [this](MouseButtonEventContext &ctx)
             {
                 auto *ca = _app->compositor_apps();
-                if (!ca || _app_id.empty())
+                if (!ca || _instances.empty())
                     return;
 
-                if (_is_minimized)
+                // Find the first minimized instance to activate
+                for (const auto &info : _instances)
                 {
-                    if (_instance_id != 0)
-                        ca->activate_instance(_instance_id);
-                    else
-                        ca->activate(_app_id);
+                    if (info.is_minimized)
+                    {
+                        if (info.instance_id != 0)
+                            ca->activate_instance(info.instance_id);
+                        else
+                            ca->activate(info.app_id);
+                        return;
+                    }
                 }
+
+                // If none are minimized, activate the first one
+                const auto &info = _instances[0];
+                if (info.instance_id != 0)
+                    ca->activate_instance(info.instance_id);
                 else
-                {
-                    if (_instance_id != 0)
-                        ca->minimize_instance(_instance_id);
-                    else
-                        ca->minimize(_app_id);
-                }
+                    ca->activate(info.app_id);
             });
     }
 
@@ -109,7 +118,7 @@ namespace horizon
         ctx.pushGroup();
         
         Icon::draw(ctx);
-        if (_is_running)
+        if (is_running())
         {
             int indicator_size = 4;
             int x = m_start_draw_x + m_available_draw_width / 2;
