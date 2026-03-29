@@ -30,6 +30,10 @@ namespace horizon
         {
             return _app_id;
         }
+        void set_app_id(const std::string &app_id)
+        {
+            _app_id = app_id;
+        }
         const std::string &run_id() const
         {
             return _run_id;

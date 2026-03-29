@@ -21,15 +21,14 @@
 namespace horizon
 {
 
-    const std::vector<PinnedApp> DockApplication::PINNED_APPS = {
-        {"org.horizon.launchpad", "Launchpad", "slingscold", "launchpad"},
-        {"arkfm", "Ark File Manager", "arkfm", "arkfm"},
-        {"alacritty", "Terminal", "utilities-terminal", "terminal"},
-        {"firefox", "Web Browser", "firefox", "firefox"},
-        {"horizon.preferences", "Preferences", "applications-system", "preferences"}};
-
     DockApplication::DockApplication() : Application("org.horizon.dock", 800, 160, true, true)
     {
+        m_pinned_apps = {
+            {"org.horizon.launchpad", "Launchpad", "slingscold", "launchpad"},
+            {"arkfm", "Ark File Manager", "arkfm", "arkfm"},
+            {"alacritty", "Terminal", "utilities-terminal", "terminal"},
+            {"firefox", "Web Browser", "firefox", "firefox"},
+            {"horizon.preferences", "Preferences", "applications-system", "preferences"}};
         m_window = create_layer_window("org.horizon.dock", 2); // ZWLR_LAYER_SHELL_V1_LAYER_TOP
 
         m_window->set_name("Dock");
@@ -174,14 +173,43 @@ namespace horizon
                     });
             }
         }
-        else if (!run_id.empty())
+
+        // Pin/Unpin logic
+        bool is_pinned = false;
+        for (const auto &pinned : m_pinned_apps)
         {
-            auto *launch_item = menu->add_item("Lanzar aplicación");
-            launch_item->when_click.connect(
-                [run_id](auto &)
+            if (pinned.app_id == app_id || (!run_id.empty() && pinned.run_id == run_id))
+            {
+                is_pinned = true;
+                break;
+            }
+        }
+
+        menu->add_separator();
+        if (is_pinned)
+        {
+            auto *unpin_item = menu->add_item("Desanclar del Dock");
+            unpin_item->when_click.connect(
+                [this, app_id](auto &)
                 {
-                    LOG_INFO << "[DOCK] Launch requested for run_id: " << run_id;
-                    ApplicationLauncher::launch(run_id);
+                    unpin_app(app_id);
+                });
+        }
+        else
+        {
+            auto *pin_item = menu->add_item("Anclar al Dock");
+            // If it's a running app, we use its info. If it's just a run_id (launcher), we use that.
+            std::string pin_id = app_id.empty() ? run_id : app_id;
+            std::string pin_run_id = run_id.empty() ? app_id : run_id;
+            
+            // Try to resolve better name/icon if they are missing
+            std::string pin_name = item->instances().empty() ? pin_id : item->instances()[0].title;
+            std::string pin_icon = item->icon_name();
+
+            pin_item->when_click.connect(
+                [this, pin_id, pin_name, pin_icon, pin_run_id](auto &)
+                {
+                    pin_app(pin_id, pin_name, pin_icon, pin_run_id);
                 });
         }
 
@@ -207,10 +235,11 @@ namespace horizon
         std::set<std::string> handled_app_ids;
 
         // 2. Add Pinned Apps
-        for (const auto &pinned : PINNED_APPS)
+        for (const auto &pinned : m_pinned_apps)
         {
             auto item = std::make_unique<DockItem>(m_window, pinned.icon, _is_wayfire);
             item->set_run_id(pinned.run_id);
+            item->set_app_id(pinned.app_id);
 
             // Check if any running app matches this pinned app_id
             bool is_running = false;
@@ -281,8 +310,8 @@ namespace horizon
                 item->add_instance(info);
             }
 
-            // Try to find the run_id for this app_id from PINNED_APPS (if it was partially matched)
-            for (const auto &pinned : PINNED_APPS)
+            // Try to find the run_id for this app_id from m_pinned_apps (if it was partially matched)
+            for (const auto &pinned : m_pinned_apps)
             {
                 if (app_id.find(pinned.app_id) != std::string::npos)
                 {
@@ -345,11 +374,105 @@ namespace horizon
                     // Recreate all dock icons at the new size to get fresh rendering state
                     update_dock(m_last_apps);
                 }
+
+                if (dock_config.contains("pinned"))
+                {
+                    m_pinned_apps.clear();
+                    for (const auto &p : dock_config["pinned"])
+                    {
+                        PinnedApp app;
+                        app.app_id = p.value("app_id", "");
+                        app.name = p.value("name", "");
+                        app.icon = p.value("icon", "");
+                        app.run_id = p.value("run_id", "");
+                        if (!app.app_id.empty())
+                        {
+                            m_pinned_apps.push_back(app);
+                        }
+                    }
+                    update_dock(m_last_apps);
+                }
             }
         }
         catch (const std::exception &e)
         {
             LOG_ERROR << "[DOCK] Error parsing JSON: " << e.what();
+        }
+    }
+
+    void DockApplication::save_config()
+    {
+        if (m_config_path.empty()) return;
+
+        try
+        {
+            nlohmann::json j;
+            if (std::filesystem::exists(m_config_path))
+            {
+                std::ifstream file(m_config_path);
+                file >> j;
+            }
+
+            auto &dock_config = j["dock"];
+            
+            nlohmann::json pinned_json = nlohmann::json::array();
+            for (const auto &app : m_pinned_apps)
+            {
+                nlohmann::json p;
+                p["app_id"] = app.app_id;
+                p["name"] = app.name;
+                p["icon"] = app.icon;
+                p["run_id"] = app.run_id;
+                pinned_json.push_back(p);
+            }
+            dock_config["pinned"] = pinned_json;
+
+            // Ensure directory exists
+            std::filesystem::path p(m_config_path);
+            if (!std::filesystem::exists(p.parent_path()))
+            {
+                std::filesystem::create_directories(p.parent_path());
+            }
+
+            std::ofstream out(m_config_path);
+            out << j.dump(4);
+            LOG_INFO << "[DOCK] Configuration saved to: " << m_config_path;
+        }
+        catch (const std::exception &e)
+        {
+            LOG_ERROR << "[DOCK] Error saving JSON: " << e.what();
+        }
+    }
+
+    void DockApplication::pin_app(const std::string &app_id, const std::string &name, const std::string &icon, const std::string &run_id)
+    {
+        // Check if already pinned
+        for (const auto &pinned : m_pinned_apps)
+        {
+            if (pinned.app_id == app_id) return;
+        }
+
+        PinnedApp app;
+        app.app_id = app_id;
+        app.name = name;
+        app.icon = icon;
+        app.run_id = run_id;
+        m_pinned_apps.push_back(app);
+
+        save_config();
+        update_dock(m_last_apps);
+    }
+
+    void DockApplication::unpin_app(const std::string &app_id)
+    {
+        auto it = std::remove_if(m_pinned_apps.begin(), m_pinned_apps.end(),
+                                 [&app_id](const PinnedApp &a) { return a.app_id == app_id; });
+        
+        if (it != m_pinned_apps.end())
+        {
+            m_pinned_apps.erase(it, m_pinned_apps.end());
+            save_config();
+            update_dock(m_last_apps);
         }
     }
 

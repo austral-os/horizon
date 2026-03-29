@@ -58,39 +58,42 @@ namespace horizon
             if (child->is_visible())
             {
                 Icon *icon_child = dynamic_cast<Icon *>(child.get());
-                int current_icon_size = m_base_size;
-
-                if (m_magnification_enabled && m_mouse_over)
-                {
-                    // 1. Calculate horizontal distance
-                    float child_center_x = (float)total_children_width + child->fixed_size() / 2.0f;
-                    float dist_x = std::abs((child_center_x + margin()) - m_mouse_x);
-                    
-                    // 2. Calculate vertical distance from the 'active strip'
-                    // The icon strip is centered horizontally around its base position
-                    // We'll use the 'seated' bottom position as the reference for Y
-                    float total_h = m_base_size * 2.5f;
-                    float lip_height = 10.0f;
-                    float active_y = (total_h - lip_height - 9) - (m_base_size / 2.0f);
-                    float dist_y = std::abs(active_y - m_mouse_y);
-
-                    // 3. Combined 2D Gaussian Scale
-                    float radius_y = 80.0f; 
-                    float scale_x = std::exp(-(dist_x * dist_x) / (2 * radius * radius));
-                    float scale_y = std::exp(-(dist_y * dist_y) / (2 * radius_y * radius_y));
-                    float scale = scale_x * scale_y;
-
-                    current_icon_size = m_base_size + (int)(m_max_extra_size * scale);
-                    child->set_fixed_size(current_icon_size + child->margin() * 2);
-                }
-                else
-                {
-                    child->set_fixed_size(m_base_size + child->margin() * 2);
-                }
+                int current_width = child->fixed_size();
+                int current_height = child->fixed_size();
 
                 if (icon_child)
                 {
+                    int current_icon_size = m_base_size;
+                    if (m_magnification_enabled && m_mouse_over)
+                    {
+                        // 1. Calculate horizontal distance
+                        float child_center_x = (float)total_children_width + child->fixed_size() / 2.0f;
+                        float dist_x = std::abs((child_center_x + margin()) - m_mouse_x);
+                        
+                        // 2. Calculate vertical distance from the 'active strip'
+                        float total_h = m_base_size * 2.5f;
+                        float lip_height = 10.0f;
+                        float active_y = (total_h - lip_height - 9) - (m_base_size / 2.0f);
+                        float dist_y = std::abs(active_y - m_mouse_y);
+
+                        // 3. Combined 2D Gaussian Scale
+                        float radius_y = 80.0f; 
+                        float scale_x = std::exp(-(dist_x * dist_x) / (2 * radius * radius));
+                        float scale_y = std::exp(-(dist_y * dist_y) / (2 * radius_y * radius_y));
+                        float scale = scale_x * scale_y;
+
+                        current_icon_size = m_base_size + (int)(m_max_extra_size * scale);
+                    }
+                    
+                    child->set_fixed_size(current_icon_size + child->margin() * 2);
                     icon_child->set_icon_size(current_icon_size);
+                    current_width = current_height = child->fixed_size();
+                }
+                else
+                {
+                    // For non-icons (like separators), we use their fixed width but height of m_base_size
+                    current_width = child->fixed_size();
+                    current_height = m_base_size;
                 }
 
                 // MANUALLY SET ABSOLUTE POSITION AND SIZE:
@@ -104,8 +107,8 @@ namespace horizon
                 // Add spacing before each child (except the first one)
                 if (count > 0) total_children_width += spacing();
 
-                child->set_position(x() + margin() + total_children_width, y() + icon_bottom_y - child->fixed_size());
-                child->set_size(child->fixed_size(), child->fixed_size());
+                child->set_position(x() + margin() + total_children_width, y() + icon_bottom_y - current_height);
+                child->set_size(current_width, current_height);
                 child->calculate_layout();
 
                 total_children_width += child->fixed_size();

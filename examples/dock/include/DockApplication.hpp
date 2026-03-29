@@ -40,6 +40,9 @@ namespace horizon
         void setup_ui();
         void setup_ipc();
         void update_dock(const std::vector<ApplicationInfo> &apps);
+        void save_config();
+        void pin_app(const std::string &app_id, const std::string &name, const std::string &icon, const std::string &run_id);
+        void unpin_app(const std::string &app_id);
 
         // Configuration watching
         void load_config();
@@ -51,7 +54,7 @@ namespace horizon
         WaylandLayerWindow *m_window = nullptr;
         DockShelf *_shelf_ptr = nullptr;
         std::unique_ptr<CompositorAppInterface> _compositor_apps;
-        static const std::vector<PinnedApp> PINNED_APPS;
+        std::vector<PinnedApp> m_pinned_apps;
 
         std::string m_config_path;
         int inotify_fd = -1;

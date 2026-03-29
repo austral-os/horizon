@@ -28,6 +28,14 @@ namespace horizon
         else if (icon_name().empty() || icon_name() == _app_id)
         {
             std::string resolved_icon = DesktopEntry::get_icon_name(info.app_id);
+            
+            // Fallback for namespaced app_ids (e.g., org.gnome.Terminal -> Terminal)
+            if (resolved_icon.empty() && info.app_id.find('.') != std::string::npos)
+            {
+                size_t last_dot = info.app_id.find_last_of('.');
+                resolved_icon = DesktopEntry::get_icon_name(info.app_id.substr(last_dot + 1));
+            }
+
             if (!resolved_icon.empty())
                 set_icon_name(resolved_icon);
             else if (icon_name().empty())
@@ -69,7 +77,7 @@ namespace horizon
 
     void DockItem::setup_running_behavior()
     {
-        when_mouse_press.disconnect_all();
+        when_click.disconnect_all();
         when_click.connect(
             [this](MouseButtonEventContext &ctx)
             {
