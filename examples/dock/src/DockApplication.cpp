@@ -120,19 +120,28 @@ namespace horizon
         const auto &instances = item->instances();
         std::string run_id = item->run_id();
         std::string app_id = item->app_id();
+        LOG_INFO << "[DOCK] create_context_menu for: " << app_id << " (run_id: " << run_id << ")";
 
         if (!instances.empty() || !app_id.empty())
         {
             // 1. Open new instance
             std::string launch_id = run_id.empty() ? app_id : run_id;
+            LOG_INFO << "[DOCK] Menu Item: Abrir nueva instancia (launch_id: " << launch_id << ")";
             if (!launch_id.empty())
             {
                 auto *new_instance_item = menu->add_item("Abrir nueva instancia");
                 new_instance_item->when_click.connect(
                     [launch_id](auto &)
                     {
-                        LOG_INFO << "[DOCK] Launch requested for: " << launch_id;
-                        ApplicationLauncher::launch(launch_id);
+                        LOG_INFO << "[DOCK] ACTION: Abrir nueva instancia requested for: " << launch_id;
+                        if (!ApplicationLauncher::launch(launch_id))
+                        {
+                            if (launch_id.find('.') != std::string::npos)
+                            {
+                                size_t last_dot = launch_id.find_last_of('.');
+                                ApplicationLauncher::launch(launch_id.substr(last_dot + 1));
+                            }
+                        }
                     });
             }
 
@@ -153,12 +162,17 @@ namespace horizon
                     window_item->when_click.connect(
                         [this, inst_id, pid, aid](auto &)
                         {
-                            if (inst_id != 0)
+                            LOG_INFO << "[DOCK] ACTION: Window activation requested for ID='" << aid << "' Instance=" << inst_id;
+                            if (inst_id != 0) {
+                                LOG_INFO << "[DOCK] Activating specific instance " << inst_id;
                                 _compositor_apps->activate_instance(inst_id);
-                            else if (pid != -1)
+                            } else if (pid != -1) {
+                                LOG_INFO << "[DOCK] Sending remote activation to PID " << pid;
                                 m_window->send_remote_signal(pid, "activate");
-                            else
+                            } else if (!aid.empty()) {
+                                LOG_INFO << "[DOCK] Activating all instances of " << aid;
                                 _compositor_apps->activate(aid);
+                            }
                         });
                 }
 
@@ -166,10 +180,17 @@ namespace horizon
 
                 // 3. Global actions for the app
                 auto *exit_item = menu->add_item("Salir de la aplicación");
+                LOG_INFO << "[DOCK] Menu Item: Salir de la aplicación (target: " << app_id << ")";
                 exit_item->when_click.connect(
                     [this, app_id](auto &)
                     {
-                        _compositor_apps->close(app_id);
+                        LOG_INFO << "[DOCK] ACTION: Salir requested for: '" << app_id << "'";
+                        if (!app_id.empty() && app_id != "org.horizon.dock" && app_id != m_app_id) {
+                            LOG_INFO << "[DOCK] Closing via compositor: " << app_id;
+                            _compositor_apps->close(app_id);
+                        } else {
+                            LOG_ERROR << "[DOCK] REJECTED close request for protected ID: '" << app_id << "'";
+                        }
                     });
             }
         }
@@ -178,12 +199,13 @@ namespace horizon
         bool is_pinned = false;
         for (const auto &pinned : m_pinned_apps)
         {
-            if (pinned.app_id == app_id || (!run_id.empty() && pinned.run_id == run_id))
+            if (!app_id.empty() && pinned.app_id == app_id)
             {
                 is_pinned = true;
                 break;
             }
         }
+        LOG_INFO << "[DOCK] is_pinned logic: app_id=" << app_id << " results in is_pinned=" << (is_pinned ? "true" : "false");
 
         menu->add_separator();
         if (is_pinned)
@@ -218,7 +240,7 @@ namespace horizon
 
     void DockApplication::update_dock(const std::vector<ApplicationInfo> &apps)
     {
-        LOG_INFO << "Updating Dock icons... Found " << apps.size() << " windows/instances.";
+        LOG_INFO << "[DOCK] Updating icons... apps count: " << apps.size();
         m_last_apps = apps;
         _shelf_ptr->clear_children();
 
@@ -226,8 +248,16 @@ namespace horizon
         std::map<std::string, std::vector<ApplicationInfo>> grouped_running_apps;
         for (const auto &app_info : apps)
         {
+            LOG_INFO << "[DOCK] Running app report: ID='" << app_info.app_id << "' Title='" << app_info.title << "' ShowInDock=" << (app_info.show_in_dock ? "YES" : "NO");
             if (app_info.show_in_dock)
             {
+                // PROTECT DOCK AGAINST SELF-SHOWING
+                if (app_info.app_id == "org.horizon.dock" || app_info.app_id == m_app_id)
+                {
+                    LOG_INFO << "[DOCK] Filtering out self (ID matching " << app_info.app_id << ")";
+                    continue;
+                }
+
                 grouped_running_apps[app_info.app_id].push_back(app_info);
             }
         }
@@ -310,15 +340,9 @@ namespace horizon
                 item->add_instance(info);
             }
 
-            // Try to find the run_id for this app_id from m_pinned_apps (if it was partially matched)
-            for (const auto &pinned : m_pinned_apps)
-            {
-                if (app_id.find(pinned.app_id) != std::string::npos)
-                {
-                    item->set_run_id(pinned.run_id);
-                    break;
-                }
-            }
+            // For unpinned apps, we don't automatically assign a run_id from pinned apps
+            // unless it's a very clear match, to avoid confusion in the context menu.
+            // If the user wants to pin it, we'll use the app_id as run_id.
 
             item->set_position_type(FREE);
             item->set_context_menu(create_context_menu(item.get()));

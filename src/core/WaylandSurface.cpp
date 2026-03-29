@@ -1669,16 +1669,21 @@ namespace horizon
             return;
 
         LOG_INFO << "[SURFACE] Attempting foreign activation for: " << app_id;
+        std::vector<struct zwlr_foreign_toplevel_handle_v1 *> handles;
         for (auto &pair : m_foreign_toplevels)
         {
-            auto &ft = pair.second;
-            if (ft.app_id == app_id)
+            if (pair.second.app_id == app_id)
             {
-                LOG_INFO << "[SURFACE] Found foreign handle for " << app_id << ", activating.";
-                if (m_seat)
-                {
-                    zwlr_foreign_toplevel_handle_v1_activate(ft.handle, m_seat);
-                }
+                handles.push_back(pair.first);
+            }
+        }
+
+        for (auto *handle : handles)
+        {
+            LOG_INFO << "[SURFACE] Found foreign handle for " << app_id << ", activating.";
+            if (m_seat)
+            {
+                zwlr_foreign_toplevel_handle_v1_activate(handle, m_seat);
             }
         }
     }
@@ -1689,14 +1694,19 @@ namespace horizon
             return;
 
         LOG_INFO << "[SURFACE] Attempting foreign minimize for: " << app_id;
+        std::vector<struct zwlr_foreign_toplevel_handle_v1 *> handles;
         for (auto &pair : m_foreign_toplevels)
         {
-            auto &ft = pair.second;
-            if (ft.app_id == app_id)
+            if (pair.second.app_id == app_id)
             {
-                LOG_INFO << "[SURFACE] Found foreign handle for " << app_id << ", minimizing.";
-                zwlr_foreign_toplevel_handle_v1_set_minimized(ft.handle);
+                handles.push_back(pair.first);
             }
+        }
+
+        for (auto *handle : handles)
+        {
+            LOG_INFO << "[SURFACE] Found foreign handle for " << app_id << ", minimizing.";
+            zwlr_foreign_toplevel_handle_v1_set_minimized(handle);
         }
     }
 
@@ -1706,14 +1716,19 @@ namespace horizon
             return;
 
         LOG_INFO << "[SURFACE] Attempting foreign toggle fullscreen for: " << app_id;
+        std::vector<struct zwlr_foreign_toplevel_handle_v1 *> handles;
         for (auto &pair : m_foreign_toplevels)
         {
-            auto &ft = pair.second;
-            if (ft.app_id == app_id)
+            if (pair.second.app_id == app_id)
             {
-                LOG_INFO << "[SURFACE] Found foreign handle for " << app_id << ", setting fullscreen.";
-                zwlr_foreign_toplevel_handle_v1_set_fullscreen(ft.handle, nullptr);
+                handles.push_back(pair.first);
             }
+        }
+
+        for (auto *handle : handles)
+        {
+            LOG_INFO << "[SURFACE] Found foreign handle for " << app_id << ", setting fullscreen.";
+            zwlr_foreign_toplevel_handle_v1_set_fullscreen(handle, nullptr);
         }
     }
 
@@ -1723,14 +1738,19 @@ namespace horizon
             return;
 
         LOG_INFO << "[SURFACE] Attempting foreign close for: " << app_id;
+        std::vector<struct zwlr_foreign_toplevel_handle_v1 *> handles;
         for (auto &pair : m_foreign_toplevels)
         {
-            auto &ft = pair.second;
-            if (ft.app_id == app_id)
+            if (pair.second.app_id == app_id)
             {
-                LOG_INFO << "[SURFACE] Found foreign handle for " << app_id << ", closing.";
-                zwlr_foreign_toplevel_handle_v1_close(ft.handle);
+                handles.push_back(pair.first);
             }
+        }
+
+        for (auto *handle : handles)
+        {
+            LOG_INFO << "[SURFACE] Found foreign handle for " << app_id << ", closing.";
+            zwlr_foreign_toplevel_handle_v1_close(handle);
         }
     }
 

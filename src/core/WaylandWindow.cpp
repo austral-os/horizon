@@ -292,18 +292,29 @@ namespace horizon
         AppListEventContext ctx;
         if (m_surface)
         {
-            std::set<std::string> seen_keys;
+            // Use a map to merge info for the same underlying window reported by different protocols.
+            // Since we don't have a common ID for handles across protocols, we fallback to app_id + title.
+            std::map<std::string, ApplicationInfo> merged_apps;
 
             auto process_ft = [&](const WaylandSurface::ForeignToplevel &ft, uintptr_t instance_id)
             {
-                // Create a unique key to deduplicate between protocols.
-                // Usually app_id is enough, but some apps might have empty app_id but unique
-                // titles.
-                std::string key = ft.app_id + "|" + ft.title;
-                if (seen_keys.find(key) != seen_keys.end())
+                if (ft.app_id.empty() && ft.title.empty())
                     return;
 
-                seen_keys.insert(key);
+                // Create a reasonably unique key to merge same-window reports from different protocols
+                // If app_id is present, it's the primary key. If not, title is used.
+                std::string key = ft.app_id.empty() ? ("title:" + ft.title) : ft.app_id;
+                
+                if (merged_apps.count(key))
+                {
+                    // Merge missing info (e.g. if one protocol has title but other has id)
+                    auto& info = merged_apps[key];
+                    if (info.app_id.empty()) info.app_id = ft.app_id;
+                    if (info.title.empty()) info.title = ft.title;
+                    if (ft.active) info.is_active = true;
+                    // Prefer ZWLR handle for instance_id if possible as it supports more actions
+                    return;
+                }
 
                 ApplicationInfo info;
                 info.app_id = ft.app_id;
@@ -312,7 +323,7 @@ namespace horizon
                 info.is_active = ft.active;
                 info.is_minimized = ft.minimized;
                 info.show_in_dock = true;
-                ctx.apps.push_back(info);
+                merged_apps[key] = info;
             };
 
             const auto &foreigns = m_surface->get_foreign_toplevels();
@@ -325,6 +336,11 @@ namespace horizon
             for (const auto &pair : ext_foreigns)
             {
                 process_ft(pair.second, reinterpret_cast<uintptr_t>(pair.first));
+            }
+
+            for (auto const& [key, info] : merged_apps)
+            {
+                ctx.apps.push_back(info);
             }
         }
         when_foreign_update.run(ctx);
