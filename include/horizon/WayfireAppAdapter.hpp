@@ -20,15 +20,13 @@ namespace horizon
 
         std::vector<ApplicationInfo> get_running_applications() override;
 
-        void activate(const std::string &app_id) override;
-        void minimize(const std::string &app_id) override;
-        void toggle_fullscreen(const std::string &app_id) override;
+        // Convenience methods
         void close(const std::string &app_id) override;
 
-        void activate_instance(uintptr_t instance_id) override;
-        void minimize_instance(uintptr_t instance_id) override;
-        void toggle_fullscreen_instance(uintptr_t instance_id) override;
-        void close_instance(uintptr_t instance_id) override;
+        void activate_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) override;
+        void minimize_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) override;
+        void toggle_fullscreen_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) override;
+        void close_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) override;
 
     private:
         void setup_ipc();

@@ -8,8 +8,8 @@
 namespace horizon
 {
 
-    DockItem::DockItem(WaylandLayerWindow *app, const std::string &icon_name, bool is_wayfire)
-        : _app(app), _is_wayfire(is_wayfire)
+    DockItem::DockItem(WaylandLayerWindow *app, CompositorAppInterface *compositor_apps, const std::string &icon_name, bool is_wayfire)
+        : _app(app), _compositor_apps(compositor_apps), _is_wayfire(is_wayfire)
     {
         set_application_recursive(app);
         set_icon_name(icon_name);
@@ -81,29 +81,36 @@ namespace horizon
         when_click.connect(
             [this](MouseButtonEventContext &ctx)
             {
-                auto *ca = _app->compositor_apps();
-                if (!ca || _instances.empty())
+                if (!_compositor_apps || _instances.empty())
                     return;
 
-                // Find the first minimized instance to activate
+                // Debug log matching requirements
+                const auto &first = _instances[0];
+                LOG_INFO << "[DOCK-ITEM] Clicked app_id='" << _app_id 
+                         << "' instances=" << _instances.size() 
+                         << " handle=" << (void*)first.handle 
+                         << " pid=" << first.pid;
+
+                // 1. If there is a minimized window -> restore it
                 for (const auto &info : _instances)
                 {
-                    if (info.is_minimized)
+                    if (info.is_minimized && info.handle != nullptr)
                     {
-                        if (info.instance_id != 0)
-                            ca->activate_instance(info.instance_id);
-                        else
-                            ca->activate(info.app_id);
+                        LOG_INFO << "[DOCK-ITEM] Restoring minimized instance: " << (void*)info.handle;
+                        _compositor_apps->activate_instance(info.handle);
                         return;
                     }
                 }
 
-                // If none are minimized, activate the first one
-                const auto &info = _instances[0];
-                if (info.instance_id != 0)
-                    ca->activate_instance(info.instance_id);
-                else
-                    ca->activate(info.app_id);
+                // 2. Otherwise -> activate the first instance
+                if (first.handle != nullptr) {
+                    LOG_INFO << "[DOCK-ITEM] Activating first instance: " << (void*)first.handle;
+                    _compositor_apps->activate_instance(first.handle);
+                } else {
+                    // Fallback to remote signal if handle is null
+                    LOG_INFO << "[DOCK-ITEM] No handle available, falling back to PID signal: " << first.pid;
+                    _app->send_remote_signal(first.pid, "activate");
+                }
             });
     }
 

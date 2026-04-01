@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+struct zwlr_foreign_toplevel_handle_v1;
+
 namespace horizon
 {
     /**
@@ -16,7 +18,7 @@ namespace horizon
         std::string title;
         std::string icon;
         int pid{-1};
-        uintptr_t instance_id{0};
+        struct zwlr_foreign_toplevel_handle_v1 *handle{nullptr};
         bool is_active{false};
         bool is_minimized{false};
         bool show_in_dock{true};
@@ -34,7 +36,7 @@ namespace horizon
 
     /**
      * @class CompositorAppInterface
-     * @brief Interface for querying running applications from the compositor.
+     * @brief Interface for communicating with the compositor about running applications.
      */
     class CompositorAppInterface
     {
@@ -42,42 +44,26 @@ namespace horizon
         virtual ~CompositorAppInterface() = default;
 
         /**
-         * @brief Gets the current list of running applications.
-         * @return A vector of ApplicationInfo.
+         * @brief Get a list of currently running applications.
+         * @return A vector of ApplicationInfo objects.
          */
         virtual std::vector<ApplicationInfo> get_running_applications() = 0;
 
         /**
-         * @brief Event fired when the application list is updated.
+         * @brief Signal emitted when the application list or state changes.
          */
         EventsManager<AppListEventContext> when_update;
 
-        /**
-         * @brief Activates/Restores an application.
-         */
-        virtual void activate(const std::string &app_id) = 0;
+        // Instance-based management (Thread-safe Wayland handles)
+        virtual void activate_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) = 0;
+        virtual void minimize_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) = 0;
+        virtual void toggle_fullscreen_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) = 0;
+        virtual void close_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) = 0;
 
-        /**
-         * @brief Minimizes an application.
-         */
-        virtual void minimize(const std::string &app_id) = 0;
-
-        /**
-         * @brief Toggles fullscreen for an application.
-         */
-        virtual void toggle_fullscreen(const std::string &app_id) = 0;
-
-        /**
-         * @brief Closes an application.
-         */
-        virtual void close(const std::string &app_id) = 0;
-
-        /**
-         * @brief Targeting specific instances
-         */
-        virtual void activate_instance(uintptr_t instance_id) = 0;
-        virtual void minimize_instance(uintptr_t instance_id) = 0;
-        virtual void toggle_fullscreen_instance(uintptr_t instance_id) = 0;
-        virtual void close_instance(uintptr_t instance_id) = 0;
+        // LEGACY - To be removed after full migration
+        virtual void activate(const std::string &app_id) {}
+        virtual void minimize(const std::string &app_id) {}
+        virtual void toggle_fullscreen(const std::string &app_id) {}
+        virtual void close(const std::string &app_id) {}
     };
 } // namespace horizon

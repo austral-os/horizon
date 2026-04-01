@@ -202,20 +202,14 @@ namespace horizon
         // 3. Draw children with clipping
         CornerRadius radius(0, 0, 10, 10);
         ctx.save();
-        LOG_INFO << "[DEBUG] Menu::render BEFORE clipRoundedRect " << (void *)this;
         ctx.clipRoundedRect(m_start_draw_x, m_start_draw_y, m_width, m_height, radius);
-        LOG_INFO << "[DEBUG] Menu::render AFTER clipRoundedRect " << (void *)this;
 
-        size_t child_idx = 0;
         for (const auto &child : m_children)
         {
             if (child->is_visible())
             {
-                LOG_INFO << "[DEBUG] Menu::render child " << child_idx << " "
-                         << (void *)child.get();
                 child->render(ctx, cx, cy, cw, ch, should_draw);
             }
-            child_idx++;
         }
 
         ctx.restore();

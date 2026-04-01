@@ -292,54 +292,20 @@ namespace horizon
         AppListEventContext ctx;
         if (m_surface)
         {
-            // Use a map to merge info for the same underlying window reported by different protocols.
-            // Since we don't have a common ID for handles across protocols, we fallback to app_id + title.
-            std::map<std::string, ApplicationInfo> merged_apps;
-
-            auto process_ft = [&](const WaylandSurface::ForeignToplevel &ft, uintptr_t instance_id)
+            const auto &foreigns = m_surface->get_foreign_toplevels();
+            for (const auto &pair : foreigns)
             {
+                const auto &ft = pair.second;
                 if (ft.app_id.empty() && ft.title.empty())
-                    return;
-
-                // Create a reasonably unique key to merge same-window reports from different protocols
-                // If app_id is present, it's the primary key. If not, title is used.
-                std::string key = ft.app_id.empty() ? ("title:" + ft.title) : ft.app_id;
-                
-                if (merged_apps.count(key))
-                {
-                    // Merge missing info (e.g. if one protocol has title but other has id)
-                    auto& info = merged_apps[key];
-                    if (info.app_id.empty()) info.app_id = ft.app_id;
-                    if (info.title.empty()) info.title = ft.title;
-                    if (ft.active) info.is_active = true;
-                    // Prefer ZWLR handle for instance_id if possible as it supports more actions
-                    return;
-                }
+                    continue;
 
                 ApplicationInfo info;
                 info.app_id = ft.app_id;
                 info.title = ft.title;
-                info.instance_id = instance_id;
+                info.handle = ft.handle;
                 info.is_active = ft.active;
                 info.is_minimized = ft.minimized;
                 info.show_in_dock = true;
-                merged_apps[key] = info;
-            };
-
-            const auto &foreigns = m_surface->get_foreign_toplevels();
-            for (const auto &pair : foreigns)
-            {
-                process_ft(pair.second, reinterpret_cast<uintptr_t>(pair.first));
-            }
-
-            const auto &ext_foreigns = m_surface->get_ext_foreign_toplevels();
-            for (const auto &pair : ext_foreigns)
-            {
-                process_ft(pair.second, reinterpret_cast<uintptr_t>(pair.first));
-            }
-
-            for (auto const& [key, info] : merged_apps)
-            {
                 ctx.apps.push_back(info);
             }
         }
@@ -505,8 +471,14 @@ namespace horizon
                         (frame_now - m_last_commit_time) >= FRAME_MS)
                     {
                         // Ensure correct context is bound for this window
-                        eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(),
-                                       m_surface->egl_surface(), m_surface->egl_context());
+                        if (m_surface && m_surface->display())
+                        {
+                            LOG_INFO << "[WINDOW] render: binding context...";
+                            wl_display_dispatch_pending(m_surface->display());
+
+                            eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(),
+                                           m_surface->egl_surface(), m_surface->egl_context());
+                        }
 
                         if (is_transparent_surface())
                             glClearColor(0, 0, 0, 0);
@@ -540,6 +512,7 @@ namespace horizon
 
                             if (m_popup_menu && m_popup_surface && m_popup_surface->data())
                             {
+                                LOG_INFO << "[WINDOW] render: drawing popup...";
                                 CairoGraphicContext pctx(this, m_popup_surface->data(),
                                                          m_popup_surface->width(),
                                                          m_popup_surface->height());
@@ -553,6 +526,7 @@ namespace horizon
                                 render_gl_popup();
                             }
 
+                            LOG_INFO << "[WINDOW] render: final UI pass...";
                             render_gl_ui();
                             m_last_commit_time = frame_now;
                         }
@@ -829,6 +803,7 @@ namespace horizon
 
     void WaylandWindow::on_pointer_event(const PointerEvent &event)
     {
+        LOG_INFO << "[WINDOW] on_pointer_event type=" << (int)event.type << " x=" << event.x << " y=" << event.y;
         m_pointer_x = event.x;
         m_pointer_y = event.y;
 
@@ -872,6 +847,7 @@ namespace horizon
         default:
             break;
         }
+        LOG_INFO << "[WINDOW] on_pointer_event done";
     }
 
     void WaylandWindow::on_resize(int width, int height)
@@ -896,25 +872,17 @@ namespace horizon
     void WaylandWindow::on_activated(bool active)
     {
         m_is_activated = active;
-        LOG_INFO << "[DEBUG] on_activated: Entering with active=" << active;
 
-        if (m_client_menu)
+        if (m_client_menu && m_is_running)
         {
-            try {
-                LOG_INFO << "[DEBUG] on_activated: Calling set_global_menu";
-                if (active)
-                    m_client_menu->set_global_menu(m_global_menus);
-                else
-                    m_client_menu->set_global_menu({});
-                LOG_INFO << "[DEBUG] on_activated: set_global_menu finished";
-            } catch (...) {
-                LOG_ERROR << "[DEBUG] on_activated: set_global_menu CRASHED";
-            }
+            if (active)
+                m_client_menu->set_global_menu(m_global_menus);
+            else
+                m_client_menu->set_global_menu({});
         }
 
         if (active && m_is_minimized)
         {
-            LOG_INFO << "[DEBUG] on_activated: Restoring minimized window";
             m_is_minimized = false;
             m_full_repaint = true;
             notify_app_manager("window_state_changed");
@@ -923,19 +891,14 @@ namespace horizon
 
         AppEventContext ev;
         ev.sender = this;
-        try {
-            if (active) {
-                LOG_INFO << "[DEBUG] on_activated: Running when_activated";
-                when_activated.run(ev);
-            } else {
-                LOG_INFO << "[DEBUG] on_activated: Running when_deactivated";
-                when_deactivated.run(ev);
-            }
-            LOG_INFO << "[DEBUG] on_activated: Signals finished";
-        } catch (...) {
-            LOG_ERROR << "[DEBUG] on_activated: Signals CRASHED";
+        if (active)
+        {
+            when_activated.run(ev);
         }
-        LOG_INFO << "[DEBUG] on_activated: Exiting";
+        else
+        {
+            when_deactivated.run(ev);
+        }
     }
 
     void WaylandWindow::on_key_event(const KeyEvent &event)
@@ -1146,15 +1109,10 @@ namespace horizon
                 }
                 m_window->invalidate();
                 
-                // Finally run click on the direct hit widget
-                // DEFERRED ACTION: Close menu first, then run action in next cycle.
-                // This ensures the Wayland server receives the "close" request
-                // and the main window completes its render cycle BEFORE 
-                // any blocking operation (like a modal dialog) starts.
+                // Run click on the direct hit widget synchronously.
+                // Running it before closing the menu ensures the widget is still valid.
+                under->when_click.run(ev);
                 m_window->close_context_menu();
-                m_window->post_task([under, ev]() mutable {
-                    under->when_click.run(ev);
-                });
             }
         }
     }
@@ -1660,6 +1618,7 @@ namespace horizon
             return;
 
         // Make popup context current
+        LOG_INFO << "[WINDOW] render_gl_popup: context current...";
         eglMakeCurrent(m_popup_surface->egl_display(), m_popup_surface->egl_surface(),
                        m_popup_surface->egl_surface(), m_popup_surface->egl_context());
 
@@ -1683,6 +1642,7 @@ namespace horizon
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_gl_texture);
+        LOG_INFO << "[WINDOW] render_gl_popup: glTexImage2D...";
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_popup_surface->width(),
                      m_popup_surface->height(), 0, GL_RGBA, GL_UNSIGNED_BYTE,
                      m_popup_surface->data());
@@ -1954,8 +1914,12 @@ namespace horizon
 
     void WaylandWindow::show_context_menu(Menu *menu, int x, int y, uint32_t serial)
     {
+        LOG_INFO << "[WINDOW] show_context_menu started for menu=" << (void*)menu;
         if (!m_surface || !menu)
+        {
+            LOG_ERROR << "[WINDOW] show_context_menu: surface or menu is NULL";
             return;
+        }
 
         close_context_menu(false);
 
@@ -1973,18 +1937,23 @@ namespace horizon
 
         int w = m_popup_menu->width();
         int h = m_popup_menu->height();
+        LOG_INFO << "[WINDOW] show_context_menu: menu size " << w << "x" << h;
 
+        LOG_INFO << "[WINDOW] Creating popup surface...";
         m_popup_surface = std::make_unique<WaylandSurface>(w, h);
         
+        LOG_INFO << "[WINDOW] Setting up popup listener...";
         m_popup_listener = std::make_unique<PopupEventListener>(this);
         m_popup_surface->set_event_listener(m_popup_listener.get());
         
-        // Update surface serial before setup if provided
         if (serial > 0) {
             m_surface->set_last_serial(serial);
         }
         
+        LOG_INFO << "[WINDOW] Calling setup_xdg_popup x=" << x << " y=" << y;
         m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, w, h);
+        
+        LOG_INFO << "[WINDOW] Popup setup complete.";
         
         invalidate();
     }
@@ -1999,19 +1968,8 @@ namespace horizon
 
         if (m_popup_surface || m_popup_listener)
         {
-            if (m_popup_surface)
-                m_popup_surface->free();
-
-            // Defer cleanup to next event loop iteration to avoid use-after-free
-            // if we are inside a callback of the popup surface itself.
-            std::shared_ptr<WaylandSurface> s = std::move(m_popup_surface);
-            std::shared_ptr<PopupEventListener> l = std::move(m_popup_listener);
-
-            post_task([s, l]() {
-                if (s)
-                    s->free();
-                // l and s destroyed here when lambda ends
-            });
+            m_popup_surface = nullptr;
+            m_popup_listener = nullptr;
         }
         invalidate();
         if (emit_signal)

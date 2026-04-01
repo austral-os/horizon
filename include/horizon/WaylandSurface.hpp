@@ -44,11 +44,6 @@ struct ext_background_effect_surface_v1;
 struct ext_foreign_toplevel_list_v1;
 struct ext_foreign_toplevel_handle_v1;
 struct wl_egl_window;
-struct xdg_popup;
-struct xdg_positioner;
-struct xdg_surface;
-struct xdg_toplevel;
-struct xdg_wm_base;
 
 namespace horizon
 {
@@ -60,6 +55,7 @@ namespace horizon
     {
         // Friend declarations for Wayland callbacks
         friend void registry_global(void *, struct wl_registry *, uint32_t, const char *, uint32_t);
+        // Foreign toplevel management (zwlr-foreign-toplevel-management-v1)
         friend void foreign_toplevel_manager_toplevel(void *,
                                                       struct zwlr_foreign_toplevel_manager_v1 *,
                                                       struct zwlr_foreign_toplevel_handle_v1 *);
@@ -72,21 +68,6 @@ namespace horizon
         friend void foreign_toplevel_handle_closed(void *,
                                                    struct zwlr_foreign_toplevel_handle_v1 *);
         friend void foreign_toplevel_handle_done(void *, struct zwlr_foreign_toplevel_handle_v1 *);
-
-        // Modern foreign toplevel (ext-foreign-toplevel-list-v1)
-        friend void ext_foreign_toplevel_list_handle_toplevel(void *data,
-                                                              struct ext_foreign_toplevel_list_v1 *ext_foreign_toplevel_list_v1,
-                                                              struct ext_foreign_toplevel_handle_v1 *handle);
-        friend void ext_foreign_toplevel_handle_app_id(void *data,
-                                                       struct ext_foreign_toplevel_handle_v1 *ext_foreign_toplevel_handle_v1,
-                                                       const char *app_id);
-        friend void ext_foreign_toplevel_handle_title(void *data,
-                                                      struct ext_foreign_toplevel_handle_v1 *ext_foreign_toplevel_handle_v1,
-                                                      const char *title);
-        friend void ext_foreign_toplevel_handle_closed(void *data,
-                                                       struct ext_foreign_toplevel_handle_v1 *ext_foreign_toplevel_handle_v1);
-        friend void ext_foreign_toplevel_handle_done(void *data,
-                                                     struct ext_foreign_toplevel_handle_v1 *ext_foreign_toplevel_handle_v1);
 
     public:
         enum class Role
@@ -118,30 +99,21 @@ namespace horizon
         void set_pointer_y(double y);
 
         // Getters
-        struct wl_pointer *pointer() const;
-        struct wl_keyboard *keyboard() const;
-        struct wl_seat *seat() const;
-        struct ::xdg_wm_base *xdg_wm_base() const { return m_xdg_wm_base; }
-        struct zwlr_layer_shell_v1 *layer_shell() const;
-        struct zwlr_foreign_toplevel_manager_v1 *foreign_toplevel_manager() const
-        {
-            return m_foreign_toplevel_manager;
-        }
-        void *data() const;
-        struct wl_surface *surface() const;
-        struct ext_background_effect_manager_v1 *background_effect_manager() const
-        {
-            return m_background_effect_manager;
-        }
-        struct wl_buffer *buffer() const;
-        struct wl_display *display() const;
+        struct wl_pointer *pointer() const { return m_pointer; }
+        struct wl_keyboard *keyboard() const { return m_keyboard; }
+        struct wl_seat *seat() const { return m_seat; }
+        struct xdg_wm_base *xdg_wm_base() const { return m_xdg_wm_base; }
+        struct zwlr_layer_shell_v1 *layer_shell() const { return m_layer_shell; }
+        struct zwlr_foreign_toplevel_manager_v1 *foreign_toplevel_manager() const { return m_foreign_toplevel_manager; }
+        void *data() const { return m_data; }
+        struct wl_surface *surface() const { return m_surface; }
+        struct ext_background_effect_manager_v1 *background_effect_manager() const { return m_background_effect_manager; }
+        struct wl_buffer *buffer() const { return m_buffer; }
+        struct wl_display *display() const { return m_display; }
         struct wl_registry *registry() const { return m_registry; }
         struct wl_compositor *compositor() const { return m_compositor; }
         struct wl_shm *shm() const { return m_shm; }
-        const std::vector<struct wl_output *> &monitors() const
-        {
-            return m_outputs;
-        }
+        const std::vector<struct wl_output *> &monitors() const { return m_outputs; }
 
         struct MonitorModeInfo
         {
@@ -163,154 +135,83 @@ namespace horizon
             std::vector<MonitorModeInfo> modes;
         };
 
-        const std::vector<MonitorDetail> &monitor_details() const
-        {
-            return m_monitor_details;
-        }
+        const std::vector<MonitorDetail> &monitor_details() const { return m_monitor_details; }
 
         EventsManager<struct wl_output*> when_monitor_update;
 
-        struct wl_output *get_monitor(size_t index) const
-        {
-            if (index < m_outputs.size())
-                return m_outputs[index];
-            return nullptr;
-        }
-
+        struct wl_output *get_monitor(size_t index) const;
         void move_layer_to_monitor(struct wl_output *output);
         void add_wl_output(struct wl_output *output);
-        WaylandEventListener *listener() const;
-        bool is_configured() const
-        {
-            return m_configured;
-        }
-        double pointer_x() const;
-        double pointer_y() const;
-        int width() const;
-        int height() const;
+        WaylandEventListener *listener() const { return m_listener; }
+        bool is_configured() const { return m_configured; }
+        double pointer_x() const { return m_pointer_x; }
+        double pointer_y() const { return m_pointer_y; }
+        int width() const { return m_width; }
+        int height() const { return m_height; }
         int monitor_width() const { return m_monitor_width; }
         int monitor_height() const { return m_monitor_height; }
         uint32_t anchor() const { return m_anchor; }
 
-        void set_screen_position(int x, int y)
-        {
-            m_screen_x = x;
-            m_screen_y = y;
-        }
+        void set_screen_position(int x, int y) { m_screen_x = x; m_screen_y = y; }
         int screen_x() const { return m_screen_x; }
         int screen_y() const { return m_screen_y; }
 
         Role role() const { return m_role; }
 
-        /**
-         * @brief Initializes the Wayland connection and binds globals.
-         */
         void init_display();
-
-        /**
-         * @brief Shares the Wayland connection and globals from another surface.
-         */
         void share_connection_from(WaylandSurface *other);
-
-        /**
-         * @brief Sets up the surface as a standard desktop window.
-         */
         void setup_xdg_toplevel(const std::string &title, const std::string &app_id);
-
-        /**
-         * @brief Sets up the surface as a layer shell overlay.
-         * @param layer The layer to place the surface in (e.g., ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY).
-         * @param namespace_id A string identifying the application/role.
-         */
         void setup_layer_surface(uint32_t layer, const std::string &namespace_id);
- 
-        /**
-         * @brief Sets up the surface as a popup.
-         * @param parent The parent surface.
-         * @param x X coordinate relative to parent.
-         * @param y Y coordinate relative to parent.
-         * @param w Popup width.
-         * @param h Popup height.
-         */
+        uint32_t layer_num() const { return m_layer_num; }
+        const std::string &layer_namespace() const { return m_layer_namespace; }
         void setup_xdg_popup(WaylandSurface *parent, int x, int y, int w, int h);
-
-        /**
-         * @brief Sets the anchor for a layer surface.
-         */
         void set_layer_anchor(uint32_t anchor);
-
-        /**
-         * @brief Sets the exclusive zone for a layer surface.
-         */
         void set_layer_exclusive_zone(int32_t zone);
         void set_layer_keyboard_interactivity(uint32_t interactivity);
         void set_layer_size(uint32_t width, uint32_t height);
-
-        /**
-         * @brief Sets the input region for the surface.
-         * Only clicks within this region will be handled by the surface.
-         * If the region is empty, the surface will be click-through.
-         */
         void set_input_region(int x, int y, int w, int h);
-
-        /**
-         * @brief Clears the input region, making the entire surface click-through.
-         */
         void clear_input_region();
 
-        /**
-         * @brief Compatibility init (defaults to xdg_toplevel).
-         */
         void init();
-
-        void set_last_serial(uint32_t serial);
+        void set_last_serial(uint32_t serial) { m_last_serial = serial; }
         void free();
         void resize_buffer(int width, int height);
         void commit();
         void set_blur(bool enabled);
-
         void request_move(uint32_t serial);
         void request_resize(uint32_t serial, uint32_t edge);
-
         void set_min_size(int w, int h);
         void set_max_size(int w, int h);
-
         void update_xkb_keymap(uint32_t format, int32_t fd, uint32_t size);
-        void update_xkb_modifiers(uint32_t mods_depressed, uint32_t mods_latched,
-                                  uint32_t mods_locked, uint32_t group);
+        void update_xkb_modifiers(uint32_t mods_depressed, uint32_t mods_latched, uint32_t mods_locked, uint32_t group);
         void process_key(uint32_t key, uint32_t state, KeyEvent &ev);
+        uint32_t last_serial() const { return m_last_serial; }
+        void set_seat(struct wl_seat *seat) { m_seat = seat; }
 
-        uint32_t last_serial() const;
-
-        // Toplevel specific
         void request_maximize();
         void request_minimize();
         void request_restore();
         void request_fullscreen();
         void request_unfullscreen();
-        bool is_maximized() const;
-        bool is_fullscreen() const;
-        void request_activation_token(std::function<void(const std::string &)> callback,
-                                      uint32_t serial = 0);
+        bool is_maximized() const { return m_is_maximized; }
+        bool is_fullscreen() const { return m_is_fullscreen; }
+        void request_activation_token(std::function<void(const std::string &)> callback, uint32_t serial = 0);
         void activate(const std::string &token);
 
         void set_cursor(CursorType type);
 
         // Foreign toplevel management (for Dock)
-        void activate_foreign_app(const std::string &app_id);
-        void minimize_foreign_app(const std::string &app_id);
-        void toggle_fullscreen_foreign_app(const std::string &app_id);
-        void close_foreign_app(const std::string &app_id);
+        void activate_foreign_instance(struct zwlr_foreign_toplevel_handle_v1 *handle);
+        void minimize_foreign_instance(struct zwlr_foreign_toplevel_handle_v1 *handle);
+        void toggle_fullscreen_foreign_instance(struct zwlr_foreign_toplevel_handle_v1 *handle);
+        void close_foreign_instance(struct zwlr_foreign_toplevel_handle_v1 *handle);
+        
+        // Deprecated - replaced by instance versions
+        void activate_foreign_app(const std::string &app_id) {}
+        void minimize_foreign_app(const std::string &app_id) {}
+        void toggle_fullscreen_foreign_app(const std::string &app_id) {}
+        void close_foreign_app(const std::string &app_id) {}
 
-        void activate_foreign_instance(uintptr_t instance_id);
-        void minimize_foreign_instance(uintptr_t instance_id);
-        void toggle_fullscreen_foreign_instance(uintptr_t instance_id);
-        void close_foreign_instance(uintptr_t instance_id);
-
-        /**
-         * @struct ForeignToplevel
-         * @brief Information about a window from another application.
-         */
         struct ForeignToplevel
         {
             struct zwlr_foreign_toplevel_handle_v1 *handle;
@@ -318,120 +219,93 @@ namespace horizon
             std::string app_id;
             bool minimized = false;
             bool active = false;
-            struct ext_foreign_toplevel_handle_v1 *ext_handle = nullptr;
         };
 
-        const std::map<struct zwlr_foreign_toplevel_handle_v1 *, ForeignToplevel> &
-        get_foreign_toplevels() const
-        {
-            return m_foreign_toplevels;
-        }
+        const std::map<struct zwlr_foreign_toplevel_handle_v1 *, ForeignToplevel> &get_foreign_toplevels() const { return m_foreign_toplevels; }
 
-        const std::map<struct ext_foreign_toplevel_handle_v1 *, ForeignToplevel> &
-        get_ext_foreign_toplevels() const
-        {
-            return m_ext_foreign_toplevels;
-        }
-
-        struct xkb_state *xkb_state() const
-        {
-            return m_xkb_state;
-        }
-
-        EGLDisplay egl_display() const
-        {
-            return m_egl_display;
-        }
-        EGLSurface egl_surface() const
-        {
-            return m_egl_surface;
-        }
-        EGLContext egl_context() const
-        {
-            return m_egl_context;
-        }
+        struct xkb_state *xkb_state() const { return m_xkb_state; }
+        EGLDisplay egl_display() const { return m_egl_display; }
+        EGLSurface egl_surface() const { return m_egl_surface; }
+        EGLContext egl_context() const { return m_egl_context; }
         void swap_buffers();
-
         void update_blur_region();
+
     private:
-        int m_width;
-        int m_height;
-        int m_monitor_width{0};
-        int m_monitor_height{0};
-        int m_screen_x{0};
-        int m_screen_y{0};
         Role m_role = Role::None;
-        bool m_blur_enabled = false;
+        int m_width{800}, m_height{600};
+        int m_screen_x{0}, m_screen_y{0};
+        int m_monitor_width{0}, m_monitor_height{0};
+        bool m_is_initialized{false};
+        bool m_is_maximized{false};
+        bool m_is_minimized{false};
+        bool m_is_fullscreen{false};
+        bool m_is_activated{false};
+        bool m_was_maximized_before_minimize{false};
+        bool m_blur_enabled{false};
+        uint32_t m_last_serial{0};
+        uint32_t m_anchor{0};
+        bool m_configured{false};
+        bool m_owns_connection{true};
 
-        struct wl_display *m_display = nullptr;
-        struct wl_registry *m_registry = nullptr;
-        struct wl_compositor *m_compositor = nullptr;
-        struct wl_shm *m_shm = nullptr;
-        struct xdg_wm_base *m_xdg_wm_base = nullptr;
-        struct zwlr_layer_shell_v1 *m_layer_shell = nullptr;
-        struct xdg_activation_v1 *m_activation = nullptr;
-        struct zwlr_foreign_toplevel_manager_v1 *m_foreign_toplevel_manager = nullptr;
-        struct ext_background_effect_manager_v1 *m_background_effect_manager = nullptr;
-        struct ext_background_effect_surface_v1 *m_background_effect_surface = nullptr;
-        struct org_kde_kwin_blur_manager *m_blur_manager = nullptr;
-        struct org_kde_kwin_blur *m_blur_object = nullptr;
-        struct ext_foreign_toplevel_list_v1 *m_ext_foreign_toplevel_list = nullptr;
+        // Layer shell specifics
+        uint32_t m_layer_num{0};
+        std::string m_layer_namespace;
+        int32_t m_exclusive_zone{0};
+        uint32_t m_interactivity{0};
+        size_t m_mapped_size{0};
 
-        // EGL Objects
+        struct wl_display *m_display{nullptr};
+        struct wl_registry *m_registry{nullptr};
+        struct wl_compositor *m_compositor{nullptr};
+        struct wl_shm *m_shm{nullptr};
+        struct wl_surface *m_surface{nullptr};
+        struct wl_buffer *m_buffer{nullptr};
+        struct wl_seat *m_seat{nullptr};
+        struct wl_pointer *m_pointer{nullptr};
+        struct wl_keyboard *m_keyboard{nullptr};
+        struct wl_output *m_output{nullptr};
+        
+        struct xdg_wm_base *m_xdg_wm_base{nullptr};
+        struct xdg_surface *m_xdg_surface{nullptr};
+        struct xdg_toplevel *m_xdg_toplevel{nullptr};
+        struct xdg_popup *m_xdg_popup{nullptr};
+        struct xdg_positioner *m_xdg_positioner{nullptr};
+        struct xdg_activation_v1 *m_activation{nullptr};
+
+        struct zwlr_layer_shell_v1 *m_layer_shell{nullptr};
+        struct zwlr_layer_surface_v1 *m_layer_surface{nullptr};
+        
+        struct wl_egl_window *m_egl_window{nullptr};
         EGLDisplay m_egl_display = EGL_NO_DISPLAY;
         EGLConfig m_egl_config;
         EGLContext m_egl_context = EGL_NO_CONTEXT;
         EGLSurface m_egl_surface = EGL_NO_SURFACE;
-        struct wl_egl_window *m_egl_window = nullptr;
 
-        void init_egl();
+        struct xkb_context *m_xkb_context{nullptr};
+        struct xkb_keymap *m_xkb_keymap{nullptr};
+        struct xkb_state *m_xkb_state{nullptr};
 
-        // Role specific objects
-        struct ::xdg_surface *m_xdg_surface = nullptr;
-        struct ::xdg_toplevel *m_xdg_toplevel = nullptr;
-        struct zwlr_layer_surface_v1 *m_layer_surface = nullptr;
-        struct ::xdg_popup *m_xdg_popup = nullptr;
-        struct ::xdg_positioner *m_xdg_positioner = nullptr;
+        struct zwlr_foreign_toplevel_manager_v1 *m_foreign_toplevel_manager{nullptr};
+        std::map<struct zwlr_foreign_toplevel_handle_v1 *, ForeignToplevel> m_foreign_toplevels;
 
-        void *m_data = nullptr;
-        struct wl_surface *m_surface = nullptr;
-        struct wl_buffer *m_buffer = nullptr;
+        struct ext_background_effect_manager_v1 *m_background_effect_manager{nullptr};
+        struct ext_background_effect_surface_v1 *m_background_effect_surface{nullptr};
+        struct org_kde_kwin_blur_manager *m_blur_manager{nullptr};
+        struct org_kde_kwin_blur *m_blur_object{nullptr};
 
-        WaylandEventListener *m_listener = nullptr;
+        WaylandEventListener *m_listener{nullptr};
+        void *m_data{nullptr};
 
-        struct wl_seat *m_seat = nullptr;
-        struct wl_pointer *m_pointer = nullptr;
-        struct wl_keyboard *m_keyboard = nullptr;
         std::vector<struct wl_output *> m_outputs;
         std::vector<MonitorDetail> m_monitor_details;
 
-        uint32_t m_last_serial = 0;
-        double m_pointer_x = 0;
-        double m_pointer_y = 0;
-        bool m_is_maximized = false;
-        bool m_is_fullscreen = false;
-        bool m_is_activated = false;
+        double m_pointer_x{0.0}, m_pointer_y{0.0};
 
-        struct wl_cursor_theme *m_cursor_theme = nullptr;
-        struct wl_surface *m_cursor_surface = nullptr;
+        void init_registry();
+        void init_egl();
+
+        struct wl_cursor_theme *m_cursor_theme{nullptr};
+        struct wl_surface *m_cursor_surface{nullptr};
         CursorType m_current_cursor_type = CursorType::Default;
-
-        struct xkb_context *m_xkb_context = nullptr;
-        struct xkb_keymap *m_xkb_keymap = nullptr;
-        struct xkb_state *m_xkb_state = nullptr;
-
-        // Foreign toplevel tracking
-        std::map<struct zwlr_foreign_toplevel_handle_v1 *, ForeignToplevel> m_foreign_toplevels;
-        std::map<struct ext_foreign_toplevel_handle_v1 *, ForeignToplevel> m_ext_foreign_toplevels;
-
-        // Layer Shell State tracking
-        uint32_t m_layer_num = 0;
-        std::string m_layer_namespace;
-        uint32_t m_anchor = 0;
-        int32_t m_exclusive_zone = 0;
-        uint32_t m_interactivity = 0;
-        bool m_configured = false;
-        bool m_owns_connection = true;
-        size_t m_mapped_size = 0;
     };
 } // namespace horizon

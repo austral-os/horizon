@@ -18,52 +18,40 @@ namespace horizon
         return m_foreign_apps;
     }
 
-    void WayfireAppAdapter::activate(const std::string &app_id)
-    {
-        if (m_app && m_app->w_surface())
-            m_app->w_surface()->activate_foreign_app(app_id);
-    }
-
-    void WayfireAppAdapter::minimize(const std::string &app_id)
-    {
-        if (m_app && m_app->w_surface())
-            m_app->w_surface()->minimize_foreign_app(app_id);
-    }
-
-    void WayfireAppAdapter::toggle_fullscreen(const std::string &app_id)
-    {
-        if (m_app && m_app->w_surface())
-            m_app->w_surface()->toggle_fullscreen_foreign_app(app_id);
-    }
-
     void WayfireAppAdapter::close(const std::string &app_id)
     {
-        if (m_app && m_app->w_surface())
-            m_app->w_surface()->close_foreign_app(app_id);
+        // For compatibility, we check for all instances and close them
+        for (const auto &info : m_foreign_apps)
+        {
+            if (info.app_id == app_id && info.handle != nullptr)
+            {
+                close_instance(info.handle);
+            }
+        }
     }
 
-    void WayfireAppAdapter::activate_instance(uintptr_t instance_id)
+    void WayfireAppAdapter::activate_instance(struct zwlr_foreign_toplevel_handle_v1 *handle)
     {
         if (m_app && m_app->w_surface())
-            m_app->w_surface()->activate_foreign_instance(instance_id);
+            m_app->w_surface()->activate_foreign_instance(handle);
     }
 
-    void WayfireAppAdapter::minimize_instance(uintptr_t instance_id)
+    void WayfireAppAdapter::minimize_instance(struct zwlr_foreign_toplevel_handle_v1 *handle)
     {
         if (m_app && m_app->w_surface())
-            m_app->w_surface()->minimize_foreign_instance(instance_id);
+            m_app->w_surface()->minimize_foreign_instance(handle);
     }
 
-    void WayfireAppAdapter::toggle_fullscreen_instance(uintptr_t instance_id)
+    void WayfireAppAdapter::toggle_fullscreen_instance(struct zwlr_foreign_toplevel_handle_v1 *handle)
     {
         if (m_app && m_app->w_surface())
-            m_app->w_surface()->toggle_fullscreen_foreign_instance(instance_id);
+            m_app->w_surface()->toggle_fullscreen_foreign_instance(handle);
     }
 
-    void WayfireAppAdapter::close_instance(uintptr_t instance_id)
+    void WayfireAppAdapter::close_instance(struct zwlr_foreign_toplevel_handle_v1 *handle)
     {
         if (m_app && m_app->w_surface())
-            m_app->w_surface()->close_foreign_instance(instance_id);
+            m_app->w_surface()->close_foreign_instance(handle);
     }
 
     void WayfireAppAdapter::handle_ipc_message(const std::string &msg) {}

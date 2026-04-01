@@ -155,23 +155,18 @@ namespace horizon
                     std::string title = info.title.empty() ? "Ventana sin título" : info.title;
                     auto *window_item = menu->add_item(title);
                     
-                    uintptr_t inst_id = info.instance_id;
+                    struct zwlr_foreign_toplevel_handle_v1 *handle = info.handle;
                     int pid = info.pid;
                     std::string aid = info.app_id;
 
                     window_item->when_click.connect(
-                        [this, inst_id, pid, aid](auto &)
+                        [this, handle, pid, aid](auto &)
                         {
-                            LOG_INFO << "[DOCK] ACTION: Window activation requested for ID='" << aid << "' Instance=" << inst_id;
-                            if (inst_id != 0) {
-                                LOG_INFO << "[DOCK] Activating specific instance " << inst_id;
-                                _compositor_apps->activate_instance(inst_id);
+                            LOG_INFO << "[DOCK] ACTION: Window activation requested for ID='" << aid << "' Handle=" << (void*)handle;
+                            if (handle != nullptr) {
+                                _compositor_apps->activate_instance(handle);
                             } else if (pid != -1) {
-                                LOG_INFO << "[DOCK] Sending remote activation to PID " << pid;
                                 m_window->send_remote_signal(pid, "activate");
-                            } else if (!aid.empty()) {
-                                LOG_INFO << "[DOCK] Activating all instances of " << aid;
-                                _compositor_apps->activate(aid);
                             }
                         });
                 }
@@ -267,7 +262,7 @@ namespace horizon
         // 2. Add Pinned Apps
         for (const auto &pinned : m_pinned_apps)
         {
-            auto item = std::make_unique<DockItem>(m_window, pinned.icon, _is_wayfire);
+            auto item = std::make_unique<DockItem>(m_window, _compositor_apps.get(), pinned.icon, _is_wayfire);
             item->set_run_id(pinned.run_id);
             item->set_app_id(pinned.app_id);
 
@@ -334,7 +329,7 @@ namespace horizon
             std::string icon = instances[0].icon;
             if (icon.empty()) icon = app_id;
 
-            auto item = std::make_unique<DockItem>(m_window, icon, _is_wayfire);
+            auto item = std::make_unique<DockItem>(m_window, _compositor_apps.get(), icon, _is_wayfire);
             for (const auto& info : instances)
             {
                 item->add_instance(info);
