@@ -934,11 +934,11 @@ namespace horizon
 
     void WaylandWindow::handle_key_press(const KeyEvent &event)
     {
-        if (event.key == KEY_ESC)
+        /* if (event.key == KEY_ESC)
         {
             quit();
             return;
-        }
+        } */
 
         // Key repeat management — only reset if this is a NEW key being pressed (not a
         // synthetic repeat)
