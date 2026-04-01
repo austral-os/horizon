@@ -62,7 +62,7 @@
                 "run_id": "firefox"
             },
             {
-                "app_id": "alacritty",
+                "app_id": "konsole",
                 "icon": "utilities-terminal",
                 "name": "Terminal",
                 "run_id": "terminal"
