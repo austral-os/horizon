@@ -360,7 +360,6 @@ namespace horizon
         }
     }
 
-
     void WaylandWindow::run()
     {
 
@@ -419,9 +418,11 @@ namespace horizon
                                                 this->fullscreen();
                                             else if (signal == "unfullscreen")
                                                 this->unfullscreen();
-                                            else if (signal == "menu_item_clicked" && !token.empty())
+                                            else if (signal == "menu_item_clicked" &&
+                                                     !token.empty())
                                             {
-                                                LOG_INFO << "[APP] Handling menu_item_clicked: " << token;
+                                                LOG_INFO << "[APP] Handling menu_item_clicked: "
+                                                         << token;
                                                 this->signal_manager.emit(token, nullptr);
                                             }
                                         });
@@ -467,8 +468,8 @@ namespace horizon
                     // eglSwapBuffers/wl_display_dispatch when the compositor might not be giving us
                     // frame callbacks.
 
-                    if (m_surface->is_configured() && m_surface->width() > 0 && m_surface->height() > 0 &&
-                        (frame_now - m_last_commit_time) >= FRAME_MS)
+                    if (m_surface->is_configured() && m_surface->width() > 0 &&
+                        m_surface->height() > 0 && (frame_now - m_last_commit_time) >= FRAME_MS)
                     {
                         // Ensure correct context is bound for this window
                         if (m_surface && m_surface->display())
@@ -534,7 +535,8 @@ namespace horizon
                 }
 
                 // IMPORTANT: Wayland thread-safety requires prepare_read BEFORE poll.
-                // We do this AFTER render_gl_ui so we don't hold the read lock during eglSwapBuffers.
+                // We do this AFTER render_gl_ui so we don't hold the read lock during
+                // eglSwapBuffers.
                 while (wl_display_prepare_read(m_surface->display()) != 0)
                 {
                     wl_display_dispatch_pending(m_surface->display());
@@ -610,7 +612,7 @@ namespace horizon
                 {
                     wl_display_cancel_read(m_surface->display());
                 }
-                
+
                 wl_display_dispatch_pending(m_surface->display());
 
                 now = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -753,9 +755,9 @@ namespace horizon
 
     void WaylandWindow::delete_menu(const std::string &title)
     {
-        auto it = std::find_if(m_menues.begin(), m_menues.end(),
-                               [&title](const std::unique_ptr<Menu> &m)
-                               { return m->title() == title; });
+        auto it =
+            std::find_if(m_menues.begin(), m_menues.end(),
+                         [&title](const std::unique_ptr<Menu> &m) { return m->title() == title; });
 
         if (it != m_menues.end())
         {
@@ -792,9 +794,8 @@ namespace horizon
         if (m_app_menu)
         {
             Menu *old_ptr = m_app_menu.get();
-            m_global_menus.erase(
-                std::remove(m_global_menus.begin(), m_global_menus.end(), old_ptr),
-                m_global_menus.end());
+            m_global_menus.erase(std::remove(m_global_menus.begin(), m_global_menus.end(), old_ptr),
+                                 m_global_menus.end());
         }
 
         m_app_menu = std::move(menu);
@@ -812,7 +813,7 @@ namespace horizon
 
     void WaylandWindow::on_pointer_event(const PointerEvent &event)
     {
-        LOG_INFO << "[WINDOW] on_pointer_event type=" << (int)event.type << " x=" << event.x << " y=" << event.y;
+
         m_pointer_x = event.x;
         m_pointer_y = event.y;
 
@@ -861,8 +862,9 @@ namespace horizon
 
     void WaylandWindow::on_resize(int width, int height)
     {
-        LOG_INFO << "[WINDOW] on_resize: " << width << "x" << height;
-        if (width <= 0 || height <= 0) return;
+
+        if (width <= 0 || height <= 0)
+            return;
 
         if (m_root)
         {
@@ -1117,7 +1119,7 @@ namespace horizon
                     w->when_mouse_release.run(ev);
                 }
                 m_window->invalidate();
-                
+
                 // Run click on the direct hit widget synchronously.
                 // Running it before closing the menu ensures the widget is still valid.
                 under->when_click.run(ev);
@@ -1652,9 +1654,8 @@ namespace horizon
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_gl_texture);
         LOG_INFO << "[WINDOW] render_gl_popup: glTexImage2D...";
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_popup_surface->width(),
-                     m_popup_surface->height(), 0, GL_RGBA, GL_UNSIGNED_BYTE,
-                     m_popup_surface->data());
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_popup_surface->width(), m_popup_surface->height(),
+                     0, GL_RGBA, GL_UNSIGNED_BYTE, m_popup_surface->data());
 
         GLint pos_attr = glGetAttribLocation(m_gl_program, "position");
         GLint tex_attr = glGetAttribLocation(m_gl_program, "texcoord");
@@ -1671,8 +1672,8 @@ namespace horizon
         m_popup_surface->swap_buffers();
 
         // Restore main surface context
-        eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(),
-                       m_surface->egl_surface(), m_surface->egl_context());
+        eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(), m_surface->egl_surface(),
+                       m_surface->egl_context());
     }
 
     GraphicsContext &WaylandWindow::get_graphics_context() const
@@ -1923,7 +1924,7 @@ namespace horizon
 
     void WaylandWindow::show_context_menu(Menu *menu, int x, int y, uint32_t serial)
     {
-        LOG_INFO << "[WINDOW] show_context_menu started for menu=" << (void*)menu;
+        LOG_INFO << "[WINDOW] show_context_menu started for menu=" << (void *)menu;
         if (!m_surface || !menu)
         {
             LOG_ERROR << "[WINDOW] show_context_menu: surface or menu is NULL";
@@ -1946,24 +1947,23 @@ namespace horizon
 
         int w = m_popup_menu->width();
         int h = m_popup_menu->height();
-        LOG_INFO << "[WINDOW] show_context_menu: menu size " << w << "x" << h;
 
         LOG_INFO << "[WINDOW] Creating popup surface...";
         m_popup_surface = std::make_unique<WaylandSurface>(w, h);
-        
+
         LOG_INFO << "[WINDOW] Setting up popup listener...";
         m_popup_listener = std::make_unique<PopupEventListener>(this);
         m_popup_surface->set_event_listener(m_popup_listener.get());
-        
-        if (serial > 0) {
+
+        if (serial > 0)
+        {
             m_surface->set_last_serial(serial);
         }
-        
-        LOG_INFO << "[WINDOW] Calling setup_xdg_popup x=" << x << " y=" << y;
+
         m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, w, h);
-        
+
         LOG_INFO << "[WINDOW] Popup setup complete.";
-        
+
         invalidate();
     }
 

@@ -25,6 +25,17 @@ namespace horizon
         // Gestión de estados de interacción
         when_mouse_enter.connect([this](EventContext &) { m_is_hovered = true; });
         when_mouse_leave.connect([this](EventContext &) { m_is_hovered = false; });
+        
+        when_mouse_drag.connect(
+            [this](MouseMoveEventContext &)
+            {
+                if (m_click_timer != 0)
+                {
+                    application()->stop_timer(m_click_timer);
+                    m_click_timer = 0;
+                }
+            });
+
         when_mouse_press.connect(
             [this](MouseButtonEventContext &ev)
             {

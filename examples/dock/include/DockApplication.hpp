@@ -30,10 +30,16 @@ namespace horizon
         DockApplication();
         ~DockApplication() override;
 
+    public:
         WaylandLayerWindow *window() const { return m_window; }
 
         // Creates the base context menu for a dock item.
         std::unique_ptr<Menu> create_context_menu(DockItem *item);
+
+        void pin_app(const std::string &app_id, const std::string &name, const std::string &icon, const std::string &run_id);
+        void pin_app_at(const std::string &app_id, const std::string &name, const std::string &icon, const std::string &run_id, int index);
+        void unpin_app(const std::string &app_id);
+        void reorder_pinned_app(int old_index, int new_index);
 
     private:
         void detect_environment();
@@ -41,8 +47,6 @@ namespace horizon
         void setup_ipc();
         void update_dock(const std::vector<ApplicationInfo> &apps);
         void save_config();
-        void pin_app(const std::string &app_id, const std::string &name, const std::string &icon, const std::string &run_id);
-        void unpin_app(const std::string &app_id);
 
         // Configuration watching
         void load_config();

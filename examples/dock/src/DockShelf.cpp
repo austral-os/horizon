@@ -2,7 +2,10 @@
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/WaylandWindow.hpp>
+#include "DockApplication.hpp"
+#include "DockItem.hpp"
 #include <vector>
+#include <cmath>
 
 namespace horizon
 {
@@ -57,6 +60,16 @@ namespace horizon
         {
             if (child->is_visible())
             {
+                if (m_dragged_item == child.get()) {
+                    count++;
+                    continue; // Skip dragged item in normal layout
+                }
+
+                // If this is the target index for the dragged item, leave a gap
+                if (count == m_drag_target_index) {
+                    total_children_width += m_base_size + spacing();
+                }
+
                 Icon *icon_child = dynamic_cast<Icon *>(child.get());
                 int current_width = child->fixed_size();
                 int current_height = child->fixed_size();
@@ -64,7 +77,7 @@ namespace horizon
                 if (icon_child)
                 {
                     int current_icon_size = m_base_size;
-                    if (m_magnification_enabled && m_mouse_over)
+                    if (m_magnification_enabled && m_mouse_over && !m_dragged_item)
                     {
                         // 1. Calculate horizontal distance
                         float child_center_x = (float)total_children_width + child->fixed_size() / 2.0f;
@@ -97,9 +110,6 @@ namespace horizon
                 }
 
                 // MANUALLY SET ABSOLUTE POSITION AND SIZE:
-                // Note: In this framework, FREE children need absolute window coordinates.
-                // X: shelf absolute x + shelf margin + cumulative width
-                // Y: shelf absolute y + fixed bottom 9px above tray lip
                 float lip_height = 10.0f;
                 float total_h = m_base_size * 2.5f;
                 int icon_bottom_y = total_h - lip_height - 9; 
@@ -114,6 +124,17 @@ namespace horizon
                 total_children_width += child->fixed_size();
                 count++;
             }
+        }
+
+        // Final check for gap at the end
+        if (m_dragged_item && m_drag_target_index >= count) {
+             total_children_width += m_base_size + spacing();
+        }
+
+        if (m_dragged_item) {
+            // Position the dragged item at the mouse cursor
+            m_dragged_item->set_position(m_drag_mouse_x - m_dragged_item->width() / 2, 
+                                         m_drag_mouse_y - m_dragged_item->height() / 2);
         }
 
         // 2. Update size: content width + margins on both sides
@@ -183,4 +204,127 @@ namespace horizon
         gc.setColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
     }
 
+    void DockShelf::start_drag(DockItem *item, int mouse_x, int mouse_y)
+    {
+        m_dragged_item = item;
+        m_drag_mouse_x = mouse_x;
+        m_drag_mouse_y = mouse_y;
+
+        // Find current index
+        m_drag_start_index = -1;
+        int i = 0;
+        for (const auto &child : children())
+        {
+            if (child.get() == item)
+            {
+                m_drag_start_index = i;
+                break;
+            }
+            i++;
+        }
+        m_drag_target_index = m_drag_start_index;
+        calculate_layout();
+        invalidate();
+    }
+
+    void DockShelf::update_drag(int mouse_x, int mouse_y)
+    {
+        m_drag_mouse_x = mouse_x;
+        m_drag_mouse_y = mouse_y;
+
+        // Calculate target index
+        int new_target_index = 0;
+        int current_x = x() + margin();
+        for (const auto &child : children())
+        {
+            if (child.get() == m_dragged_item)
+                continue;
+            if (m_drag_mouse_x < current_x + child->width() / 2)
+            {
+                break;
+            }
+            current_x += child->width() + spacing();
+            new_target_index++;
+        }
+
+        if (new_target_index != m_drag_target_index)
+        {
+            m_drag_target_index = new_target_index;
+            calculate_layout();
+            invalidate();
+        }
+        else
+        {
+            // Even if index didn't change, the dragged icon position did
+            calculate_layout();
+            invalidate();
+        }
+    }
+
+    void DockShelf::end_drag()
+    {
+        if (!m_dragged_item)
+            return;
+
+        DockApplication *app = dynamic_cast<DockApplication *>(application());
+        if (app)
+        {
+            // 1. Check if dropped outside
+            // Get absolute mouse position
+            // Since mouse_x/y are relative to the window, we check if they are outside the window area
+            // Or better, check if they are significantly away from the dock shelf
+            
+            bool outside = false;
+            // The dock is at the bottom. If mouse is too high, it's outside.
+            if (m_drag_mouse_y < y() - 50 || m_drag_mouse_y > y() + height() + 50 ||
+                m_drag_mouse_x < x() - 50 || m_drag_mouse_x > x() + width() + 50)
+            {
+                outside = true;
+            }
+
+            if (outside)
+            {
+                if (m_dragged_item->is_pinned())
+                {
+                    app->unpin_app(m_dragged_item->app_id());
+                }
+            }
+            else
+            {
+                // 2. Inside: Reorder or Pin
+                if (m_dragged_item->is_pinned())
+                {
+                    // Reorder pinned apps
+                    // Note: m_drag_target_index is in terms of children(), but we need to map it to pinned_apps index
+                    // Actually, reorder_pinned_app works on pinned_apps indices.
+                    // We assume pinned apps are the first N children.
+                    
+                    int old_pinned_index = m_drag_start_index;
+                    int new_pinned_index = m_drag_target_index;
+                    
+                    app->reorder_pinned_app(old_pinned_index, new_pinned_index);
+                }
+                else
+                {
+                    // Pin unpinned app at target position
+                    app->pin_app_at(m_dragged_item->app_id(), m_dragged_item->icon_name(), m_dragged_item->icon_name(), m_dragged_item->run_id(), m_drag_target_index);
+                }
+            }
+        }
+
+        m_dragged_item = nullptr;
+        m_drag_target_index = -1;
+        m_drag_start_index = -1;
+        calculate_layout();
+        invalidate();
+    }
+
+    void DockShelf::cancel_drag()
+    {
+        m_dragged_item = nullptr;
+        m_drag_target_index = -1;
+        m_drag_start_index = -1;
+        calculate_layout();
+        invalidate();
+    }
 } // namespace horizon

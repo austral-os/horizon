@@ -219,7 +219,10 @@ namespace horizon
     void DockApplication::update_dock(const std::vector<ApplicationInfo> &apps)
     {
         m_last_apps = apps;
-        _shelf_ptr->clear_children();
+        if (_shelf_ptr) {
+            _shelf_ptr->cancel_drag();
+            _shelf_ptr->clear_children();
+        }
 
         // 1. Group all apps by app_id
         std::map<std::string, std::vector<ApplicationInfo>> grouped_running_apps;
@@ -462,10 +465,44 @@ namespace horizon
         update_dock(m_last_apps);
     }
 
+    void DockApplication::pin_app_at(const std::string &app_id, const std::string &name, const std::string &icon, const std::string &run_id, int index)
+    {
+        // Check if already pinned
+        auto it = std::find_if(m_pinned_apps.begin(), m_pinned_apps.end(),
+                               [&app_id](const PinnedApp &a) { return a.app_id == app_id; });
+        
+        if (it != m_pinned_apps.end()) {
+            // If already pinned, just move it to the new position if different
+            int old_index = std::distance(m_pinned_apps.begin(), it);
+            reorder_pinned_app(old_index, index);
+            return;
+        }
+
+        PinnedApp app;
+        app.app_id = app_id;
+        app.name = name;
+        app.icon = icon;
+        app.run_id = run_id;
+
+        if (index < 0 || index >= (int)m_pinned_apps.size()) {
+            m_pinned_apps.push_back(app);
+        } else {
+            m_pinned_apps.insert(m_pinned_apps.begin() + index, app);
+        }
+
+        save_config();
+        update_dock(m_last_apps);
+    }
+
     void DockApplication::unpin_app(const std::string &app_id)
     {
         auto it = std::remove_if(m_pinned_apps.begin(), m_pinned_apps.end(),
-                                 [&app_id](const PinnedApp &a) { return a.app_id == app_id; });
+                                 [&app_id](const PinnedApp &a) { 
+                                     // Check for exact match or namespaced match
+                                     return a.app_id == app_id || 
+                                            a.app_id.find(app_id + ".") == 0 ||
+                                            app_id.find(a.app_id + ".") == 0;
+                                 });
         
         if (it != m_pinned_apps.end())
         {
@@ -473,6 +510,22 @@ namespace horizon
             save_config();
             update_dock(m_last_apps);
         }
+    }
+
+    void DockApplication::reorder_pinned_app(int old_index, int new_index)
+    {
+        if (old_index == new_index || 
+            old_index < 0 || old_index >= (int)m_pinned_apps.size() ||
+            new_index < 0 || new_index >= (int)m_pinned_apps.size()) {
+            return;
+        }
+
+        PinnedApp app = m_pinned_apps[old_index];
+        m_pinned_apps.erase(m_pinned_apps.begin() + old_index);
+        m_pinned_apps.insert(m_pinned_apps.begin() + new_index, app);
+
+        save_config();
+        update_dock(m_last_apps);
     }
 
     void DockApplication::start_watcher()

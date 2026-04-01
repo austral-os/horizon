@@ -1,4 +1,5 @@
 #include "DockItem.hpp"
+#include "DockShelf.hpp"
 #include <horizon/DesktopEntry.hpp>
 #include <horizon/ApplicationLauncher.hpp>
 #include <horizon/IpcClient.hpp>
@@ -14,8 +15,8 @@ namespace horizon
         set_application_recursive(app);
         set_icon_name(icon_name);
         set_icon_size(48);
-        set_margin(5);
         set_fixed_size(48 + margin() * 2);
+        setup_drag_behavior();
     }
 
     void DockItem::add_instance(const ApplicationInfo &info)
@@ -126,6 +127,48 @@ namespace horizon
             });
     }
 
+    void DockItem::setup_drag_behavior()
+    {
+        when_mouse_press.connect([this](MouseButtonEventContext &ctx) {
+            _press_x = ctx.x;
+            _press_y = ctx.y;
+        });
+
+        when_mouse_drag.connect([this](MouseMoveEventContext &ctx) {
+            if (!_dragging && (std::abs(ctx.x - _press_x) > 10 || std::abs(ctx.y - _press_y) > 10)) {
+                _dragging = true;
+                
+                // Notify parent DockShelf
+                DockShelf* shelf = dynamic_cast<DockShelf*>(parent());
+                if (shelf) {
+                    shelf->start_drag(this, ctx.x, ctx.y);
+                }
+                
+                invalidate();
+            }
+            
+            if (_dragging) {
+                DockShelf* shelf = dynamic_cast<DockShelf*>(parent());
+                if (shelf) {
+                    shelf->update_drag(ctx.x, ctx.y);
+                }
+            }
+        });
+
+        when_mouse_release.connect([this](MouseButtonEventContext &ctx) {
+            if (_dragging) {
+                _dragging = false;
+                
+                DockShelf* shelf = dynamic_cast<DockShelf*>(parent());
+                if (shelf) {
+                    shelf->end_drag();
+                }
+                
+                invalidate();
+            }
+        });
+    }
+
     void DockItem::draw(GraphicsContext &ctx)
     {
         // Capture the icon + indicator into a group to get it as a texture
@@ -171,7 +214,14 @@ namespace horizon
         // A scale of -h/2 maps v.y=1 (top of quad) to y=0 (top of area).
         Matrix::scale(main_mvp, m_available_draw_width / 2.0f, -m_available_draw_height / 2.0f, 1);
         
-        ctx.drawTexture3D(tex_id, m_available_draw_width, m_available_draw_height, main_mvp, 1.0f, false);
+        float opacity = _dragging ? 0.5f : 1.0f;
+        ctx.drawTexture3D(tex_id, m_available_draw_width, m_available_draw_height, main_mvp, opacity, false);
+
+        if (_dragging) {
+            // If dragging, we don't draw the reflection (or keep it as it is)
+            // Actually, we might want the DockShelf to handle the "floating" icon.
+            // For now, let's keep it simple.
+        }
 
         // 3. Draw Reflection (below)
         float refl_mvp[16];

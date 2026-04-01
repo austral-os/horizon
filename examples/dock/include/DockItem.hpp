@@ -43,12 +43,21 @@ namespace horizon
             return !_instances.empty();
         }
 
+        bool is_pinned() const
+        {
+            return !_run_id.empty();
+        }
+
+        void set_dragging(bool dragging) { _dragging = dragging; invalidate(); }
+        bool is_dragging() const { return _dragging; }
+
         void draw(GraphicsContext &ctx) override;
 
     private:
         void send_sig(const std::string &sig_name, const std::string &token = "");
         void setup_running_behavior();
         void setup_pinned_behavior();
+        void setup_drag_behavior();
 
         WaylandLayerWindow *_app;
         CompositorAppInterface *_compositor_apps;
@@ -56,6 +65,9 @@ namespace horizon
         std::string _app_id;
         std::string _run_id;
         std::vector<ApplicationInfo> _instances;
+        bool _dragging = false;
+        double _press_x = 0;
+        double _press_y = 0;
     };
 
 } // namespace horizon

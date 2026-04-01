@@ -8,6 +8,12 @@ namespace horizon
     /**
      * @brief Custom widget mimicking the Mac OS X Mountain Lion 3D Dock shelf.
      */
+    class DockItem;
+    class Menu;
+
+    /**
+     * @brief Custom widget mimicking the Mac OS X Mountain Lion 3D Dock shelf.
+     */
     class DockShelf : public Widget
     {
     public:
@@ -29,6 +35,18 @@ namespace horizon
         int m_mouse_x = -1;
         int m_mouse_y = -1;
         bool m_mouse_over = false;
+
+        DockItem* m_dragged_item = nullptr;
+        int m_drag_mouse_x = -1;
+        int m_drag_mouse_y = -1;
+        int m_drag_target_index = -1;
+        int m_drag_start_index = -1;
+
+    public:
+        void start_drag(DockItem* item, int mouse_x, int mouse_y);
+        void update_drag(int mouse_x, int mouse_y);
+        void end_drag();
+        void cancel_drag();
     };
 
 } // namespace horizon
