@@ -104,6 +104,17 @@ namespace horizon
         auto dirs = get_desktop_search_dirs();
         std::vector<std::string> candidates = {app_id + ".desktop"};
 
+        // If the app_id is namespaced (e.g. org.horizon.arkfm), also try the last component (arkfm.desktop)
+        if (app_id.find('.') != std::string::npos)
+        {
+            size_t last_dot = app_id.find_last_of('.');
+            std::string short_id = app_id.substr(last_dot + 1);
+            if (!short_id.empty())
+            {
+                candidates.push_back(short_id + ".desktop");
+            }
+        }
+
         // Some app_ids might have dots or be slightly different, but usually they match .desktop
         // filename
         for (const auto &dir : dirs)

@@ -21,7 +21,8 @@ namespace horizon
     void DockItem::add_instance(const ApplicationInfo &info)
     {
         _instances.push_back(info);
-        _app_id = info.app_id;
+        if (_app_id.empty())
+            _app_id = info.app_id;
 
         if (!info.icon.empty())
             set_icon_name(info.icon);

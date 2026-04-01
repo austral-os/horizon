@@ -23,12 +23,7 @@ namespace horizon
 
     DockApplication::DockApplication() : Application("org.horizon.dock", 800, 160, true, true)
     {
-        m_pinned_apps = {
-            {"org.horizon.launchpad", "Launchpad", "slingscold", "launchpad"},
-            {"arkfm", "Ark File Manager", "arkfm", "arkfm"},
-            {"alacritty", "Terminal", "utilities-terminal", "terminal"},
-            {"firefox", "Web Browser", "firefox", "firefox"},
-            {"horizon.preferences", "Preferences", "applications-system", "preferences"}};
+        m_pinned_apps = {};
         m_window = create_layer_window("org.horizon.dock", 2); // ZWLR_LAYER_SHELL_V1_LAYER_TOP
 
         m_window->set_name("Dock");
@@ -129,19 +124,60 @@ namespace horizon
             LOG_INFO << "[DOCK] Menu Item: Abrir nueva instancia (launch_id: " << launch_id << ")";
             if (!launch_id.empty())
             {
+                LOG_INFO << "[DOCK] Adding 'Abrir nueva instancia' (launch_id: " << launch_id << ")";
                 auto *new_instance_item = menu->add_item("Abrir nueva instancia");
                 new_instance_item->when_click.connect(
                     [launch_id](auto &)
                     {
                         LOG_INFO << "[DOCK] ACTION: Abrir nueva instancia requested for: " << launch_id;
-                        if (!ApplicationLauncher::launch(launch_id))
-                        {
-                            if (launch_id.find('.') != std::string::npos)
-                            {
-                                size_t last_dot = launch_id.find_last_of('.');
-                                ApplicationLauncher::launch(launch_id.substr(last_dot + 1));
-                            }
-                        }
+                        ApplicationLauncher::launch(launch_id);
+                    });
+            }
+
+            // Pin/Unpin logic (Moved to top level within the block if possible)
+            bool is_pinned = false;
+            for (const auto &pinned : m_pinned_apps)
+            {
+                if (!app_id.empty() && 
+                    (app_id == pinned.app_id || 
+                     app_id.find(pinned.app_id + ".") == 0 ||
+                     pinned.app_id.find(app_id + ".") == 0))
+                {
+                    is_pinned = true;
+                    break;
+                }
+            }
+            LOG_INFO << "[DOCK] is_pinned logic: app_id=" << app_id << " results in is_pinned=" << (is_pinned ? "true" : "false");
+
+            menu->add_separator();
+            if (is_pinned)
+            {
+                LOG_INFO << "[DOCK] Adding 'Desanclar del Dock'";
+                auto *unpin_item = menu->add_item("Desanclar del Dock");
+                unpin_item->when_click.connect(
+                    [this, app_id](auto &)
+                    {
+                        unpin_app(app_id);
+                    });
+            }
+            else
+            {
+                LOG_INFO << "[DOCK] Adding 'Anclar al Dock'";
+                auto *pin_item = menu->add_item("Anclar al Dock");
+                std::string pin_id = app_id.empty() ? run_id : app_id;
+                std::string pin_run_id = run_id.empty() ? app_id : run_id;
+                
+                std::string pin_name = item->instances().empty() ? pin_id : item->instances()[0].title;
+                if (pin_name.empty()) pin_name = pin_id;
+                std::string pin_icon = item->icon_name();
+                if (pin_icon.empty()) pin_icon = pin_id;
+
+                LOG_INFO << "[DOCK] Pin Action Props: id=" << pin_id << " name=" << pin_name << " icon=" << pin_icon << " run_id=" << pin_run_id;
+
+                pin_item->when_click.connect(
+                    [this, pin_id, pin_name, pin_icon, pin_run_id](auto &)
+                    {
+                        pin_app(pin_id, pin_name, pin_icon, pin_run_id);
                     });
             }
 
@@ -153,6 +189,7 @@ namespace horizon
                 for (const auto &info : instances)
                 {
                     std::string title = info.title.empty() ? "Ventana sin título" : info.title;
+                    LOG_INFO << "[DOCK] Adding window instance item: " << title;
                     auto *window_item = menu->add_item(title);
                     
                     struct zwlr_foreign_toplevel_handle_v1 *handle = info.handle;
@@ -174,6 +211,7 @@ namespace horizon
                 menu->add_separator();
 
                 // 3. Global actions for the app
+                LOG_INFO << "[DOCK] Adding 'Salir de la aplicación' item";
                 auto *exit_item = menu->add_item("Salir de la aplicación");
                 LOG_INFO << "[DOCK] Menu Item: Salir de la aplicación (target: " << app_id << ")";
                 exit_item->when_click.connect(
@@ -188,46 +226,6 @@ namespace horizon
                         }
                     });
             }
-        }
-
-        // Pin/Unpin logic
-        bool is_pinned = false;
-        for (const auto &pinned : m_pinned_apps)
-        {
-            if (!app_id.empty() && pinned.app_id == app_id)
-            {
-                is_pinned = true;
-                break;
-            }
-        }
-        LOG_INFO << "[DOCK] is_pinned logic: app_id=" << app_id << " results in is_pinned=" << (is_pinned ? "true" : "false");
-
-        menu->add_separator();
-        if (is_pinned)
-        {
-            auto *unpin_item = menu->add_item("Desanclar del Dock");
-            unpin_item->when_click.connect(
-                [this, app_id](auto &)
-                {
-                    unpin_app(app_id);
-                });
-        }
-        else
-        {
-            auto *pin_item = menu->add_item("Anclar al Dock");
-            // If it's a running app, we use its info. If it's just a run_id (launcher), we use that.
-            std::string pin_id = app_id.empty() ? run_id : app_id;
-            std::string pin_run_id = run_id.empty() ? app_id : run_id;
-            
-            // Try to resolve better name/icon if they are missing
-            std::string pin_name = item->instances().empty() ? pin_id : item->instances()[0].title;
-            std::string pin_icon = item->icon_name();
-
-            pin_item->when_click.connect(
-                [this, pin_id, pin_name, pin_icon, pin_run_id](auto &)
-                {
-                    pin_app(pin_id, pin_name, pin_icon, pin_run_id);
-                });
         }
 
         return menu;
@@ -270,9 +268,10 @@ namespace horizon
             bool is_running = false;
             for (auto it = grouped_running_apps.begin(); it != grouped_running_apps.end(); ++it)
             {
-                // Robust matching: check if either is a substring of the other (e.g., "horizon.preferences" vs "preferences")
-                if (it->first.find(pinned.app_id) != std::string::npos || 
-                    pinned.app_id.find(it->first) != std::string::npos)
+                // Robust matching: exact match or matches as a dot-separated component (e.g. "firefox" matches "firefox.desktop")
+                if (it->first == pinned.app_id || 
+                    it->first.find(pinned.app_id + ".") == 0 || 
+                    pinned.app_id.find(it->first + ".") == 0)
                 {
                     is_running = true;
                     for (const auto& info : it->second)
@@ -280,8 +279,6 @@ namespace horizon
                         item->add_instance(info);
                     }
                     handled_app_ids.insert(it->first);
-                    // Don't break, continue grouping if multiple app_ids match? 
-                    // Usually 1:1, but find might match multiple.
                 }
             }
 
@@ -338,6 +335,7 @@ namespace horizon
             // For unpinned apps, we don't automatically assign a run_id from pinned apps
             // unless it's a very clear match, to avoid confusion in the context menu.
             // If the user wants to pin it, we'll use the app_id as run_id.
+            item->set_app_id(app_id);
 
             item->set_position_type(FREE);
             item->set_context_menu(create_context_menu(item.get()));
