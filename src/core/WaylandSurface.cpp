@@ -498,12 +498,23 @@ namespace horizon
         wl_surface_commit(m_surface);
     }
 
+    static void xdg_wm_base_ping(void *data, struct xdg_wm_base *xdg_wm_base, uint32_t serial) {
+        xdg_wm_base_pong(xdg_wm_base, serial);
+    }
+
+    static const struct xdg_wm_base_listener xdg_wm_base_listener_impl = {
+        .ping = xdg_wm_base_ping,
+    };
+
     // --- Global Handlers ---
     void registry_global(void *data, wl_registry *registry, uint32_t id, const char *interface, uint32_t version) {
         auto *ws = static_cast<WaylandSurface *>(data);
         if (strcmp(interface, "wl_compositor") == 0) ws->m_compositor = (wl_compositor*)wl_registry_bind(registry, id, &wl_compositor_interface, 4);
         else if (strcmp(interface, "wl_shm") == 0) ws->m_shm = (wl_shm*)wl_registry_bind(registry, id, &wl_shm_interface, 1);
-        else if (strcmp(interface, "xdg_wm_base") == 0) ws->m_xdg_wm_base = (xdg_wm_base*)wl_registry_bind(registry, id, &xdg_wm_base_interface, 1);
+        else if (strcmp(interface, "xdg_wm_base") == 0) {
+            ws->m_xdg_wm_base = (xdg_wm_base*)wl_registry_bind(registry, id, &xdg_wm_base_interface, 1);
+            xdg_wm_base_add_listener(ws->m_xdg_wm_base, &xdg_wm_base_listener_impl, ws);
+        }
         else if (strcmp(interface, "zwlr_layer_shell_v1") == 0) ws->m_layer_shell = (zwlr_layer_shell_v1*)wl_registry_bind(registry, id, &zwlr_layer_shell_v1_interface, 1);
         else if (strcmp(interface, "wl_seat") == 0) { ws->m_seat = (wl_seat*)wl_registry_bind(registry, id, &wl_seat_interface, 1); wl_seat_add_listener(ws->m_seat, &g_seat_listener, ws); }
         else if (strcmp(interface, "xdg_activation_v1") == 0) ws->m_activation = (xdg_activation_v1*)wl_registry_bind(registry, id, &xdg_activation_v1_interface, 1);

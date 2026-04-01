@@ -7,6 +7,8 @@
 #include "horizon/ThemeManager.hpp"
 #include "horizon/WaylandSurface.hpp"
 #include "horizon/Widget.hpp"
+#include <atomic>
+#include <condition_variable>
 #include <deque>
 #include <horizon/WaylandEventListener.hpp>
 #include <mutex>
@@ -97,7 +99,7 @@ namespace horizon
          */
         virtual bool is_transparent_surface() const
         {
-            return true;
+            return false;
         }
 
         /**
@@ -394,7 +396,7 @@ namespace horizon
         void notify_window_state(bool minimized);
 
     private:
-        bool m_is_running = false;   /**< Flag indicating if the event loop is active. */
+        std::atomic<bool> m_is_running{false}; /**< Flag indicating if the event loop is active. */
         bool m_is_activated = false; /**< Flag indicating if the application is currently active. */
 
         uint32_t m_modifiers{0};
@@ -429,6 +431,7 @@ namespace horizon
         Widget *m_hovered = nullptr; /**< The widget currently under the mouse pointer. */
         Widget *m_pressed = nullptr; /**< The widget currently being pressed by a mouse button. */
         Widget *m_focused = nullptr; /**< The widget currently having keyboard focus. */
+        mutable std::mutex m_state_mutex;
 
         struct Timer
         {

@@ -56,6 +56,12 @@ namespace horizon
 
         request["menus"] = menu_array;
 
+        if (menu_array.empty())
+        {
+            LOG_INFO << "[ClientMenu] No menus to send, skipping set_global_menu.";
+            return true;
+        }
+
         LOG_INFO << "[ClientMenu] Sending global menu from PID " << getpid() << " with "
                  << menu_array.size() << " menus.";
 

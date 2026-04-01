@@ -533,6 +533,12 @@ namespace horizon
                     }
                 }
 
+                // IMPORTANT: Wayland thread-safety requires prepare_read BEFORE poll.
+                // We do this AFTER render_gl_ui so we don't hold the read lock during eglSwapBuffers.
+                while (wl_display_prepare_read(m_surface->display()) != 0)
+                {
+                    wl_display_dispatch_pending(m_surface->display());
+                }
                 wl_display_flush(m_surface->display());
 
                 uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -582,15 +588,30 @@ namespace horizon
                     }
                 }
 
+                if (timeout == -1 || timeout > 100)
+                    timeout = 100; // Never block for more than 100ms
+
                 int ret = poll(fds, 2, timeout);
                 if (ret < 0)
                 {
+                    wl_display_cancel_read(m_surface->display());
                     if (errno == EINTR)
                         continue;
                     LOG_ERROR << "[APP] poll() error: " << strerror(errno);
                     m_is_running = false;
                     break;
                 }
+
+                if (fds[0].revents & POLLIN)
+                {
+                    wl_display_read_events(m_surface->display());
+                }
+                else
+                {
+                    wl_display_cancel_read(m_surface->display());
+                }
+                
+                wl_display_dispatch_pending(m_surface->display());
 
                 now = std::chrono::duration_cast<std::chrono::milliseconds>(
                           std::chrono::steady_clock::now().time_since_epoch())
@@ -635,15 +656,6 @@ namespace horizon
 
                 if (ret > 0)
                 {
-                    if (fds[0].revents & POLLIN)
-                    {
-                        if (wl_display_dispatch(m_surface->display()) == -1)
-                        {
-                            LOG_ERROR << "[WINDOW] wl_display_dispatch failed";
-                            m_is_running = false;
-                            break;
-                        }
-                    }
                     if (fds[1].revents & POLLIN)
                     {
                         uint64_t val;

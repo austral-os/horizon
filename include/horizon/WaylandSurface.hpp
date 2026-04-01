@@ -230,6 +230,8 @@ namespace horizon
         void swap_buffers();
         void update_blur_region();
 
+        struct wl_surface *wl_surface() const { return m_surface; }
+
     private:
         Role m_role = Role::None;
         int m_width{800}, m_height{600};
