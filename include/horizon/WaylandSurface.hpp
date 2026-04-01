@@ -68,6 +68,13 @@ namespace horizon
         friend void foreign_toplevel_handle_closed(void *,
                                                    struct zwlr_foreign_toplevel_handle_v1 *);
         friend void foreign_toplevel_handle_done(void *, struct zwlr_foreign_toplevel_handle_v1 *);
+        
+        friend void output_handle_geometry(void *, struct wl_output *, int32_t, int32_t, int32_t, int32_t, int32_t, const char *, const char *, int32_t);
+        friend void output_handle_mode(void *, struct wl_output *, uint32_t, int32_t, int32_t, int32_t);
+        friend void output_handle_done(void *, struct wl_output *);
+        friend void output_handle_scale(void *, struct wl_output *, int32_t);
+        friend void output_handle_name(void *, struct wl_output *, const char *);
+        friend void output_handle_description(void *, struct wl_output *, const char *);
 
     public:
         enum class Role
@@ -128,6 +135,7 @@ namespace horizon
         {
             struct wl_output *output;
             std::string name;
+            std::string description;
             int32_t x;
             int32_t y;
             int32_t width;

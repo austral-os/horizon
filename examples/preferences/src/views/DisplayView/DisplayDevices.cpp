@@ -72,6 +72,8 @@ namespace horizon::preferences
     void DisplayDevices::refresh_monitors()
     {
         m_monitors.clear();
+        auto sys_monitors = SystemInfo::get_monitors();
+
         if (auto *app = application())
         {
             auto *surface = app->w_surface();
@@ -81,28 +83,49 @@ namespace horizon::preferences
                 for (const auto &d : details)
                 {
                     MonitorInfo info;
-                    info.conn_name = "Monitor"; // Wayland doesn't easily give the connector name
-                    info.model = "Monitor";
+                    info.conn_name = d.name.empty() ? "Monitor" : d.name;
+                    info.model = d.description.empty() ? (d.name.empty() ? "Monitor" : d.name) : d.description;
                     
-                    for (const auto &m : d.modes)
-                    {
-                        MonitorMode mode;
-                        mode.width = m.width;
-                        mode.height = m.height;
-                        mode.refresh_rate = (float)m.refresh / 1000.0f;
-                        info.modes.push_back(mode);
-                        
-                        if (m.current)
-                        {
-                            info.width = m.width;
-                            info.height = m.height;
-                            info.current_mode_index = (int)info.modes.size() - 1;
+                    // Try to find matching monitor in SystemInfo to get ALL modes
+                    const MonitorInfo* sys_match = nullptr;
+                    for (const auto& sm : sys_monitors) {
+                        if (sm.conn_name == d.name) {
+                            sys_match = &sm;
+                            break;
                         }
                     }
 
-                    // Placeholder for logical coordinates
-                    info.x = m_monitors.empty() ? 0 : m_monitors.back().info.x + m_monitors.back().info.width;
-                    info.y = 0;
+                    if (sys_match && sys_match->modes.size() > d.modes.size()) {
+                        info.modes = sys_match->modes;
+                        info.width = d.width;
+                        info.height = d.height;
+                        info.current_mode_index = -1;
+                        for (int i = 0; i < (int)info.modes.size(); ++i) {
+                            if (info.modes[i].width == d.width && info.modes[i].height == d.height) {
+                                info.current_mode_index = i;
+                                break;
+                            }
+                        }
+                    } else {
+                        for (const auto &m : d.modes)
+                        {
+                            MonitorMode mode;
+                            mode.width = m.width;
+                            mode.height = m.height;
+                            mode.refresh_rate = (float)m.refresh / 1000.0f;
+                            info.modes.push_back(mode);
+                            
+                            if (m.current)
+                            {
+                                info.width = m.width;
+                                info.height = m.height;
+                                info.current_mode_index = (int)info.modes.size() - 1;
+                            }
+                        }
+                    }
+
+                    info.x = d.x;
+                    info.y = d.y;
 
                     m_monitors.push_back({info, 0, 0, 0, 0, false});
                 }

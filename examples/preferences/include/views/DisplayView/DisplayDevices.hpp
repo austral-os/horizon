@@ -20,8 +20,7 @@ namespace horizon::preferences
         void calculate_layout() override;
 
         EventsManager<int> when_monitor_selected;
-
-    private:
+        
         struct MonitorRect
         {
             MonitorInfo info;
@@ -29,6 +28,9 @@ namespace horizon::preferences
             bool hovered = false;
         };
 
+        const std::vector<MonitorRect> &monitors() const { return m_monitors; }
+
+    private:
         void refresh_monitors();
         void update_render_rects();
         int get_monitor_at(int x, int y);

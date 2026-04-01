@@ -101,10 +101,7 @@ namespace horizon::preferences
             [this](bool checked)
             {
                 m_res_table->set_enabled(!checked);
-                if (checked)
-                {
-                    on_monitor_selected(m_selected_monitor_idx);
-                }
+                on_monitor_selected(m_selected_monitor_idx);
             });
         res_section->add_child(std::move(native_check));
 
@@ -364,27 +361,16 @@ namespace horizon::preferences
 
     void DisplayView::on_monitor_selected(int index)
     {
-        auto *surface = application()->w_surface();
-        if (!surface || index < 0 || (size_t)index >= surface->monitor_details().size())
+        if (index < 0 || index >= (int)m_display_devices->monitors().size())
             return;
 
         m_selected_monitor_idx = index;
-        const auto &d = surface->monitor_details()[index];
+        const auto &d = m_display_devices->monitors()[index].info;
 
         // Update resolution table
-        std::vector<MonitorMode> modes;
-        int current_idx = -1;
-        for (const auto &m : d.modes)
-        {
-            MonitorMode mode;
-            mode.width = m.width;
-            mode.height = m.height;
-            mode.refresh_rate = (float)m.refresh / 1000.0f;
-            modes.push_back(mode);
-            if (m.current)
-                current_idx = (int)modes.size() - 1;
-        }
-
+        std::vector<MonitorMode> modes = d.modes;
+        int current_idx = d.current_mode_index;
+        
         if (!modes.empty())
         {
             // Sort by resolution area descending

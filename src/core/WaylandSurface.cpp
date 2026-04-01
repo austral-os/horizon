@@ -74,6 +74,26 @@ namespace horizon
         nullptr // finished
     };
 
+    // --- Output Handlers ---
+    void output_handle_geometry(void *data, struct wl_output *wl_output, int32_t x, int32_t y,
+                                      int32_t physical_width, int32_t physical_height, int32_t subpixel,
+                                      const char *make, const char *model, int32_t transform);
+    void output_handle_mode(void *data, struct wl_output *wl_output, uint32_t flags,
+                                  int32_t width, int32_t height, int32_t refresh);
+    void output_handle_done(void *data, struct wl_output *wl_output);
+    void output_handle_scale(void *data, struct wl_output *wl_output, int32_t factor);
+    void output_handle_name(void *data, struct wl_output *wl_output, const char *name);
+    void output_handle_description(void *data, struct wl_output *wl_output, const char *description);
+
+    static const struct wl_output_listener output_listener = {
+        output_handle_geometry,
+        output_handle_mode,
+        output_handle_done,
+        output_handle_scale,
+        output_handle_name,
+        output_handle_description,
+    };
+
     // --- Implementation ---
 
     WaylandSurface::WaylandSurface(int w, int h) : m_width(w), m_height(h)
@@ -525,6 +545,12 @@ namespace horizon
         else if (strcmp(interface, "wl_output") == 0) {
             struct wl_output *o = (wl_output*)wl_registry_bind(registry, id, &wl_output_interface, std::min(version, 4u));
             ws->m_outputs.push_back(o);
+            wl_output_add_listener(o, &output_listener, ws);
+            
+            WaylandSurface::MonitorDetail detail;
+            detail.output = o;
+            detail.x = 0; detail.y = 0; detail.width = 0; detail.height = 0;
+            ws->m_monitor_details.push_back(detail);
         }
         else if (strcmp(interface, ext_background_effect_manager_v1_interface.name) == 0) {
             ws->m_background_effect_manager = (ext_background_effect_manager_v1*)wl_registry_bind(registry, id, &ext_background_effect_manager_v1_interface, 1);
@@ -662,6 +688,99 @@ namespace horizon
         if (xkb_state_mod_name_is_active(m_xkb_state, XKB_MOD_NAME_SHIFT, XKB_STATE_MODS_EFFECTIVE)) ev.modifiers |= 0x1;
         if (xkb_state_mod_name_is_active(m_xkb_state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_EFFECTIVE)) ev.modifiers |= 0x2;
         if (xkb_state_mod_name_is_active(m_xkb_state, XKB_MOD_NAME_ALT, XKB_STATE_MODS_EFFECTIVE)) ev.modifiers |= 0x4;
+    }
+
+    // --- Output Handlers Implementation ---
+    void output_handle_geometry(void *data, struct wl_output *wl_output, int32_t x, int32_t y,
+                                      int32_t physical_width, int32_t physical_height, int32_t subpixel,
+                                      const char *make, const char *model, int32_t transform)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        for (auto &d : ws->m_monitor_details)
+        {
+            if (d.output == wl_output)
+            {
+                d.x = x;
+                d.y = y;
+                break;
+            }
+        }
+    }
+
+    void output_handle_mode(void *data, struct wl_output *wl_output, uint32_t flags,
+                                  int32_t width, int32_t height, int32_t refresh)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        for (auto &d : ws->m_monitor_details)
+        {
+            if (d.output == wl_output)
+            {
+                WaylandSurface::MonitorModeInfo mode;
+                mode.width = width;
+                mode.height = height;
+                mode.refresh = refresh;
+                mode.current = (flags & WL_OUTPUT_MODE_CURRENT);
+                mode.preferred = (flags & WL_OUTPUT_MODE_PREFERRED);
+                
+                bool found = false;
+                for (auto &m : d.modes) {
+                    if (m.width == width && m.height == height && m.refresh == refresh) {
+                        m.current = mode.current;
+                        m.preferred = mode.preferred;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    d.modes.push_back(mode);
+                }
+
+                if (mode.current)
+                {
+                    d.width = width;
+                    d.height = height;
+                }
+                break;
+            }
+        }
+    }
+
+    void output_handle_done(void *data, struct wl_output *wl_output)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        LOG_INFO << "[SURFACE] Monitor info done for output " << wl_output;
+        ws->when_monitor_update.run(wl_output);
+    }
+
+    void output_handle_scale(void *data, struct wl_output *wl_output, int32_t factor)
+    {
+        // Currently not used in MonitorDetail
+    }
+
+    void output_handle_name(void *data, struct wl_output *wl_output, const char *name)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        for (auto &d : ws->m_monitor_details)
+        {
+            if (d.output == wl_output)
+            {
+                d.name = name ? name : "";
+                break;
+            }
+        }
+    }
+
+    void output_handle_description(void *data, struct wl_output *wl_output, const char *description)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        for (auto &d : ws->m_monitor_details)
+        {
+            if (d.output == wl_output)
+            {
+                d.description = description ? description : "";
+                break;
+            }
+        }
     }
 
 } // namespace horizon
