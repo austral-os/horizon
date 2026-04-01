@@ -62,7 +62,8 @@ sudo apt install build-essential g++ pkg-config \
                  libxkbcommon-dev libcairo2-dev \
                  librsvg2-dev libpixman-1-dev \
                  libegl1-mesa-dev libgles2-mesa-dev \
-                 nlohmann-json3-dev weston wayland-utils
+                 nlohmann-json3-dev weston wayland-utils \
+                 wlr-randr
 ```
 
 ### 2. Compiling the Project
@@ -85,7 +86,7 @@ To test the installation, you can run the `minimal` demo:
 ./minimal
 ```
 
-*Note: Ensure you are in a Wayland session or running a compositor like Weston.*
+_Note: Ensure you are in a Wayland session or running a compositor like Weston._
 
 ---
 
