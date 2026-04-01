@@ -10,6 +10,7 @@ namespace horizon
      */
     class DockItem;
     class Menu;
+    class DockApplication;
 
     /**
      * @brief Custom widget mimicking the Mac OS X Mountain Lion 3D Dock shelf.
@@ -27,11 +28,13 @@ namespace horizon
         void set_base_size(int size) { m_base_size = size; m_max_extra_size = size; calculate_layout(); invalidate(); }
         void reset_magnification() { m_mouse_over = false; calculate_layout(); invalidate(); }
         int base_size() const { return m_base_size; }
+        void set_dock_app(DockApplication* app) { m_dock_app = app; }
 
     private:
         bool m_magnification_enabled = true;
         int m_base_size = 64;
         int m_max_extra_size = 64;
+        DockApplication* m_dock_app = nullptr;
         int m_mouse_x = -1;
         int m_mouse_y = -1;
         bool m_mouse_over = false;

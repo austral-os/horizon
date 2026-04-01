@@ -474,7 +474,7 @@ namespace horizon
                         // Ensure correct context is bound for this window
                         if (m_surface && m_surface->display())
                         {
-                            LOG_INFO << "[WINDOW] render: binding context...";
+
                             wl_display_dispatch_pending(m_surface->display());
 
                             eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(),
@@ -513,7 +513,7 @@ namespace horizon
 
                             if (m_popup_menu && m_popup_surface && m_popup_surface->data())
                             {
-                                LOG_INFO << "[WINDOW] render: drawing popup...";
+
                                 CairoGraphicContext pctx(this, m_popup_surface->data(),
                                                          m_popup_surface->width(),
                                                          m_popup_surface->height());
@@ -527,7 +527,6 @@ namespace horizon
                                 render_gl_popup();
                             }
 
-                            LOG_INFO << "[WINDOW] render: final UI pass...";
                             render_gl_ui();
                             m_last_commit_time = frame_now;
                         }
@@ -857,7 +856,6 @@ namespace horizon
         default:
             break;
         }
-        LOG_INFO << "[WINDOW] on_pointer_event done";
     }
 
     void WaylandWindow::on_resize(int width, int height)
@@ -1629,7 +1627,7 @@ namespace horizon
             return;
 
         // Make popup context current
-        LOG_INFO << "[WINDOW] render_gl_popup: context current...";
+
         eglMakeCurrent(m_popup_surface->egl_display(), m_popup_surface->egl_surface(),
                        m_popup_surface->egl_surface(), m_popup_surface->egl_context());
 
@@ -1653,7 +1651,7 @@ namespace horizon
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_gl_texture);
-        LOG_INFO << "[WINDOW] render_gl_popup: glTexImage2D...";
+
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_popup_surface->width(), m_popup_surface->height(),
                      0, GL_RGBA, GL_UNSIGNED_BYTE, m_popup_surface->data());
 
@@ -1924,7 +1922,7 @@ namespace horizon
 
     void WaylandWindow::show_context_menu(Menu *menu, int x, int y, uint32_t serial)
     {
-        LOG_INFO << "[WINDOW] show_context_menu started for menu=" << (void *)menu;
+
         if (!m_surface || !menu)
         {
             LOG_ERROR << "[WINDOW] show_context_menu: surface or menu is NULL";
@@ -1948,10 +1946,8 @@ namespace horizon
         int w = m_popup_menu->width();
         int h = m_popup_menu->height();
 
-        LOG_INFO << "[WINDOW] Creating popup surface...";
         m_popup_surface = std::make_unique<WaylandSurface>(w, h);
 
-        LOG_INFO << "[WINDOW] Setting up popup listener...";
         m_popup_listener = std::make_unique<PopupEventListener>(this);
         m_popup_surface->set_event_listener(m_popup_listener.get());
 
@@ -1961,8 +1957,6 @@ namespace horizon
         }
 
         m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, w, h);
-
-        LOG_INFO << "[WINDOW] Popup setup complete.";
 
         invalidate();
     }

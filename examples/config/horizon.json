@@ -56,16 +56,16 @@
                 "run_id": "arkfm"
             },
             {
-                "app_id": "alacritty",
-                "icon": "utilities-terminal",
-                "name": "Terminal",
-                "run_id": "terminal"
-            },
-            {
                 "app_id": "firefox",
                 "icon": "firefox",
                 "name": "Web Browser",
                 "run_id": "firefox"
+            },
+            {
+                "app_id": "alacritty",
+                "icon": "utilities-terminal",
+                "name": "Terminal",
+                "run_id": "terminal"
             },
             {
                 "app_id": "horizon.preferences",

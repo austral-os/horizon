@@ -88,6 +88,7 @@ namespace horizon
         auto right_spacer = std::make_unique<Widget>();
 
         auto shelf = std::make_unique<DockShelf>();
+        shelf->set_dock_app(this);
         _shelf_ptr = shelf.get();
 
         root->add_child(std::move(left_spacer));
