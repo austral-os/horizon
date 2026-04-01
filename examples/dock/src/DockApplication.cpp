@@ -115,26 +115,22 @@ namespace horizon
         const auto &instances = item->instances();
         std::string run_id = item->run_id();
         std::string app_id = item->app_id();
-        LOG_INFO << "[DOCK] create_context_menu for: " << app_id << " (run_id: " << run_id << ")";
 
         if (!instances.empty() || !app_id.empty())
         {
             // 1. Open new instance
             std::string launch_id = run_id.empty() ? app_id : run_id;
-            LOG_INFO << "[DOCK] Menu Item: Abrir nueva instancia (launch_id: " << launch_id << ")";
             if (!launch_id.empty())
             {
-                LOG_INFO << "[DOCK] Adding 'Abrir nueva instancia' (launch_id: " << launch_id << ")";
                 auto *new_instance_item = menu->add_item("Abrir nueva instancia");
                 new_instance_item->when_click.connect(
                     [launch_id](auto &)
                     {
-                        LOG_INFO << "[DOCK] ACTION: Abrir nueva instancia requested for: " << launch_id;
                         ApplicationLauncher::launch(launch_id);
                     });
             }
 
-            // Pin/Unpin logic (Moved to top level within the block if possible)
+            // Pin/Unpin logic (at the top for visibility)
             bool is_pinned = false;
             for (const auto &pinned : m_pinned_apps)
             {
@@ -147,12 +143,10 @@ namespace horizon
                     break;
                 }
             }
-            LOG_INFO << "[DOCK] is_pinned logic: app_id=" << app_id << " results in is_pinned=" << (is_pinned ? "true" : "false");
 
             menu->add_separator();
             if (is_pinned)
             {
-                LOG_INFO << "[DOCK] Adding 'Desanclar del Dock'";
                 auto *unpin_item = menu->add_item("Desanclar del Dock");
                 unpin_item->when_click.connect(
                     [this, app_id](auto &)
@@ -162,7 +156,6 @@ namespace horizon
             }
             else
             {
-                LOG_INFO << "[DOCK] Adding 'Anclar al Dock'";
                 auto *pin_item = menu->add_item("Anclar al Dock");
                 std::string pin_id = app_id.empty() ? run_id : app_id;
                 std::string pin_run_id = run_id.empty() ? app_id : run_id;
@@ -171,8 +164,6 @@ namespace horizon
                 if (pin_name.empty()) pin_name = pin_id;
                 std::string pin_icon = item->icon_name();
                 if (pin_icon.empty()) pin_icon = pin_id;
-
-                LOG_INFO << "[DOCK] Pin Action Props: id=" << pin_id << " name=" << pin_name << " icon=" << pin_icon << " run_id=" << pin_run_id;
 
                 pin_item->when_click.connect(
                     [this, pin_id, pin_name, pin_icon, pin_run_id](auto &)
@@ -189,7 +180,6 @@ namespace horizon
                 for (const auto &info : instances)
                 {
                     std::string title = info.title.empty() ? "Ventana sin título" : info.title;
-                    LOG_INFO << "[DOCK] Adding window instance item: " << title;
                     auto *window_item = menu->add_item(title);
                     
                     struct zwlr_foreign_toplevel_handle_v1 *handle = info.handle;
@@ -199,7 +189,6 @@ namespace horizon
                     window_item->when_click.connect(
                         [this, handle, pid, aid](auto &)
                         {
-                            LOG_INFO << "[DOCK] ACTION: Window activation requested for ID='" << aid << "' Handle=" << (void*)handle;
                             if (handle != nullptr) {
                                 _compositor_apps->activate_instance(handle);
                             } else if (pid != -1) {
@@ -211,15 +200,11 @@ namespace horizon
                 menu->add_separator();
 
                 // 3. Global actions for the app
-                LOG_INFO << "[DOCK] Adding 'Salir de la aplicación' item";
                 auto *exit_item = menu->add_item("Salir de la aplicación");
-                LOG_INFO << "[DOCK] Menu Item: Salir de la aplicación (target: " << app_id << ")";
                 exit_item->when_click.connect(
                     [this, app_id](auto &)
                     {
-                        LOG_INFO << "[DOCK] ACTION: Salir requested for: '" << app_id << "'";
                         if (!app_id.empty() && app_id != "org.horizon.dock" && app_id != m_app_id) {
-                            LOG_INFO << "[DOCK] Closing via compositor: " << app_id;
                             _compositor_apps->close(app_id);
                         } else {
                             LOG_ERROR << "[DOCK] REJECTED close request for protected ID: '" << app_id << "'";
@@ -233,7 +218,6 @@ namespace horizon
 
     void DockApplication::update_dock(const std::vector<ApplicationInfo> &apps)
     {
-        LOG_INFO << "[DOCK] Updating icons... apps count: " << apps.size();
         m_last_apps = apps;
         _shelf_ptr->clear_children();
 
@@ -241,13 +225,11 @@ namespace horizon
         std::map<std::string, std::vector<ApplicationInfo>> grouped_running_apps;
         for (const auto &app_info : apps)
         {
-            LOG_INFO << "[DOCK] Running app report: ID='" << app_info.app_id << "' Title='" << app_info.title << "' ShowInDock=" << (app_info.show_in_dock ? "YES" : "NO");
             if (app_info.show_in_dock)
             {
                 // PROTECT DOCK AGAINST SELF-SHOWING
                 if (app_info.app_id == "org.horizon.dock" || app_info.app_id == m_app_id)
                 {
-                    LOG_INFO << "[DOCK] Filtering out self (ID matching " << app_info.app_id << ")";
                     continue;
                 }
 
