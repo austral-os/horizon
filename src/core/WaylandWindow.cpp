@@ -555,14 +555,23 @@ namespace horizon
                 }
                 else
                 {
+                    bool timers_empty = false;
+                    {
+                        std::lock_guard<std::mutex> lock(m_state_mutex);
+                        timers_empty = m_timers.empty();
+                    }
+
                     // Check nearest timer expiry
-                    if (!m_timers.empty())
+                    if (!timers_empty)
                     {
                         uint64_t next_expiry = 0;
-                        for (const auto &[id, timer] : m_timers)
                         {
-                            if (next_expiry == 0 || timer.next_expiry < next_expiry)
-                                next_expiry = timer.next_expiry;
+                            std::lock_guard<std::mutex> lock(m_state_mutex);
+                            for (const auto &[id, timer] : m_timers)
+                            {
+                                if (next_expiry == 0 || timer.next_expiry < next_expiry)
+                                    next_expiry = timer.next_expiry;
+                            }
                         }
                         int timer_ms = (next_expiry <= now) ? 0 : (int)(next_expiry - now);
                         timeout = (timeout == -1) ? timer_ms : std::min(timeout, timer_ms);
@@ -618,34 +627,36 @@ namespace horizon
                           std::chrono::steady_clock::now().time_since_epoch())
                           .count();
 
-                // Handle timers
-                std::vector<size_t> to_run;
-                for (auto const &[id, timer] : m_timers)
+                std::vector<std::function<void()>> callbacks_to_run;
                 {
-                    if (now >= timer.next_expiry)
-                        to_run.push_back(id);
-                }
-
-                for (size_t id : to_run)
-                {
-                    if (m_timers.count(id))
+                    std::lock_guard<std::mutex> lock(m_state_mutex);
+                    for (auto it = m_timers.begin(); it != m_timers.end();)
                     {
-                        auto &timer = m_timers[id];
-                        auto callback = timer.callback;
-                        bool repeat = timer.repeat;
-
-                        if (repeat)
+                        if (now >= it->second.next_expiry)
                         {
-                            timer.next_expiry = now + timer.interval_ms;
+                            if (it->second.callback)
+                                callbacks_to_run.push_back(it->second.callback);
+
+                            if (it->second.repeat)
+                            {
+                                it->second.next_expiry = now + it->second.interval_ms;
+                                ++it;
+                            }
+                            else
+                            {
+                                it = m_timers.erase(it);
+                            }
                         }
                         else
                         {
-                            m_timers.erase(id);
+                            ++it;
                         }
-
-                        if (callback)
-                            callback();
                     }
+                }
+
+                for (auto &callback : callbacks_to_run)
+                {
+                    callback();
                 }
 
                 // Trigger cursor blink independently of timers
@@ -1693,27 +1704,26 @@ namespace horizon
         m_gl_queue.push_back(call);
     }
 
-    size_t WaylandWindow::add_timer(int ms, std::function<void()> callback, bool repeat)
+    size_t WaylandWindow::add_timer(int interval_ms, std::function<void()> callback, bool repeat)
     {
-        size_t id = m_next_timer_id++;
-        uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
-                           std::chrono::steady_clock::now().time_since_epoch())
-                           .count();
-
+        std::lock_guard<std::mutex> lock(m_state_mutex);
         Timer t;
-        t.id = id;
-        t.interval_ms = ms;
-        t.next_expiry = now + ms;
+        t.interval_ms = interval_ms;
         t.repeat = repeat;
-        t.callback = callback;
-
+        t.callback = std::move(callback);
+        t.next_expiry = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            std::chrono::steady_clock::now().time_since_epoch())
+                            .count() +
+                        interval_ms;
+        size_t id = m_next_timer_id++;
+        t.id = id;
         m_timers[id] = t;
-        wakeup(); // Wake up the loop to reconsider timeout
         return id;
     }
 
     void WaylandWindow::stop_timer(size_t id)
     {
+        std::lock_guard<std::mutex> lock(m_state_mutex);
         m_timers.erase(id);
     }
 

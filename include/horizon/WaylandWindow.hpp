@@ -399,6 +399,21 @@ namespace horizon
         std::atomic<bool> m_is_running{false}; /**< Flag indicating if the event loop is active. */
         bool m_is_activated = false; /**< Flag indicating if the application is currently active. */
 
+        mutable std::mutex m_state_mutex;
+        struct Timer
+        {
+            size_t id;
+            int interval_ms;
+            uint64_t next_expiry;
+            bool repeat;
+            std::function<void()> callback;
+        };
+        std::map<size_t, Timer> m_timers;
+        size_t m_next_timer_id{1};
+
+        std::mutex m_task_mutex;
+        std::deque<std::function<void()>> m_task_queue;
+
         uint32_t m_modifiers{0};
 
         std::vector<Menu *> m_global_menus;
@@ -431,18 +446,6 @@ namespace horizon
         Widget *m_hovered = nullptr; /**< The widget currently under the mouse pointer. */
         Widget *m_pressed = nullptr; /**< The widget currently being pressed by a mouse button. */
         Widget *m_focused = nullptr; /**< The widget currently having keyboard focus. */
-        mutable std::mutex m_state_mutex;
-
-        struct Timer
-        {
-            size_t id;
-            int interval_ms;
-            uint64_t next_expiry;
-            bool repeat;
-            std::function<void()> callback;
-        };
-        std::map<size_t, Timer> m_timers;
-        size_t m_next_timer_id{1};
 
         GLuint m_gl_program{0};
         GLuint m_gl_vbo{0};
@@ -467,8 +470,6 @@ namespace horizon
         std::map<size_t, std::function<void(bool)>> m_on_maximize_handlers;
         std::map<size_t, std::function<void()>> m_on_minimize_handlers;
 
-        std::deque<std::function<void()>> m_task_queue;
-        std::mutex m_task_mutex;
 
         bool m_was_maximized_before_minimize{false};
 

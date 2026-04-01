@@ -3,6 +3,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <mutex>
 
 namespace horizon
 {
@@ -64,6 +65,7 @@ namespace horizon
 
         std::vector<Handler> m_handlers;
         size_t m_next_id{0};
+        mutable std::mutex m_mutex;
     };
 
 } // namespace horizon
