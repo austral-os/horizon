@@ -58,8 +58,7 @@ namespace horizon
 
         if (menu_array.empty())
         {
-            LOG_INFO << "[ClientMenu] No menus to send, skipping set_global_menu.";
-            return true;
+            LOG_INFO << "[ClientMenu] Sending empty global menu (clearing menus). PID: " << getpid();
         }
 
         LOG_INFO << "[ClientMenu] Sending global menu from PID " << getpid() << " with "

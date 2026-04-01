@@ -168,8 +168,8 @@ namespace horizon
             m_gl_texture = 0;
         }
 
-        // Limpieza
-        m_surface->free();
+        // WaylandSurface is managed by unique_ptr, it will be freed automatically
+        // when its destructor is called after this body finishes.
 
         if (m_wakeup_fd >= 0)
         {
@@ -733,10 +733,7 @@ namespace horizon
             m_client_menu = std::make_shared<ClientMenu>();
         }
 
-        if (m_is_activated)
-        {
-            m_client_menu->set_global_menu(m_global_menus);
-        }
+        m_client_menu->set_global_menu(m_global_menus);
     }
 
     void WaylandWindow::add_menu(std::unique_ptr<Menu> menu)
