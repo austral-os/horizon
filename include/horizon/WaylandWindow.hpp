@@ -99,7 +99,7 @@ namespace horizon
          */
         virtual bool is_transparent_surface() const
         {
-            return false;
+            return true;
         }
 
         /**
