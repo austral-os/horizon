@@ -17,6 +17,12 @@ namespace horizon::preferences
         std::string icon;
     };
 
+    struct MimeExtension
+    {
+        std::string pattern;
+        bool is_user;
+    };
+
     class MimeTypesView : public Widget
     {
     public:
@@ -44,12 +50,12 @@ namespace horizon::preferences
         
         // Right side details
         Label* m_mime_title_label{nullptr};
-        TableView<std::string>* m_extensions_table{nullptr};
+        TableView<MimeExtension>* m_extensions_table{nullptr};
         TableView<ApplicationInfo>* m_apps_table{nullptr};
 
         std::string m_current_mime;
         std::map<std::string, std::vector<std::string>> m_mime_data;
-        std::map<std::string, std::vector<std::string>> m_mime_extensions;
+        std::map<std::string, std::vector<MimeExtension>> m_mime_extensions;
         std::map<std::string, std::vector<ApplicationInfo>> m_mime_apps;
     };
 } // namespace horizon::preferences

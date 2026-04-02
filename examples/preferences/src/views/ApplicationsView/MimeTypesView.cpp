@@ -7,6 +7,7 @@
 #include <horizon/Button.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/EventsManager.hpp>
+#include <horizon/MessageDialog.hpp>
 #include <filesystem>
 #include <algorithm>
 #include <thread>
@@ -54,7 +55,6 @@ namespace horizon::preferences
                 // Find category by looking at parent
                 std::string category = "";
                 if (item->parent()) {
-                    // This is a bit brittle, but assuming the parent of a leaf is the category TreeViewItem
                     if (auto* parent_item = dynamic_cast<TreeViewItem*>(item->parent())) {
                         category = parent_item->get_text();
                     }
@@ -92,14 +92,14 @@ namespace horizon::preferences
         ext_label->set_fixed_size(25);
         right_column->add_child(std::move(ext_label));
 
-        auto ext_table = std::make_unique<TableView<std::string>>();
+        auto ext_table = std::make_unique<TableView<MimeExtension>>();
         m_extensions_table = ext_table.get();
         m_extensions_table->set_header_visible(false);
         
-        TableColumn<std::string> col_ext;
+        TableColumn<MimeExtension> col_ext;
         col_ext.width = 300;
-        col_ext.cell_factory = [](const std::string& ext) {
-            return std::make_unique<Label>(ext);
+        col_ext.cell_factory = [](const MimeExtension& ext) {
+            return std::make_unique<Label>(ext.pattern);
         };
         m_extensions_table->add_column(col_ext);
         right_column->add_child(std::move(ext_table));
@@ -257,26 +257,44 @@ namespace horizon::preferences
 
         m_mime_title_label->set_text("MIME Type: " + mime_type);
         
-        // Load extensions from system XML database
         if (m_mime_extensions.find(mime_type) == m_mime_extensions.end()) {
-            std::vector<std::string> patterns;
-            std::string xml_path = "/usr/share/mime/" + mime_type + ".xml";
+            std::vector<MimeExtension> extensions;
             
-            std::ifstream file(xml_path);
-            if (file.is_open()) {
-                std::string content((std::istreambuf_iterator<char>(file)),
-                                    std::istreambuf_iterator<char>());
-                
-                std::regex glob_re("<glob\\s+pattern=\"([^\"]+)\"");
-                auto words_begin = std::sregex_iterator(content.begin(), content.end(), glob_re);
-                auto words_end = std::sregex_iterator();
+            auto load_from_dir = [&](const std::string& base_path, bool is_user) {
+                std::string xml_path = base_path + mime_type + ".xml";
+                std::ifstream file(xml_path);
+                if (file.is_open()) {
+                    std::string content((std::istreambuf_iterator<char>(file)),
+                                        std::istreambuf_iterator<char>());
+                    
+                    std::regex glob_re("<glob\\s+pattern=\"([^\"]+)\"");
+                    auto words_begin = std::sregex_iterator(content.begin(), content.end(), glob_re);
+                    auto words_end = std::sregex_iterator();
 
-                for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
-                    std::smatch match = *i;
-                    patterns.push_back(match[1].str());
+                    for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+                        std::smatch match = *i;
+                        std::string pattern = match[1].str();
+                        
+                        auto it = std::find_if(extensions.begin(), extensions.end(), 
+                            [&](const MimeExtension& e) { return e.pattern == pattern; });
+                        
+                        if (it == extensions.end()) {
+                            extensions.push_back({pattern, is_user});
+                        } else if (is_user) {
+                            it->is_user = true;
+                        }
+                    }
                 }
+            };
+
+            load_from_dir("/usr/share/mime/", false);
+            
+            const char* home = std::getenv("HOME");
+            if (home) {
+                load_from_dir(std::string(home) + "/.local/share/mime/", true);
             }
-            m_mime_extensions[mime_type] = patterns;
+
+            m_mime_extensions[mime_type] = extensions;
         }
         m_extensions_table->set_data(m_mime_extensions[mime_type]);
 
@@ -288,7 +306,6 @@ namespace horizon::preferences
                 apps.push_back({entry.name, entry.icon});
             }
             
-            // Fallback if no apps found
             if (apps.empty()) {
                 apps.push_back({"Editor de Texto", "text-editor"});
             }
@@ -306,12 +323,39 @@ namespace horizon::preferences
             std::string val = text;
             if (auto* app = application()) {
                 app->post_task([this, val]() {
-                    if (!val.empty()) {
-                        std::string final_val = val;
-                        if (final_val[0] != '.') final_val = "." + final_val;
-                        m_mime_extensions[m_current_mime].push_back(final_val);
-                        m_extensions_table->set_data(m_mime_extensions[m_current_mime]);
+                    if (val.empty()) return;
+                    std::string pattern = val;
+                    if (pattern[0] != '*' && pattern[0] != '.') pattern = "*." + pattern;
+                    else if (pattern[0] == '.') pattern = "*" + pattern;
+
+                    const char* home = std::getenv("HOME");
+                    if (!home) return;
+
+                    fs::path local_mime_path = fs::path(home) / ".local/share/mime" / m_current_mime;
+                    local_mime_path.replace_extension(".xml");
+                    
+                    fs::create_directories(local_mime_path.parent_path());
+
+                    std::string content;
+                    if (fs::exists(local_mime_path)) {
+                        std::ifstream infile(local_mime_path);
+                        content = std::string((std::istreambuf_iterator<char>(infile)), 
+                                            std::istreambuf_iterator<char>());
+                    } else {
+                        content = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+                        content += "<mime-type xmlns=\"http://www.freedesktop.org/standards/shared-mime-info\" type=\"" + m_current_mime + "\">\n";
+                        content += "</mime-type>\n";
                     }
+
+                    size_t pos = content.rfind("</mime-type>");
+                    if (pos != std::string::npos) {
+                        content.insert(pos, "  <glob pattern=\"" + pattern + "\"/>\n");
+                        std::ofstream outfile(local_mime_path);
+                        outfile << content;
+                    }
+
+                    m_mime_extensions.erase(m_current_mime);
+                    update_details(m_current_mime);
                 });
             }
         });
@@ -325,11 +369,49 @@ namespace horizon::preferences
     void MimeTypesView::on_remove_extension()
     {
         int idx = m_extensions_table->selected_index();
-        if (idx != -1 && !m_current_mime.empty()) {
-            auto& v = m_mime_extensions[m_current_mime];
-            v.erase(v.begin() + idx);
-            m_extensions_table->set_data(v);
+        if (idx == -1 || m_current_mime.empty()) return;
+
+        auto extens = m_mime_extensions[m_current_mime];
+        if (idx >= (int)extens.size()) return;
+
+        MimeExtension ext = extens[idx];
+
+        if (!ext.is_user) {
+            auto dialog = std::make_unique<MessageDialog>("Error", 
+                "No es posible eliminar esta extensión porque pertenece a la configuración del sistema.",
+                MessageType::Warning);
+            
+            std::thread([d = std::move(dialog)]() mutable {
+                d->initialize();
+                d->run();
+            }).detach();
+            return;
         }
+
+        const char* home = std::getenv("HOME");
+        if (!home) return;
+
+        fs::path local_mime_path = fs::path(home) / ".local/share/mime" / m_current_mime;
+        local_mime_path.replace_extension(".xml");
+
+        if (fs::exists(local_mime_path)) {
+            std::ifstream infile(local_mime_path);
+            std::string content((std::istreambuf_iterator<char>(infile)), 
+                                std::istreambuf_iterator<char>());
+            
+            std::string tag = "<glob pattern=\"" + ext.pattern + "\"/>";
+            size_t tag_pos = content.find(tag);
+            if (tag_pos != std::string::npos) {
+                content.erase(tag_pos, tag.length());
+                if (tag_pos < content.length() && content[tag_pos] == '\n') content.erase(tag_pos, 1);
+                
+                std::ofstream outfile(local_mime_path);
+                outfile << content;
+            }
+        }
+
+        m_mime_extensions.erase(m_current_mime);
+        update_details(m_current_mime);
     }
 
     void MimeTypesView::on_add_app()
