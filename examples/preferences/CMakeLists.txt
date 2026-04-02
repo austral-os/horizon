@@ -39,6 +39,8 @@ add_executable(preferences
     src/views/ApplicationsView/StartupEditDialog.cpp
     src/utils/DesktopManager.cpp
     src/utils/XkbParser.cpp
+    src/views/KeyboardView/KeyboardLanguageView.cpp
+    src/views/ApplicationsView/LayoutPickerDialog.cpp
 )
 
 target_link_libraries(preferences

@@ -16,6 +16,10 @@ namespace horizon::preferences
         ~KeyboardHardwareView() override = default;
 
     private:
+        void setup_ui();
+        void load_config();
+        void save_config();
+
         Slider* m_delay_slider{nullptr};
         Slider* m_rate_slider{nullptr};
         Checkbox<AquaObject>* m_numlock_checkbox{nullptr};

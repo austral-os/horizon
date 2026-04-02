@@ -17,6 +17,13 @@ namespace horizon::preferences
         std::string description;
     };
 
+    struct KeyboardLayoutSelection
+    {
+        std::string id;
+        std::string description;
+        bool is_default;
+    };
+
     class XkbParser
     {
     public:

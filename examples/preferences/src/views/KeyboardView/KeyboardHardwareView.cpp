@@ -1,6 +1,7 @@
 #include <views/KeyboardView/KeyboardHardwareView.hpp>
 #include <utils/XkbParser.hpp>
 #include <horizon/VPanel.hpp>
+#include <ConfigManager.hpp>
 
 namespace horizon::preferences
 {
@@ -11,6 +12,12 @@ namespace horizon::preferences
         set_margin(20);
         set_spacing(20);
 
+        setup_ui();
+        load_config();
+    }
+
+    void KeyboardHardwareView::setup_ui()
+    {
         // --- Keyboard Model Selection ---
         auto model_section = std::make_unique<Widget>();
         model_section->set_layout_type(WIDGET_LAYOUT_VERTICAL);
@@ -32,10 +39,7 @@ namespace horizon::preferences
             m_model_combo->add_item(model.id, model.description);
         }
         
-        if (!models.empty())
-        {
-            m_model_combo->set_selected_item_by_id("pc105"); // Default or first
-        }
+        m_model_combo->when_item_selected.connect([this](ComboItemSelectedContext&) { save_config(); });
 
         model_section->add_child(std::move(model_combo));
         add_child(std::move(model_section));
@@ -65,6 +69,7 @@ namespace horizon::preferences
         delay_slider->set_tick_count(3);
         delay_slider->set_show_ticks(true);
         m_delay_slider = delay_slider.get();
+        m_delay_slider->when_value_changed.connect([this](EventContext&) { save_config(); });
         delay_container->add_child(std::move(delay_slider));
 
         // Delay Markers Row
@@ -107,6 +112,7 @@ namespace horizon::preferences
         rate_slider->set_tick_count(3);
         rate_slider->set_show_ticks(true);
         m_rate_slider = rate_slider.get();
+        m_rate_slider->when_value_changed.connect([this](EventContext&) { save_config(); });
         rate_container->add_child(std::move(rate_slider));
 
         // Rate Markers Row
@@ -138,9 +144,40 @@ namespace horizon::preferences
         numlock_check->set_text("Iniciar Num Lock activado");
         numlock_check->set_fixed_size(30);
         m_numlock_checkbox = numlock_check.get();
+        m_numlock_checkbox->set_on_toggle([this](bool) { save_config(); });
         add_child(std::move(numlock_check));
 
         // --- Bottom Spacer ---
         add_child(Spacer());
+    }
+
+    void KeyboardHardwareView::load_config()
+    {
+        auto keyboard = ConfigManager::instance().get_section("keyboard");
+        
+        if (keyboard.contains("model")) {
+            m_model_combo->set_selected_item_by_id(keyboard["model"].get<std::string>());
+        } else {
+            m_model_combo->set_selected_item_by_id("pc105");
+        }
+
+        if (keyboard.contains("delay")) m_delay_slider->set_value(keyboard["delay"].get<float>());
+        if (keyboard.contains("rate")) m_rate_slider->set_value(keyboard["rate"].get<float>());
+        if (keyboard.contains("numlock")) m_numlock_checkbox->set_checked(keyboard["numlock"].get<bool>());
+    }
+
+    void KeyboardHardwareView::save_config()
+    {
+        auto keyboard = ConfigManager::instance().get_section("keyboard");
+        
+        if (auto* sel = m_model_combo->selected_item()) {
+            keyboard["model"] = sel->id;
+        }
+        
+        keyboard["delay"] = m_delay_slider->value();
+        keyboard["rate"] = m_rate_slider->value();
+        keyboard["numlock"] = m_numlock_checkbox->is_checked();
+        
+        ConfigManager::instance().set_section("keyboard", keyboard);
     }
 } // namespace horizon::preferences
