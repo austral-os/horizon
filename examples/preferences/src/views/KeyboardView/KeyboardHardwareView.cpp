@@ -15,20 +15,20 @@ namespace horizon::preferences
         sliders_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         sliders_row->set_position_type(WidgetPositionTypes::FILL);
         sliders_row->set_spacing(40);
-        sliders_row->set_fixed_size(100);
+        sliders_row->set_fixed_size(80);
 
         // Delay Section
         auto delay_container = std::make_unique<Widget>();
         delay_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         delay_container->set_position_type(WidgetPositionTypes::FILL);
-        delay_container->set_spacing(5);
+        delay_container->set_spacing(0);
 
         auto delay_label = std::make_unique<Label>("Delay");
         delay_label->set_fixed_size(20);
         delay_container->add_child(std::move(delay_label));
 
         auto delay_slider = std::make_unique<Slider>();
-        delay_slider->set_position_type(WidgetPositionTypes::FILL);
+        delay_slider->set_fixed_size(35);
         delay_slider->set_min(100.0f);
         delay_slider->set_max(1000.0f);
         delay_slider->set_value(500.0f);
@@ -40,7 +40,7 @@ namespace horizon::preferences
         // Delay Markers Row
         auto delay_markers = std::make_unique<Widget>();
         delay_markers->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        delay_markers->set_fixed_size(20);
+        delay_markers->set_fixed_size(15);
         delay_markers->set_margin(12); // Match TRACK_PAD
 
         auto delay_min = std::make_unique<Label>("100ms");
@@ -63,14 +63,14 @@ namespace horizon::preferences
         auto rate_container = std::make_unique<Widget>();
         rate_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         rate_container->set_position_type(WidgetPositionTypes::FILL);
-        rate_container->set_spacing(5);
+        rate_container->set_spacing(0);
 
         auto rate_label = std::make_unique<Label>("Rate");
         rate_label->set_fixed_size(20);
         rate_container->add_child(std::move(rate_label));
 
         auto rate_slider = std::make_unique<Slider>();
-        rate_slider->set_position_type(WidgetPositionTypes::FILL);
+        rate_slider->set_fixed_size(35);
         rate_slider->set_min(1.0f);
         rate_slider->set_max(50.0f);
         rate_slider->set_value(25.0f);
@@ -82,7 +82,7 @@ namespace horizon::preferences
         // Rate Markers Row
         auto rate_markers = std::make_unique<Widget>();
         rate_markers->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        rate_markers->set_fixed_size(20);
+        rate_markers->set_fixed_size(15);
         rate_markers->set_margin(12); // Match TRACK_PAD
 
         auto rate_min = std::make_unique<Label>("1Hz");
