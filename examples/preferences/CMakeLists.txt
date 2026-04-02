@@ -29,6 +29,7 @@ add_executable(preferences
     src/views/DateTimeView/DateTimeView.cpp
     src/views/RegionView/RegionView.cpp
     src/views/DetailsView/DetailsView.cpp
+    src/views/ApplicationsView/ApplicationsView.cpp
 )
 
 target_link_libraries(preferences

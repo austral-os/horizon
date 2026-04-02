@@ -47,6 +47,7 @@ namespace horizon::preferences
             {"users", "Usuarios", "system-users"},
             {"datetime", "Fecha y Hora", "preferences-system-time"},
             {"region", "Región e Idioma", "preferences-desktop-locale"},
+            {"applications", "Aplicaciones", "applications-other"},
             {"details", "Acerca de", "help-about"}
         };
         add_group(system);

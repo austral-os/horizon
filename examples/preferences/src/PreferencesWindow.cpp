@@ -2,6 +2,7 @@
 #include "ConfigManager.hpp"
 #include "ViewPanel.hpp"
 #include "views/AppearanceView/AppearanceView.hpp"
+#include "views/ApplicationsView/ApplicationsView.hpp"
 #include "views/BluetoothView/BluetoothView.hpp"
 #include "views/DateTimeView/DateTimeView.hpp"
 #include "views/DesktopView/DesktopView.hpp"
@@ -92,6 +93,8 @@ namespace horizon::preferences
             view = std::make_unique<RegionView>();
         else if (id == "details")
             view = std::make_unique<DetailsView>();
+        else if (id == "applications")
+            view = std::make_unique<ApplicationsView>();
 
         if (view)
         {
