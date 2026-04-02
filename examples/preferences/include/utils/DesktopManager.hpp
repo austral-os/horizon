@@ -25,6 +25,7 @@ namespace horizon::preferences
         static std::vector<DesktopEntry> get_apps_for_mime(const std::string& mime_type);
         static std::vector<DesktopEntry> load_all_desktop_entries();
         static void add_mime_association(const std::string& mime_type, const std::string& desktop_id);
+        static void remove_mime_association(const std::string& mime_type, const std::string& desktop_id);
 
     private:
         static std::optional<DesktopEntry> parse_desktop_file(const std::string& path);

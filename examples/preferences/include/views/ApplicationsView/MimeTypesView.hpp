@@ -13,6 +13,7 @@ namespace horizon::preferences
 {
     struct ApplicationInfo
     {
+        std::string id;
         std::string name;
         std::string icon;
     };

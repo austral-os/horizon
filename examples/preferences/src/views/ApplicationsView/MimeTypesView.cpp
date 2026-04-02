@@ -304,11 +304,11 @@ namespace horizon::preferences
             auto entries = DesktopManager::get_apps_for_mime(mime_type);
             std::vector<ApplicationInfo> apps;
             for (const auto& entry : entries) {
-                apps.push_back({entry.name, entry.icon});
+                apps.push_back({entry.id, entry.name, entry.icon});
             }
             
             if (apps.empty()) {
-                apps.push_back({"Editor de Texto", "text-editor"});
+                apps.push_back({"text-editor.desktop", "Editor de Texto", "text-editor"});
             }
             m_mime_apps[mime_type] = apps;
         }
@@ -431,7 +431,7 @@ namespace horizon::preferences
                     });
                     
                     if (it == apps.end()) {
-                        apps.push_back({entry.name, entry.icon});
+                        apps.push_back({entry.id, entry.name, entry.icon});
                         m_apps_table->set_data(apps);
                         
                         // 2. Persist in ~/.config/mimeapps.list
@@ -452,6 +452,13 @@ namespace horizon::preferences
         int idx = m_apps_table->selected_index();
         if (idx != -1 && !m_current_mime.empty()) {
             auto& v = m_mime_apps[m_current_mime];
+            std::string desktop_id = v[idx].id;
+
+            // Final check: only remove if it's not a generic placeholder
+            if (!desktop_id.empty()) {
+                DesktopManager::remove_mime_association(m_current_mime, desktop_id);
+            }
+
             v.erase(v.begin() + idx);
             m_apps_table->set_data(v);
         }

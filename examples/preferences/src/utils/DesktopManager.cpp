@@ -284,4 +284,59 @@ namespace horizon::preferences
             outfile << l << "\n";
         }
     }
+
+    void DesktopManager::remove_mime_association(const std::string& mime_type, const std::string& desktop_id)
+    {
+        const char* home = std::getenv("HOME");
+        if (!home) return;
+        
+        fs::path config_path = fs::path(home) / ".config" / "mimeapps.list";
+        if (!fs::exists(config_path)) return;
+
+        std::vector<std::string> lines;
+        std::ifstream infile(config_path);
+        std::string line;
+        while (std::getline(infile, line)) {
+            lines.push_back(line);
+        }
+
+        bool in_added_section = false;
+        for (size_t i = 0; i < lines.size(); ++i) {
+            std::string l = trim(lines[i]);
+            if (l == "[Added Associations]") {
+                in_added_section = true;
+                continue;
+            } else if (l.size() > 0 && l[0] == '[') {
+                in_added_section = false;
+                continue;
+            }
+
+            if (in_added_section) {
+                auto pos = l.find('=');
+                if (pos != std::string::npos) {
+                    std::string key = trim(l.substr(0, pos));
+                    if (key == mime_type) {
+                        std::string value = trim(l.substr(pos + 1));
+                        
+                        std::string search_str = desktop_id + ";";
+                        size_t start_pos = value.find(search_str);
+                        if (start_pos != std::string::npos) {
+                            value.erase(start_pos, search_str.length());
+                            if (value.empty()) {
+                                lines.erase(lines.begin() + i);
+                            } else {
+                                lines[i] = mime_type + "=" + value;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        std::ofstream outfile(config_path);
+        for (const auto& l : lines) {
+            outfile << l << "\n";
+        }
+    }
 } // namespace horizon::preferences
