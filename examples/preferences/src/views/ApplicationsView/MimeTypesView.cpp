@@ -5,12 +5,12 @@
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Icon.hpp>
-#include <horizon/Spacer.hpp>
-#include <horizon/WaylandWindow.hpp>
 #include <horizon/EventsManager.hpp>
 #include <filesystem>
 #include <algorithm>
 #include <thread>
+#include <fstream>
+#include <regex>
 
 namespace fs = std::filesystem;
 
@@ -256,11 +256,26 @@ namespace horizon::preferences
 
         m_mime_title_label->set_text("MIME Type: " + mime_type);
         
-        // Load or default extensions
+        // Load extensions from system XML database
         if (m_mime_extensions.find(mime_type) == m_mime_extensions.end()) {
-            // Placeholder: derive from filename stem if it was real, 
-            // but since we just have the name, let's just use some mock data
-            m_mime_extensions[mime_type] = { "." + mime_type.substr(mime_type.find('/')+1) };
+            std::vector<std::string> patterns;
+            std::string xml_path = "/usr/share/mime/" + mime_type + ".xml";
+            
+            std::ifstream file(xml_path);
+            if (file.is_open()) {
+                std::string content((std::istreambuf_iterator<char>(file)),
+                                    std::istreambuf_iterator<char>());
+                
+                std::regex glob_re("<glob\\s+pattern=\"([^\"]+)\"");
+                auto words_begin = std::sregex_iterator(content.begin(), content.end(), glob_re);
+                auto words_end = std::sregex_iterator();
+
+                for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+                    std::smatch match = *i;
+                    patterns.push_back(match[1].str());
+                }
+            }
+            m_mime_extensions[mime_type] = patterns;
         }
         m_extensions_table->set_data(m_mime_extensions[mime_type]);
 
