@@ -9,6 +9,7 @@
 #include <views/DisplayView/KwinAdapter.hpp>
 #include <views/DisplayView/LabwcAdapter.hpp>
 #include <views/DisplayView/WayfireAdapter.hpp>
+#include <ConfigManager.hpp>
 
 namespace horizon::preferences
 {
@@ -65,6 +66,9 @@ namespace horizon::preferences
                                  << "," << info.y;
                     }
                 }
+                
+                // Load configuration after monitors are identified
+                from_json(ConfigManager::instance().get_section("displays"));
             });
 
         // 1. Display Devices (Upper Part)
@@ -168,11 +172,18 @@ namespace horizon::preferences
             {
                 if (ctx.button == 0x110 && m_adapter)
                 {
+                    // Update local monitors from widget positions
+                    const auto& current_monitors = m_display_devices->monitors();
+                    for (size_t i = 0; i < m_monitors.size() && i < current_monitors.size(); ++i) {
+                        m_monitors[i].x = current_monitors[i].info.x;
+                        m_monitors[i].y = current_monitors[i].info.y;
+                    }
+
                     std::vector<MonitorConfig> current_configs;
                     std::vector<MonitorConfig> configs;
                     for (size_t i = 0; i < m_monitors.size(); ++i)
                     {
-                        const auto &m = m_monitors[i];
+                        auto &m = m_monitors[i];
                         MonitorConfig cfg;
                         cfg.name = m.conn_name;
                         cfg.x = m.x;
@@ -195,12 +206,17 @@ namespace horizon::preferences
                                 cfg.width = mode.width;
                                 cfg.height = mode.height;
                                 cfg.refresh = mode.refresh_rate;
+                                
+                                // Update internal monitor info too
+                                m.width = mode.width;
+                                m.height = mode.height;
                             }
                             // Also get rotation
                             auto *rot_item = m_rotation_combo->selected_item();
                             if (rot_item)
                             {
                                 cfg.rotation = std::stoi(rot_item->id);
+                                m.rotation = cfg.rotation;
                             }
                         }
                         configs.push_back(cfg);
@@ -214,6 +230,7 @@ namespace horizon::preferences
                     }
 
                     m_adapter->apply_configs(configs);
+                    save_config();
 
                     // Show confirmation
                     m_previous_configs = current_configs; // Capture old
@@ -453,5 +470,70 @@ namespace horizon::preferences
             m_refresh_combo->set_selected_item_by_id(
                 std::to_string((int)modes[current_idx].refresh_rate));
         }
+    }
+
+    void DisplayView::from_json(const nlohmann::json &j)
+    {
+        if (j.is_array())
+        {
+            LOG_INFO << "[VIEW] Loading " << j.size() << " monitor configurations from JSON";
+            for (const auto &item : j)
+            {
+                std::string name = item.value("name", "");
+                int x = item.value("x", 0);
+                int y = item.value("y", 0);
+                int rotation = item.value("rotation", 0);
+                int width = item.value("width", 0);
+                int height = item.value("height", 0);
+
+                LOG_INFO << "[VIEW] Applying config for " << name << ": x=" << x << ", y=" << y << ", rot=" << rotation;
+
+                // Find monitor in m_monitors and update its info
+                for (auto &m : m_monitors)
+                {
+                    if (m.conn_name == name)
+                    {
+                        m.x = x;
+                        m.y = y;
+                        m.rotation = rotation;
+                        if (width > 0) m.width = width;
+                        if (height > 0) m.height = height;
+                        
+                        // Sync with visual widget if it exists
+                        if (m_display_devices) {
+                            m_display_devices->set_monitor_position(name, x, y);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    nlohmann::json DisplayView::to_json() const
+    {
+        LOG_INFO << "[VIEW] Serializing " << m_monitors.size() << " monitors to JSON";
+        nlohmann::json j = nlohmann::json::array();
+        for (const auto &m : m_monitors)
+        {
+            LOG_INFO << "  - Serialization: " << m.conn_name << " at " << m.x << "," << m.y;
+            j.push_back({
+                {"name", m.conn_name},
+                {"x", m.x},
+                {"y", m.y},
+                {"width", m.width},
+                {"height", m.height},
+                {"refresh", 60.0f}, // TODO: capture actual refresh rate
+                {"rotation", m.rotation},
+                {"enabled", true}
+            });
+        }
+        return j;
+    }
+
+    void DisplayView::save_config()
+    {
+        ConfigManager::instance().set_section("displays", to_json());
+        ConfigManager::instance().save();
     }
 } // namespace horizon::preferences

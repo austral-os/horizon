@@ -16,6 +16,10 @@
 #include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
+#include <fstream>
+#include <sstream>
+#include <cstdlib>
+#include <horizon/DisplayConfig.hpp>
 
 namespace fs = std::filesystem;
 
@@ -215,6 +219,9 @@ void HorizonSession::run_startup_services()
                 LOG_INFO << "[HorizonSession] Detected new WAYLAND_DISPLAY: " << new_display
                          << std::endl;
                 setenv("WAYLAND_DISPLAY", new_display.c_str(), 1);
+
+                // Apply saved display configuration
+                apply_display_config();
             }
             else
             {
@@ -575,4 +582,110 @@ std::string HorizonSession::handle_ipc_message(const std::string &msg)
         return "{\"status\": \"error\"}";
     }
     return "{\"status\": \"ok\"}";
+}
+
+void HorizonSession::apply_display_config()
+{
+    const char *home = std::getenv("HOME");
+    if (!home)
+        return;
+
+    fs::path config_path(home);
+    config_path /= ".config/horizon/horizon.json";
+
+    if (!fs::exists(config_path))
+    {
+        LOG_INFO << "[HorizonSession] No configuration file found at " << config_path;
+        return;
+    }
+
+    try
+    {
+        std::ifstream file(config_path);
+        nlohmann::json j;
+        file >> j;
+
+        if (!j.contains("displays") || !j["displays"].is_array())
+        {
+            LOG_INFO << "[HorizonSession] No 'displays' section found in " << config_path;
+            return;
+        }
+
+        LOG_INFO << "[HorizonSession] Applying display configuration from horizon.json";
+
+        std::vector<horizon::MonitorConfig> configs;
+        for (const auto &item : j["displays"])
+        {
+            horizon::MonitorConfig cfg;
+            cfg.name = item.value("name", "");
+            cfg.x = item.value("x", 0);
+            cfg.y = item.value("y", 0);
+            cfg.width = item.value("width", 0);
+            cfg.height = item.value("height", 0);
+            cfg.refresh = item.value("refresh", 60.0f);
+            cfg.rotation = item.value("rotation", 0);
+            cfg.enabled = item.value("enabled", true);
+            configs.push_back(cfg);
+        }
+
+        // Determine compositor and apply
+        const char *desktop = std::getenv("XDG_CURRENT_DESKTOP");
+        std::string desktop_str = desktop ? desktop : "";
+        
+        LOG_INFO << "[HorizonSession] Applying configuration for desktop: " << desktop_str;
+
+        if (desktop_str.find("LABWC") != std::string::npos || 
+            desktop_str.find("WAYFIRE") != std::string::npos)
+        {
+            // Use wlr-randr
+            for (const auto &config : configs)
+            {
+                std::stringstream ss;
+                ss << "wlr-randr --output " << config.name;
+                if (config.enabled)
+                {
+                    ss << " --mode " << config.width << "x" << config.height;
+                    ss << " --pos " << config.x << "," << config.y;
+                    std::string rot = (config.rotation == 90)  ? "90"
+                                      : (config.rotation == 180) ? "180"
+                                      : (config.rotation == 270) ? "270"
+                                                                 : "normal";
+                    ss << " --transform " << rot;
+                }
+                else
+                {
+                    ss << " --off";
+                }
+                LOG_INFO << "[HorizonSession] Executing: " << ss.str();
+                std::system(ss.str().c_str());
+            }
+        }
+        else if (desktop_str.find("KDE") != std::string::npos)
+        {
+            // Use kscreen-doctor
+            std::stringstream ss;
+            ss << "kscreen-doctor";
+            for (const auto &config : configs)
+            {
+                ss << " output." << config.name;
+                if (config.enabled)
+                {
+                    ss << ".mode." << config.width << "x" << config.height << "@"
+                       << (int)config.refresh;
+                    ss << " output." << config.name << ".position." << config.x << "," << config.y;
+                    ss << " output." << config.name << ".rotation." << config.rotation;
+                }
+                else
+                {
+                    ss << ".disable";
+                }
+            }
+            LOG_INFO << "[HorizonSession] Executing: " << ss.str();
+            std::system(ss.str().c_str());
+        }
+    }
+    catch (const std::exception &e)
+    {
+        LOG_ERROR << "[HorizonSession] Error applying display configuration: " << e.what();
+    }
 }

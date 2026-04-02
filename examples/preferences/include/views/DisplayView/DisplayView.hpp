@@ -1,4 +1,5 @@
 #pragma once
+#include <ConfigSection.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/TableView.hpp>
@@ -12,15 +13,21 @@
 
 namespace horizon::preferences
 {
-    class DisplayView : public Widget
+    class DisplayView : public Widget, public ConfigSection
     {
     public:
         DisplayView();
         ~DisplayView() override = default;
+
+        // ConfigSection implementation
+        void from_json(const nlohmann::json &j) override;
+        nlohmann::json to_json() const override;
+
     private:
         void on_monitor_selected(int index);
         void show_confirmation();
         void revert_settings();
+        void save_config();
 
         Label* m_title_label{nullptr};
         DisplayDevices* m_display_devices{nullptr};

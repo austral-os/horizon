@@ -281,9 +281,38 @@ namespace horizon::preferences
             int rtx = m.rx + (m.rw - res_metrics.width) / 2;
             int rty = ty + res_metrics.height + 4;
             
-            if (res_metrics.width < m.rw - 10 && rty < m.ry + m.rh - 5) {
+                if (rty < m.ry + m.rh - 5) {
                 gc.drawText(rtx, rty, res.c_str());
             }
         }
+    }
+
+    void DisplayDevices::set_monitor_position(const std::string &name, int x, int y)
+    {
+        for (auto &m : m_monitors)
+        {
+            if (m.info.conn_name == name)
+            {
+                m.info.x = x;
+                m.info.y = y;
+                break;
+            }
+        }
+        update_render_rects();
+        invalidate();
+    }
+
+    void DisplayDevices::update_monitor_info(const std::string &name, const MonitorInfo &info)
+    {
+        for (auto &m : m_monitors)
+        {
+            if (m.info.conn_name == name)
+            {
+                m.info = info;
+                break;
+            }
+        }
+        update_render_rects();
+        invalidate();
     }
 }

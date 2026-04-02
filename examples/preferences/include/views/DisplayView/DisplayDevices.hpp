@@ -30,6 +30,9 @@ namespace horizon::preferences
 
         const std::vector<MonitorRect> &monitors() const { return m_monitors; }
 
+        void set_monitor_position(const std::string &name, int x, int y);
+        void update_monitor_info(const std::string &name, const MonitorInfo &info);
+
     private:
         void refresh_monitors();
         void update_render_rects();
