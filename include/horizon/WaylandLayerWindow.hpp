@@ -19,7 +19,7 @@ namespace horizon
          * @param layer The layer to place the surface in (default is overlay).
          */
         WaylandLayerWindow(const std::string &namespace_id,
-                           uint32_t layer = 3, bool defer_init = false); // 3 = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
+                           uint32_t layer = 3, bool defer_init = false, int monitor_index = -1); // 3 = ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY
 
         void initialize() override;
         void on_resize(int width, int height) override;
@@ -56,11 +56,14 @@ namespace horizon
             return true;
         }
 
+        int monitor_index() const { return m_monitor_index; }
+
     private:
         std::string m_namespace;
         uint32_t m_layer;
         uint32_t m_interactivity{0}; // 0 = ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE
         bool m_visible{false};
+        int m_monitor_index{-1};
 
         void update_screen_position();
     };

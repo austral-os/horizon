@@ -62,39 +62,7 @@
         }
     ],
     "dock": {
-        "icon_size": 42,
-        "magnification_enabled": true,
-        "pinned": [
-            {
-                "app_id": "org.horizon.launchpad",
-                "icon": "slingscold",
-                "name": "Launchpad",
-                "run_id": "launchpad"
-            },
-            {
-                "app_id": "arkfm",
-                "icon": "arkfm",
-                "name": "Ark File Manager",
-                "run_id": "arkfm"
-            },
-            {
-                "app_id": "firefox",
-                "icon": "firefox",
-                "name": "Web Browser",
-                "run_id": "firefox"
-            },
-            {
-                "app_id": "konsole",
-                "icon": "utilities-terminal",
-                "name": "Terminal",
-                "run_id": "terminal"
-            },
-            {
-                "app_id": "horizon.preferences",
-                "icon": "applications-system",
-                "name": "Preferences",
-                "run_id": "preferences"
-            }
-        ]
+        "icon_size": 48,
+        "magnification_enabled": true
     }
 }

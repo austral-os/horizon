@@ -4,9 +4,9 @@
 
 namespace horizon
 {
-    WaylandLayerWindow::WaylandLayerWindow(const std::string &namespace_id, uint32_t layer, bool defer_init)
+    WaylandLayerWindow::WaylandLayerWindow(const std::string &namespace_id, uint32_t layer, bool defer_init, int monitor_index)
         : WaylandWindow(namespace_id, 0, 0, true, false), m_namespace(namespace_id), m_layer(layer),
-          m_interactivity(0)
+          m_interactivity(0), m_monitor_index(monitor_index)
     {
         if (!defer_init)
         {
@@ -38,7 +38,14 @@ namespace horizon
     void WaylandLayerWindow::initialize()
     {
         w_surface()->init_display();
-        w_surface()->setup_layer_surface(m_layer, m_namespace);
+        
+        struct wl_output *output = nullptr;
+        if (m_monitor_index >= 0)
+        {
+            output = w_surface()->get_monitor(m_monitor_index);
+        }
+        
+        w_surface()->setup_layer_surface(m_layer, m_namespace, output);
     }
 
     void WaylandLayerWindow::set_anchor(uint32_t anchor)

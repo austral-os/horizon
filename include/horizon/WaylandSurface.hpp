@@ -169,7 +169,7 @@ namespace horizon
         void init_display();
         void share_connection_from(WaylandSurface *other);
         void setup_xdg_toplevel(const std::string &title, const std::string &app_id);
-        void setup_layer_surface(uint32_t layer, const std::string &namespace_id);
+        void setup_layer_surface(uint32_t layer, const std::string &namespace_id, struct wl_output *output = nullptr);
         uint32_t layer_num() const { return m_layer_num; }
         const std::string &layer_namespace() const { return m_layer_namespace; }
         void setup_xdg_popup(WaylandSurface *parent, int x, int y, int w, int h);

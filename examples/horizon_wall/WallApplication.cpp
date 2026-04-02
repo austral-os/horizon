@@ -21,23 +21,44 @@ namespace horizon
         : Application("org.horizon.wall", 1920, 1080, true, true),
           m_wall_path(wall_path)
     {
-        m_window = create_layer_window("horizon_wall", 0); // Background layer
-
-        m_window->set_name("Horizon Wallpaper");
-        m_window->set_icon_name("preferences-desktop-wallpaper");
-        m_window->set_show_in_dock(false);
-
         const char* home = std::getenv("HOME");
         if (home)
         {
             m_config_path = std::string(home) + "/.config/horizon/horizon.json";
         }
 
-        setup_window();
-        load_wallpaper(m_wall_path);
+        // Create the first window
+        auto* first = create_layer_window("horizon_wall", 0, 0);
+        m_windows.push_back(first);
+
+        first->set_name("Horizon Wallpaper");
+        first->set_icon_name("preferences-desktop-wallpaper");
+        first->set_show_in_dock(false);
+        setup_window(first);
+
+        // When the first window is ready, check for more monitors
+        first->add_on_start([this, first]() {
+            int count = first->get_monitor_count();
+            LOG_INFO << "[HORIZON WALL] Detected " << count << " monitors";
+            for (int i = 1; i < count; ++i) {
+                auto* win = create_layer_window("horizon_wall", 0, i);
+                win->set_name("Horizon Wallpaper");
+                win->set_icon_name("preferences-desktop-wallpaper");
+                win->set_show_in_dock(false);
+                setup_window(win);
+                win->set_visible(true);
+                m_windows.push_back(win);
+            }
+            
+            // Trigger initial wallpaper load on the main thread loop (via first window's task queue)
+            first->post_task([this]() {
+                load_wallpaper(m_wall_path);
+            });
+        });
+
         start_watcher();
 
-        m_window->set_visible(true);
+        first->set_visible(true);
         LOG_INFO << "Horizon Wallpaper initialized.";
     }
 
@@ -47,20 +68,18 @@ namespace horizon
         stop_watcher();
     }
 
-    void WallApplication::setup_window()
+    void WallApplication::setup_window(WaylandLayerWindow* window)
     {
-        m_window->set_anchor(
+        if (!window) return;
+        window->set_anchor(
             ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |
             ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
-        m_window->set_exclusive_zone(-1);
+        window->set_exclusive_zone(-1);
     }
 
     void WallApplication::load_wallpaper(const std::string &wall_path)
     {
-        auto root = std::make_unique<Widget>();
-        root->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-
-        auto wallpaper = std::make_unique<Image>();
+        m_wallpaper_widgets.clear();
         ImageMode mode = ImageMode::Stretch;
 
         std::string final_path = wall_path;
@@ -101,10 +120,6 @@ namespace horizon
                 {
                     LOG_ERROR << "[HORIZON WALL] Error parsing JSON: " << e.what();
                 }
-                catch (...)
-                {
-                    LOG_ERROR << "[HORIZON WALL] Unknown error parsing JSON";
-                }
             }
         }
 
@@ -124,8 +139,27 @@ namespace horizon
             }
         }
 
-        m_wallpaper_widget = wallpaper.get();
-        wallpaper->set_mode(mode);
+        // Apply to all windows
+        for (auto* win : m_windows)
+        {
+            auto root = std::make_unique<Widget>();
+            root->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+
+            auto wallpaper = std::make_unique<Image>();
+            wallpaper->set_mode(mode);
+            wallpaper->when_mouse_press.connect(
+                [](MouseButtonEventContext &ev)
+                { LOG_INFO << "[HORIZON WALL] Wallpaper clicked with button: " << ev.button; });
+
+            if (type != "gallery" && !final_path.empty())
+            {
+                wallpaper->set_path(final_path);
+            }
+
+            m_wallpaper_widgets.push_back(wallpaper.get());
+            root->add_child(std::move(wallpaper));
+            win->set_root(std::move(root));
+        }
 
         if (type == "gallery" && !final_path.empty())
         {
@@ -135,30 +169,13 @@ namespace horizon
             }
             else if (std::filesystem::exists(final_path))
             {
-                // If it's a file, use the parent directory
                 start_gallery(std::filesystem::path(final_path).parent_path().string(), change_time * 1000, order);
             }
         }
         else
         {
             stop_gallery();
-            if (!final_path.empty())
-            {
-                LOG_INFO << "[HORIZON WALL] Loading wallpaper: " << final_path;
-                wallpaper->set_path(final_path);
-            }
-            else
-            {
-                LOG_ERROR << "[HORIZON WALL] Warning: No wallpaper image found.";
-            }
         }
-
-        wallpaper->when_mouse_press.connect(
-            [](MouseButtonEventContext &ev)
-            { LOG_INFO << "[HORIZON WALL] Wallpaper clicked with button: " << ev.button; });
-
-        root->add_child(std::move(wallpaper));
-        m_window->set_root(std::move(root));
     }
 
     void WallApplication::start_gallery(const std::string &directory, int interval_ms, const std::string &order)
@@ -207,14 +224,14 @@ namespace horizon
         LOG_INFO << "[HORIZON WALL] Starting gallery with " << m_gallery_images.size() << " images, interval: " << interval_ms << "ms, order: " << order;
         
         // Show the first image immediately
-        if (m_wallpaper_widget)
+        for (auto* widget : m_wallpaper_widgets)
         {
-            m_wallpaper_widget->set_path(m_gallery_images[0]);
+            widget->set_path(m_gallery_images[0]);
         }
 
-        if (interval_ms > 0)
+        if (interval_ms > 0 && !m_windows.empty())
         {
-            m_gallery_timer_id = m_window->add_timer(interval_ms, [this]() {
+            m_gallery_timer_id = m_windows[0]->add_timer(interval_ms, [this]() {
                 next_gallery_image();
             }, true);
         }
@@ -222,9 +239,9 @@ namespace horizon
 
     void WallApplication::stop_gallery()
     {
-        if (m_gallery_timer_id != 0)
+        if (m_gallery_timer_id != 0 && !m_windows.empty())
         {
-            m_window->stop_timer(m_gallery_timer_id);
+            m_windows[0]->stop_timer(m_gallery_timer_id);
             m_gallery_timer_id = 0;
         }
     }
@@ -235,11 +252,11 @@ namespace horizon
 
         m_current_gallery_index = (m_current_gallery_index + 1) % m_gallery_images.size();
         
-        if (m_wallpaper_widget)
+        LOG_INFO << "[HORIZON WALL] Switching to next gallery image: " << m_gallery_images[m_current_gallery_index];
+        for (size_t i = 0; i < m_wallpaper_widgets.size(); ++i)
         {
-            LOG_INFO << "[HORIZON WALL] Switching to next gallery image: " << m_gallery_images[m_current_gallery_index];
-            m_wallpaper_widget->set_path(m_gallery_images[m_current_gallery_index]);
-            m_window->invalidate();
+            m_wallpaper_widgets[i]->set_path(m_gallery_images[m_current_gallery_index]);
+            if (i < m_windows.size()) m_windows[i]->invalidate();
         }
     }
 
@@ -306,9 +323,12 @@ namespace horizon
                     std::this_thread::sleep_for(std::chrono::milliseconds(200));
                     
                     LOG_INFO << "[HORIZON WALL] Config change detected, reloading...";
-                    m_window->post_task([this]() {
-                        load_wallpaper(m_wall_path);
-                    });
+                    if (!m_windows.empty())
+                    {
+                        m_windows[0]->post_task([this]() {
+                            load_wallpaper(m_wall_path);
+                        });
+                    }
                 }
             }
         }

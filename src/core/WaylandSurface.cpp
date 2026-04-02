@@ -254,7 +254,7 @@ namespace horizon
         resize_buffer(m_width, m_height);
     }
 
-    void WaylandSurface::setup_layer_surface(uint32_t layer, const std::string &namespace_id)
+    void WaylandSurface::setup_layer_surface(uint32_t layer, const std::string &namespace_id, struct wl_output *output)
     {
         m_role = Role::LayerShell;
         m_layer_num = layer;
@@ -264,7 +264,7 @@ namespace horizon
 
         if (!m_layer_shell) throw std::runtime_error("Compositor does not support wlr-layer-shell");
 
-        m_layer_surface = zwlr_layer_shell_v1_get_layer_surface(m_layer_shell, m_surface, nullptr, layer, namespace_id.c_str());
+        m_layer_surface = zwlr_layer_shell_v1_get_layer_surface(m_layer_shell, m_surface, output, layer, namespace_id.c_str());
 
         static const zwlr_layer_surface_v1_listener layer_surface_listener = {
             .configure = [](void *data, zwlr_layer_surface_v1 *ls, uint32_t serial, uint32_t width, uint32_t height) {

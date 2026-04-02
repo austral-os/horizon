@@ -14,7 +14,7 @@ namespace horizon
         ~WallApplication() override;
 
     private:
-        void setup_window();
+        void setup_window(WaylandLayerWindow* window);
         void load_wallpaper(const std::string &wall_path);
 
         void start_gallery(const std::string &directory, int interval_ms, const std::string &order = "none");
@@ -25,8 +25,8 @@ namespace horizon
         void stop_watcher();
         void watch_loop();
 
-        WaylandLayerWindow *m_window{nullptr};
-        Image *m_wallpaper_widget{nullptr};
+        std::vector<WaylandLayerWindow *> m_windows;
+        std::vector<Image *> m_wallpaper_widgets;
 
         size_t m_gallery_timer_id{0};
         std::vector<std::string> m_gallery_images;

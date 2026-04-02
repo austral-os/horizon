@@ -70,7 +70,7 @@ namespace horizon
         /**
          * @brief Creates a new layer-shell window.
          */
-        class WaylandLayerWindow *create_layer_window(const std::string &namespace_id, uint32_t layer = 3);
+        class WaylandLayerWindow *create_layer_window(const std::string &namespace_id, uint32_t layer = 3, int monitor_index = -1);
 
         /**
          * @brief Shows an alert dialog.

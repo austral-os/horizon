@@ -183,9 +183,9 @@ namespace horizon
         return ptr;
     }
 
-    WaylandLayerWindow *Application::create_layer_window(const std::string &namespace_id, uint32_t layer)
+    WaylandLayerWindow *Application::create_layer_window(const std::string &namespace_id, uint32_t layer, int monitor_index)
     {
-        auto window = std::make_unique<WaylandLayerWindow>(namespace_id, layer, true);
+        auto window = std::make_unique<WaylandLayerWindow>(namespace_id, layer, true, monitor_index);
         WaylandLayerWindow *ptr = window.get();
         
         {
