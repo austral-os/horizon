@@ -148,6 +148,10 @@ namespace horizon::preferences
             // For now, let's just always select 0 if it's the first initialization.
             when_monitor_selected.run(to_select);
         }
+        
+        EventContext ctx;
+        ctx.sender = this;
+        when_monitors_refreshed.run(ctx);
     }
 
     void DisplayDevices::update_render_rects()

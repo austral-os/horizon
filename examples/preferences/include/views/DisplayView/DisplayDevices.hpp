@@ -20,6 +20,7 @@ namespace horizon::preferences
         void calculate_layout() override;
 
         EventsManager<int> when_monitor_selected;
+        EventsManager<EventContext> when_monitors_refreshed;
         
         struct MonitorRect
         {

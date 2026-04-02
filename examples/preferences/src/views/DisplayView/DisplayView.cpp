@@ -77,6 +77,11 @@ namespace horizon::preferences
         m_display_devices = devices.get();
         m_display_devices->when_monitor_selected.connect([this](int idx)
                                                          { on_monitor_selected(idx); });
+        m_display_devices->when_monitors_refreshed.connect([this](EventContext &)
+                                                          { 
+                                                              // Re-apply saved configuration whenever monitors are refreshed
+                                                              from_json(ConfigManager::instance().get_section("displays"));
+                                                          });
         add_child(std::move(devices));
 
         // 2. Controls Section (Lower Part)
