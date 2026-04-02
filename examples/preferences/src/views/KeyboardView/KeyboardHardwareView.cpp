@@ -153,6 +153,7 @@ namespace horizon::preferences
 
     void KeyboardHardwareView::load_config()
     {
+        m_is_loading = true;
         auto keyboard = ConfigManager::instance().get_section("keyboard");
         
         if (keyboard.contains("model")) {
@@ -164,10 +165,13 @@ namespace horizon::preferences
         if (keyboard.contains("delay")) m_delay_slider->set_value(keyboard["delay"].get<float>());
         if (keyboard.contains("rate")) m_rate_slider->set_value(keyboard["rate"].get<float>());
         if (keyboard.contains("numlock")) m_numlock_checkbox->set_checked(keyboard["numlock"].get<bool>());
+        m_is_loading = false;
     }
 
     void KeyboardHardwareView::save_config()
     {
+        if (m_is_loading) return;
+
         auto keyboard = ConfigManager::instance().get_section("keyboard");
         
         if (auto* sel = m_model_combo->selected_item()) {

@@ -24,5 +24,6 @@ namespace horizon::preferences
         Slider* m_rate_slider{nullptr};
         Checkbox<AquaObject>* m_numlock_checkbox{nullptr};
         Combo* m_model_combo{nullptr};
+        bool m_is_loading{false};
     };
 } // namespace horizon::preferences
