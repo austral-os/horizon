@@ -214,4 +214,74 @@ namespace horizon::preferences
             }
         }
     }
+
+    void DesktopManager::add_mime_association(const std::string& mime_type, const std::string& desktop_id)
+    {
+        const char* home = std::getenv("HOME");
+        if (!home) return;
+        
+        fs::path config_path = fs::path(home) / ".config" / "mimeapps.list";
+        
+        std::vector<std::string> lines;
+        bool section_found = false;
+        bool mime_found = false;
+        
+        if (fs::exists(config_path)) {
+            std::ifstream infile(config_path);
+            std::string line;
+            while (std::getline(infile, line)) {
+                lines.push_back(line);
+            }
+        } else {
+            fs::create_directories(config_path.parent_path());
+        }
+
+        size_t section_idx = 0;
+        for (size_t i = 0; i < lines.size(); ++i) {
+            std::string l = trim(lines[i]);
+            if (l == "[Added Associations]") {
+                section_found = true;
+                section_idx = i;
+                break;
+            }
+        }
+
+        if (!section_found) {
+            lines.push_back("[Added Associations]");
+            lines.push_back(mime_type + "=" + desktop_id + ";");
+        } else {
+            for (size_t i = section_idx + 1; i < lines.size(); ++i) {
+                std::string l = trim(lines[i]);
+                if (l.empty()) continue;
+                if (l[0] == '[') {
+                    lines.insert(lines.begin() + i, mime_type + "=" + desktop_id + ";");
+                    mime_found = true;
+                    break;
+                }
+                
+                auto pos = l.find('=');
+                if (pos != std::string::npos) {
+                    std::string key = trim(l.substr(0, pos));
+                    if (key == mime_type) {
+                        mime_found = true;
+                        std::string value = trim(l.substr(pos + 1));
+                        if (value.find(desktop_id) == std::string::npos) {
+                            if (!value.empty() && value.back() != ';') value += ";";
+                            value += desktop_id + ";";
+                            lines[i] = mime_type + "=" + value;
+                        }
+                        break;
+                    }
+                }
+            }
+            if (!mime_found) {
+                lines.push_back(mime_type + "=" + desktop_id + ";");
+            }
+        }
+
+        std::ofstream outfile(config_path);
+        for (const auto& l : lines) {
+            outfile << l << "\n";
+        }
+    }
 } // namespace horizon::preferences

@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <thread>
 #include <fstream>
+#include <views/ApplicationsView/AppPickerDialog.hpp>
 #include <regex>
 
 namespace fs = std::filesystem;
@@ -414,18 +415,27 @@ namespace horizon::preferences
         update_details(m_current_mime);
     }
 
-    void MimeTypesView::on_add_app()
+
+     void MimeTypesView::on_add_app()
     {
         if (m_current_mime.empty()) return;
 
-        auto dialog = std::make_unique<InputDialog>("Agregar Aplicación", "Nombre de la aplicación:");
-        dialog->when_accepted.connect([this](std::string& text) {
-            std::string val = text;
+        auto dialog = std::make_unique<AppPickerDialog>();
+        dialog->when_accepted.connect([this](DesktopEntry& entry) {
             if (auto* app = application()) {
-                app->post_task([this, val]() {
-                    if (!val.empty()) {
-                        m_mime_apps[m_current_mime].push_back({val, "system-run"});
-                        m_apps_table->set_data(m_mime_apps[m_current_mime]);
+                app->post_task([this, entry]() {
+                    // 1. Add to UI if not already present
+                    auto& apps = m_mime_apps[m_current_mime];
+                    auto it = std::find_if(apps.begin(), apps.end(), [&](const ApplicationInfo& info) {
+                        return info.name == entry.name;
+                    });
+                    
+                    if (it == apps.end()) {
+                        apps.push_back({entry.name, entry.icon});
+                        m_apps_table->set_data(apps);
+                        
+                        // 2. Persist in ~/.config/mimeapps.list
+                        DesktopManager::add_mime_association(m_current_mime, entry.id);
                     }
                 });
             }
