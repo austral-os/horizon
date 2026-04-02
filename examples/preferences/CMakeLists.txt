@@ -33,6 +33,7 @@ add_executable(preferences
     src/views/ApplicationsView/MimeTypesView.cpp
     src/views/ApplicationsView/InputDialog.cpp
     src/views/ApplicationsView/AppPickerDialog.cpp
+    src/views/ApplicationsView/DefaultAppsView.cpp
     src/utils/DesktopManager.cpp
 )
 
