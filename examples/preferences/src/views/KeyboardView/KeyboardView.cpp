@@ -6,12 +6,28 @@ namespace horizon::preferences
     {
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_position_type(WidgetPositionTypes::FILL);
-        set_margin(20);
-        set_spacing(10);
+        set_margin(0);
+        set_spacing(0);
 
-        auto title = std::make_unique<Label>("Teclado");
-        title->set_fixed_size(30);
-        m_title_label = title.get();
-        add_child(std::move(title));
+        auto notebook = std::make_unique<Notebook>();
+        notebook->set_position_type(WidgetPositionTypes::FILL);
+        m_notebook = notebook.get();
+
+        // Hardware Tab
+        auto hardware_label = std::make_unique<Label>("Hardware");
+        hardware_label->set_position_type(WidgetPositionTypes::FILL);
+        m_notebook->add_tab(NotebookPage("Hardware", std::move(hardware_label)));
+
+        // Idioma Tab
+        auto idioma_label = std::make_unique<Label>("Idioma");
+        idioma_label->set_position_type(WidgetPositionTypes::FILL);
+        m_notebook->add_tab(NotebookPage("Idioma", std::move(idioma_label)));
+
+        // Atajos Tab
+        auto atajos_label = std::make_unique<Label>("Atajos");
+        atajos_label->set_position_type(WidgetPositionTypes::FILL);
+        m_notebook->add_tab(NotebookPage("Atajos", std::move(atajos_label)));
+
+        add_child(std::move(notebook));
     }
-}
+} // namespace horizon::preferences

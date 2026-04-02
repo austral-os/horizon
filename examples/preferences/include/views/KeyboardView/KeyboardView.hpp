@@ -1,6 +1,7 @@
 #pragma once
-#include <horizon/Widget.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/Notebook.hpp>
+#include <horizon/Widget.hpp>
 
 namespace horizon::preferences
 {
@@ -9,7 +10,8 @@ namespace horizon::preferences
     public:
         KeyboardView();
         ~KeyboardView() override = default;
+
     private:
-        Label* m_title_label{nullptr};
+        Notebook *m_notebook{nullptr};
     };
-}
+} // namespace horizon::preferences
