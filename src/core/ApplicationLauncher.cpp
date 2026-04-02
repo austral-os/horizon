@@ -11,6 +11,31 @@ namespace fs = std::filesystem;
 
 namespace horizon
 {
+    static std::string run_command_capture_output(const std::string &cmd)
+    {
+        char buffer[128];
+        std::string result = "";
+        FILE *pipe = popen(cmd.c_str(), "r");
+        if (!pipe)
+        {
+            return "";
+        }
+        while (fgets(buffer, sizeof(buffer), pipe) != NULL)
+        {
+            result += buffer;
+        }
+        int exit_code = pclose(pipe);
+        if (exit_code != 0)
+            return "";
+
+        // Trim newline and carriage return
+        while (!result.empty() && (result.back() == '\n' || result.back() == '\r'))
+        {
+            result.pop_back();
+        }
+        return result;
+    }
+
     static bool is_binary_in_path(const std::string &name)
     {
         const char *path_env = std::getenv("PATH");
@@ -52,7 +77,8 @@ namespace horizon
         return launch_from_desktop_file(name);
     }
 
-    bool ApplicationLauncher::launch_from_desktop_file(const std::string &path_or_id)
+    bool ApplicationLauncher::launch_from_desktop_file(const std::string &path_or_id,
+                                                       const std::vector<std::string> &args)
     {
         std::string path = path_or_id;
         if (!fs::exists(path) || !fs::is_regular_file(path))
@@ -73,20 +99,83 @@ namespace horizon
             return false;
         }
 
-        // Remove field codes like %u, %F, etc.
-        std::string cleaned_command;
-        std::istringstream iss(command);
-        std::string token;
-        while (iss >> token)
+        // Handle field codes like %u, %F, etc.
+        // %f: single file name
+        // %F: multiple file names
+        // %u: single URL
+        // %U: multiple URLs
+
+        std::string arg_concat = "";
+        for (const auto &arg : args)
         {
-            if (token[0] == '%')
-                continue;
-            if (!cleaned_command.empty())
-                cleaned_command += " ";
-            cleaned_command += token;
+            if (!arg_concat.empty())
+                arg_concat += " ";
+            arg_concat += "\"" + arg + "\"";
         }
 
-        auto parts = split_command(cleaned_command);
+        bool field_code_replaced = false;
+        std::string working_command = command;
+        size_t pos = 0;
+
+        while ((pos = working_command.find('%', pos)) != std::string::npos &&
+               pos + 1 < working_command.length())
+        {
+            char code = working_command[pos + 1];
+            std::string replacement = "";
+            bool found_code = true;
+
+            if (code == 'f' || code == 'u')
+            {
+                replacement = args.empty() ? "" : "\"" + args[0] + "\"";
+                field_code_replaced = true;
+            }
+            else if (code == 'F' || code == 'U')
+            {
+                replacement = arg_concat;
+                field_code_replaced = true;
+            }
+            else if (code == 'i' || code == 'c')
+            {
+                // Icon or Name, ignored for now
+                replacement = "";
+            }
+            else if (code == 'k')
+            {
+                // Desktop file path
+                replacement = "\"" + path + "\"";
+            }
+            else if (code == '%')
+            {
+                // Literal %
+                replacement = "%";
+            }
+            else
+            {
+                found_code = false;
+            }
+
+            if (found_code)
+            {
+                working_command.replace(pos, 2, replacement);
+                pos += replacement.length();
+            }
+            else
+            {
+                pos++;
+            }
+        }
+
+        std::string final_command = working_command;
+
+        // If NO field codes were found but we have arguments, append them at the end.
+        if (!field_code_replaced && !args.empty())
+        {
+            if (!final_command.empty() && final_command.back() != ' ')
+                final_command += " ";
+            final_command += arg_concat;
+        }
+
+        auto parts = split_command(final_command);
         if (parts.empty())
             return false;
 
@@ -212,5 +301,31 @@ namespace horizon
         }
 
         return tokens;
+    }
+    bool ApplicationLauncher::open_file(const std::string &path)
+    {
+        LOG_INFO << "[ApplicationLauncher] Opening file: " << path;
+
+        // 1. Get MIME type
+        std::string mime_type = run_command_capture_output("xdg-mime query filetype \"" + path + "\"");
+        if (mime_type.empty())
+        {
+            LOG_ERROR << "[ApplicationLauncher] Could not determine MIME type for: " << path;
+            return false;
+        }
+        LOG_INFO << "[ApplicationLauncher] MIME type: " << mime_type;
+
+        // 2. Get default application
+        std::string desktop_id =
+            run_command_capture_output("xdg-mime query default \"" + mime_type + "\"");
+        if (desktop_id.empty())
+        {
+            LOG_ERROR << "[ApplicationLauncher] No default application for MIME type: " << mime_type;
+            return false;
+        }
+        LOG_INFO << "[ApplicationLauncher] Default application ID: " << desktop_id;
+
+        // 3. Launch from desktop file
+        return launch_from_desktop_file(desktop_id, {path});
     }
 } // namespace horizon

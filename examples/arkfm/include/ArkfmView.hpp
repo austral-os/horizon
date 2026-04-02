@@ -1,6 +1,5 @@
 #include "horizon/Widget.hpp"
 #include "horizon/arkutils/FileInfo.hpp"
-#include "horizon/arkutils/FileSystemModel.hpp"
 #include <memory>
 
 namespace horizon::arkfm
@@ -32,6 +31,7 @@ namespace horizon::arkfm
 
         std::vector<arkutils::FileInfo> get_selection() const;
         void open_selection();
+        void open_item(const arkutils::FileInfo &f);
 
         void set_search_query(const std::string &query);
 

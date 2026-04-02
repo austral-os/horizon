@@ -102,16 +102,34 @@ namespace horizon
             return s_desktop_file_cache[app_id];
 
         auto dirs = get_desktop_search_dirs();
-        std::vector<std::string> candidates = {app_id + ".desktop"};
+        std::vector<std::string> candidates;
+        
+        if (app_id.size() >= 8 && app_id.substr(app_id.size() - 8) == ".desktop")
+        {
+            candidates.push_back(app_id);
+        }
+        else
+        {
+            candidates.push_back(app_id + ".desktop");
+        }
 
         // If the app_id is namespaced (e.g. org.horizon.arkfm), also try the last component (arkfm.desktop)
         if (app_id.find('.') != std::string::npos)
         {
-            size_t last_dot = app_id.find_last_of('.');
-            std::string short_id = app_id.substr(last_dot + 1);
-            if (!short_id.empty())
+            std::string id_without_ext = app_id;
+            if (app_id.size() >= 8 && app_id.substr(app_id.size() - 8) == ".desktop")
             {
-                candidates.push_back(short_id + ".desktop");
+                id_without_ext = app_id.substr(0, app_id.size() - 8);
+            }
+
+            size_t last_dot = id_without_ext.find_last_of('.');
+            if (last_dot != std::string::npos)
+            {
+                std::string short_id = id_without_ext.substr(last_dot + 1);
+                if (!short_id.empty())
+                {
+                    candidates.push_back(short_id + ".desktop");
+                }
             }
         }
 

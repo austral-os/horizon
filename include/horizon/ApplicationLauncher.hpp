@@ -23,9 +23,18 @@ namespace horizon
         /**
          * @brief Launches an application using its .desktop file.
          * @param path_or_id Path to a .desktop file or an application ID.
+         * @param args List of arguments for the application.
          * @return True if the launch was successful.
          */
-        static bool launch_from_desktop_file(const std::string &path_or_id);
+        static bool launch_from_desktop_file(const std::string &path_or_id,
+                                             const std::vector<std::string> &args = {});
+
+        /**
+         * @brief Opens a file using the system's default application (via xdg-mime).
+         * @param path Path to the file to open.
+         * @return True if the launch was successful.
+         */
+        static bool open_file(const std::string &path);
 
         /**
          * @brief Launches an application from a binary path and arguments.

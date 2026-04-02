@@ -32,33 +32,7 @@ namespace horizon::arkfm
             view_mode_list->when_row_dbl_click.connect(
                 [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
                 {
-                    if (ctx.row_data.type == arkutils::FileType::Directory)
-                    {
-                        // We MUST defer navigation because this signal is emitted by the child
-                        // we are about to destroy in navigate_to -> set_view_mode ->
-                        // clear_children.
-                        std::string target_path = ctx.row_data.path;
-                        if (application())
-                        {
-                            application()->post_task([this, target_path]()
-                                                     { this->navigate_to(target_path); });
-                        }
-                    }
-                    else if (ctx.row_data.extension == "desktop")
-                    {
-                        ApplicationLauncher::launch_from_desktop_file(ctx.row_data.path);
-                    }
-                    else if (ctx.row_data.permissions & (S_IXUSR | S_IXGRP | S_IXOTH))
-                    {
-                        if (auto *win = dynamic_cast<ArkfmWindow *>(application()->root()))
-                        {
-                            if (win->confirm("¿Desea ejecutar esta aplicación?",
-                                             "Confirmar ejecución"))
-                            {
-                                ApplicationLauncher::launch_binary(ctx.row_data.path);
-                            }
-                        }
-                    }
+                    this->open_item(ctx.row_data);
                 });
 
             add_child(std::move(view_mode_list));
@@ -70,30 +44,7 @@ namespace horizon::arkfm
             view_mode_grid->when_item_dbl_click.connect(
                 [this](horizon::IconViewItemMouseClickContext<arkutils::FileInfo> &ctx)
                 {
-                    if (ctx.item_data.type == arkutils::FileType::Directory)
-                    {
-                        std::string target_path = ctx.item_data.path;
-                        if (application())
-                        {
-                            application()->post_task([this, target_path]()
-                                                     { this->navigate_to(target_path); });
-                        }
-                    }
-                    else if (ctx.item_data.extension == "desktop")
-                    {
-                        ApplicationLauncher::launch_from_desktop_file(ctx.item_data.path);
-                    }
-                    else if (ctx.item_data.permissions & (S_IXUSR | S_IXGRP | S_IXOTH))
-                    {
-                        if (auto *win = dynamic_cast<ArkfmWindow *>(application()->root()))
-                        {
-                            if (win->confirm("¿Desea ejecutar esta aplicación?",
-                                             "Confirmar ejecución"))
-                            {
-                                ApplicationLauncher::launch_binary(ctx.item_data.path);
-                            }
-                        }
-                    }
+                    this->open_item(ctx.item_data);
                 });
 
             add_child(std::move(view_mode_grid));
@@ -108,33 +59,7 @@ namespace horizon::arkfm
             view_mode_cover->when_row_dbl_click.connect(
                 [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
                 {
-                    if (ctx.row_data.type == arkutils::FileType::Directory)
-                    {
-                        // We MUST defer navigation because this signal is emitted by the child
-                        // we are about to destroy in navigate_to -> set_view_mode ->
-                        // clear_children.
-                        std::string target_path = ctx.row_data.path;
-                        if (application())
-                        {
-                            application()->post_task([this, target_path]()
-                                                     { this->navigate_to(target_path); });
-                        }
-                    }
-                    else if (ctx.row_data.extension == "desktop")
-                    {
-                        ApplicationLauncher::launch_from_desktop_file(ctx.row_data.path);
-                    }
-                    else if (ctx.row_data.permissions & (S_IXUSR | S_IXGRP | S_IXOTH))
-                    {
-                        if (auto *win = dynamic_cast<ArkfmWindow *>(application()->root()))
-                        {
-                            if (win->confirm("¿Desea ejecutar esta aplicación?",
-                                             "Confirmar ejecución"))
-                            {
-                                ApplicationLauncher::launch_binary(ctx.row_data.path);
-                            }
-                        }
-                    }
+                    this->open_item(ctx.row_data);
                 });
 
             add_child(std::move(view_mode_cover));
@@ -203,10 +128,22 @@ namespace horizon::arkfm
         if (sel.empty())
             return;
 
-        const auto &f = sel[0];
+        open_item(sel[0]);
+    }
+
+    void ArkfmView::open_item(const arkutils::FileInfo &f)
+    {
         if (f.type == arkutils::FileType::Directory)
         {
-            navigate_to(f.path);
+            // We MUST defer navigation because this signal is emitted by the child
+            // we are about to destroy in navigate_to -> set_view_mode ->
+            // clear_children.
+            std::string target_path = f.path;
+            if (application())
+            {
+                application()->post_task([this, target_path]()
+                                         { this->navigate_to(target_path); });
+            }
         }
         else if (f.extension == "desktop")
         {
@@ -221,6 +158,11 @@ namespace horizon::arkfm
                     ApplicationLauncher::launch_binary(f.path);
                 }
             }
+        }
+        else
+        {
+            // Generic file opening via xdg-mime
+            ApplicationLauncher::open_file(f.path);
         }
     }
 
