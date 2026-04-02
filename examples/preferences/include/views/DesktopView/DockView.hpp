@@ -32,5 +32,6 @@ namespace horizon::preferences
 
         int m_icon_size{64};
         bool m_magnification_enabled{true};
+        nlohmann::json m_config_data;
     };
 } // namespace horizon::preferences

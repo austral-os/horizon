@@ -82,8 +82,9 @@ namespace horizon::preferences
         if (j.is_null())
             return;
 
+        m_config_data = j;
         m_icon_size = j.value("icon_size", 64);
-        m_magnification_enabled = j.value("magnification_enabled", true);
+        m_magnification_enabled = j.value("magnification_enabled", j.value("magnification", true));
 
         if (m_size_slider)
             m_size_slider->set_value(static_cast<float>(m_icon_size));
@@ -97,7 +98,13 @@ namespace horizon::preferences
 
     nlohmann::json DockView::to_json() const
     {
-        return {{"icon_size", m_icon_size}, {"magnification_enabled", m_magnification_enabled}};
+        nlohmann::json j = m_config_data;
+        if (j.is_null())
+            j = nlohmann::json::object();
+
+        j["icon_size"] = m_icon_size;
+        j["magnification_enabled"] = m_magnification_enabled;
+        return j;
     }
 
     void DockView::save_config()
