@@ -1,5 +1,6 @@
 #include <views/ApplicationsView/MimeTypesView.hpp>
 #include <views/ApplicationsView/InputDialog.hpp>
+#include <utils/DesktopManager.hpp>
 #include <horizon/TreeViewItem.hpp>
 #include <horizon/TableColumn.hpp>
 #include <horizon/AquaObject.hpp>
@@ -279,9 +280,19 @@ namespace horizon::preferences
         }
         m_extensions_table->set_data(m_mime_extensions[mime_type]);
 
-        // Load or default apps
+        // Load applications from system standards
         if (m_mime_apps.find(mime_type) == m_mime_apps.end()) {
-            m_mime_apps[mime_type] = { {"Editor de Texto", "text-editor"}, {"Visor Genérico", "system-run"} };
+            auto entries = DesktopManager::get_apps_for_mime(mime_type);
+            std::vector<ApplicationInfo> apps;
+            for (const auto& entry : entries) {
+                apps.push_back({entry.name, entry.icon});
+            }
+            
+            // Fallback if no apps found
+            if (apps.empty()) {
+                apps.push_back({"Editor de Texto", "text-editor"});
+            }
+            m_mime_apps[mime_type] = apps;
         }
         m_apps_table->set_data(m_mime_apps[mime_type]);
     }
