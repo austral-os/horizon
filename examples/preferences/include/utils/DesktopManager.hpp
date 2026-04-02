@@ -28,6 +28,11 @@ namespace horizon::preferences
         static void remove_mime_association(const std::string& mime_type, const std::string& desktop_id);
         static void set_default_application(const std::string& mime_type, const std::string& desktop_id);
 
+        static std::vector<DesktopEntry> load_autostart_entries();
+        static void add_to_autostart(const DesktopEntry& entry);
+        static void update_autostart_cmd(const std::string& path, const std::string& new_cmd);
+        static void remove_from_autostart(const std::string& path);
+
     private:
         static std::optional<DesktopEntry> parse_desktop_file(const std::string& path);
         

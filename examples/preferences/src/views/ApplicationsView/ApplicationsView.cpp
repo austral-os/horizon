@@ -1,5 +1,6 @@
 #include <views/ApplicationsView/ApplicationsView.hpp>
 #include <views/ApplicationsView/MimeTypesView.hpp>
+#include <views/ApplicationsView/StartupAppsView.hpp>
 #include <views/ApplicationsView/DefaultAppsView.hpp>
 #include <horizon/ScrollArea.hpp>
 
@@ -17,9 +18,8 @@ namespace horizon::preferences
         m_notebook->set_position_type(WidgetPositionTypes::FILL);
 
         // Inicio Tab
-        auto inicio_label = std::make_unique<Label>("Inicio");
-        inicio_label->set_position_type(WidgetPositionTypes::FILL);
-        m_notebook->add_tab(NotebookPage("Inicio", std::move(inicio_label)));
+        auto inicio_view = std::make_unique<StartupAppsView>();
+        m_notebook->add_tab(NotebookPage("Inicio", std::move(inicio_view)));
 
         // Predeterminadas Tab
         auto container = std::make_unique<Widget>();

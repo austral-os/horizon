@@ -404,4 +404,95 @@ namespace horizon::preferences
             outfile << l << "\n";
         }
     }
+
+    std::vector<DesktopEntry> DesktopManager::load_autostart_entries()
+    {
+        std::vector<DesktopEntry> entries;
+        const char* home = std::getenv("HOME");
+        if (!home) return entries;
+
+        fs::path autostart_dir = fs::path(home) / ".config" / "autostart";
+        if (!fs::exists(autostart_dir)) return entries;
+
+        for (const auto& entry : fs::directory_iterator(autostart_dir)) {
+            if (entry.is_regular_file() && entry.path().extension() == ".desktop") {
+                auto desktop = parse_desktop_file(entry.path().string());
+                if (desktop) {
+                    desktop->id = entry.path().filename().string();
+                    entries.push_back(*desktop);
+                }
+            }
+        }
+        return entries;
+    }
+
+    void DesktopManager::add_to_autostart(const DesktopEntry& entry)
+    {
+        const char* home = std::getenv("HOME");
+        if (!home) return;
+
+        fs::path autostart_dir = fs::path(home) / ".config" / "autostart";
+        if (!fs::exists(autostart_dir)) {
+            fs::create_directories(autostart_dir);
+        }
+
+        fs::path target_path = autostart_dir / entry.id;
+        
+        // If the entry already exists, we might want to overwrite or skip.
+        // The user wants to "insert in the list", so we copy it.
+        try {
+            if (fs::exists(entry.path)) {
+                fs::copy_file(entry.path, target_path, fs::copy_options::overwrite_existing);
+            } else {
+                // If the path doesn't exist (e.g. manually created DesktopEntry), create a basic file
+                std::ofstream outfile(target_path);
+                outfile << "[Desktop Entry]\n";
+                outfile << "Type=Application\n";
+                outfile << "Name=" << entry.name << "\n";
+                outfile << "Exec=" << entry.exec << "\n";
+                if (!entry.icon.empty()) outfile << "Icon=" << entry.icon << "\n";
+            }
+        } catch (...) {
+            // Log error or handle
+        }
+    }
+
+    void DesktopManager::update_autostart_cmd(const std::string& path, const std::string& new_cmd)
+    {
+        if (!fs::exists(path)) return;
+
+        std::vector<std::string> lines;
+        std::ifstream infile(path);
+        std::string line;
+        while (std::getline(infile, line)) {
+            lines.push_back(line);
+        }
+        infile.close();
+
+        bool found = false;
+        for (auto& l : lines) {
+            std::string trimmed = trim(l);
+            if (trimmed.compare(0, 5, "Exec=") == 0) {
+                l = "Exec=" + new_cmd;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            lines.push_back("Exec=" + new_cmd);
+        }
+
+        std::ofstream outfile(path);
+        for (const auto& l : lines) {
+            outfile << l << "\n";
+        }
+    }
+
+    void DesktopManager::remove_from_autostart(const std::string& path)
+    {
+        if (fs::exists(path)) {
+            fs::remove(path);
+        }
+    }
 } // namespace horizon::preferences
