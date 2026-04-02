@@ -31,6 +31,7 @@ add_executable(preferences
     src/views/DetailsView/DetailsView.cpp
     src/views/ApplicationsView/ApplicationsView.cpp
     src/views/ApplicationsView/MimeTypesView.cpp
+    src/views/ApplicationsView/InputDialog.cpp
 )
 
 target_link_libraries(preferences

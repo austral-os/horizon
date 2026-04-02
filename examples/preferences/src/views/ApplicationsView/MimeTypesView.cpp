@@ -1,7 +1,16 @@
 #include <views/ApplicationsView/MimeTypesView.hpp>
+#include <views/ApplicationsView/InputDialog.hpp>
 #include <horizon/TreeViewItem.hpp>
+#include <horizon/TableColumn.hpp>
+#include <horizon/AquaObject.hpp>
+#include <horizon/Button.hpp>
+#include <horizon/Icon.hpp>
+#include <horizon/Spacer.hpp>
+#include <horizon/WaylandWindow.hpp>
+#include <horizon/EventsManager.hpp>
 #include <filesystem>
 #include <algorithm>
+#include <thread>
 
 namespace fs = std::filesystem;
 
@@ -12,7 +21,14 @@ namespace horizon::preferences
         set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         set_position_type(WidgetPositionTypes::FILL);
 
-        // Sidebar Left Column
+        setup_left_column();
+        setup_right_column();
+
+        load_mime_types();
+    }
+
+    void MimeTypesView::setup_left_column()
+    {
         auto left_column = std::make_unique<Widget>();
         left_column->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         left_column->set_width(250);
@@ -31,31 +47,139 @@ namespace horizon::preferences
 
         add_child(std::move(left_column));
 
-        // Content Area
-        auto content_area = std::make_unique<Widget>();
-        content_area->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        content_area->set_position_type(WidgetPositionTypes::FILL);
-        content_area->set_margin(20);
-
-        auto selected_label = std::make_unique<Label>("Seleccione un MIME type de la lista");
-        selected_label->set_position_type(WidgetPositionTypes::FILL);
-        m_selected_mime_label = selected_label.get();
-        content_area->add_child(std::move(selected_label));
-
-        add_child(std::move(content_area));
-
-        // Signals
+        // Tree selection signal
         m_tree_view->when_item_selected.connect([this](TreeViewItem* item) {
             if (item && !item->has_children()) {
-                m_selected_mime_label->set_text("MIME Type seleccionado: " + item->get_text());
+                // Find category by looking at parent
+                std::string category = "";
+                if (item->parent()) {
+                    // This is a bit brittle, but assuming the parent of a leaf is the category TreeViewItem
+                    if (auto* parent_item = dynamic_cast<TreeViewItem*>(item->parent())) {
+                        category = parent_item->get_text();
+                    }
+                }
+                m_current_mime = category + "/" + item->get_text();
+                update_details(m_current_mime);
+            } else {
+                m_current_mime = "";
+                update_details("");
             }
         });
 
+        // Search signal
         m_search_box->when_text_changed.connect([this](KeyEventContext&) {
             update_tree(m_search_box->text());
         });
+    }
 
-        load_mime_types();
+    void MimeTypesView::setup_right_column()
+    {
+        auto right_column = std::make_unique<Widget>();
+        right_column->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        right_column->set_position_type(WidgetPositionTypes::FILL);
+        right_column->set_margin(10);
+        right_column->set_spacing(15);
+
+        auto title = std::make_unique<Label>("Seleccione un MIME type");
+        title->set_fixed_size(30);
+        title->set_font_weight(FONT_WEIGHT_BOLD);
+        m_mime_title_label = title.get();
+        right_column->add_child(std::move(title));
+
+        // --- Extensiones Section ---
+        auto ext_label = std::make_unique<Label>("Extensiones asociadas");
+        ext_label->set_fixed_size(25);
+        right_column->add_child(std::move(ext_label));
+
+        auto ext_table = std::make_unique<TableView<std::string>>();
+        m_extensions_table = ext_table.get();
+        m_extensions_table->set_header_visible(false);
+        
+        TableColumn<std::string> col_ext;
+        col_ext.width = 300;
+        col_ext.cell_factory = [](const std::string& ext) {
+            return std::make_unique<Label>(ext);
+        };
+        m_extensions_table->add_column(col_ext);
+        right_column->add_child(std::move(ext_table));
+
+        auto ext_toolbar = std::make_unique<Widget>();
+        ext_toolbar->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        ext_toolbar->set_fixed_size(32);
+        ext_toolbar->set_spacing(5);
+
+        auto btn_add_ext = std::make_unique<Button<AquaObject>>();
+        btn_add_ext->set_fixed_size(32);
+        auto icon_add = std::make_unique<Icon>();
+        icon_add->set_icon_name("list-add");
+        icon_add->set_icon_size(16);
+        btn_add_ext->add_child(std::move(icon_add));
+        btn_add_ext->when_click.connect([this](MouseButtonEventContext&){ on_add_extension(); });
+        ext_toolbar->add_child(std::move(btn_add_ext));
+
+        auto btn_rem_ext = std::make_unique<Button<AquaObject>>();
+        btn_rem_ext->set_fixed_size(32);
+        auto icon_rem = std::make_unique<Icon>();
+        icon_rem->set_icon_name("list-remove");
+        icon_rem->set_icon_size(16);
+        btn_rem_ext->add_child(std::move(icon_rem));
+        btn_rem_ext->when_click.connect([this](MouseButtonEventContext&){ on_remove_extension(); });
+        ext_toolbar->add_child(std::move(btn_rem_ext));
+
+        right_column->add_child(std::move(ext_toolbar));
+
+        // --- Aplicaciones Section ---
+        auto app_label = std::make_unique<Label>("Aplicaciones (Orden de prioridad)");
+        app_label->set_fixed_size(25);
+        right_column->add_child(std::move(app_label));
+
+        auto app_table = std::make_unique<TableView<ApplicationInfo>>();
+        m_apps_table = app_table.get();
+        m_apps_table->set_header_visible(false);
+
+        TableColumn<ApplicationInfo> col_app;
+        col_app.width = 300;
+        col_app.cell_factory = [](const ApplicationInfo& info) {
+            auto cell = std::make_unique<Widget>();
+            cell->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+            cell->set_spacing(10);
+            
+            auto icon = std::make_unique<Icon>();
+            icon->set_icon_name(info.icon.empty() ? "application-x-executable" : info.icon);
+            icon->set_icon_size(16);
+            icon->set_fixed_size(16);
+            
+            cell->add_child(std::move(icon));
+            cell->add_child(std::make_unique<Label>(info.name));
+            return cell;
+        };
+        m_apps_table->add_column(col_app);
+        right_column->add_child(std::move(app_table));
+
+        auto app_toolbar = std::make_unique<Widget>();
+        app_toolbar->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        app_toolbar->set_fixed_size(32);
+        app_toolbar->set_spacing(5);
+
+        auto create_tool_btn = [this](const std::string& icon_name, std::function<void()> cb) {
+            auto btn = std::make_unique<Button<AquaObject>>();
+            btn->set_fixed_size(32);
+            auto icon = std::make_unique<Icon>();
+            icon->set_icon_name(icon_name);
+            icon->set_icon_size(16);
+            btn->add_child(std::move(icon));
+            btn->when_click.connect([cb](MouseButtonEventContext&){ cb(); });
+            return btn;
+        };
+
+        app_toolbar->add_child(create_tool_btn("list-add", [this](){ on_add_app(); }));
+        app_toolbar->add_child(create_tool_btn("list-remove", [this](){ on_remove_app(); }));
+        app_toolbar->add_child(create_tool_btn("go-up", [this](){ on_move_app_up(); }));
+        app_toolbar->add_child(create_tool_btn("go-down", [this](){ on_move_app_down(); }));
+
+        right_column->add_child(std::move(app_toolbar));
+
+        add_child(std::move(right_column));
     }
 
     void MimeTypesView::load_mime_types()
@@ -101,11 +225,9 @@ namespace horizon::preferences
 
         for (const auto& [category, mimes] : m_mime_data) {
             std::vector<std::string> filtered_mimes;
-            
             for (const auto& mime : mimes) {
                 std::string mime_lower = mime;
                 std::transform(mime_lower.begin(), mime_lower.end(), mime_lower.begin(), ::tolower);
-                
                 if (query.empty() || mime_lower.find(query) != std::string::npos) {
                     filtered_mimes.push_back(mime);
                 }
@@ -115,12 +237,127 @@ namespace horizon::preferences
                 auto category_item = std::make_unique<TreeViewItem>("folder", category);
                 category_item->set_bold(true);
                 if (!query.empty()) category_item->set_expanded(true);
-
                 for (const auto& mime : filtered_mimes) {
                     category_item->add_item(std::make_unique<TreeViewItem>("text-x-generic", mime));
                 }
                 m_tree_view->add_root_item(std::move(category_item));
             }
+        }
+    }
+
+    void MimeTypesView::update_details(const std::string& mime_type)
+    {
+        if (mime_type.empty()) {
+            m_mime_title_label->set_text("Seleccione un MIME type");
+            m_extensions_table->set_data({});
+            m_apps_table->set_data({});
+            return;
+        }
+
+        m_mime_title_label->set_text("MIME Type: " + mime_type);
+        
+        // Load or default extensions
+        if (m_mime_extensions.find(mime_type) == m_mime_extensions.end()) {
+            // Placeholder: derive from filename stem if it was real, 
+            // but since we just have the name, let's just use some mock data
+            m_mime_extensions[mime_type] = { "." + mime_type.substr(mime_type.find('/')+1) };
+        }
+        m_extensions_table->set_data(m_mime_extensions[mime_type]);
+
+        // Load or default apps
+        if (m_mime_apps.find(mime_type) == m_mime_apps.end()) {
+            m_mime_apps[mime_type] = { {"Editor de Texto", "text-editor"}, {"Visor Genérico", "system-run"} };
+        }
+        m_apps_table->set_data(m_mime_apps[mime_type]);
+    }
+
+    void MimeTypesView::on_add_extension()
+    {
+        if (m_current_mime.empty()) return;
+        
+        auto dialog = std::make_unique<InputDialog>("Agregar Extensión", "Ingrese la extensión (ej: .txt):");
+        dialog->when_accepted.connect([this](std::string& text) {
+            std::string val = text;
+            if (auto* app = application()) {
+                app->post_task([this, val]() {
+                    if (!val.empty()) {
+                        std::string final_val = val;
+                        if (final_val[0] != '.') final_val = "." + final_val;
+                        m_mime_extensions[m_current_mime].push_back(final_val);
+                        m_extensions_table->set_data(m_mime_extensions[m_current_mime]);
+                    }
+                });
+            }
+        });
+        
+        std::thread([d = std::move(dialog)]() mutable {
+            d->initialize();
+            d->run();
+        }).detach();
+    }
+
+    void MimeTypesView::on_remove_extension()
+    {
+        int idx = m_extensions_table->selected_index();
+        if (idx != -1 && !m_current_mime.empty()) {
+            auto& v = m_mime_extensions[m_current_mime];
+            v.erase(v.begin() + idx);
+            m_extensions_table->set_data(v);
+        }
+    }
+
+    void MimeTypesView::on_add_app()
+    {
+        if (m_current_mime.empty()) return;
+
+        auto dialog = std::make_unique<InputDialog>("Agregar Aplicación", "Nombre de la aplicación:");
+        dialog->when_accepted.connect([this](std::string& text) {
+            std::string val = text;
+            if (auto* app = application()) {
+                app->post_task([this, val]() {
+                    if (!val.empty()) {
+                        m_mime_apps[m_current_mime].push_back({val, "system-run"});
+                        m_apps_table->set_data(m_mime_apps[m_current_mime]);
+                    }
+                });
+            }
+        });
+        
+        std::thread([d = std::move(dialog)]() mutable {
+            d->initialize();
+            d->run();
+        }).detach();
+    }
+
+    void MimeTypesView::on_remove_app()
+    {
+        int idx = m_apps_table->selected_index();
+        if (idx != -1 && !m_current_mime.empty()) {
+            auto& v = m_mime_apps[m_current_mime];
+            v.erase(v.begin() + idx);
+            m_apps_table->set_data(v);
+        }
+    }
+
+    void MimeTypesView::on_move_app_up()
+    {
+        int idx = m_apps_table->selected_index();
+        if (idx > 0 && !m_current_mime.empty()) {
+            auto& v = m_mime_apps[m_current_mime];
+            std::swap(v[idx], v[idx - 1]);
+            m_apps_table->set_data(v);
+            m_apps_table->set_selected_index(idx - 1);
+        }
+    }
+
+    void MimeTypesView::on_move_app_down()
+    {
+        int idx = m_apps_table->selected_index();
+        if (idx != -1 && idx < (int)m_mime_apps[m_current_mime].size() - 1 && !m_current_mime.empty()) {
+            auto& v = m_mime_apps[m_current_mime];
+            std::swap(v[idx], v[idx + 1]);
+            m_apps_table->set_data(v);
+            m_apps_table->set_selected_index(idx + 1);
         }
     }
 } // namespace horizon::preferences
