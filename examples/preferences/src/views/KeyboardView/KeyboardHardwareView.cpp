@@ -1,4 +1,5 @@
 #include <views/KeyboardView/KeyboardHardwareView.hpp>
+#include <utils/XkbParser.hpp>
 #include <horizon/VPanel.hpp>
 
 namespace horizon::preferences
@@ -9,6 +10,35 @@ namespace horizon::preferences
         set_position_type(WidgetPositionTypes::FILL);
         set_margin(20);
         set_spacing(20);
+
+        // --- Keyboard Model Selection ---
+        auto model_section = std::make_unique<Widget>();
+        model_section->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        model_section->set_fixed_size(60);
+        model_section->set_spacing(5);
+
+        auto model_label = std::make_unique<Label>("Modelo de Teclado");
+        model_label->set_fixed_size(20);
+        model_section->add_child(std::move(model_label));
+
+        auto model_combo = std::make_unique<Combo>();
+        model_combo->set_fixed_size(30);
+        m_model_combo = model_combo.get();
+        
+        // Populate models
+        auto models = XkbParser::get_models();
+        for (const auto& model : models)
+        {
+            m_model_combo->add_item(model.id, model.description);
+        }
+        
+        if (!models.empty())
+        {
+            m_model_combo->set_selected_item_by_id("pc105"); // Default or first
+        }
+
+        model_section->add_child(std::move(model_combo));
+        add_child(std::move(model_section));
 
         // --- First Row: Sliders (Horizontal Container) ---
         auto sliders_row = std::make_unique<Widget>();

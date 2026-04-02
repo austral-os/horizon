@@ -5,6 +5,7 @@
 #include <horizon/Label.hpp>
 #include <horizon/AquaObject.hpp>
 #include <horizon/Spacer.hpp>
+#include <horizon/Combo.hpp>
 
 namespace horizon::preferences
 {
@@ -18,5 +19,6 @@ namespace horizon::preferences
         Slider* m_delay_slider{nullptr};
         Slider* m_rate_slider{nullptr};
         Checkbox<AquaObject>* m_numlock_checkbox{nullptr};
+        Combo* m_model_combo{nullptr};
     };
 } // namespace horizon::preferences
