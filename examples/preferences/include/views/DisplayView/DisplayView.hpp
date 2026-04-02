@@ -43,8 +43,7 @@ namespace horizon::preferences
         std::vector<MonitorConfig> m_previous_configs;
         size_t m_confirmation_timer_id{0};
         int m_countdown{10};
-        Widget* m_overlay{nullptr};
-        Label* m_countdown_label{nullptr};
+        horizon::MessageDialog* m_confirm_dialog{nullptr};
 
         int m_selected_monitor_idx = -1;
     };

@@ -1,3 +1,4 @@
+#include <ConfigManager.hpp>
 #include <algorithm>
 #include <horizon/Application.hpp>
 #include <horizon/AquaObject.hpp>
@@ -9,7 +10,6 @@
 #include <views/DisplayView/KwinAdapter.hpp>
 #include <views/DisplayView/LabwcAdapter.hpp>
 #include <views/DisplayView/WayfireAdapter.hpp>
-#include <ConfigManager.hpp>
 
 namespace horizon::preferences
 {
@@ -66,7 +66,7 @@ namespace horizon::preferences
                                  << "," << info.y;
                     }
                 }
-                
+
                 // Load configuration after monitors are identified
                 from_json(ConfigManager::instance().get_section("displays"));
             });
@@ -77,11 +77,12 @@ namespace horizon::preferences
         m_display_devices = devices.get();
         m_display_devices->when_monitor_selected.connect([this](int idx)
                                                          { on_monitor_selected(idx); });
-        m_display_devices->when_monitors_refreshed.connect([this](EventContext &)
-                                                          { 
-                                                              // Re-apply saved configuration whenever monitors are refreshed
-                                                              from_json(ConfigManager::instance().get_section("displays"));
-                                                          });
+        m_display_devices->when_monitors_refreshed.connect(
+            [this](EventContext &)
+            {
+                // Re-apply saved configuration whenever monitors are refreshed
+                from_json(ConfigManager::instance().get_section("displays"));
+            });
         add_child(std::move(devices));
 
         // 2. Controls Section (Lower Part)
@@ -178,8 +179,9 @@ namespace horizon::preferences
                 if (ctx.button == 0x110 && m_adapter)
                 {
                     // Update local monitors from widget positions
-                    const auto& current_monitors = m_display_devices->monitors();
-                    for (size_t i = 0; i < m_monitors.size() && i < current_monitors.size(); ++i) {
+                    const auto &current_monitors = m_display_devices->monitors();
+                    for (size_t i = 0; i < m_monitors.size() && i < current_monitors.size(); ++i)
+                    {
                         m_monitors[i].x = current_monitors[i].info.x;
                         m_monitors[i].y = current_monitors[i].info.y;
                     }
@@ -211,7 +213,7 @@ namespace horizon::preferences
                                 cfg.width = mode.width;
                                 cfg.height = mode.height;
                                 cfg.refresh = mode.refresh_rate;
-                                
+
                                 // Update internal monitor info too
                                 m.width = mode.width;
                                 m.height = mode.height;
@@ -248,94 +250,48 @@ namespace horizon::preferences
         controls_container->add_child(std::move(settings_section));
         add_child(std::move(controls_container));
 
-        // Create hidden overlay
-        auto overlay = std::make_unique<SolidObject>();
-        m_overlay = overlay.get();
-        m_overlay->set_background_color(Color(0.0f, 0.0f, 0.0f, 0.6f));
-        m_overlay->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        m_overlay->set_position_type(FREE); // Overlap
-        m_overlay->set_visible(false);
+        // 2.3 Controls section ends
+    }
 
-        m_overlay->add_child(Spacer()); // Vertical center - top spacer
+    void DisplayView::show_confirmation()
+    {
+        m_countdown = 10;
 
-        auto h_container = std::make_unique<Widget>();
-        h_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        h_container->add_child(Spacer()); // Horizontal center - left spacer
+        std::string msg = "¿Desea mantener esta configuración de pantalla? Revirtiendo en " +
+                          std::to_string(m_countdown) + " segundos...";
 
-        auto box = std::make_unique<AquaObject>();
-        box->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        box->set_margin(30);
-        box->set_spacing(20);
-        box->set_fixed_size(450); // Square-ish
-        box->set_corner_radius({12, 12, 12, 12});
+        auto dialog =
+            std::make_unique<MessageDialog>("Confirmar Pantalla", msg, MessageType::Question, true);
+        m_confirm_dialog = dialog.get();
+        m_confirm_dialog->set_accept_text("Mantener");
+        m_confirm_dialog->set_cancel_text("Revertir");
 
-        auto msg = std::make_unique<Label>("¿Desea mantener esta configuración de pantalla?");
-        msg->set_font_size(18);
-        msg->set_alignment(TextAlignment::Center);
-        box->add_child(std::move(msg));
-
-        auto countdown = std::make_unique<Label>("Revirtiendo en 10 segundos...");
-        m_countdown_label = countdown.get();
-        m_countdown_label->set_alignment(TextAlignment::Center);
-        box->add_child(std::move(countdown));
-
-        auto btns = std::make_unique<Widget>();
-        btns->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        btns->set_spacing(20);
-
-        btns->add_child(Spacer()); // Buttons center - left
-
-        auto keep = std::make_unique<Button<AquaObject>>();
-        keep->set_text("Mantener");
-        keep->set_size(140, 40);
-        keep->when_mouse_press.connect(
-            [this](MouseButtonEventContext &ctx)
+        m_confirm_dialog->when_responded.connect(
+            [this](MessageResponseEvent res)
             {
-                if (ctx.button == 0x110)
+                if (res.response == MessageResponse::Accept)
                 {
                     if (m_confirmation_timer_id != 0)
                     {
                         application()->stop_timer(m_confirmation_timer_id);
                         m_confirmation_timer_id = 0;
                     }
-                    m_overlay->set_visible(false);
-                    invalidate();
+                    m_confirm_dialog = nullptr;
                 }
-            });
-        btns->add_child(std::move(keep));
-
-        auto revert_btn = std::make_unique<Button<SolidObject>>();
-        revert_btn->set_text("Revertir");
-        revert_btn->set_size(140, 40);
-        revert_btn->when_mouse_press.connect(
-            [this](MouseButtonEventContext &ctx)
-            {
-                if (ctx.button == 0x110)
+                else
                 {
                     revert_settings();
                 }
             });
-        btns->add_child(std::move(revert_btn));
 
-        btns->add_child(Spacer()); // Buttons center - right
-
-        box->add_child(std::move(btns));
-        h_container->add_child(std::move(box));
-        h_container->add_child(Spacer()); // Horizontal center - right spacer
-
-        m_overlay->add_child(std::move(h_container));
-        m_overlay->add_child(Spacer()); // Vertical center - bottom spacer
-
-        add_child(std::move(overlay));
-    }
-
-    void DisplayView::show_confirmation()
-    {
-        m_countdown = 10;
-        m_countdown_label->set_text("Revirtiendo en " + std::to_string(m_countdown) +
-                                    " segundos...");
-        m_overlay->set_visible(true);
-        m_overlay->set_size(this->width(), this->height());
+        // Run the dialog in a separate thread, similar to how Application::alert does it.
+        std::thread(
+            [dialog_ptr = std::move(dialog)]() mutable
+            {
+                dialog_ptr->initialize();
+                dialog_ptr->run();
+            })
+            .detach();
 
         if (m_confirmation_timer_id != 0)
         {
@@ -353,14 +309,15 @@ namespace horizon::preferences
                 }
                 else
                 {
-                    m_countdown_label->set_text("Revirtiendo en " + std::to_string(m_countdown) +
-                                                " segundos...");
-                    invalidate();
+                    if (m_confirm_dialog)
+                    {
+                        m_confirm_dialog->set_message(
+                            "¿Desea mantener esta configuración de pantalla?\nRevirtiendo en " +
+                            std::to_string(m_countdown) + " segundos...");
+                    }
                 }
             },
             true);
-
-        invalidate();
     }
 
     void DisplayView::revert_settings()
@@ -376,7 +333,12 @@ namespace horizon::preferences
             m_adapter->apply_configs(m_previous_configs);
         }
 
-        m_overlay->set_visible(false);
+        if (m_confirm_dialog)
+        {
+            m_confirm_dialog->quit();
+            m_confirm_dialog = nullptr;
+        }
+
         on_monitor_selected(m_selected_monitor_idx); // Refresh UI to match reverted state
         invalidate();
     }
@@ -392,7 +354,7 @@ namespace horizon::preferences
         // Update resolution table
         std::vector<MonitorMode> modes = d.modes;
         int current_idx = d.current_mode_index;
-        
+
         if (!modes.empty())
         {
             // Sort by resolution area descending
@@ -491,7 +453,8 @@ namespace horizon::preferences
                 int width = item.value("width", 0);
                 int height = item.value("height", 0);
 
-                LOG_INFO << "[VIEW] Applying config for " << name << ": x=" << x << ", y=" << y << ", rot=" << rotation;
+                LOG_INFO << "[VIEW] Applying config for " << name << ": x=" << x << ", y=" << y
+                         << ", rot=" << rotation;
 
                 // Find monitor in m_monitors and update its info
                 for (auto &m : m_monitors)
@@ -501,11 +464,14 @@ namespace horizon::preferences
                         m.x = x;
                         m.y = y;
                         m.rotation = rotation;
-                        if (width > 0) m.width = width;
-                        if (height > 0) m.height = height;
-                        
+                        if (width > 0)
+                            m.width = width;
+                        if (height > 0)
+                            m.height = height;
+
                         // Sync with visual widget if it exists
-                        if (m_display_devices) {
+                        if (m_display_devices)
+                        {
                             m_display_devices->set_monitor_position(name, x, y);
                         }
                         break;
@@ -522,16 +488,14 @@ namespace horizon::preferences
         for (const auto &m : m_monitors)
         {
             LOG_INFO << "  - Serialization: " << m.conn_name << " at " << m.x << "," << m.y;
-            j.push_back({
-                {"name", m.conn_name},
-                {"x", m.x},
-                {"y", m.y},
-                {"width", m.width},
-                {"height", m.height},
-                {"refresh", 60.0f}, // TODO: capture actual refresh rate
-                {"rotation", m.rotation},
-                {"enabled", true}
-            });
+            j.push_back({{"name", m.conn_name},
+                         {"x", m.x},
+                         {"y", m.y},
+                         {"width", m.width},
+                         {"height", m.height},
+                         {"refresh", 60.0f}, // TODO: capture actual refresh rate
+                         {"rotation", m.rotation},
+                         {"enabled", true}});
         }
         return j;
     }

@@ -33,9 +33,11 @@ namespace horizon
         auto icon = std::make_unique<Icon>();
         icon->set_icon_name(get_icon_for_type(type));
         icon->set_icon_size(64);
+        icon->set_fixed_size(64);
         icon->set_vertical_alignment(VerticalAlignment::Top);
 
         auto label = std::make_unique<Label>(message);
+        m_label = label.get();
         label->set_position_type(FILL);
         label->set_vertical_alignment(VerticalAlignment::Top);
 
@@ -52,6 +54,7 @@ namespace horizon
         if (show_cancel)
         {
             auto btn_cancel = std::make_unique<Button<AquaObject>>();
+            m_cancel_btn = btn_cancel.get();
             btn_cancel->set_text("Cancelar");
             btn_cancel->set_fixed_size(100);
             btn_cancel->when_click.connect(
@@ -67,6 +70,7 @@ namespace horizon
         }
 
         auto btn_accept = std::make_unique<Button<AquaObject>>();
+        m_accept_btn = btn_accept.get();
         btn_accept->set_text("Aceptar");
         btn_accept->set_fixed_size(100);
         btn_accept->set_accent_color(get_color_for_type(type));
@@ -83,11 +87,34 @@ namespace horizon
         buttons->add_child(Spacer(15));
 
         root_wnd->add_child(std::move(content));
-        root_wnd->add_child(Spacer());
         root_wnd->add_child(std::move(buttons));
         root_wnd->add_child(Spacer(15));
 
         set_root(std::move(root_wnd));
+    }
+
+    void MessageDialog::set_message(const std::string &message)
+    {
+        if (m_label)
+        {
+            m_label->set_text(message);
+        }
+    }
+
+    void MessageDialog::set_accept_text(const std::string &text)
+    {
+        if (m_accept_btn)
+        {
+            m_accept_btn->set_text(text);
+        }
+    }
+
+    void MessageDialog::set_cancel_text(const std::string &text)
+    {
+        if (m_cancel_btn)
+        {
+            m_cancel_btn->set_text(text);
+        }
     }
 
     std::string MessageDialog::get_icon_for_type(MessageType type)

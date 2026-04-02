@@ -63,7 +63,8 @@ sudo apt install build-essential g++ pkg-config \
                  librsvg2-dev libpixman-1-dev \
                  libegl1-mesa-dev libgles2-mesa-dev \
                  nlohmann-json3-dev weston wayland-utils \
-                 wlr-randr
+                 wlr-randr xdg-utils shared-mime-info \
+                 desktop-file-utils
 ```
 
 ### 2. Compiling the Project
