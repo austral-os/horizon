@@ -20,6 +20,7 @@ add_executable(preferences
     src/views/SoundView/SoundView.cpp
     src/views/MouseView/MouseView.cpp
     src/views/KeyboardView/KeyboardView.cpp
+    src/views/KeyboardView/KeyboardHardwareView.cpp
     src/views/PrintersView/PrintersView.cpp
     src/views/PowerView/PowerView.cpp
     src/views/WifiView/WifiView.cpp

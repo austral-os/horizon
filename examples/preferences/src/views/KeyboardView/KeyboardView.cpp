@@ -1,4 +1,5 @@
 #include <views/KeyboardView/KeyboardView.hpp>
+#include <views/KeyboardView/KeyboardHardwareView.hpp>
 
 namespace horizon::preferences
 {
@@ -14,9 +15,7 @@ namespace horizon::preferences
         m_notebook = notebook.get();
 
         // Hardware Tab
-        auto hardware_label = std::make_unique<Label>("Hardware");
-        hardware_label->set_position_type(WidgetPositionTypes::FILL);
-        m_notebook->add_tab(NotebookPage("Hardware", std::move(hardware_label)));
+        m_notebook->add_tab(NotebookPage("Hardware", std::make_unique<KeyboardHardwareView>()));
 
         // Idioma Tab
         auto idioma_label = std::make_unique<Label>("Idioma");
