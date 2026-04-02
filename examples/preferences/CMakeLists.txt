@@ -30,6 +30,7 @@ add_executable(preferences
     src/views/RegionView/RegionView.cpp
     src/views/DetailsView/DetailsView.cpp
     src/views/ApplicationsView/ApplicationsView.cpp
+    src/views/ApplicationsView/MimeTypesView.cpp
 )
 
 target_link_libraries(preferences

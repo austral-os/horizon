@@ -1,4 +1,5 @@
 #include <views/ApplicationsView/ApplicationsView.hpp>
+#include <views/ApplicationsView/MimeTypesView.hpp>
 
 namespace horizon::preferences
 {
@@ -23,9 +24,8 @@ namespace horizon::preferences
         m_notebook->add_tab(NotebookPage("Predeterminadas", std::move(predeterminadas_label)));
 
         // MIME Types Tab
-        auto mime_label = std::make_unique<Label>("MIME Types");
-        mime_label->set_position_type(WidgetPositionTypes::FILL);
-        m_notebook->add_tab(NotebookPage("MIME Types", std::move(mime_label)));
+        auto mime_types_view = std::make_unique<MimeTypesView>();
+        m_notebook->add_tab(NotebookPage("MIME Types", std::move(mime_types_view)));
 
         add_child(std::move(notebook));
     }

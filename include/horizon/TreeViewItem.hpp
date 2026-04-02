@@ -26,6 +26,8 @@ namespace horizon
         void set_selected(bool selected);
         bool is_selected() const { return m_selected; }
 
+        const std::string &get_text() const { return m_text; }
+
         bool has_children() const { return !children().empty() && children().size() > 1; } // size > 1 because header is a child
 
         void add_item(std::unique_ptr<TreeViewItem> item);
