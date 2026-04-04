@@ -10,6 +10,7 @@
 #include <views/DisplayView/KwinAdapter.hpp>
 #include <views/DisplayView/LabwcAdapter.hpp>
 #include <views/DisplayView/WayfireAdapter.hpp>
+#include <utils/WayfireConfigWriter.hpp>
 
 namespace horizon::preferences
 {
@@ -237,6 +238,7 @@ namespace horizon::preferences
                     }
 
                     m_adapter->apply_configs(configs);
+                    WayfireConfigWriter::update_monitor_config(configs);
                     save_config();
 
                     // Show confirmation
