@@ -102,6 +102,13 @@ namespace horizon::preferences
         m_remove_button = remove_btn.get();
         button_container->add_child(std::move(remove_btn));
 
+        auto refresh_btn = std::make_unique<Button<AquaObject>>();
+        refresh_btn->set_text("Refrescar");
+        refresh_btn->set_size(100, 32);
+        refresh_btn->when_click.connect([this](MouseButtonEventContext &) { this->refresh_networks(); });
+        m_refresh_button = refresh_btn.get();
+        button_container->add_child(std::move(refresh_btn));
+
         // Spacer to the right of buttons
         button_container->add_child(Spacer());
 

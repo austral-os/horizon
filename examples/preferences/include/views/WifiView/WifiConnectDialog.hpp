@@ -7,6 +7,7 @@
 #include <horizon/TextBox.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Combo.hpp>
+#include <horizon/LoadingBar.hpp>
 #include <horizon/dbusutils/DbusHelper.hpp>
 #include <horizon/EventsManager.hpp>
 #include <string>
@@ -42,6 +43,7 @@ namespace horizon::preferences
         Button<AquaObject> *m_accept_btn{nullptr};
         Button<AquaObject> *m_cancel_btn{nullptr};
         Label *m_status_label{nullptr};
+        LoadingBar *m_loading_bar{nullptr};
 
         std::unique_ptr<dbusutils::DbusHelper> m_dbus;
     };

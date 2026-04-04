@@ -19,7 +19,7 @@ namespace horizon::preferences
 
     WifiConnectDialog::WifiConnectDialog(const std::string &ssid, const std::string &ap_path,
                                          const std::vector<WifiDevice> &devices)
-        : WaylandWindow("horizon.wifi_connect", 450, 350, true, false), m_ssid(ssid),
+        : WaylandWindow("horizon.wifi_connect", 450, 400, true, false), m_ssid(ssid),
           m_ap_path(ap_path), m_devices(devices)
     {
         set_name("Conectar a " + ssid);
@@ -81,6 +81,13 @@ namespace horizon::preferences
         m_password_input->set_focusable(true);
         container->add_child(std::move(input));
 
+        // 3.4 Loading Bar (New)
+        auto loading_bar = std::make_unique<LoadingBar>();
+        loading_bar->set_fixed_size(24);
+        loading_bar->set_visible(false);
+        m_loading_bar = loading_bar.get();
+        container->add_child(std::move(loading_bar));
+
         // 3.5 Status Label (para informar errores o éxito)
         auto status_label = std::make_unique<Label>("");
         status_label->set_font_size(13);
@@ -126,6 +133,11 @@ namespace horizon::preferences
                 {
                     m_status_label->set_text("Conectando...");
                     m_status_label->set_text_color(Color("#666666"));
+                }
+
+                if (m_loading_bar)
+                {
+                    m_loading_bar->set_visible(true);
                 }
 
                 // Deshabilitamos el UI para que no haya cambios mientras conectamos
@@ -312,6 +324,8 @@ namespace horizon::preferences
                 m_password_input->set_enabled(true);
             if (m_device_combo)
                 m_device_combo->set_enabled(true);
+            if (m_loading_bar)
+                m_loading_bar->set_visible(false);
             dbus_error_free(&dbus_err);
             dbus_message_unref(msg);
             return;
@@ -365,6 +379,9 @@ namespace horizon::preferences
                     m_status_label->set_text_color(Color("#44aa44"));
                     m_status_label->set_text("¡Conectado con éxito!");
                 }
+                if (m_loading_bar)
+                    m_loading_bar->set_visible(false);
+
                 std::this_thread::sleep_for(std::chrono::milliseconds(1500));
                 this->quit();
             }
@@ -384,6 +401,8 @@ namespace horizon::preferences
                     m_password_input->set_enabled(true);
                 if (m_device_combo)
                     m_device_combo->set_enabled(true);
+                if (m_loading_bar)
+                    m_loading_bar->set_visible(false);
             }
         }
         else
@@ -402,6 +421,8 @@ namespace horizon::preferences
                 m_password_input->set_enabled(true);
             if (m_device_combo)
                 m_device_combo->set_enabled(true);
+            if (m_loading_bar)
+                m_loading_bar->set_visible(false);
         }
     }
 } // namespace horizon::preferences

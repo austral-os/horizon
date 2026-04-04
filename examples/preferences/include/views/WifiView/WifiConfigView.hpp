@@ -36,6 +36,7 @@ namespace horizon::preferences
         TableView<WifiNetwork>* m_table_view{nullptr};
         Button<AquaObject>* m_add_button{nullptr};
         Button<AquaObject>* m_remove_button{nullptr};
+        Button<AquaObject>* m_refresh_button{nullptr};
         Checkbox<AquaObject>* m_remember_checkbox{nullptr};
         
         std::unique_ptr<dbusutils::DbusHelper> m_dbus;
