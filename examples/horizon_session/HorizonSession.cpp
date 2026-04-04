@@ -49,7 +49,18 @@ void HorizonSession::init(const std::string &compositor)
 
     if (!compositor.empty())
     {
-        m_startup_services.push_back(compositor);
+        // Solo agregamos a m_startup_services si no estamos ya en un compositor
+        if (!wayland_display)
+        {
+            LOG_INFO << "[HorizonSession] WAYLAND_DISPLAY is NULL, adding " << compositor
+                     << " to startup services.";
+            m_startup_services.push_back(compositor);
+        }
+        else
+        {
+            LOG_INFO << "[HorizonSession] Already in a Wayland session (WAYLAND_DISPLAY="
+                     << wayland_display << "), skipping compositor spawn.";
+        }
 
         if (compositor == "labwc")
         {
@@ -77,6 +88,14 @@ void HorizonSession::start()
 {
     LOG_INFO << "[HorizonSession] Starting IPC Server..." << std::endl;
     m_server->start();
+
+    // Si ya estamos en un compositor, aplicamos la configuración de pantalla de inmediato
+    if (getenv("WAYLAND_DISPLAY"))
+    {
+        LOG_INFO << "[HorizonSession] Already in a compositor, applying display configuration...";
+        apply_display_config();
+    }
+
     run_startup_services();
 }
 

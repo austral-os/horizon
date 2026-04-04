@@ -19,6 +19,7 @@ namespace horizon::preferences
         void add_layout();
         void remove_layout();
         void set_default_layout();
+        void apply_layout_to_labwc(const std::string& layout_id);
 
         TableView<KeyboardLayoutSelection>* m_layout_table{nullptr};
         std::vector<KeyboardLayoutSelection> m_selected_layouts;
