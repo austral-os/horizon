@@ -19,6 +19,7 @@ namespace horizon::preferences
         std::string security;
         std::string path;
         int signal;
+        bool connected;
     };
 
     class WifiConfigView : public Widget

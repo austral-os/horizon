@@ -73,7 +73,7 @@ namespace horizon::preferences
         m_title_label = label.get();
         add_child(std::move(label));
 
-        // 2. TableView: SSID, Security
+        // 2. TableView: SSID, Security, Signal, Connection
         auto table = std::make_unique<TableView<WifiNetwork>>();
         table->set_height(250);
 
@@ -97,6 +97,21 @@ namespace horizon::preferences
         signal_col.cell_factory = [](const WifiNetwork &data)
         { return std::make_unique<Label>(std::to_string(data.signal) + "%"); };
         table->add_column(std::move(signal_col));
+
+        TableColumn<WifiNetwork> connection_col;
+        connection_col.title = "Conexion";
+        connection_col.width = 100;
+        connection_col.cell_factory = [](const WifiNetwork &data)
+        {
+            auto lbl = std::make_unique<Label>(data.connected ? "Conectado" : "sin conexion");
+            if (data.connected)
+            {
+                lbl->set_text_color(Color("#2ecc71")); // Emerald Green
+                lbl->set_font_weight(FONT_WEIGHT_BOLD);
+            }
+            return lbl;
+        };
+        table->add_column(std::move(connection_col));
 
         m_table_view = table.get();
         m_table_view->when_row_click.connect([this](auto &ctx)
@@ -254,6 +269,8 @@ namespace horizon::preferences
         if (!m_dbus)
             return networks;
 
+        std::string active_ssid = get_active_ssid();
+
         // 1. Get Devices
         auto msg =
             m_dbus->call_method("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
@@ -338,7 +355,9 @@ namespace horizon::preferences
                 int signal =
                     std::holds_alternative<uint32_t>(strength_var) ? (int)std::get<uint32_t>(strength_var) : 0;
 
-                networks.push_back({ssid_str, get_security_string(wpa, rsn), ap_path, signal});
+                bool is_active = (!active_ssid.empty() && ssid_str == active_ssid);
+
+                networks.push_back({ssid_str, get_security_string(wpa, rsn), ap_path, signal, is_active});
             }
         }
 
