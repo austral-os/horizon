@@ -84,6 +84,12 @@
                 "run_id": "firefox"
             },
             {
+                "app_id": "antigravity",
+                "icon": "antigravity",
+                "name": "antigravity",
+                "run_id": ""
+            },
+            {
                 "app_id": "alacritty",
                 "icon": "utilities-terminal",
                 "name": "Terminal",

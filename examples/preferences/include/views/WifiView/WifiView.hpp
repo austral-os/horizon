@@ -1,6 +1,7 @@
 #pragma once
 #include <horizon/Widget.hpp>
-#include <horizon/Label.hpp>
+#include <horizon/Notebook.hpp>
+#include <views/WifiView/WifiConfigView.hpp>
 
 namespace horizon::preferences
 {
@@ -10,6 +11,7 @@ namespace horizon::preferences
         WifiView();
         ~WifiView() override = default;
     private:
-        Label* m_title_label{nullptr};
+        Notebook* m_notebook{nullptr};
+        WifiConfigView* m_wifi_config{nullptr};
     };
 }

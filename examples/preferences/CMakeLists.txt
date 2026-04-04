@@ -24,6 +24,7 @@ add_executable(preferences
     src/views/PrintersView/PrintersView.cpp
     src/views/PowerView/PowerView.cpp
     src/views/WifiView/WifiView.cpp
+    src/views/WifiView/WifiConfigView.cpp
     src/views/BluetoothView/BluetoothView.cpp
     src/views/NetworkView/NetworkView.cpp
     src/views/UsersView/UsersView.cpp
