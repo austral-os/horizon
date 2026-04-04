@@ -89,8 +89,8 @@ namespace horizon::preferences
         container->add_child(std::move(loading_bar));
 
         // 3.5 Status Label (para informar errores o éxito)
-        auto status_label = std::make_unique<Label>("");
-        status_label->set_font_size(13);
+        auto status_label = std::make_unique<Label>("No conectado a " + ssid);
+        // status_label->set_font_size(13);
         status_label->set_alignment(TextAlignment::Center);
         m_status_label = status_label.get();
         container->add_child(std::move(status_label));
@@ -112,7 +112,7 @@ namespace horizon::preferences
         buttons->add_child(std::move(btn_cancel));
 
         auto btn_accept = std::make_unique<Button<AquaObject>>();
-        btn_accept->set_text("Aceptar");
+        btn_accept->set_text("Conectar");
         btn_accept->set_fixed_size(100);
         btn_accept->set_accent_color(WidgetAccentColor::Primary);
 
@@ -121,6 +121,12 @@ namespace horizon::preferences
         btn_accept->when_click.connect(
             [this](MouseButtonEventContext &)
             {
+                if (m_accept_btn && m_accept_btn->text() == "Cerrar")
+                {
+                    this->quit();
+                    return;
+                }
+
                 // Se capturan los datos en el UI Thread
                 std::string password = m_password_input ? m_password_input->text() : "";
                 const ComboItem *selected =
@@ -310,15 +316,15 @@ namespace horizon::preferences
         if (dbus_error_is_set(&dbus_err) || reply == nullptr)
         {
             std::string err_m = (dbus_error_is_set(&dbus_err) ? dbus_err.message : "Desconocido");
-            if (m_status_label)
-            {
-                m_status_label->set_text_color(Color("#ff4444"));
-                m_status_label->set_text("Error: " + err_m);
-            }
             if (m_accept_btn)
             {
                 m_accept_btn->set_enabled(true);
-                m_accept_btn->set_text("Aceptar");
+                m_accept_btn->set_text("Reintentar");
+            }
+            if (m_status_label)
+            {
+                m_status_label->set_text_color(Color("#ff4444"));
+                m_status_label->set_text("No conectado a " + m_ssid);
             }
             if (m_password_input)
                 m_password_input->set_enabled(true);
@@ -377,25 +383,27 @@ namespace horizon::preferences
                 if (m_status_label)
                 {
                     m_status_label->set_text_color(Color("#44aa44"));
-                    m_status_label->set_text("¡Conectado con éxito!");
+                    m_status_label->set_text("Conectado a " + m_ssid);
+                }
+                if (m_accept_btn)
+                {
+                    m_accept_btn->set_enabled(true);
+                    m_accept_btn->set_text("Cerrar");
                 }
                 if (m_loading_bar)
                     m_loading_bar->set_visible(false);
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-                this->quit();
             }
             else
             {
                 if (m_status_label)
                 {
                     m_status_label->set_text_color(Color("#ff4444"));
-                    m_status_label->set_text("Error de autenticación.");
+                    m_status_label->set_text("No conectado a " + m_ssid);
                 }
                 if (m_accept_btn)
                 {
                     m_accept_btn->set_enabled(true);
-                    m_accept_btn->set_text("Aceptar");
+                    m_accept_btn->set_text("Reintentar");
                 }
                 if (m_password_input)
                     m_password_input->set_enabled(true);
@@ -410,12 +418,12 @@ namespace horizon::preferences
             if (m_status_label)
             {
                 m_status_label->set_text_color(Color("#ffaa00"));
-                m_status_label->set_text("Tiempo agotado.");
+                m_status_label->set_text("No conectado a " + m_ssid + " (Tiempo agotado)");
             }
             if (m_accept_btn)
             {
                 m_accept_btn->set_enabled(true);
-                m_accept_btn->set_text("Aceptar");
+                m_accept_btn->set_text("Reintentar");
             }
             if (m_password_input)
                 m_password_input->set_enabled(true);
