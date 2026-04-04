@@ -134,14 +134,22 @@ namespace horizon::preferences
 
         add_child(std::move(button_container));
 
-        // 4. Checkbox: Recordar las redes...
+        // 4. Options Area: Checkbox OR connection label
+        auto options_container = std::make_unique<Widget>();
+        options_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        options_container->set_fixed_size(24);
+
         auto checkbox = std::make_unique<Checkbox<AquaObject>>();
         checkbox->set_text("Recordar las redes a las que la computadora se ha unido");
         m_remember_checkbox = checkbox.get();
-        add_child(std::move(checkbox));
+        options_container->add_child(std::move(checkbox));
 
-        // Spacer below checkbox to fill vertical space
-        // add_child(Spacer());
+        auto status_label = std::make_unique<Label>("No conectado");
+        m_active_network_label = status_label.get();
+        m_active_network_label->set_visible(false);
+        options_container->add_child(std::move(status_label));
+
+        add_child(std::move(options_container));
     }
 
     void WifiConfigView::refresh_networks()
@@ -149,6 +157,32 @@ namespace horizon::preferences
         if (m_table_view)
         {
             m_table_view->set_data(scan_networks());
+
+            // Check for active connection
+            std::string active_ssid = get_active_ssid();
+            if (!active_ssid.empty())
+            {
+                if (m_active_network_label)
+                {
+                    m_active_network_label->set_text("Conectado a " + active_ssid);
+                    m_active_network_label->set_visible(true);
+                }
+                if (m_remember_checkbox)
+                {
+                    m_remember_checkbox->set_visible(false);
+                }
+            }
+            else
+            {
+                if (m_active_network_label)
+                {
+                    m_active_network_label->set_visible(false);
+                }
+                if (m_remember_checkbox)
+                {
+                    m_remember_checkbox->set_visible(true);
+                }
+            }
 
             // Since RequestScan is async, we poll again in 3 seconds to show new results
             if (auto *app = application())
@@ -168,6 +202,50 @@ namespace horizon::preferences
                                                     });
             }
         }
+    }
+
+    std::string WifiConfigView::get_active_ssid()
+    {
+        if (!m_dbus)
+            return "";
+
+        // Get all devices
+        auto msg = m_dbus->call_method("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
+                                    "org.freedesktop.NetworkManager", "GetDevices");
+        if (!msg) return "";
+
+        auto devices = m_dbus->get_object_path_list(msg);
+        dbus_message_unref(msg);
+
+        for (const auto &path : devices)
+        {
+            // Check if device is WiFi and has an ActiveAccessPoint
+            auto type_var = m_dbus->get_property("org.freedesktop.NetworkManager", path,
+                                                "org.freedesktop.NetworkManager.Device", "DeviceType");
+            if (std::holds_alternative<uint32_t>(type_var) && std::get<uint32_t>(type_var) == 2)
+            {
+                auto active_ap_var = m_dbus->get_property("org.freedesktop.NetworkManager", path,
+                                                        "org.freedesktop.NetworkManager.Device.Wireless",
+                                                        "ActiveAccessPoint");
+                if (std::holds_alternative<std::string>(active_ap_var))
+                {
+                    std::string active_ap_path = std::get<std::string>(active_ap_var);
+                    if (active_ap_path != "/" && !active_ap_path.empty())
+                    {
+                        // Get Ssid of the active Access Point
+                        auto ssid_var = m_dbus->get_property("org.freedesktop.NetworkManager", active_ap_path,
+                                                            "org.freedesktop.NetworkManager.AccessPoint", "Ssid");
+                        if (std::holds_alternative<std::vector<uint8_t>>(ssid_var))
+                        {
+                            auto bytes = std::get<std::vector<uint8_t>>(ssid_var);
+                            return std::string(bytes.begin(), bytes.end());
+                        }
+                    }
+                }
+            }
+        }
+
+        return "";
     }
 
     std::vector<WifiNetwork> WifiConfigView::scan_networks()

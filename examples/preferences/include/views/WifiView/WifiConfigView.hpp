@@ -32,6 +32,7 @@ namespace horizon::preferences
     private:
         void setup_ui();
         std::vector<WifiNetwork> scan_networks();
+        std::string get_active_ssid();
         void on_network_selected(const WifiNetwork& network);
 
         Label* m_title_label{nullptr};
@@ -40,6 +41,7 @@ namespace horizon::preferences
         Button<SolidObject>* m_remove_button{nullptr};
         Button<SolidObject>* m_refresh_button{nullptr};
         Checkbox<AquaObject>* m_remember_checkbox{nullptr};
+        Label* m_active_network_label{nullptr};
         
         std::unique_ptr<dbusutils::DbusHelper> m_dbus;
         std::vector<WifiDevice> m_scan_devices;
