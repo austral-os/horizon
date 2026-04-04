@@ -223,6 +223,7 @@ namespace horizon::preferences
             m_layout_table->set_data(m_selected_layouts);
             save_config();
             apply_layout_to_labwc(m_selected_layouts[idx].id);
+            apply_layout_to_wayfire(m_selected_layouts[idx].id);
         }
     }
     void KeyboardLanguageView::apply_layout_to_labwc(const std::string &layout_id)
@@ -276,5 +277,61 @@ namespace horizon::preferences
 
         // Run labwc --reconfigure
         std::system("labwc --reconfigure");
+    }
+
+    void KeyboardLanguageView::apply_layout_to_wayfire(const std::string& layout_id)
+    {
+        const char* home = std::getenv("HOME");
+        if (!home) return;
+
+        std::filesystem::path config_path(home);
+        config_path /= ".config/wayfire.ini";
+
+        std::vector<std::string> lines;
+        bool in_input_section = false;
+        bool layout_found = false;
+        
+        if (std::filesystem::exists(config_path)) {
+            std::ifstream file(config_path);
+            std::string line;
+            while (std::getline(file, line)) {
+                std::string trimmed = line;
+                trimmed.erase(0, trimmed.find_first_not_of(" \t"));
+                trimmed.erase(trimmed.find_last_not_of(" \t") + 1);
+
+                if (trimmed == "[input]") {
+                    in_input_section = true;
+                } else if (!trimmed.empty() && trimmed[0] == '[' && trimmed.back() == ']') {
+                    if (in_input_section && !layout_found) {
+                        lines.push_back("xkb_layout=" + layout_id);
+                        layout_found = true;
+                    }
+                    in_input_section = false;
+                }
+
+                if (in_input_section && trimmed.compare(0, 11, "xkb_layout=") == 0) {
+                    lines.push_back("xkb_layout=" + layout_id);
+                    layout_found = true;
+                } else {
+                    lines.push_back(line);
+                }
+            }
+        }
+
+        if (in_input_section && !layout_found) {
+            lines.push_back("xkb_layout=" + layout_id);
+            layout_found = true;
+        }
+
+        if (!layout_found) {
+            lines.push_back("");
+            lines.push_back("[input]");
+            lines.push_back("xkb_layout=" + layout_id);
+        }
+
+        std::ofstream out(config_path);
+        for (const auto& l : lines) {
+            out << l << "\n";
+        }
     }
 } // namespace horizon::preferences
