@@ -1,4 +1,6 @@
 #include <cstdio>
+#include <horizon/Icon.hpp>
+#include <horizon/SolidObject.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/WaylandWindow.hpp>
 #include <iostream>
@@ -39,6 +41,15 @@ namespace horizon::preferences
 
         setup_ui();
         refresh_networks();
+
+        when_application_load.connect(
+            [this](EventContext &)
+            {
+                if (auto *app = application())
+                {
+                    app->add_timer(1000, [this]() { m_initialized = true; });
+                }
+            });
     }
 
     WifiConfigView::~WifiConfigView()
@@ -87,25 +98,26 @@ namespace horizon::preferences
         // 3. Buttons: Agregar, Quitar (Horizontal Container)
         auto button_container = std::make_unique<Widget>();
         button_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        button_container->set_fixed_size(30);
+        button_container->set_fixed_size(35);
         button_container->set_spacing(10);
 
-        auto add_btn = std::make_unique<Button<AquaObject>>();
+        auto add_btn = std::make_unique<Button<SolidObject>>();
         add_btn->set_text("Agregar");
-        add_btn->set_size(100, 32);
+
         m_add_button = add_btn.get();
         button_container->add_child(std::move(add_btn));
 
-        auto remove_btn = std::make_unique<Button<AquaObject>>();
-        remove_btn->set_text("Quitar");
-        remove_btn->set_size(100, 32);
+        auto remove_btn = std::make_unique<Button<SolidObject>>();
+        remove_btn->set_text("Eliminar");
+
         m_remove_button = remove_btn.get();
         button_container->add_child(std::move(remove_btn));
 
-        auto refresh_btn = std::make_unique<Button<AquaObject>>();
+        auto refresh_btn = std::make_unique<Button<SolidObject>>();
         refresh_btn->set_text("Refrescar");
-        refresh_btn->set_size(100, 32);
-        refresh_btn->when_click.connect([this](MouseButtonEventContext &) { this->refresh_networks(); });
+
+        refresh_btn->when_click.connect([this](MouseButtonEventContext &)
+                                        { this->refresh_networks(); });
         m_refresh_button = refresh_btn.get();
         button_container->add_child(std::move(refresh_btn));
 
@@ -121,7 +133,7 @@ namespace horizon::preferences
         add_child(std::move(checkbox));
 
         // Spacer below checkbox to fill vertical space
-        add_child(Spacer());
+        // add_child(Spacer());
     }
 
     void WifiConfigView::refresh_networks()
@@ -244,11 +256,33 @@ namespace horizon::preferences
 
     void WifiConfigView::on_network_selected(const WifiNetwork &network)
     {
+        if (!m_initialized)
+        {
+            std::cerr << "WifiConfigView: Ignoring on_network_selected for SSID: " << network.ssid
+                      << " (Initial load protection)" << std::endl;
+            return;
+        }
+
+        if (m_dialog_open)
+        {
+            std::cerr << "WifiConfigView: Ignoring on_network_selected because another dialog is "
+                         "already open."
+                      << std::endl;
+            return;
+        }
+
+        std::cerr << "WifiConfigView: on_network_selected called for SSID: " << network.ssid
+                  << " at path: " << network.path << std::endl;
+
         if (m_scan_devices.empty())
             return;
 
+        m_dialog_open = true;
         auto dialog =
             std::make_unique<WifiConnectDialog>(network.ssid, network.path, m_scan_devices);
+
+        dialog->when_close.connect([this](EventContext &) { m_dialog_open = false; });
+
         std::thread(
             [d = std::move(dialog)]() mutable
             {

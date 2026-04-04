@@ -5,6 +5,7 @@
 #include <horizon/Button.hpp>
 #include <horizon/Checkbox.hpp>
 #include <horizon/dbusutils/DbusHelper.hpp>
+#include <horizon/SolidObject.hpp>
 #include <vector>
 #include <string>
 
@@ -34,13 +35,15 @@ namespace horizon::preferences
 
         Label* m_title_label{nullptr};
         TableView<WifiNetwork>* m_table_view{nullptr};
-        Button<AquaObject>* m_add_button{nullptr};
-        Button<AquaObject>* m_remove_button{nullptr};
-        Button<AquaObject>* m_refresh_button{nullptr};
+        Button<SolidObject>* m_add_button{nullptr};
+        Button<SolidObject>* m_remove_button{nullptr};
+        Button<SolidObject>* m_refresh_button{nullptr};
         Checkbox<AquaObject>* m_remember_checkbox{nullptr};
         
         std::unique_ptr<dbusutils::DbusHelper> m_dbus;
         std::vector<WifiDevice> m_scan_devices;
         size_t m_refresh_timer_id{0};
+        bool m_initialized{false};
+        bool m_dialog_open{false};
     };
 }
