@@ -100,7 +100,7 @@ namespace horizon::preferences
 
         TableColumn<WifiNetwork> connection_col;
         connection_col.title = "Conexion";
-        connection_col.width = 100;
+        connection_col.width = 150;
         connection_col.cell_factory = [](const WifiNetwork &data)
         {
             auto lbl = std::make_unique<Label>(data.connected ? "Conectado" : "sin conexion");
