@@ -28,6 +28,7 @@
 #include <horizon/VPanel.hpp>
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/LoadingBar.hpp>
 #include <horizon/Window.hpp>
 #include <unistd.h>
 
@@ -166,6 +167,11 @@ int main()
         pb->set_margin(10);
         pb->set_fixed_size(30);
         tb_container->add_child(std::move(pb));
+
+        auto lb = std::make_unique<horizon::LoadingBar>();
+        lb->set_margin(10);
+        lb->set_fixed_size(24);
+        tb_container->add_child(std::move(lb));
 
         // Slider 1: Horizontal, Marker shape, show ticks (Magnet)
         auto slider_h1 = std::make_unique<horizon::Slider>();
