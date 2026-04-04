@@ -160,11 +160,15 @@ namespace horizon::preferences
         connection_col.width = 150;
         connection_col.cell_factory = [](const WifiNetwork &data)
         {
-            auto lbl = std::make_unique<Label>(data.connected ? "Conectado" : "sin conexion");
+            auto lbl = std::make_unique<Label>(data.connected ? "Conectado" : "Sin conexion");
             if (data.connected)
             {
                 lbl->set_text_color(Color("#2ecc71")); // Emerald Green
                 lbl->set_font_weight(FONT_WEIGHT_BOLD);
+            }
+            else
+            {
+                lbl->set_text_color(Color("#000000")); // Black
             }
             return lbl;
         };
@@ -211,7 +215,7 @@ namespace horizon::preferences
         options_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         options_container->set_fixed_size(24);
 
-        auto status_label = std::make_unique<Label>("No conectado");
+        auto status_label = std::make_unique<Label>("Sin conexion");
         m_active_network_label = status_label.get();
         options_container->add_child(std::move(status_label));
 
@@ -239,8 +243,8 @@ namespace horizon::preferences
             {
                 if (m_active_network_label)
                 {
-                    m_active_network_label->set_text("sin conexion");
-                    m_active_network_label->set_text_color(Color("#ffffff"));
+                    m_active_network_label->set_text("Sin conexion");
+                    m_active_network_label->set_text_color(Color("#000000"));
                     m_active_network_label->set_font_weight(FONT_WEIGHT_NORMAL);
                 }
             }
