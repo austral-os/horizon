@@ -49,7 +49,7 @@ namespace horizon::preferences
                 if (auto *app = application())
                 {
                     app->add_timer(1000, [this]() { m_initialized = true; });
-                    
+
                     // Start monitoring thread
                     m_stop_monitor = false;
                     m_monitor_thread = std::thread(&WifiConfigView::monitor_loop, this);
@@ -79,16 +79,19 @@ namespace horizon::preferences
         DBusError err;
         dbus_error_init(&err);
 
-        DBusConnection* conn = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
-        if (dbus_error_is_set(&err)) {
-            std::cerr << "WifiConfigView Monitor: D-Bus connection error: " << err.message << std::endl;
+        DBusConnection *conn = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
+        if (dbus_error_is_set(&err))
+        {
+            std::cerr << "WifiConfigView Monitor: D-Bus connection error: " << err.message
+                      << std::endl;
             dbus_error_free(&err);
             return;
         }
 
         // Match common NM signals
         dbus_bus_add_match(conn, "type='signal',interface='org.freedesktop.NetworkManager'", &err);
-        if (dbus_error_is_set(&err)) {
+        if (dbus_error_is_set(&err))
+        {
             std::cerr << "WifiConfigView Monitor: Add match error: " << err.message << std::endl;
             dbus_error_free(&err);
             return;
@@ -98,18 +101,20 @@ namespace horizon::preferences
         {
             // Read messages (non-blocking wait)
             dbus_connection_read_write_dispatch(conn, 100); // Wait 100ms
-            
-            DBusMessage* msg = dbus_connection_pop_message(conn);
-            if (!msg) {
+
+            DBusMessage *msg = dbus_connection_pop_message(conn);
+            if (!msg)
+            {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 continue;
             }
 
-            // We filter slightly for performance, but any NM signal means we should probably refresh status
+            // We filter slightly for performance, but any NM signal means we should probably
+            // refresh status
             if (dbus_message_is_signal(msg, "org.freedesktop.NetworkManager", "StateChanged") ||
                 dbus_message_is_signal(msg, "org.freedesktop.DBus.Properties", "PropertiesChanged"))
             {
-                if (auto* app = application())
+                if (auto *app = application())
                 {
                     app->post_task([this]() { this->refresh_networks(); });
                 }
@@ -160,15 +165,11 @@ namespace horizon::preferences
         connection_col.width = 150;
         connection_col.cell_factory = [](const WifiNetwork &data)
         {
-            auto lbl = std::make_unique<Label>(data.connected ? "Conectado" : "Sin conexion");
+            auto lbl = std::make_unique<Label>(data.connected ? "Conectado" : "");
             if (data.connected)
             {
-                lbl->set_text_color(Color("#2ecc71")); // Emerald Green
+                lbl->set_text_color(Color("#0b7c37ff")); // Emerald Green
                 lbl->set_font_weight(FONT_WEIGHT_BOLD);
-            }
-            else
-            {
-                lbl->set_text_color(Color("#000000")); // Black
             }
             return lbl;
         };
@@ -216,6 +217,7 @@ namespace horizon::preferences
         options_container->set_fixed_size(24);
 
         auto status_label = std::make_unique<Label>("Sin conexion");
+        status_label->set_alignment(TextAlignment::Center);
         m_active_network_label = status_label.get();
         options_container->add_child(std::move(status_label));
 
@@ -272,9 +274,11 @@ namespace horizon::preferences
             return "";
 
         // Get all devices
-        auto msg = m_dbus->call_method("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
-                                    "org.freedesktop.NetworkManager", "GetDevices");
-        if (!msg) return "";
+        auto msg =
+            m_dbus->call_method("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
+                                "org.freedesktop.NetworkManager", "GetDevices");
+        if (!msg)
+            return "";
 
         auto devices = m_dbus->get_object_path_list(msg);
         dbus_message_unref(msg);
@@ -282,21 +286,23 @@ namespace horizon::preferences
         for (const auto &path : devices)
         {
             // Check if device is WiFi and has an ActiveAccessPoint
-            auto type_var = m_dbus->get_property("org.freedesktop.NetworkManager", path,
-                                                "org.freedesktop.NetworkManager.Device", "DeviceType");
+            auto type_var =
+                m_dbus->get_property("org.freedesktop.NetworkManager", path,
+                                     "org.freedesktop.NetworkManager.Device", "DeviceType");
             if (std::holds_alternative<uint32_t>(type_var) && std::get<uint32_t>(type_var) == 2)
             {
-                auto active_ap_var = m_dbus->get_property("org.freedesktop.NetworkManager", path,
-                                                        "org.freedesktop.NetworkManager.Device.Wireless",
-                                                        "ActiveAccessPoint");
+                auto active_ap_var = m_dbus->get_property(
+                    "org.freedesktop.NetworkManager", path,
+                    "org.freedesktop.NetworkManager.Device.Wireless", "ActiveAccessPoint");
                 if (std::holds_alternative<std::string>(active_ap_var))
                 {
                     std::string active_ap_path = std::get<std::string>(active_ap_var);
                     if (active_ap_path != "/" && !active_ap_path.empty())
                     {
                         // Get Ssid of the active Access Point
-                        auto ssid_var = m_dbus->get_property("org.freedesktop.NetworkManager", active_ap_path,
-                                                            "org.freedesktop.NetworkManager.AccessPoint", "Ssid");
+                        auto ssid_var = m_dbus->get_property(
+                            "org.freedesktop.NetworkManager", active_ap_path,
+                            "org.freedesktop.NetworkManager.AccessPoint", "Ssid");
                         if (std::holds_alternative<std::vector<uint8_t>>(ssid_var))
                         {
                             auto bytes = std::get<std::vector<uint8_t>>(ssid_var);
@@ -399,21 +405,20 @@ namespace horizon::preferences
                     std::holds_alternative<uint32_t>(wpa_var) ? std::get<uint32_t>(wpa_var) : 0;
                 uint32_t rsn =
                     std::holds_alternative<uint32_t>(rsn_var) ? std::get<uint32_t>(rsn_var) : 0;
-                int signal =
-                    std::holds_alternative<uint32_t>(strength_var) ? (int)std::get<uint32_t>(strength_var) : 0;
+                int signal = std::holds_alternative<uint32_t>(strength_var)
+                                 ? (int)std::get<uint32_t>(strength_var)
+                                 : 0;
 
                 bool is_active = (!active_ssid.empty() && ssid_str == active_ssid);
 
-                networks.push_back({ssid_str, get_security_string(wpa, rsn), ap_path, signal, is_active});
+                networks.push_back(
+                    {ssid_str, get_security_string(wpa, rsn), ap_path, signal, is_active});
             }
         }
 
         // 3. Sort by signal strength (descending)
         std::sort(networks.begin(), networks.end(),
-                  [](const WifiNetwork &a, const WifiNetwork &b)
-                  {
-                      return a.signal > b.signal;
-                  });
+                  [](const WifiNetwork &a, const WifiNetwork &b) { return a.signal > b.signal; });
 
         return networks;
     }
