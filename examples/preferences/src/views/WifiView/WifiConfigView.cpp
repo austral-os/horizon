@@ -5,15 +5,31 @@
 #include <sstream>
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/Spacer.hpp>
+#include <iostream>
 
 namespace horizon::preferences
 {
+    static std::string get_security_string(uint32_t wpa, uint32_t rsn)
+    {
+        std::string security = "";
+        if (rsn != 0) security += "WPA2 ";
+        if (wpa != 0) security += "WPA ";
+        if (security.empty()) security = "None";
+        return security;
+    }
+
     WifiConfigView::WifiConfigView() : Widget()
     {
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_position_type(WidgetPositionTypes::FILL);
         set_spacing(10);
         set_margin(10);
+
+        try {
+            m_dbus = std::make_unique<dbusutils::DbusHelper>(DBUS_BUS_SYSTEM);
+        } catch (const std::exception& e) {
+            std::cerr << "Failed to initialize D-Bus: " << e.what() << std::endl;
+        }
 
         setup_ui();
         refresh_networks();
@@ -95,28 +111,57 @@ namespace horizon::preferences
     std::vector<WifiNetwork> WifiConfigView::scan_networks()
     {
         std::vector<WifiNetwork> networks;
-        std::array<char, 128> buffer;
-        std::string result;
-        std::unique_ptr<FILE, decltype(&pclose)> pipe(popen("nmcli -t -f SSID,SECURITY device wifi list", "r"), pclose);
+        if (!m_dbus) return networks;
 
-        if (!pipe)
+        // 1. Get Devices
+        auto msg = m_dbus->call_method("org.freedesktop.NetworkManager", 
+                                       "/org/freedesktop/NetworkManager", 
+                                       "org.freedesktop.NetworkManager", 
+                                       "GetDevices");
+        if (!msg) return networks;
+
+        auto devices = m_dbus->get_object_path_list(msg);
+        dbus_message_unref(msg);
+
+        std::string wifi_device_path = "";
+        for (const auto& path : devices)
         {
-            return networks;
+            auto type_var = m_dbus->get_property("org.freedesktop.NetworkManager", path, "org.freedesktop.NetworkManager.Device", "DeviceType");
+            if (std::holds_alternative<uint32_t>(type_var) && std::get<uint32_t>(type_var) == 2) // NM_DEVICE_TYPE_WIFI = 2
+            {
+                wifi_device_path = path;
+                break;
+            }
         }
 
-        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
-        {
-            result = buffer.data();
-            // Remove newline if present
-            if (!result.empty() && result.back() == '\n') result.pop_back();
+        if (wifi_device_path.empty()) return networks;
 
-            std::stringstream ss(result);
-            std::string ssid, security;
-            if (std::getline(ss, ssid, ':') && std::getline(ss, security))
+        // 2. Get Access Points
+        msg = m_dbus->call_method("org.freedesktop.NetworkManager", wifi_device_path, "org.freedesktop.NetworkManager.Device.Wireless", "GetAccessPoints");
+        if (!msg) return networks;
+
+        auto ap_paths = m_dbus->get_object_path_list(msg);
+        dbus_message_unref(msg);
+
+        for (const auto& ap_path : ap_paths)
+        {
+            auto ssid_var = m_dbus->get_property("org.freedesktop.NetworkManager", ap_path, "org.freedesktop.NetworkManager.AccessPoint", "Ssid");
+            auto wpa_var = m_dbus->get_property("org.freedesktop.NetworkManager", ap_path, "org.freedesktop.NetworkManager.AccessPoint", "WpaFlags");
+            auto rsn_var = m_dbus->get_property("org.freedesktop.NetworkManager", ap_path, "org.freedesktop.NetworkManager.AccessPoint", "RsnFlags");
+
+            std::string ssid_str = "";
+            if (std::holds_alternative<std::vector<uint8_t>>(ssid_var))
             {
-                if (!ssid.empty()) {
-                    networks.push_back({ssid, security});
-                }
+                auto bytes = std::get<std::vector<uint8_t>>(ssid_var);
+                ssid_str = std::string(bytes.begin(), bytes.end());
+            }
+
+            uint32_t wpa = std::holds_alternative<uint32_t>(wpa_var) ? std::get<uint32_t>(wpa_var) : 0;
+            uint32_t rsn = std::holds_alternative<uint32_t>(rsn_var) ? std::get<uint32_t>(rsn_var) : 0;
+
+            if (!ssid_str.empty())
+            {
+                networks.push_back({ssid_str, get_security_string(wpa, rsn)});
             }
         }
 
