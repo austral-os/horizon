@@ -137,7 +137,7 @@ namespace horizon::preferences
         if (wifi_device_path.empty()) return networks;
 
         // 2. Get Access Points
-        msg = m_dbus->call_method("org.freedesktop.NetworkManager", wifi_device_path, "org.freedesktop.NetworkManager.Device.Wireless", "GetAccessPoints");
+        msg = m_dbus->call_method("org.freedesktop.NetworkManager", wifi_device_path, "org.freedesktop.NetworkManager.Device.Wireless", "GetAllAccessPoints");
         if (!msg) return networks;
 
         auto ap_paths = m_dbus->get_object_path_list(msg);
