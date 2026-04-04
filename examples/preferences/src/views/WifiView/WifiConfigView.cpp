@@ -49,12 +49,22 @@ namespace horizon::preferences
                 if (auto *app = application())
                 {
                     app->add_timer(1000, [this]() { m_initialized = true; });
+                    
+                    // Start monitoring thread
+                    m_stop_monitor = false;
+                    m_monitor_thread = std::thread(&WifiConfigView::monitor_loop, this);
                 }
             });
     }
 
     WifiConfigView::~WifiConfigView()
     {
+        m_stop_monitor = true;
+        if (m_monitor_thread.joinable())
+        {
+            m_monitor_thread.join();
+        }
+
         if (m_refresh_timer_id != 0)
         {
             if (auto *app = application())
@@ -62,6 +72,53 @@ namespace horizon::preferences
                 app->stop_timer(m_refresh_timer_id);
             }
         }
+    }
+
+    void WifiConfigView::monitor_loop()
+    {
+        DBusError err;
+        dbus_error_init(&err);
+
+        DBusConnection* conn = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
+        if (dbus_error_is_set(&err)) {
+            std::cerr << "WifiConfigView Monitor: D-Bus connection error: " << err.message << std::endl;
+            dbus_error_free(&err);
+            return;
+        }
+
+        // Match common NM signals
+        dbus_bus_add_match(conn, "type='signal',interface='org.freedesktop.NetworkManager'", &err);
+        if (dbus_error_is_set(&err)) {
+            std::cerr << "WifiConfigView Monitor: Add match error: " << err.message << std::endl;
+            dbus_error_free(&err);
+            return;
+        }
+
+        while (!m_stop_monitor)
+        {
+            // Read messages (non-blocking wait)
+            dbus_connection_read_write_dispatch(conn, 100); // Wait 100ms
+            
+            DBusMessage* msg = dbus_connection_pop_message(conn);
+            if (!msg) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                continue;
+            }
+
+            // We filter slightly for performance, but any NM signal means we should probably refresh status
+            if (dbus_message_is_signal(msg, "org.freedesktop.NetworkManager", "StateChanged") ||
+                dbus_message_is_signal(msg, "org.freedesktop.DBus.Properties", "PropertiesChanged"))
+            {
+                if (auto* app = application())
+                {
+                    app->post_task([this]() { this->refresh_networks(); });
+                }
+            }
+
+            dbus_message_unref(msg);
+        }
+
+        dbus_connection_unref(conn);
     }
 
     void WifiConfigView::setup_ui()
@@ -149,19 +206,13 @@ namespace horizon::preferences
 
         add_child(std::move(button_container));
 
-        // 4. Options Area: Checkbox OR connection label
+        // 4. Options Area: connection label (Replaces checkbox)
         auto options_container = std::make_unique<Widget>();
         options_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         options_container->set_fixed_size(24);
 
-        auto checkbox = std::make_unique<Checkbox<AquaObject>>();
-        checkbox->set_text("Recordar las redes a las que la computadora se ha unido");
-        m_remember_checkbox = checkbox.get();
-        options_container->add_child(std::move(checkbox));
-
         auto status_label = std::make_unique<Label>("No conectado");
         m_active_network_label = status_label.get();
-        m_active_network_label->set_visible(false);
         options_container->add_child(std::move(status_label));
 
         add_child(std::move(options_container));
@@ -180,40 +231,32 @@ namespace horizon::preferences
                 if (m_active_network_label)
                 {
                     m_active_network_label->set_text("Conectado a " + active_ssid);
-                    m_active_network_label->set_visible(true);
-                }
-                if (m_remember_checkbox)
-                {
-                    m_remember_checkbox->set_visible(false);
+                    m_active_network_label->set_text_color(Color("#2ecc71"));
+                    m_active_network_label->set_font_weight(FONT_WEIGHT_BOLD);
                 }
             }
             else
             {
                 if (m_active_network_label)
                 {
-                    m_active_network_label->set_visible(false);
-                }
-                if (m_remember_checkbox)
-                {
-                    m_remember_checkbox->set_visible(true);
+                    m_active_network_label->set_text("sin conexion");
+                    m_active_network_label->set_text_color(Color("#ffffff"));
+                    m_active_network_label->set_font_weight(FONT_WEIGHT_NORMAL);
                 }
             }
 
-            // Since RequestScan is async, we poll again in 3 seconds to show new results
+            // Polling backup (optional, but keep it for extra safety)
             if (auto *app = application())
             {
                 if (m_refresh_timer_id != 0)
                 {
                     app->stop_timer(m_refresh_timer_id);
                 }
-                m_refresh_timer_id = app->add_timer(3000,
+                m_refresh_timer_id = app->add_timer(5000,
                                                     [this]()
                                                     {
                                                         m_refresh_timer_id = 0;
-                                                        if (m_table_view)
-                                                        {
-                                                            m_table_view->set_data(scan_networks());
-                                                        }
+                                                        this->refresh_networks();
                                                     });
             }
         }

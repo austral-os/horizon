@@ -8,6 +8,8 @@
 #include <horizon/SolidObject.hpp>
 #include <vector>
 #include <string>
+#include <thread>
+#include <atomic>
 
 #include <views/WifiView/WifiConnectDialog.hpp>
 
@@ -34,6 +36,7 @@ namespace horizon::preferences
         void setup_ui();
         std::vector<WifiNetwork> scan_networks();
         std::string get_active_ssid();
+        void monitor_loop();
         void on_network_selected(const WifiNetwork& network);
 
         Label* m_title_label{nullptr};
@@ -49,5 +52,8 @@ namespace horizon::preferences
         size_t m_refresh_timer_id{0};
         bool m_initialized{false};
         bool m_dialog_open{false};
+        
+        std::thread m_monitor_thread;
+        std::atomic<bool> m_stop_monitor{false};
     };
 }
