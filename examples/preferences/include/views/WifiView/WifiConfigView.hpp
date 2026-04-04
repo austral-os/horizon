@@ -18,6 +18,7 @@ namespace horizon::preferences
         std::string ssid;
         std::string security;
         std::string path;
+        int signal;
     };
 
     class WifiConfigView : public Widget

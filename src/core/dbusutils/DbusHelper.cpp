@@ -165,6 +165,13 @@ namespace horizon::dbusutils
             val = static_cast<bool>(b);
             break;
         }
+        case DBUS_TYPE_BYTE:
+        {
+            uint8_t b;
+            dbus_message_iter_get_basic(&sub_iter, &b);
+            val = static_cast<uint32_t>(b);
+            break;
+        }
         case DBUS_TYPE_ARRAY:
         {
             int element_type = dbus_message_iter_get_element_type(&sub_iter);

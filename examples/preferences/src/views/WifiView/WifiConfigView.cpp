@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdio>
 #include <horizon/Icon.hpp>
 #include <horizon/SolidObject.hpp>
@@ -89,6 +90,13 @@ namespace horizon::preferences
         security_col.cell_factory = [](const WifiNetwork &data)
         { return std::make_unique<Label>(data.security); };
         table->add_column(std::move(security_col));
+
+        TableColumn<WifiNetwork> signal_col;
+        signal_col.title = "Señal";
+        signal_col.width = 70;
+        signal_col.cell_factory = [](const WifiNetwork &data)
+        { return std::make_unique<Label>(std::to_string(data.signal) + "%"); };
+        table->add_column(std::move(signal_col));
 
         m_table_view = table.get();
         m_table_view->when_row_click.connect([this](auto &ctx)
@@ -231,6 +239,9 @@ namespace horizon::preferences
                 auto rsn_var =
                     m_dbus->get_property("org.freedesktop.NetworkManager", ap_path,
                                          "org.freedesktop.NetworkManager.AccessPoint", "RsnFlags");
+                auto strength_var =
+                    m_dbus->get_property("org.freedesktop.NetworkManager", ap_path,
+                                         "org.freedesktop.NetworkManager.AccessPoint", "Strength");
 
                 std::string ssid_str = "";
                 if (std::holds_alternative<std::vector<uint8_t>>(ssid_var))
@@ -246,10 +257,19 @@ namespace horizon::preferences
                     std::holds_alternative<uint32_t>(wpa_var) ? std::get<uint32_t>(wpa_var) : 0;
                 uint32_t rsn =
                     std::holds_alternative<uint32_t>(rsn_var) ? std::get<uint32_t>(rsn_var) : 0;
+                int signal =
+                    std::holds_alternative<uint32_t>(strength_var) ? (int)std::get<uint32_t>(strength_var) : 0;
 
-                networks.push_back({ssid_str, get_security_string(wpa, rsn), ap_path});
+                networks.push_back({ssid_str, get_security_string(wpa, rsn), ap_path, signal});
             }
         }
+
+        // 3. Sort by signal strength (descending)
+        std::sort(networks.begin(), networks.end(),
+                  [](const WifiNetwork &a, const WifiNetwork &b)
+                  {
+                      return a.signal > b.signal;
+                  });
 
         return networks;
     }
