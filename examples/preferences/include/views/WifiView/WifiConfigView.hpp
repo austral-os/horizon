@@ -8,25 +8,29 @@
 #include <vector>
 #include <string>
 
+#include <views/WifiView/WifiConnectDialog.hpp>
+
 namespace horizon::preferences
 {
     struct WifiNetwork
     {
         std::string ssid;
         std::string security;
+        std::string path;
     };
 
     class WifiConfigView : public Widget
     {
     public:
         WifiConfigView();
-        ~WifiConfigView() override = default;
+        ~WifiConfigView() override;
 
         void refresh_networks();
 
     private:
         void setup_ui();
         std::vector<WifiNetwork> scan_networks();
+        void on_network_selected(const WifiNetwork& network);
 
         Label* m_title_label{nullptr};
         TableView<WifiNetwork>* m_table_view{nullptr};
@@ -35,5 +39,7 @@ namespace horizon::preferences
         Checkbox<AquaObject>* m_remember_checkbox{nullptr};
         
         std::unique_ptr<dbusutils::DbusHelper> m_dbus;
+        std::vector<WifiDevice> m_scan_devices;
+        size_t m_refresh_timer_id{0};
     };
 }

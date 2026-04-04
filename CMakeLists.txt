@@ -15,6 +15,7 @@ pkg_check_modules(RSVG REQUIRED librsvg-2.0)
 pkg_check_modules(EGL REQUIRED egl)
 pkg_check_modules(GLESV2 REQUIRED glesv2)
 pkg_check_modules(DBUS REQUIRED dbus-1)
+pkg_check_modules(UUID REQUIRED uuid)
 
 file(GLOB_RECURSE SOURCES 
     "src/*.cpp" 
@@ -31,6 +32,7 @@ target_include_directories(horizon
         ${PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/src
         ${DBUS_INCLUDE_DIRS}
+        ${UUID_INCLUDE_DIRS}
     PRIVATE
         ${WAYLAND_INCLUDE_DIRS}
         ${CAIRO_INCLUDE_DIRS}
@@ -44,6 +46,7 @@ target_include_directories(horizon
 target_link_libraries(horizon
     PUBLIC
         ${DBUS_LIBRARIES}
+        ${UUID_LIBRARIES}
     PRIVATE
         ${WAYLAND_LIBRARIES}
         ${CAIRO_LIBRARIES}

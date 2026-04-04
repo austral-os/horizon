@@ -51,6 +51,14 @@ namespace horizon::dbusutils
                                  const std::string& method);
 
         /**
+         * @brief Tries to call a method that takes an empty (a{sv}) dict as its only argument.
+         */
+        void call_void_method_with_empty_dict(const std::string& destination,
+                                              const std::string& path,
+                                              const std::string& interface,
+                                              const std::string& method);
+
+        /**
          * @brief Generic method to get a single property value.
          */
         DbusVariant get_property(const std::string& destination,
@@ -67,6 +75,16 @@ namespace horizon::dbusutils
          * @brief Helper to extract an object path list (as strings) from an array message.
          */
         std::vector<std::string> get_object_path_list(DBusMessage* msg);
+
+        /**
+         * @brief Retrieves all object paths provided as top-level arguments in a message.
+         */
+        std::vector<std::string> get_all_object_paths(DBusMessage* msg);
+
+        /**
+         * @brief Returns the underlying D-Bus connection.
+         */
+        DBusConnection* get_connection() const { return m_connection; }
 
     private:
         DBusConnection* m_connection{nullptr};

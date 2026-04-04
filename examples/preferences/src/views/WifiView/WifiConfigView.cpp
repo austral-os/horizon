@@ -1,8 +1,10 @@
 #include <views/WifiView/WifiConfigView.hpp>
+#include <views/WifiView/WifiConnectDialog.hpp>
 #include <cstdio>
 #include <memory>
 #include <array>
 #include <sstream>
+#include <thread>
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/Spacer.hpp>
 #include <iostream>
@@ -35,6 +37,15 @@ namespace horizon::preferences
         refresh_networks();
     }
 
+    WifiConfigView::~WifiConfigView()
+    {
+        if (m_refresh_timer_id != 0) {
+            if (auto* app = application()) {
+                app->stop_timer(m_refresh_timer_id);
+            }
+        }
+    }
+
     void WifiConfigView::setup_ui()
     {
         // 1. Label: Redes Preferidas
@@ -65,6 +76,9 @@ namespace horizon::preferences
         table->add_column(std::move(security_col));
 
         m_table_view = table.get();
+        m_table_view->when_row_click.connect([this](auto& ctx) {
+            this->on_network_selected(ctx.row_data);
+        });
         add_child(std::move(table));
 
         // 3. Buttons: Agregar, Quitar (Horizontal Container)
@@ -105,6 +119,20 @@ namespace horizon::preferences
         if (m_table_view)
         {
             m_table_view->set_data(scan_networks());
+
+            // Since RequestScan is async, we poll again in 3 seconds to show new results
+            if (auto* app = application())
+            {
+                if (m_refresh_timer_id != 0) {
+                    app->stop_timer(m_refresh_timer_id);
+                }
+                m_refresh_timer_id = app->add_timer(3000, [this]() {
+                    m_refresh_timer_id = 0;
+                    if (m_table_view) {
+                        m_table_view->set_data(scan_networks());
+                    }
+                });
+            }
         }
     }
 
@@ -123,48 +151,68 @@ namespace horizon::preferences
         auto devices = m_dbus->get_object_path_list(msg);
         dbus_message_unref(msg);
 
-        std::string wifi_device_path = "";
+        m_scan_devices.clear();
+        std::vector<std::string> wifi_device_paths;
         for (const auto& path : devices)
         {
             auto type_var = m_dbus->get_property("org.freedesktop.NetworkManager", path, "org.freedesktop.NetworkManager.Device", "DeviceType");
             if (std::holds_alternative<uint32_t>(type_var) && std::get<uint32_t>(type_var) == 2) // NM_DEVICE_TYPE_WIFI = 2
             {
-                wifi_device_path = path;
-                break;
+                // Get interface name (e.g. wlo1)
+                auto iface_var = m_dbus->get_property("org.freedesktop.NetworkManager", path, "org.freedesktop.NetworkManager.Device", "Interface");
+                std::string iface_name = std::holds_alternative<std::string>(iface_var) ? std::get<std::string>(iface_var) : "wlan0";
+                m_scan_devices.push_back({iface_name, path});
+                wifi_device_paths.push_back(path);
+
+                // Trigger scan
+                m_dbus->call_void_method_with_empty_dict("org.freedesktop.NetworkManager", path, "org.freedesktop.NetworkManager.Device.Wireless", "RequestScan");
             }
         }
 
-        if (wifi_device_path.empty()) return networks;
+        if (wifi_device_paths.empty()) return networks;
 
-        // 2. Get Access Points
-        msg = m_dbus->call_method("org.freedesktop.NetworkManager", wifi_device_path, "org.freedesktop.NetworkManager.Device.Wireless", "GetAllAccessPoints");
-        if (!msg) return networks;
-
-        auto ap_paths = m_dbus->get_object_path_list(msg);
-        dbus_message_unref(msg);
-
-        for (const auto& ap_path : ap_paths)
+        // 2. Get Access Points from all wifi devices
+        for (const auto& wifi_device_path : wifi_device_paths)
         {
-            auto ssid_var = m_dbus->get_property("org.freedesktop.NetworkManager", ap_path, "org.freedesktop.NetworkManager.AccessPoint", "Ssid");
-            auto wpa_var = m_dbus->get_property("org.freedesktop.NetworkManager", ap_path, "org.freedesktop.NetworkManager.AccessPoint", "WpaFlags");
-            auto rsn_var = m_dbus->get_property("org.freedesktop.NetworkManager", ap_path, "org.freedesktop.NetworkManager.AccessPoint", "RsnFlags");
+            msg = m_dbus->call_method("org.freedesktop.NetworkManager", wifi_device_path, "org.freedesktop.NetworkManager.Device.Wireless", "GetAllAccessPoints");
+            if (!msg) continue;
 
-            std::string ssid_str = "";
-            if (std::holds_alternative<std::vector<uint8_t>>(ssid_var))
+            auto ap_paths = m_dbus->get_object_path_list(msg);
+            dbus_message_unref(msg);
+
+            for (const auto& ap_path : ap_paths)
             {
-                auto bytes = std::get<std::vector<uint8_t>>(ssid_var);
-                ssid_str = std::string(bytes.begin(), bytes.end());
-            }
+                auto ssid_var = m_dbus->get_property("org.freedesktop.NetworkManager", ap_path, "org.freedesktop.NetworkManager.AccessPoint", "Ssid");
+                auto wpa_var = m_dbus->get_property("org.freedesktop.NetworkManager", ap_path, "org.freedesktop.NetworkManager.AccessPoint", "WpaFlags");
+                auto rsn_var = m_dbus->get_property("org.freedesktop.NetworkManager", ap_path, "org.freedesktop.NetworkManager.AccessPoint", "RsnFlags");
 
-            uint32_t wpa = std::holds_alternative<uint32_t>(wpa_var) ? std::get<uint32_t>(wpa_var) : 0;
-            uint32_t rsn = std::holds_alternative<uint32_t>(rsn_var) ? std::get<uint32_t>(rsn_var) : 0;
+                std::string ssid_str = "";
+                if (std::holds_alternative<std::vector<uint8_t>>(ssid_var))
+                {
+                    auto bytes = std::get<std::vector<uint8_t>>(ssid_var);
+                    ssid_str = std::string(bytes.begin(), bytes.end());
+                }
 
-            if (!ssid_str.empty())
-            {
-                networks.push_back({ssid_str, get_security_string(wpa, rsn)});
+                if (ssid_str.empty()) ssid_str = "<Red Oculta>";
+
+                uint32_t wpa = std::holds_alternative<uint32_t>(wpa_var) ? std::get<uint32_t>(wpa_var) : 0;
+                uint32_t rsn = std::holds_alternative<uint32_t>(rsn_var) ? std::get<uint32_t>(rsn_var) : 0;
+
+                networks.push_back({ssid_str, get_security_string(wpa, rsn), ap_path});
             }
         }
 
         return networks;
+    }
+
+    void WifiConfigView::on_network_selected(const WifiNetwork& network)
+    {
+        if (m_scan_devices.empty()) return;
+
+        auto dialog = std::make_unique<WifiConnectDialog>(network.ssid, network.path, m_scan_devices);
+        std::thread([d = std::move(dialog)]() mutable {
+            d->initialize();
+            d->run();
+        }).detach();
     }
 }

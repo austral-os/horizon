@@ -7,6 +7,7 @@ namespace horizon::dbusutils
 {
     DbusHelper::DbusHelper(DBusBusType bus_type)
     {
+        dbus_threads_init_default();
         DBusError error;
         dbus_error_init(&error);
 
@@ -58,8 +59,34 @@ namespace horizon::dbusutils
             dbus_error_free(&error);
             return nullptr;
         }
-
         return reply;
+    }
+
+    void DbusHelper::call_void_method_with_empty_dict(const std::string& destination,
+                                                      const std::string& path,
+                                                      const std::string& interface,
+                                                      const std::string& method)
+    {
+        DBusMessage* msg = dbus_message_new_method_call(destination.c_str(),
+                                                        path.c_str(),
+                                                        interface.c_str(),
+                                                        method.c_str());
+        if (msg == nullptr) return;
+
+        DBusMessageIter iter, dict_iter;
+        dbus_message_iter_init_append(msg, &iter);
+        dbus_message_iter_open_container(&iter, DBUS_TYPE_ARRAY, "{sv}", &dict_iter);
+        dbus_message_iter_close_container(&iter, &dict_iter);
+
+        DBusError error;
+        dbus_error_init(&error);
+        DBusMessage* reply = dbus_connection_send_with_reply_and_block(m_connection, msg, -1, &error);
+        dbus_message_unref(msg);
+
+        if (dbus_error_is_set(&error)) {
+            dbus_error_free(&error);
+        }
+        if (reply) dbus_message_unref(reply);
     }
 
     DbusVariant DbusHelper::get_property(const std::string& destination,
@@ -162,6 +189,28 @@ namespace horizon::dbusutils
 
         dbus_message_unref(reply);
         return val;
+    }
+
+    std::vector<std::string> DbusHelper::get_all_object_paths(DBusMessage* msg)
+    {
+        std::vector<std::string> paths;
+        if (msg == nullptr) return paths;
+
+        DBusMessageIter iter;
+        dbus_message_iter_init(msg, &iter);
+
+        while (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_INVALID)
+        {
+            if (dbus_message_iter_get_arg_type(&iter) == DBUS_TYPE_OBJECT_PATH)
+            {
+                const char* path;
+                dbus_message_iter_get_basic(&iter, &path);
+                paths.push_back(path);
+            }
+            dbus_message_iter_next(&iter);
+        }
+
+        return paths;
     }
 
     std::vector<std::string> DbusHelper::get_object_path_list(DBusMessage* msg)
