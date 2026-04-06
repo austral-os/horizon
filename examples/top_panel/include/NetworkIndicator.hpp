@@ -3,9 +3,9 @@
 #include "ITopPanelWidget.hpp"
 #include <horizon/Icon.hpp>
 #include <horizon/dbusutils/DbusHelper.hpp>
-#include <memory>
 #include <string>
 #include <thread>
+#include <mutex>
 #include <atomic>
 
 /**
@@ -25,19 +25,19 @@ public:
 private:
     void setup_dbus();
     void monitor_loop();
-    void update_status();
+    void update_ui(const std::string& icon_name);
     
-    // DBus querying helpers
-    std::string get_active_connection_type();
-    int get_wifi_signal_strength(const std::string& device_path);
+    // Asynchronous logic performed in background thread
+    std::string calculate_current_icon();
+    int get_wifi_signal_strength(horizon::dbusutils::DbusHelper& dbus, const std::string& device_path);
     std::string get_icon_for_wifi(int strength);
 
     horizon::Icon* m_icon;
-    std::unique_ptr<horizon::dbusutils::DbusHelper> m_dbus;
     
     std::thread m_monitor_thread;
     std::atomic<bool> m_stop_monitor{false};
     
-    // Cached state to avoid unnecessary repaints
+    // Thread-safe state
+    std::mutex m_state_mutex;
     std::string m_current_icon_name;
 };

@@ -31,4 +31,5 @@ private:
     size_t m_apply_cache_timer_id = 0;
     int m_current_owner_pid = -1;
     size_t m_clear_menu_timer_id = 0;
+    int m_app_menus_count = 0;
 };

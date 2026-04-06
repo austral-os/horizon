@@ -2,6 +2,8 @@
 #include <horizon/Logger.hpp>
 #include <horizon/MenuBar.hpp>
 #include <horizon/ThemeManager.hpp>
+#include <horizon/WaylandWindow.hpp>
+#include <horizon/IconThemeLookup.hpp>
 
 namespace horizon
 {
@@ -9,6 +11,20 @@ namespace horizon
     {
         set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         set_spacing(10);
+
+        when_application_load.connect([this](EventContext&) {
+            if (auto *win = dynamic_cast<WaylandWindow *>(application()))
+            {
+                if (m_dismiss_subscription != 0) {
+                    win->when_popup_dismissed.disconnect(m_dismiss_subscription);
+                }
+                
+                m_dismiss_subscription = win->when_popup_dismissed.connect([this](PopupDismissedContext &) { 
+                    LOG_INFO << "[MenuBar] Popup dismissed signal received. Closing menu state.";
+                    set_menu_open(false); 
+                });
+            }
+        });
     }
 
     void MenuBar::add_menu(std::unique_ptr<Menu> menu)
@@ -17,6 +33,7 @@ namespace horizon
         item->set_bold(menu->bold());
         item->set_icon_name(menu->icon_name());
         item->set_position_type(FREE);
+        
         item->when_mouse_press.connect(
             [this, item_ptr = item.get()](MouseButtonEventContext &ctx)
             {
@@ -33,15 +50,6 @@ namespace horizon
                     update_selection(item_ptr);
                 }
             });
-        
-        if (auto *win = dynamic_cast<WaylandWindow *>(application()))
-        {
-            if (m_dismiss_subscription == 0)
-            {
-                m_dismiss_subscription = win->when_popup_dismissed.connect([this](PopupDismissedContext &)
-                                                                           { set_menu_open(false); });
-            }
-        }
 
         m_menus.push_back(std::move(menu));
         add_child(std::move(item));
@@ -54,6 +62,7 @@ namespace horizon
         item->set_bold(menu->bold());
         item->set_icon_name(menu->icon_name());
         item->set_position_type(FREE);
+        
         item->when_mouse_press.connect(
             [this, item_ptr = item.get()](MouseButtonEventContext &ctx)
             {
@@ -70,14 +79,6 @@ namespace horizon
                     update_selection(item_ptr);
                 }
             });
-        if (auto *win = dynamic_cast<WaylandWindow *>(application()))
-        {
-            if (m_dismiss_subscription == 0)
-            {
-                m_dismiss_subscription = win->when_popup_dismissed.connect([this](PopupDismissedContext &)
-                                                                           { set_menu_open(false); });
-            }
-        }
 
         m_menus.insert(m_menus.begin() + index, std::move(menu));
         add_child_at(index, std::move(item));
@@ -111,19 +112,63 @@ namespace horizon
         Widget::calculate_layout();
 
         int current_x = m_start_draw_x;
+        int total_width = 0;
         for (auto &child : m_children)
         {
+            if (!child->is_visible()) continue;
+
             // Use preferred width (content based) + 20px padding
             int child_width = child->preferred_width() + 20;
 
             child->set_position(current_x, m_start_draw_y);
             child->set_size(child_width, m_available_draw_height);
-            current_x += child_width + m_spacing;
+            int step = child_width + m_spacing;
+            current_x += step;
+            total_width += step;
+        }
+
+        // Subtract the last spacing if any children
+        if (!m_children.empty() && total_width > m_spacing) {
+            total_width -= m_spacing;
+        }
+
+        // update our own size information
+        int final_width = total_width + (m_margin * 2);
+        
+        // We use m_fixed_size directly to avoid recursion with set_fixed_size() 
+        // calling invalidate() while we are already in layout/render.
+        if (m_fixed_size != final_width) {
+            m_fixed_size = final_width;
         }
     }
 
     void MenuBar::update_selection(MenuBarItem *selected_item)
     {
+        LOG_INFO << "[MenuBar] Updating selection. Selected item: " 
+                 << (selected_item ? selected_item->text() : "NULL")
+                 << ", Current menu open state: " << m_menu_open;
+
+        MenuBarItem* current_selected = nullptr;
+        for (const auto &child : children())
+        {
+            auto *item = dynamic_cast<MenuBarItem *>(child.get());
+            if (item && item->is_selected())
+            {
+                current_selected = item;
+                break;
+            }
+        }
+
+        // Toggle logic: If clicking the already selected item, close it
+        if (selected_item && selected_item == current_selected && m_menu_open)
+        {
+            if (auto *win = dynamic_cast<WaylandWindow *>(application()))
+            {
+                win->close_context_menu();
+            }
+            return;
+        }
+
         for (const auto &child : children())
         {
             auto *item = dynamic_cast<MenuBarItem *>(child.get());
@@ -136,10 +181,7 @@ namespace horizon
         if (selected_item)
         {
             m_menu_open = true;
-        }
 
-        if (selected_item)
-        {
             MenuBarClickContext ctx;
             ctx.sender = this;
             ctx.menu = selected_item->menu();
@@ -148,7 +190,6 @@ namespace horizon
             when_menu_click.run(ctx);
         }
     }
-
 
     void MenuBar::set_menu_open(bool open)
     {
@@ -256,18 +297,6 @@ namespace horizon
 
             if (!text().empty())
             {
-                // Draw text aligned next to icon
-                // We need to manually draw the text if we want precise control,
-                // but Label::draw uses alignment. Let's adjust Label's text position
-                // if it's horizontal.
-
-                // For now, let's keep it simple: if there is an icon, we
-                // hack the Label::draw by shifting the draw area or
-                // just manually calling drawText.
-
-                // Actually, Label::draw uses m_start_draw_x/y.
-                // It's better to just manually draw the text here to be sure.
-
                 gc.setDrawFont(nullptr, font_size() > 0 ? font_size() : 13, FONT_SLANT_NORMAL,
                                m_bold ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
 
