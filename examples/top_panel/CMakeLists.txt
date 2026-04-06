@@ -3,6 +3,8 @@ add_executable(top_panel
     src/TopPanelApplication.cpp
     src/TopPanelWidget.cpp
     src/TopPanelMenuBar.cpp
+    src/IndicatorsContainer.cpp
+    src/DateAndTimeIndicator.cpp
 )
 
 target_include_directories(top_panel
