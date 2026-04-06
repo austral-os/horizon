@@ -120,7 +120,7 @@ namespace horizon::preferences
             struct spa_pod_builder b = SPA_POD_BUILDER_INIT(buf, sizeof(buf));
             struct spa_pod *param = (struct spa_pod *)spa_pod_builder_add_object(&b,
                 SPA_TYPE_OBJECT_Props, SPA_PARAM_Props,
-                SPA_PROP_volume, SPA_TYPE_Float, volume);
+                SPA_PROP_volume, "f", volume);
             pw_node_set_param(node, SPA_PARAM_Props, 0, param);
         }
         pw_thread_loop_unlock(m_loop);
@@ -136,7 +136,7 @@ namespace horizon::preferences
             struct spa_pod_builder b = SPA_POD_BUILDER_INIT(buf, sizeof(buf));
             struct spa_pod *param = (struct spa_pod *)spa_pod_builder_add_object(&b,
                 SPA_TYPE_OBJECT_Props, SPA_PARAM_Props,
-                SPA_PROP_mute, SPA_TYPE_Bool, mute);
+                SPA_PROP_mute, "b", mute);
             pw_node_set_param(node, SPA_PARAM_Props, 0, param);
         }
         pw_thread_loop_unlock(m_loop);
@@ -163,7 +163,7 @@ namespace horizon::preferences
             struct spa_pod_builder b = SPA_POD_BUILDER_INIT(buf, sizeof(buf));
             struct spa_pod *param = (struct spa_pod *)spa_pod_builder_add_object(&b,
                 SPA_TYPE_OBJECT_Props, SPA_PARAM_Props,
-                SPA_PROP_channelVolumes, SPA_TYPE_Array, volumes); // This is a simplification
+                SPA_PROP_channelVolumes, "a", sizeof(float), SPA_TYPE_Float, 2, volumes);
             pw_node_set_param(node, SPA_PARAM_Props, 0, param);
         }
         pw_thread_loop_unlock(m_loop);
