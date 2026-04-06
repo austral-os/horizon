@@ -216,7 +216,7 @@ namespace horizon
         {
             auto *tm = application()->theme_manager.get();
             Color border_color = tm->get_color("window_border");
-            Color bg_color = tm->get_color("window_bg");
+            Color bg_color = tm->get_color("table_row");
 
             // Table background (Square)
             gc.setColor(bg_color);
