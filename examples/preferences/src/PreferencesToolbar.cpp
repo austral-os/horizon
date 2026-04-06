@@ -27,6 +27,13 @@ namespace horizon::preferences
         m_navigation = navigation.get();
         add_child(std::move(navigation));
 
+        // Home Button (Show All)
+        auto home_btn = std::make_unique<GroupButton>();
+        home_btn->add_item("Show All");
+        home_btn->set_fixed_size(100);
+        m_home_button = home_btn.get();
+        add_child(std::move(home_btn));
+
         add_child(Spacer());
 
         // Search Box

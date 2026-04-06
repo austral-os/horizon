@@ -45,6 +45,16 @@ namespace horizon::preferences
                 });
         }
 
+        // Connect Home Button
+        if (m_preferences_toolbar->home_button())
+        {
+            m_preferences_toolbar->home_button()->when_button_clicked.connect(
+                [this](GroupButtonClickEvent &)
+                {
+                    load_view_by_id("home");
+                });
+        }
+
         // Content View
         auto content = std::make_unique<ContentView>();
         m_content_view = content.get();
@@ -144,14 +154,23 @@ namespace horizon::preferences
 
     void PreferencesWindow::update_navigation_buttons()
     {
-        if (!m_preferences_toolbar || !m_preferences_toolbar->navigation())
+        if (!m_preferences_toolbar)
             return;
 
-        auto nav = m_preferences_toolbar->navigation();
-        if (nav->children().size() >= 2)
+        if (m_preferences_toolbar->navigation())
         {
-            nav->children()[0]->set_enabled(m_history_index > 0);
-            nav->children()[1]->set_enabled(m_history_index < (int)m_history.size() - 1);
+            auto nav = m_preferences_toolbar->navigation();
+            if (nav->children().size() >= 2)
+            {
+                nav->children()[0]->set_enabled(m_history_index > 0);
+                nav->children()[1]->set_enabled(m_history_index < (int)m_history.size() - 1);
+            }
+        }
+
+        if (m_preferences_toolbar->home_button())
+        {
+            bool is_home = (m_history_index >= 0 && m_history[m_history_index] == "home");
+            m_preferences_toolbar->home_button()->set_visible(!is_home);
         }
     }
 } // namespace horizon::preferences
