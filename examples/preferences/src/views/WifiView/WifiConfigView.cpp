@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstdio>
+#include <map>
 #include <horizon/Icon.hpp>
 #include <horizon/SolidObject.hpp>
 #include <horizon/Spacer.hpp>
@@ -318,6 +319,7 @@ namespace horizon::preferences
         if (!m_dbus)
             return networks;
 
+        std::map<std::string, WifiNetwork> unique_networks;
         std::string active_ssid = get_active_ssid();
 
         // 1. Get Devices
@@ -407,9 +409,18 @@ namespace horizon::preferences
 
                 bool is_active = (!active_ssid.empty() && ssid_str == active_ssid);
 
-                networks.push_back(
-                    {ssid_str, get_security_string(wpa, rsn), ap_path, signal, is_active});
+                auto it = unique_networks.find(ssid_str);
+                if (it == unique_networks.end() || signal > it->second.signal)
+                {
+                    unique_networks[ssid_str] = {ssid_str, get_security_string(wpa, rsn), ap_path,
+                                                 signal, is_active};
+                }
             }
+        }
+
+        for (auto const &[ssid, network] : unique_networks)
+        {
+            networks.push_back(network);
         }
 
         // 3. Sort by signal strength (descending)
