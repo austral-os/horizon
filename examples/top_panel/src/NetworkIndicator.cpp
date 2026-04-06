@@ -11,7 +11,7 @@ NetworkIndicator::NetworkIndicator() : ITopPanelWidget()
     auto icon = std::make_unique<Icon>();
     m_icon = icon.get();
     m_icon->set_icon_size(24);
-    
+
     {
         std::lock_guard<std::mutex> lock(m_state_mutex);
         m_current_icon_name = "network-offline";
@@ -41,13 +41,16 @@ NetworkIndicator::~NetworkIndicator()
 void NetworkIndicator::monitor_loop()
 {
     LOG_INFO << "NetworkIndicator: Background monitor thread started.";
-    
-    // Create a local DbusHelper for this thread to avoid any contention or 
+
+    // Create a local DbusHelper for this thread to avoid any contention or
     // thread-safety issues with shared connections in a multi-threaded app.
     std::unique_ptr<DbusHelper> thread_dbus;
-    try {
+    try
+    {
         thread_dbus = std::make_unique<DbusHelper>(DBUS_BUS_SYSTEM);
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         LOG_ERROR << "NetworkIndicator Thread: Failed to init D-Bus: " << e.what();
         return;
     }
@@ -77,7 +80,8 @@ void NetworkIndicator::monitor_loop()
 
         bool triggered = false;
         DBusMessage *msg;
-        while ((msg = dbus_connection_pop_message(conn)) != nullptr) {
+        while ((msg = dbus_connection_pop_message(conn)) != nullptr)
+        {
             if (dbus_message_is_signal(msg, "org.freedesktop.NetworkManager", "StateChanged") ||
                 dbus_message_is_signal(msg, "org.freedesktop.DBus.Properties", "PropertiesChanged"))
             {
@@ -86,14 +90,15 @@ void NetworkIndicator::monitor_loop()
             dbus_message_unref(msg);
         }
 
-        // Always calculate if triggered, or if not triggered but some time has passed 
+        // Always calculate if triggered, or if not triggered but some time has passed
         // (the 2000ms timeout in dispatch handles the periodic part).
         std::string new_icon = calculate_current_icon();
-        
+
         bool changed = false;
         {
             std::lock_guard<std::mutex> lock(m_state_mutex);
-            if (new_icon != m_current_icon_name) {
+            if (new_icon != m_current_icon_name)
+            {
                 changed = true;
                 // Don't update m_current_icon_name yet, will happen in update_ui
             }
@@ -101,9 +106,7 @@ void NetworkIndicator::monitor_loop()
 
         if (changed && application())
         {
-            application()->post_task([this, new_icon]() { 
-                this->update_ui(new_icon); 
-            });
+            application()->post_task([this, new_icon]() { this->update_ui(new_icon); });
         }
     }
 
@@ -115,12 +118,16 @@ std::string NetworkIndicator::calculate_current_icon()
     // Important: we create a local helper or use one dedicated to this thread
     // to perform purely synchronous, BLOCKING calls in this background thread.
     // This is safe because it doesn't block the UI.
-    
+
     static thread_local std::unique_ptr<DbusHelper> local_dbus;
-    if (!local_dbus) {
-        try {
+    if (!local_dbus)
+    {
+        try
+        {
             local_dbus = std::make_unique<DbusHelper>(DBUS_BUS_SYSTEM);
-        } catch (...) {
+        }
+        catch (...)
+        {
             return "network-error";
         }
     }
@@ -128,30 +135,31 @@ std::string NetworkIndicator::calculate_current_icon()
     std::string icon_name = "network-offline";
 
     // Get ActiveConnections
-    auto active_conns_var =
-        local_dbus->get_property("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
-                             "org.freedesktop.NetworkManager", "ActiveConnections");
+    auto active_conns_var = local_dbus->get_property(
+        "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
+        "org.freedesktop.NetworkManager", "ActiveConnections");
 
     if (std::holds_alternative<std::vector<std::string>>(active_conns_var))
     {
         auto paths = std::get<std::vector<std::string>>(active_conns_var);
-        
+
         std::string best_wifi_icon = "";
         bool ethernet_found = false;
 
         for (const auto &path : paths)
         {
-            auto state_var =
-                local_dbus->get_property("org.freedesktop.NetworkManager", path,
-                                     "org.freedesktop.NetworkManager.Connection.Active", "State");
+            auto state_var = local_dbus->get_property(
+                "org.freedesktop.NetworkManager", path,
+                "org.freedesktop.NetworkManager.Connection.Active", "State");
             uint32_t state =
                 std::holds_alternative<uint32_t>(state_var) ? std::get<uint32_t>(state_var) : 0;
 
-            if (state != 2) continue; // Only process fully activated connections (NM_ACTIVE_CONNECTION_STATE_ACTIVATED)
+            if (state != 2)
+                continue; // Only process fully activated connections
 
-            auto type_var =
-                local_dbus->get_property("org.freedesktop.NetworkManager", path,
-                                     "org.freedesktop.NetworkManager.Connection.Active", "Type");
+            auto type_var = local_dbus->get_property(
+                "org.freedesktop.NetworkManager", path,
+                "org.freedesktop.NetworkManager.Connection.Active", "Type");
 
             if (std::holds_alternative<std::string>(type_var))
             {
@@ -205,7 +213,7 @@ std::string NetworkIndicator::calculate_current_icon()
     return icon_name;
 }
 
-void NetworkIndicator::update_ui(const std::string& icon_name)
+void NetworkIndicator::update_ui(const std::string &icon_name)
 {
     // This runs on the UI thread
     std::lock_guard<std::mutex> lock(m_state_mutex);
@@ -217,11 +225,11 @@ void NetworkIndicator::update_ui(const std::string& icon_name)
     }
 }
 
-int NetworkIndicator::get_wifi_signal_strength(DbusHelper& dbus, const std::string &device_path)
+int NetworkIndicator::get_wifi_signal_strength(DbusHelper &dbus, const std::string &device_path)
 {
     auto active_ap_var =
         dbus.get_property("org.freedesktop.NetworkManager", device_path,
-                             "org.freedesktop.NetworkManager.Device.Wireless", "ActiveAccessPoint");
+                          "org.freedesktop.NetworkManager.Device.Wireless", "ActiveAccessPoint");
 
     if (std::holds_alternative<std::string>(active_ap_var))
     {
@@ -230,7 +238,7 @@ int NetworkIndicator::get_wifi_signal_strength(DbusHelper& dbus, const std::stri
         {
             auto strength_var =
                 dbus.get_property("org.freedesktop.NetworkManager", ap_path,
-                                     "org.freedesktop.NetworkManager.AccessPoint", "Strength");
+                                  "org.freedesktop.NetworkManager.AccessPoint", "Strength");
             if (std::holds_alternative<uint32_t>(strength_var))
             {
                 return (int)std::get<uint32_t>(strength_var);
@@ -242,15 +250,19 @@ int NetworkIndicator::get_wifi_signal_strength(DbusHelper& dbus, const std::stri
 
 std::string NetworkIndicator::get_icon_for_wifi(int strength)
 {
-    // Use the symbolic names requested by the user
-    if (strength > 85) return "nm-signal-100-symbolic";
-    if (strength > 65) return "nm-signal-75-symbolic";
-    if (strength > 40) return "nm-signal-50-symbolic";
-    if (strength > 15) return "nm-signal-25-symbolic";
+    // Restoring the correct symbolic names as requested in Turn 3
+    if (strength > 85)
+        return "nm-signal-100-symbolic";
+    if (strength > 65)
+        return "nm-signal-75-symbolic";
+    if (strength > 40)
+        return "nm-signal-50-symbolic";
+    if (strength > 15)
+        return "nm-signal-25-symbolic";
     return "nm-signal-0-symbolic";
 }
 
 int NetworkIndicator::preferred_width() const
 {
-    return 24; 
+    return 24;
 }

@@ -431,10 +431,17 @@ namespace horizon
         // LOG_INFO << "[IconThemeLookup] Finding icon for: \"" << icon_name << "\" (size: " << size
         //          << ")";
 
+        // 1. Search requested theme with the ORIGINAL name FIRST
         std::string theme_name = theme.empty() ? get_active_theme_name() : theme;
         auto base_dirs = get_base_dirs();
+        std::string result = lookup_icon_in_theme(icon_name, size, theme_name, base_dirs);
+        if (!result.empty())
+        {
+            s_resolution_cache[cache_key] = result;
+            return result;
+        }
 
-        // 1. Resolve through .desktop files FIRST
+        // 2. Resolve through .desktop files as FALLBACK
         // This ensures that if app_id is "firefox", we look into firefox.desktop and find
         // Icon=browser-firefox
         std::string desktop_icon = DesktopEntry::get_icon_name(icon_name);
@@ -442,7 +449,7 @@ namespace horizon
         {
             LOG_INFO << "[IconThemeLookup] Fallback for " << icon_name
                      << ": found actual icon name \"" << desktop_icon << "\" in desktop file.";
-            std::string result = lookup_icon_in_theme(desktop_icon, size, theme_name, base_dirs);
+            result = lookup_icon_in_theme(desktop_icon, size, theme_name, base_dirs);
             if (!result.empty())
             {
                 s_resolution_cache[cache_key] = result;
@@ -456,14 +463,6 @@ namespace horizon
                 s_resolution_cache[cache_key] = result;
                 return result;
             }
-        }
-
-        // 2. Search requested theme with the ORIGINAL name (if not found/different in desktop)
-        std::string result = lookup_icon_in_theme(icon_name, size, theme_name, base_dirs);
-        if (!result.empty())
-        {
-            s_resolution_cache[cache_key] = result;
-            return result;
         }
 
         // 3. Fallback to hicolor
