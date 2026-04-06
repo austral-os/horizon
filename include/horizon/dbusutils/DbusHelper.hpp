@@ -49,6 +49,14 @@ namespace horizon::dbusutils
                                  const std::string& path,
                                  const std::string& interface,
                                  const std::string& method);
+        
+        /**
+         * @brief Calls a D-Bus method that takes no arguments and returns nothing (or result is ignored).
+         */
+        void call_method_void(const std::string& destination,
+                             const std::string& path,
+                             const std::string& interface,
+                             const std::string& method);
 
         /**
          * @brief Tries to call a method that takes an empty (a{sv}) dict as its only argument.

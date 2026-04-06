@@ -62,6 +62,28 @@ namespace horizon::dbusutils
         return reply;
     }
 
+    void DbusHelper::call_method_void(const std::string& destination,
+                                     const std::string& path,
+                                     const std::string& interface,
+                                     const std::string& method)
+    {
+        DBusMessage* msg = dbus_message_new_method_call(destination.c_str(),
+                                                        path.c_str(),
+                                                        interface.c_str(),
+                                                        method.c_str());
+        if (msg == nullptr) return;
+
+        DBusError error;
+        dbus_error_init(&error);
+        DBusMessage* reply = dbus_connection_send_with_reply_and_block(m_connection, msg, -1, &error);
+        dbus_message_unref(msg);
+
+        if (dbus_error_is_set(&error)) {
+            dbus_error_free(&error);
+        }
+        if (reply) dbus_message_unref(reply);
+    }
+
     void DbusHelper::call_void_method_with_empty_dict(const std::string& destination,
                                                       const std::string& path,
                                                       const std::string& interface,
