@@ -82,6 +82,7 @@ public:
     void send_to_subscribers(HznSessionEvent event, const HznSessionMessage &message);
 
 private:
+    void cleanup_lingering_compositors();
     std::vector<std::string> get_wayland_displays();
     std::string wait_for_new_wayland_display(const std::vector<std::string> &existing, pid_t monitor_pid = -1);
     /**
@@ -112,6 +113,11 @@ private:
      * @brief Flag para controlar la ejecución de la sesión
      */
     bool m_running = true;
+    /**
+     * @brief PID del compositor (wayfire, labwc, etc.)
+     */
+    pid_t m_compositor_pid = -1;
+
     /**
      * @brief Lista de PIDs de procesos hijos para terminarlos al cerrar la sesión
      */
