@@ -103,26 +103,25 @@ namespace horizon::preferences
         auto table = std::make_unique<TableView<BluetoothDevice>>();
         table->set_header_visible(false);
 
-        TableColumn<BluetoothDevice> icon_name_col;
-        icon_name_col.width = 450;
-        icon_name_col.cell_factory = [](const BluetoothDevice &data)
+        TableColumn<BluetoothDevice> icon_col;
+        icon_col.width = 35;
+        icon_col.cell_factory = [](const BluetoothDevice &)
         {
-            auto row = std::make_unique<Widget>();
-            row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-            row->set_spacing(10);
-            row->set_margin(5);
-
             auto icon = std::make_unique<Icon>();
             icon->set_icon_name("bluetooth-active");
-            icon->set_icon_size(24);
-            row->add_child(std::move(icon));
-
-            auto lbl = std::make_unique<Label>(data.name.empty() ? data.address : data.name);
-            row->add_child(std::move(lbl));
-
-            return row;
+            icon->set_icon_size(20);
+            return icon;
         };
-        table->add_column(std::move(icon_name_col));
+        table->add_column(std::move(icon_col));
+
+        TableColumn<BluetoothDevice> name_col;
+        name_col.width = 415;
+        name_col.cell_factory = [](const BluetoothDevice &data)
+        {
+            auto lbl = std::make_unique<Label>(data.name.empty() ? data.address : data.name);
+            return lbl;
+        };
+        table->add_column(std::move(name_col));
 
         m_table_view = table.get();
         m_table_view->when_row_click.connect([this](auto &ctx)
@@ -137,17 +136,18 @@ namespace horizon::preferences
 
         auto refresh_icon = std::make_unique<Icon>();
         refresh_icon->set_icon_name("view-refresh");
-        refresh_icon->set_icon_size(20); // Simulating refresh spin
+        refresh_icon->set_fixed_size(20); // Simulating refresh spin
         bottom_status->add_child(std::move(refresh_icon));
 
         auto scan_label = std::make_unique<Label>("Explorando...");
         m_status_label = scan_label.get();
         bottom_status->add_child(std::move(scan_label));
 
-        bottom_status->add_child(Spacer());
+        bottom_status->add_child(Spacer(20));
 
         // Manual PIN (placeholder for now)
         auto pin_label = std::make_unique<Label>("PIN manual:");
+        pin_label->set_alignment(TextAlignment::Right);
         bottom_status->add_child(std::move(pin_label));
 
         auto pin_input = std::make_unique<TextBox<TextPolicy>>();
@@ -159,7 +159,7 @@ namespace horizon::preferences
 
         // Loading Bar
         auto loading_bar = std::make_unique<LoadingBar>();
-        loading_bar->set_fixed_size(4); // Thin line at bottom
+        loading_bar->set_fixed_size(25); // Thin line at bottom
         m_loading_bar = loading_bar.get();
         container->add_child(std::move(loading_bar));
 
