@@ -450,19 +450,23 @@ namespace horizon::preferences
         if (m_scan_devices.empty())
             return;
 
-        m_dialog_open = true;
-        auto dialog = std::make_unique<WifiConnectDialog>(
-            m_selected_network.ssid, m_selected_network.path, m_scan_devices);
+        if (auto *app = application())
+        {
+            m_dialog_open = true;
+            auto dialog = std::make_unique<WifiConnectDialog>(
+                m_selected_network.ssid, m_selected_network.path, m_scan_devices);
 
-        dialog->when_close.connect([this](EventContext &) { m_dialog_open = false; });
+            dialog->when_close.connect([this](EventContext &) { m_dialog_open = false; });
 
-        std::thread(
-            [d = std::move(dialog)]() mutable
-            {
-                d->initialize();
-                d->run();
-            })
-            .detach();
+            std::thread(
+                [this, app, d = std::move(dialog)]() mutable
+                {
+                    d->initialize();
+                    d->run();
+                    app->post_task([this]() { m_dialog_open = false; });
+                })
+                .detach();
+        }
     }
 
     void WifiConfigView::disconnect_selected()
