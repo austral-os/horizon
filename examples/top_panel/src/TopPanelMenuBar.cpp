@@ -132,6 +132,8 @@ std::unique_ptr<Menu> TopPanelMenuBar::create_system_menu()
                     m_app->send_remote_signal(-1, "run_app", "konsole");
                 else if (item_id == "run_aboutus")
                     ApplicationLauncher::launch("aboutus");
+                else if (item_id == "run_settings")
+                    ApplicationLauncher::launch("preferences");
                 else if (item_id == "run_logout")
                     m_app->send_remote_signal(-1, "logout");
                 else if (item_id == "force_quit" && m_current_owner_pid != -1)
@@ -142,7 +144,7 @@ std::unique_ptr<Menu> TopPanelMenuBar::create_system_menu()
     add_sys_item("About This System", "run_aboutus");
     menu->add_separator();
     add_sys_item("Terminal", "run_terminal");
-    add_sys_item("System Settings...");
+    add_sys_item("System Settings...", "run_settings");
     menu->add_separator();
     add_sys_item("Force Quit...", "force_quit");
     menu->add_separator();
