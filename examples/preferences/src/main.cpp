@@ -1,6 +1,6 @@
-#include <horizon/WaylandWindow.hpp>
 #include "PreferencesWindow.hpp"
 #include <horizon/Logger.hpp>
+#include <horizon/WaylandWindow.hpp>
 #include <memory>
 
 int main(int argc, char *argv[])
@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
         horizon::Logger::instance().init("preferences");
 
         // 1. Setup the basic Wayland/Horizon context
-        horizon::WaylandWindow app("horizon.preferences", 800, 600);
+        horizon::WaylandWindow app("horizon.preferences", 800, 650);
         app.set_name("Preferencias del Sistema");
         app.set_icon_name("preferences-system");
         app.set_show_in_dock(true);
@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
                 std::string section = arg.substr(2);
                 if (section == "wifi")
                     section = "wi-fi";
-                
+
                 initial_section = section;
             }
         }

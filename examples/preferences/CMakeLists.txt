@@ -45,14 +45,17 @@ add_executable(preferences
     src/utils/WayfireConfigWriter.cpp
     src/views/KeyboardView/KeyboardLanguageView.cpp
     src/views/ApplicationsView/LayoutPickerDialog.cpp
+    src/utils/PipeWireManager.cpp
 )
 
 target_link_libraries(preferences
     PRIVATE
         horizon
+        PkgConfig::PIPEWIRE
 )
 
 target_include_directories(preferences
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${PIPEWIRE_INCLUDE_DIRS}
 )

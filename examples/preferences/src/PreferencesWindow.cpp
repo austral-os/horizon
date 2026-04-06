@@ -22,10 +22,11 @@
 
 namespace horizon::preferences
 {
-    PreferencesWindow::PreferencesWindow(const std::string& initial_section) : ApplicationWindow("Preferencias del Sistema")
+    PreferencesWindow::PreferencesWindow(const std::string &initial_section)
+        : ApplicationWindow("Preferencias del Sistema")
     {
         ConfigManager::instance().load();
-        set_size(800, 600);
+        set_size(800, 650);
 
         // Custom Toolbar
         auto toolbar_widget = std::make_unique<PreferencesToolbar>();
@@ -49,10 +50,7 @@ namespace horizon::preferences
         if (m_preferences_toolbar->home_button())
         {
             m_preferences_toolbar->home_button()->when_button_clicked.connect(
-                [this](GroupButtonClickEvent &)
-                {
-                    load_view_by_id("home");
-                });
+                [this](GroupButtonClickEvent &) { load_view_by_id("home"); });
         }
 
         // Content View

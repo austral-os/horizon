@@ -16,6 +16,12 @@ pkg_check_modules(EGL REQUIRED egl)
 pkg_check_modules(GLESV2 REQUIRED glesv2)
 pkg_check_modules(DBUS REQUIRED dbus-1)
 pkg_check_modules(UUID REQUIRED uuid)
+pkg_check_modules(PIPEWIRE REQUIRED IMPORTED_TARGET libpipewire-0.3)
+set(PIPEWIRE_INCLUDE_DIRS ${PIPEWIRE_INCLUDE_DIRS} CACHE INTERNAL "")
+set(PIPEWIRE_LIBRARIES ${PIPEWIRE_LIBRARIES} CACHE INTERNAL "")
+message(STATUS "ROOT: PIPEWIRE_INCLUDE_DIRS: ${PIPEWIRE_INCLUDE_DIRS}")
+include_directories(PkgConfig::PIPEWIRE) # This is rare but PkgConfig::PIPEWIRE is a target
+# We'll use target_link_libraries properly instead
 
 file(GLOB_RECURSE SOURCES 
     "src/*.cpp" 
@@ -33,6 +39,7 @@ target_include_directories(horizon
         ${PROJECT_SOURCE_DIR}/src
         ${DBUS_INCLUDE_DIRS}
         ${UUID_INCLUDE_DIRS}
+        ${PIPEWIRE_INCLUDE_DIRS}
     PRIVATE
         ${WAYLAND_INCLUDE_DIRS}
         ${CAIRO_INCLUDE_DIRS}

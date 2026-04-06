@@ -137,14 +137,14 @@ namespace horizon::preferences
         TableColumn<BluetoothDevice> name_col;
         name_col.title = "Nombre del dispositivo";
         name_col.width = 300;
-        name_col.cell_factory = [](const BluetoothDevice &data)
+        name_col.cell_factory = [](const BluetoothDevice &data) -> std::unique_ptr<Widget>
         { return std::make_unique<Label>(data.name.empty() ? data.address : data.name); };
         table->add_column(std::move(name_col));
 
         TableColumn<BluetoothDevice> status_col;
         status_col.title = "Estado";
         status_col.width = 150;
-        status_col.cell_factory = [](const BluetoothDevice &data)
+        status_col.cell_factory = [](const BluetoothDevice &data) -> std::unique_ptr<Widget>
         {
             auto lbl = std::make_unique<Label>(data.connected ? "Conectado" : "Desconectado");
             if (data.connected)
