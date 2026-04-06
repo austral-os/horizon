@@ -207,6 +207,14 @@ namespace horizon
                 }
             }
 
+            if (should_draw)
+            {
+                auto *tm = application()->theme_manager.get();
+                Color border_color = tm->get_color("window_border");
+                gc.setColor(border_color);
+                gc.drawRect(m_x, m_y, m_width, m_height, 0);
+            }
+
             m_dirty = false;
             m_child_dirty = false;
         }
@@ -215,16 +223,11 @@ namespace horizon
         void draw(GraphicsContext &gc) override
         {
             auto *tm = application()->theme_manager.get();
-            Color border_color = tm->get_color("window_border");
             Color bg_color = tm->get_color("table_row");
 
             // Table background (Square)
             gc.setColor(bg_color);
             gc.fillRect(m_x, m_y, m_width, m_height, 0);
-
-            // Subtle border (Square)
-            gc.setColor(border_color);
-            gc.drawRect(m_x, m_y, m_width, m_height, 0);
         }
 
         void calculate_internal_layout()
