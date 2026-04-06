@@ -5,6 +5,7 @@ add_executable(top_panel
     src/TopPanelMenuBar.cpp
     src/IndicatorsContainer.cpp
     src/DateAndTimeIndicator.cpp
+    src/NetworkIndicator.cpp
 )
 
 target_include_directories(top_panel

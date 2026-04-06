@@ -211,7 +211,20 @@ namespace horizon::dbusutils
                 }
                 val = bytes;
             }
-            // Add more as needed
+            else if (element_type == DBUS_TYPE_STRING || element_type == DBUS_TYPE_OBJECT_PATH)
+            {
+                DBusMessageIter array_iter;
+                dbus_message_iter_recurse(&sub_iter, &array_iter);
+                std::vector<std::string> strings;
+                while (dbus_message_iter_get_arg_type(&array_iter) != DBUS_TYPE_INVALID)
+                {
+                    const char* s;
+                    dbus_message_iter_get_basic(&array_iter, &s);
+                    strings.push_back(std::string(s));
+                    dbus_message_iter_next(&array_iter);
+                }
+                val = strings;
+            }
             break;
         }
         }
