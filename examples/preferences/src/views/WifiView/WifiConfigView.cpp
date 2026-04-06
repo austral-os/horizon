@@ -186,17 +186,13 @@ namespace horizon::preferences
         button_container->set_fixed_size(35);
         button_container->set_spacing(10);
 
-        auto add_btn = std::make_unique<Button<SolidObject>>();
-        add_btn->set_text("Agregar");
+        auto connect_btn = std::make_unique<Button<SolidObject>>();
+        connect_btn->set_text("Conectar");
+        connect_btn->set_enabled(false);
+        connect_btn->when_click.connect([this](MouseButtonEventContext &) { this->on_connect_clicked(); });
 
-        m_add_button = add_btn.get();
-        button_container->add_child(std::move(add_btn));
-
-        auto remove_btn = std::make_unique<Button<SolidObject>>();
-        remove_btn->set_text("Eliminar");
-
-        m_remove_button = remove_btn.get();
-        button_container->add_child(std::move(remove_btn));
+        m_connect_button = connect_btn.get();
+        button_container->add_child(std::move(connect_btn));
 
         auto refresh_btn = std::make_unique<Button<SolidObject>>();
         refresh_btn->set_text("Refrescar");
@@ -426,29 +422,37 @@ namespace horizon::preferences
     void WifiConfigView::on_network_selected(const WifiNetwork &network)
     {
         if (!m_initialized)
+            return;
+
+        m_selected_network = network;
+
+        if (m_connect_button)
         {
-            std::cerr << "WifiConfigView: Ignoring on_network_selected for SSID: " << network.ssid
-                      << " (Initial load protection)" << std::endl;
+            m_connect_button->set_enabled(true);
+            m_connect_button->set_text(network.connected ? "Desconectar" : "Conectar");
+        }
+    }
+
+    void WifiConfigView::on_connect_clicked()
+    {
+        if (m_selected_network.ssid.empty())
+            return;
+
+        if (m_selected_network.connected)
+        {
+            disconnect_selected();
             return;
         }
 
         if (m_dialog_open)
-        {
-            std::cerr << "WifiConfigView: Ignoring on_network_selected because another dialog is "
-                         "already open."
-                      << std::endl;
             return;
-        }
-
-        std::cerr << "WifiConfigView: on_network_selected called for SSID: " << network.ssid
-                  << " at path: " << network.path << std::endl;
 
         if (m_scan_devices.empty())
             return;
 
         m_dialog_open = true;
-        auto dialog =
-            std::make_unique<WifiConnectDialog>(network.ssid, network.path, m_scan_devices);
+        auto dialog = std::make_unique<WifiConnectDialog>(
+            m_selected_network.ssid, m_selected_network.path, m_scan_devices);
 
         dialog->when_close.connect([this](EventContext &) { m_dialog_open = false; });
 
@@ -459,5 +463,53 @@ namespace horizon::preferences
                 d->run();
             })
             .detach();
+    }
+
+    void WifiConfigView::disconnect_selected()
+    {
+        if (m_selected_network.ssid.empty() || !m_dbus)
+            return;
+
+        // 1. Get all ActiveConnections from NM
+        auto active_conns_var = m_dbus->get_property(
+            "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
+            "org.freedesktop.NetworkManager", "ActiveConnections");
+
+        if (std::holds_alternative<std::vector<std::string>>(active_conns_var))
+        {
+            auto active_conns = std::get<std::vector<std::string>>(active_conns_var);
+            for (const auto &conn_path : active_conns)
+            {
+                // Check if this connection's ID matches our SSID
+                auto id_var = m_dbus->get_property(
+                    "org.freedesktop.NetworkManager", conn_path,
+                    "org.freedesktop.NetworkManager.Connection.Active", "Id");
+                if (std::holds_alternative<std::string>(id_var) &&
+                    std::get<std::string>(id_var) == m_selected_network.ssid)
+                {
+                    // Found it! Deactivate.
+                    DBusMessage *msg = dbus_message_new_method_call(
+                        "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
+                        "org.freedesktop.NetworkManager", "DeactivateConnection");
+                    if (msg)
+                    {
+                        const char *path_ptr = conn_path.c_str();
+                        dbus_message_append_args(msg, DBUS_TYPE_OBJECT_PATH, &path_ptr,
+                                                 DBUS_TYPE_INVALID);
+
+                        DBusError err;
+                        dbus_error_init(&err);
+                        DBusMessage *reply = dbus_connection_send_with_reply_and_block(
+                            m_dbus->get_connection(), msg, -1, &err);
+                        if (reply)
+                            dbus_message_unref(reply);
+                        if (dbus_error_is_set(&err))
+                            dbus_error_free(&err);
+                        dbus_message_unref(msg);
+                    }
+                    break;
+                }
+            }
+        }
     }
 } // namespace horizon::preferences
