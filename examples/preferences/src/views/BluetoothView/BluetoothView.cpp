@@ -1,11 +1,9 @@
-#include <algorithm>
 #include <cstdio>
 #include <horizon/Icon.hpp>
 #include <horizon/SolidObject.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/WaylandWindow.hpp>
 #include <iostream>
-#include <map>
 #include <memory>
 #include <thread>
 #include <views/BluetoothView/BluetoothPairDialog.hpp>
