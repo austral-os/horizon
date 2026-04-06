@@ -62,7 +62,7 @@ public:
     void terminate_all_apps();
 
     void run_app(const std::string &app_path);
-    void run_service(const std::string &service_path);
+    pid_t run_service(const std::string &service_path, bool use_setsid = true);
     void run_startup_services();
     void apply_display_config();
 
@@ -83,7 +83,7 @@ public:
 
 private:
     std::vector<std::string> get_wayland_displays();
-    std::string wait_for_new_wayland_display(const std::vector<std::string> &existing);
+    std::string wait_for_new_wayland_display(const std::vector<std::string> &existing, pid_t monitor_pid = -1);
     /**
      * @brief Path del socket del servidor
      */

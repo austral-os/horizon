@@ -171,7 +171,7 @@ void HorizonSession::run_app(const std::string &app_name)
     run_service(entry->exec);
 }
 
-void HorizonSession::run_service(const std::string &service_path)
+pid_t HorizonSession::run_service(const std::string &service_path, bool use_setsid)
 {
     LOG_INFO << "[HorizonSession] Executing service: " << service_path << std::endl;
 
@@ -179,7 +179,15 @@ void HorizonSession::run_service(const std::string &service_path)
 
     if (pid == 0)
     {
-        setsid(); // Create new session and process group
+        if (use_setsid)
+        {
+            setsid(); // Create new session and process group
+        }
+        else
+        {
+            setpgid(0, 0); // Only new process group, keep the parent's session for seat control
+        }
+
         prctl(PR_SET_PDEATHSIG, SIGTERM);
 
         // Redirect stdout and stderr to the log file for child diagnostics
@@ -210,11 +218,13 @@ void HorizonSession::run_service(const std::string &service_path)
                  << std::endl;
         std::lock_guard<std::mutex> lock(m_state_mutex);
         m_spawned_pids.push_back(pid);
+        return pid;
     }
     else
     {
         LOG_ERROR << "[HorizonSession] Failed to fork for " << service_path << ": "
                   << strerror(errno) << std::endl;
+        return -1;
     }
 }
 
@@ -222,16 +232,27 @@ void HorizonSession::run_startup_services()
 {
     auto existing_displays = get_wayland_displays();
 
+    // Wait a moment for any previous session to fully release resources (DRM, Seat)
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
     for (const auto &svc_path : m_startup_services)
     {
-        run_service(svc_path);
+        bool is_compositor = (svc_path == "wayfire" || svc_path == "labwc");
+        pid_t pid = run_service(svc_path, !is_compositor);
 
         // If we just started the compositor, we need to wait for its socket and set the environment
-        if (svc_path == "wayfire" || svc_path == "labwc")
+        if (is_compositor)
         {
+            if (pid <= 0)
+            {
+                LOG_ERROR << "[HorizonSession] Failed to start compositor: " << svc_path << ". Aborting session." << std::endl;
+                stop();
+                return;
+            }
+
             LOG_INFO << "[HorizonSession] Compositor started, waiting for Wayland socket..."
                      << std::endl;
-            std::string new_display = wait_for_new_wayland_display(existing_displays);
+            std::string new_display = wait_for_new_wayland_display(existing_displays, pid);
 
             if (!new_display.empty())
             {
@@ -244,7 +265,9 @@ void HorizonSession::run_startup_services()
             }
             else
             {
-                LOG_ERROR << "[HorizonSession] Timeout waiting for Wayland socket!" << std::endl;
+                LOG_ERROR << "[HorizonSession] Failed to detect Wayland socket. Aborting session." << std::endl;
+                stop();
+                return;
             }
         }
         else
@@ -279,12 +302,22 @@ std::vector<std::string> HorizonSession::get_wayland_displays()
     return displays;
 }
 
-std::string HorizonSession::wait_for_new_wayland_display(const std::vector<std::string> &existing)
+std::string HorizonSession::wait_for_new_wayland_display(const std::vector<std::string> &existing, pid_t monitor_pid)
 {
     std::set<std::string> existing_set(existing.begin(), existing.end());
 
     for (int i = 0; i < 50; ++i) // Try for ~5 seconds
     {
+        // If we are monitoring a PID, check if it's still alive
+        if (monitor_pid > 0)
+        {
+            if (kill(monitor_pid, 0) != 0)
+            {
+                LOG_ERROR << "[HorizonSession] Monitored process (PID " << monitor_pid << ") terminated prematurely." << std::endl;
+                return "";
+            }
+        }
+
         auto current = get_wayland_displays();
         for (const auto &display : current)
         {
