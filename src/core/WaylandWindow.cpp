@@ -1660,6 +1660,11 @@ namespace horizon
         GLint opacity_loc = glGetUniformLocation(m_gl_program, "u_opacity");
         glUniform1f(opacity_loc, 1.0f);
 
+        GLint grad_start_loc = glGetUniformLocation(m_gl_program, "u_gradient_start");
+        glUniform1f(grad_start_loc, 1.0f);
+        GLint grad_end_loc = glGetUniformLocation(m_gl_program, "u_gradient_end");
+        glUniform1f(grad_end_loc, 1.0f);
+
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_gl_texture);
 
