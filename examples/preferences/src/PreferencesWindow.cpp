@@ -22,7 +22,7 @@
 
 namespace horizon::preferences
 {
-    PreferencesWindow::PreferencesWindow() : ApplicationWindow("Preferencias del Sistema")
+    PreferencesWindow::PreferencesWindow(const std::string& initial_section) : ApplicationWindow("Preferencias del Sistema")
     {
         ConfigManager::instance().load();
         set_size(800, 600);
@@ -51,7 +51,7 @@ namespace horizon::preferences
         set_content(std::move(content));
 
         // Initial Panel
-        load_view_by_id("home");
+        load_view_by_id(initial_section);
     }
 
     void PreferencesWindow::load_view_by_id(const std::string &id, bool push_to_history)

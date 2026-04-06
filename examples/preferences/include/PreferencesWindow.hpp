@@ -11,7 +11,7 @@ namespace horizon::preferences
     class PreferencesWindow : public ApplicationWindow
     {
     public:
-        PreferencesWindow();
+        PreferencesWindow(const std::string& initial_section = "home");
         ~PreferencesWindow() override = default;
 
         void load_view_by_id(const std::string& id, bool push_to_history = true);

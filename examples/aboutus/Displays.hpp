@@ -5,6 +5,7 @@
 #include "horizon/Spacer.hpp"
 #include "horizon/Widget.hpp"
 #include <horizon/SystemInfo.hpp>
+#include <horizon/ApplicationLauncher.hpp>
 namespace horizon
 {
 
@@ -37,6 +38,12 @@ namespace horizon
             auto btn_display_settings = std::make_unique<Button<SolidObject>>();
             btn_display_settings->set_text("Display Settings");
             btn_display_settings->set_fixed_size(200);
+
+            btn_display_settings->when_click.connect(
+                [](MouseButtonEventContext &)
+                {
+                    ApplicationLauncher::launch_from_desktop_file("preferences", {"--display"});
+                });
 
             btn_container->add_child(Spacer());
             btn_container->add_child(std::move(btn_display_settings));
