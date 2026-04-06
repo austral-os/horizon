@@ -35,6 +35,9 @@ namespace horizon
         m_window->set_visible(true);
         m_window->set_keyboard_interactivity(0);
 
+        // Enable background blur
+        m_window->set_blur(true);
+
         // Add custom search path for .desktop files
         DesktopEntry::add_search_path(
             "/home/horacio/Desarrollo/austral-os/horizon/examples/config/apps/");

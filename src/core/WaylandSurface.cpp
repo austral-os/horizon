@@ -310,6 +310,10 @@ namespace horizon
         xdg_positioner_set_anchor_rect(m_xdg_positioner, x, y, 1, 1);
         xdg_positioner_set_anchor(m_xdg_positioner, XDG_POSITIONER_ANCHOR_TOP_LEFT);
         xdg_positioner_set_gravity(m_xdg_positioner, XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT);
+        xdg_positioner_set_constraint_adjustment(m_xdg_positioner, 
+            XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_X | 
+            XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_Y | 
+            XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y);
 
         if (parent->m_xdg_surface || parent->m_layer_surface) {
             m_xdg_surface = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
