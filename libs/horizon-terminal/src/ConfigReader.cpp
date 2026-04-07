@@ -32,6 +32,16 @@ TerminalConfig ConfigReader::load() {
             if (term_data.contains("cursor_style")) {
                 config.cursor_style = term_data["cursor_style"];
             }
+            
+            if (term_data.contains("show_scrollbar")) {
+                config.show_scrollbar = term_data["show_scrollbar"];
+            }
+            if (term_data.contains("scrollback_lines")) {
+                config.scrollback_lines = term_data["scrollback_lines"];
+            }
+            if (term_data.contains("scroll_without_scrollbar")) {
+                config.scroll_without_scrollbar = term_data["scroll_without_scrollbar"];
+            }
         }
     } catch (const std::exception& e) {
         std::cerr << "[TerminalConfig] Error loading config: " << e.what() << std::endl;

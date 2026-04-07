@@ -5,6 +5,8 @@
 #include <memory>
 #include <functional>
 #include <mutex>
+#include <deque>
+#include <vector>
 
 namespace horizon {
 namespace terminal {
@@ -25,7 +27,14 @@ public:
     void set_damage_callback(std::function<void(VTermRect)> cb) { m_damage_cb = cb; }
     void set_move_cursor_callback(std::function<void(VTermPos)> cb) { m_move_cursor_cb = cb; }
 
+    // Scrollback buffer support
+    void set_scrollback_limit(size_t limit) { m_scrollback_limit = limit; }
+    size_t get_scrollback_size() const { return m_scrollback_buffer.size(); }
+    const std::vector<VTermScreenCell>& get_scrollback_line(size_t index) const { return m_scrollback_buffer[index]; }
+
 private:
+    std::deque<std::vector<VTermScreenCell>> m_scrollback_buffer;
+    size_t m_scrollback_limit = 5000;
     VTerm* m_vt;
     VTermScreen* m_screen;
     std::mutex m_mutex;
@@ -39,6 +48,9 @@ private:
     static int screen_settermprop(VTermProp prop, VTermValue *val, void *user);
     static int screen_bell(void *user);
     static int screen_resize(int rows, int cols, void *user);
+    static int screen_sb_pushline(int cols, const VTermScreenCell *cells, void *user);
+    static int screen_sb_popline(int cols, VTermScreenCell *cells, void *user);
+    static int screen_sb_clear(void *user);
 };
 
 } // namespace terminal

@@ -10,6 +10,7 @@
 #include FT_FREETYPE_H
 #include <hb.h>
 #include <hb-ft.h>
+#include <horizon/AquaPolygon.hpp>
 #include <cairo-ft.h>
 #include <fontconfig/fontconfig.h>
 
@@ -29,7 +30,8 @@ public:
 
     // Event handlers
     void handle_key_press(horizon::KeyEventContext &ctx);
-    
+    void handle_mouse_wheel(horizon::MouseWheelEventContext &ctx);
+
     void set_application_recursive(horizon::WaylandWindow *app) override;
 
 private:
@@ -55,6 +57,12 @@ private:
     bool m_cursor_visible = true;
     size_t m_cursor_timer = 0;
     VTermPos m_cursor_pos = {0, 0};
+    
+    // Scrollback
+    int m_scroll_offset = 0;
+    
+    // Scrollbar visuals
+    std::unique_ptr<horizon::AquaPolygon> m_v_thumb;
 
     // Font resources
     FT_Library m_ft_library = nullptr;

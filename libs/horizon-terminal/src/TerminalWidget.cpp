@@ -15,7 +15,13 @@ TerminalWidget::TerminalWidget() {
     m_config = ConfigReader::load();
     init_fonts();
 
+    m_v_thumb = std::make_unique<horizon::AquaPolygon>();
+    m_v_thumb->set_accent_color(horizon::WidgetAccentColor::Primary);
+    m_v_thumb->set_has_border(true);
+    m_v_thumb->set_border_size(1.0f);
+
     m_controller = std::make_unique<TerminalController>(24, 80);
+    m_controller->set_scrollback_limit(m_config.scrollback_lines);
     m_pty = std::make_unique<PtyHandler>();
 
     m_pty->set_read_callback([this](const char* data, size_t len) {
@@ -33,6 +39,10 @@ TerminalWidget::TerminalWidget() {
 
     when_key_press.connect([this](KeyEventContext &ctx) {
         this->handle_key_press(ctx);
+    });
+
+    when_mouse_wheel.connect([this](MouseWheelEventContext &ctx) {
+        this->handle_mouse_wheel(ctx);
     });
 
     when_mouse_press.connect([this](MouseButtonEventContext &ctx) {
@@ -109,7 +119,8 @@ void TerminalWidget::calculate_layout() {
         m_char_height = 16;
     }
 
-    int new_cols = width() / m_char_width;
+    int available_width = width() - (m_config.show_scrollbar ? 14 : 0);
+    int new_cols = available_width / m_char_width;
     int new_rows = height() / m_char_height;
 
     if (new_cols != m_cols || new_rows != m_rows) {
@@ -125,6 +136,24 @@ void TerminalWidget::calculate_layout() {
     }
 }
 
+static VTermScreenCell get_cell_at(int r, int c, int size, int offset, TerminalController* ctrl) {
+    VTermScreenCell cell;
+    memset(&cell, 0, sizeof(VTermScreenCell));
+    cell.bg.type = VTERM_COLOR_DEFAULT_BG;
+    cell.fg.type = VTERM_COLOR_DEFAULT_FG;
+
+    int history_index = size - offset + r;
+    if (history_index < size && history_index >= 0) {
+        const auto& line = ctrl->get_scrollback_line(history_index);
+        if (c < line.size()) {
+            cell = line[c];
+        }
+    } else if (history_index >= size) {
+        vterm_screen_get_cell(ctrl->get_screen(), {history_index - size, c}, &cell);
+    }
+    return cell;
+}
+
 void TerminalWidget::draw(GraphicsContext &ctx) {
     // Fill background
     ctx.setColor(background_color());
@@ -137,16 +166,15 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
     cairo_set_font_face(cr, m_cairo_font_face);
     cairo_set_font_size(cr, m_config.font_size);
 
+    int size = m_controller->get_scrollback_size();
+    if (m_scroll_offset > size) m_scroll_offset = size;
+
     VTermScreen* screen = m_controller->get_screen();
     hb_buffer_t* hb_buf = hb_buffer_create();
     
     for (int r = 0; r < m_rows; ++r) {
         for (int c = 0; c < m_cols; ) {
-            VTermPos pos = {r, c};
-            VTermScreenCell cell;
-            if (!vterm_screen_get_cell(screen, pos, &cell)) {
-                c++; continue;
-            }
+            VTermScreenCell cell = get_cell_at(r, c, size, m_scroll_offset, m_controller.get());
 
             // Find segment of same style
             int start_c = c;
@@ -155,8 +183,7 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
             c++;
             
             while (c < m_cols) {
-                VTermScreenCell next_cell;
-                vterm_screen_get_cell(screen, {r, c}, &next_cell);
+                VTermScreenCell next_cell = get_cell_at(r, c, size, m_scroll_offset, m_controller.get());
                 // Simple style compare for now (colors)
                 if (next_cell.bg.rgb.red != cell.bg.rgb.red || 
                     next_cell.bg.rgb.green != cell.bg.rgb.green ||
@@ -219,25 +246,70 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
 
     if (m_cursor_visible && has_focus()) {
         double cursor_x = x() + m_cursor_pos.col * m_char_width;
-        double cursor_y = y() + m_cursor_pos.row * m_char_height;
+        double cursor_visual_row = m_cursor_pos.row + m_scroll_offset;
         
-        if (m_config.cursor_style == "bar") {
-            cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
-            cairo_rectangle(cr, cursor_x, cursor_y, 2.0, m_char_height);
-            cairo_fill(cr);
-        } else if (m_config.cursor_style == "underline") {
-            cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
-            // Draw a 2-pixel tall line at the bottom of the character's bounding box
-            cairo_rectangle(cr, cursor_x, cursor_y + m_char_height - 2.0, m_char_width, 2.0);
-            cairo_fill(cr);
-        } else {
-            cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.5);
-            cairo_rectangle(cr, cursor_x, cursor_y, m_char_width, m_char_height);
-            cairo_fill(cr);
+        if (cursor_visual_row >= 0 && cursor_visual_row < m_rows) {
+            double cursor_y = y() + cursor_visual_row * m_char_height;
+            
+            if (m_config.cursor_style == "bar") {
+                cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
+                cairo_rectangle(cr, cursor_x, cursor_y, 2.0, m_char_height);
+                cairo_fill(cr);
+            } else if (m_config.cursor_style == "underline") {
+                cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
+                // Draw a 2-pixel tall line at the bottom of the character's bounding box
+                cairo_rectangle(cr, cursor_x, cursor_y + m_char_height - 2.0, m_char_width, 2.0);
+                cairo_fill(cr);
+            } else {
+                cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.5);
+                cairo_rectangle(cr, cursor_x, cursor_y, m_char_width, m_char_height);
+                cairo_fill(cr);
+            }
         }
     }
 
     cairo_restore(cr);
+
+    if (m_config.show_scrollbar) {
+        int track_w = 12;
+        int track_x = x() + width() - track_w - 2;
+        int track_y = y() + 2;
+        int track_h = height() - 4;
+
+        ctx.setColor(horizon::Color(0.85f, 0.85f, 0.85f, 0.5f));
+        ctx.fillRect(track_x, track_y, track_w, track_h, horizon::CornerRadius(track_w / 2.0));
+
+        if (size > 0) {
+            int total_lines = size + m_rows;
+            double view_ratio = (double)m_rows / total_lines;
+            int thumb_h = std::max(20, (int)(track_h * view_ratio));
+
+            double max_y = track_h - thumb_h;
+            int thumb_y = track_y + max_y * (1.0 - ((double)m_scroll_offset / size));
+
+            std::vector<horizon::PolygonPoint> pts;
+            int r = track_w / 2;
+            pts.push_back({track_x, thumb_y, r});
+            pts.push_back({track_x + track_w, thumb_y, r});
+            pts.push_back({track_x + track_w, thumb_y + thumb_h, r});
+            pts.push_back({track_x, thumb_y + thumb_h, r});
+            m_v_thumb->set_points(pts);
+        } else {
+            std::vector<horizon::PolygonPoint> pts;
+            int r = track_w / 2;
+            pts.push_back({track_x, track_y, r});
+            pts.push_back({track_x + track_w, track_y, r});
+            pts.push_back({track_x + track_w, track_y + track_h, r});
+            pts.push_back({track_x, track_y + track_h, r});
+            m_v_thumb->set_points(pts);
+        }
+        
+        if (!m_v_thumb->application() && application()) {
+            m_v_thumb->set_application_recursive(application());
+        }
+        
+        m_v_thumb->draw(ctx);
+    }
 }
 
 void TerminalWidget::handle_key_press(KeyEventContext &ctx) {
@@ -259,6 +331,28 @@ void TerminalWidget::handle_key_press(KeyEventContext &ctx) {
 
 void TerminalWidget::on_pty_read(const char* data, size_t len) {
     m_controller->push_data(data, len);
+    if (m_scroll_offset > 0) {
+        m_scroll_offset = 0;
+        invalidate();
+    }
+}
+
+void TerminalWidget::handle_mouse_wheel(MouseWheelEventContext &ctx) {
+    if (!m_config.show_scrollbar && !m_config.scroll_without_scrollbar) return;
+    
+    int size = m_controller->get_scrollback_size();
+    if (size == 0) return;
+    
+    if (ctx.dy < 0) {
+        m_scroll_offset += 3;
+    } else if (ctx.dy > 0) {
+        m_scroll_offset -= 3;
+    }
+
+    if (m_scroll_offset > size) m_scroll_offset = size;
+    if (m_scroll_offset < 0) m_scroll_offset = 0;
+    
+    invalidate();
 }
 
 void TerminalWidget::on_terminal_damage(VTermRect rect) {

@@ -10,6 +10,11 @@ struct TerminalConfig {
     std::string font = "Monospace";
     int font_size = 12;
     std::string cursor_style = "block";
+    
+    // Scrollbar settings
+    bool show_scrollbar = false;
+    int scrollback_lines = 5000;
+    bool scroll_without_scrollbar = true;
 };
 
 class ConfigReader {

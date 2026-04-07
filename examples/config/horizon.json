@@ -124,6 +124,9 @@
     "terminal": {
         "font": "CaskaydiaCove Nerd Font Mono",
         "font_size": 18,
-        "cursor_style": "underline"
+        "cursor_style": "underline",
+        "show_scrollbar": true,
+        "scrollback_lines": 5000,
+        "scroll_without_scrollbar": true
     }
 }

@@ -1,5 +1,4 @@
 #include "TerminalController.hpp"
-#include <iostream>
 #include <cstring>
 
 namespace horizon {
@@ -18,9 +17,9 @@ TerminalController::TerminalController(int rows, int cols) {
         .settermprop = screen_settermprop,
         .bell = screen_bell,
         .resize = screen_resize,
-        .sb_pushline = nullptr,
-        .sb_popline = nullptr,
-        .sb_clear = nullptr
+        .sb_pushline = screen_sb_pushline,
+        .sb_popline = screen_sb_popline,
+        .sb_clear = screen_sb_clear
     };
 
     vterm_screen_set_callbacks(m_screen, &screen_callbacks, this);
@@ -81,6 +80,39 @@ int TerminalController::screen_bell(void *user) {
 }
 
 int TerminalController::screen_resize(int rows, int cols, void *user) {
+    return 1;
+}
+
+int TerminalController::screen_sb_pushline(int cols, const VTermScreenCell *cells, void *user) {
+    auto self = static_cast<TerminalController*>(user);
+    
+    std::vector<VTermScreenCell> line(cells, cells + cols);
+    self->m_scrollback_buffer.push_front(line);
+    
+    while (self->m_scrollback_buffer.size() > self->m_scrollback_limit) {
+        self->m_scrollback_buffer.pop_back();
+    }
+    return 1;
+}
+
+int TerminalController::screen_sb_popline(int cols, VTermScreenCell *cells, void *user) {
+    auto self = static_cast<TerminalController*>(user);
+    
+    if (self->m_scrollback_buffer.empty()) {
+        return 0;
+    }
+    
+    auto& line = self->m_scrollback_buffer.front();
+    int copy_cols = std::min(cols, (int)line.size());
+    std::copy(line.begin(), line.begin() + copy_cols, cells);
+    
+    self->m_scrollback_buffer.pop_front();
+    return 1;
+}
+
+int TerminalController::screen_sb_clear(void *user) {
+    auto self = static_cast<TerminalController*>(user);
+    self->m_scrollback_buffer.clear();
     return 1;
 }
 
