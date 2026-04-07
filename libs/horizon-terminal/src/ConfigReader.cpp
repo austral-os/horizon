@@ -26,8 +26,8 @@ TerminalConfig ConfigReader::load() {
             if (term_data.contains("font")) {
                 config.font = term_data["font"];
             }
-            if (term_data.contains("font-size")) {
-                config.font_size = term_data["font-size"];
+            if (term_data.contains("font_size")) {
+                config.font_size = term_data["font_size"];
             }
             if (term_data.contains("cursor_style")) {
                 config.cursor_style = term_data["cursor_style"];

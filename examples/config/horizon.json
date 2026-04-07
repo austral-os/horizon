@@ -123,7 +123,7 @@
     },
     "terminal": {
         "font": "Hack",
-        "font-size": 14,
+        "font_size": 18,
         "cursor_style": "underline"
     }
 }
