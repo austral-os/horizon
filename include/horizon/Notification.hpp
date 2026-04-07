@@ -1,9 +1,8 @@
 #pragma once
 
-#include <horizon/Widget.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
-#include <memory>
+#include <horizon/Widget.hpp>
 #include <string>
 
 namespace horizon
@@ -33,7 +32,8 @@ namespace horizon
         void set_notification(const std::string &icon_name, const std::string &message);
 
         /**
-         * @brief Sets a fixed width for the notification. If <= 0, width is calculated based on content.
+         * @brief Sets a fixed width for the notification. If <= 0, width is calculated based on
+         * content.
          */
         void set_fixed_width(int width);
 
@@ -51,7 +51,7 @@ namespace horizon
         int preferred_width() const override;
         int preferred_height() const override;
         int preferred_height(int width) const override;
-        
+
         void calculate_layout() override;
 
     protected:
@@ -60,7 +60,7 @@ namespace horizon
     private:
         Icon *m_icon_widget{nullptr};
         Label *m_label_widget{nullptr};
-        
+
         int m_internal_padding{15};
         int m_icon_size{32};
     };
