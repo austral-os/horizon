@@ -7,11 +7,25 @@
 #include <mutex>
 #include <deque>
 #include <vector>
+#include <string>
+
 
 namespace horizon {
 namespace terminal {
 
+struct BufferPos {
+    int row; // absolute row (scrollback + visible screen)
+    int col;
+};
+
+struct Cell {
+    std::string text;     // UTF-8 character(s)
+    bool is_continuation; // true if part of a wide character
+    bool wrapped;         // true if logically continued from previous line
+};
+
 class TerminalController {
+
 public:
     TerminalController(int rows, int cols);
     ~TerminalController();
@@ -29,12 +43,22 @@ public:
 
     // Scrollback buffer support
     void set_scrollback_limit(size_t limit) { m_scrollback_limit = limit; }
+    struct ScrollbackLine {
+        std::vector<VTermScreenCell> cells;
+        bool wrapped;
+    };
     size_t get_scrollback_size() const { return m_scrollback_buffer.size(); }
-    const std::vector<VTermScreenCell>& get_scrollback_line(size_t index) const { return m_scrollback_buffer[index]; }
+    const ScrollbackLine& get_scrollback_line(size_t index) const { return m_scrollback_buffer[index]; }
+ 
+    Cell get_cell(int row, int col);
+
+    int get_total_rows() const;
+
 
 private:
-    std::deque<std::vector<VTermScreenCell>> m_scrollback_buffer;
+    std::deque<ScrollbackLine> m_scrollback_buffer;
     size_t m_scrollback_limit = 5000;
+
     VTerm* m_vt;
     VTermScreen* m_screen;
     std::mutex m_mutex;

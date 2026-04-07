@@ -5,7 +5,7 @@
 #include "horizon/Clipboard.hpp"
 
 #include <linux/input-event-codes.h>
-#include <iostream>
+
 
 namespace horizon {
 namespace terminal {
@@ -129,16 +129,26 @@ void TerminalWidget::calculate_layout() {
         m_char_height = 16;
     }
 
+    if (m_char_width <= 0 || m_char_height <= 0) return;
+
     int available_width = width() - (m_config.show_scrollbar ? 14 : 0);
     int new_cols = available_width / m_char_width;
     int new_rows = height() / m_char_height;
+
+    if (new_cols <= 0 || new_rows <= 0) return;
 
     if (new_cols != m_cols || new_rows != m_rows) {
         m_cols = new_cols;
         m_rows = new_rows;
         m_controller->resize(m_rows, m_cols);
         m_pty->resize(m_cols, m_rows);
+        
+        // Invalida la selección al redimensionar para evitar inconsistencias
+        m_sel_start = m_sel_end = m_normalized_start = m_normalized_end = {-1, -1};
+        m_is_selecting = false;
     }
+
+
     
     if (!m_initialized && m_cols > 0 && m_rows > 0) {
         m_initialized = true;
@@ -155,10 +165,11 @@ static VTermScreenCell get_cell_at(int r, int c, int size, int offset, TerminalC
     int history_index = size - offset + r;
     if (history_index < size && history_index >= 0) {
         const auto& line = ctrl->get_scrollback_line(history_index);
-        if (c < line.size()) {
-            cell = line[c];
+        if (c < (int)line.cells.size()) {
+            cell = line.cells[c];
         }
     } else if (history_index >= size) {
+
         vterm_screen_get_cell(ctrl->get_screen(), {history_index - size, c}, &cell);
     }
     return cell;
@@ -170,6 +181,9 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
     ctx.fillRect(x(), y(), width(), height());
 
     cairo_t* cr = (cairo_t*)ctx.getNativeContext();
+
+
+
     if (!cr || !m_cairo_font_face) return;
 
     cairo_save(cr);
@@ -178,8 +192,9 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
 
     int size = m_controller->get_scrollback_size();
     if (m_scroll_offset > size) m_scroll_offset = size;
-
     VTermScreen* screen = m_controller->get_screen();
+
+
     hb_buffer_t* hb_buf = hb_buffer_create();
     
     for (int r = 0; r < m_rows; ++r) {
@@ -277,10 +292,42 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
             }
         }
     }
+        // --- Render Selection (Aesthetic Highlighting) ---
+    if (m_normalized_start.row != -1) {
+        int viewport_start_row = (int)m_controller->get_scrollback_size() - m_scroll_offset;
+        
+        cairo_set_source_rgba(cr, 0.2, 0.4, 0.8, 0.35); // Elegant Royal Blue
+        
+        for (int r = m_normalized_start.row; r <= m_normalized_end.row; ++r) {
+            int widget_row = r - viewport_start_row;
+            if (widget_row < 0 || widget_row >= m_rows) continue;
+            
+            int c_start = (r == m_normalized_start.row) ? m_normalized_start.col : 0;
+            int c_end = (r == m_normalized_end.row) ? m_normalized_end.col : m_cols - 1;
+            
+            c_start = std::clamp(c_start, 0, m_cols - 1);
+            c_end = std::clamp(c_end, 0, m_cols - 1);
+            
+            if (c_start <= c_end) {
+                double rx = x() + c_start * m_char_width;
+                double ry = y() + widget_row * m_char_height;
+                double rw = (c_end - c_start + 1) * m_char_width;
+                double rh = m_char_height;
+                
+                cairo_rectangle(cr, rx, ry, rw, rh);
+                cairo_fill(cr);
+            }
+        }
+    }
 
     cairo_restore(cr);
 
+
+
+
+
     if (m_config.show_scrollbar) {
+
         int track_w = 12;
         int track_x = x() + width() - track_w - 2;
         int track_y = y() + 2;
@@ -348,6 +395,8 @@ void TerminalWidget::on_pty_read(const char* data, size_t len) {
     }
 }
 
+
+
 void TerminalWidget::handle_mouse_wheel(MouseWheelEventContext &ctx) {
     if (!m_config.show_scrollbar && !m_config.scroll_without_scrollbar) return;
     
@@ -368,13 +417,11 @@ void TerminalWidget::handle_mouse_wheel(MouseWheelEventContext &ctx) {
 
 void TerminalWidget::handle_mouse_press(MouseButtonEventContext &ctx) {
     set_focus(true);
-    
-    // --- Clipboard Test ---
-    LOG_INFO << "[TERMINAL] Copying test text to clipboard on click...";
-    horizon::Clipboard::set_text("hola horizon");
+
 
     
     if (m_config.show_scrollbar) {
+
         int track_w = 12;
         int track_x = x() + width() - track_w - 2;
         int track_y = y() + 2;
@@ -387,13 +434,28 @@ void TerminalWidget::handle_mouse_press(MouseButtonEventContext &ctx) {
             m_drag_start_y = (int)ctx.y;
             m_drag_start_offset = m_scroll_offset;
             ctx.stop_propagation = true;
+            return;
         }
+    }
+
+    // Comienzo de selección
+    if (ctx.button == 0x110) { // BTN_LEFT
+        m_sel_start = screen_to_buffer(ctx.x, ctx.y);
+        update_selection(m_sel_start);
+        m_is_selecting = true;
+        invalidate();
     }
 }
 
+
+
+
+
+
+
 void TerminalWidget::handle_mouse_drag(MouseMoveEventContext &ctx) {
     if (m_dragging_scrollbar) {
-        int size = m_controller->get_scrollback_size();
+        int size = (int)m_controller->get_scrollback_size();
         if (size > 0) {
             int track_h = height() - 4;
             int total_lines = size + m_rows;
@@ -403,8 +465,6 @@ void TerminalWidget::handle_mouse_drag(MouseMoveEventContext &ctx) {
             
             if (max_y > 0) {
                 int delta_y = (int)ctx.y - m_drag_start_y;
-                // thumb_y moves with mouse, so thumb_y increase means offset decrease
-                // ratio is size / max_y
                 int offset_delta = (int)(delta_y * ((double)size / max_y));
                 m_scroll_offset = m_drag_start_offset - offset_delta;
                 
@@ -415,12 +475,28 @@ void TerminalWidget::handle_mouse_drag(MouseMoveEventContext &ctx) {
             }
         }
         ctx.stop_propagation = true;
+    } else if (m_is_selecting) {
+        update_selection(screen_to_buffer(ctx.x, ctx.y));
+        invalidate();
+    }
+
+
+}
+
+
+
+void TerminalWidget::handle_mouse_release(MouseButtonEventContext &ctx) {
+    if (m_dragging_scrollbar) {
+        m_dragging_scrollbar = false;
+    } else if (m_is_selecting) {
+        m_is_selecting = false;
+        if (!(m_sel_start.row == m_sel_end.row && m_sel_start.col == m_sel_end.col)) {
+            copy_selection();
+        }
+        invalidate();
     }
 }
 
-void TerminalWidget::handle_mouse_release(MouseButtonEventContext &ctx) {
-    m_dragging_scrollbar = false;
-}
 
 void TerminalWidget::on_terminal_damage(VTermRect rect) {
     if (m_app) {
@@ -430,7 +506,99 @@ void TerminalWidget::on_terminal_damage(VTermRect rect) {
     }
 }
 
+BufferPos TerminalWidget::screen_to_buffer(double x, double y) {
+    if (m_char_width == 0 || m_char_height == 0) return {0, 0};
+    
+    int col = (int)((x - this->x()) / m_char_width);
+    int row = (int)((y - this->y()) / m_char_height);
+    
+    int sb_size = (int)m_controller->get_scrollback_size();
+    int total_rows = m_controller->get_total_rows();
+    
+    // El viewport comienza en sb_size - m_scroll_offset
+    int abs_row = sb_size - m_scroll_offset + row;
+    
+    // Clamping robusto
+    abs_row = std::clamp(abs_row, 0, total_rows - 1);
+    col = std::clamp(col, 0, m_cols - 1);
+    
+    return { abs_row, col };
+}
+
+void TerminalWidget::update_selection(BufferPos end_pos) {
+    m_sel_end = end_pos;
+    
+    // Normalizar y cachear
+    if (m_sel_start.row < m_sel_end.row || (m_sel_start.row == m_sel_end.row && m_sel_start.col <= m_sel_end.col)) {
+        m_normalized_start = m_sel_start;
+        m_normalized_end = m_sel_end;
+    } else {
+        m_normalized_start = m_sel_end;
+        m_normalized_end = m_sel_start;
+    }
+    
+    std::cerr << "[TERMINAL DEBUG] Selection Normalized: [" << m_normalized_start.row << "," << m_normalized_start.col << "] -> [" << m_normalized_end.row << "," << m_normalized_end.col << "]" << std::endl;
+}
+
+
+
+void TerminalWidget::copy_selection() {
+    if (m_normalized_start.row == -1) return;
+    
+    std::string result;
+    int cols = m_cols;
+    int total_rows = m_controller->get_total_rows();
+    
+    // Reservar espacio aproximado para evitar reasignaciones
+    result.reserve((m_normalized_end.row - m_normalized_start.row + 1) * cols);
+    
+    for (int r = m_normalized_start.row; r <= m_normalized_end.row; ++r) {
+        if (r >= total_rows) break;
+
+        int c_start = (r == m_normalized_start.row) ? m_normalized_start.col : 0;
+        int c_end = (r == m_normalized_end.row) ? m_normalized_end.col : cols - 1;
+        
+        // Clamp por fila
+        c_start = std::clamp(c_start, 0, cols - 1);
+        c_end = std::clamp(c_end, 0, cols - 1);
+        
+        std::string line_text;
+        for (int c = c_start; c <= c_end; ++c) {
+            auto cell = m_controller->get_cell(r, c);
+            if (!cell.is_continuation) {
+                line_text += cell.text;
+            }
+        }
+        
+        // Recortar espacios finales solo si llegamos al final de la línea lógica/visual
+        if (c_end == cols - 1) {
+            size_t last = line_text.find_last_not_of(' ');
+            if (last != std::string::npos) {
+                line_text.erase(last + 1);
+            } else if (!line_text.empty() && line_text[0] == ' ') {
+                // Línea de puros espacios
+                line_text.clear();
+            }
+        }
+        
+        result += line_text;
+        
+        // Salto de línea lógico: solo si no está envuelta (wrapped) la SIGUIENTE línea
+        if (r < m_normalized_end.row && r < total_rows - 1) {
+             auto next_cell = m_controller->get_cell(r + 1, 0);
+             if (!next_cell.wrapped) {
+                 result += "\n";
+             }
+        }
+    }
+    
+    if (!result.empty()) {
+        horizon::Clipboard::set_text(result);
+    }
+}
+
 void TerminalWidget::set_application_recursive(WaylandWindow *app) {
+
     Widget::set_application_recursive(app);
     if (m_app && m_cursor_timer == 0) {
         m_cursor_timer = m_app->add_timer(600, [this]() {

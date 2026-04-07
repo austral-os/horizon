@@ -1,5 +1,29 @@
 #include "TerminalController.hpp"
 #include <cstring>
+#include <algorithm>
+#include <sstream>
+
+static std::string utf32_to_utf8(uint32_t codepoint) {
+    if (codepoint == 0) return "";
+    std::string res;
+    if (codepoint < 0x80) {
+        res += (char)codepoint;
+    } else if (codepoint < 0x800) {
+        res += (char)(0xC0 | (codepoint >> 6));
+        res += (char)(0x80 | (codepoint & 0x3F));
+    } else if (codepoint < 0x10000) {
+        res += (char)(0xE0 | (codepoint >> 12));
+        res += (char)(0x80 | ((codepoint >> 6) & 0x3F));
+        res += (char)(0x80 | (codepoint & 0x3F));
+    } else if (codepoint < 0x110000) {
+        res += (char)(0xF0 | (codepoint >> 18));
+        res += (char)(0x80 | ((codepoint >> 12) & 0x3F));
+        res += (char)(0x80 | ((codepoint >> 6) & 0x3F));
+        res += (char)(0x80 | (codepoint & 0x3F));
+    }
+    return res;
+}
+
 
 namespace horizon {
 namespace terminal {
@@ -86,7 +110,14 @@ int TerminalController::screen_resize(int rows, int cols, void *user) {
 int TerminalController::screen_sb_pushline(int cols, const VTermScreenCell *cells, void *user) {
     auto self = static_cast<TerminalController*>(user);
     
-    std::vector<VTermScreenCell> line(cells, cells + cols);
+    // El scrollback de libvterm empuja la línea 0 (la de arriba) cuando hay scroll hacia abajo.
+    VTermState* state = vterm_obtain_state(self->m_vt);
+    const VTermLineInfo* info = vterm_state_get_lineinfo(state, 0);
+
+    ScrollbackLine line;
+    line.cells.assign(cells, cells + cols);
+    line.wrapped = info ? info->continuation : false;
+
     self->m_scrollback_buffer.push_front(line);
     
     while (self->m_scrollback_buffer.size() > self->m_scrollback_limit) {
@@ -94,6 +125,7 @@ int TerminalController::screen_sb_pushline(int cols, const VTermScreenCell *cell
     }
     return 1;
 }
+
 
 int TerminalController::screen_sb_popline(int cols, VTermScreenCell *cells, void *user) {
     auto self = static_cast<TerminalController*>(user);
@@ -103,12 +135,13 @@ int TerminalController::screen_sb_popline(int cols, VTermScreenCell *cells, void
     }
     
     auto& line = self->m_scrollback_buffer.front();
-    int copy_cols = std::min(cols, (int)line.size());
-    std::copy(line.begin(), line.begin() + copy_cols, cells);
+    int copy_cols = std::min(cols, (int)line.cells.size());
+    std::copy(line.cells.begin(), line.cells.begin() + copy_cols, cells);
     
     self->m_scrollback_buffer.pop_front();
     return 1;
 }
+
 
 int TerminalController::screen_sb_clear(void *user) {
     auto self = static_cast<TerminalController*>(user);
@@ -116,5 +149,63 @@ int TerminalController::screen_sb_clear(void *user) {
     return 1;
 }
 
+Cell TerminalController::get_cell(int row, int col) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    int sb_size = (int)m_scrollback_buffer.size();
+    int rows, cols;
+    vterm_get_size(m_vt, &rows, &cols);
+
+    VTermScreenCell vcell;
+    bool wrapped = false;
+
+    if (row < sb_size) {
+        // En scrollback. m_scrollback_buffer[0] es la línea más RECUPERADA (la última que salió).
+        // Por lo tanto, el índice absoluto 'row' mapea a m_scrollback_buffer[sb_size - 1 - row].
+        const auto& line = m_scrollback_buffer[sb_size - 1 - row];
+        if (col >= 0 && col < (int)line.cells.size()) {
+            vcell = line.cells[col];
+        } else {
+            memset(&vcell, 0, sizeof(vcell));
+        }
+        wrapped = line.wrapped;
+    } else {
+        // En pantalla activa.
+        VTermPos pos = { row - sb_size, col };
+        if (vterm_screen_get_cell(m_screen, pos, &vcell) == 0) {
+            memset(&vcell, 0, sizeof(vcell));
+        }
+        VTermState* state = vterm_obtain_state(m_vt);
+        const VTermLineInfo* info = vterm_state_get_lineinfo(state, pos.row);
+        wrapped = info ? info->continuation : false;
+    }
+
+    Cell cell;
+    cell.wrapped = wrapped;
+    cell.is_continuation = false; // No hay una forma directa en vcell pero podemos chequear si es 0 y el ancho es > 1?
+    // En realidad libvterm rellena celdas de continuación con chars[0] = 0.
+    if (vcell.chars[0] == 0 && col > 0) {
+        // Podría ser una continuación.
+        cell.is_continuation = true;
+    }
+
+    std::stringstream ss;
+    for (int i = 0; i < VTERM_MAX_CHARS_PER_CELL && vcell.chars[i] != 0; ++i) {
+        ss << utf32_to_utf8(vcell.chars[i]);
+    }
+    cell.text = ss.str();
+    if (cell.text.empty() && !cell.is_continuation) {
+        cell.text = " ";
+    }
+
+    return cell;
+}
+
+int TerminalController::get_total_rows() const {
+    int rows, cols;
+    vterm_get_size(m_vt, &rows, &cols);
+    return (int)m_scrollback_buffer.size() + rows;
+}
+
 } // namespace terminal
 } // namespace horizon
+

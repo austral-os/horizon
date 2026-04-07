@@ -35,6 +35,11 @@ public:
     void handle_mouse_drag(horizon::MouseMoveEventContext &ctx);
     void handle_mouse_release(horizon::MouseButtonEventContext &ctx);
 
+    BufferPos screen_to_buffer(double x, double y);
+    void update_selection(BufferPos end_pos);
+    void copy_selection();
+
+
     void set_application_recursive(horizon::WaylandWindow *app) override;
 
 private:
@@ -63,8 +68,16 @@ private:
     
     // Scrollback
     int m_scroll_offset = 0;
-    
+
+    // Selection
+    BufferPos m_sel_start = {-1, -1};
+    BufferPos m_sel_end = {-1, -1};
+    bool m_is_selecting = false;
+    BufferPos m_normalized_start = {-1, -1};
+    BufferPos m_normalized_end = {-1, -1};
+
     // Scrollbar visuals
+
     std::unique_ptr<horizon::AquaPolygon> m_v_thumb;
     bool m_dragging_scrollbar = false;
     int m_drag_start_y = 0;
