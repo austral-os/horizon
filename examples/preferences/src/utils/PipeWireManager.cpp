@@ -99,44 +99,49 @@ namespace horizon::preferences
         std::lock_guard<std::mutex> lock(m_mutex);
         std::vector<AudioItem> sinks;
         std::map<uint32_t, bool> card_has_sink_node;
-
+        
         // Add active nodes
-        for (auto &pair : m_nodes)
-        {
-            if (pair.second.media_class.find("Audio/Sink") != std::string::npos)
-            {
+        for (auto &pair : m_nodes) {
+            if (pair.second.media_class.find("Audio/Sink") != std::string::npos) {
                 // Sinks are outputs
                 AudioNode &node = pair.second;
-                if ((node.name.find("dummy") != std::string::npos ||
-                     node.name.find("auto_null") != std::string::npos) &&
-                    m_nodes.size() > 2)
-                    continue; // Hide dummy if possible
-
+                if ((node.name.find("dummy") != std::string::npos || node.name.find("auto_null") != std::string::npos) && m_nodes.size() > 2) continue; // Hide dummy if possible
+                
                 AudioItem item;
                 item.is_profile = false;
                 item.node_id = node.id;
                 item.description = node.description;
                 item.is_default = (node.name == m_default_sink_name);
                 sinks.push_back(item);
-
-                if (node.card_id != 0)
-                    card_has_sink_node[node.card_id] = true;
+                
+                if (node.card_id != 0) card_has_sink_node[node.card_id] = true;
             }
         }
 
-        // Add available profiles from cards that are NOT the active node's card, or are different
-        // profiles
-        for (auto &card_pair : m_card_profiles)
-        {
+        // Add available profiles (filter HDMIs to avoid overwhelming list)
+        for (auto &card_pair : m_card_profiles) {
             uint32_t card_id = card_pair.first;
             std::string active = m_active_profile[card_id];
+            
+            bool has_hdmi = false;
+            
+            // Sort profiles by priority (descending)
+            std::vector<AudioProfile> profs = card_pair.second;
+            std::sort(profs.begin(), profs.end(), [](const AudioProfile &a, const AudioProfile &b) {
+                return a.priority > b.priority;
+            });
+            
+            for (auto &prof : profs) {
+                if (!prof.is_output) continue;
+                if (prof.name == active && card_has_sink_node[card_id]) continue; // Already shown as a node
 
-            for (auto &prof : card_pair.second)
-            {
-                if (!prof.is_output)
-                    continue;
-                if (prof.name == active && card_has_sink_node[card_id])
-                    continue; // Already shown as a node
+                // Collapse unwieldy HDMI extras
+                std::string n = prof.name;
+                std::transform(n.begin(), n.end(), n.begin(), ::tolower);
+                if (n.find("hdmi") != std::string::npos) {
+                    if (has_hdmi) continue; // Only show the best HDMI profile
+                    has_hdmi = true;
+                }
 
                 AudioItem item;
                 item.is_profile = true;
