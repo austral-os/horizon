@@ -43,7 +43,12 @@ struct ext_background_effect_manager_v1;
 struct ext_background_effect_surface_v1;
 struct ext_foreign_toplevel_list_v1;
 struct ext_foreign_toplevel_handle_v1;
+struct wl_data_device_manager;
+struct wl_data_device;
+struct wl_data_source;
+struct wl_data_offer;
 struct wl_egl_window;
+
 
 namespace horizon
 {
@@ -112,7 +117,10 @@ namespace horizon
         struct xdg_wm_base *xdg_wm_base() const { return m_xdg_wm_base; }
         struct zwlr_layer_shell_v1 *layer_shell() const { return m_layer_shell; }
         struct zwlr_foreign_toplevel_manager_v1 *foreign_toplevel_manager() const { return m_foreign_toplevel_manager; }
+        struct wl_data_device_manager *data_device_manager() const { return m_data_device_manager; }
+        struct wl_data_device *data_device() const { return m_data_device; }
         void *data() const { return m_data; }
+
         struct wl_surface *surface() const { return m_surface; }
         struct ext_background_effect_manager_v1 *background_effect_manager() const { return m_background_effect_manager; }
         struct wl_buffer *buffer() const { return m_buffer; }
@@ -303,8 +311,12 @@ namespace horizon
         struct org_kde_kwin_blur_manager *m_blur_manager{nullptr};
         struct org_kde_kwin_blur *m_blur_object{nullptr};
 
+        struct wl_data_device_manager *m_data_device_manager{nullptr};
+        struct wl_data_device *m_data_device{nullptr};
+
         WaylandEventListener *m_listener{nullptr};
         void *m_data{nullptr};
+
 
         std::vector<struct wl_output *> m_outputs;
         std::vector<MonitorDetail> m_monitor_details;

@@ -10,8 +10,10 @@
 #include <atomic>
 #include <condition_variable>
 #include <deque>
-#include <horizon/WaylandEventListener.hpp>
+#include "horizon/WaylandEventListener.hpp"
+#include "horizon/Clipboard.hpp"
 #include <mutex>
+
 namespace horizon
 {
 
@@ -43,6 +45,10 @@ namespace horizon
                       bool defer_init = false, bool resizable = true,
                       int min_w = -1, int min_h = -1);
         virtual ~WaylandWindow();
+
+        static WaylandWindow *get_active_window() { return m_active_window; }
+        void set_clipboard_data(const ClipboardData& data);
+
 
         // Modifiers
         enum Modifier
@@ -512,6 +518,9 @@ namespace horizon
         std::unique_ptr<WaylandSurface> m_tooltip_surface;
         Notification *m_tooltip_widget = nullptr;
         Widget *m_tooltip_owner = nullptr;
+
+        static WaylandWindow *m_active_window;
+        std::unique_ptr<class WaylandClipboardBackend> m_clipboard_backend;
     };
 
 }; // namespace horizon

@@ -9,6 +9,8 @@
 #include <glib-object.h>
 #include <horizon/Logger.hpp>
 #include <horizon/WaylandWindow.hpp>
+#include "WaylandClipboardBackend.hpp"
+
 #include <horizon/Notification.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
 #include <linux/input-event-codes.h>
@@ -20,6 +22,8 @@
 
 namespace horizon
 {
+    WaylandWindow *WaylandWindow::m_active_window = nullptr;
+
 
     static const char *VERTEX_SHADER = "attribute vec3 position;\n"
                                        "attribute vec2 texcoord;\n"
@@ -62,7 +66,9 @@ namespace horizon
             {
                 m_surface->set_min_size(std::max(0, m_min_width), std::max(0, m_min_height));
             }
+            m_clipboard_backend = std::make_unique<WaylandClipboardBackend>(m_surface.get());
         }
+
         m_surface->set_event_listener(this);
 
         // Detect current compositor
@@ -136,10 +142,16 @@ namespace horizon
         }
 
         m_app_menu = std::make_unique<Menu>();
+        m_active_window = this;
     };
+
 
     WaylandWindow::~WaylandWindow()
     {
+        if (m_active_window == this) {
+            m_active_window = nullptr;
+        }
+
         // Cleanup image cache
         for (auto const &[path, handle] : m_svg_cache)
         {
@@ -177,6 +189,14 @@ namespace horizon
             close(m_wakeup_fd);
         }
     }
+
+    void WaylandWindow::set_clipboard_data(const ClipboardData& data)
+    {
+        if (m_clipboard_backend) {
+            m_clipboard_backend->set(data);
+        }
+    }
+
 
     void WaylandWindow::send_remote_signal(int target_pid, const std::string &signal,
                                            const std::string &token)
@@ -330,7 +350,12 @@ namespace horizon
         {
             m_surface->set_min_size(std::max(0, m_min_width), std::max(0, m_min_height));
         }
+
+        if (!m_clipboard_backend) {
+            m_clipboard_backend = std::make_unique<WaylandClipboardBackend>(m_surface.get());
+        }
     }
+
 
     void WaylandWindow::set_resizable(bool resizable)
     {

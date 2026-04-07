@@ -433,7 +433,10 @@ namespace horizon
         if (m_data) { munmap(m_data, m_mapped_size); m_data = nullptr; }
 
         if (m_owns_connection) {
+            if (m_data_device) { wl_data_device_release(m_data_device); m_data_device = nullptr; }
+            if (m_data_device_manager) { wl_data_device_manager_destroy(m_data_device_manager); m_data_device_manager = nullptr; }
             if (m_pointer) { wl_pointer_destroy(m_pointer); m_pointer = nullptr; }
+
             if (m_keyboard) { wl_keyboard_destroy(m_keyboard); m_keyboard = nullptr; }
             if (m_seat) { wl_seat_destroy(m_seat); m_seat = nullptr; }
             if (m_xdg_wm_base) { xdg_wm_base_destroy(m_xdg_wm_base); m_xdg_wm_base = nullptr; }
@@ -540,7 +543,14 @@ namespace horizon
             xdg_wm_base_add_listener(ws->m_xdg_wm_base, &xdg_wm_base_listener_impl, ws);
         }
         else if (strcmp(interface, "zwlr_layer_shell_v1") == 0) ws->m_layer_shell = (zwlr_layer_shell_v1*)wl_registry_bind(registry, id, &zwlr_layer_shell_v1_interface, 1);
-        else if (strcmp(interface, "wl_seat") == 0) { ws->m_seat = (wl_seat*)wl_registry_bind(registry, id, &wl_seat_interface, 1); wl_seat_add_listener(ws->m_seat, &g_seat_listener, ws); }
+        else if (strcmp(interface, "wl_seat") == 0) { 
+            ws->m_seat = (wl_seat*)wl_registry_bind(registry, id, &wl_seat_interface, 1); 
+            wl_seat_add_listener(ws->m_seat, &g_seat_listener, ws); 
+            if (ws->m_data_device_manager && !ws->m_data_device) {
+                ws->m_data_device = wl_data_device_manager_get_data_device(ws->m_data_device_manager, ws->m_seat);
+            }
+        }
+
         else if (strcmp(interface, "xdg_activation_v1") == 0) ws->m_activation = (xdg_activation_v1*)wl_registry_bind(registry, id, &xdg_activation_v1_interface, 1);
         else if (strcmp(interface, "zwlr_foreign_toplevel_manager_v1") == 0) {
             ws->m_foreign_toplevel_manager = (zwlr_foreign_toplevel_manager_v1*)wl_registry_bind(registry, id, &zwlr_foreign_toplevel_manager_v1_interface, 3);
@@ -559,7 +569,14 @@ namespace horizon
         else if (strcmp(interface, ext_background_effect_manager_v1_interface.name) == 0) {
             ws->m_background_effect_manager = (ext_background_effect_manager_v1*)wl_registry_bind(registry, id, &ext_background_effect_manager_v1_interface, 1);
         }
+        else if (strcmp(interface, "wl_data_device_manager") == 0) {
+            ws->m_data_device_manager = (wl_data_device_manager*)wl_registry_bind(registry, id, &wl_data_device_manager_interface, 3);
+            if (ws->m_seat) {
+                ws->m_data_device = wl_data_device_manager_get_data_device(ws->m_data_device_manager, ws->m_seat);
+            }
+        }
     }
+
 
     // --- Foreign Toplevel Callbacks ---
     void foreign_toplevel_handle_title(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle, const char *title) { static_cast<WaylandSurface *>(data)->m_foreign_toplevels[handle].title = title ? title : ""; }

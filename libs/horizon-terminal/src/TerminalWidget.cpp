@@ -2,6 +2,8 @@
 #include "horizon/GraphicsContext.hpp"
 #include "horizon/WaylandWindow.hpp"
 #include "horizon/Logger.hpp"
+#include "horizon/Clipboard.hpp"
+
 #include <linux/input-event-codes.h>
 #include <iostream>
 
@@ -331,11 +333,12 @@ void TerminalWidget::handle_key_press(KeyEventContext &ctx) {
             case KEY_ESC: m_pty->write("\x1b", 1); break;
             case KEY_UP: m_pty->write("\x1b[A", 3); break;
             case KEY_DOWN: m_pty->write("\x1b[B", 3); break;
-            case KEY_RIGHT: m_pty->write("\x1b[C", 3); break;
             case KEY_LEFT: m_pty->write("\x1b[D", 3); break;
         }
     }
 }
+
+
 
 void TerminalWidget::on_pty_read(const char* data, size_t len) {
     m_controller->push_data(data, len);
@@ -365,6 +368,11 @@ void TerminalWidget::handle_mouse_wheel(MouseWheelEventContext &ctx) {
 
 void TerminalWidget::handle_mouse_press(MouseButtonEventContext &ctx) {
     set_focus(true);
+    
+    // --- Clipboard Test ---
+    LOG_INFO << "[TERMINAL] Copying test text to clipboard on click...";
+    horizon::Clipboard::set_text("hola horizon");
+
     
     if (m_config.show_scrollbar) {
         int track_w = 12;
