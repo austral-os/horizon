@@ -26,6 +26,11 @@ TerminalWidget::TerminalWidget() {
         this->on_terminal_damage(rect);
     });
 
+    m_controller->set_move_cursor_callback([this](VTermPos pos) {
+        this->m_cursor_pos = pos;
+        this->invalidate();
+    });
+
     when_key_press.connect([this](KeyEventContext &ctx) {
         this->handle_key_press(ctx);
     });
@@ -211,6 +216,22 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
     }
 
     hb_buffer_destroy(hb_buf);
+
+    if (m_cursor_visible && has_focus()) {
+        double cursor_x = x() + m_cursor_pos.col * m_char_width;
+        double cursor_y = y() + m_cursor_pos.row * m_char_height;
+        
+        if (m_config.cursor_style == "bar") {
+            cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
+            cairo_rectangle(cr, cursor_x, cursor_y, 2.0, m_char_height);
+            cairo_fill(cr);
+        } else {
+            cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.5);
+            cairo_rectangle(cr, cursor_x, cursor_y, m_char_width, m_char_height);
+            cairo_fill(cr);
+        }
+    }
+
     cairo_restore(cr);
 }
 
@@ -240,6 +261,20 @@ void TerminalWidget::on_terminal_damage(VTermRect rect) {
         m_app->post_task([this]() {
             this->invalidate();
         });
+    }
+}
+
+void TerminalWidget::set_application_recursive(WaylandWindow *app) {
+    Widget::set_application_recursive(app);
+    if (m_app && m_cursor_timer == 0) {
+        m_cursor_timer = m_app->add_timer(600, [this]() {
+            if (this->has_focus()) {
+                this->m_cursor_visible = !this->m_cursor_visible;
+                this->invalidate();
+            } else {
+                this->m_cursor_visible = true; // when focus comes back, start visible
+            }
+        }, true);
     }
 }
 

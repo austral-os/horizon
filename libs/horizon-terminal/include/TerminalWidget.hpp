@@ -30,6 +30,8 @@ public:
     // Event handlers
     void handle_key_press(horizon::KeyEventContext &ctx);
     
+    void set_application_recursive(horizon::WaylandWindow *app) override;
+
 private:
     void update_pty_size();
     void on_pty_read(const char* data, size_t len);
@@ -48,6 +50,11 @@ private:
     
     bool m_initialized = false;
     TerminalConfig m_config;
+
+    // Cursor state
+    bool m_cursor_visible = true;
+    size_t m_cursor_timer = 0;
+    VTermPos m_cursor_pos = {0, 0};
 
     // Font resources
     FT_Library m_ft_library = nullptr;

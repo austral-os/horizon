@@ -9,6 +9,7 @@ namespace terminal {
 struct TerminalConfig {
     std::string font = "Monospace";
     int font_size = 12;
+    std::string cursor_style = "block";
 };
 
 class ConfigReader {

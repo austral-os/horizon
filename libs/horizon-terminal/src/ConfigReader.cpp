@@ -29,6 +29,9 @@ TerminalConfig ConfigReader::load() {
             if (term_data.contains("font-size")) {
                 config.font_size = term_data["font-size"];
             }
+            if (term_data.contains("cursor_style")) {
+                config.cursor_style = term_data["cursor_style"];
+            }
         }
     } catch (const std::exception& e) {
         std::cerr << "[TerminalConfig] Error loading config: " << e.what() << std::endl;
