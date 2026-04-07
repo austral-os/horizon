@@ -151,7 +151,7 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
             // Find segment of same style
             int start_c = c;
             std::vector<uint32_t> utf32_chars;
-            utf32_chars.push_back(cell.chars[0]);
+            utf32_chars.push_back(cell.chars[0] == 0 ? ' ' : cell.chars[0]);
             c++;
             
             while (c < m_cols) {
@@ -166,7 +166,7 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
                     next_cell.fg.rgb.blue != cell.fg.rgb.blue) {
                     break;
                 }
-                utf32_chars.push_back(next_cell.chars[0]);
+                utf32_chars.push_back(next_cell.chars[0] == 0 ? ' ' : next_cell.chars[0]);
                 c++;
             }
 

@@ -122,7 +122,7 @@
         "rate": 16.088890075683594
     },
     "terminal": {
-        "font": "Hack",
+        "font": "CaskaydiaCove Nerd Font Mono",
         "font_size": 18,
         "cursor_style": "underline"
     }
