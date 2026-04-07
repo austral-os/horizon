@@ -221,6 +221,27 @@ namespace horizon::preferences
         return sources;
     }
 
+    std::vector<AudioItem> PipeWireManager::get_app_streams()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        std::vector<AudioItem> streams;
+        for (auto &pair : m_nodes) {
+            if (pair.second.is_stream) {
+                AudioItem item;
+                item.is_profile = false;
+                item.is_stream = true;
+                item.node_id = pair.second.id;
+                item.application_name = pair.second.application_name;
+                item.description = pair.second.description;
+                item.stream_type = (pair.second.media_class.find("Output") != std::string::npos) ? "Salida" : "Entrada";
+                item.volume = pair.second.volume;
+                item.mute = pair.second.mute;
+                streams.push_back(item);
+            }
+        }
+        return streams;
+    }
+
     void PipeWireManager::set_volume(uint32_t node_id, float volume)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -398,15 +419,30 @@ namespace horizon::preferences
         if (interface == PW_TYPE_INTERFACE_Node)
         {
             const char *media_class = spa_dict_lookup(props, "media.class");
-            if (media_class && (std::string(media_class) == "Audio/Sink" ||
-                                std::string(media_class) == "Audio/Source"))
+            std::string class_str = media_class ? media_class : "";
+            bool is_device_node = (class_str == "Audio/Sink" || class_str == "Audio/Source");
+            bool is_stream_node = (class_str == "Stream/Output/Audio" || class_str == "Stream/Input/Audio");
+
+            if (is_device_node || is_stream_node)
             {
                 std::lock_guard<std::mutex> lock(m_mutex);
                 AudioNode node;
                 node.id = id;
-                node.media_class = media_class;
+                node.media_class = class_str;
                 node.name = spa_dict_lookup(props, "node.name") ?: "Unknown";
                 node.description = spa_dict_lookup(props, "node.description") ?: node.name;
+
+                if (is_stream_node) {
+                    node.is_stream = true;
+                    const char *app = spa_dict_lookup(props, "application.name");
+                    const char *bin = spa_dict_lookup(props, "application.process.binary");
+                    const char *mname = spa_dict_lookup(props, "media.name");
+                    
+                    if (app) node.application_name = app;
+                    else if (bin) node.application_name = bin;
+                    else if (mname) node.application_name = mname;
+                    else node.application_name = node.name;
+                }
 
                 const char *device_id_str = spa_dict_lookup(props, "device.id");
                 if (device_id_str)

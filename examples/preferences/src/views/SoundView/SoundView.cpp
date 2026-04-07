@@ -55,6 +55,13 @@ namespace horizon::preferences
         input_container->set_spacing(15);
         setup_input_tab(input_container.get());
         m_notebook->add_tab({"Entrada", std::move(input_container)});
+
+        auto apps_container = std::make_unique<Widget>();
+        apps_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        apps_container->set_margin(20);
+        apps_container->set_spacing(15);
+        setup_apps_tab(apps_container.get());
+        m_notebook->add_tab({"Aplicaciones", std::move(apps_container)});
     }
 
     void SoundView::setup_output_tab(Widget *container)
@@ -108,9 +115,12 @@ namespace horizon::preferences
 
         m_output_table->when_row_click.connect(
             [this](TableViewRowMouseClickContext<AudioItem> &ctx)
-            { 
-                if (ctx.row_data.is_profile) PipeWireManager::instance().set_device_profile(ctx.row_data.device_id, ctx.row_data.profile_index);
-                else PipeWireManager::instance().set_default_node(ctx.row_data.node_id);
+            {
+                if (ctx.row_data.is_profile)
+                    PipeWireManager::instance().set_device_profile(ctx.row_data.device_id,
+                                                                   ctx.row_data.profile_index);
+                else
+                    PipeWireManager::instance().set_default_node(ctx.row_data.node_id);
             });
 
         container->add_child(std::move(table));
@@ -127,6 +137,7 @@ namespace horizon::preferences
 
         auto slider = std::make_unique<Slider>();
         m_output_volume_slider = slider.get();
+        m_output_volume_slider->set_thumb_shape(ThumbShape::Circle);
         m_output_volume_slider->set_min(0.0f);
         m_output_volume_slider->set_max(1.0f);
         m_output_volume_slider->set_value(0.5f);
@@ -151,6 +162,7 @@ namespace horizon::preferences
 
         auto bal_slider = std::make_unique<Slider>();
         m_balance_slider = bal_slider.get();
+        m_balance_slider->set_thumb_shape(ThumbShape::Circle);
         m_balance_slider->set_min(-1.0f);
         m_balance_slider->set_max(1.0f);
         m_balance_slider->set_value(0.0f);
@@ -252,6 +264,7 @@ namespace horizon::preferences
 
         auto slider = std::make_unique<Slider>();
         m_input_volume_slider = slider.get();
+        m_input_volume_slider->set_thumb_shape(ThumbShape::Circle);
         m_input_volume_slider->set_min(0.0f);
         m_input_volume_slider->set_max(1.0f);
         m_input_volume_slider->set_value(0.5f);
@@ -259,15 +272,73 @@ namespace horizon::preferences
         container->add_child(std::move(vol_panel));
     }
 
+    void SoundView::setup_apps_tab(Widget *container)
+    {
+        container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        container->set_margin(20);
+
+        auto label_devices = std::make_unique<Label>("Aplicaciones (Volumen Individual)");
+        label_devices->set_fixed_size(35);
+        label_devices->set_alignment(TextAlignment::Left);
+        label_devices->set_font_weight(FONT_WEIGHT_BOLD);
+        container->add_child(std::move(label_devices));
+
+        auto table = std::make_unique<TableView<AudioItem>>();
+        m_apps_table = table.get();
+        m_apps_table->set_header_visible(false);
+
+        TableColumn<AudioItem> col_desc;
+        col_desc.id = "description";
+        col_desc.width = -1;
+        col_desc.cell_factory = [](const AudioItem &dev) -> std::unique_ptr<Widget>
+        {
+            auto lbl = std::make_unique<Label>(dev.application_name.empty() ? dev.description
+                                                                            : dev.application_name);
+            lbl->set_vertical_alignment(VerticalAlignment::Middle);
+            return std::unique_ptr<Widget>(lbl.release());
+        };
+        m_apps_table->add_column(col_desc);
+
+        TableColumn<AudioItem> col_type;
+        col_type.id = "type";
+        col_type.width = 100;
+        col_type.cell_factory = [](const AudioItem &dev) -> std::unique_ptr<Widget>
+        {
+            auto lbl = std::make_unique<Label>(dev.stream_type); // "Salida" / "Entrada"
+            lbl->set_vertical_alignment(VerticalAlignment::Middle);
+            return std::unique_ptr<Widget>(lbl.release());
+        };
+        m_apps_table->add_column(col_type);
+
+        TableColumn<AudioItem> col_vol;
+        col_vol.id = "vol";
+        col_vol.width = 200;
+        col_vol.cell_factory = [](const AudioItem &dev) -> std::unique_ptr<Widget>
+        {
+            auto slider = std::make_unique<Slider>();
+            auto *slider_ptr = slider.get();
+            slider->set_thumb_shape(ThumbShape::Circle);
+            slider->set_min(0.0f);
+            slider->set_max(1.0f);
+            slider->set_value(dev.volume);
+            uint32_t nid = dev.node_id;
+            slider->when_value_changed.connect(
+                [nid, slider_ptr](EventContext &ev)
+                { PipeWireManager::instance().set_volume(nid, slider_ptr->value()); });
+            return std::unique_ptr<Widget>(slider.release());
+        };
+        m_apps_table->add_column(col_vol);
+
+        container->add_child(std::move(table));
+    }
+
     void SoundView::update_device_list()
     {
-        if (m_output_table)
+        if (m_output_table && m_input_table && m_apps_table)
         {
             m_output_table->set_data(PipeWireManager::instance().get_sinks());
-        }
-        if (m_input_table)
-        {
             m_input_table->set_data(PipeWireManager::instance().get_sources());
+            m_apps_table->set_data(PipeWireManager::instance().get_app_streams());
         }
     }
 

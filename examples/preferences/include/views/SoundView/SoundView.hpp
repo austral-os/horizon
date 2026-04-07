@@ -37,6 +37,10 @@ namespace horizon::preferences
         TableView<AudioItem> *m_input_table{nullptr};
         Slider *m_input_volume_slider{nullptr};
 
+        // Apps tab elements
+        void setup_apps_tab(Widget *container);
+        TableView<AudioItem> *m_apps_table{nullptr};
+
         Label *m_title_label{nullptr};
     };
 } // namespace horizon::preferences

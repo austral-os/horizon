@@ -14,15 +14,18 @@ namespace horizon::preferences
 {
     struct AudioNode
     {
-        uint32_t id;             // Real PipeWire Node ID
-        std::string name;        // e.g. "alsa_output.pci..."
-        std::string description; // Display name
-        std::string media_class; // "Audio/Sink" or "Audio/Source"
-        bool is_default{false};
-        float volume{1.0f};
-        bool mute{false};
-        float balance{0.0f}; // -1.0 to 1.0
-        uint32_t card_id{0}; // The underlying device ID if known
+        uint32_t id;
+        std::string name;
+        std::string description;
+        std::string media_class;
+        uint32_t card_id = 0;
+
+        float volume = 1.0f;
+        bool mute = false;
+        float balance = 0.0f;
+
+        bool is_stream = false;
+        std::string application_name;
     };
 
     struct AudioProfile
@@ -37,20 +40,21 @@ namespace horizon::preferences
         uint32_t card_id;     // The PW_TYPE_INTERFACE_Device it belongs to
     };
 
-    // A unified struct for UI presentation
     struct AudioItem
     {
-        bool is_profile{false};
-
-        // For Node
-        uint32_t node_id{0};
-        
-        // For Profile
-        uint32_t device_id{0};
-        uint32_t profile_index{0};
-
+        bool is_profile = false;
+        uint32_t node_id = 0;
+        uint32_t device_id = 0;
+        uint32_t profile_index = 0;
         std::string description;
-        bool is_default{false};   // True if active (for profiles) or default (for nodes)
+        bool is_default = false;
+
+        // Stream-specific
+        bool is_stream = false;
+        std::string application_name;
+        std::string stream_type; // "Salida" or "Entrada"
+        float volume = 1.0f;
+        bool mute = false;
     };
 
     class PipeWireManager;
@@ -75,6 +79,7 @@ namespace horizon::preferences
 
         std::vector<AudioItem> get_sinks();
         std::vector<AudioItem> get_sources();
+        std::vector<AudioItem> get_app_streams();
 
         // Node Configuration
         void set_volume(uint32_t node_id, float volume);
