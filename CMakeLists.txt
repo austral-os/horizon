@@ -198,6 +198,15 @@ target_link_libraries(grouped_icons_demo
         horizon
 )
 
+add_executable(notification_demo
+    examples/notification_demo.cpp
+)
+
+target_link_libraries(notification_demo
+    PRIVATE
+        horizon
+)
+
 # Agregamos un target "run" para compilar y ejecutar de una vez
 
 add_custom_target(run
@@ -205,4 +214,11 @@ add_custom_target(run
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     DEPENDS minimal
     COMMENT "Ejecutando la demo minimal..."
+)
+
+add_custom_target(run_notification
+    COMMAND $<TARGET_FILE:notification_demo>
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    DEPENDS notification_demo
+    COMMENT "Ejecutando la demo de notificaciones..."
 )
