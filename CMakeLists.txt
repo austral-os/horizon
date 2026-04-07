@@ -30,7 +30,9 @@ file(GLOB_RECURSE SOURCES
     "src/protocols/*.c"
 )
 
-add_library(horizon STATIC ${SOURCES})
+add_library(horizon SHARED ${SOURCES})
+set_target_properties(horizon PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 
 # Headers públicos de tu librería
 target_include_directories(horizon
@@ -82,35 +84,19 @@ target_link_libraries(main_window
         horizon
 )
 
-add_subdirectory(examples/top_panel)
-
-add_subdirectory(examples/dock)
-
-add_subdirectory(examples/horizon_wall)
+add_subdirectory(apps/top_panel)
+add_subdirectory(apps/dock)
+add_subdirectory(apps/horizon_wall)
 
 
-add_executable(horizon_session
-    examples/horizon_session/main.cpp
-    examples/horizon_session/HorizonSession.cpp
-    examples/horizon_session/DesktopParser.cpp
-    examples/horizon_session/IpcServer.cpp
-)
 
-target_link_libraries(horizon_session
-    PRIVATE
-        horizon
-)
+add_subdirectory(apps/horizon_session)
 
 
-add_executable(aboutus
-    examples/aboutus/main.cpp
-    examples/aboutus/AboutWindow.cpp
-)
 
-target_link_libraries(aboutus
-    PRIVATE
-        horizon
-)
+add_subdirectory(apps/aboutus)
+
+
 
 add_executable(files_demo
     examples/files-demo/FilesDemo.cpp
@@ -121,7 +107,8 @@ target_link_libraries(files_demo
         horizon
 )
 
-add_subdirectory(examples/arkfm)
+add_subdirectory(apps/arkfm)
+
 
 add_executable(mouse_wheel_test
     tests/mouse_wheel_test.cpp
@@ -150,8 +137,12 @@ target_link_libraries(multiwindow
         horizon
 )
 
-add_subdirectory(examples/launchpad)
-add_subdirectory(examples/preferences)
+add_subdirectory(apps/launchpad)
+
+add_subdirectory(apps/preferences)
+
+add_subdirectory(libs/horizon-overview)
+
 
 add_executable(combo_demo
     examples/combo_demo/main.cpp

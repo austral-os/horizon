@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Launchpad
-Exec=/home/horacio/Desarrollo/austral-os/horizon/build/examples/launchpad/launchpad
+Exec=/home/horacio/Desarrollo/austral-os/horizon/build/apps/launchpad/launchpad
 Icon=slingscold
 Comment=Applications Launcher
 Terminal=false

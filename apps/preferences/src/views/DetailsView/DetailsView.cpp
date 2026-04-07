@@ -1,4 +1,5 @@
 #include <views/DetailsView/DetailsView.hpp>
+#include <horizon/Overview.hpp>
 
 namespace horizon::preferences
 {
@@ -13,5 +14,8 @@ namespace horizon::preferences
         title->set_fixed_size(30);
         m_title_label = title.get();
         add_child(std::move(title));
+
+        add_child(std::make_unique<horizon::Overview>());
     }
-} // namespace horizon::preferences
+}
+ // namespace horizon::preferences

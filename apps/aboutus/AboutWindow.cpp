@@ -2,7 +2,7 @@
 #include "DiskInfo.hpp"
 #include "Displays.hpp"
 #include "MemoryInfo.hpp"
-#include "Overview.hpp"
+#include <horizon/Overview.hpp>
 #include <horizon/GroupButton.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/ToggleGroupButton.hpp>

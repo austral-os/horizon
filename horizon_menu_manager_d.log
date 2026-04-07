@@ -1,6 +1,0 @@
-nohup: no se tendrá en cuenta la entrada
-IPC Server listening on /tmp/horizon_menu.sock
-Horizon Menu Manager Daemon started.
-IPC Server: /tmp/horizon_menu.sock
-Application is hidden and waiting for requests.
-Click on background, hiding menu manager.

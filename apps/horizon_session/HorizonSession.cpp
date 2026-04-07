@@ -4,23 +4,23 @@
 #include <cerrno>
 #include <chrono>
 #include <csignal>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <filesystem>
+#include <fstream>
+#include <horizon/DisplayConfig.hpp>
 #include <horizon/Logger.hpp>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <set>
+#include <sstream>
 #include <sys/prctl.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
-#include <fstream>
-#include <sstream>
-#include <cstdlib>
-#include <horizon/DisplayConfig.hpp>
-#include <cstdio>
 
 namespace fs = std::filesystem;
 
@@ -78,11 +78,11 @@ void HorizonSession::init(const std::string &compositor)
 
     // Example of default core services
     m_startup_services.push_back(
-        "/home/horacio/Desarrollo/austral-os/horizon/build/examples/horizon_wall/horizon_wall");
+        "/home/horacio/Desarrollo/austral-os/horizon/build/apps/horizon_wall/horizon_wall");
     m_startup_services.push_back(
-        "/home/horacio/Desarrollo/austral-os/horizon/build/examples/top_panel/top_panel");
+        "/home/horacio/Desarrollo/austral-os/horizon/build/apps/top_panel/top_panel");
     m_startup_services.push_back(
-        "/home/horacio/Desarrollo/austral-os/horizon/build/examples/dock/dock");
+        "/home/horacio/Desarrollo/austral-os/horizon/build/apps/dock/dock");
 }
 
 void HorizonSession::start()
@@ -117,17 +117,20 @@ void HorizonSession::terminate_all_apps()
     {
         std::lock_guard<std::mutex> lock(m_state_mutex);
         compositor_pid = m_compositor_pid;
-        
+
         // Collect all PIDs to kill, separating the compositor
         std::set<int> all_pids;
-        for (int pid : m_spawned_pids) all_pids.insert(pid);
-        for (auto const &[pid, info] : m_apps) all_pids.insert(pid);
+        for (int pid : m_spawned_pids)
+            all_pids.insert(pid);
+        for (auto const &[pid, info] : m_apps)
+            all_pids.insert(pid);
 
         for (int pid : all_pids)
         {
             if (pid > 0 && pid != getpid())
             {
-                if (pid == compositor_pid) continue;
+                if (pid == compositor_pid)
+                    continue;
                 client_pids.push_back(pid);
             }
         }
@@ -135,15 +138,16 @@ void HorizonSession::terminate_all_apps()
 
     auto wait_for_graceful_exit = [this](const std::vector<int> &pids, int timeout_secs)
     {
-        if (pids.empty()) return;
+        if (pids.empty())
+            return;
 
         auto start_time = std::chrono::steady_clock::now();
         std::set<int> remaining(pids.begin(), pids.end());
 
-        while (!remaining.empty() && 
+        while (!remaining.empty() &&
                std::chrono::steady_clock::now() - start_time < std::chrono::seconds(timeout_secs))
         {
-            for (auto it = remaining.begin(); it != remaining.end(); )
+            for (auto it = remaining.begin(); it != remaining.end();)
             {
                 int status;
                 pid_t res = waitpid(*it, &status, WNOHANG);
@@ -165,7 +169,8 @@ void HorizonSession::terminate_all_apps()
         // Force SIGKILL for survivors
         for (int pid : remaining)
         {
-            LOG_INFO << "[HorizonSession] PID " << pid << " still alive, sending SIGKILL" << std::endl;
+            LOG_INFO << "[HorizonSession] PID " << pid << " still alive, sending SIGKILL"
+                     << std::endl;
             kill(pid, SIGKILL);
             waitpid(pid, nullptr, 0);
         }
@@ -174,15 +179,18 @@ void HorizonSession::terminate_all_apps()
     // 1. Terminate clients first
     if (!client_pids.empty())
     {
-        LOG_INFO << "[HorizonSession] Sending SIGTERM to " << client_pids.size() << " client applications..." << std::endl;
-        for (int pid : client_pids) kill(pid, SIGTERM);
+        LOG_INFO << "[HorizonSession] Sending SIGTERM to " << client_pids.size()
+                 << " client applications..." << std::endl;
+        for (int pid : client_pids)
+            kill(pid, SIGTERM);
         wait_for_graceful_exit(client_pids, 5);
     }
 
     // 2. Terminate compositor last
     if (compositor_pid > 0)
     {
-        LOG_INFO << "[HorizonSession] Sending SIGTERM to compositor (PID " << compositor_pid << ")..." << std::endl;
+        LOG_INFO << "[HorizonSession] Sending SIGTERM to compositor (PID " << compositor_pid
+                 << ")..." << std::endl;
         kill(compositor_pid, SIGTERM);
         wait_for_graceful_exit({compositor_pid}, 5);
     }
@@ -196,13 +204,16 @@ void HorizonSession::terminate_all_apps()
 void HorizonSession::cleanup_lingering_compositors()
 {
     LOG_INFO << "[HorizonSession] Checking for lingering compositor processes..." << std::endl;
-    // We try to find wayfire/labwc not belonging to our current session or just all of them owned by us
-    // if we are starting a fresh session.
-    
-    // For simplicity and safety, we only do this if we are starting a fresh session (WAYLAND_DISPLAY is NULL)
+    // We try to find wayfire/labwc not belonging to our current session or just all of them owned
+    // by us if we are starting a fresh session.
+
+    // For simplicity and safety, we only do this if we are starting a fresh session
+    // (WAYLAND_DISPLAY is NULL)
     if (!getenv("WAYLAND_DISPLAY"))
     {
-        LOG_INFO << "[HorizonSession] Fresh session startup, cleaning up orphaned compositors (wayfire/labwc/Xwayland)..." << std::endl;
+        LOG_INFO << "[HorizonSession] Fresh session startup, cleaning up orphaned compositors "
+                    "(wayfire/labwc/Xwayland)..."
+                 << std::endl;
         // pkill -u $USER will only kill our own processes.
         // We use SIGKILL (-9) here to ensure they release hardware resources immediately.
         std::system("pkill -9 -u $USER -x wayfire || true");
@@ -257,7 +268,8 @@ pid_t HorizonSession::run_service(const std::string &service_path, bool use_sets
         }
 
         // If it's a compositor, set XDG_SESSION_TYPE
-        if (!use_setsid) // This is our internal flag for compositors based on run_startup_services call site
+        if (!use_setsid) // This is our internal flag for compositors based on run_startup_services
+                         // call site
         {
             setenv("XDG_SESSION_TYPE", "wayland", 1);
         }
@@ -267,7 +279,8 @@ pid_t HorizonSession::run_service(const std::string &service_path, bool use_sets
         const char *wd = getenv("WAYLAND_DISPLAY");
         const char *path = getenv("PATH");
         LOG_INFO << "[CHILD] Environment WAYLAND_DISPLAY: " << (wd ? wd : "NULL");
-        LOG_INFO << "[CHILD] Environment XDG_SESSION_TYPE: " << (getenv("XDG_SESSION_TYPE") ? getenv("XDG_SESSION_TYPE") : "NULL");
+        LOG_INFO << "[CHILD] Environment XDG_SESSION_TYPE: "
+                 << (getenv("XDG_SESSION_TYPE") ? getenv("XDG_SESSION_TYPE") : "NULL");
         LOG_INFO << "[CHILD] Environment PATH: " << (path ? path : "NULL");
 
         char *argv[] = {(char *)service_path.c_str(), nullptr};
@@ -293,22 +306,25 @@ pid_t HorizonSession::run_service(const std::string &service_path, bool use_sets
 }
 
 void HorizonSession::run_startup_services()
-    {
+{
     auto existing_displays = get_wayland_displays();
 
     // Diagnostic logs for session state
     const char *session_id = getenv("XDG_SESSION_ID");
     const char *vtnr = getenv("XDG_VTNR");
-    LOG_INFO << "[HorizonSession] Session ID: " << (session_id ? session_id : "NULL") << ", VT: " << (vtnr ? vtnr : "NULL");
+    LOG_INFO << "[HorizonSession] Session ID: " << (session_id ? session_id : "NULL")
+             << ", VT: " << (vtnr ? vtnr : "NULL");
 
     // Check if session is active via loginctl (helper command)
     if (session_id)
     {
         std::string cmd = "loginctl show-session " + std::string(session_id) + " -p Active";
-        FILE* pipe = popen(cmd.c_str(), "r");
-        if (pipe) {
+        FILE *pipe = popen(cmd.c_str(), "r");
+        if (pipe)
+        {
             char buffer[128];
-            if (fgets(buffer, sizeof(buffer), pipe) != NULL) {
+            if (fgets(buffer, sizeof(buffer), pipe) != NULL)
+            {
                 LOG_INFO << "[HorizonSession] logind: " << buffer;
             }
             pclose(pipe);
@@ -327,15 +343,21 @@ void HorizonSession::run_startup_services()
     const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
     if (runtime_dir && !getenv("WAYLAND_DISPLAY"))
     {
-        try {
-            for (const auto &entry : fs::directory_iterator(runtime_dir)) {
+        try
+        {
+            for (const auto &entry : fs::directory_iterator(runtime_dir))
+            {
                 std::string filename = entry.path().filename().string();
-                if (filename.find("wayland-") == 0 && filename.find(".lock") != std::string::npos) {
+                if (filename.find("wayland-") == 0 && filename.find(".lock") != std::string::npos)
+                {
                     LOG_INFO << "[HorizonSession] Cleaning up stale lock file: " << filename;
                     fs::remove(entry.path());
                 }
             }
-        } catch (...) {}
+        }
+        catch (...)
+        {
+        }
     }
 
     for (const auto &svc_path : m_startup_services)
@@ -348,7 +370,8 @@ void HorizonSession::run_startup_services()
         {
             if (pid <= 0)
             {
-                LOG_ERROR << "[HorizonSession] Failed to start compositor: " << svc_path << ". Aborting session." << std::endl;
+                LOG_ERROR << "[HorizonSession] Failed to start compositor: " << svc_path
+                          << ". Aborting session." << std::endl;
                 stop();
                 return;
             }
@@ -373,8 +396,11 @@ void HorizonSession::run_startup_services()
             }
             else
             {
-                LOG_ERROR << "[HorizonSession] Failed to detect Wayland socket. Aborting session." << std::endl;
-                LOG_ERROR << "[HorizonSession] HINT: Check /tmp/horizon_session.log for compositor errors (e.g. 'Device or resource busy')." << std::endl;
+                LOG_ERROR << "[HorizonSession] Failed to detect Wayland socket. Aborting session."
+                          << std::endl;
+                LOG_ERROR << "[HorizonSession] HINT: Check /tmp/horizon_session.log for compositor "
+                             "errors (e.g. 'Device or resource busy')."
+                          << std::endl;
                 stop();
                 return;
             }
@@ -411,7 +437,8 @@ std::vector<std::string> HorizonSession::get_wayland_displays()
     return displays;
 }
 
-std::string HorizonSession::wait_for_new_wayland_display(const std::vector<std::string> &existing, pid_t monitor_pid)
+std::string HorizonSession::wait_for_new_wayland_display(const std::vector<std::string> &existing,
+                                                         pid_t monitor_pid)
 {
     std::set<std::string> existing_set(existing.begin(), existing.end());
 
@@ -422,7 +449,8 @@ std::string HorizonSession::wait_for_new_wayland_display(const std::vector<std::
         {
             if (kill(monitor_pid, 0) != 0)
             {
-                LOG_ERROR << "[HorizonSession] Monitored process (PID " << monitor_pid << ") terminated prematurely." << std::endl;
+                LOG_ERROR << "[HorizonSession] Monitored process (PID " << monitor_pid
+                          << ") terminated prematurely." << std::endl;
                 return "";
             }
         }
@@ -792,10 +820,10 @@ void HorizonSession::apply_display_config()
         // Determine compositor and apply
         const char *desktop = std::getenv("XDG_CURRENT_DESKTOP");
         std::string desktop_str = desktop ? desktop : "";
-        
+
         LOG_INFO << "[HorizonSession] Applying configuration for desktop: " << desktop_str;
 
-        if (desktop_str.find("LABWC") != std::string::npos || 
+        if (desktop_str.find("LABWC") != std::string::npos ||
             desktop_str.find("WAYFIRE") != std::string::npos)
         {
             // Use wlr-randr
@@ -807,7 +835,7 @@ void HorizonSession::apply_display_config()
                 {
                     ss << " --mode " << config.width << "x" << config.height;
                     ss << " --pos " << config.x << "," << config.y;
-                    std::string rot = (config.rotation == 90)  ? "90"
+                    std::string rot = (config.rotation == 90)    ? "90"
                                       : (config.rotation == 180) ? "180"
                                       : (config.rotation == 270) ? "270"
                                                                  : "normal";

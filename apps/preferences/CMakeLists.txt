@@ -51,6 +51,7 @@ add_executable(preferences
 target_link_libraries(preferences
     PRIVATE
         horizon
+        horizon-overview
         PkgConfig::PIPEWIRE
 )
 
@@ -59,3 +60,4 @@ target_include_directories(preferences
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${PIPEWIRE_INCLUDE_DIRS}
 )
+
