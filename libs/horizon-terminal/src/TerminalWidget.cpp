@@ -3,6 +3,9 @@
 #include "horizon/WaylandWindow.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/Clipboard.hpp"
+#include "horizon/Menu.hpp"
+#include "horizon/MenuItem.hpp"
+
 
 #include <linux/input-event-codes.h>
 
@@ -58,7 +61,25 @@ TerminalWidget::TerminalWidget() {
     when_mouse_release.connect([this](MouseButtonEventContext &ctx) {
         this->handle_mouse_release(ctx);
     });
+
+    when_right_click.connect([this](MouseButtonEventContext &) {
+        auto menu = std::make_unique<horizon::Menu>();
+        
+        auto copy_item = menu->add_item("Copiar", "Ctrl+C");
+        bool has_sel = (m_normalized_start.row != -1);
+        copy_item->set_enabled(has_sel);
+        
+        if (has_sel) {
+            copy_item->when_click.connect([this](MouseButtonEventContext &) {
+                this->copy_selection();
+            });
+        }
+        
+        this->set_context_menu(std::move(menu));
+    });
 }
+
+
 
 TerminalWidget::~TerminalWidget() {
     if (m_pty) {
