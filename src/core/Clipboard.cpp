@@ -279,6 +279,22 @@ void WaylandClipboardBackend::data_offer_handle_offer(void *data, struct wl_data
 
 
 std::optional<ClipboardData> WaylandClipboardBackend::get(const std::vector<std::string>& preferred_mimes) {
+    if (m_current_data) {
+        LOG_INFO << "WaylandClipboardBackend: Returning local selection data";
+        if (preferred_mimes.empty()) return m_current_data;
+
+        ClipboardData filtered;
+        bool found = false;
+        for (const auto& mime : preferred_mimes) {
+            if (m_current_data->has(mime)) {
+                filtered.set(mime, m_current_data->get(mime));
+                found = true;
+            }
+        }
+        if (found) return filtered;
+        return std::nullopt;
+    }
+
     if (!m_current_offer || !m_surface) return std::nullopt;
 
     auto* display = m_surface->display();
