@@ -232,6 +232,7 @@ namespace horizon::preferences
                 item.is_stream = true;
                 item.node_id = pair.second.id;
                 item.application_name = pair.second.application_name;
+                item.application_icon_name = pair.second.application_icon_name;
                 item.description = pair.second.description;
                 item.stream_type = (pair.second.media_class.find("Output") != std::string::npos) ? "Salida" : "Entrada";
                 item.volume = pair.second.volume;
@@ -437,11 +438,21 @@ namespace horizon::preferences
                     const char *app = spa_dict_lookup(props, "application.name");
                     const char *bin = spa_dict_lookup(props, "application.process.binary");
                     const char *mname = spa_dict_lookup(props, "media.name");
+                    const char *icon = spa_dict_lookup(props, "application.icon-name");
+                    const char *wicon = spa_dict_lookup(props, "window.icon-name");
                     
                     if (app) node.application_name = app;
                     else if (bin) node.application_name = bin;
                     else if (mname) node.application_name = mname;
                     else node.application_name = node.name;
+
+                    if (icon) node.application_icon_name = icon;
+                    else if (wicon) node.application_icon_name = wicon;
+                    else {
+                        std::string lower_app = node.application_name;
+                        std::transform(lower_app.begin(), lower_app.end(), lower_app.begin(), ::tolower);
+                        node.application_icon_name = lower_app;
+                    }
                 }
 
                 const char *device_id_str = spa_dict_lookup(props, "device.id");

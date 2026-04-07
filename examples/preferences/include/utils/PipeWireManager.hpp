@@ -26,6 +26,7 @@ namespace horizon::preferences
 
         bool is_stream = false;
         std::string application_name;
+        std::string application_icon_name;
     };
 
     struct AudioProfile
@@ -52,6 +53,7 @@ namespace horizon::preferences
         // Stream-specific
         bool is_stream = false;
         std::string application_name;
+        std::string application_icon_name;
         std::string stream_type; // "Salida" or "Entrada"
         float volume = 1.0f;
         bool mute = false;

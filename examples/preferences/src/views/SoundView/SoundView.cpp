@@ -3,6 +3,7 @@
 #include <horizon/Checkbox.hpp>
 #include <horizon/RadioButton.hpp>
 #include <horizon/Spacer.hpp>
+#include <horizon/Icon.hpp>
 #include <horizon/ThemeManager.hpp>
 #include <horizon/VPanel.hpp>
 #include <utils/PipeWireManager.hpp>
@@ -285,6 +286,19 @@ namespace horizon::preferences
         auto table = std::make_unique<TableView<AudioItem>>();
         m_apps_table = table.get();
         m_apps_table->set_header_visible(false);
+
+        TableColumn<AudioItem> col_icon;
+        col_icon.id = "icon";
+        col_icon.width = 40;
+        col_icon.cell_factory = [](const AudioItem &dev) -> std::unique_ptr<Widget>
+        {
+            auto icon = std::make_unique<Icon>();
+            icon->set_icon_size(24);
+            icon->set_icon_name(dev.application_icon_name.empty() ? "application-x-executable" : dev.application_icon_name);
+            icon->set_vertical_alignment(VerticalAlignment::Middle);
+            return std::unique_ptr<Widget>(icon.release());
+        };
+        m_apps_table->add_column(col_icon);
 
         TableColumn<AudioItem> col_desc;
         col_desc.id = "description";
