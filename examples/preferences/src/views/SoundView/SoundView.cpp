@@ -5,7 +5,6 @@
 #include <horizon/Spacer.hpp>
 #include <horizon/ThemeManager.hpp>
 #include <horizon/VPanel.hpp>
-#include <iostream>
 #include <utils/PipeWireManager.hpp>
 #include <views/SoundView/SoundView.hpp>
 
@@ -315,17 +314,37 @@ namespace horizon::preferences
         col_vol.width = 200;
         col_vol.cell_factory = [](const AudioItem &dev) -> std::unique_ptr<Widget>
         {
+            auto container = std::make_unique<Widget>();
+            container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+            container->set_spacing(10);
+            container->set_position_type(FILL);
+
             auto slider = std::make_unique<Slider>();
             auto *slider_ptr = slider.get();
             slider->set_thumb_shape(ThumbShape::Circle);
             slider->set_min(0.0f);
             slider->set_max(1.0f);
             slider->set_value(dev.volume);
+            slider->set_position_type(FILL);
+
+            auto lbl = std::make_unique<Label>(std::to_string(static_cast<int>(dev.volume * 100)) + "%");
+            auto *lbl_ptr = lbl.get();
+            lbl_ptr->set_fixed_size(60);
+            lbl_ptr->set_alignment(TextAlignment::Right);
+            lbl_ptr->set_vertical_alignment(VerticalAlignment::Middle);
+
             uint32_t nid = dev.node_id;
             slider->when_value_changed.connect(
-                [nid, slider_ptr](EventContext &ev)
-                { PipeWireManager::instance().set_volume(nid, slider_ptr->value()); });
-            return std::unique_ptr<Widget>(slider.release());
+                [nid, slider_ptr, lbl_ptr](EventContext &ev)
+                {
+                    float v = slider_ptr->value();
+                    lbl_ptr->set_text(std::to_string(static_cast<int>(v * 100)) + "%");
+                    PipeWireManager::instance().set_volume(nid, v);
+                });
+
+            container->add_child(std::move(slider));
+            container->add_child(std::move(lbl));
+            return std::unique_ptr<Widget>(container.release());
         };
         m_apps_table->add_column(col_vol);
 
