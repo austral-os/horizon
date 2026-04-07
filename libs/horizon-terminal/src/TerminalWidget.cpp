@@ -225,6 +225,11 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
             cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
             cairo_rectangle(cr, cursor_x, cursor_y, 2.0, m_char_height);
             cairo_fill(cr);
+        } else if (m_config.cursor_style == "underline") {
+            cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
+            // Draw a 2-pixel tall line at the bottom of the character's bounding box
+            cairo_rectangle(cr, cursor_x, cursor_y + m_char_height - 2.0, m_char_width, 2.0);
+            cairo_fill(cr);
         } else {
             cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.5);
             cairo_rectangle(cr, cursor_x, cursor_y, m_char_width, m_char_height);
