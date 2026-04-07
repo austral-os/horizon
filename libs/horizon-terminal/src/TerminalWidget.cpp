@@ -438,14 +438,20 @@ void TerminalWidget::handle_mouse_press(MouseButtonEventContext &ctx) {
         }
     }
 
-    // Comienzo de selección
+    // Comienzo de selección (preparación)
     if (ctx.button == 0x110) { // BTN_LEFT
         m_sel_start = screen_to_buffer(ctx.x, ctx.y);
-        update_selection(m_sel_start);
+        m_sel_end = m_sel_start;
+        
+        // No mostrar selección hasta que haya arrastre
+        m_normalized_start = {-1, -1};
+        m_normalized_end = {-1, -1};
+        
         m_is_selecting = true;
         invalidate();
     }
 }
+
 
 
 
