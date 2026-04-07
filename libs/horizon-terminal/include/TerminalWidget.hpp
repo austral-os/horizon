@@ -31,6 +31,9 @@ public:
     // Event handlers
     void handle_key_press(horizon::KeyEventContext &ctx);
     void handle_mouse_wheel(horizon::MouseWheelEventContext &ctx);
+    void handle_mouse_press(horizon::MouseButtonEventContext &ctx);
+    void handle_mouse_drag(horizon::MouseMoveEventContext &ctx);
+    void handle_mouse_release(horizon::MouseButtonEventContext &ctx);
 
     void set_application_recursive(horizon::WaylandWindow *app) override;
 
@@ -63,6 +66,9 @@ private:
     
     // Scrollbar visuals
     std::unique_ptr<horizon::AquaPolygon> m_v_thumb;
+    bool m_dragging_scrollbar = false;
+    int m_drag_start_y = 0;
+    int m_drag_start_offset = 0;
 
     // Font resources
     FT_Library m_ft_library = nullptr;

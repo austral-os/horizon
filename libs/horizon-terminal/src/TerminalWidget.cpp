@@ -46,7 +46,15 @@ TerminalWidget::TerminalWidget() {
     });
 
     when_mouse_press.connect([this](MouseButtonEventContext &ctx) {
-        this->set_focus(true);
+        this->handle_mouse_press(ctx);
+    });
+
+    when_mouse_drag.connect([this](MouseMoveEventContext &ctx) {
+        this->handle_mouse_drag(ctx);
+    });
+
+    when_mouse_release.connect([this](MouseButtonEventContext &ctx) {
+        this->handle_mouse_release(ctx);
     });
 }
 
@@ -353,6 +361,57 @@ void TerminalWidget::handle_mouse_wheel(MouseWheelEventContext &ctx) {
     if (m_scroll_offset < 0) m_scroll_offset = 0;
     
     invalidate();
+}
+
+void TerminalWidget::handle_mouse_press(MouseButtonEventContext &ctx) {
+    set_focus(true);
+    
+    if (m_config.show_scrollbar) {
+        int track_w = 12;
+        int track_x = x() + width() - track_w - 2;
+        int track_y = y() + 2;
+        int track_h = height() - 4;
+        
+        if (ctx.x >= track_x && ctx.x <= track_x + track_w &&
+            ctx.y >= track_y && ctx.y <= track_y + track_h) {
+            
+            m_dragging_scrollbar = true;
+            m_drag_start_y = (int)ctx.y;
+            m_drag_start_offset = m_scroll_offset;
+            ctx.stop_propagation = true;
+        }
+    }
+}
+
+void TerminalWidget::handle_mouse_drag(MouseMoveEventContext &ctx) {
+    if (m_dragging_scrollbar) {
+        int size = m_controller->get_scrollback_size();
+        if (size > 0) {
+            int track_h = height() - 4;
+            int total_lines = size + m_rows;
+            double view_ratio = (double)m_rows / total_lines;
+            int thumb_h = std::max(20, (int)(track_h * view_ratio));
+            int max_y = track_h - thumb_h;
+            
+            if (max_y > 0) {
+                int delta_y = (int)ctx.y - m_drag_start_y;
+                // thumb_y moves with mouse, so thumb_y increase means offset decrease
+                // ratio is size / max_y
+                int offset_delta = (int)(delta_y * ((double)size / max_y));
+                m_scroll_offset = m_drag_start_offset - offset_delta;
+                
+                if (m_scroll_offset > size) m_scroll_offset = size;
+                if (m_scroll_offset < 0) m_scroll_offset = 0;
+                
+                invalidate();
+            }
+        }
+        ctx.stop_propagation = true;
+    }
+}
+
+void TerminalWidget::handle_mouse_release(MouseButtonEventContext &ctx) {
+    m_dragging_scrollbar = false;
 }
 
 void TerminalWidget::on_terminal_damage(VTermRect rect) {
