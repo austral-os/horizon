@@ -12,31 +12,45 @@
 
 namespace horizon::preferences
 {
-    struct AudioDevice
+    struct AudioNode
     {
-        uint32_t id;           // Node ID or Card ID
-        std::string name;       // Internal name
+        uint32_t id;             // Real PipeWire Node ID
+        std::string name;        // e.g. "alsa_output.pci..."
         std::string description; // Display name
-        std::string media_class; // "Audio/Sink", "Audio/Source", or "Card/Profile"
+        std::string media_class; // "Audio/Sink" or "Audio/Source"
         bool is_default{false};
         float volume{1.0f};
         bool mute{false};
         float balance{0.0f}; // -1.0 to 1.0
-
-        // Profile support
-        bool is_profile{false};
-        std::string profile_name;
-        uint32_t card_id{0};
+        uint32_t card_id{0}; // The underlying device ID if known
     };
 
     struct AudioProfile
     {
-        uint32_t index;
-        std::string name;
+        uint32_t index;       // Profile index as per SPA_PARAM_PROFILE_index
+        std::string name;     // e.g. "analog-stereo"
         std::string description;
         uint32_t priority;
         bool is_output{false};
         bool is_input{false};
+        bool is_active{false};
+        uint32_t card_id;     // The PW_TYPE_INTERFACE_Device it belongs to
+    };
+
+    // A unified struct for UI presentation
+    struct AudioItem
+    {
+        bool is_profile{false};
+
+        // For Node
+        uint32_t node_id{0};
+        
+        // For Profile
+        uint32_t device_id{0};
+        uint32_t profile_index{0};
+
+        std::string description;
+        bool is_default{false};   // True if active (for profiles) or default (for nodes)
     };
 
     class PipeWireManager;
@@ -59,13 +73,17 @@ namespace horizon::preferences
         void start();
         void stop();
 
-        std::vector<AudioDevice> get_sinks();
-        std::vector<AudioDevice> get_sources();
+        std::vector<AudioItem> get_sinks();
+        std::vector<AudioItem> get_sources();
 
-        void set_volume(uint32_t id, float volume);
-        void set_mute(uint32_t id, bool mute);
-        void set_balance(uint32_t id, float balance);
-        void set_default(uint32_t id);
+        // Node Configuration
+        void set_volume(uint32_t node_id, float volume);
+        void set_mute(uint32_t node_id, bool mute);
+        void set_balance(uint32_t node_id, float balance);
+
+        // Routing Configuration
+        void set_default_node(uint32_t node_id);
+        void set_device_profile(uint32_t device_id, uint32_t profile_index);
 
         // Signals/Callbacks
         std::function<void()> on_devices_changed;
@@ -99,7 +117,7 @@ namespace horizon::preferences
         struct spa_hook m_registry_listener;
 
         std::mutex m_mutex;
-        std::map<uint32_t, AudioDevice> m_devices;
+        std::map<uint32_t, AudioNode> m_nodes;
         std::map<uint32_t, struct pw_proxy *> m_proxies;
         std::map<uint32_t, std::shared_ptr<DeviceProxy>> m_device_proxies;
         std::map<uint32_t, struct spa_hook> m_node_listeners;
@@ -108,6 +126,7 @@ namespace horizon::preferences
 
         std::string m_default_sink_name;
         std::string m_default_source_name;
+        struct pw_metadata *m_default_metadata{nullptr};
 
         bool m_started{false};
     };

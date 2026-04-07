@@ -28,13 +28,13 @@ namespace horizon::preferences
         Notebook *m_notebook{nullptr};
 
         // Output tab elements
-        TableView<AudioDevice> *m_output_table{nullptr};
+        TableView<AudioItem> *m_output_table{nullptr};
         Slider *m_output_volume_slider{nullptr};
         Slider *m_balance_slider{nullptr};
         Button<AquaObject> *m_test_btn{nullptr};
 
         // Input tab elements
-        TableView<AudioDevice> *m_input_table{nullptr};
+        TableView<AudioItem> *m_input_table{nullptr};
         Slider *m_input_volume_slider{nullptr};
 
         Label *m_title_label{nullptr};

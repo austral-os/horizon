@@ -66,15 +66,15 @@ namespace horizon::preferences
         container->add_child(std::move(label_devices));
 
         // TableView for Output Devices
-        auto table = std::make_unique<TableView<AudioDevice>>();
+        auto table = std::make_unique<TableView<AudioItem>>();
         m_output_table = table.get();
         m_output_table->set_fixed_size(200);
         m_output_table->set_header_visible(false);
 
-        TableColumn<AudioDevice> col_sel;
+        TableColumn<AudioItem> col_sel;
         col_sel.id = "selected";
-        col_sel.width = 40;
-        col_sel.cell_factory = [](const AudioDevice &dev) -> std::unique_ptr<Widget>
+        col_sel.width = 50;
+        col_sel.cell_factory = [](const AudioItem &dev) -> std::unique_ptr<Widget>
         {
             auto rb = std::make_unique<RadioButton<AquaObject>>();
             rb->set_selected(dev.is_default);
@@ -83,10 +83,10 @@ namespace horizon::preferences
         };
         m_output_table->add_column(col_sel);
 
-        TableColumn<AudioDevice> col_desc;
+        TableColumn<AudioItem> col_desc;
         col_desc.id = "description";
         col_desc.width = 400;
-        col_desc.cell_factory = [](const AudioDevice &dev) -> std::unique_ptr<Widget>
+        col_desc.cell_factory = [](const AudioItem &dev) -> std::unique_ptr<Widget>
         {
             auto lbl = std::make_unique<Label>(dev.description);
             lbl->set_vertical_alignment(VerticalAlignment::Middle);
@@ -94,10 +94,10 @@ namespace horizon::preferences
         };
         m_output_table->add_column(col_desc);
 
-        TableColumn<AudioDevice> col_type;
+        TableColumn<AudioItem> col_type;
         col_type.id = "type";
         col_type.width = 100;
-        col_type.cell_factory = [](const AudioDevice &dev) -> std::unique_ptr<Widget>
+        col_type.cell_factory = [](const AudioItem &dev) -> std::unique_ptr<Widget>
         {
             auto lbl = std::make_unique<Label>("Salida");
             lbl->set_vertical_alignment(VerticalAlignment::Middle);
@@ -107,8 +107,11 @@ namespace horizon::preferences
         m_output_table->add_column(col_type);
 
         m_output_table->when_row_click.connect(
-            [this](TableViewRowMouseClickContext<AudioDevice> &ctx)
-            { PipeWireManager::instance().set_default(ctx.row_data.id); });
+            [this](TableViewRowMouseClickContext<AudioItem> &ctx)
+            { 
+                if (ctx.row_data.is_profile) PipeWireManager::instance().set_device_profile(ctx.row_data.device_id, ctx.row_data.profile_index);
+                else PipeWireManager::instance().set_default_node(ctx.row_data.node_id);
+            });
 
         container->add_child(std::move(table));
 
@@ -197,15 +200,15 @@ namespace horizon::preferences
         label_devices->set_font_weight(FONT_WEIGHT_BOLD);
         container->add_child(std::move(label_devices));
 
-        auto table = std::make_unique<TableView<AudioDevice>>();
+        auto table = std::make_unique<TableView<AudioItem>>();
         m_input_table = table.get();
         m_input_table->set_fixed_size(200);
         m_input_table->set_header_visible(false);
 
-        TableColumn<AudioDevice> col_sel;
+        TableColumn<AudioItem> col_sel;
         col_sel.id = "selected";
         col_sel.width = 40;
-        col_sel.cell_factory = [](const AudioDevice &dev) -> std::unique_ptr<Widget>
+        col_sel.cell_factory = [](const AudioItem &dev) -> std::unique_ptr<Widget>
         {
             auto rb = std::make_unique<RadioButton<AquaObject>>();
             rb->set_selected(dev.is_default);
@@ -213,10 +216,10 @@ namespace horizon::preferences
         };
         m_input_table->add_column(col_sel);
 
-        TableColumn<AudioDevice> col_desc;
+        TableColumn<AudioItem> col_desc;
         col_desc.id = "description";
         col_desc.width = 400;
-        col_desc.cell_factory = [](const AudioDevice &dev) -> std::unique_ptr<Widget>
+        col_desc.cell_factory = [](const AudioItem &dev) -> std::unique_ptr<Widget>
         {
             auto lbl = std::make_unique<Label>(dev.description);
             lbl->set_vertical_alignment(VerticalAlignment::Middle);
@@ -224,10 +227,10 @@ namespace horizon::preferences
         };
         m_input_table->add_column(col_desc);
 
-        TableColumn<AudioDevice> col_type;
+        TableColumn<AudioItem> col_type;
         col_type.id = "type";
         col_type.width = 100;
-        col_type.cell_factory = [](const AudioDevice &dev) -> std::unique_ptr<Widget>
+        col_type.cell_factory = [](const AudioItem &dev) -> std::unique_ptr<Widget>
         {
             auto lbl = std::make_unique<Label>("Entrada");
             lbl->set_vertical_alignment(VerticalAlignment::Middle);
@@ -270,25 +273,25 @@ namespace horizon::preferences
 
     void SoundView::on_volume_slider_changed(float value)
     {
-        // For now, change volume of all sinks (or default if we implement default tracking)
-        auto sinks = PipeWireManager::instance().get_sinks();
-        for (const auto &sink : sinks)
+        // Actually, we shouldn't broadcast this to all sinks.
+        // We should just apply it to the default one.
+        // For simplicity, we apply it to all sinks for now.
+        for (const auto &sink : m_output_table->data())
         {
-            if (sink.is_default)
+            if (sink.is_default && !sink.is_profile)
             {
-                PipeWireManager::instance().set_volume(sink.id, value);
+                PipeWireManager::instance().set_volume(sink.node_id, value);
             }
         }
     }
 
     void SoundView::on_balance_slider_changed(float value)
     {
-        auto sinks = PipeWireManager::instance().get_sinks();
-        for (const auto &sink : sinks)
+        for (const auto &sink : m_output_table->data())
         {
-            if (sink.is_default)
+            if (sink.is_default && !sink.is_profile)
             {
-                PipeWireManager::instance().set_balance(sink.id, value);
+                PipeWireManager::instance().set_balance(sink.node_id, value);
             }
         }
     }
