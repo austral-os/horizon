@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <glib-object.h>
 #include <horizon/Logger.hpp>
+#include <optional>
+
 #include <horizon/WaylandWindow.hpp>
 #include "WaylandClipboardBackend.hpp"
 
@@ -196,6 +198,16 @@ namespace horizon
             m_clipboard_backend->set(data);
         }
     }
+
+    std::optional<ClipboardData> WaylandWindow::get_clipboard_data(const std::vector<std::string>& preferred_mimes)
+    {
+        if (m_clipboard_backend) {
+            return m_clipboard_backend->get(preferred_mimes);
+        }
+        return std::nullopt;
+    }
+
+
 
 
     void WaylandWindow::send_remote_signal(int target_pid, const std::string &signal,
