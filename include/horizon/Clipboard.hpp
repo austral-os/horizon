@@ -17,7 +17,7 @@ class ClipboardData {
 public:
     void set(const std::string& mime, const std::vector<uint8_t>& data);
     bool has(const std::string& mime) const;
-    std::vector<uint8_t> get(const std::string& mime) const;
+    const std::vector<uint8_t>& get(const std::string& mime) const;
     std::vector<std::string> mime_types() const;
 
     bool has_text() const {

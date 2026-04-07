@@ -8,6 +8,7 @@
 #include <cstring>
 #include <errno.h>
 #include <fcntl.h>
+#include <algorithm>
 
 
 namespace horizon {
@@ -22,10 +23,11 @@ bool ClipboardData::has(const std::string& mime) const {
     return m_data.count(mime) > 0;
 }
 
-std::vector<uint8_t> ClipboardData::get(const std::string& mime) const {
+const std::vector<uint8_t>& ClipboardData::get(const std::string& mime) const {
+    static const std::vector<uint8_t> empty;
     auto it = m_data.find(mime);
     if (it != m_data.end()) return it->second;
-    return {};
+    return empty;
 }
 
 std::vector<std::string> ClipboardData::mime_types() const {
@@ -103,6 +105,13 @@ void WaylandClipboardBackend::set(const ClipboardData& data) {
     m_current_data = data;
     m_source = wl_data_device_manager_create_data_source(m_surface->data_device_manager());
     
+    if (!m_source) {
+        LOG_ERROR << "WaylandClipboardBackend: Failed to create wl_data_source";
+        return;
+    }
+
+    LOG_INFO << "WaylandClipboardBackend: Setting selection with " << m_current_data->mime_types().size() << " mime types";
+
     for (const auto& mime : m_current_data->mime_types()) {
         wl_data_source_offer(m_source, mime.c_str());
     }
@@ -148,26 +157,24 @@ void WaylandClipboardBackend::data_source_handle_target(void *, struct wl_data_s
 void WaylandClipboardBackend::data_source_handle_send(void *data, struct wl_data_source *, const char *mime_type, int32_t fd) {
     auto* self = static_cast<WaylandClipboardBackend*>(data);
     if (!self->m_current_data) {
+        LOG_INFO << "WaylandClipboardBackend: data_source_handle_send called but no data available";
         close(fd);
         return;
     }
 
     const std::vector<uint8_t>* buffer = nullptr;
     if (self->m_current_data->has(mime_type)) {
-        static std::vector<uint8_t> temp_buffer;
-        temp_buffer = self->m_current_data->get(mime_type);
-        buffer = &temp_buffer;
+        buffer = &self->m_current_data->get(mime_type);
     } else if (self->m_current_data->has("text/plain")) {
-        // Fallback to text/plain
-        static std::vector<uint8_t> temp_buffer;
-        temp_buffer = self->m_current_data->get("text/plain");
-        buffer = &temp_buffer;
+        buffer = &self->m_current_data->get("text/plain");
     }
 
     if (buffer && !buffer->empty()) {
         const uint8_t* ptr = buffer->data();
         size_t left = buffer->size();
         
+        LOG_INFO << "WaylandClipboardBackend: Sending " << left << " bytes for mime " << mime_type;
+
         while (left > 0) {
             ssize_t ret = write(fd, ptr, left);
             if (ret > 0) {
@@ -179,16 +186,21 @@ void WaylandClipboardBackend::data_source_handle_send(void *data, struct wl_data
                     struct pollfd pfd = {fd, POLLOUT, 0};
                     int poll_ret = poll(&pfd, 1, 500); // 500ms timeout
                     if (poll_ret > 0) {
+                        if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
+                            LOG_ERROR << "WaylandClipboardBackend: POLL error during send: " << pfd.revents;
+                            break;
+                        }
                         if (pfd.revents & POLLOUT) continue;
-                        if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) break;
                     } else {
-                        break; // Timeout or error
+                        LOG_ERROR << "WaylandClipboardBackend: Poll timeout or error during send";
+                        break;
                     }
                 } else {
-                    break; // Unrecoverable error
+                    LOG_ERROR << "WaylandClipboardBackend: write error: " << strerror(errno);
+                    break;
                 }
             } else {
-                break; // Should not happen for pipe
+                break;
             }
         }
     }
@@ -197,6 +209,7 @@ void WaylandClipboardBackend::data_source_handle_send(void *data, struct wl_data
 
 void WaylandClipboardBackend::data_source_handle_cancelled(void *data, struct wl_data_source *) {
     auto* self = static_cast<WaylandClipboardBackend*>(data);
+    LOG_INFO << "WaylandClipboardBackend: Data source cancelled";
     self->cleanup_source();
 }
 
@@ -212,11 +225,7 @@ void WaylandClipboardBackend::data_device_handle_data_offer(void *data, struct w
     self->m_pending_offer = id;
     self->m_offer_counter++;
     
-    LOG_INFO << "WaylandClipboardBackend: new pending offer received: " << id;
-
-    
-    // Attach the listener immediately to capture advertised MIME types
-
+    LOG_INFO << "WaylandClipboardBackend: New pending offer received: " << id;
     wl_data_offer_add_listener(id, &data_offer_listener, self);
 }
 
@@ -231,38 +240,40 @@ void WaylandClipboardBackend::data_device_handle_selection(void *data, struct wl
     auto* self = static_cast<WaylandClipboardBackend*>(data);
     
     if (id == nullptr) {
+        LOG_INFO << "WaylandClipboardBackend: Selection cleared";
         self->cleanup_offer();
         return;
     }
     
-    // If this is our pending offer being promoted to selection
     if (id == self->m_pending_offer) {
-        LOG_INFO << "WaylandClipboardBackend: promoting pending offer to selection: " << id;
-        self->cleanup_offer(); // Cleanup previous active selection
+        LOG_INFO << "WaylandClipboardBackend: Promoting pending offer to selection: " << id;
+        self->cleanup_offer();
         self->m_current_offer = self->m_pending_offer;
         self->m_offered_mime_types = std::move(self->m_pending_mime_types);
         
         self->m_pending_offer = nullptr;
         self->m_pending_mime_types.clear();
     } else if (id != self->m_current_offer) {
-
-        // External selection we didn't see a data_offer for yet? 
-        // (Protocol shouldn't allow this, but handle anyway)
+        LOG_INFO << "WaylandClipboardBackend: External selection received: " << id;
         self->cleanup_offer();
         self->m_current_offer = id;
-        // In this case m_offered_mime_types might be empty, 
-        // but we normally get data_offer first.
     }
 }
 
 void WaylandClipboardBackend::data_offer_handle_offer(void *data, struct wl_data_offer *offer, const char *mime_type) {
+    if (!mime_type) return;
     auto* self = static_cast<WaylandClipboardBackend*>(data);
+    
+    auto add_unique = [](std::vector<std::string>& vec, const std::string& mime) {
+        if (std::find(vec.begin(), vec.end(), mime) == vec.end()) {
+            vec.push_back(mime);
+        }
+    };
+
     if (offer == self->m_pending_offer) {
-        self->m_pending_mime_types.push_back(mime_type);
+        add_unique(self->m_pending_mime_types, mime_type);
     } else if (offer == self->m_current_offer) {
-
-
-        self->m_offered_mime_types.push_back(mime_type);
+        add_unique(self->m_offered_mime_types, mime_type);
     }
 }
 
@@ -273,29 +284,25 @@ std::optional<ClipboardData> WaylandClipboardBackend::get(const std::vector<std:
     auto* display = m_surface->display();
     if (!display) return std::nullopt;
 
-    // Snapshot state to detect re-entrancy and race conditions
     wl_data_offer* offer = m_current_offer;
     int initial_counter = m_offer_counter;
 
     ClipboardData result;
-    const size_t MAX_CLIPBOARD_SIZE = 1 * 1024 * 1024; // 1MB limit
+    const size_t MAX_CLIPBOARD_SIZE = 4 * 1024 * 1024; // Increased to 4MB
 
-    // Determine which MIME types to fetch
     const std::vector<std::string>& target_mimes = preferred_mimes.empty() ? m_offered_mime_types : preferred_mimes;
 
-    LOG_INFO << "WaylandClipboardBackend::get: searching through " << target_mimes.size() << " mime types";
+    LOG_INFO << "WaylandClipboardBackend::get: Requesting data for " << target_mimes.size() << " mime types";
 
     for (const auto& mime : target_mimes) {
-        // Early exit if selection was replaced before we even started this format
         if (m_offer_counter != initial_counter) {
-            LOG_INFO << "WaylandClipboardBackend: selection changed during get(), aborting";
+            LOG_INFO << "WaylandClipboardBackend: Selection changed during get(), aborting";
             return std::nullopt;
         }
 
-        // Check if the current offer actually has this mime type
         bool available = false;
         if (preferred_mimes.empty()) {
-            available = true; // Iterating m_offered_mime_types
+            available = true;
         } else {
             for (const auto& offered : m_offered_mime_types) {
                 if (offered == mime) { available = true; break; }
@@ -303,85 +310,98 @@ std::optional<ClipboardData> WaylandClipboardBackend::get(const std::vector<std:
         }
         if (!available) continue;
 
-        LOG_INFO << "WaylandClipboardBackend::get: requesting " << mime;
+        LOG_INFO << "WaylandClipboardBackend::get: Requesting " << mime;
         int pipefd[2];
-        if (pipe(pipefd) == -1) continue;
+        
+#ifdef __linux__
+        if (pipe2(pipefd, O_CLOEXEC) == -1) {
+            LOG_ERROR << "WaylandClipboardBackend: pipe2 failed: " << strerror(errno);
+            continue;
+        }
+#else
+        if (pipe(pipefd) == -1) {
+            LOG_ERROR << "WaylandClipboardBackend: pipe failed: " << strerror(errno);
+            continue;
+        }
+        fcntl(pipefd[0], F_SETFD, FD_CLOEXEC);
+        fcntl(pipefd[1], F_SETFD, FD_CLOEXEC);
+#endif
 
-        // Set non-blocking read
-        fcntl(pipefd[0], F_SETFL, fcntl(pipefd[0], F_GETFL) | O_NONBLOCK);
+        // Verify safety before receive (Fix 8)
+        if (offer != m_current_offer || m_offer_counter != initial_counter) {
+            LOG_WARNING << "WaylandClipboardBackend: Offer invalidated before receive call";
+            close(pipefd[0]);
+            close(pipefd[1]);
+            return std::nullopt;
+        }
 
         wl_data_offer_receive(offer, mime.c_str(), pipefd[1]);
-        close(pipefd[1]); // Close write end in our process
+        close(pipefd[1]);
 
-        // Double check counter after receive call
         if (m_offer_counter != initial_counter) {
-            LOG_INFO << "WaylandClipboardBackend: selection changed during receive, aborting";
+            LOG_INFO << "WaylandClipboardBackend: Selection changed during receive, aborting";
             close(pipefd[0]);
             return std::nullopt;
         }
 
         wl_display_flush(display);
-        
-        // Dispatch once to let the request reach the compositor
-        wl_display_dispatch(display);
+        wl_display_dispatch_pending(display);
 
         if (m_offer_counter != initial_counter) {
-            LOG_INFO << "WaylandClipboardBackend: selection changed during dispatch, aborting";
+            LOG_INFO << "WaylandClipboardBackend: Selection changed during dispatch, aborting";
             close(pipefd[0]);
             return std::nullopt;
         }
 
         std::vector<uint8_t> data;
         uint8_t buffer[4096];
-        bool limit_exceeded = false;
-        
-        // We allow up to 500ms for the data to start arriving
-        struct pollfd pfd;
-        pfd.fd = pipefd[0];
-        pfd.events = POLLIN;
+        struct pollfd pfd = {pipefd[0], POLLIN, 0};
 
         while (true) {
-            // Check if selection changed mid-read
             if (m_offer_counter != initial_counter) break;
 
-            int poll_ret = poll(&pfd, 1, 500); // 500ms timeout
+            int poll_ret = poll(&pfd, 1, 500); 
             if (poll_ret <= 0) {
                 if (poll_ret == -1 && errno == EINTR) continue;
                 LOG_INFO << "WaylandClipboardBackend: read timeout or error for " << mime;
                 break; 
             }
 
+            if (pfd.revents & (POLLERR | POLLNVAL)) {
+                LOG_ERROR << "WaylandClipboardBackend: POLL error on read fd: " << pfd.revents;
+                break;
+            }
+
+            // Handle POLLHUP as EOF (Fix 4)
+            if (!(pfd.revents & POLLIN) && (pfd.revents & POLLHUP)) {
+                LOG_INFO << "WaylandClipboardBackend: Received POLLHUP (EOF)";
+                break;
+            }
+
             ssize_t n = read(pipefd[0], buffer, sizeof(buffer));
             if (n > 0) {
                 if (data.size() + n > MAX_CLIPBOARD_SIZE) {
-                    size_t allowed = MAX_CLIPBOARD_SIZE - data.size();
-                    data.insert(data.end(), buffer, buffer + allowed);
-                    limit_exceeded = true;
+                    LOG_WARNING << "WaylandClipboardBackend: Maximum clipboard size exceeded for " << mime;
                     break;
                 }
                 data.insert(data.end(), buffer, buffer + n);
             } else if (n == 0) {
                 break; // EOF
             } else if (n == -1) {
-                if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                    // This shouldn't happen right after poll, but for safety:
-                    continue;
-                }
+                if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
                 if (errno == EINTR) continue;
-                break; // Error
+                LOG_ERROR << "WaylandClipboardBackend: Read error: " << strerror(errno);
+                break;
             }
         }
 
         close(pipefd[0]);
 
-        
-        // Re-check counter one last time for this mime type
         if (m_offer_counter != initial_counter) return std::nullopt;
 
         if (!data.empty()) {
+            LOG_INFO << "WaylandClipboardBackend: Successfully retrieved " << data.size() << " bytes for " << mime;
             result.set(mime, data);
-            
-            // If we satisfy the preferred list request, stop early
             if (!preferred_mimes.empty()) return result;
         }
     }
@@ -413,9 +433,16 @@ std::optional<std::string> Clipboard::get_text() {
         return std::nullopt;
     }
 
-    return std::string(bytes.begin(), bytes.end());
-}
+    // Normalize \r\n -> \n (Fix 9)
+    std::string text(bytes.begin(), bytes.end());
+    size_t pos = 0;
+    while ((pos = text.find("\r\n", pos)) != std::string::npos) {
+        text.replace(pos, 2, "\n");
+        pos += 1;
+    }
 
+    return text;
+}
 
 
 } // namespace horizon
