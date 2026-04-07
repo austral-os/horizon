@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Terminal
-Exec=konsole
+Exec=/home/horacio/Desarrollo/austral-os/horizon/build/apps/terminal/terminal
 Icon=utilities-terminal
 Comment=Terminal emulator
 Terminal=false

@@ -62,7 +62,7 @@ sudo apt install build-essential g++ pkg-config \
                  libxkbcommon-dev libcairo2-dev \
                  librsvg2-dev libpixman-1-dev \
                  libegl1-mesa-dev libgles2-mesa-dev \
-                 libdbus-1-dev \
+                 libdbus-1-dev libvterm-dev \
                  libpipewire-0.3-dev libspa-0.2-dev \
                  nlohmann-json3-dev weston wayland-utils \
                  wlr-randr xdg-utils shared-mime-info \

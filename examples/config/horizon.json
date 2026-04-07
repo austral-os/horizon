@@ -120,5 +120,9 @@
         "model": "pc105",
         "numlock": true,
         "rate": 16.088890075683594
+    },
+    "terminal": {
+        "font": "Hack",
+        "font-size": 14
     }
 }

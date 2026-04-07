@@ -142,6 +142,9 @@ add_subdirectory(apps/launchpad)
 add_subdirectory(apps/preferences)
 
 add_subdirectory(libs/horizon-overview)
+add_subdirectory(libs/horizon-terminal)
+
+add_subdirectory(apps/terminal)
 
 
 add_executable(combo_demo
