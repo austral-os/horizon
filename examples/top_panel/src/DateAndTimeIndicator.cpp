@@ -3,6 +3,7 @@
 #include <horizon/WaylandWindow.hpp>
 #include <iomanip>
 #include <sstream>
+#include <horizon/Notification.hpp>
 
 using namespace horizon;
 
@@ -38,6 +39,15 @@ void DateAndTimeIndicator::update_time()
        << std::setw(2) << now->tm_min;
 
     m_label->set_text(ss.str());
+
+    // Update tooltip with full date
+    char date_buf[128];
+    // Using Spanish localization format for the user
+    std::strftime(date_buf, sizeof(date_buf), "%A, %d de %B de %Y", now);
+    
+    auto tip = std::make_unique<Notification>();
+    tip->set_notification("office-calendar", date_buf);
+    set_tooltip(std::move(tip));
 
     // Invalidate to force recalculation of layout since the text width might change slightly
     // though HH:mm is mostly constant with monospaced fonts or similar.

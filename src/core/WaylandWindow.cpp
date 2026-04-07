@@ -9,6 +9,7 @@
 #include <glib-object.h>
 #include <horizon/Logger.hpp>
 #include <horizon/WaylandWindow.hpp>
+#include <horizon/Notification.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
 #include <linux/input-event-codes.h>
 #include <memory>
@@ -525,6 +526,21 @@ namespace horizon
                                                      m_popup_surface->height(), true);
                                 pctx.flush();
                                 render_gl_popup();
+                            }
+
+                            if (m_tooltip_widget && m_tooltip_surface && m_tooltip_surface->data())
+                            {
+                                CairoGraphicContext tctx(this, m_tooltip_surface->data(),
+                                                         m_tooltip_surface->width(),
+                                                         m_tooltip_surface->height());
+                                tctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+                                tctx.clearRect(0, 0, m_tooltip_surface->width(),
+                                               m_tooltip_surface->height());
+
+                                m_tooltip_widget->render(tctx, 0, 0, m_tooltip_surface->width(),
+                                                         m_tooltip_surface->height(), true);
+                                tctx.flush();
+                                render_gl_tooltip();
                             }
 
                             render_gl_ui();
@@ -1637,20 +1653,17 @@ namespace horizon
         if (!m_popup_surface || !m_popup_surface->data())
             return;
 
-        // Make popup context current
-
         eglMakeCurrent(m_popup_surface->egl_display(), m_popup_surface->egl_surface(),
                        m_popup_surface->egl_surface(), m_popup_surface->egl_context());
 
-        init_gl_resources(); // Ensure same resources are available
+        init_gl_resources();
 
         glViewport(0, 0, m_popup_surface->width(), m_popup_surface->height());
-        glClearColor(0, 0, 0, 0); // Always transparent background for popup
+        glClearColor(0, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-
         glUseProgram(m_gl_program);
 
         float identity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
@@ -1659,7 +1672,6 @@ namespace horizon
 
         GLint opacity_loc = glGetUniformLocation(m_gl_program, "u_opacity");
         glUniform1f(opacity_loc, 1.0f);
-
         GLint grad_start_loc = glGetUniformLocation(m_gl_program, "u_gradient_start");
         glUniform1f(grad_start_loc, 1.0f);
         GLint grad_end_loc = glGetUniformLocation(m_gl_program, "u_gradient_end");
@@ -1667,7 +1679,6 @@ namespace horizon
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_gl_texture);
-
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_popup_surface->width(), m_popup_surface->height(),
                      0, GL_RGBA, GL_UNSIGNED_BYTE, m_popup_surface->data());
 
@@ -1682,8 +1693,60 @@ namespace horizon
         glEnableVertexAttribArray(tex_attr);
 
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
         m_popup_surface->swap_buffers();
+
+        // Restore main surface context
+        eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(), m_surface->egl_surface(),
+                       m_surface->egl_context());
+    }
+
+    void WaylandWindow::render_gl_tooltip()
+    {
+        if (!m_tooltip_surface || !m_tooltip_surface->data())
+            return;
+
+        eglMakeCurrent(m_tooltip_surface->egl_display(), m_tooltip_surface->egl_surface(),
+                       m_tooltip_surface->egl_surface(), m_tooltip_surface->egl_context());
+
+        init_gl_resources();
+
+        glViewport(0, 0, m_tooltip_surface->width(), m_tooltip_surface->height());
+        glClearColor(0, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        glUseProgram(m_gl_program);
+
+        float identity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+        GLint mvp_loc = glGetUniformLocation(m_gl_program, "u_mvp");
+        glUniformMatrix4fv(mvp_loc, 1, GL_FALSE, identity);
+
+        GLint opacity_loc = glGetUniformLocation(m_gl_program, "u_opacity");
+        glUniform1f(opacity_loc, 1.0f);
+        GLint grad_start_loc = glGetUniformLocation(m_gl_program, "u_gradient_start");
+        glUniform1f(grad_start_loc, 1.0f);
+        GLint grad_end_loc = glGetUniformLocation(m_gl_program, "u_gradient_end");
+        glUniform1f(grad_end_loc, 1.0f);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_gl_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_tooltip_surface->width(),
+                     m_tooltip_surface->height(), 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                     m_tooltip_surface->data());
+
+        GLint pos_attr = glGetAttribLocation(m_gl_program, "position");
+        GLint tex_attr = glGetAttribLocation(m_gl_program, "texcoord");
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_gl_vbo);
+        glVertexAttribPointer(pos_attr, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+        glEnableVertexAttribArray(pos_attr);
+        glVertexAttribPointer(tex_attr, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                              (void *)(3 * sizeof(float)));
+        glEnableVertexAttribArray(tex_attr);
+
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        m_tooltip_surface->swap_buffers();
 
         // Restore main surface context
         eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(), m_surface->egl_surface(),
@@ -2002,4 +2065,47 @@ namespace horizon
         return {m_screen_x + (int)m_pointer_x, m_screen_y + (int)m_pointer_y};
     }
 
-}; // namespace horizon
+    void WaylandWindow::show_tooltip(Widget *owner, Notification *tooltip)
+    {
+        if (!m_surface || !tooltip)
+            return;
+
+        hide_tooltip();
+
+        m_tooltip_owner = owner;
+        m_tooltip_widget = tooltip;
+        m_tooltip_widget->set_application_recursive(this);
+        m_tooltip_widget->set_visible(true);
+        m_tooltip_widget->set_position(0, 0);
+        
+        // Calculate layout with a maximum width to allow wrapping
+        int max_w = 400; // Tooltip max width
+        int h = m_tooltip_widget->preferred_height(max_w);
+        int w = m_tooltip_widget->preferred_width();
+        if (w > max_w) w = max_w;
+
+        m_tooltip_widget->set_size(w, h);
+        m_tooltip_widget->calculate_layout();
+
+        m_tooltip_surface = std::make_unique<WaylandSurface>(w, h);
+        
+        // Tooltip position: 20px below the mouse cursor
+        int x = (int)m_pointer_x;
+        int y = (int)m_pointer_y + 20;
+
+        m_tooltip_surface->setup_xdg_popup(m_surface.get(), x, y, w, h);
+        invalidate();
+    }
+
+    void WaylandWindow::hide_tooltip()
+    {
+        if (m_tooltip_surface || m_tooltip_widget)
+        {
+            m_tooltip_surface = nullptr;
+            m_tooltip_widget = nullptr;
+            m_tooltip_owner = nullptr;
+            invalidate();
+        }
+    }
+
+} // namespace horizon

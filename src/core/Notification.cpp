@@ -97,9 +97,14 @@ namespace horizon
     int Notification::preferred_height(int width) const
     {
         int available_width = width - (m_margin * 2);
+        if (available_width < 0)
+            available_width = 0;
+            
         if (m_icon_widget->is_visible())
         {
             available_width -= (m_icon_widget->fixed_size() + m_spacing);
+            if (available_width < 0)
+                available_width = 0;
         }
 
         int label_h = m_label_widget->preferred_height(available_width);

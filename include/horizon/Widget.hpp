@@ -13,6 +13,7 @@ namespace horizon
     class WaylandWindow;
     class GraphicsContext;
     class Menu;
+    class Notification;
 
     /**
      * @brief Text alignment options for widgets.
@@ -200,6 +201,8 @@ namespace horizon
         // --- Context Menu ---
         void set_context_menu(std::unique_ptr<Menu> menu);
         Menu *context_menu() const;
+        void set_tooltip(std::unique_ptr<Notification> tooltip);
+        Notification *tooltip() const;
 
         // --- Árbol ---
         virtual void add_child(std::unique_ptr<Widget> child);
@@ -307,6 +310,8 @@ namespace horizon
         std::chrono::steady_clock::time_point m_last_click_time;
         size_t m_click_timer;
         uint32_t m_last_click_button{0};
+        std::unique_ptr<Notification> m_tooltip;
+        size_t m_tooltip_timer_id{0};
     };
 
 } // namespace horizon

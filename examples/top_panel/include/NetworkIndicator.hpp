@@ -25,10 +25,14 @@ public:
 private:
     void setup_dbus();
     void monitor_loop();
-    void update_ui(const std::string& icon_name);
+    void update_ui(const std::string& icon_name, const std::string& status_text);
     
     // Asynchronous logic performed in background thread
-    std::string calculate_current_icon();
+    struct NetworkStatus {
+        std::string icon_name;
+        std::string status_text;
+    };
+    NetworkStatus calculate_current_info();
     int get_wifi_signal_strength(horizon::dbusutils::DbusHelper& dbus, const std::string& device_path);
     std::string get_icon_for_wifi(int strength);
 
@@ -40,4 +44,5 @@ private:
     // Thread-safe state
     std::mutex m_state_mutex;
     std::string m_current_icon_name;
+    std::string m_current_status_text;
 };

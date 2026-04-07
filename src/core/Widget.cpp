@@ -1,9 +1,7 @@
-#include "horizon/Widget.hpp"
-#include "horizon/WaylandWindow.hpp"
-#include <horizon/Application.hpp>
-#include <horizon/GraphicsContext.hpp>
-#include <horizon/Menu.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/Notification.hpp>
+#include <horizon/WaylandWindow.hpp>
+#include <horizon/Menu.hpp>
 #include <linux/input-event-codes.h>
 
 namespace horizon
@@ -23,8 +21,36 @@ namespace horizon
         map_draw_state(WidgetEvent::MOUSE_RELEASE, WidgetDrawState::HOVERED);
 
         // Gestión de estados de interacción
-        when_mouse_enter.connect([this](EventContext &) { m_is_hovered = true; });
-        when_mouse_leave.connect([this](EventContext &) { m_is_hovered = false; });
+        when_mouse_enter.connect(
+            [this](EventContext &)
+            {
+                m_is_hovered = true;
+                if (m_tooltip)
+                {
+                    m_tooltip_timer_id = application()->add_timer(
+                        500,
+                        [this]()
+                        {
+                            if (m_is_hovered && m_tooltip)
+                            {
+                                application()->show_tooltip(this, m_tooltip.get());
+                            }
+                            m_tooltip_timer_id = 0;
+                        });
+                }
+            });
+
+        when_mouse_leave.connect(
+            [this](EventContext &)
+            {
+                m_is_hovered = false;
+                if (m_tooltip_timer_id != 0)
+                {
+                    application()->stop_timer(m_tooltip_timer_id);
+                    m_tooltip_timer_id = 0;
+                }
+                application()->hide_tooltip();
+            });
         
         when_mouse_drag.connect(
             [this](MouseMoveEventContext &)
@@ -773,6 +799,20 @@ namespace horizon
     Menu *Widget::context_menu() const
     {
         return m_context_menu.get();
+    }
+
+    void Widget::set_tooltip(std::unique_ptr<Notification> tooltip)
+    {
+        if (application() && application()->tooltip_owner() == this)
+        {
+            application()->hide_tooltip();
+        }
+        m_tooltip = std::move(tooltip);
+    }
+
+    Notification *Widget::tooltip() const
+    {
+        return m_tooltip.get();
     }
 
 } // namespace horizon

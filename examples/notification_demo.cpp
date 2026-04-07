@@ -46,6 +46,17 @@ int main()
         notif4->set_notification("dialog-warning", "Notificación con ancho fijo de 400px. El texto debería ajustarse a este espacio.");
         container->add_child(std::move(notif4));
 
+        // 5. Tooltip example (hover over this label)
+        auto label_with_tooltip = std::make_unique<Label>("Pasa el mouse aquí para ver el tooltip");
+        label_with_tooltip->set_background_color(Color{0.3f, 0.3f, 0.3f, 1.0f});
+        label_with_tooltip->set_border_radius(5);
+        label_with_tooltip->set_margin(10);
+        
+        auto tooltip = std::make_unique<Notification>();
+        tooltip->set_notification("help-about", "¡Hola! Este es un tooltip dinámico usando el widget Notification.");
+        label_with_tooltip->set_tooltip(std::move(tooltip));
+        container->add_child(std::move(label_with_tooltip));
+
         wnd->add_child(std::move(container));
         app.set_root(std::move(wnd));
         app.run();

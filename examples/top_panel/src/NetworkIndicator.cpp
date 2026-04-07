@@ -2,6 +2,7 @@
 #include <dbus/dbus.h>
 #include <horizon/Logger.hpp>
 #include <horizon/WaylandWindow.hpp>
+#include <horizon/Notification.hpp>
 
 using namespace horizon;
 using namespace horizon::dbusutils;
@@ -70,8 +71,8 @@ void NetworkIndicator::monitor_loop()
     dbus_bus_add_match(conn, "type='signal',interface='org.freedesktop.DBus.Properties'", &err);
 
     // Initial check
-    std::string initial_icon = calculate_current_icon();
-    update_ui(initial_icon);
+    NetworkStatus initial_status = calculate_current_info();
+    update_ui(initial_status.icon_name, initial_status.status_text);
 
     while (!m_stop_monitor)
     {
@@ -92,28 +93,28 @@ void NetworkIndicator::monitor_loop()
 
         // Always calculate if triggered, or if not triggered but some time has passed
         // (the 2000ms timeout in dispatch handles the periodic part).
-        std::string new_icon = calculate_current_icon();
+        NetworkStatus status = calculate_current_info();
 
         bool changed = false;
         {
             std::lock_guard<std::mutex> lock(m_state_mutex);
-            if (new_icon != m_current_icon_name)
+            if (status.icon_name != m_current_icon_name || status.status_text != m_current_status_text)
             {
                 changed = true;
-                // Don't update m_current_icon_name yet, will happen in update_ui
+                // m_current_status_text will be updated in update_ui
             }
         }
 
         if (changed && application())
         {
-            application()->post_task([this, new_icon]() { this->update_ui(new_icon); });
+            application()->post_task([this, status]() { this->update_ui(status.icon_name, status.status_text); });
         }
     }
 
     dbus_connection_unref(conn);
 }
 
-std::string NetworkIndicator::calculate_current_icon()
+NetworkIndicator::NetworkStatus NetworkIndicator::calculate_current_info()
 {
     // Important: we create a local helper or use one dedicated to this thread
     // to perform purely synchronous, BLOCKING calls in this background thread.
@@ -128,11 +129,13 @@ std::string NetworkIndicator::calculate_current_icon()
         }
         catch (...)
         {
-            return "network-error";
+            return {"network-error", "Error de red"};
         }
     }
 
-    std::string icon_name = "network-offline";
+    NetworkStatus info;
+    info.icon_name = "network-offline";
+    info.status_text = "Desconectado";
 
     // Get ActiveConnections
     auto active_conns_var = local_dbus->get_property(
@@ -144,6 +147,7 @@ std::string NetworkIndicator::calculate_current_icon()
         auto paths = std::get<std::vector<std::string>>(active_conns_var);
 
         std::string best_wifi_icon = "";
+        std::string best_wifi_ssid = "";
         bool ethernet_found = false;
 
         for (const auto &path : paths)
@@ -156,6 +160,11 @@ std::string NetworkIndicator::calculate_current_icon()
 
             if (state != 2)
                 continue; // Only process fully activated connections
+
+            auto id_var = local_dbus->get_property(
+                "org.freedesktop.NetworkManager", path,
+                "org.freedesktop.NetworkManager.Connection.Active", "Id");
+            std::string conn_name = std::holds_alternative<std::string>(id_var) ? std::get<std::string>(id_var) : "Desconocido";
 
             auto type_var = local_dbus->get_property(
                 "org.freedesktop.NetworkManager", path,
@@ -182,6 +191,7 @@ std::string NetworkIndicator::calculate_current_icon()
                                 std::get<uint32_t>(dev_type_var) == 1) // NM_DEVICE_TYPE_ETHERNET
                             {
                                 ethernet_found = true;
+                                info.status_text = "Ethernet: " + conn_name;
                             }
                         }
                     }
@@ -198,31 +208,46 @@ std::string NetworkIndicator::calculate_current_icon()
                         {
                             int strength = get_wifi_signal_strength(*local_dbus, devs[0]);
                             best_wifi_icon = get_icon_for_wifi(strength);
+                            best_wifi_ssid = conn_name;
                         }
                     }
                 }
             }
         }
 
-        if (!best_wifi_icon.empty())
-            icon_name = best_wifi_icon;
-        else if (ethernet_found)
-            icon_name = "network-wired";
+        if (!best_wifi_icon.empty()) {
+            info.icon_name = best_wifi_icon;
+            info.status_text = "WiFi: " + best_wifi_ssid;
+        } else if (ethernet_found) {
+            info.icon_name = "network-wired";
+            // status_text already set above
+        }
     }
 
-    return icon_name;
+    return info;
 }
 
-void NetworkIndicator::update_ui(const std::string &icon_name)
+void NetworkIndicator::update_ui(const std::string &icon_name, const std::string &status_text)
 {
     // This runs on the UI thread
     std::lock_guard<std::mutex> lock(m_state_mutex);
-    if (m_current_icon_name != icon_name)
+    
+    // Safety: check if anything actually changed to avoid unnecessary re-layouts
+    if (m_current_icon_name == icon_name && m_current_status_text == status_text)
     {
-        m_current_icon_name = icon_name;
-        m_icon->set_icon_name(icon_name);
-        invalidate();
+        return;
     }
+
+    m_current_icon_name = icon_name;
+    m_current_status_text = status_text;
+    m_icon->set_icon_name(icon_name);
+    
+    // Update tooltip with current status
+    auto tip = std::make_unique<Notification>();
+    tip->set_notification(icon_name, status_text);
+    set_tooltip(std::move(tip));
+
+    invalidate();
 }
 
 int NetworkIndicator::get_wifi_signal_strength(DbusHelper &dbus, const std::string &device_path)

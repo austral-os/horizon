@@ -135,6 +135,9 @@ namespace horizon
         void invalidate(Widget *widget = nullptr);
         void show_context_menu(Menu *menu, int x = -1, int y = -1, uint32_t serial = 0);
         void close_context_menu(bool emit_signal = true);
+        void show_tooltip(Widget *owner, Notification *tooltip);
+        void hide_tooltip();
+        Widget *tooltip_owner() const { return m_tooltip_owner; }
 
         /**
          * @brief Signals the application to wake up its event loop (e.g. from another thread).
@@ -455,6 +458,7 @@ namespace horizon
         void init_gl_resources();
         void render_gl_ui();
         void render_gl_popup();
+        void render_gl_tooltip();
 
         mutable std::unique_ptr<GraphicsContext> m_gc;
         std::unique_ptr<CompositorContext> m_compositor_context;
@@ -504,6 +508,10 @@ namespace horizon
         std::unique_ptr<WaylandSurface> m_popup_surface;
         Menu *m_popup_menu = nullptr;
         std::unique_ptr<PopupEventListener> m_popup_listener;
+
+        std::unique_ptr<WaylandSurface> m_tooltip_surface;
+        Notification *m_tooltip_widget = nullptr;
+        Widget *m_tooltip_owner = nullptr;
     };
 
 }; // namespace horizon
