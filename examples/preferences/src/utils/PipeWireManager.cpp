@@ -185,17 +185,29 @@ namespace horizon::preferences
         }
 
         // Add available profiles
-        for (auto &card_pair : m_card_profiles)
-        {
+        for (auto &card_pair : m_card_profiles) {
             uint32_t card_id = card_pair.first;
             std::string active = m_active_profile[card_id];
+            
+            bool has_hdmi = false;
+            
+            // Sort profiles by priority (descending)
+            std::vector<AudioProfile> profs = card_pair.second;
+            std::sort(profs.begin(), profs.end(), [](const AudioProfile &a, const AudioProfile &b) {
+                return a.priority > b.priority;
+            });
+            
+            for (auto &prof : profs) {
+                if (!prof.is_input) continue;
+                if (prof.name == active && card_has_source_node[card_id]) continue;
 
-            for (auto &prof : card_pair.second)
-            {
-                if (!prof.is_input)
-                    continue;
-                if (prof.name == active && card_has_source_node[card_id])
-                    continue;
+                // Collapse unwieldy HDMI extras
+                std::string n = prof.name;
+                std::transform(n.begin(), n.end(), n.begin(), ::tolower);
+                if (n.find("hdmi") != std::string::npos) {
+                    if (has_hdmi) continue; // Only show the best HDMI profile
+                    has_hdmi = true;
+                }
 
                 AudioItem item;
                 item.is_profile = true;
