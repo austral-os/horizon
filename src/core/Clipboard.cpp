@@ -7,6 +7,8 @@
 #include <poll.h>
 #include <cstring>
 #include <errno.h>
+#include <fcntl.h>
+
 
 namespace horizon {
 
@@ -255,10 +257,10 @@ void WaylandClipboardBackend::data_device_handle_selection(void *data, struct wl
 
 void WaylandClipboardBackend::data_offer_handle_offer(void *data, struct wl_data_offer *offer, const char *mime_type) {
     auto* self = static_cast<WaylandClipboardBackend*>(data);
-    LOG_INFO << "WaylandClipboardBackend: offer advertised MIME type: " << mime_type << " for offer: " << offer;
     if (offer == self->m_pending_offer) {
         self->m_pending_mime_types.push_back(mime_type);
     } else if (offer == self->m_current_offer) {
+
 
         self->m_offered_mime_types.push_back(mime_type);
     }
@@ -305,6 +307,9 @@ std::optional<ClipboardData> WaylandClipboardBackend::get(const std::vector<std:
         int pipefd[2];
         if (pipe(pipefd) == -1) continue;
 
+        // Set non-blocking read
+        fcntl(pipefd[0], F_SETFL, fcntl(pipefd[0], F_GETFL) | O_NONBLOCK);
+
         wl_data_offer_receive(offer, mime.c_str(), pipefd[1]);
         close(pipefd[1]); // Close write end in our process
 
@@ -317,8 +322,7 @@ std::optional<ClipboardData> WaylandClipboardBackend::get(const std::vector<std:
 
         wl_display_flush(display);
         
-        // Dispatch to ensure data llega. If a new selection event arrives during dispatch, 
-        // m_offer_counter will change.
+        // Dispatch once to let the request reach the compositor
         wl_display_dispatch(display);
 
         if (m_offer_counter != initial_counter) {
@@ -330,8 +334,23 @@ std::optional<ClipboardData> WaylandClipboardBackend::get(const std::vector<std:
         std::vector<uint8_t> data;
         uint8_t buffer[4096];
         bool limit_exceeded = false;
+        
+        // We allow up to 500ms for the data to start arriving
+        struct pollfd pfd;
+        pfd.fd = pipefd[0];
+        pfd.events = POLLIN;
 
         while (true) {
+            // Check if selection changed mid-read
+            if (m_offer_counter != initial_counter) break;
+
+            int poll_ret = poll(&pfd, 1, 500); // 500ms timeout
+            if (poll_ret <= 0) {
+                if (poll_ret == -1 && errno == EINTR) continue;
+                LOG_INFO << "WaylandClipboardBackend: read timeout or error for " << mime;
+                break; 
+            }
+
             ssize_t n = read(pipefd[0], buffer, sizeof(buffer));
             if (n > 0) {
                 if (data.size() + n > MAX_CLIPBOARD_SIZE) {
@@ -344,17 +363,17 @@ std::optional<ClipboardData> WaylandClipboardBackend::get(const std::vector<std:
             } else if (n == 0) {
                 break; // EOF
             } else if (n == -1) {
-                if (errno == EINTR) {
-                    // Check counter again because interupt might be due to signal processing 
-                    // that could involve wayland events.
-                    if (m_offer_counter != initial_counter) break;
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    // This shouldn't happen right after poll, but for safety:
                     continue;
                 }
+                if (errno == EINTR) continue;
                 break; // Error
             }
         }
 
         close(pipefd[0]);
+
         
         // Re-check counter one last time for this mime type
         if (m_offer_counter != initial_counter) return std::nullopt;
