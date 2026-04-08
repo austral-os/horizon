@@ -73,6 +73,13 @@ sudo apt install build-essential g++ pkg-config \
                  desktop-file-utils
 ```
 
+Multimedia dependecies for Nova:
+
+```bash
+sudo apt update
+sudo apt install gstreamer1.0-plugins-bad gstreamer1.0-libav
+```
+
 ### 2. Compiling the Project
 
 Building is straightforward using CMake and Ninja:
