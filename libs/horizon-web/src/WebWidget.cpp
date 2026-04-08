@@ -24,6 +24,17 @@ namespace horizon
             return result;
         }
 
+        static uint32_t map_to_wpe_button(uint32_t button)
+        {
+            switch (button)
+            {
+            case 272: return 1; // BTN_LEFT
+            case 273: return 2; // BTN_RIGHT
+            case 274: return 3; // BTN_MIDDLE
+            default: return button;
+            }
+        }
+
         std::thread WebWidget::s_worker_thread;
         GMainContext* WebWidget::s_worker_context = nullptr;
         GMainLoop* WebWidget::s_worker_loop = nullptr;
@@ -70,9 +81,9 @@ namespace horizon
                                                              0, 
                                                              (int)(ctx.x - x()),
                                                              (int)(ctx.y - y()),
-                                                             ctx.button,
+                                                             map_to_wpe_button(ctx.button),
                                                              1,
-                                                             0};
+                                                             map_horizon_to_wpe_modifiers(ctx.modifiers)};
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
                         auto* d = static_cast<std::pair<WebWidget*, wpe_input_pointer_event*>*>(data);
                         if (d->first->m_backend) wpe_view_backend_dispatch_pointer_event(d->first->m_backend, d->second);
@@ -93,9 +104,9 @@ namespace horizon
                                                              0,
                                                              (int)(ctx.x - x()),
                                                              (int)(ctx.y - y()),
-                                                             ctx.button,
+                                                             map_to_wpe_button(ctx.button),
                                                              0,
-                                                             0};
+                                                             map_horizon_to_wpe_modifiers(ctx.modifiers)};
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
                         auto* d = static_cast<std::pair<WebWidget*, wpe_input_pointer_event*>*>(data);
                         if (d->first->m_backend) wpe_view_backend_dispatch_pointer_event(d->first->m_backend, d->second);
