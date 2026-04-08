@@ -2310,4 +2310,13 @@ namespace horizon
         return nullptr;
     }
 
+    std::vector<std::string> WaylandWindow::get_clipboard_mime_types() const
+    {
+        if (m_clipboard_backend)
+        {
+            return m_clipboard_backend->get_mime_types();
+        }
+        return {};
+    }
+
 } // namespace horizon

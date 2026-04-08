@@ -170,7 +170,6 @@ void WaylandClipboardBackend::cleanup_offer() {
         wl_data_offer_destroy(m_current_offer);
         m_current_offer = nullptr;
     }
-    m_offered_mime_types.clear();
 }
 
 // Global callbacks implementation
@@ -205,6 +204,10 @@ void WaylandClipboardBackend::data_source_handle_cancelled(void *data, struct wl
 
 void WaylandClipboardBackend::data_device_handle_data_offer(void *data, struct wl_data_device *data_device, struct wl_data_offer *id) {
     auto self = static_cast<WaylandClipboardBackend*>(data);
+    
+    // START FRESH: A new data offer announcement starts here.
+    self->m_offered_mime_types.clear();
+    
     static const struct wl_data_offer_listener offer_listener = {
         data_offer_handle_offer,
         nullptr, // source_actions

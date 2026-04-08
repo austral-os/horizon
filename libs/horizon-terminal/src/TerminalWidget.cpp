@@ -657,7 +657,15 @@ void TerminalWidget::perform(horizon::ClipboardAction action) {
         copy_selection();
     } else if (action == horizon::ClipboardAction::Paste) {
         if (m_app) {
-            m_app->request_clipboard_data(this);
+            auto mimes = m_app->get_clipboard_mime_types();
+            std::string best_mime = "text/plain";
+            for (const auto& mime : mimes) {
+                if (mime == "text/uri-list") {
+                    best_mime = mime;
+                    break;
+                }
+            }
+            m_app->request_clipboard_data(this, best_mime);
         }
     }
 }
@@ -682,6 +690,51 @@ void TerminalWidget::provide_clipboard_data(const std::string& mime, horizon::Da
 
 std::vector<std::string> TerminalWidget::provided_mime_types() const {
     return {"text/plain", "text/plain;charset=utf-8"};
+}
+
+std::vector<std::string> TerminalWidget::accepted_mime_types() const {
+    return {"text/plain", "text/uri-list"};
+}
+
+void TerminalWidget::on_clipboard_data_received(const std::string& mime, const std::vector<uint8_t>& data) {
+    LOG_INFO << "TerminalWidget: on_clipboard_data_received starting. Mime: " << mime << ", Size: " << data.size();
+    if (mime == "text/uri-list") {
+        std::string content((const char*)data.data(), data.size());
+        LOG_INFO << "TerminalWidget: Raw content: " << content;
+        std::stringstream ss(content);
+        std::string line;
+        std::string result;
+        
+        while (std::getline(ss, line)) {
+            if (line.empty()) continue;
+            // Remove \r and "file://" prefix
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            if (line.find("file://") == 0) line = line.substr(7);
+            
+            // Add space between items
+            if (!result.empty()) result += " ";
+            
+            // Wrap in single quotes if it contains spaces or special characters
+            if (line.find(' ') != std::string::npos || line.find('\'') != std::string::npos) {
+                // escape single quotes
+                std::string escaped;
+                for (char c : line) {
+                    if (c == '\'') escaped += "'\\''";
+                    else escaped += c;
+                }
+                result += "'" + escaped + "'";
+            } else {
+                result += line;
+            }
+        }
+        
+        if (!result.empty()) {
+            std::vector<uint8_t> result_vec(result.begin(), result.end());
+            write(result_vec);
+        }
+    } else if (mime == "text/plain" || mime == "text/plain;charset=utf-8") {
+        write(data);
+    }
 }
 
 } // namespace terminal

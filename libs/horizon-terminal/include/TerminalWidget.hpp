@@ -45,6 +45,8 @@ public:
     bool supports_clipboard() const override { return true; }
     bool can_perform(horizon::ClipboardAction action) const override;
     void perform(horizon::ClipboardAction action) override;
+    std::vector<std::string> accepted_mime_types() const override;
+    void on_clipboard_data_received(const std::string& mime, const std::vector<uint8_t>& data) override;
 
     // DataSink overrides
     void write(const std::vector<uint8_t>& data) override;
