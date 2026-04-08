@@ -376,8 +376,19 @@ namespace horizon
                 self->m_backend = wpe_view_backend_exportable_fdo_get_view_backend(self->m_exportable);
 
                 auto *webkit_backend = webkit_web_view_backend_new(self->m_backend, nullptr, nullptr);
+
+                // --- PERFORMANCE OPTIMIZATIONS ---
+                WebKitSettings* settings = webkit_settings_new();
+                webkit_settings_set_enable_page_cache(settings, TRUE);
+                webkit_settings_set_enable_smooth_scrolling(settings, TRUE);
+                webkit_settings_set_enable_webgl(settings, TRUE);
+                webkit_settings_set_javascript_can_open_windows_automatically(settings, TRUE);
+                
                 self->m_web_view = webkit_web_view_new(webkit_backend);
-                LOG_INFO << "WebView created for WebWidget: " << self;
+                webkit_web_view_set_settings(self->m_web_view, settings);
+                g_object_unref(settings); // WebView takes a ref
+
+                LOG_INFO << "WebView created with performance optimizations for WebWidget: " << self;
 
                 g_signal_connect(self->m_web_view, "notify::title", G_CALLBACK(on_title_notify), self);
                 g_signal_connect(self->m_web_view, "notify::uri", G_CALLBACK(on_uri_notify), self);
@@ -516,6 +527,18 @@ namespace horizon
             if (!loaded) {
                 LOG_ERROR << "CRITICAL: Could not find libWPEBackend-fdo-1.0.so.1 in common paths!";
             }
+
+            // --- MULTI-CORE OPTIMIZATIONS ---
+            // Set Skia painting threads to use all available cores
+            int cores = std::thread::hardware_concurrency();
+            if (cores > 0) {
+                std::string cores_str = std::to_string(cores);
+                g_setenv("WEBKIT_SKIA_PAINTING_THREADS", cores_str.c_str(), TRUE);
+                LOG_INFO << "Setting WEBKIT_SKIA_PAINTING_THREADS to: " << cores_str;
+            }
+            // Ensure hardware acceleration is favored
+            g_setenv("WEBKIT_SKIA_ENABLE_CPU_RENDERING", "0", TRUE);
+            g_setenv("WEBKIT_FORCE_COMPOSITING_MODE", "1", TRUE);
 
             wpe_fdo_initialize_shm();
 
