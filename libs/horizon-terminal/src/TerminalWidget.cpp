@@ -3,9 +3,6 @@
 #include "horizon/WaylandWindow.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/Clipboard.hpp"
-#include "horizon/Menu.hpp"
-#include "horizon/MenuItem.hpp"
-
 
 #include <linux/input-event-codes.h>
 
@@ -61,55 +58,7 @@ TerminalWidget::TerminalWidget() {
     when_mouse_release.connect([this](MouseButtonEventContext &ctx) {
         this->handle_mouse_release(ctx);
     });
-
-    when_right_click.connect([this](MouseButtonEventContext &) {
-        auto menu = std::make_unique<horizon::Menu>();
-        
-        auto copy_item = menu->add_item("Copiar", "Ctrl+C");
-        bool has_sel = (m_normalized_start.row != -1);
-        copy_item->set_enabled(has_sel);
-        
-        if (has_sel) {
-            copy_item->when_click.connect([this](MouseButtonEventContext &) {
-                this->copy_selection();
-            });
-        }
-
-        auto paste_item = menu->add_item("Pegar", "Ctrl+V");
-        // We always enable paste for now as get_text() handles the empty case gracefully
-        paste_item->when_click.connect([this](MouseButtonEventContext &) {
-            auto text_opt = horizon::Clipboard::get_text();
-            if (text_opt) {
-                std::string text = *text_opt;
-                
-                // Sanitize: \r\n -> \n, standalone \r -> \n, strip \x00
-                std::string sanitized;
-                sanitized.reserve(text.size());
-                for (size_t i = 0; i < text.size(); ++i) {
-                    if (text[i] == '\r') {
-                        sanitized += '\n';
-                        if (i + 1 < text.size() && text[i+1] == '\n') {
-                            i++; // Skip the \n part of \r\n
-                        }
-                    } else if (text[i] == '\0') {
-                        continue;
-                    } else {
-                        sanitized += text[i];
-                    }
-                }
-                
-                if (m_pty) {
-                    m_pty->write(sanitized.c_str(), sanitized.size());
-                }
-            }
-        });
-        
-        this->set_context_menu(std::move(menu));
-    });
 }
-
-
-
 
 TerminalWidget::~TerminalWidget() {
     if (m_pty) {

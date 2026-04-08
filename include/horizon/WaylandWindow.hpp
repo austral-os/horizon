@@ -13,8 +13,6 @@
 #include "horizon/WaylandEventListener.hpp"
 #include "horizon/Clipboard.hpp"
 #include <mutex>
-#include <optional>
-
 
 namespace horizon
 {
@@ -50,9 +48,6 @@ namespace horizon
 
         static WaylandWindow *get_active_window() { return m_active_window; }
         void set_clipboard_data(const ClipboardData& data);
-        std::optional<ClipboardData> get_clipboard_data(const std::vector<std::string>& preferred_mimes = {});
-
-
 
 
         // Modifiers
