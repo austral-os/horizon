@@ -49,12 +49,24 @@ void TabCollection::TabButton::draw(GraphicsContext& ctx) {
     ctx.setDrawFont(font.family.c_str(), font.size, FONT_SLANT_NORMAL, m_active ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
     
     ctx.setColor(Color(0.2f, 0.2f, 0.2f, 1.0f));
-    TextMetrics metrics = ctx.getTextMetrics(m_title.c_str(), font.family.c_str(), font.size, FONT_SLANT_NORMAL, m_active ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
     
+    std::string display_title = m_title;
+    int max_text_width = width() - 20; // 10px padding on each side
+    TextMetrics metrics = ctx.getTextMetrics(display_title.c_str(), font.family.c_str(), font.size, FONT_SLANT_NORMAL, m_active ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
+
+    if (metrics.width > max_text_width) {
+        display_title += "...";
+        while (display_title.length() > 3) {
+            metrics = ctx.getTextMetrics(display_title.c_str(), font.family.c_str(), font.size, FONT_SLANT_NORMAL, m_active ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
+            if (metrics.width <= max_text_width) break;
+            display_title.erase(display_title.length() - 4, 1);
+        }
+    }
+
     int tx = x() + (width() - metrics.width) / 2;
     int ty = y() + (height() + metrics.height) / 2 - 2;
     
-    ctx.drawText(tx, ty, m_title.c_str());
+    ctx.drawText(tx, ty, display_title.c_str());
 }
 
 int TabCollection::TabButton::preferred_width() const {
