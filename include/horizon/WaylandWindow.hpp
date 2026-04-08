@@ -139,6 +139,8 @@ namespace horizon
          * @param widget The widget to invalidate. If nullptr, the entire window is repainted.
          */
         void invalidate(Widget *widget = nullptr);
+        void request_clipboard_data(Widget *target);
+        void set_clipboard_owner(Widget *owner);
         void show_context_menu(Menu *menu, int x = -1, int y = -1, uint32_t serial = 0);
         void close_context_menu(bool emit_signal = true);
         void show_tooltip(Widget *owner, Notification *tooltip);

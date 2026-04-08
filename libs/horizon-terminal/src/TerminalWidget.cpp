@@ -3,7 +3,8 @@
 #include "horizon/WaylandWindow.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/Clipboard.hpp"
-
+#include "horizon/Menu.hpp"
+#include "horizon/MenuItem.hpp"
 #include <linux/input-event-codes.h>
 
 
@@ -57,6 +58,26 @@ TerminalWidget::TerminalWidget() {
 
     when_mouse_release.connect([this](MouseButtonEventContext &ctx) {
         this->handle_mouse_release(ctx);
+    });
+
+    when_right_click.connect([this](MouseButtonEventContext &ctx) {
+        auto menu = std::make_unique<horizon::Menu>();
+        
+        auto* cut = menu->add_item("Cortar", "Ctrl+X", "clipboard_cut");
+        auto* copy = menu->add_item("Copiar", "Ctrl+C", "clipboard_copy");
+        auto* paste = menu->add_item("Pegar", "Ctrl+V", "clipboard_paste");
+
+        cut->set_enabled(can_perform(ClipboardAction::Cut));
+        copy->set_enabled(can_perform(ClipboardAction::Copy));
+        paste->set_enabled(can_perform(ClipboardAction::Paste));
+
+        cut->when_click.connect([this](MouseButtonEventContext&) { perform(ClipboardAction::Cut); });
+        copy->when_click.connect([this](MouseButtonEventContext&) { perform(ClipboardAction::Copy); });
+        paste->when_click.connect([this](MouseButtonEventContext&) { perform(ClipboardAction::Paste); });
+        
+        if (m_app) {
+            m_app->show_context_menu(menu.release(), -1, -1, ctx.serial);
+        }
     });
 }
 
@@ -599,7 +620,10 @@ void TerminalWidget::copy_selection() {
     }
     
     if (!result.empty()) {
-        horizon::Clipboard::set_text(result);
+        m_clipboard_content = result;
+        if (m_app) {
+            m_app->set_clipboard_owner(this);
+        }
     }
 }
 
@@ -616,6 +640,48 @@ void TerminalWidget::set_application_recursive(WaylandWindow *app) {
             }
         }, true);
     }
+}
+
+bool TerminalWidget::can_perform(horizon::ClipboardAction action) const {
+    if (action == horizon::ClipboardAction::Copy || action == horizon::ClipboardAction::Cut) {
+        return m_sel_start.row != -1;
+    }
+    if (action == horizon::ClipboardAction::Paste) {
+        return true;
+    }
+    return false;
+}
+
+void TerminalWidget::perform(horizon::ClipboardAction action) {
+    if (action == horizon::ClipboardAction::Copy || action == horizon::ClipboardAction::Cut) {
+        copy_selection();
+    } else if (action == horizon::ClipboardAction::Paste) {
+        if (m_app) {
+            m_app->request_clipboard_data(this);
+        }
+    }
+}
+
+void TerminalWidget::write(const std::vector<uint8_t>& data) {
+    if (m_pty && !data.empty()) {
+        m_pty->write((const char*)data.data(), data.size());
+    }
+}
+
+void TerminalWidget::provide_clipboard_data(const std::string& mime, horizon::DataSink& sink) {
+    if (mime == "text/plain" || mime == "text/plain;charset=utf-8") {
+        if (!m_clipboard_content.empty()) {
+            std::vector<uint8_t> data_vec(m_clipboard_content.begin(), m_clipboard_content.end());
+            sink.write(data_vec);
+            sink.done();
+        }
+    } else {
+        sink.error();
+    }
+}
+
+std::vector<std::string> TerminalWidget::provided_mime_types() const {
+    return {"text/plain", "text/plain;charset=utf-8"};
 }
 
 } // namespace terminal

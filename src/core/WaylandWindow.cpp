@@ -10,6 +10,7 @@
 #include <horizon/Logger.hpp>
 #include <horizon/WaylandWindow.hpp>
 #include "WaylandClipboardBackend.hpp"
+#include "MainThreadDataSink.hpp"
 
 #include <horizon/Notification.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
@@ -393,6 +394,20 @@ namespace horizon
 
         init_global_menu();
 
+        // Standard clipboard signal routing: automatically dispatch to focused widget
+        signal_manager.connect("copy", [this](SignalContext&) {
+            if (m_focused && m_focused->supports_clipboard())
+                m_focused->perform(ClipboardAction::Copy);
+        });
+        signal_manager.connect("cut", [this](SignalContext&) {
+            if (m_focused && m_focused->supports_clipboard())
+                m_focused->perform(ClipboardAction::Cut);
+        });
+        signal_manager.connect("paste", [this](SignalContext&) {
+            if (m_focused && m_focused->supports_clipboard())
+                m_focused->perform(ClipboardAction::Paste);
+        });
+
         for (auto const &[id, handler] : m_on_start_handlers)
         {
             if (handler)
@@ -763,6 +778,22 @@ namespace horizon
         m_global_menus = menus;
     }
 
+    namespace {
+        bool detect_clipboard_support(Widget *root)
+        {
+            if (!root)
+                return false;
+            if (root->supports_clipboard())
+                return true;
+            for (const auto &child : root->children())
+            {
+                if (detect_clipboard_support(child.get()))
+                    return true;
+            }
+            return false;
+        }
+    }
+
     void WaylandWindow::init_global_menu()
     {
 
@@ -774,6 +805,20 @@ namespace horizon
         m_app_menu->add_separator();
         auto *global_quit = m_app_menu->add_item("Salir", "Ctrl+Q");
         global_quit->set_id("quit");
+
+        // Automatic Edit Menu detection
+        if (detect_clipboard_support(m_root.get()))
+        {
+            auto edit_menu = std::make_unique<Menu>();
+            edit_menu->set_title("Edición");
+            edit_menu->add_item("Copiar", "Ctrl+C", "copy");
+            edit_menu->add_item("Cortar", "Ctrl+X", "cut");
+            edit_menu->add_item("Pegar", "Ctrl+V", "paste");
+            
+            Menu *edit_ptr = edit_menu.get();
+            m_menues.push_back(std::move(edit_menu));
+            m_global_menus.push_back(edit_ptr);
+        }
 
         auto mnu = m_app_menu.get();
         if (std::find(m_global_menus.begin(), m_global_menus.end(), mnu) == m_global_menus.end())
@@ -1018,6 +1063,26 @@ namespace horizon
 
         // We no longer update m_modifiers here; on_modifiers_event is the sole source of truth
         target->when_key_press.run(new_ev);
+
+        // Standard shortcuts for clipboard: automatically dispatch if widget supports it
+        if (m_focused && m_focused->supports_clipboard() && (m_modifiers & CTRL))
+        {
+            if (event.key == KEY_C)
+            {
+                m_focused->perform(ClipboardAction::Copy);
+                return;
+            }
+            else if (event.key == KEY_X)
+            {
+                m_focused->perform(ClipboardAction::Cut);
+                return;
+            }
+            else if (event.key == KEY_V)
+            {
+                m_focused->perform(ClipboardAction::Paste);
+                return;
+            }
+        }
 
         // Global shortcuts
         if (event.key == KEY_F11)
@@ -2130,6 +2195,25 @@ namespace horizon
             m_tooltip_widget = nullptr;
             m_tooltip_owner = nullptr;
             invalidate();
+        }
+    }
+
+    void WaylandWindow::request_clipboard_data(Widget* target)
+    {
+        if (m_clipboard_backend)
+        {
+            auto* sink = dynamic_cast<DataSink*>(target);
+            if (sink) {
+                m_clipboard_backend->request_data("text/plain;charset=utf-8", std::make_shared<MainThreadDataSink>(this, sink));
+            }
+        }
+    }
+
+    void WaylandWindow::set_clipboard_owner(Widget* owner)
+    {
+        if (m_clipboard_backend)
+        {
+            m_clipboard_backend->set_provider(owner->get_clipboard_provider(), {"text/plain;charset=utf-8"});
         }
     }
 

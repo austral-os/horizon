@@ -1,0 +1,8 @@
+ninja: Entering directory `build'
+[1/1] Linking CXX executable apps/terminal/terminal
+FAILED: apps/terminal/terminal 
+: && /usr/bin/g++ -g -Wl,--dependency-file=apps/terminal/CMakeFiles/terminal.dir/link.d apps/terminal/CMakeFiles/terminal.dir/src/TerminalWindow.cpp.o apps/terminal/CMakeFiles/terminal.dir/src/main.cpp.o -o apps/terminal/terminal  -Wl,-rpath,/home/horacio/Desarrollo/austral-os/horizon/build/libs/horizon-terminal:/home/horacio/Desarrollo/austral-os/horizon/build  libs/horizon-terminal/libhorizon-terminal.so  libhorizon.so  -ldbus-1  -luuid  -lvterm  -lcairo  -lfreetype  -lharfbuzz  -lfontconfig  -lfreetype  -lharfbuzz  -lfontconfig  -lutil && :
+/usr/bin/ld: libhorizon.so: referencia a `horizon::WaylandClipboardBackend::WaylandClipboardBackend(horizon::WaylandSurface*)' sin definir
+/usr/bin/ld: libhorizon.so: referencia a `horizon::WaylandClipboardBackend::set(horizon::ClipboardData const&)' sin definir
+collect2: error: ld returned 1 exit status
+ninja: build stopped: subcommand failed.

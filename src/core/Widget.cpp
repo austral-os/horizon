@@ -122,6 +122,7 @@ namespace horizon
                 m_app->stop_timer(m_click_timer);
                 m_click_timer = 0;
             }
+            // Notify about potential clipboard ownership loss before unregistering
             m_app->unregister_widget(this);
         }
     }

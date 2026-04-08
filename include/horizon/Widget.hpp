@@ -1,6 +1,8 @@
 #pragma once
 #include "horizon/Color.hpp"
 #include "horizon/EventsManager.hpp"
+#include "horizon/ClipboardActions.hpp"
+#include "horizon/ClipboardProvider.hpp"
 #include <chrono>
 #include <map>
 #include <memory>
@@ -197,6 +199,24 @@ namespace horizon
         // --- Cursors ---
         void set_cursor_type(CursorType type);
         CursorType cursor_type() const;
+
+        // --- Clipboard ---
+        virtual bool supports_clipboard() const { return false; }
+        virtual bool can_perform(ClipboardAction action) const { return false; }
+        virtual void perform(ClipboardAction action) {}
+        virtual std::vector<std::string> accepted_mime_types() const { return {}; }
+        virtual ClipboardProvider *get_clipboard_provider() { return nullptr; }
+
+        /**
+         * @brief Standard implementation for providing clipboard data.
+         * Default handles text/plain if the widget has related content.
+         */
+        virtual void provide_clipboard_data(const std::string &mime, DataSink &sink) {}
+
+        /**
+         * @brief Called when clipboard data is received (Paste).
+         */
+        virtual void on_clipboard_data_received(const std::string &mime, const std::vector<uint8_t> &data) {}
 
         // --- Context Menu ---
         void set_context_menu(std::unique_ptr<Menu> menu);

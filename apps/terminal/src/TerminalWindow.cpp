@@ -12,7 +12,6 @@ TerminalWindow::TerminalWindow()
     m_terminal = terminal.get();
     
     // Set it as the content of the ApplicationWindow
-    // This will place it below the toolbar and above the status bar
     set_content(std::move(terminal));
 }
 

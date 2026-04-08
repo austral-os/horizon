@@ -14,10 +14,12 @@
 #include <cairo-ft.h>
 #include <fontconfig/fontconfig.h>
 
+#include <horizon/ClipboardProvider.hpp>
+
 namespace horizon {
 namespace terminal {
 
-class TerminalWidget : public horizon::Widget {
+class TerminalWidget : public horizon::Widget, public horizon::DataSink, public horizon::ClipboardProvider {
 public:
     TerminalWidget();
     ~TerminalWidget();
@@ -38,6 +40,21 @@ public:
     BufferPos screen_to_buffer(double x, double y);
     void update_selection(BufferPos end_pos);
     void copy_selection();
+
+    // Clipboard Support
+    bool supports_clipboard() const override { return true; }
+    bool can_perform(horizon::ClipboardAction action) const override;
+    void perform(horizon::ClipboardAction action) override;
+
+    // DataSink overrides
+    void write(const std::vector<uint8_t>& data) override;
+    void done() override {}
+    void error() override {}
+
+    // ClipboardProvider overrides
+    void provide_clipboard_data(const std::string& mime, horizon::DataSink& sink) override;
+    std::vector<std::string> provided_mime_types() const override;
+    horizon::ClipboardProvider *get_clipboard_provider() override { return this; }
 
 
     void set_application_recursive(horizon::WaylandWindow *app) override;
@@ -75,6 +92,7 @@ private:
     bool m_is_selecting = false;
     BufferPos m_normalized_start = {-1, -1};
     BufferPos m_normalized_end = {-1, -1};
+    std::string m_clipboard_content;
 
     // Scrollbar visuals
 

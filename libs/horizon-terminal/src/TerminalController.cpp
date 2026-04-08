@@ -181,12 +181,7 @@ Cell TerminalController::get_cell(int row, int col) {
 
     Cell cell;
     cell.wrapped = wrapped;
-    cell.is_continuation = false; // No hay una forma directa en vcell pero podemos chequear si es 0 y el ancho es > 1?
-    // En realidad libvterm rellena celdas de continuación con chars[0] = 0.
-    if (vcell.chars[0] == 0 && col > 0) {
-        // Podría ser una continuación.
-        cell.is_continuation = true;
-    }
+    cell.is_continuation = (vcell.width == 0);
 
     std::stringstream ss;
     for (int i = 0; i < VTERM_MAX_CHARS_PER_CELL && vcell.chars[i] != 0; ++i) {
