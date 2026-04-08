@@ -3,7 +3,6 @@
 #include "horizon/Logger.hpp"
 #include "horizon/WaylandWindow.hpp"
 #include <cstring>
-#include <iostream>
 #include <wayland-server-core.h>
 #include <wpe/fdo.h>
 #include <wpe/unstable/fdo-shm.h>
@@ -14,6 +13,16 @@ namespace horizon
 {
     namespace web
     {
+        // Helper to map Horizon modifiers to WPE modifiers
+        static uint32_t map_horizon_to_wpe_modifiers(uint32_t mods)
+        {
+            uint32_t result = 0;
+            if (mods & 0x1) result |= (1 << 1); // Shift (Horizon 0x1 -> WPE Shift 1<<1)
+            if (mods & 0x2) result |= (1 << 0); // Control (Horizon 0x2 -> WPE Control 1<<0)
+            if (mods & 0x4) result |= (1 << 2); // Alt (Horizon 0x4 -> WPE Alt 1<<2)
+            return result;
+        }
+
         std::thread WebWidget::s_worker_thread;
         GMainContext* WebWidget::s_worker_context = nullptr;
         GMainLoop* WebWidget::s_worker_loop = nullptr;
@@ -94,20 +103,34 @@ namespace horizon
             when_mouse_wheel.connect(
                 [this](MouseWheelEventContext &ctx)
                 {
-                    auto* event = new wpe_input_axis_event{
-                        wpe_input_axis_event_type_mask_2d,
-                        0u,
-                        (int)(ctx.x - x()),
-                        (int)(ctx.y - y()),
-                        0,
-                        (int)(ctx.dy * -20)};
-                    g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                        auto* d = static_cast<std::pair<WebWidget*, wpe_input_axis_event*>*>(data);
-                        if (d->first->m_backend) wpe_view_backend_dispatch_axis_event(d->first->m_backend, d->second);
-                        delete d->second;
-                        delete d;
-                        return FALSE;
-                    }, new std::pair<WebWidget*, wpe_input_axis_event*>(this, event));
+                    uint32_t wpe_mods = map_horizon_to_wpe_modifiers(ctx.modifiers);
+
+                    auto dispatch_axis = [this, &ctx, wpe_mods](uint32_t axis, int32_t value) {
+                        if (value == 0) return;
+                        
+                        auto* event = new wpe_input_axis_event{
+                            wpe_input_axis_event_type_motion,
+                            0u,
+                            (int)(ctx.x - x()),
+                            (int)(ctx.y - y()),
+                            axis,
+                            value,
+                            wpe_mods};
+
+                        g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+                            auto* d = static_cast<std::pair<WebWidget*, wpe_input_axis_event*>*>(data);
+                            if (d->first->m_backend) wpe_view_backend_dispatch_axis_event(d->first->m_backend, d->second);
+                            delete d->second;
+                            delete d;
+                            return FALSE;
+                        }, new std::pair<WebWidget*, wpe_input_axis_event*>(this, event));
+                    };
+
+                    // Scale factor: dy/dx in Wayland are typically ~10 units per notch.
+                    // WebKit often expects these to be roughly pixel-equivalent or at least significant.
+                    // Positive multiplier because WebKit expects positive value for scrolling DOWN.
+                    dispatch_axis(0, (int)(ctx.dy * 8)); // Vertical
+                    dispatch_axis(1, (int)(ctx.dx * 8)); // Horizontal
                 });
 
             // Keyboard
@@ -115,7 +138,7 @@ namespace horizon
                 [this](KeyEventContext &ctx)
                 {
                     auto* event = new wpe_input_keyboard_event{0, ctx.key, ctx.keysym, true,
-                                                             ctx.modifiers};
+                                                             map_horizon_to_wpe_modifiers(ctx.modifiers)};
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
                         auto* d = static_cast<std::pair<WebWidget*, wpe_input_keyboard_event*>*>(data);
                         if (d->first->m_backend) wpe_view_backend_dispatch_keyboard_event(d->first->m_backend, d->second);
@@ -129,7 +152,8 @@ namespace horizon
                 [this](KeyEventContext &ctx)
                 {
                     auto* event = new wpe_input_keyboard_event{0, ctx.key, ctx.keysym, false,
-                                                             ctx.modifiers};
+                                                             map_horizon_to_wpe_modifiers(ctx.modifiers)};
+
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
                         auto* d = static_cast<std::pair<WebWidget*, wpe_input_keyboard_event*>*>(data);
                         if (d->first->m_backend) wpe_view_backend_dispatch_keyboard_event(d->first->m_backend, d->second);
