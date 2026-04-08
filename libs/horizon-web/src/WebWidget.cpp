@@ -186,7 +186,7 @@ namespace horizon
             when_key_press.connect(
                 [this](KeyEventContext &ctx)
                 {
-                    auto* event = new wpe_input_keyboard_event{0, ctx.key, ctx.keysym, true,
+                    auto* event = new wpe_input_keyboard_event{0, ctx.keysym, ctx.key + 8, true,
                                                              map_horizon_to_wpe_modifiers(ctx.modifiers)};
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
                         auto* d = static_cast<std::pair<WebWidget*, wpe_input_keyboard_event*>*>(data);
@@ -200,7 +200,7 @@ namespace horizon
             when_key_release.connect(
                 [this](KeyEventContext &ctx)
                 {
-                    auto* event = new wpe_input_keyboard_event{0, ctx.key, ctx.keysym, false,
+                    auto* event = new wpe_input_keyboard_event{0, ctx.keysym, ctx.key + 8, false,
                                                              map_horizon_to_wpe_modifiers(ctx.modifiers)};
 
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
