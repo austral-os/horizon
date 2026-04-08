@@ -43,18 +43,33 @@ void BrowserWindow::setup_ui() {
     sb->add_child(std::move(pb_container));
     sb->add_child(horizon::Spacer(10));
 
-    // 3. Web View
-    auto web_view = std::make_unique<web::WebWidget>();
-    m_web_view = web_view.get();
-    m_web_view->set_position_type(FILL);
+    // 3. Tab Collection
+    auto tabs = std::make_unique<TabCollection>();
+    m_tabs = tabs.get();
     
+    m_tabs->when_add_tab_clicked.connect([this](EventContext&) {
+        this->create_new_tab("https://www.google.com");
+    });
+    
+    m_tabs->when_tab_selected.connect([this](int index) {
+        auto* web_view = dynamic_cast<web::WebWidget*>(m_tabs->current_tab_body());
+        if (web_view) {
+            std::string title = web_view->get_title();
+            if (!title.empty()) set_title(title + " - Nova");
+            else set_title("Nova Web Browser");
+            
+            m_toolbar->set_url(web_view->get_url());
+        }
+    });
+
     // --- Connections ---
 
-    // Toolbar -> Web View
+    // Toolbar -> Current Web View
     m_toolbar->when_navigation_clicked.connect([this](NavigationButtonClickEvent& ctx) {
-        if (!m_web_view) return;
-        if (ctx.index == 0) m_web_view->go_back();
-        else m_web_view->go_forward();
+        auto* web_view = dynamic_cast<web::WebWidget*>(m_tabs->current_tab_body());
+        if (!web_view) return;
+        if (ctx.index == 0) web_view->go_back();
+        else web_view->go_forward();
     });
 
     m_toolbar->when_home_clicked.connect([this](HomeButtonClickEvent&) {
@@ -66,52 +81,62 @@ void BrowserWindow::setup_ui() {
     });
 
     m_toolbar->when_bookmark_clicked.connect([this](BookmarkButtonClickEvent&) {
-        // TODO: Show bookmarks dialog
         LOG_INFO << "[NOVA] Bookmarks clicked";
     });
 
     m_toolbar->when_options_clicked.connect([this](OptionsButtonClickEvent&) {
-        // TODO: Show options menu
         LOG_INFO << "[NOVA] Options clicked";
     });
 
-    // Web View -> UI
-    m_web_view->when_url_changed.connect([this](const std::string& url) {
-        if (m_toolbar) m_toolbar->set_url(url);
-    });
+    // Initial tab
+    create_new_tab("https://www.google.com");
 
-    m_web_view->when_title_changed.connect([this](const std::string& title) {
-        if (!title.empty()) set_title(title + " - Nova");
-        else set_title("Nova Web Browser");
-    });
+    set_content(std::move(tabs));
+}
 
-    m_web_view->when_loading_changed.connect([this](bool loading) {
-        if (m_status_label) m_status_label->set_text(loading ? "Loading..." : "Done");
-        if (m_progress_bar) m_progress_bar->set_visible(loading);
-    });
-
-    m_web_view->when_progress_changed.connect([this](double progress) {
-        if (m_progress_bar) m_progress_bar->set_progress((float)progress);
-    });
-
-    // Initial load
-    when_application_load.connect([this](auto&) {
-        if (m_web_view) {
-            m_web_view->load_url("https://www.google.com");
+void BrowserWindow::create_new_tab(const std::string& url) {
+    auto web_view = std::make_unique<web::WebWidget>();
+    auto* ptr = web_view.get();
+    
+    // Connect signals for the new web view
+    ptr->when_url_changed.connect([this, ptr](const std::string& url) {
+        if (m_tabs->current_tab_body() == (horizon::Widget*)ptr) {
+            m_toolbar->set_url(url);
         }
     });
 
-    set_content(std::move(web_view));
+    ptr->when_title_changed.connect([this, ptr](const std::string& title) {
+        if (m_tabs->current_tab_body() == (horizon::Widget*)ptr) {
+            if (!title.empty()) set_title(title + " - Nova");
+            else set_title("Nova Web Browser");
+        }
+    });
+
+    ptr->when_loading_changed.connect([this, ptr](bool loading) {
+        if (m_tabs->current_tab_body() == (horizon::Widget*)ptr) {
+            if (m_status_label) m_status_label->set_text(loading ? "Loading..." : "Done");
+            if (m_progress_bar) m_progress_bar->set_visible(loading);
+        }
+    });
+
+    ptr->when_progress_changed.connect([this, ptr](double progress) {
+        if (m_tabs->current_tab_body() == (horizon::Widget*)ptr) {
+            if (m_progress_bar) m_progress_bar->set_progress((float)progress);
+        }
+    });
+
+    m_tabs->add_tab("New Tab", std::unique_ptr<horizon::Widget>(web_view.release()));
+    ptr->load_url(url);
 }
 
 void BrowserWindow::navigate_to_url(const std::string& input_url) {
-    if (m_web_view) {
+    auto* web_view = dynamic_cast<web::WebWidget*>(m_tabs->current_tab_body());
+    if (web_view) {
         std::string url = input_url;
         if (url.empty()) return;
         
         // Basic URL normalization
         if (url.find("://") == std::string::npos) {
-            // Check if it looks like a domain or search query
             if (url.find(".") != std::string::npos && url.find(" ") == std::string::npos) {
                 url = "https://" + url;
             } else {
@@ -119,8 +144,8 @@ void BrowserWindow::navigate_to_url(const std::string& input_url) {
             }
         }
         
-        LOG_INFO << "[NOVA] Navigating to: " << url;
-        m_web_view->load_url(url);
+        LOG_INFO << "[NOVA] Navigating in current tab to: " << url;
+        web_view->load_url(url);
     }
 }
 

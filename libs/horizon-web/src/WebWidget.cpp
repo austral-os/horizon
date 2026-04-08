@@ -74,13 +74,13 @@ namespace horizon
                 {
                     if (!m_backend)
                         return;
-                    // Forward vertical scroll
                     struct wpe_input_axis_event event = {
                         wpe_input_axis_event_type_mask_2d,
-                        (int)ctx.dy * -20, // Negative for natural scroll matching
+                        0u,
                         (int)(ctx.x - x()),
                         (int)(ctx.y - y()),
-                        0};
+                        0,
+                        (int)(ctx.dy * -20)};
                     wpe_view_backend_dispatch_axis_event(m_backend, &event);
                 });
 
@@ -108,6 +108,14 @@ namespace horizon
 
         WebWidget::~WebWidget()
         {
+            m_running = false;
+            if (m_worker_loop) {
+                g_main_loop_quit(m_worker_loop);
+            }
+            if (m_worker_thread.joinable()) {
+                m_worker_thread.join();
+            }
+
             if (m_web_view)
             {
                 g_object_unref(m_web_view);
@@ -116,6 +124,8 @@ namespace horizon
             {
                 wpe_view_backend_destroy(m_backend);
             }
+            
+            std::lock_guard<std::mutex> lock(m_surface_mutex);
             if (m_cairo_surface)
             {
                 cairo_surface_destroy(m_cairo_surface);
@@ -126,6 +136,17 @@ namespace horizon
         {
             if (m_initialized)
                 return;
+
+            m_running = true;
+            m_initialized = true;
+            m_worker_thread = std::thread(&WebWidget::worker_thread_func, this);
+        }
+
+        void WebWidget::worker_thread_func() 
+        {
+            m_worker_context = g_main_context_new();
+            g_main_context_push_thread_default(m_worker_context);
+            m_worker_loop = g_main_loop_new(m_worker_context, FALSE);
 
             wpe_loader_init("/usr/lib/x86_64-linux-gnu/libWPEBackend-fdo-1.0.so.1");
             wpe_fdo_initialize_shm();
@@ -151,50 +172,64 @@ namespace horizon
             auto *webkit_backend = webkit_web_view_backend_new(m_backend, nullptr, nullptr);
             m_web_view = webkit_web_view_new(webkit_backend);
 
-            // Connect Signals for Refinement
             g_signal_connect(m_web_view, "notify::title", G_CALLBACK(on_title_notify), this);
             g_signal_connect(m_web_view, "notify::uri", G_CALLBACK(on_uri_notify), this);
             g_signal_connect(m_web_view, "load-changed", G_CALLBACK(on_load_changed), this);
             g_signal_connect(m_web_view, "notify::estimated-load-progress", G_CALLBACK(on_progress_notify), this);
             g_signal_connect(m_web_view, "mouse-target-changed", G_CALLBACK(on_mouse_target_changed), this);
 
-            if (application()) {
-                application()->add_timer(16, []() {
-                    g_main_context_iteration(NULL, FALSE);
-                }, true);
-            }
+            LOG_INFO << "WPE WebKit worker thread started for WebWidget";
+            
+            g_main_loop_run(m_worker_loop);
 
-            LOG_INFO << "WPE WebKit (Nova) engine initialized with refinement signals connected";
-            m_initialized = true;
+            g_main_context_pop_thread_default(m_worker_context);
+            g_main_loop_unref(m_worker_loop);
+            g_main_context_unref(m_worker_context);
+            m_worker_loop = nullptr;
+            m_worker_context = nullptr;
         }
 
         void WebWidget::on_title_notify(WebKitWebView*, GParamSpec*, WebWidget* self) {
             std::string title = self->get_title();
-            EventContext ctx;
-            self->when_title_changed.run(title);
+            if (self->application()) {
+                self->application()->post_task([self, title]() {
+                    std::string t = title;
+                    self->when_title_changed.run(t);
+                });
+            }
         }
 
         void WebWidget::on_uri_notify(WebKitWebView*, GParamSpec*, WebWidget* self) {
             std::string url = self->get_url();
-            self->when_url_changed.run(url);
+            if (self->application()) {
+                self->application()->post_task([self, url]() {
+                    std::string u = url;
+                    self->when_url_changed.run(u);
+                });
+            }
         }
 
         void WebWidget::on_load_changed(WebKitWebView*, int load_event, WebWidget* self) {
             bool loading = (load_event != 3); // 3 == WEBKIT_LOAD_FINISHED
-            self->when_loading_changed.run(loading);
+            if (self->application()) {
+                self->application()->post_task([self, loading]() {
+                    bool l = loading;
+                    self->when_loading_changed.run(l);
+                });
+            }
         }
 
         void WebWidget::on_progress_notify(WebKitWebView* web_view, GParamSpec*, WebWidget* self) {
             double progress = webkit_web_view_get_estimated_load_progress(web_view);
-            self->when_progress_changed.run(progress);
+            if (self->application()) {
+                self->application()->post_task([self, progress]() {
+                    double p = progress;
+                    self->when_progress_changed.run(p);
+                });
+            }
         }
 
-        void WebWidget::on_mouse_target_changed(WebKitWebView*, void*, uint32_t, WebWidget* self) {
-            // This happens when hovering over links.
-            // Simplified: change cursor to pointer if it's a link (handled by WebKit internally via cursor signals)
-            // But WPE FDO doesn't always handle it automatically, so WebKit handles it via g_signal_connect "cursor-changed"
-            // For now, let's just use the default cursor or let WebKit handle it if possible.
-        }
+        void WebWidget::on_mouse_target_changed(WebKitWebView*, void*, uint32_t, WebWidget* self) {}
 
         std::string WebWidget::get_title() const {
              if (!m_web_view) return "";
@@ -223,30 +258,48 @@ namespace horizon
             void *buffer_data = wl_shm_buffer_get_data(shm_buffer);
             int stride = wl_shm_buffer_get_stride(shm_buffer);
 
-            if (!self->m_cairo_surface ||
-                cairo_image_surface_get_width(self->m_cairo_surface) != width ||
-                cairo_image_surface_get_height(self->m_cairo_surface) != height)
             {
-                if (self->m_cairo_surface) cairo_surface_destroy(self->m_cairo_surface);
-                self->m_cairo_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-            }
+                std::lock_guard<std::mutex> lock(self->m_surface_mutex);
+                if (!self->m_cairo_surface ||
+                    cairo_image_surface_get_width(self->m_cairo_surface) != width ||
+                    cairo_image_surface_get_height(self->m_cairo_surface) != height)
+                {
+                    if (self->m_cairo_surface) cairo_surface_destroy(self->m_cairo_surface);
+                    self->m_cairo_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                }
 
-            unsigned char *dest = cairo_image_surface_get_data(self->m_cairo_surface);
-            if (dest && buffer_data) {
-                cairo_surface_flush(self->m_cairo_surface);
-                std::memcpy(dest, buffer_data, stride * height);
-                cairo_surface_mark_dirty(self->m_cairo_surface);
+                unsigned char *dest = cairo_image_surface_get_data(self->m_cairo_surface);
+                if (dest && buffer_data) {
+                    cairo_surface_flush(self->m_cairo_surface);
+                    std::memcpy(dest, buffer_data, stride * height);
+                    cairo_surface_mark_dirty(self->m_cairo_surface);
+                }
             }
 
             wpe_view_backend_exportable_fdo_dispatch_release_shm_exported_buffer(self->m_exportable, buffer);
             wpe_view_backend_exportable_fdo_dispatch_frame_complete(self->m_exportable);
-            self->invalidate();
+            
+            if (self->application()) {
+                self->application()->post_task([self]() {
+                    self->invalidate();
+                });
+            }
         }
 
         void WebWidget::load_url(const std::string &url)
         {
             if (!m_initialized) init_wpe();
-            if (m_web_view) webkit_web_view_load_uri(m_web_view, url.c_str());
+            // Wait until m_web_view is initialized by the worker thread or post a task to the worker thread
+            if (m_worker_context) {
+                g_main_context_invoke(m_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+                    auto* pair = static_cast<std::pair<WebWidget*, std::string>*>(data);
+                    if (pair->first->m_web_view) {
+                        webkit_web_view_load_uri(pair->first->m_web_view, pair->second.c_str());
+                    }
+                    delete pair;
+                    return FALSE;
+                }, new std::pair<WebWidget*, std::string>(this, url));
+            }
         }
 
         void WebWidget::draw(GraphicsContext &ctx)
@@ -254,6 +307,7 @@ namespace horizon
             ctx.setColor(background_color());
             ctx.fillRect(x(), y(), width(), height());
 
+            std::lock_guard<std::mutex> lock(m_surface_mutex);
             if (m_cairo_surface)
             {
                 cairo_t *cr = (cairo_t *)ctx.getNativeContext();

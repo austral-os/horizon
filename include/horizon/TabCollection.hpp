@@ -1,0 +1,97 @@
+#pragma once
+
+#include <horizon/Widget.hpp>
+#include <horizon/Button.hpp>
+#include <horizon/EventsManager.hpp>
+#include <vector>
+#include <string>
+#include <memory>
+
+namespace horizon {
+
+class TabCollection : public Widget {
+public:
+    TabCollection();
+    virtual ~TabCollection() = default;
+
+    /**
+     * @brief Structure to hold data for a single tab.
+     */
+    struct TabPage {
+        std::string title;
+        std::unique_ptr<Widget> body;
+    };
+
+    /**
+     * @brief Adds a new tab to the collection.
+     * @param title The title of the tab.
+     * @param body The widget to be displayed as the tab's content.
+     */
+    void add_tab(const std::string& title, std::unique_ptr<Widget> body);
+
+    /**
+     * @brief Removes a tab by its index.
+     * @param index The index of the tab to remove.
+     */
+    void remove_tab(int index);
+
+    /**
+     * @brief Sets the currently active tab.
+     * @param index The index of the tab to activate.
+     */
+    void set_current_tab(int index);
+
+    /**
+     * @return The index of the currently active tab.
+     */
+    int current_tab_index() const { return m_current_tab; }
+
+    /**
+     * @return Pointer to the body of the currently active tab.
+     */
+    Widget* current_tab_body() const;
+
+    /**
+     * @return The number of tabs in the collection.
+     */
+    size_t tab_count() const { return m_tabs.size(); }
+
+    // --- Signals ---
+    EventsManager<int> when_tab_added;      /**< Emitted when a tab is added (index). */
+    EventsManager<int> when_tab_changed;    /**< Emitted when the tab list changes (count). */
+    EventsManager<int> when_tab_selected;   /**< Emitted when a tab is selected (index). */
+    EventsManager<EventContext> when_add_tab_clicked; /**< Emitted when the "+" button is clicked. */
+
+protected:
+    void render(GraphicsContext& ctx, int cx, int cy, int cw, int ch, bool force = false) override;
+    void draw(GraphicsContext& ctx) override;
+
+private:
+    void update_layout();
+
+    /**
+     * @brief Internal widget for rendering a single tab button in the header.
+     */
+    class TabButton : public Widget {
+        std::string m_title;
+        bool m_active = false;
+        TabCollection* m_owner;
+        int m_index;
+
+    public:
+        TabButton(TabCollection* owner, int index, const std::string& title);
+        void set_active(bool active);
+        void set_title(const std::string& title);
+        void draw(GraphicsContext& ctx) override;
+        int preferred_width() const override;
+    };
+
+    Widget* m_header;    /**< Header containing the tab buttons. */
+    Widget* m_container; /**< Container showing the active tab's body. */
+    Widget* m_add_button;/**< The "+" button for adding tabs. */
+    
+    std::vector<TabPage> m_tabs;
+    int m_current_tab = -1;
+};
+
+} // namespace horizon

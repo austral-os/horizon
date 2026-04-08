@@ -3,21 +3,21 @@
 #include "horizon/Widget.hpp"
 #include "horizon/SignalManager.hpp"
 #include <cairo.h>
-#include <memory>
-#include <string>
+#include <thread>
+#include <mutex>
 
-// Forward declarations for WPE/WebKit
+typedef struct _GMainContext GMainContext;
+typedef struct _GMainLoop GMainLoop;
 typedef struct _WebKitWebView WebKitWebView;
+typedef struct _GParamSpec GParamSpec;
 struct wpe_view_backend;
 struct wpe_view_backend_exportable_fdo;
 struct wpe_fdo_shm_exported_buffer;
-typedef struct _GParamSpec GParamSpec;
-
 
 namespace horizon {
 namespace web {
 
-class WebWidget : public Widget {
+class WebWidget : public horizon::Widget {
 public:
     WebWidget();
     virtual ~WebWidget();
@@ -47,6 +47,7 @@ protected:
 
 private:
     void init_wpe();
+    void worker_thread_func();
     static void on_frame_exported(void* data, struct wpe_fdo_shm_exported_buffer* buffer);
     
     // WebKit Signal Handlers (Static for C-style callbacks)
@@ -61,9 +62,16 @@ private:
     struct wpe_view_backend_exportable_fdo* m_exportable = nullptr;
     
     // For SHM rendering (easier to bridge to Cairo)
+    std::mutex m_surface_mutex;
     cairo_surface_t* m_cairo_surface = nullptr;
     
     bool m_initialized = false;
+    
+    // Threading
+    std::thread m_worker_thread;
+    GMainContext* m_worker_context = nullptr;
+    GMainLoop* m_worker_loop = nullptr;
+    bool m_running = false;
 };
 
 } // namespace web
