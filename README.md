@@ -64,6 +64,8 @@ sudo apt install build-essential g++ pkg-config \
                  libegl1-mesa-dev libgles2-mesa-dev \
                  libdbus-1-dev libvterm-dev \
                  libpipewire-0.3-dev libspa-0.2-dev \
+                 libfontconfig1-dev libfreetype6-dev \
+                 libharfbuzz-dev uuid-dev \
                  nlohmann-json3-dev weston wayland-utils \
                  wlr-randr xdg-utils shared-mime-info \
                  desktop-file-utils
