@@ -85,18 +85,26 @@ void WaylandClipboardBackend::request_data(const std::string& mime, std::shared_
 
     wl_data_offer_receive(m_current_offer, mime.c_str(), fds[1]);
     close(fds[1]);
+    
+    // CRITICAL: Flush the display to ensure the receive request is sent to the compositor immediately.
+    // Without this, the compositor won't start writing to the pipe, and our poll will time out.
+    wl_display_flush(m_surface->display());
 
     // Fast-track: try to read immediately
     struct pollfd pfd;
     pfd.fd = fds[0];
     pfd.events = POLLIN;
 
-    std::vector<uint8_t> buffer;
-    buffer.resize(4096);
+    std::vector<uint8_t> total_data;
+    std::vector<uint8_t> buffer(4096);
 
     while (true) {
-        int ret = poll(&pfd, 1, 500); // 500ms timeout to avoid hanging
-        if (ret <= 0) break;
+        int ret = poll(&pfd, 1, 200); // 200ms timeout per chunk
+        if (ret < 0) {
+            if (errno == EINTR) continue;
+            break;
+        }
+        if (ret == 0) break; // Timeout
 
         ssize_t n = read(fds[0], buffer.data(), buffer.size());
         if (n > 0) {
