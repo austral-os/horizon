@@ -41,6 +41,13 @@ namespace horizon
         return m_titlebar->title();
     }
 
+    void Window::set_title(std::string title)
+    {
+        if (m_titlebar)
+            m_titlebar->set_title(title);
+        invalidate();
+    }
+
     CornerRadius Window::get_window_corners() const
     {
         return {10, 10, 0, 0};

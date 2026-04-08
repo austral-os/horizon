@@ -1,6 +1,7 @@
 set(SOURCES
     src/main.cpp
     src/BrowserWindow.cpp
+    src/NovaToolbar.cpp
 )
 
 add_executable(nova ${SOURCES})

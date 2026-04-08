@@ -16,6 +16,7 @@ namespace horizon
         void set_size(int width, int height);
 
         const std::string &title() const;
+        void set_title(std::string title);
 
         virtual CornerRadius get_window_corners() const;
 
