@@ -51,16 +51,12 @@ void BrowserWindow::setup_ui() {
         this->create_new_tab("https://www.google.com");
     });
     
-    m_tabs->when_tab_selected.connect([this](int index) {
-        auto* web_view = dynamic_cast<web::WebWidget*>(m_tabs->current_tab_body());
-        if (web_view) {
-            std::string title = web_view->get_title();
-            if (!title.empty()) set_title(title + " - Nova");
-            else set_title("Nova Web Browser");
-            
-            m_toolbar->set_url(web_view->get_url());
-        }
-    });
+        m_tabs->when_tab_selected.connect([this](int index) {
+            auto* web_view = dynamic_cast<web::WebWidget*>(m_tabs->current_tab_body());
+            if (web_view) {
+                m_toolbar->set_url(web_view->get_url());
+            }
+        });
 
     // --- Connections ---
 
@@ -106,11 +102,11 @@ void BrowserWindow::create_new_tab(const std::string& url) {
         }
     });
 
-    ptr->when_title_changed.connect([this, ptr](const std::string& title) {
-        if (m_tabs->current_tab_body() == (horizon::Widget*)ptr) {
-            if (!title.empty()) set_title(title + " - Nova");
-            else set_title("Nova Web Browser");
-        }
+
+    int index = m_tabs->add_tab("New Tab", std::unique_ptr<horizon::Widget>(web_view.release()));
+    
+    ptr->when_title_changed.connect([this, ptr, index](const std::string& title) {
+        m_tabs->set_tab_title(index, title);
     });
 
     ptr->when_loading_changed.connect([this, ptr](bool loading) {
@@ -126,7 +122,6 @@ void BrowserWindow::create_new_tab(const std::string& url) {
         }
     });
 
-    m_tabs->add_tab("New Tab", std::unique_ptr<horizon::Widget>(web_view.release()));
     ptr->load_url(url);
 }
 

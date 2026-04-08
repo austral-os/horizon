@@ -22,6 +22,11 @@ public:
     WebWidget();
     virtual ~WebWidget();
 
+    /**
+     * @brief Explicitly shuts down the worker thread and cleans up global WPE state.
+     */
+    static void shutdown();
+
     void load_url(const std::string& url);
     void reload();
     void stop_loading();

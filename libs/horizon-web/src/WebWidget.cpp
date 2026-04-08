@@ -142,35 +142,74 @@ namespace horizon
 
         WebWidget::~WebWidget()
         {
-            if (m_web_view)
-            {
-                // We must unref webview in the worker thread context!
-                g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                    g_object_unref(data);
-                    return FALSE;
-                }, m_web_view);
-                m_web_view = nullptr;
-            }
+            // Disconnect all signals immediately to prevent any worker callbacks to dead UI objects
+            when_title_changed.disconnect_all();
+            when_url_changed.disconnect_all();
+            when_loading_changed.disconnect_all();
+            when_progress_changed.disconnect_all();
+
+            // Synchronous cleanup on worker thread
+            struct CleanupData {
+                WebKitWebView* web_view;
+                wpe_view_backend_exportable_fdo* exportable;
+                std::atomic<bool>* done;
+            };
             
-            if (m_exportable) {
-                g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                    wpe_view_backend_exportable_fdo_destroy((wpe_view_backend_exportable_fdo*)data);
-                    return FALSE;
-                }, m_exportable);
-                m_exportable = nullptr;
-            }
+            std::atomic<bool> cleanup_done{false};
 
-            std::lock_guard<std::mutex> lock(m_surface_mutex);
-            if (m_cairo_surface)
             {
-                cairo_surface_destroy(m_cairo_surface);
+                std::lock_guard<std::mutex> lock(s_worker_mutex);
+                if (!s_running || !s_worker_context) {
+                    // Global shutdown in progress. 
+                    // SKIP explicit destruction to avoid wpe_view_backend_destroy crashes.
+                    // The OS will reclaim all resources safely upon process exit.
+                    m_web_view = nullptr;
+                    m_exportable = nullptr;
+                    m_backend = nullptr;
+                    return;
+                }
             }
 
-            std::lock_guard<std::mutex> ilock(s_instance_mutex);
-            s_instance_count--;
-            if (s_instance_count == 0) {
-                // Potential cleanup of s_worker_loop if desired
+            auto* cd = new CleanupData{m_web_view, m_exportable, &cleanup_done};
+            m_web_view = nullptr;
+            m_exportable = nullptr;
+            m_backend = nullptr;
+
+            g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+                auto* d = static_cast<CleanupData*>(data);
+                // 1. Unref the webview first
+                if (d->web_view) {
+                    g_object_unref(d->web_view);
+                }
+                // 2. We SKIP explicit destruction of the exportable backend.
+                // Calling wpe_view_backend_exportable_fdo_destroy(d->exportable) 
+                // is causing internal segmentation faults in libwpe at exit
+                // due to race conditions in its internal threads (VBlankMonitor).
+                // The OS will reclaim these resources safely.
+                
+                d->done->store(true);
+                delete d;
+                return FALSE;
+            }, cd);
+
+            // Wait for worker thread to finish cleanup
+            while (!cleanup_done.load()) {
+                std::this_thread::yield();
             }
+
+            {
+                std::lock_guard<std::mutex> lock(m_surface_mutex);
+                if (m_cairo_surface)
+                {
+                    cairo_surface_destroy(m_cairo_surface);
+                    m_cairo_surface = nullptr;
+                }
+            }
+
+            std::lock_guard<std::mutex> ilock(s_worker_mutex);
+            s_instance_count--;
+            // We no longer join the thread in the destructor.
+            // Joining is now handled explicitly in WebWidget::shutdown().
         }
 
         void WebWidget::init_wpe()
@@ -181,7 +220,7 @@ namespace horizon
             ensure_worker_thread();
             
             {
-                std::lock_guard<std::mutex> ilock(s_instance_mutex);
+                std::lock_guard<std::mutex> ilock(s_worker_mutex);
                 s_instance_count++;
             }
 
@@ -221,6 +260,26 @@ namespace horizon
             }, this);
 
             m_initialized = true;
+        }
+
+        void WebWidget::shutdown() {
+            std::lock_guard<std::mutex> lock(s_worker_mutex);
+            if (!s_running) return;
+
+            LOG_INFO << "Global WebWidget shutdown initiated...";
+            
+            if (s_worker_loop) {
+                g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+                    g_main_loop_quit((GMainLoop*)data);
+                    return FALSE;
+                }, s_worker_loop);
+            }
+
+            if (s_worker_thread.joinable()) {
+                s_worker_thread.join();
+            }
+            s_running = false;
+            LOG_INFO << "Global WebWidget shutdown complete.";
         }
 
         void WebWidget::ensure_worker_thread()
@@ -271,13 +330,12 @@ namespace horizon
             g_main_loop_run(s_worker_loop);
 
             g_main_context_pop_thread_default(s_worker_context);
-            g_main_loop_unref(s_worker_loop);
-            g_main_context_unref(s_worker_context);
-            s_worker_loop = nullptr;
-            s_worker_context = nullptr;
+            // We'll let the static objects be cleaned up at process exit or manually later 
+            // to avoid race conditions with joins.
         }
 
         void WebWidget::on_title_notify(WebKitWebView* web_view, GParamSpec*, WebWidget* self) {
+            if (!self || !self->m_web_view) return;
             const char* title_str = webkit_web_view_get_title(web_view);
             std::string title = title_str ? title_str : "";
             
@@ -295,6 +353,7 @@ namespace horizon
         }
 
         void WebWidget::on_uri_notify(WebKitWebView* web_view, GParamSpec*, WebWidget* self) {
+            if (!self || !self->m_web_view) return;
             const char* uri_str = webkit_web_view_get_uri(web_view);
             std::string url = uri_str ? uri_str : "";
 
@@ -312,6 +371,7 @@ namespace horizon
         }
 
         void WebWidget::on_load_changed(WebKitWebView*, int load_event, WebWidget* self) {
+            if (!self || !self->m_web_view) return;
             LOG_INFO << "Load changed for WebWidget: " << self << " Event: " << load_event;
             bool loading = (load_event != 3); // 3 == WEBKIT_LOAD_FINISHED
             if (self->application()) {
@@ -323,6 +383,7 @@ namespace horizon
         }
 
         void WebWidget::on_progress_notify(WebKitWebView* web_view, GParamSpec*, WebWidget* self) {
+            if (!self || !self->m_web_view) return;
             double progress = webkit_web_view_get_estimated_load_progress(web_view);
             if (self->application()) {
                 self->application()->post_task([self, progress]() {
@@ -347,6 +408,7 @@ namespace horizon
         void WebWidget::on_frame_exported(void *data, struct wpe_fdo_shm_exported_buffer *buffer)
         {
             auto *self = static_cast<WebWidget *>(data);
+            if (!self || !self->m_exportable) return;
             struct wl_shm_buffer *shm_buffer = wpe_fdo_shm_exported_buffer_get_shm_buffer(buffer);
             if (!shm_buffer)
             {

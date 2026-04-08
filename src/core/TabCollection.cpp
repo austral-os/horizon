@@ -92,8 +92,8 @@ TabCollection::TabCollection() : Widget() {
     m_header->add_child(std::move(add_btn));
 }
 
-void TabCollection::add_tab(const std::string& title, std::unique_ptr<Widget> body) {
-    int index = m_tabs.size();
+int TabCollection::add_tab(const std::string& title, std::unique_ptr<Widget> body) {
+    int index = (int)m_tabs.size();
     
     // Hide body initially
     body->set_visible(false);
@@ -120,6 +120,7 @@ void TabCollection::add_tab(const std::string& title, std::unique_ptr<Widget> bo
     when_tab_changed.run(count);
     
     invalidate();
+    return index;
 }
 
 void TabCollection::remove_tab(int index) {
@@ -148,6 +149,14 @@ void TabCollection::remove_tab(int index) {
     int count = (int)m_tabs.size();
     when_tab_changed.run(count);
     invalidate();
+}
+
+void TabCollection::set_tab_title(int index, const std::string& title) {
+    if (index < 0 || index >= (int)m_tabs.size()) return;
+    m_tabs[index].title = title;
+    if (auto* btn = dynamic_cast<TabButton*>(m_header->children()[index].get())) {
+        btn->set_title(title);
+    }
 }
 
 void TabCollection::set_current_tab(int index) {

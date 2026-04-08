@@ -26,8 +26,9 @@ public:
      * @brief Adds a new tab to the collection.
      * @param title The title of the tab.
      * @param body The widget to be displayed as the tab's content.
+     * @return The index of the newly added tab.
      */
-    void add_tab(const std::string& title, std::unique_ptr<Widget> body);
+    int add_tab(const std::string& title, std::unique_ptr<Widget> body);
 
     /**
      * @brief Removes a tab by its index.
@@ -50,6 +51,13 @@ public:
      * @return Pointer to the body of the currently active tab.
      */
     Widget* current_tab_body() const;
+
+    /**
+     * @brief Updates the title of an existing tab.
+     * @param index The index of the tab.
+     * @param title The new title.
+     */
+    void set_tab_title(int index, const std::string& title);
 
     /**
      * @return The number of tabs in the collection.

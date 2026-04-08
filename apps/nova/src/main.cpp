@@ -1,5 +1,6 @@
 #include "horizon/Application.hpp"
 #include "BrowserWindow.hpp"
+#include "horizon/web/WebWidget.hpp"
 
 using namespace horizon;
 using namespace horizon::nova;
@@ -14,6 +15,11 @@ int main(int argc, char** argv) {
     app.set_root(std::move(browser_window));
     
     app.run();
+
+    // Force destruction of UI components while the worker thread is still alive
+    app.set_root(nullptr);
+
+    horizon::web::WebWidget::shutdown();
     
     return 0;
 }
