@@ -7,6 +7,7 @@
 #include <wpe/fdo.h>
 #include <wpe/unstable/fdo-shm.h>
 #include <wpe/webkit.h>
+#include <jsc/jsc.h>
 #include <glib.h>
 
 namespace horizon
@@ -35,7 +36,7 @@ namespace horizon
         WebWidget::WebWidget()
         {
             set_focusable(true);
-            set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+            // Thumbs are drawn directly now
 
             // Initialization is now managed by a shared static method called from the worker thread
 
@@ -43,6 +44,28 @@ namespace horizon
             when_mouse_press.connect(
                 [this](MouseButtonEventContext &ctx)
                 {
+                    // Check for scrollbar interaction first
+                    if (m_show_v_scroll && ctx.x >= m_v_track_x && ctx.x <= m_v_track_x + m_v_track_w &&
+                        ctx.y >= m_v_track_y && ctx.y <= m_v_track_y + m_v_track_h) {
+                        m_is_dragging_v = true;
+                        m_drag_start_pos = ctx.y;
+                        {
+                            std::lock_guard<std::mutex> lock{m_scroll_mutex};
+                            m_drag_start_scroll = m_scroll_y;
+                        }
+                        return;
+                    }
+                    if (m_show_h_scroll && ctx.x >= m_h_track_x && ctx.x <= m_h_track_x + m_h_track_w &&
+                        ctx.y >= m_h_track_y && ctx.y <= m_h_track_y + m_h_track_h) {
+                        m_is_dragging_h = true;
+                        m_drag_start_pos = ctx.x;
+                        {
+                            std::lock_guard<std::mutex> lock{m_scroll_mutex};
+                            m_drag_start_scroll = m_scroll_x;
+                        }
+                        return;
+                    }
+
                     auto* event = new wpe_input_pointer_event{wpe_input_pointer_event_type_button,
                                                              0, 
                                                              (int)(ctx.x - x()),
@@ -63,6 +86,9 @@ namespace horizon
             when_mouse_release.connect(
                 [this](MouseButtonEventContext &ctx)
                 {
+                    m_is_dragging_v = false;
+                    m_is_dragging_h = false;
+
                     auto* event = new wpe_input_pointer_event{wpe_input_pointer_event_type_button,
                                                              0,
                                                              (int)(ctx.x - x()),
@@ -97,6 +123,29 @@ namespace horizon
                         delete d;
                         return FALSE;
                     }, new std::pair<WebWidget*, wpe_input_pointer_event*>(this, event));
+                });
+
+            // Mouse Drag
+            when_mouse_drag.connect(
+                [this](MouseMoveEventContext &ctx)
+                {
+                    if (m_is_dragging_v) {
+                        int delta = ctx.y - m_drag_start_pos;
+                        double scrollable_height = m_content_height - height();
+                        double track_space = m_v_track_h - 20;
+                        if (track_space > 0) {
+                            double scroll_delta = (double)delta / track_space * scrollable_height;
+                            handle_ui_scroll(-1, (int)(m_drag_start_scroll + scroll_delta));
+                        }
+                    } else if (m_is_dragging_h) {
+                        int delta = ctx.x - m_drag_start_pos;
+                        double scrollable_width = m_content_width - width();
+                        double track_space = m_h_track_w - 20;
+                        if (track_space > 0) {
+                            double scroll_delta = (double)delta / track_space * scrollable_width;
+                            handle_ui_scroll((int)(m_drag_start_scroll + scroll_delta), -1);
+                        }
+                    }
                 });
 
             // Mouse Wheel
@@ -162,6 +211,51 @@ namespace horizon
                         return FALSE;
                     }, new std::pair<WebWidget*, wpe_input_keyboard_event*>(this, event));
                 });
+
+            // Interaction for Scrollbars
+            when_mouse_press.connect([this](MouseButtonEventContext &ev) {
+                if (m_show_v_scroll && ev.x >= m_v_track_x && ev.x < m_v_track_x + m_v_track_w &&
+                    ev.y >= m_v_track_y && ev.y < m_v_track_y + m_v_track_h) {
+                    m_is_dragging_v = true;
+                    m_drag_start_pos = ev.y;
+                    m_drag_start_scroll = m_scroll_y;
+                    ev.stop_propagation = true;
+                } else if (m_show_h_scroll && ev.y >= m_h_track_y && ev.y < m_h_track_y + m_h_track_h &&
+                         ev.x >= m_h_track_x && ev.x < m_h_track_x + m_h_track_w) {
+                    m_is_dragging_h = true;
+                    m_drag_start_pos = ev.x;
+                    m_drag_start_scroll = m_scroll_x;
+                    ev.stop_propagation = true;
+                }
+            });
+
+            when_mouse_drag.connect([this](MouseMoveEventContext &ev) {
+                if (m_is_dragging_v) {
+                    double delta_y = ev.y - m_drag_start_pos;
+                    double track_usable = m_v_track_h - std::max(20, (int)(m_v_track_h * ((double)height() / m_content_height)));
+                    if (track_usable > 0) {
+                        double scroll_max = m_content_height - height();
+                        double new_y = m_drag_start_scroll + (delta_y * (scroll_max / track_usable));
+                        handle_ui_scroll(-1, (int)new_y);
+                    }
+                } else if (m_is_dragging_h) {
+                    double delta_x = ev.x - m_drag_start_pos;
+                    double track_usable = m_h_track_w - std::max(20, (int)(m_h_track_w * ((double)width() / m_content_width)));
+                    if (track_usable > 0) {
+                        double scroll_max = m_content_width - width();
+                        double new_x = m_drag_start_scroll + (delta_x * (scroll_max / track_usable));
+                        handle_ui_scroll((int)new_x, -1);
+                    }
+                }
+            });
+
+            when_mouse_release.connect([this](MouseButtonEventContext &) {
+                m_is_dragging_v = false;
+                m_is_dragging_h = false;
+            });
+
+            m_last_v_show_time = std::chrono::steady_clock::now();
+            m_last_h_show_time = std::chrono::steady_clock::now();
         }
 
         WebWidget::~WebWidget()
@@ -280,6 +374,71 @@ namespace horizon
                 g_signal_connect(self->m_web_view, "notify::estimated-load-progress", G_CALLBACK(on_progress_notify), self);
                 g_signal_connect(self->m_web_view, "mouse-target-changed", G_CALLBACK(on_mouse_target_changed), self);
                 
+                WebKitUserContentManager* manager = webkit_web_view_get_user_content_manager(self->m_web_view);
+                
+                const char* script_source = 
+                    "const inject = () => {"
+                    "  if (!document.documentElement) return false;"
+                    "  const style = document.createElement('style');"
+                    "  style.textContent = '::-webkit-scrollbar { display: none !important; }';"
+                    "  (document.head || document.documentElement).appendChild(style);"
+                    "  document.documentElement.style.scrollbarWidth = \"none\";" // Firefox-style extra safety
+                    "  let ticking = false;"
+                    "  let lastY = -1, lastX = -1, lastH = -1, lastW = -1;"
+                    "  const beaconPrefix = 'HORIZON_SCROLL:';"
+                    "  const sendScroll = (force = false) => {"
+                    "    if (ticking && !force) return;"
+                    "    const doc = document.documentElement;"
+                    "    if (!doc) return;"
+                    "    const sy = Math.round(window.scrollY), sx = Math.round(window.scrollX), ch = Math.round(doc.scrollHeight), cw = Math.round(doc.scrollWidth);"
+                    "    if (!force && lastY === sy && lastX === sx && lastH === ch && lastW === cw) return;"
+                    "    lastY = sy; lastX = sx; lastH = ch; lastW = cw;"
+                    "    ticking = true;"
+                    "    const action = () => {"
+                    "      const beacon = beaconPrefix + sy + ' ' + sx + ' ' + ch + ' ' + cw;"
+                    "      const oldTitle = document.title;"
+                    "      document.title = beacon;"
+                    "      if (oldTitle !== beacon) setTimeout(() => { if (document.title.startsWith(beaconPrefix)) document.title = oldTitle; }, 10);"
+                    "      ticking = false;"
+                    "    };"
+                    "    if (force) action(); else setTimeout(action, 16);"
+                    "  };"
+                    "  window._horizon_send_scroll = () => sendScroll(true);"
+                    "  window.addEventListener('scroll', () => sendScroll(), {passive: true});"
+                    "  window.addEventListener('resize', () => sendScroll(), {passive: true});"
+                    "  const observer = new ResizeObserver(() => sendScroll());"
+                    "  observer.observe(document.documentElement);"
+                    "  sendScroll(true);"
+                    "  let initCount = 0;"
+                    "  const initInterval = setInterval(() => {"
+                    "    sendScroll(true);"
+                    "    if (++initCount > 20) clearInterval(initInterval);"
+                    "  }, 250);"
+                    "  return true;"
+                    "};"
+                    "inject();"
+                    "window.addEventListener('DOMContentLoaded', inject);"
+                    "window.addEventListener('load', inject);";
+
+                WebKitUserScript* script = webkit_user_script_new(
+                    script_source,
+                    WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
+                    WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START,
+                    NULL, NULL);
+                webkit_user_content_manager_add_script(manager, script);
+                webkit_user_script_unref(script);
+
+                // EXTRA AGGRESSIVE: Inject style sheet at USER level
+                WebKitUserStyleSheet* style = webkit_user_style_sheet_new(
+                    "::-webkit-scrollbar { display: none !important; }",
+                    WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
+                    WEBKIT_USER_STYLE_LEVEL_USER, NULL, NULL);
+                webkit_user_content_manager_add_style_sheet(manager, style);
+                webkit_user_style_sheet_unref(style);
+
+                // ENGINE LEVEL: We'll rely on the high-priority style sheet for now
+                // as set_overlay_scrolling_enabled might not be available in this WebKit version.
+
                 return FALSE;
             }, this);
 
@@ -361,8 +520,33 @@ namespace horizon
         void WebWidget::on_title_notify(WebKitWebView* web_view, GParamSpec*, WebWidget* self) {
             if (!self || !self->m_web_view) return;
             const char* title_str = webkit_web_view_get_title(web_view);
-            std::string title = title_str ? title_str : "";
-            
+            if (!title_str) return;
+            std::string title = title_str;
+
+            // BEACON HANDLING: Intercept scroll updates masked as title changes
+            if (title.find("HORIZON_SCROLL:") == 0) {
+                double sy, sx, ch, cw;
+                if (sscanf(title.c_str() + 15, "%lf %lf %lf %lf", &sy, &sx, &ch, &cw) == 4) {
+                    bool changed = false;
+                    {
+                        std::lock_guard<std::mutex> lock{self->m_scroll_mutex};
+                        if (std::abs(self->m_target_scroll_y - sy) >= 1.0 || 
+                            std::abs(self->m_target_content_h - ch) >= 1.0) {
+                            self->m_target_scroll_y = sy;
+                            self->m_target_scroll_x = sx;
+                            self->m_target_content_h = ch;
+                            self->m_target_content_w = cw;
+                            changed = true;
+                        }
+                    }
+                    if (changed) {
+                        self->m_scroll_dirty = true;
+                        self->invalidate();
+                    }
+                    return; // Eat the beacon update, don't propagate to UI
+                }
+            }
+
             {
                 std::lock_guard<std::mutex> lock(self->m_metadata_mutex);
                 self->m_cached_title = title;
@@ -404,6 +588,15 @@ namespace horizon
                     self->when_loading_changed.run(l);
                 });
             }
+            if (load_event == 3 && self->m_web_view) { // Finished
+                 // Redundant injection to catch late-initializing native scrollbars
+                 webkit_web_view_evaluate_javascript(self->m_web_view, 
+                    "const style = document.createElement('style');"
+                    "style.textContent = '::-webkit-scrollbar { display: none !important; }';"
+                    "document.head.appendChild(style);", -1, NULL, NULL, NULL, NULL, NULL);
+                 webkit_web_view_evaluate_javascript(self->m_web_view, 
+                    "if(window._horizon_send_scroll) _horizon_send_scroll();", -1, NULL, NULL, NULL, NULL, NULL);
+            }
         }
 
         void WebWidget::on_progress_notify(WebKitWebView* web_view, GParamSpec*, WebWidget* self) {
@@ -414,6 +607,10 @@ namespace horizon
                     double p = progress;
                     self->when_progress_changed.run(p);
                 });
+            }
+            if (progress >= 1.0 && self->m_web_view) {
+                 webkit_web_view_evaluate_javascript(self->m_web_view, 
+                    "if(window._horizon_send_scroll) _horizon_send_scroll();", -1, NULL, NULL, NULL, NULL, NULL);
             }
         }
 
@@ -471,8 +668,83 @@ namespace horizon
 
             if (self->application()) {
                 self->application()->post_task([self]() {
+                    // Frame-Synced Invalidation:
+                    // We only invalidate if WebKit sent a new frame OR the scrollbar state is dirty.
+                    // This couples the OS scrollbars to the browser engine's vsync.
+                    bool scroll_expected = self->m_scroll_dirty.exchange(false);
                     self->invalidate();
                 });
+            }
+        }
+
+        void WebWidget::update_scrollbars() {
+            std::lock_guard<std::mutex> lock(m_scroll_mutex);
+            
+            // Sync logical state with quantized target state
+            m_scroll_y = m_target_scroll_y;
+            m_scroll_x = m_target_scroll_x;
+            
+            // FALLBACK: If content height is unknown, assume it matches the view height
+            m_content_height = (m_target_content_h > 0) ? m_target_content_h : height();
+            m_content_width = (m_target_content_w > 0) ? m_target_content_w : width();
+
+            if (height() <= 0 || width() <= 0) return;
+
+            // PERSISTENT VISIBILITY: Always show the gutter for responsiveness
+            m_show_v_scroll = true; 
+            m_show_h_scroll = m_content_width > width() + 1;
+
+            if (m_show_v_scroll) {
+                m_v_track_x = x() + width() - SCROLLBAR_SIZE - 2;
+                m_v_track_y = y() + 2;
+                m_v_track_w = SCROLLBAR_SIZE;
+                m_v_track_h = height() - 4 - (m_show_h_scroll ? SCROLLBAR_SIZE : 0);
+
+                double visible_ratio = (double)height() / m_content_height;
+                if (!std::isfinite(visible_ratio)) visible_ratio = 1.0;
+                m_v_thumb_h = std::max(20, (int)(m_v_track_h * visible_ratio));
+                
+                double scrollable_height = m_content_height - height();
+                double scroll_ratio = (scrollable_height > 0) ? (m_scroll_y / scrollable_height) : 0;
+                scroll_ratio = std::max(0.0, std::min(1.0, scroll_ratio));
+                
+                m_v_thumb_y = m_v_track_y + (int)(scroll_ratio * (m_v_track_h - m_v_thumb_h));
+            }
+
+            if (m_show_h_scroll) {
+                m_h_track_x = x() + 2;
+                m_h_track_y = y() + height() - SCROLLBAR_SIZE - 2;
+                m_h_track_w = width() - 4 - (m_show_v_scroll ? SCROLLBAR_SIZE : 0);
+                m_h_track_h = SCROLLBAR_SIZE;
+
+                double visible_ratio = (double)width() / m_content_width;
+                if (!std::isfinite(visible_ratio)) visible_ratio = 1.0;
+                m_h_thumb_w = std::max(20, (int)(m_h_track_w * visible_ratio));
+                
+                double scrollable_width = m_content_width - width();
+                double scroll_ratio = (scrollable_width > 0) ? (m_scroll_x / scrollable_width) : 0;
+                scroll_ratio = std::max(0.0, std::min(1.0, scroll_ratio));
+                
+                m_h_thumb_x = m_h_track_x + (int)(scroll_ratio * (m_h_track_w - m_h_thumb_w));
+            }
+        }
+    
+        void WebWidget::handle_ui_scroll(int x, int y) {
+            if (s_worker_context) {
+                std::string js;
+                if (x >= 0 && y >= 0) js = "window.scrollTo(" + std::to_string(x) + "," + std::to_string(y) + ")";
+                else if (x >= 0) js = "window.scrollTo(" + std::to_string(x) + ", window.scrollY)";
+                else if (y >= 0) js = "window.scrollTo(window.scrollX," + std::to_string(y) + ")";
+                
+                if (js.empty()) return;
+
+                struct JSData { WebKitWebView* v; std::string s; };
+                g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+                    auto* d = (JSData*)data;
+                    if (d->v) webkit_web_view_evaluate_javascript(d->v, d->s.c_str(), -1, NULL, NULL, NULL, NULL, NULL);
+                    delete d;
+                    return FALSE;
+                }, new JSData{m_web_view, js});
             }
         }
 
@@ -497,6 +769,8 @@ namespace horizon
 
         void WebWidget::draw(GraphicsContext &ctx)
         {
+            update_scrollbars();
+            
             ctx.setColor(background_color());
             ctx.fillRect(x(), y(), width(), height());
 
@@ -507,6 +781,76 @@ namespace horizon
                 cairo_set_source_surface(cr, m_cairo_surface, x(), y());
                 cairo_paint(cr);
             }
+
+            // Draw Horizon-style scrollbars (Aqua feel) - IMPROVED GLASS TUBE
+            if (m_show_v_scroll) {
+                Color electric_blue = Color("#3a86ff");
+                Color deep_blue = Color("#1a44c5");
+                Color shine_color = Color("#ffffff").with_alpha(0.85f);
+                Color track_color = Color("#f8f8f8");
+                Color border_color = Color("#000000").with_alpha(0.3f);
+                int size = 15; // Increased width for better interaction
+                CornerRadius r(size / 2);
+
+                // A. Track
+                ctx.setColor(track_color);
+                ctx.fillRect(m_v_track_x, m_v_track_y, m_v_track_w, m_v_track_h, r);
+                ctx.setColor(Color("#e0e0e0"));
+                ctx.drawRect(m_v_track_x, m_v_track_y, m_v_track_w, m_v_track_h, r, 0.5f);
+                
+                // B. Thumb - Multi-Layer 3D Glass Pipeline
+                if (m_content_height > height() + 1 || m_target_content_h <= 0) {
+                    // Layer 1: Cylindrical Volume
+                    ctx.fillLinearGradientRect(m_v_track_x, m_v_thumb_y, m_v_track_w, m_v_thumb_h, 
+                                              deep_blue, electric_blue, false, r);
+
+                    // Layer 2: End Caps
+                    int cap_size = std::min(6, m_v_thumb_h / 3);
+                    ctx.fillLinearGradientRect(m_v_track_x, m_v_thumb_y, m_v_track_w, cap_size, 
+                                              deep_blue.with_alpha(0.6f), Color(0.0f, 0.0f, 0.0f, 0.0f), true, CornerRadius(r.top_left, r.top_right, 0, 0));
+                    ctx.fillLinearGradientRect(m_v_track_x, m_v_thumb_y + m_v_thumb_h - cap_size, m_v_track_w, cap_size, 
+                                              Color(0.0f, 0.0f, 0.0f, 0.0f), deep_blue.with_alpha(0.6f), true, CornerRadius(0, 0, r.bottom_right, r.bottom_left));
+
+                    // Layer 3: THE SHINE (Vertical Glass Reflection)
+                    ctx.fillLinearGradientRect(m_v_track_x + 3, m_v_thumb_y + 4, 4, m_v_thumb_h - 8, 
+                                              shine_color, shine_color.with_alpha(0.1f), false, CornerRadius(2));
+
+                    // Layer 4: Sharpening Border
+                    ctx.setColor(border_color);
+                    ctx.drawRect(m_v_track_x, m_v_thumb_y, m_v_track_w, m_v_thumb_h, r, 0.8f);
+                }
+            }
+
+            if (m_show_h_scroll) {
+                Color electric_blue = Color("#3a86ff");
+                Color deep_blue = Color("#1a44c5");
+                Color shine_color = Color("#ffffff").with_alpha(0.8f);
+                Color track_color = Color("#f5f5f5");
+                Color border_color = Color("#000000").with_alpha(0.4f);
+                CornerRadius r(m_h_track_h / 2);
+
+                // A. Track
+                ctx.setColor(track_color);
+                ctx.fillRect(m_h_track_x, m_h_track_y, m_h_track_w, m_h_track_h, r);
+                ctx.setColor(Color("#dddddd"));
+                ctx.drawRect(m_h_track_x, m_h_track_y, m_h_track_w, m_h_track_h, r, 0.5f);
+
+                // B. Thumb
+                ctx.fillLinearGradientRect(m_h_thumb_x, m_h_track_y, m_h_thumb_w, m_h_track_h, 
+                                          deep_blue, electric_blue, true, r); // Opposite for horizontal
+
+                int cap_size = std::min(5, m_h_thumb_w / 4);
+                ctx.fillLinearGradientRect(m_h_thumb_x, m_h_track_y, cap_size, m_h_track_h, 
+                                          deep_blue.with_alpha(0.5f), Color(0.0f, 0.0f, 0.0f, 0.0f), false, CornerRadius(r.top_left, 0, 0, r.bottom_left));
+                ctx.fillLinearGradientRect(m_h_thumb_x + m_h_thumb_w - cap_size, m_h_track_y, cap_size, m_h_track_h, 
+                                          Color(0.0f, 0.0f, 0.0f, 0.0f), deep_blue.with_alpha(0.5f), false, CornerRadius(0, r.top_right, r.bottom_right, 0));
+
+                ctx.fillLinearGradientRect(m_h_thumb_x + 3, m_h_track_y + 2, m_h_thumb_w - 6, 3, 
+                                          shine_color, shine_color.with_alpha(0.2f), true, CornerRadius(2));
+
+                ctx.setColor(border_color);
+                ctx.drawRect(m_h_thumb_x, m_h_track_y, m_h_thumb_w, m_h_track_h, r, 1.0f);
+            }
         }
 
         void WebWidget::calculate_layout()
@@ -514,6 +858,11 @@ namespace horizon
             Widget::calculate_layout();
             if (m_initialized && m_backend && width() > 0 && height() > 0 && s_worker_context)
             {
+                if (width() == m_last_dispatched_width && height() == m_last_dispatched_height) return;
+                
+                m_last_dispatched_width = width();
+                m_last_dispatched_height = height();
+
                 struct ResizeData {
                     struct wpe_view_backend* backend;
                     int w;

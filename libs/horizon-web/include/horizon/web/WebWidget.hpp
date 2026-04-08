@@ -1,10 +1,12 @@
 #pragma once
 
 #include "horizon/Widget.hpp"
-#include "horizon/SignalManager.hpp"
 #include <cairo.h>
 #include <thread>
 #include <mutex>
+#include <atomic>
+#include <chrono>
+
 
 typedef struct _GMainContext GMainContext;
 typedef struct _GMainLoop GMainLoop;
@@ -15,6 +17,7 @@ struct wpe_view_backend_exportable_fdo;
 struct wpe_fdo_shm_exported_buffer;
 
 namespace horizon {
+class WaylandWindow;
 namespace web {
 
 class WebWidget : public horizon::Widget {
@@ -61,6 +64,9 @@ private:
     static void on_progress_notify(WebKitWebView* web_view, GParamSpec* pspec, WebWidget* self);
     static void on_mouse_target_changed(WebKitWebView* web_view, void* hit_test_result, uint32_t modifiers, WebWidget* self);
 
+    void update_scrollbars();
+    void handle_ui_scroll(int x, int y);
+
     WebKitWebView* m_web_view = nullptr;
     struct wpe_view_backend* m_backend = nullptr;
     struct wpe_view_backend_exportable_fdo* m_exportable = nullptr;
@@ -83,6 +89,41 @@ private:
     std::string m_cached_title;
     std::string m_cached_url;
     mutable std::mutex m_metadata_mutex;
+
+    // Scroll State
+    double m_content_width = 0;
+    double m_content_height = 0;
+    double m_scroll_x = 0;
+    double m_scroll_y = 0;
+    
+    bool m_show_v_scroll = false;
+    bool m_show_h_scroll = false;
+    
+    bool m_is_dragging_v = false;
+    bool m_is_dragging_h = false;
+    int m_drag_start_pos = 0;
+    double m_drag_start_scroll = 0;
+
+    int m_v_track_x=0, m_v_track_y=0, m_v_track_w=0, m_v_track_h=0;
+    int m_h_track_x=0, m_h_track_y=0, m_h_track_w=0, m_h_track_h=0;
+    
+    int m_v_thumb_y=0, m_v_thumb_h=0;
+    int m_h_thumb_x=0, m_h_thumb_w=0;
+    
+    int m_last_dispatched_width = 0;
+    int m_last_dispatched_height = 0;
+
+    // Production-grade stability members
+    std::atomic<bool> m_scroll_dirty{false};
+    double m_target_scroll_x = 0, m_target_scroll_y = 0;
+    double m_target_content_w = 0, m_target_content_h = 0;
+    
+    std::chrono::steady_clock::time_point m_last_v_show_time;
+    std::chrono::steady_clock::time_point m_last_h_show_time;
+
+    mutable std::mutex m_scroll_mutex;
+    static constexpr int SCROLLBAR_SIZE = 12;
+
 };
 
 } // namespace web
