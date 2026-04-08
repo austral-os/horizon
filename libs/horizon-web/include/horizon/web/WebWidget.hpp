@@ -47,7 +47,6 @@ protected:
 
 private:
     void init_wpe();
-    void worker_thread_func();
     static void on_frame_exported(void* data, struct wpe_fdo_shm_exported_buffer* buffer);
     
     // WebKit Signal Handlers (Static for C-style callbacks)
@@ -67,11 +66,18 @@ private:
     
     bool m_initialized = false;
     
-    // Threading
-    std::thread m_worker_thread;
-    GMainContext* m_worker_context = nullptr;
-    GMainLoop* m_worker_loop = nullptr;
-    bool m_running = false;
+    // Threading (Shared across all instances)
+    static void ensure_worker_thread();
+    static std::thread s_worker_thread;
+    static GMainContext* s_worker_context;
+    static GMainLoop* s_worker_loop;
+    static bool s_running;
+    static std::mutex s_worker_mutex;
+    static void worker_thread_func();
+    
+    std::string m_cached_title;
+    std::string m_cached_url;
+    mutable std::mutex m_metadata_mutex;
 };
 
 } // namespace web

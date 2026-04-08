@@ -81,9 +81,10 @@ TabCollection::TabCollection() : Widget() {
     add_child(std::move(container));
     
     // Create the add button
-    auto add_btn = std::make_unique<Button<AquaObject>>();
+    auto add_btn = std::make_unique<Button<SolidObject>>();
     add_btn->set_text("+");
     add_btn->set_fixed_size(34);
+    add_btn->set_background_color(Color(1.0f, 1.0f, 1.0f, 0.1f));
     add_btn->when_mouse_press.connect([this](MouseButtonEventContext& ctx) {
         when_add_tab_clicked.run(ctx);
     });
@@ -98,17 +99,12 @@ void TabCollection::add_tab(const std::string& title, std::unique_ptr<Widget> bo
     body->set_visible(false);
     body->set_position_type(FILL);
     
-    // Store tab page
-    m_tabs.push_back({title, std::move(body)});
+    // Ownership is transferred to m_container, but we keep a raw pointer for access.
+    Widget* body_ptr = body.get();
+    m_container->add_child(std::move(body));
     
-    // Add body to container
-    m_container->add_child(m_tabs.back().body.get() == nullptr ? nullptr : nullptr); // This is wrong, unique_ptr issue
-    // Actually, m_tabs owns it, but m_container should manage its visibility and layout
-    // We can't move it twice. Let's make m_tabs just store the pointer and m_container store the unique_ptr.
-    
-    // FIX: m_container should own the body widget.
-    Widget* body_ptr = m_tabs.back().body.get();
-    m_container->add_child(std::move(m_tabs.back().body));
+    // Store tab page with raw pointer.
+    m_tabs.push_back({title, body_ptr});
     
     // Create and add tab button to header
     auto tab_btn = std::make_unique<TabButton>(this, index, title);

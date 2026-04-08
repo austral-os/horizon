@@ -95,6 +95,7 @@ void BrowserWindow::setup_ui() {
 }
 
 void BrowserWindow::create_new_tab(const std::string& url) {
+    LOG_INFO << "[NOVA] Creating new tab for URL: " << url;
     auto web_view = std::make_unique<web::WebWidget>();
     auto* ptr = web_view.get();
     
@@ -145,7 +146,11 @@ void BrowserWindow::navigate_to_url(const std::string& input_url) {
         }
         
         LOG_INFO << "[NOVA] Navigating in current tab to: " << url;
-        web_view->load_url(url);
+        if (web_view) {
+            web_view->load_url(url);
+        } else {
+            LOG_ERROR << "[NOVA] Cannot navigate: current_tab_body is NULL";
+        }
     }
 }
 

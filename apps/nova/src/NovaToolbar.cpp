@@ -1,6 +1,7 @@
 #include "NovaToolbar.hpp"
 #include <horizon/GroupButton.hpp>
 #include <horizon/Icon.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/SearchBox.hpp>
 #include <horizon/Spacer.hpp>
 
@@ -65,9 +66,11 @@ namespace horizon::nova
         m_search_box->when_key_press.connect(
             [this](KeyEventContext &ctx)
             {
-                if (ctx.keysym == 0xff0d || ctx.keysym == 0xff8d) { // GDK_KEY_Return or GDK_KEY_KP_Enter
+                if (ctx.keysym == 0xff0d || ctx.keysym == 0xff8d) { // Enter key or KP_Enter
+                    std::string query = m_search_box->text();
+                    LOG_INFO << "[NOVA] Search submitted: " << query;
                     SearchChangedEvent ev;
-                    ev.query = m_search_box->text();
+                    ev.query = query;
                     this->when_search_submitted.run(ev);
                 }
             });

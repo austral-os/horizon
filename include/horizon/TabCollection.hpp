@@ -19,7 +19,7 @@ public:
      */
     struct TabPage {
         std::string title;
-        std::unique_ptr<Widget> body;
+        Widget* body;
     };
 
     /**
