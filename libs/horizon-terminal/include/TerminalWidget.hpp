@@ -19,7 +19,7 @@
 namespace horizon {
 namespace terminal {
 
-class TerminalWidget : public horizon::Widget, public horizon::DataSink, public horizon::ClipboardProvider {
+class TerminalWidget : public horizon::Widget, public horizon::DataSink {
 public:
     TerminalWidget();
     ~TerminalWidget();

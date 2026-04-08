@@ -19,6 +19,7 @@ namespace horizon::arkfm
 
         auto m_mnu_file = std::make_unique<horizon::Menu>();
         m_mnu_file->set_title("Archivo");
+        m_mnu_file->set_id("file");
         m_mnu_file->add_item("Abrir", "Enter", "open");
         m_mnu_file->add_separator();
         m_mnu_file->add_item("Nueva Carpeta", "Ctrl+Shift+N", "new-folder");
@@ -28,12 +29,13 @@ namespace horizon::arkfm
 
         auto m_mnu_edit = std::make_unique<horizon::Menu>();
         m_mnu_edit->set_title("Edición");
-        m_mnu_edit->add_item("Copiar", "Ctrl+C", "copy");
-        m_mnu_edit->add_item("Cortar", "Ctrl+X", "cut");
-        m_mnu_edit->add_item("Pegar", "Ctrl+V", "paste");
+        m_mnu_edit->set_id("edit");
+        // We can add app-specific edit items here later (e.g. Select All)
+        // Standard clipboard items will be added automatically by the core
 
         auto mnu_help = std::make_unique<horizon::Menu>();
         mnu_help->set_title("Ayuda");
+        mnu_help->set_id("help");
         mnu_help->add_item("Acerca de", "F1", "about");
 
         add_menu(std::move(m_mnu_file));

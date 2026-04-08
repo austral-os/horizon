@@ -158,33 +158,27 @@ namespace horizon::arkfm
 
                 auto copy_item = menu->add_item("Copiar");
                 copy_item->when_click.connect(
-                    [win, f](horizon::MouseButtonEventContext &)
+                    [this](horizon::MouseButtonEventContext &)
                     {
-                        if (win)
-                            win->handle_copy(f.path);
+                        if (auto *view = dynamic_cast<ArkfmView *>(parent()))
+                            view->perform(ClipboardAction::Copy);
                     });
 
                 auto cut_item = menu->add_item("Cortar");
                 cut_item->when_click.connect(
-                    [win, f](horizon::MouseButtonEventContext &)
+                    [this](horizon::MouseButtonEventContext &)
                     {
-                        if (win)
-                            win->handle_cut(f.path);
+                        if (auto *view = dynamic_cast<ArkfmView *>(parent()))
+                            view->perform(ClipboardAction::Cut);
                     });
 
                 auto paste_item = menu->add_item("Pegar");
-                if (win && win->has_clipboard_content())
+                if (auto *view = dynamic_cast<ArkfmView *>(parent()))
                 {
                     paste_item->when_click.connect(
-                        [this, win, f](horizon::MouseButtonEventContext &)
+                        [view](horizon::MouseButtonEventContext &)
                         {
-                            if (win)
-                            {
-                                if (f.type == arkutils::FileType::Directory)
-                                    win->handle_paste(f.path);
-                                else
-                                    win->handle_paste(m_current_path);
-                            }
+                            view->perform(ClipboardAction::Paste);
                         });
                 }
                 else
@@ -256,10 +250,10 @@ namespace horizon::arkfm
                 cut_item->set_enabled(false);
 
                 auto paste_item = bg_menu->add_item("Pegar");
-                if (win && win->has_clipboard_content())
+                if (auto *view = dynamic_cast<ArkfmView *>(parent()))
                 {
-                    paste_item->when_click.connect([this, win](horizon::MouseButtonEventContext &)
-                                                   { win->handle_paste(m_current_path); });
+                    paste_item->when_click.connect([view](horizon::MouseButtonEventContext &)
+                                                   { view->perform(ClipboardAction::Paste); });
                 }
                 else
                 {

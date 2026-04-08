@@ -119,7 +119,7 @@ namespace horizon
         int y;
     };
 
-    class Widget
+    class Widget : public ClipboardProvider
     {
     public:
         Widget();
@@ -205,7 +205,8 @@ namespace horizon
         virtual bool can_perform(ClipboardAction action) const { return false; }
         virtual void perform(ClipboardAction action) {}
         virtual std::vector<std::string> accepted_mime_types() const { return {}; }
-        virtual ClipboardProvider *get_clipboard_provider() { return nullptr; }
+        virtual std::vector<std::string> provided_mime_types() const { return {}; }
+        virtual ClipboardProvider *get_clipboard_provider() { return this; }
 
         /**
          * @brief Standard implementation for providing clipboard data.

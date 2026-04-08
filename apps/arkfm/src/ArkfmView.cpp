@@ -4,8 +4,14 @@
 #include "ArkfmListView.hpp"
 #include "ArkfmWindow.hpp"
 #include "NavigationHistory.hpp"
+#include <horizon/Logger.hpp>
 #include <horizon/ApplicationLauncher.hpp>
+#include <horizon/Clipboard.hpp>
+#include <horizon/ClipboardProvider.hpp>
+#include <horizon/arkutils/FileOperations.hpp>
 #include <sys/stat.h>
+#include <filesystem>
+#include <sstream>
 
 namespace horizon::arkfm
 {
@@ -111,15 +117,19 @@ namespace horizon::arkfm
     std::vector<arkutils::FileInfo> ArkfmView::get_selection() const
     {
         if (m_children.empty())
+        {
+            LOG_INFO << "ArkfmView: get_selection() - No children widgets found";
             return {};
+        }
 
+        std::vector<arkutils::FileInfo> result;
         if (auto *child = dynamic_cast<ArkfmListView *>(m_children.back().get()))
-            return child->get_selected_items();
+            result = child->get_selected_items();
         else if (auto *child = dynamic_cast<ArkfmIconView *>(m_children.back().get()))
-            return child->get_selected_items();
-        // TODO: CoverFlowView if it supports selection
-
-        return {};
+            result = child->get_selected_items();
+        
+        LOG_INFO << "ArkfmView: get_selection() returned " << result.size() << " items";
+        return result;
     }
 
     void ArkfmView::open_selection()
@@ -194,6 +204,188 @@ namespace horizon::arkfm
     const std::string &ArkfmView::current_path() const
     {
         return m_current_path;
+    }
+
+    bool ArkfmView::can_perform(ClipboardAction action) const
+    {
+        if (action == ClipboardAction::Copy || action == ClipboardAction::Cut)
+        {
+            return !get_selection().empty();
+        }
+        if (action == ClipboardAction::Paste)
+        {
+            // We can almost always attempt a paste in the current directory
+            return true;
+        }
+        return false;
+    }
+
+    void ArkfmView::perform(ClipboardAction action)
+    {
+        if (action == ClipboardAction::Copy || action == ClipboardAction::Cut)
+        {
+            auto selection = get_selection();
+            m_clipboard_paths.clear();
+            for (const auto &item : selection)
+            {
+                m_clipboard_paths.push_back(item.path);
+            }
+            m_is_cut = (action == ClipboardAction::Cut);
+
+            if (application())
+            {
+                application()->set_clipboard_owner(this);
+                auto *win = dynamic_cast<ArkfmWindow *>(application()->root());
+                if (win)
+                {
+                    win->show_status_message(m_is_cut ? "Cortado al portapapeles" : "Copiado al portapapeles");
+                    LOG_INFO << "ArkfmView: perform(" << (m_is_cut ? "Cut" : "Copy") << ") - Selection copied to clipboard. Paths: " << m_clipboard_paths.size();
+                }
+                else
+                {
+                    LOG_INFO << "ArkfmView: perform() - Could not find ArkfmWindow root";
+                }
+            }
+            else
+            {
+                LOG_INFO << "ArkfmView: perform() - No application() found";
+            }
+        }
+        else if (action == ClipboardAction::Paste)
+        {
+            if (application())
+            {
+                LOG_INFO << "ArkfmView: Requesting clipboard data (text/uri-list)";
+                // We request URI list specifically for file manager interop
+                application()->request_clipboard_data(this, "text/uri-list");
+            }
+        }
+    }
+
+    void ArkfmView::provide_clipboard_data(const std::string &mime, DataSink &sink)
+    {
+        if (mime == "text/uri-list")
+        {
+            LOG_INFO << "ArkfmView: provide_clipboard_data() - Providing " << m_clipboard_paths.size() << " paths for mime " << mime;
+            std::string data;
+            for (const auto &path : m_clipboard_paths)
+            {
+                data += "file://" + path + "\r\n";
+            }
+            sink.write(std::vector<uint8_t>(data.begin(), data.end()));
+            sink.done();
+        }
+        else
+        {
+            LOG_INFO << "ArkfmView: provide_clipboard_data() - Unsupported mime: " << mime;
+            sink.error();
+        }
+    }
+
+    void ArkfmView::on_clipboard_data_received(const std::string &mime, const std::vector<uint8_t> &data)
+    {
+        LOG_INFO << "ArkfmView: Received clipboard data. Mime: " << mime << ", Bytes: " << data.size();
+        if (mime != "text/uri-list" || data.empty())
+            return;
+
+        std::string content(data.begin(), data.end());
+        std::stringstream ss(content);
+        std::string line;
+        std::vector<std::string> paths;
+
+        while (std::getline(ss, line))
+        {
+            if (line.empty())
+                continue;
+            // Remove \r and "file://" prefix
+            if (!line.empty() && line.back() == '\r')
+                line.pop_back();
+            if (line.find("file://") == 0)
+            {
+                paths.push_back(line.substr(7));
+            }
+        }
+
+        if (paths.empty())
+            return;
+
+        auto *win = dynamic_cast<ArkfmWindow *>(application()->root());
+        if (!win)
+            return;
+
+        for (const auto &src_path : paths)
+        {
+            std::filesystem::path src(src_path);
+            std::filesystem::path dst_dir(m_current_path);
+            std::filesystem::path dst = dst_dir / src.filename();
+
+            if (src == dst_dir || dst_dir.string().find(src.string() + "/") == 0)
+            {
+                win->alert("No es posible realizar la acción: El destino es el mismo que el origen o un subdirectorio del mismo.", "Error", MessageType::Error);
+                continue;
+            }
+
+            if (std::filesystem::exists(dst))
+            {
+                win->alert("Ya existe un archivo o carpeta con el nombre '" + src.filename().string() + "' en el destino.", "Acción Abortada", MessageType::Warning);
+                continue;
+            }
+
+            win->show_status_message(m_is_cut ? "Moviendo..." : "Copiando...");
+
+            if (m_is_cut)
+            {
+                auto future = arkutils::FileOperations::move(src_path, dst.string());
+                std::thread([this, win, f = std::move(future), src_path]() mutable {
+                    auto result = f.get();
+                    if (application())
+                    {
+                        application()->post_task([this, win, result, src_path]() {
+                            if (result == arkutils::FileOperations::Result::Success)
+                            {
+                                win->show_status_message("Movido con éxito");
+                                // If it was a cut from OURSELVES, clear it
+                                if (std::find(m_clipboard_paths.begin(), m_clipboard_paths.end(), src_path) != m_clipboard_paths.end())
+                                {
+                                    m_is_cut = false;
+                                }
+                                this->navigate_to(m_current_path);
+                            }
+                            else
+                            {
+                                win->alert("Error al intentar mover el archivo o carpeta.", "Error", MessageType::Error);
+                            }
+                        });
+                    }
+                }).detach();
+            }
+            else
+            {
+                auto future = arkutils::FileOperations::copy(src_path, m_current_path, nullptr);
+                std::thread([this, win, f = std::move(future)]() mutable {
+                    auto result = f.get();
+                    if (application())
+                    {
+                        application()->post_task([this, win, result]() {
+                            if (result == arkutils::FileOperations::Result::Success)
+                            {
+                                win->show_status_message("Copiado con éxito");
+                                this->navigate_to(m_current_path);
+                            }
+                            else
+                            {
+                                win->alert("Error al intentar copiar el archivo o carpeta.", "Error", MessageType::Error);
+                            }
+                        });
+                    }
+                }).detach();
+            }
+        }
+    }
+
+    std::vector<std::string> ArkfmView::provided_mime_types() const
+    {
+        return {"text/uri-list"};
     }
 
 } // namespace horizon::arkfm

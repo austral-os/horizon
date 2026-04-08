@@ -68,7 +68,6 @@ void WaylandClipboardBackend::request_data(const std::string& mime, std::shared_
     // If we have a local provider, bypass Wayland loopback for maximum efficiency and reliability
     if (m_local_provider) {
         m_local_provider->provide_clipboard_data(mime, *sink);
-        sink->done();
         return;
     }
 

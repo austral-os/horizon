@@ -133,26 +133,6 @@ namespace horizon::arkfm
                         });
 
                     application()->signal_manager.connect(
-                        "open", [this](SignalContext &)
-                        { handle_open(); });
-                    application()->signal_manager.connect(
-                        "copy", [this](SignalContext &)
-                        {
-                            auto sel = m_view_ptr->get_selection();
-                            if (!sel.empty())
-                                handle_copy(sel[0].path);
-                        });
-                    application()->signal_manager.connect(
-                        "cut", [this](SignalContext &)
-                        {
-                            auto sel = m_view_ptr->get_selection();
-                            if (!sel.empty())
-                                handle_cut(sel[0].path);
-                        });
-                    application()->signal_manager.connect(
-                        "paste", [this](SignalContext &)
-                        { handle_paste(m_view_ptr->current_path()); });
-                    application()->signal_manager.connect(
                         "delete", [this](SignalContext &)
                         {
                             auto sel = m_view_ptr->get_selection();
@@ -166,109 +146,6 @@ namespace horizon::arkfm
             });
     }
 
-    void ArkfmWindow::handle_copy(const std::string &path)
-    {
-        m_clipboard_path = path;
-        m_is_cut = false;
-        show_status_message("Copiado al portapapeles");
-    }
-
-    void ArkfmWindow::handle_cut(const std::string &path)
-    {
-        m_clipboard_path = path;
-        m_is_cut = true;
-        show_status_message("Cortado al portapapeles");
-    }
-
-    void ArkfmWindow::handle_paste(const std::string &target_dir)
-    {
-        if (m_clipboard_path.empty())
-            return;
-
-        std::filesystem::path src(m_clipboard_path);
-        std::filesystem::path dst_dir(target_dir);
-        std::filesystem::path dst = dst_dir / src.filename();
-
-        if (src == dst_dir || dst_dir.string().find(src.string() + "/") == 0)
-        {
-            alert("No es posible realizar la acción: El destino es el mismo que el origen o un subdirectorio del mismo.", "Error", MessageType::Error);
-            return;
-        }
-
-        if (std::filesystem::exists(dst))
-        {
-            alert("Ya existe un archivo o carpeta con el mismo nombre en el destino.", "Acción Abortada", MessageType::Warning);
-            return;
-        }
-
-        m_progress_bar->set_progress(0.0f);
-        m_progress_bar->set_visible(true);
-        show_status_message(m_is_cut ? "Moviendo..." : "Copiando...");
-
-        if (m_is_cut)
-        {
-            auto future = arkutils::FileOperations::move(m_clipboard_path, dst.string());
-            std::thread([this, f = std::move(future)]() mutable {
-                auto result = f.get();
-                if (application())
-                {
-                    application()->post_task([this, result]() {
-                        m_progress_bar->set_visible(false);
-                        if (result == arkutils::FileOperations::Result::Success)
-                        {
-                            show_status_message("Movido con éxito");
-                            m_clipboard_path = "";
-                            m_is_cut = false;
-                            if (m_view_ptr)
-                                m_view_ptr->navigate_to(m_view_ptr->current_path());
-                        }
-                        else
-                        {
-                            alert("Error al intentar mover el archivo o carpeta.", "Error", MessageType::Error);
-                            show_status_message("Error al mover");
-                        }
-                    });
-                }
-            }).detach();
-        }
-        else
-        {
-            auto future = arkutils::FileOperations::copy(
-                m_clipboard_path, target_dir,
-                [this](double progress)
-                {
-                    application()->post_task(
-                        [this, progress]()
-                        { m_progress_bar->set_progress(static_cast<float>(progress)); });
-                });
-
-            std::thread(
-                [this, f = std::move(future)]() mutable
-                {
-                    auto result = f.get();
-                    if (application())
-                    {
-                        application()->post_task(
-                            [this, result]()
-                            {
-                                m_progress_bar->set_visible(false);
-                                if (result == arkutils::FileOperations::Result::Success)
-                                {
-                                    show_status_message("Copiado con éxito");
-                                    if (m_view_ptr)
-                                        m_view_ptr->navigate_to(m_view_ptr->current_path());
-                                }
-                                else
-                                {
-                                    alert("Error al intentar copiar el archivo o carpeta.", "Error", MessageType::Error);
-                                    show_status_message("Error al copiar");
-                                }
-                            });
-                    }
-                })
-                .detach();
-        }
-    }
 
     void ArkfmWindow::handle_rename(const std::string &path)
     {

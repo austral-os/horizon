@@ -12,12 +12,12 @@ namespace horizon {
  */
 class MainThreadDataSink : public DataSink {
 public:
-    MainThreadDataSink(WaylandWindow* window, DataSink* target)
+    MainThreadDataSink(WaylandWindow* window, std::shared_ptr<DataSink> target)
         : m_window(window), m_target(target) {}
 
     void write(const std::vector<uint8_t>& data) override {
         if (!m_window || !m_target) return;
-        m_window->post_task([target = m_target, data]() {
+        m_window->post_task([target = m_target, data = std::move(data)]() {
             target->write(data);
         });
     }
@@ -38,7 +38,7 @@ public:
 
 private:
     WaylandWindow* m_window;
-    DataSink* m_target;
+    std::shared_ptr<DataSink> m_target;
 };
 
 } // namespace horizon

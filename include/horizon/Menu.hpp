@@ -74,6 +74,15 @@ namespace horizon
             return m_min_width;
         }
 
+        void set_id(const std::string &id)
+        {
+            m_id = id;
+        }
+        const std::string &id() const
+        {
+            return m_id;
+        }
+
     protected:
         void draw(GraphicsContext &gc) override;
 
@@ -84,6 +93,7 @@ namespace horizon
         int m_max_width = -1;       // -1 means no maximum
         bool m_was_visible = false; // Track visibility transitions for clearing
         std::string m_title;
+        std::string m_id;
         bool m_bold = false;
         std::string m_icon_name;
     };

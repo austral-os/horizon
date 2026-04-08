@@ -132,6 +132,7 @@ namespace horizon
          */
         void set_root(std::unique_ptr<Widget> root);
         Widget *root() const { return m_root.get(); }
+        Menu *get_menu(const std::string &id) const;
 
 
         /**
@@ -139,7 +140,7 @@ namespace horizon
          * @param widget The widget to invalidate. If nullptr, the entire window is repainted.
          */
         void invalidate(Widget *widget = nullptr);
-        void request_clipboard_data(Widget *target);
+        void request_clipboard_data(Widget *target, const std::string &mime_type = "text/plain");
         void set_clipboard_owner(Widget *owner);
         void show_context_menu(Menu *menu, int x = -1, int y = -1, uint32_t serial = 0);
         void close_context_menu(bool emit_signal = true);
@@ -523,6 +524,8 @@ namespace horizon
 
         static WaylandWindow *m_active_window;
         std::unique_ptr<class WaylandClipboardBackend> m_clipboard_backend;
+
+        Widget* find_clipboard_target();
     };
 
 }; // namespace horizon

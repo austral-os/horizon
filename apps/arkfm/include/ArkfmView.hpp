@@ -40,6 +40,15 @@ namespace horizon::arkfm
 
         const std::string &current_path() const;
 
+        // Clipboard integration
+        bool supports_clipboard() const override { return true; }
+        bool can_perform(ClipboardAction action) const override;
+        void perform(ClipboardAction action) override;
+        void provide_clipboard_data(const std::string &mime, DataSink &sink) override;
+        std::vector<std::string> provided_mime_types() const override;
+        void on_clipboard_data_received(const std::string &mime, const std::vector<uint8_t> &data) override;
+
+    protected:
         EventsManager<PathChangedEvent> when_path_changed;
 
     private:
@@ -47,6 +56,10 @@ namespace horizon::arkfm
         std::string m_current_path;
         std::string m_search_query;
         std::unique_ptr<class NavigationHistory> m_history;
+
+        // Clipboard state
+        std::vector<std::string> m_clipboard_paths;
+        bool m_is_cut = false;
     };
 
 } // namespace horizon::arkfm

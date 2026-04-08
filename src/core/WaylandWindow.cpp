@@ -394,18 +394,24 @@ namespace horizon
 
         init_global_menu();
 
-        // Standard clipboard signal routing: automatically dispatch to focused widget
+        // Standard clipboard signal routing: automatically dispatch to best candidate
         signal_manager.connect("copy", [this](SignalContext&) {
-            if (m_focused && m_focused->supports_clipboard())
-                m_focused->perform(ClipboardAction::Copy);
+            LOG_INFO << "WaylandWindow: Received 'copy' signal from menu/IPC";
+            auto* target = find_clipboard_target();
+            if (target) target->perform(ClipboardAction::Copy);
+            else LOG_INFO << "WaylandWindow: No clipboard target found for 'copy'";
         });
         signal_manager.connect("cut", [this](SignalContext&) {
-            if (m_focused && m_focused->supports_clipboard())
-                m_focused->perform(ClipboardAction::Cut);
+            LOG_INFO << "WaylandWindow: Received 'cut' signal from menu/IPC";
+            auto* target = find_clipboard_target();
+            if (target) target->perform(ClipboardAction::Cut);
+            else LOG_INFO << "WaylandWindow: No clipboard target found for 'cut'";
         });
         signal_manager.connect("paste", [this](SignalContext&) {
-            if (m_focused && m_focused->supports_clipboard())
-                m_focused->perform(ClipboardAction::Paste);
+            LOG_INFO << "WaylandWindow: Received 'paste' signal from menu/IPC";
+            auto* target = find_clipboard_target();
+            if (target) target->perform(ClipboardAction::Paste);
+            else LOG_INFO << "WaylandWindow: No clipboard target found for 'paste'";
         });
 
         for (auto const &[id, handler] : m_on_start_handlers)
@@ -779,19 +785,50 @@ namespace horizon
     }
 
     namespace {
-        bool detect_clipboard_support(Widget *root)
+        Widget* detect_clipboard_target(Widget *root)
         {
             if (!root)
-                return false;
+                return nullptr;
             if (root->supports_clipboard())
-                return true;
+                return root;
             for (const auto &child : root->children())
             {
-                if (detect_clipboard_support(child.get()))
-                    return true;
+                auto* found = detect_clipboard_target(child.get());
+                if (found)
+                    return found;
             }
-            return false;
+            return nullptr;
         }
+
+        class WidgetDataSink : public DataSink
+        {
+            Widget *m_widget;
+            std::string m_mime;
+            std::vector<uint8_t> m_buffer;
+
+        public:
+            WidgetDataSink(Widget *w, const std::string &mime) : m_widget(w), m_mime(mime) {}
+            void write(const std::vector<uint8_t> &data) override
+            {
+                m_buffer.insert(m_buffer.end(), data.begin(), data.end());
+            }
+            void done() override
+            {
+                if (m_widget)
+                    m_widget->on_clipboard_data_received(m_mime, std::move(m_buffer));
+            }
+            void error() override {}
+        };
+    }
+
+    Menu *WaylandWindow::get_menu(const std::string &id) const
+    {
+        for (const auto &menu : m_menues)
+        {
+            if (menu->id() == id)
+                return menu.get();
+        }
+        return nullptr;
     }
 
     void WaylandWindow::init_global_menu()
@@ -805,19 +842,40 @@ namespace horizon
         m_app_menu->add_separator();
         auto *global_quit = m_app_menu->add_item("Salir", "Ctrl+Q");
         global_quit->set_id("quit");
+        m_app_menu->set_id("app");
 
-        // Automatic Edit Menu detection
-        if (detect_clipboard_support(m_root.get()))
+        // Automatic Edit Menu detection & merging
+        if (detect_clipboard_target(m_root.get()))
         {
-            auto edit_menu = std::make_unique<Menu>();
-            edit_menu->set_title("Edición");
+            Menu *edit_menu = get_menu("edit");
+            bool is_new = false;
+
+            if (!edit_menu)
+            {
+                auto new_menu = std::make_unique<Menu>();
+                new_menu->set_title("Edición");
+                new_menu->set_id("edit");
+                edit_menu = new_menu.get();
+                m_menues.push_back(std::move(new_menu));
+                is_new = true;
+            }
+            else
+            {
+                // If it already has items, add a separator before clipboard actions
+                if (!edit_menu->children().empty())
+                {
+                    edit_menu->add_separator();
+                }
+            }
+
             edit_menu->add_item("Copiar", "Ctrl+C", "copy");
             edit_menu->add_item("Cortar", "Ctrl+X", "cut");
             edit_menu->add_item("Pegar", "Ctrl+V", "paste");
-            
-            Menu *edit_ptr = edit_menu.get();
-            m_menues.push_back(std::move(edit_menu));
-            m_global_menus.push_back(edit_ptr);
+
+            if (is_new)
+            {
+                m_global_menus.push_back(edit_menu);
+            }
         }
 
         auto mnu = m_app_menu.get();
@@ -1064,23 +1122,27 @@ namespace horizon
         // We no longer update m_modifiers here; on_modifiers_event is the sole source of truth
         target->when_key_press.run(new_ev);
 
-        // Standard shortcuts for clipboard: automatically dispatch if widget supports it
-        if (m_focused && m_focused->supports_clipboard() && (m_modifiers & CTRL))
+        // Standard shortcuts for clipboard: automatically dispatch if widget hierarchy supports it
+        if ((m_modifiers & CTRL))
         {
-            if (event.key == KEY_C)
+            auto* clipboard_target = find_clipboard_target();
+            if (clipboard_target)
             {
-                m_focused->perform(ClipboardAction::Copy);
-                return;
-            }
-            else if (event.key == KEY_X)
-            {
-                m_focused->perform(ClipboardAction::Cut);
-                return;
-            }
-            else if (event.key == KEY_V)
-            {
-                m_focused->perform(ClipboardAction::Paste);
-                return;
+                if (event.key == KEY_C)
+                {
+                    clipboard_target->perform(ClipboardAction::Copy);
+                    return;
+                }
+                else if (event.key == KEY_X)
+                {
+                    clipboard_target->perform(ClipboardAction::Cut);
+                    return;
+                }
+                else if (event.key == KEY_V)
+                {
+                    clipboard_target->perform(ClipboardAction::Paste);
+                    return;
+                }
             }
         }
 
@@ -2198,23 +2260,54 @@ namespace horizon
         }
     }
 
-    void WaylandWindow::request_clipboard_data(Widget* target)
+    void WaylandWindow::request_clipboard_data(Widget *target, const std::string &mime_type)
     {
         if (m_clipboard_backend)
         {
-            auto* sink = dynamic_cast<DataSink*>(target);
-            if (sink) {
-                m_clipboard_backend->request_data("text/plain;charset=utf-8", std::make_shared<MainThreadDataSink>(this, sink));
-            }
+            auto target_sink = std::make_shared<WidgetDataSink>(target, mime_type);
+            auto loopback_sink = std::make_shared<MainThreadDataSink>(this, target_sink);
+            
+            m_clipboard_backend->request_data(mime_type, loopback_sink);
         }
     }
 
     void WaylandWindow::set_clipboard_owner(Widget* owner)
     {
-        if (m_clipboard_backend)
+        if (m_clipboard_backend && owner)
         {
-            m_clipboard_backend->set_provider(owner->get_clipboard_provider(), {"text/plain;charset=utf-8"});
+            m_clipboard_backend->set_provider(owner->get_clipboard_provider(), owner->provided_mime_types());
         }
+    }
+
+    Widget *WaylandWindow::find_clipboard_target()
+    {
+        // 1. Bottom-up search starting from the focused widget
+        if (m_focused)
+        {
+            LOG_INFO << "WaylandWindow: find_clipboard_target starting bottom-up from focused widget";
+            Widget *temp = m_focused;
+            while (temp)
+            {
+                if (temp->supports_clipboard())
+                {
+                    LOG_INFO << "WaylandWindow: find_clipboard_target found candidate in parent chain";
+                    return temp;
+                }
+                temp = temp->parent();
+            }
+        }
+
+        // 2. Global fallback search (top-down)
+        if (m_root)
+        {
+            LOG_INFO << "WaylandWindow: find_clipboard_target falling back to top-down search from root";
+            auto* found = detect_clipboard_target(m_root.get());
+            if (found) LOG_INFO << "WaylandWindow: find_clipboard_target found candidate via top-down search";
+            return found;
+        }
+
+        LOG_INFO << "WaylandWindow: find_clipboard_target returned NULL";
+        return nullptr;
     }
 
 } // namespace horizon
