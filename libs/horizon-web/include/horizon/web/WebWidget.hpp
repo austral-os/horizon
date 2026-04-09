@@ -132,7 +132,9 @@ private:
 
     bool m_is_fullscreen = false;
     bool m_pending_fullscreen_ack = false;
+    bool m_waiting_for_native_frame = false;
     unsigned int m_fullscreen_ack_timer = 0;
+    std::chrono::steady_clock::time_point m_last_fullscreen_time;
 
     mutable std::mutex m_scroll_mutex;
     static constexpr int SCROLLBAR_SIZE = 12;

@@ -130,6 +130,13 @@ namespace horizon
             when_mouse_move.connect(
                 [this](MouseMoveEventContext &ctx)
                 {
+                    // TRANSITION SHIELD: Ignore mouse moves for 1s after entering FS to prevent UI popups/aborts
+                    auto now = std::chrono::steady_clock::now();
+                    auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_fullscreen_time).count();
+                    if (m_is_fullscreen && elapsed_ms < 1000) {
+                        return;
+                    }
+
                     auto* event = new wpe_input_pointer_event{wpe_input_pointer_event_type_motion,
                                                              0,
                                                              (int)(ctx.x - x()),
@@ -207,6 +214,23 @@ namespace horizon
             when_key_press.connect(
                 [this](KeyEventContext &ctx)
                 {
+                    // ESCAPE BYPASS: Allow manual exit even during the shield window
+                    if (ctx.keysym == 0xFF1B && m_is_fullscreen) {
+                        LOG_INFO << "[WEB] ESC pressed: Triggering manual Exit Fullscreen";
+                        m_is_fullscreen = false;
+                        m_pending_fullscreen_ack = false;
+                        m_waiting_for_native_frame = false;
+                        m_last_fullscreen_time = std::chrono::steady_clock::now() - std::chrono::seconds(10);
+                        if (application()) {
+                            application()->unfullscreen();
+                            application()->post_task([this]() {
+                                bool fs = false;
+                                this->when_fullscreen_changed.run(fs);
+                            });
+                        }
+                        return;
+                    }
+
                     auto* event = new wpe_input_keyboard_event{0, ctx.keysym, ctx.key + 8, true,
                                                              map_horizon_to_wpe_modifiers(ctx.modifiers)};
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
@@ -401,6 +425,9 @@ namespace horizon
                 self->m_exportable = wpe_view_backend_exportable_fdo_create(&client, self, initial_width, initial_height);
                 self->m_backend = wpe_view_backend_exportable_fdo_get_view_backend(self->m_exportable);
 
+                // ENSURE BASE STATE: Explicitly tell the engine we are NOT in fullscreen at startup
+                wpe_view_backend_platform_set_fullscreen(self->m_backend, FALSE);
+
                 auto *webkit_backend = webkit_web_view_backend_new(self->m_backend, nullptr, nullptr);
 
                 // --- PERFORMANCE OPTIMIZATIONS ---
@@ -489,6 +516,41 @@ namespace horizon
                 webkit_user_content_manager_add_script(manager, script);
                 webkit_user_script_unref(script);
 
+                // PERSISTENT NUCLEAR SHIM: High-fidelity environment spoofing
+                const char* nuclear_source = 
+                    "window._fsStartTime = Date.now();"
+                    "const realExit = document.exitFullscreen || document.webkitExitFullscreen;"
+                    "const wrapExit = function() { if (Date.now() - window._fsStartTime > 5000) { if(realExit) realExit.apply(document); } };"
+                    "document.exitFullscreen = document.webkitExitFullscreen = wrapExit;"
+                    "window.addEventListener('keydown', (e) => { if (e.keyCode === 27) { if(realExit) realExit.apply(document); } }, true);"
+                    "Object.defineProperty(screen, 'width', { value: 1920, configurable: true });"
+                    "Object.defineProperty(screen, 'height', { value: 1080, configurable: true });"
+                    "Object.defineProperty(window, 'innerWidth', { value: 1920, configurable: true });"
+                    "Object.defineProperty(window, 'innerHeight', { value: 1080, configurable: true });"
+                    "Object.defineProperty(document, 'fullscreenElement', { get: function() { return document.querySelector('.horizon-fs #movie_player') || document.querySelector('.horizon-fs video'); }, configurable: true });"
+                    "const fsStyle = document.createElement('style');"
+                    "fsStyle.innerHTML = 'html.horizon-fs, body.horizon-fs { background: transparent !important; } .horizon-fs *:fullscreen, .horizon-fs video { width: 100vw !important; height: 100vh !important; position: fixed !important; top: 0 !important; left: 0 !important; z-index: 2147483647 !important; display: block !important; }';"
+                    "document.head.appendChild(fsStyle);"
+                    "const wakeUp = setInterval(() => { window.dispatchEvent(new Event('resize')); if(Date.now() - window._fsStartTime > 2000) clearInterval(wakeUp); }, 200);";
+
+                WebKitUserScript* n_script = webkit_user_script_new(
+                    nuclear_source,
+                    WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
+                    WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START,
+                    NULL, NULL);
+                webkit_user_content_manager_add_script(manager, n_script);
+                webkit_user_script_unref(n_script);
+
+                WebKitUserStyleSheet* fs_style = webkit_user_style_sheet_new(
+                    "html.horizon-fs #secondary, html.horizon-fs #comments, html.horizon-fs ytd-masthead, html.horizon-fs #page-manager-container { display: none !important; }"
+                    "html.horizon-fs #player, html.horizon-fs .html5-video-player, html.horizon-fs #movie_player { background: transparent !important; width: 100vw !important; height: 100vh !important; position: fixed !important; top: 0 !important; left: 0 !important; z-index: 2147483647 !important; }"
+                    "html.horizon-fs video { background: transparent !important; width: 100% !important; height: 100% !important; }",
+                    WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
+                    WEBKIT_USER_STYLE_LEVEL_USER,
+                    NULL, NULL);
+                webkit_user_content_manager_add_style_sheet(manager, fs_style);
+                webkit_user_style_sheet_unref(fs_style);
+
                 // EXTRA AGGRESSIVE: Inject style sheet at USER level
                 WebKitUserStyleSheet* style = webkit_user_style_sheet_new(
                     "::-webkit-scrollbar { display: none !important; }",
@@ -575,9 +637,12 @@ namespace horizon
                 g_setenv("WEBKIT_SKIA_PAINTING_THREADS", cores_str.c_str(), TRUE);
                 LOG_INFO << "Setting WEBKIT_SKIA_PAINTING_THREADS to: " << cores_str;
             }
-            // Ensure hardware acceleration is favored
+            // Ensure hardware acceleration is favored and scale is 1:1
             g_setenv("WEBKIT_SKIA_ENABLE_CPU_RENDERING", "0", TRUE);
             g_setenv("WEBKIT_FORCE_COMPOSITING_MODE", "1", TRUE);
+            g_setenv("WPE_WEBKIT_DEVICE_SCALE_FACTOR", "1.0", TRUE);
+            g_setenv("WPE_DEVICE_SCALE_FACTOR", "1.0", TRUE);
+            g_setenv("WEBKIT_FORCE_DEVICE_SCALE_FACTOR", "1.0", TRUE);
 
             wpe_fdo_initialize_shm();
 
@@ -589,6 +654,7 @@ namespace horizon
             // We'll let the static objects be cleaned up at process exit or manually later 
             // to avoid race conditions with joins.
         }
+
 
         void WebWidget::on_title_notify(void*, void*, void* p_self) {
             WebWidget* self = static_cast<WebWidget*>(p_self);
@@ -703,34 +769,75 @@ namespace horizon
 
         void WebWidget::on_mouse_target_changed(void*, void*, uint32_t, void*) {}
         
-        int WebWidget::on_enter_fullscreen(void*, void* p_self) {
+        int WebWidget::on_enter_fullscreen(void* view, void* p_self) {
             WebWidget* self = static_cast<WebWidget*>(p_self);
-            if (!self || self->m_is_fullscreen) return 1;
+            if (!self) return 1;
 
-            LOG_INFO << "[WEB] enter-fullscreen signal received";
+            LOG_INFO << "[WEB] enter-fullscreen signal received (is_fs=" << self->m_is_fullscreen << ")";
+            
+            // ATOMIC CHECK: Only act if we aren't already transitioning to the same state
+            if (self->m_is_fullscreen && !self->m_waiting_for_native_frame) {
+                LOG_INFO << "[WEB] enter-fullscreen ignored (already FS)";
+                return 1; 
+            }
+
+            self->m_is_fullscreen = true;
+            self->m_pending_fullscreen_ack = true;
+            self->m_last_fullscreen_time = std::chrono::steady_clock::now();
+            self->m_waiting_for_native_frame = true;
+
+            // FORCED BACKEND SYNC: Don't wait for compositor, tell WPE the truth now.
+            if (self->m_backend) {
+                wpe_view_backend_dispatch_set_size(self->m_backend, 1920, 1080);
+            }
+            
             if (self->application()) {
-                self->m_is_fullscreen = true;
-                self->m_pending_fullscreen_ack = true;
                 self->application()->post_task([self]() {
                     bool fs = true;
                     self->when_fullscreen_changed.run(fs);
                 });
+                
+                // CRITICAL: We only request physical FS once per transition.
+                self->application()->fullscreen();
             }
-            return 1; // TRUE
+
+            // ACTIVATE TRANSPARENCY SHIM
+            webkit_web_view_evaluate_javascript(self->m_web_view, 
+                "window._fsStartTime = Date.now(); window.focus(); document.querySelector('video')?.play();",
+                -1, NULL, NULL, NULL, NULL, NULL);
+
+            return 1; // Handled
         }
         
-        int WebWidget::on_leave_fullscreen(void*, void* p_self) {
+        int WebWidget::on_leave_fullscreen(void* view, void* p_self) {
             WebWidget* self = static_cast<WebWidget*>(p_self);
+            if (!self) return 1;
+
             LOG_INFO << "[WEB] leave-fullscreen signal received";
-            if (self && self->application()) {
-                self->m_is_fullscreen = false;
-                self->m_pending_fullscreen_ack = true;
+            
+            // 5-SECOND SHIELD: Ignore exits during the first 5 seconds to prevent YouTube auto-aborts
+            auto now = std::chrono::steady_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - self->m_last_fullscreen_time).count();
+            if (elapsed < 5) {
+                LOG_INFO << "[WEB] Leave-fullscreen blocked by 5s shield (elapsed=" << elapsed << "s)";
+                return 1; // Block exit
+            }
+
+            self->m_is_fullscreen = false;
+            self->m_pending_fullscreen_ack = true;
+            self->m_waiting_for_native_frame = false;
+            
+            // UNFREEZE IMMEDIATELY: Reset the timer so calculate_layout can restore the UI
+            self->m_last_fullscreen_time = std::chrono::steady_clock::now() - std::chrono::seconds(10);
+
+            if (self->application()) {
                 self->application()->post_task([self]() {
                     bool fs = false;
                     self->when_fullscreen_changed.run(fs);
                 });
+                self->application()->unfullscreen();
             }
-            return 1; // TRUE
+            return 1; // Handled
         }
 
         int WebWidget::on_permission_request(void*, void* request, void*) {
@@ -741,14 +848,39 @@ namespace horizon
             return 1; // TRUE
         }
 
-        int WebWidget::on_decide_policy(void*, void* decision, int type, void* p_self) {
+        int WebWidget::on_decide_policy(void* view, void* decision, int type, void* p_self) {
             WebWidget* self = static_cast<WebWidget*>(p_self);
+            if (!self) return 0;
+
+            // PERSISTENT NAVIGATION SHIELD (5 Seconds)
+            auto now = std::chrono::steady_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - self->m_last_fullscreen_time).count();
             
-            LOG_INFO << "[WEB] Policy decision request received of type: " << type;
+            // Type 0 is WEBKIT_POLICY_DECISION_TYPE_NAVIGATION
+            if (self->m_is_fullscreen && elapsed < 5 && type == 0) {
+                LOG_INFO << "[WEB-SHIELD] TOTAL NAVIGATION LOCKOUT (" << elapsed << "s): Blocking transition to avoid exit.";
+                webkit_policy_decision_ignore(WEBKIT_POLICY_DECISION(decision));
+                return 1; // Handled
+            }
+
+            if (type == 0) {
+                WebKitNavigationPolicyDecision* nav_decision = WEBKIT_NAVIGATION_POLICY_DECISION(decision);
+                WebKitNavigationAction* action = webkit_navigation_policy_decision_get_navigation_action(nav_decision);
+                WebKitURIRequest* request = webkit_navigation_action_get_request(action);
+                const char* uri = webkit_uri_request_get_uri(request);
+                LOG_INFO << "[WEB-DEBUG] Policy Navigation allowed: is_fs=" << self->m_is_fullscreen << ", elapsed=" << elapsed << "s, uri=" << (uri ? uri : "unknown");
+            }
             if (self && self->m_backend) {
                 // Using 7 = VISIBLE | FOCUSED | IN_WINDOW
                 wpe_view_backend_add_activity_state(self->m_backend, 7);
             }
+            
+            // HARDWARE TRANSPARENCY: Allow the GPU video plane to show through the web view
+            WebKitColor transparent_color;
+            transparent_color.red = 0; transparent_color.green = 0;
+            transparent_color.blue = 0; transparent_color.alpha = 0;
+            webkit_web_view_set_background_color(self->m_web_view, &transparent_color);
+
             webkit_policy_decision_use((WebKitPolicyDecision*)decision);
             return 1; // TRUE
         }
@@ -799,6 +931,46 @@ namespace horizon
                 }
             }
 
+            // --- FRAME SYNCHRONIZATION (THE COG METHOD) ---
+            if (self->m_waiting_for_native_frame) {
+                bool matched = false;
+                if (self->m_is_fullscreen) {
+                    matched = (width == 1920 && height == 1080);
+                } else {
+                    // When leaving, we wait for a frame that matches our current widget size
+                    matched = (width == self->m_last_dispatched_width && height == self->m_last_dispatched_height);
+                }
+
+                if (matched) {
+                    LOG_INFO << "[WEB] Buffer sync matched (" << width << "x" << height << "). Dispatched " 
+                             << (self->m_is_fullscreen ? "Fullscreen" : "Windowed") << " ACK.";
+                    self->m_waiting_for_native_frame = false;
+                    
+                    g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+                        WebWidget* self = static_cast<WebWidget*>(data);
+                        if (self && self->m_backend) {
+                            if (self->m_is_fullscreen) {
+                                // REINFORCE FOCUS: level 7 = VISIBLE | FOCUSED | IN_WINDOW
+                                wpe_view_backend_add_activity_state(self->m_backend, 7);
+                                wpe_view_backend_dispatch_did_enter_fullscreen(self->m_backend);
+                            } else {
+                                wpe_view_backend_dispatch_did_exit_fullscreen(self->m_backend);
+                            }
+                            
+                            if (self->application()) {
+                                self->application()->post_task([self]() {
+                                    // RE-RE-REFRESH JS ENVIRONMENT
+                                    const char* fs_js = "window.dispatchEvent(new Event('resize'));"
+                                                        "if(window.screen) { screen.width=1920; screen.height=1080; }";
+                                    webkit_web_view_evaluate_javascript(self->m_web_view, fs_js, -1, NULL, NULL, NULL, NULL, NULL);
+                                });
+                            }
+                        }
+                        return FALSE;
+                    }, self);
+                }
+            }
+
             wpe_view_backend_exportable_fdo_dispatch_release_shm_exported_buffer(self->m_exportable, buffer);
             wpe_view_backend_exportable_fdo_dispatch_frame_complete(self->m_exportable);
             
@@ -816,7 +988,10 @@ namespace horizon
             }
         }
 
-        void WebWidget::update_scrollbars() {
+        void WebWidget::update_scrollbars()
+        {
+            if (m_is_fullscreen) return; 
+            
             std::lock_guard<std::mutex> lock(m_scroll_mutex);
             
             // Sync logical state with quantized target state
@@ -922,7 +1097,7 @@ namespace horizon
             }
 
             // Draw Horizon-style scrollbars (Aqua feel) - IMPROVED GLASS TUBE
-            if (m_show_v_scroll) {
+            if (!m_is_fullscreen && m_show_v_scroll) {
                 Color electric_blue = Color("#3a86ff");
                 Color deep_blue = Color("#1a44c5");
                 Color shine_color = Color("#ffffff").with_alpha(0.85f);
@@ -999,8 +1174,21 @@ namespace horizon
             {
                 if (width() == m_last_dispatched_width && height() == m_last_dispatched_height) return;
                 
+                int old_w = m_last_dispatched_width;
+                int old_h = m_last_dispatched_height;
                 m_last_dispatched_width = width();
                 m_last_dispatched_height = height();
+
+                // LAYOUT FREEZE: Only block events when ENTERING fullscreen to avoid compositor noise.
+                // We do NOT block when leaving, to allow Nova to restore its UI.
+                if (m_is_fullscreen && m_waiting_for_native_frame) {
+                    auto now = std::chrono::steady_clock::now();
+                    auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_fullscreen_time).count();
+                    if (elapsed_ms < 2000) {
+                        LOG_INFO << "[WEB-SHIELD] Layout Freeze ACTIVE (" << elapsed_ms << "ms): Ignoring late Configure event during ENTRY.";
+                        return;
+                    }
+                }
 
                 struct ResizeData {
                     WebWidget* self;
@@ -1008,45 +1196,43 @@ namespace horizon
                     int w;
                     int h;
                 };
-                auto* rd = new ResizeData{this, m_backend, width(), height()};
+
+                // GEOMETRIC HARD-OVERRIDE: If in fullscreen, we MUST be exactly 1920x1080.
+                // This ignores any small margins or borders Nova's layout might have.
+                int forced_w = (m_is_fullscreen) ? 1920 : width();
+                int forced_h = (m_is_fullscreen) ? 1080 : height();
+
+                auto* rd = new ResizeData{this, m_backend, forced_w, forced_h};
                 g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
                     auto* d = static_cast<ResizeData*>(data);
                     
                     if (d->backend) {
                         wpe_view_backend_dispatch_set_size(d->backend, d->w, d->h);
-                        LOG_INFO << "[WEB] Resize dispatched: " << d->w << "x" << d->h;
+                        LOG_INFO << "[WEB] Resize dispatched (forced=" << d->self->m_is_fullscreen << "): " << d->w << "x" << d->h;
                     }
                     
                     if (d->self->m_pending_fullscreen_ack) {
-                        // RE-START STABILIZATION: If size changes during the 150ms window, 
-                        // reset the timer. This ensures 150ms of 'silence' at the final size.
-                        if (d->self->m_fullscreen_ack_timer > 0) {
-                            g_source_remove(d->self->m_fullscreen_ack_timer);
-                            d->self->m_fullscreen_ack_timer = 0;
-                        }
-
+                        // Always notify platform of current expected state
                         wpe_view_backend_platform_set_fullscreen(d->backend, d->self->m_is_fullscreen);
                         
-                        d->self->m_fullscreen_ack_timer = g_timeout_add(150, (GSourceFunc)+[](void* data) -> gboolean {
-                            WebWidget* s = static_cast<WebWidget*>(data);
-                            s->m_fullscreen_ack_timer = 0;
-                            s->m_pending_fullscreen_ack = false; // Transaction finally settled
-                            
-                            if (s->m_backend && s_worker_context) {
-                                g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                                    WebWidget* self = static_cast<WebWidget*>(data);
-                                    if (self->m_is_fullscreen) {
-                                        LOG_INFO << "[WEB] Final Fullscreen ACK: size stabilization complete.";
-                                        wpe_view_backend_dispatch_did_enter_fullscreen(self->m_backend);
-                                    } else {
-                                        LOG_INFO << "[WEB] Final Windowed ACK: size stabilization complete.";
-                                        wpe_view_backend_dispatch_did_exit_fullscreen(self->m_backend);
-                                    }
-                                    return FALSE;
-                                }, s);
+                        bool target_satisfied = false;
+                        if (d->self->m_is_fullscreen) {
+                            if (d->w == 1920 && d->h == 1080) {
+                                LOG_INFO << "[WEB] Native 1080p detected. Arming ENTER Frame Synchronization...";
+                                target_satisfied = true;
                             }
-                            return FALSE;
-                        }, d->self);
+                        } else {
+                            // When leaving, any non-1080p size that matches the window is good
+                            LOG_INFO << "[WEB] Windowed size detected (" << d->w << "x" << d->h << "). Arming LEAVE Frame Synchronization...";
+                            target_satisfied = true;
+                        }
+
+                        if (target_satisfied) {
+                            d->self->m_pending_fullscreen_ack = false;
+                            d->self->m_waiting_for_native_frame = true;
+                        } else {
+                            LOG_INFO << "[WEB] Waiting for resolution matching state (" << (d->self->m_is_fullscreen ? "1920x1080" : "windowed") << ")...";
+                        }
                     }
                     
                     delete d;
