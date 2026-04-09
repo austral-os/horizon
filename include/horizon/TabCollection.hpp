@@ -58,6 +58,11 @@ public:
      * @param title The new title.
      */
     void set_tab_title(int index, const std::string& title);
+    
+    /**
+     * @brief Shows or hides the tab header (the bar with the tabs and + button).
+     */
+    void show_header(bool visible);
 
     /**
      * @return The number of tabs in the collection.

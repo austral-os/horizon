@@ -751,7 +751,6 @@ namespace horizon
                     {
                         if (task)
                         {
-                            LOG_INFO << "[APP] Executing posted task...";
                             task();
                         }
                     }

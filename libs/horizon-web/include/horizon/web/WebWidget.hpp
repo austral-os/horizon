@@ -2,6 +2,7 @@
 
 #include "horizon/Widget.hpp"
 #include <cairo.h>
+#include <glib.h>
 #include <thread>
 #include <mutex>
 #include <atomic>
@@ -11,6 +12,8 @@
 typedef struct _GMainContext GMainContext;
 typedef struct _GMainLoop GMainLoop;
 typedef struct _WebKitWebView WebKitWebView;
+typedef struct _WebKitUserContentManager WebKitUserContentManager;
+typedef struct _WebKitJavascriptResult WebKitJavascriptResult;
 typedef struct _GParamSpec GParamSpec;
 struct wpe_view_backend;
 struct wpe_view_backend_exportable_fdo;
@@ -47,6 +50,7 @@ public:
     EventsManager<std::string> when_url_changed;
     EventsManager<bool> when_loading_changed;
     EventsManager<double> when_progress_changed;
+    EventsManager<bool> when_fullscreen_changed;
 
 
 protected:
@@ -63,6 +67,10 @@ private:
     static void on_load_changed(WebKitWebView* web_view, int load_event, WebWidget* self);
     static void on_progress_notify(WebKitWebView* web_view, GParamSpec* pspec, WebWidget* self);
     static void on_mouse_target_changed(WebKitWebView* web_view, void* hit_test_result, uint32_t modifiers, WebWidget* self);
+    static gboolean on_enter_fullscreen(WebKitWebView* web_view, WebWidget* self);
+    static gboolean on_leave_fullscreen(WebKitWebView* web_view, WebWidget* self);
+    static gboolean on_permission_request(WebKitWebView* web_view, void* request, WebWidget* self);
+    static void on_script_message_received(WebKitUserContentManager* manager, void* result, WebWidget* self);
 
     void update_scrollbars();
     void handle_ui_scroll(int x, int y);

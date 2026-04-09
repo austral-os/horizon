@@ -52,7 +52,8 @@ namespace horizon
             m_tabs = tabs.get();
 
             m_tabs->when_add_tab_clicked.connect(
-                [this](EventContext &) { this->create_new_tab("https://www.google.com"); });
+                [this](EventContext &)
+                { this->create_new_tab("https://www.youtube.com/watch?v=nDnecvEbaQ8"); });
 
             m_tabs->when_tab_selected.connect(
                 [this](int index)
@@ -81,7 +82,7 @@ namespace horizon
 
             m_toolbar->when_home_clicked.connect(
                 [this](HomeButtonClickEvent &)
-                { this->navigate_to_url("https://clasesllavallol.com.ar"); });
+                { this->navigate_to_url("https://www.youtube.com/watch?v=nDnecvEbaQ8"); });
 
             m_toolbar->when_search_submitted.connect([this](SearchChangedEvent &ctx)
                                                      { this->navigate_to_url(ctx.query); });
@@ -93,7 +94,7 @@ namespace horizon
                                                     { LOG_INFO << "[NOVA] Options clicked"; });
 
             // Initial tab
-            create_new_tab("https://www.google.com");
+            create_new_tab("https://www.youtube.com/watch?v=nDnecvEbaQ8");
 
             set_content(std::move(tabs));
         }
@@ -116,6 +117,7 @@ namespace horizon
 
             int index =
                 m_tabs->add_tab("New Tab", std::unique_ptr<horizon::Widget>(web_view.release()));
+            ptr->set_focus(true);
 
             ptr->when_title_changed.connect([this, ptr, index](const std::string &title)
                                             { m_tabs->set_tab_title(index, title); });
@@ -139,6 +141,32 @@ namespace horizon
                     {
                         if (m_progress_bar)
                             m_progress_bar->set_progress((float)progress);
+                    }
+                });
+
+            ptr->when_fullscreen_changed.connect(
+                [this](bool fullscreen)
+                {
+                    if (this->application())
+                    {
+                        if (fullscreen)
+                        {
+                            this->application()->fullscreen();
+                            if (m_toolbar)
+                                m_toolbar->set_visible(false);
+                            if (m_tabs)
+                                m_tabs->show_header(false);
+                            this->hide_status_bar();
+                        }
+                        else
+                        {
+                            this->application()->unfullscreen();
+                            if (m_toolbar)
+                                m_toolbar->set_visible(true);
+                            if (m_tabs)
+                                m_tabs->show_header(true);
+                            this->show_status_bar();
+                        }
                     }
                 });
 

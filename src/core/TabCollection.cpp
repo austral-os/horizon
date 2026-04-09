@@ -171,6 +171,13 @@ void TabCollection::set_tab_title(int index, const std::string& title) {
     }
 }
 
+void TabCollection::show_header(bool visible) {
+    if (m_header) {
+        m_header->set_visible(visible);
+        invalidate();
+    }
+}
+
 void TabCollection::set_current_tab(int index) {
     if (index < 0 || index >= (int)m_tabs.size()) return;
     

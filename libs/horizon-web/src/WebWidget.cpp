@@ -9,6 +9,8 @@
 #include <wpe/webkit.h>
 #include <jsc/jsc.h>
 #include <glib.h>
+#include <thread>
+#include <mutex>
 
 namespace horizon
 {
@@ -55,6 +57,7 @@ namespace horizon
             when_mouse_press.connect(
                 [this](MouseButtonEventContext &ctx)
                 {
+                    set_focus(true);
                     // Check for scrollbar interaction first
                     if (m_show_v_scroll && ctx.x >= m_v_track_x && ctx.x <= m_v_track_x + m_v_track_w &&
                         ctx.y >= m_v_track_y && ctx.y <= m_v_track_y + m_v_track_h) {
@@ -379,14 +382,18 @@ namespace horizon
 
                 // --- PERFORMANCE OPTIMIZATIONS ---
                 WebKitSettings* settings = webkit_settings_new();
+                webkit_settings_set_enable_fullscreen(settings, TRUE);
+                webkit_settings_set_enable_developer_extras(settings, TRUE);
+                webkit_settings_set_enable_media_stream(settings, TRUE);
                 webkit_settings_set_enable_page_cache(settings, TRUE);
                 webkit_settings_set_enable_smooth_scrolling(settings, TRUE);
                 webkit_settings_set_enable_webgl(settings, TRUE);
-                webkit_settings_set_javascript_can_open_windows_automatically(settings, TRUE);
+                webkit_settings_set_javascript_can_access_clipboard(settings, TRUE);
+                webkit_settings_set_user_agent(settings, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
                 
                 self->m_web_view = webkit_web_view_new(webkit_backend);
                 webkit_web_view_set_settings(self->m_web_view, settings);
-                g_object_unref(settings); // WebView takes a ref
+                g_object_unref(settings);
 
                 LOG_INFO << "WebView created with performance optimizations for WebWidget: " << self;
 
@@ -395,8 +402,24 @@ namespace horizon
                 g_signal_connect(self->m_web_view, "load-changed", G_CALLBACK(on_load_changed), self);
                 g_signal_connect(self->m_web_view, "notify::estimated-load-progress", G_CALLBACK(on_progress_notify), self);
                 g_signal_connect(self->m_web_view, "mouse-target-changed", G_CALLBACK(on_mouse_target_changed), self);
-                
+                unsigned long id_fs = g_signal_connect(self->m_web_view, "enter-fullscreen", G_CALLBACK(WebWidget::on_enter_fullscreen), self);
+                unsigned long id_ls = g_signal_connect(self->m_web_view, "leave-fullscreen", G_CALLBACK(WebWidget::on_leave_fullscreen), self);
+                unsigned long id_pr = g_signal_connect(self->m_web_view, "permission-request", G_CALLBACK(WebWidget::on_permission_request), self);
+                LOG_INFO << "[WEB] Signal registration IDs: enter_fs=" << id_fs << ", leave_fs=" << id_ls << ", perm_req=" << id_pr;
+
+                // --- SIGNAL TRACING ---
+                guint n_ids;
+                guint* ids = g_signal_list_ids(G_TYPE_FROM_INSTANCE(self->m_web_view), &n_ids);
+                for(guint i=0; i<n_ids; i++) {
+                    const char* name = g_signal_name(ids[i]);
+                    if (strstr(name, "fullscreen") || strstr(name, "full-screen") || strstr(name, "policy")) {
+                        LOG_INFO << "[WEB-DEBUG] Interesting Signal found: " << name;
+                    }
+                }
+                g_free(ids);
                 WebKitUserContentManager* manager = webkit_web_view_get_user_content_manager(self->m_web_view);
+                webkit_user_content_manager_register_script_message_handler(manager, "nova", NULL);
+                g_signal_connect(manager, "script-message-received::nova", G_CALLBACK(WebWidget::on_script_message_received), self);
                 
                 const char* script_source = 
                     "const inject = () => {"
@@ -404,7 +427,25 @@ namespace horizon
                     "  const style = document.createElement('style');"
                     "  style.textContent = '::-webkit-scrollbar { display: none !important; }';"
                     "  (document.head || document.documentElement).appendChild(style);"
-                    "  document.documentElement.style.scrollbarWidth = \"none\";" // Firefox-style extra safety
+                    "  const bridge = (msg) => { if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nova) window.webkit.messageHandlers.nova.postMessage(String(msg)); };"
+                    "  window.console.log = (...args) => bridge('[LOG] ' + args.map(String).join(' '));"
+                    "  window.console.error = (...args) => bridge('[ERR] ' + args.map(String).join(' '));"
+                    "  const origRF = Element.prototype.requestFullscreen || Element.prototype.webkitRequestFullscreen;"
+                    "  if (origRF) {"
+                    "  const wrap = function() {"
+                    "    bridge('[JS-FS] requestFullscreen triggered on <' + this.tagName + '>');"
+                    "    const p = origRF.apply(this, arguments);"
+                    "    if (p && p.catch) {"
+                    "      p.catch(err => bridge('[JS-FS] REJECTED: ' + err.name + ': ' + err.message));"
+                    "    }"
+                    "    return p;"
+                    "  };"
+                    "  Element.prototype.requestFullscreen = wrap;"
+                    "  Element.prototype.webkitRequestFullscreen = wrap;"
+                    "  document.addEventListener('click', () => bridge('[JS-FS] document.fullscreenEnabled on click: ' + document.fullscreenEnabled));"
+                    "  bridge('[JS-FS] Fullscreen API intercepted successfully');"
+                    "  } else { bridge('[JS-FS] Fullscreen API NOT FOUND in this browser'); }"
+                    "  bridge('[JS-FS] document.fullscreenEnabled: ' + document.fullscreenEnabled);"
                     "  let ticking = false;"
                     "  let lastY = -1, lastX = -1, lastH = -1, lastW = -1;"
                     "  const beaconPrefix = 'HORIZON_SCROLL:';"
@@ -649,6 +690,60 @@ namespace horizon
         }
 
         void WebWidget::on_mouse_target_changed(WebKitWebView*, void*, uint32_t, WebWidget* self) {}
+        
+        gboolean WebWidget::on_enter_fullscreen(WebKitWebView*, WebWidget* self) {
+            if (!self) return FALSE;
+            LOG_INFO << "[WEB] enter-fullscreen signal received for WebWidget: " << self;
+            if (self->application()) {
+                self->application()->post_task([self]() {
+                    bool fs = true;
+                    self->when_fullscreen_changed.run(fs);
+                });
+            }
+            return FALSE; // Allow default handler to run
+        }
+
+        gboolean WebWidget::on_leave_fullscreen(WebKitWebView*, WebWidget* self) {
+            if (!self) return FALSE;
+            LOG_INFO << "[WEB] leave-fullscreen signal received for WebWidget: " << self;
+            if (self->application()) {
+                self->application()->post_task([self]() {
+                    bool fs = false;
+                    self->when_fullscreen_changed.run(fs);
+                });
+            }
+            return FALSE; // Allow default handler to run
+        }
+
+
+        gboolean WebWidget::on_permission_request(WebKitWebView*, void* request, WebWidget* self) {
+            const char* type_name = G_OBJECT_TYPE_NAME(request);
+            LOG_INFO << "[WEB] Permission request received: " << (type_name ? type_name : "unknown");
+            
+            // Auto-allow for diagnostics
+            webkit_permission_request_allow((WebKitPermissionRequest*)request);
+            return TRUE;
+        }
+
+        void WebWidget::on_script_message_received(WebKitUserContentManager*, void* result, WebWidget* self) {
+            JSCValue* value = (JSCValue*)result;
+            if (value) {
+                char* str = jsc_value_to_string(value);
+                if (str) {
+                    LOG_INFO << "[WEB-JS] " << str;
+                    
+                    // Fallback: If JS triggered fullscreen but native signal didn't fire
+                    if (strstr(str, "[JS-FS] requestFullscreen triggered")) {
+                        LOG_INFO << "[WEB] Attempting manual signal emission fallback for enter-fullscreen";
+                        gboolean handled = FALSE;
+                        g_signal_emit_by_name(self->m_web_view, "enter-fullscreen", &handled);
+                    }
+                    
+                    g_free(str);
+                }
+            }
+        }
+    
 
         std::string WebWidget::get_title() const {
              std::lock_guard<std::mutex> lock(m_metadata_mutex);

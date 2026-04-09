@@ -229,6 +229,7 @@ namespace horizon
                     if (*state == XDG_TOPLEVEL_STATE_ACTIVATED) activated = true;
                     if (*state == XDG_TOPLEVEL_STATE_FULLSCREEN) fullscreen = true;
                 }
+                LOG_INFO << "[SURFACE] Configure: maximized=" << maximized << ", fullscreen=" << fullscreen << ", activated=" << activated;
                 self->m_is_maximized = maximized; self->m_is_fullscreen = fullscreen;
                 if (self->m_is_activated != activated) {
                     self->m_is_activated = activated;
@@ -460,8 +461,20 @@ namespace horizon
     void WaylandSurface::request_maximize() { if (m_xdg_toplevel) { xdg_toplevel_set_maximized(m_xdg_toplevel); wl_surface_commit(m_surface); } }
     void WaylandSurface::request_minimize() { if (m_xdg_toplevel) { xdg_toplevel_set_minimized(m_xdg_toplevel); wl_surface_commit(m_surface); } }
     void WaylandSurface::request_restore() { if (m_xdg_toplevel) { xdg_toplevel_unset_maximized(m_xdg_toplevel); wl_surface_commit(m_surface); } }
-    void WaylandSurface::request_fullscreen() { if (m_xdg_toplevel) { xdg_toplevel_set_fullscreen(m_xdg_toplevel, nullptr); wl_surface_commit(m_surface); } }
-    void WaylandSurface::request_unfullscreen() { if (m_xdg_toplevel) { xdg_toplevel_unset_fullscreen(m_xdg_toplevel); wl_surface_commit(m_surface); } }
+    void WaylandSurface::request_fullscreen() { 
+        if (m_xdg_toplevel) { 
+            LOG_INFO << "[SURFACE] Requesting fullscreen";
+            xdg_toplevel_set_fullscreen(m_xdg_toplevel, nullptr); 
+            wl_surface_commit(m_surface); 
+        } 
+    }
+    void WaylandSurface::request_unfullscreen() { 
+        if (m_xdg_toplevel) { 
+            LOG_INFO << "[SURFACE] Requesting unfullscreen";
+            xdg_toplevel_unset_fullscreen(m_xdg_toplevel); 
+            wl_surface_commit(m_surface); 
+        } 
+    }
 
     void WaylandSurface::request_activation_token(std::function<void(const std::string &)> callback, uint32_t serial)
     {
