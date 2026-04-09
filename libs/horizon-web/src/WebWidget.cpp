@@ -314,8 +314,6 @@ namespace horizon
                 std::lock_guard<std::mutex> lock(s_worker_mutex);
                 if (!s_running || !s_worker_context) {
                     // Global shutdown in progress. 
-                    // SKIP explicit destruction to avoid wpe_view_backend_destroy crashes.
-                    // The OS will reclaim all resources safely upon process exit.
                     m_web_view = nullptr;
                     m_exportable = nullptr;
                     m_backend = nullptr;
@@ -378,7 +376,8 @@ namespace horizon
             }
 
             // Create backend/webview in the worker thread
-            g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+            // USE HIGH PRIORITY: Must match load_url priority to avoid race conditions
+            g_main_context_invoke_full(s_worker_context, G_PRIORITY_HIGH, (GSourceFunc)+[](void* data) -> gboolean {
                 auto* self = static_cast<WebWidget*>(data);
                 
                 struct FullscreenData {
@@ -399,7 +398,17 @@ namespace horizon
 
                 static struct wpe_view_backend_exportable_fdo_client client = {
                     .export_buffer_resource = nullptr,
-                    .export_dmabuf_resource = nullptr,
+                    .export_dmabuf_resource = [](void *data, struct wpe_view_backend_exportable_fdo_dmabuf_resource *dmabuf)
+                    {
+                        auto *self = static_cast<WebWidget *>(data);
+                        // LOG_INFO << "[WEB-DMA] DMABUF exported: " << dmabuf->width << "x" << dmabuf->height;
+                        
+                        // ACK the frame immediately to keep the engine pumping
+                        wpe_view_backend_exportable_fdo_dispatch_frame_complete(self->m_exportable);
+                        
+                        // Release the resource immediately as we aren't yet importing it to GL
+                        wpe_view_backend_exportable_fdo_dispatch_release_buffer(self->m_exportable, dmabuf->buffer_resource);
+                    },
                     .export_shm_buffer =
                         [](void *data, struct wpe_fdo_shm_exported_buffer *buffer)
                     {
@@ -414,6 +423,9 @@ namespace horizon
 
                 self->m_exportable = wpe_view_backend_exportable_fdo_create(&client, self, initial_width, initial_height);
                 self->m_backend = wpe_view_backend_exportable_fdo_get_view_backend(self->m_exportable);
+                
+                // ENSURE ACTIVITY STATE: Tell the engine we are visible/focused/in-window immediately
+                wpe_view_backend_add_activity_state(self->m_backend, 7); // 7 = VISIBLE | FOCUSED | IN_WINDOW
 
                 // ENSURE BASE STATE: Explicitly tell the engine we are NOT in fullscreen at startup
                 wpe_view_backend_platform_set_fullscreen(self->m_backend, FALSE);
@@ -452,13 +464,26 @@ namespace horizon
 
                 g_signal_connect(self->m_web_view, "notify::title", G_CALLBACK(on_title_notify), self);
                 g_signal_connect(self->m_web_view, "notify::uri", G_CALLBACK(on_uri_notify), self);
-                g_signal_connect(self->m_web_view, "load-changed", G_CALLBACK(on_load_changed), self);
                 g_signal_connect(self->m_web_view, "notify::estimated-load-progress", G_CALLBACK(on_progress_notify), self);
+                g_signal_connect(self->m_web_view, "load-changed", G_CALLBACK(on_load_changed), self);
+                g_signal_connect(self->m_web_view, "resource-load-started", G_CALLBACK(+[](WebKitWebView*, WebKitWebResource* resource, WebKitURIRequest* request, void*) {
+                    const char* uri = webkit_uri_request_get_uri(request);
+                    LOG_INFO << "[WEB-RESOURCE] Resource load started: " << (uri ? uri : "unknown");
+                }), NULL);
+                g_signal_connect(self->m_web_view, "load-failed", G_CALLBACK(+[](WebKitWebView*, WebKitLoadEvent, const char* url, GError* error, void*) -> gboolean {
+                    LOG_ERROR << "[WEB-CRITICAL] Load failed for " << url << ": " << (error ? error->message : "Unknown error");
+                    return FALSE;
+                }), NULL);
                 g_signal_connect(self->m_web_view, "mouse-target-changed", G_CALLBACK(on_mouse_target_changed), self);
                 unsigned long id_fs = g_signal_connect(self->m_web_view, "enter-fullscreen", G_CALLBACK(WebWidget::on_enter_fullscreen), self);
                 unsigned long id_ls = g_signal_connect(self->m_web_view, "leave-fullscreen", G_CALLBACK(WebWidget::on_leave_fullscreen), self);
                 unsigned long id_pr = g_signal_connect(self->m_web_view, "permission-request", G_CALLBACK(WebWidget::on_permission_request), self);
                 unsigned long id_dp = g_signal_connect(self->m_web_view, "decide-policy", G_CALLBACK(WebWidget::on_decide_policy), self);
+                
+                g_signal_connect(self->m_web_view, "web-process-terminated", G_CALLBACK(+[](WebKitWebView*, WebKitWebProcessTerminationReason reason, void*) {
+                    LOG_ERROR << "[WEB-CRITICAL] Web process terminated! Reason: " << reason;
+                }), NULL);
+
                 LOG_INFO << "[WEB] Signal registration IDs: enter_fs=" << id_fs << ", leave_fs=" << id_ls << ", perm_req=" << id_pr << ", decide_policy=" << id_dp;
 
                 // --- SIGNAL TRACING ---
@@ -586,7 +611,7 @@ namespace horizon
                 webkit_user_style_sheet_unref(fs_style);
 
                 return FALSE;
-            }, this);
+            }, this, NULL);
 
             m_initialized = true;
         }
@@ -652,21 +677,37 @@ namespace horizon
                 LOG_ERROR << "CRITICAL: Could not find libWPEBackend-fdo-1.0.so.1 in common paths!";
             }
 
-            // --- MULTI-CORE OPTIMIZATIONS ---
-            // Set Skia painting threads to use all available cores
-            int cores = std::thread::hardware_concurrency();
-            if (cores > 0) {
-                std::string cores_str = std::to_string(cores);
-                g_setenv("WEBKIT_SKIA_PAINTING_THREADS", cores_str.c_str(), TRUE);
-                LOG_INFO << "Setting WEBKIT_SKIA_PAINTING_THREADS to: " << cores_str;
-            }
-            // Ensure hardware acceleration is favored and scale is 1:1
-            g_setenv("WEBKIT_SKIA_ENABLE_CPU_RENDERING", "0", TRUE);
-            g_setenv("WEBKIT_FORCE_COMPOSITING_MODE", "1", TRUE);
-            g_setenv("WPE_WEBKIT_DEVICE_SCALE_FACTOR", "1.0", TRUE);
-            g_setenv("WPE_DEVICE_SCALE_FACTOR", "1.0", TRUE);
-            g_setenv("WEBKIT_FORCE_DEVICE_SCALE_FACTOR", "1.0", TRUE);
+            // --- WAYFIRE "ZERO ISOLATION" MODE ---
+            // Total sandbox disable to ensure sub-processes see the Wayland socket.
+            g_setenv("WEBKIT_FORCE_SANDBOX", "0", TRUE);
+            g_setenv("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1", TRUE);
+            
+            // PURE SOFTWARE PATH (No GPU Process, No Compositing)
+            g_setenv("WEBKIT_DISABLE_GPU_PROCESS", "1", TRUE);
+            g_setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", TRUE);
+            g_setenv("WEBKIT_FORCE_COMPOSITING_MODE", "0", TRUE);
+            g_setenv("WEBKIT_SKIA_ENABLE_CPU_RENDERING", "1", TRUE);
+            g_setenv("WEBKIT_DISABLE_ACCELERATED_2D_CANVAS", "1", TRUE);
+            
+            // WAYLAND ENVIRONMENT REDUNDANCY
+            const char* wayland_disp = "wayland-1"; 
+            g_setenv("WAYLAND_DISPLAY", wayland_disp, TRUE);
+            g_setenv("WEBKIT_WAYLAND_DISPLAY", wayland_disp, TRUE);
+            g_setenv("GDK_BACKEND", "wayland", TRUE);
+            g_setenv("QT_QPA_PLATFORM", "wayland", TRUE);
+            g_setenv("XDG_RUNTIME_DIR", "/run/user/1000", TRUE);
+            
+            // DEBUGGING & STABILITY
+            g_setenv("WPE_DEBUG", "1", TRUE);
+            g_setenv("WPE_FDO_FORCE_SHM", "1", TRUE);
+            g_setenv("WEBKIT_DISABLE_WAYLAND_DISPLAY_CHECK", "1", TRUE);
+            g_setenv("GIO_USE_NETWORK_MONITOR", "base", TRUE);
+            g_setenv("WEBKIT_DISABLE_NETWORK_PROCESS_SANDBOX", "1", TRUE);
+            
+            // LOADER INIT (Already handled by loop above, but ensure it's fdo)
+            g_setenv("WPE_BACKEND", "fdo", TRUE);
 
+            LOG_INFO << "[WEB] Initializing WPE for SHM";
             wpe_fdo_initialize_shm();
 
             LOG_INFO << "Shared WPE WebKit worker thread started";
@@ -753,8 +794,15 @@ namespace horizon
         void WebWidget::on_load_changed(void*, int load_event, void* p_self) {
             WebWidget* self = static_cast<WebWidget*>(p_self);
             if (!self) return;
-            LOG_INFO << "Load changed for WebWidget: " << self << " Event: " << load_event;
+            const char* url = webkit_web_view_get_uri(self->m_web_view);
+            LOG_INFO << "[WEB] Load status changed for " << (url ? url : "unknown") << " (Event: " << load_event << ")";
             
+            // BREAK 10% STALL: Reinforce focus/visibility on EVERY load state transition
+            if (self->m_backend) {
+                wpe_view_backend_add_activity_state(self->m_backend, 7); // 7 = VISIBLE | FOCUSED | IN_WINDOW
+                LOG_INFO << "[WEB] Focus reinforced for load event: " << load_event;
+            }
+
             if (load_event == 2 || load_event == 3) { // COMMITTED or FINISHED
                 LOG_INFO << "[WEB] Injecting diagnostic script bridge into WebWidget: " << self;
                 const char* diag_script = 
@@ -779,15 +827,24 @@ namespace horizon
                 webkit_web_view_evaluate_javascript(self->m_web_view, diag_script, -1, NULL, NULL, NULL, NULL, NULL);
             }
 
-            bool loading = (load_event != 3); // 3 == WEBKIT_LOAD_FINISHED
-            self->when_loading_changed.run(loading);
+            // --- UI STATUS NOTIFICATION ---
+            if (self->application()) {
+                bool loading = (load_event != 3); // 3 = WEBKIT_LOAD_FINISHED
+                self->application()->post_task([self, loading]() mutable {
+                    self->when_loading_changed.run(loading);
+                });
+            }
         }
 
         void WebWidget::on_progress_notify(void*, void*, void* p_self) {
             WebWidget* self = static_cast<WebWidget*>(p_self);
-            if (!self) return;
+            if (!self || !self->application()) return;
+            
             double progress = webkit_web_view_get_estimated_load_progress(self->m_web_view);
-            self->when_progress_changed.run(progress);
+            
+            self->application()->post_task([self, progress]() mutable {
+                self->when_progress_changed.run(progress);
+            });
         }
 
         void WebWidget::on_mouse_target_changed(void*, void*, uint32_t, void*) {}
@@ -883,6 +940,8 @@ namespace horizon
             WebWidget* self = static_cast<WebWidget*>(p_self);
             if (!self) return 0;
 
+            LOG_INFO << "[WEB-POLICY] Decision requested. Type: " << type << " for WebWidget: " << self;
+
             // PERSISTENT NAVIGATION SHIELD (5 Seconds)
             auto now = std::chrono::steady_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - self->m_last_fullscreen_time).count();
@@ -941,6 +1000,12 @@ namespace horizon
         {
             auto *self = static_cast<WebWidget *>(data);
             if (!self || !self->m_exportable) return;
+
+            static int frame_count = 0;
+            if (++frame_count % 30 == 0) {
+                LOG_INFO << "[WEB-DEBUG] Frame exported: #" << frame_count;
+            }
+
             struct wl_shm_buffer *shm_buffer = wpe_fdo_shm_exported_buffer_get_shm_buffer(buffer);
             if (!shm_buffer)
             {
@@ -1014,9 +1079,6 @@ namespace horizon
             wpe_view_backend_exportable_fdo_dispatch_release_shm_exported_buffer(self->m_exportable, buffer);
             wpe_view_backend_exportable_fdo_dispatch_frame_complete(self->m_exportable);
             
-            static int frame_count = 0;
-            if (++frame_count % 60 == 0) LOG_INFO << "Frame exported for WebWidget: " << self;
-
             if (self->application()) {
                 self->application()->post_task([self]() {
                     // Frame-Synced Invalidation:
@@ -1105,19 +1167,26 @@ namespace horizon
         void WebWidget::load_url(const std::string &url)
         {
             if (!m_initialized) init_wpe();
-            
+
+            // LOAD GATE: Wayfire requires window activation before rendering starts
+            if (!m_window_activated) {
+                LOG_INFO << "[WEB] Load Gate engaged. Queuing URL: " << url;
+                m_pending_url = url;
+                return;
+            }
+
             if (s_worker_context) {
-                g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+                g_main_context_invoke_full(s_worker_context, G_PRIORITY_HIGH, (GSourceFunc)+[](void* data) -> gboolean {
                     auto* pair = static_cast<std::pair<WebWidget*, std::string>*>(data);
                     if (pair->first->m_web_view) {
-                        LOG_INFO << "Loading URI: " << pair->second << " in WebWidget: " << pair->first;
+                        LOG_INFO << "Loading URI (High Priority): " << pair->second << " in WebWidget: " << pair->first;
                         webkit_web_view_load_uri(pair->first->m_web_view, pair->second.c_str());
                     } else {
                         LOG_ERROR << "Failed to load URI: m_web_view is NULL for WebWidget: " << pair->first;
                     }
                     delete pair;
                     return FALSE;
-                }, new std::pair<WebWidget*, std::string>(this, url));
+                }, new std::pair<WebWidget*, std::string>(this, url), NULL);
             }
         }
 
@@ -1209,6 +1278,16 @@ namespace horizon
 
         void WebWidget::calculate_layout()
         {
+            // LOAD GATE: Release the pending URL once we are active and have dimensions
+            if (!m_window_activated && is_effectively_visible() && width() > 100) {
+                m_window_activated = true; 
+                if (!m_pending_url.empty()) {
+                    std::string url = m_pending_url;
+                    m_pending_url = "";
+                    LOG_INFO << "[WEB] Load Gate released. Processing queued URL: " << url;
+                    load_url(url);
+                }
+            }
             if (m_is_fullscreen) {
                 set_position(0, 0);
                 set_size(1920, 1080);

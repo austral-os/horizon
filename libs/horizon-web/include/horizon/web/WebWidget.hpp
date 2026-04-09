@@ -139,6 +139,9 @@ private:
     mutable std::mutex m_scroll_mutex;
     static constexpr int SCROLLBAR_SIZE = 12;
 
+    // Wayfire Stabilization
+    bool m_window_activated = false;
+    std::string m_pending_url;
 };
 
 } // namespace web

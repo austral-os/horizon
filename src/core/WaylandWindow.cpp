@@ -515,7 +515,7 @@ namespace horizon
                     // eglSwapBuffers/wl_display_dispatch when the compositor might not be giving us
                     // frame callbacks.
 
-                    if (m_surface->is_configured() && m_surface->width() > 0 &&
+                    if ((m_surface->is_configured() || m_first_frame) && m_surface->width() > 0 &&
                         m_surface->height() > 0 && (frame_now - m_last_commit_time) >= FRAME_MS)
                     {
                         // Ensure correct context is bound for this window
@@ -591,6 +591,7 @@ namespace horizon
 
                             render_gl_ui();
                             m_last_commit_time = frame_now;
+                            m_first_frame = false;
                         }
                     }
                 }

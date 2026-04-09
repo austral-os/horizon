@@ -416,7 +416,16 @@ namespace horizon
         LOG_INFO << "[SURFACE] resize_buffer done";
     }
 
-    void WaylandSurface::swap_buffers() { if (m_egl_display != EGL_NO_DISPLAY && m_egl_surface != EGL_NO_SURFACE) eglSwapBuffers(m_egl_display, m_egl_surface); }
+    void WaylandSurface::swap_buffers() { 
+        if (m_egl_display != EGL_NO_DISPLAY && m_egl_surface != EGL_NO_SURFACE) {
+            eglSwapBuffers(m_egl_display, m_egl_surface); 
+            
+            // EXPLICIT COMMIT: Strictly notify the compositor of the new content
+            // damage_buffer(0,0,INT_MAX,INT_MAX) tells the compositor the whole buffer is new
+            wl_surface_damage_buffer(m_surface, 0, 0, INT32_MAX, INT32_MAX);
+            wl_surface_commit(m_surface);
+        }
+    }
 
     void WaylandSurface::free()
     {
