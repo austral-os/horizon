@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Nova
+Exec=/home/horacio/Desarrollo/austral-os/horizon/build/apps/nova/nova
+Icon=web-browser
+Comment=Nova Web Browser
+Terminal=false
+Categories=Internet;
