@@ -507,25 +507,47 @@ namespace horizon
                 webkit_user_script_unref(script);
 
 
-                // PERSISTENT NUCLEAR SHIM: V8.3 (Click Captor)
+                // REGISTER CHANNEL BRIDGE: Dedicated signals for zero-copy communication
+                webkit_user_content_manager_register_script_message_handler(manager, "nova_enter", NULL);
+                webkit_user_content_manager_register_script_message_handler(manager, "nova_exit", NULL);
+                
+                g_signal_connect(manager, "script-message-received::nova_enter", G_CALLBACK(+[](WebKitUserContentManager*, WebKitJavascriptResult*, WebWidget* self) {
+                    LOG_INFO << "[WEB-BRIDGE] Direct trigger: ENTER FS";
+                    self->on_enter_fullscreen(NULL, self);
+                }), self);
+
+                g_signal_connect(manager, "script-message-received::nova_exit", G_CALLBACK(+[](WebKitUserContentManager*, WebKitJavascriptResult*, WebWidget* self) {
+                    LOG_INFO << "[WEB-BRIDGE] Direct trigger: EXIT FS";
+                    self->on_leave_fullscreen(NULL, self);
+                }), self);
+
+                // PERSISTENT NUCLEAR SHIM: V9.2 (Channel Bridge)
                 const char* nuclear_source = 
                     "window._fsStartTime = Date.now();"
+                    "const msgEnter = () => { if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nova_enter) window.webkit.messageHandlers.nova_enter.postMessage(null); };"
+                    "const msgExit = () => { if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nova_exit) window.webkit.messageHandlers.nova_exit.postMessage(null); };"
+                    "const wrapEnter = function() { "
+                    "  msgEnter(); "
+                    "  this.classList.add('horizon-fs'); "
+                    "  document.documentElement.classList.add('horizon-fs'); "
+                    "  return Promise.resolve(); "
+                    "};"
                     "const wrapExit = function() { "
                     "  if (Date.now() - window._fsStartTime > 500) { "
-                    "    document.title = 'NOVA_EXIT_FS'; "
+                    "    msgExit(); "
                     "  } "
+                    "  return Promise.resolve(); "
                     "};"
+                    "try { "
+                    "  Element.prototype.requestFullscreen = Element.prototype.webkitRequestFullscreen = wrapEnter; "
+                    "  document.exitFullscreen = document.webkitExitFullscreen = wrapExit; "
+                    "} catch(e) {}"
                     "window.addEventListener('click', (e) => {"
                     "  const btn = e.target.closest('.ytp-fullscreen-button');"
-                    "  if (btn) { "
-                    "    console.log('NOVA: Fullscreen button clicked');"
-                    "    wrapExit(); "
-                    "  }"
+                    "  if (btn) { msgExit(); }"
                     "}, true);"
                     "window.addEventListener('keydown', (e) => {"
-                    "  if (e.keyCode === 27 || e.key === 'f' || e.key === 'F') { "
-                    "    wrapExit(); "
-                    "  }"
+                    "  if (e.keyCode === 27 || e.key === 'f' || e.key === 'F') { msgEnter(); } "
                     "}, true);"
                     "Object.defineProperty(screen, 'width', { value: 1920, configurable: true });"
                     "Object.defineProperty(screen, 'height', { value: 1080, configurable: true });"
@@ -562,15 +584,6 @@ namespace horizon
                     NULL, NULL);
                 webkit_user_content_manager_add_style_sheet(manager, fs_style);
                 webkit_user_style_sheet_unref(fs_style);
-
-                // TITLE BRIDGE: Catch exit signals from YouTube
-                g_signal_connect(self->m_web_view, "notify::title", G_CALLBACK(+[](WebKitWebView* view, GParamSpec*, WebWidget* p_self) {
-                    const char* title = webkit_web_view_get_title(view);
-                    if (title && g_strcmp0(title, "NOVA_EXIT_FS") == 0) {
-                        LOG_INFO << "[WEB-BRIDGE] Exit signal detected via Title Change. Triggering Leave FS.";
-                        p_self->on_leave_fullscreen(NULL, p_self);
-                    }
-                }), self);
 
                 return FALSE;
             }, this);
@@ -811,9 +824,10 @@ namespace horizon
                 self->application()->fullscreen();
             }
 
-            // ACTIVATE TRANSPARENCY SHIM
+            // ACTIVATE TRANSPARENCY SHIM & FORCE IMMEDIATE LAYOUT
+            self->calculate_layout();
             webkit_web_view_evaluate_javascript(self->m_web_view, 
-                "document.documentElement.classList.add('horizon-fs'); document.body.classList.add('horizon-fs'); window._fsStartTime = Date.now(); window.focus(); document.querySelector('video')?.play();",
+                "document.documentElement.classList.add('horizon-fs'); document.body.classList.add('horizon-fs'); window.dispatchEvent(new Event('resize'));",
                 -1, NULL, NULL, NULL, NULL, NULL);
 
             return 1; // Handled
@@ -837,15 +851,11 @@ namespace horizon
             // UNFREEZE IMMEDIATELY
             self->m_last_fullscreen_time = std::chrono::steady_clock::now() - std::chrono::seconds(10);
 
-            // RESTORE REALITY: V8.0
+            // RESTORE REALITY: V8.5 (Persistent State)
             const char* restoration_js = 
+                "document.title = 'YouTube';"
                 "document.documentElement.classList.remove('horizon-fs');"
                 "document.body.classList.remove('horizon-fs');"
-                "try {"
-                "  delete window.innerWidth; delete window.innerHeight;"
-                "  delete document.fullscreenElement; delete document.webkitFullscreenElement;"
-                "  delete document.webkitIsFullScreen;"
-                "} catch(e) {}"
                 "window.dispatchEvent(new Event('resize'));"
                 "document.dispatchEvent(new Event('fullscreenchange'));";
 
@@ -1199,10 +1209,17 @@ namespace horizon
 
         void WebWidget::calculate_layout()
         {
+            if (m_is_fullscreen) {
+                set_position(0, 0);
+                set_size(1920, 1080);
+            }
+
             Widget::calculate_layout();
+
             if (m_initialized && m_backend && width() > 0 && height() > 0 && s_worker_context)
             {
-                if (width() == m_last_dispatched_width && height() == m_last_dispatched_height) return;
+                // Never return early during fullscreen transitions to ensure backend sync
+                if (!m_is_fullscreen && width() == m_last_dispatched_width && height() == m_last_dispatched_height) return;
                 
                 int old_w = m_last_dispatched_width;
                 int old_h = m_last_dispatched_height;

@@ -1643,13 +1643,9 @@ namespace horizon
     {
         if (m_compositor_context)
         {
-            // IDEMPOTENCY CHECK: Do not request fullscreen if the compositor already thinks we are.
-            // This prevents the double [SURFACE] Requesting fullscreen in Nova logs.
-            static bool window_is_fullscreen = false;
-            if (window_is_fullscreen) return;
+            if (is_fullscreen()) return;
             
             m_compositor_context->fullscreen();
-            window_is_fullscreen = true;
             invalidate();
         }
     }
