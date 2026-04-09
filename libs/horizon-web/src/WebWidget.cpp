@@ -214,10 +214,9 @@ namespace horizon
             when_key_press.connect(
                 [this](KeyEventContext &ctx)
                 {
-                    // ESCAPE BYPASS: Infalible Nova-level handle
+                    // ESCAPE BYPASS: Unconditional Nova-level handle during Immersive Mode
                     if (m_is_fullscreen && ctx.keysym == 0xFF1B) {
-                        LOG_INFO << "[WEB] ESC detected in C++. Triggering Leave FS.";
-                        webkit_web_view_evaluate_javascript(m_web_view, "const re = document.exitFullscreen || document.webkitExitFullscreen; if(re) re.call(document);", -1, NULL, NULL, NULL, NULL, NULL);
+                        LOG_INFO << "[WEB] ESC pressed. Nuclear Reset of Fullscreen State.";
                         on_leave_fullscreen(NULL, this);
                         return;
                     }
@@ -507,10 +506,27 @@ namespace horizon
                 webkit_user_content_manager_add_script(manager, script);
                 webkit_user_script_unref(script);
 
-                // PERSISTENT NUCLEAR SHIM: V7.2 (Total Illusion)
+
+                // PERSISTENT NUCLEAR SHIM: V8.3 (Click Captor)
                 const char* nuclear_source = 
                     "window._fsStartTime = Date.now();"
-                    "window.addEventListener('keydown', (e) => { if (e.keyCode === 27) { const re = document.exitFullscreen || document.webkitExitFullscreen; if(re) re.call(document); } }, true);"
+                    "const wrapExit = function() { "
+                    "  if (Date.now() - window._fsStartTime > 500) { "
+                    "    document.title = 'NOVA_EXIT_FS'; "
+                    "  } "
+                    "};"
+                    "window.addEventListener('click', (e) => {"
+                    "  const btn = e.target.closest('.ytp-fullscreen-button');"
+                    "  if (btn) { "
+                    "    console.log('NOVA: Fullscreen button clicked');"
+                    "    wrapExit(); "
+                    "  }"
+                    "}, true);"
+                    "window.addEventListener('keydown', (e) => {"
+                    "  if (e.keyCode === 27 || e.key === 'f' || e.key === 'F') { "
+                    "    wrapExit(); "
+                    "  }"
+                    "}, true);"
                     "Object.defineProperty(screen, 'width', { value: 1920, configurable: true });"
                     "Object.defineProperty(screen, 'height', { value: 1080, configurable: true });"
                     "Object.defineProperty(window, 'innerWidth', { value: 1920, configurable: true });"
@@ -525,7 +541,6 @@ namespace horizon
                     "  if (!document.documentElement.classList.contains('horizon-fs')) { clearInterval(wakeUp); return; }"
                     "  window.dispatchEvent(new Event('resize'));"
                     "  document.dispatchEvent(new Event('fullscreenchange'));"
-                    "  document.dispatchEvent(new Event('webkitfullscreenchange'));"
                     "  const v = document.querySelector('video'); if(v && v.paused) v.play();"
                     "  if(Date.now() - window._fsStartTime > 2000) clearInterval(wakeUp);"
                     "}, 250);";
@@ -548,16 +563,14 @@ namespace horizon
                 webkit_user_content_manager_add_style_sheet(manager, fs_style);
                 webkit_user_style_sheet_unref(fs_style);
 
-                // EXTRA AGGRESSIVE: Inject style sheet at USER level
-                WebKitUserStyleSheet* style = webkit_user_style_sheet_new(
-                    "::-webkit-scrollbar { display: none !important; }",
-                    WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
-                    WEBKIT_USER_STYLE_LEVEL_USER, NULL, NULL);
-                webkit_user_content_manager_add_style_sheet(manager, style);
-                webkit_user_style_sheet_unref(style);
-
-                // ENGINE LEVEL: We'll rely on the high-priority style sheet for now
-                // as set_overlay_scrolling_enabled might not be available in this WebKit version.
+                // TITLE BRIDGE: Catch exit signals from YouTube
+                g_signal_connect(self->m_web_view, "notify::title", G_CALLBACK(+[](WebKitWebView* view, GParamSpec*, WebWidget* p_self) {
+                    const char* title = webkit_web_view_get_title(view);
+                    if (title && g_strcmp0(title, "NOVA_EXIT_FS") == 0) {
+                        LOG_INFO << "[WEB-BRIDGE] Exit signal detected via Title Change. Triggering Leave FS.";
+                        p_self->on_leave_fullscreen(NULL, p_self);
+                    }
+                }), self);
 
                 return FALSE;
             }, this);
@@ -812,26 +825,27 @@ namespace horizon
 
             LOG_INFO << "[WEB] leave-fullscreen signal received";
             
-            // 5-SECOND SHIELD: Ignore exits during the first 5 seconds to prevent YouTube auto-aborts
-            auto now = std::chrono::steady_clock::now();
-            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - self->m_last_fullscreen_time).count();
-            if (elapsed < 5) {
-                LOG_INFO << "[WEB] Leave-fullscreen blocked by 5s shield (elapsed=" << elapsed << "s)";
-                return 1; // Block exit
-            }
-
             self->m_is_fullscreen = false;
-            self->m_pending_fullscreen_ack = true;
+            self->m_pending_fullscreen_ack = false; // CRITICAL: Reset, don't arm
             self->m_waiting_for_native_frame = false;
             
-            // UNFREEZE IMMEDIATELY: Reset the timer so calculate_layout can restore the UI
+            // RESET BACKEND IMMEDIATELY to prevent re-entry flicker
+            if (self->m_backend) {
+                wpe_view_backend_dispatch_set_size(self->m_backend, 1024, 768);
+            }
+
+            // UNFREEZE IMMEDIATELY
             self->m_last_fullscreen_time = std::chrono::steady_clock::now() - std::chrono::seconds(10);
 
-            // RESTORE REALITY: V7.1 (Stability First)
+            // RESTORE REALITY: V8.0
             const char* restoration_js = 
                 "document.documentElement.classList.remove('horizon-fs');"
                 "document.body.classList.remove('horizon-fs');"
-                "try { delete window.innerWidth; delete window.innerHeight; } catch(e) {}"
+                "try {"
+                "  delete window.innerWidth; delete window.innerHeight;"
+                "  delete document.fullscreenElement; delete document.webkitFullscreenElement;"
+                "  delete document.webkitIsFullScreen;"
+                "} catch(e) {}"
                 "window.dispatchEvent(new Event('resize'));"
                 "document.dispatchEvent(new Event('fullscreenchange'));";
 
@@ -875,6 +889,15 @@ namespace horizon
                 WebKitNavigationAction* action = webkit_navigation_policy_decision_get_navigation_action(nav_decision);
                 WebKitURIRequest* request = webkit_navigation_action_get_request(action);
                 const char* uri = webkit_uri_request_get_uri(request);
+                
+                // NOVA URI BRIDGE: Intercept exit signal
+                if (uri && g_str_has_prefix(uri, "nova://exit_fullscreen")) {
+                    LOG_INFO << "[WEB-BRIDGE] Exit signal detected via URI. Triggering Leave FS.";
+                    on_leave_fullscreen(NULL, self);
+                    webkit_policy_decision_ignore(WEBKIT_POLICY_DECISION(decision));
+                    return 1;
+                }
+
                 LOG_INFO << "[WEB-DEBUG] Policy Navigation allowed: is_fs=" << self->m_is_fullscreen << ", elapsed=" << elapsed << "s, uri=" << (uri ? uri : "unknown");
             }
             if (self && self->m_backend) {
