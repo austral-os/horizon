@@ -76,7 +76,8 @@ TerminalWidget::TerminalWidget() {
         paste->when_click.connect([this](MouseButtonEventContext&) { perform(ClipboardAction::Paste); });
         
         if (m_app) {
-            m_app->show_context_menu(menu.release(), -1, -1, ctx.serial);
+            m_app->show_context_menu(menu.release(), -1, -1, ctx.serial, this);
+            ctx.stop_propagation = true;
         }
     });
 }

@@ -67,6 +67,13 @@ Upon exit:
 - The `Titlebar` is restored.
 - The `when_leave_fullscreen` event is fired.
 
+### 3.3. Context Menu Integration
+
+The system automatically manages context menu entries for fullscreen-capable widgets:
+1. **Manual Menus**: If a widget provides its own context menu (via `show_context_menu`), the system will inject "Pantalla completa" (or "Salir de pantalla completa") at the bottom, adding a separator if the menu is not empty.
+2. **Automatic Menus**: If a widget declares `supports_fullscreen()` but has no custom context menu, right-clicking it will automatically generate a menu containing the fullscreen toggle.
+3. **Dynamic State**: The menu text updates in real-time based on the window's current state.
+
 ## 4. Best Practices
 
 - **Layout Fluidity**: Since fullscreen usually changes the aspect ratio and size of your widget significantly, ensure yours uses a responsive layout strategy (e.g., `calculate_layout` should handle all sizing).

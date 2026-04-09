@@ -86,9 +86,17 @@ namespace horizon
                 if (ev.button == BTN_RIGHT)
                 {
                     when_right_click.run(ev);
+                    if (ev.stop_propagation) return;
+
                     if (m_context_menu)
                     {
-                        application()->show_context_menu(m_context_menu.get(), -1, -1, ev.serial);
+                        application()->show_context_menu(m_context_menu.get(), -1, -1, ev.serial, this);
+                    }
+                    else if (supports_fullscreen())
+                    {
+                        // Create a temporary menu to trigger automatic fullscreen injection
+                        auto temp_menu = std::make_unique<Menu>();
+                        application()->show_context_menu(temp_menu.release(), -1, -1, ev.serial, this);
                     }
                     return;
                 }

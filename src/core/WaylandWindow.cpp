@@ -2233,13 +2233,49 @@ namespace horizon
         return m_surface && m_surface->is_maximized();
     }
 
-    void WaylandWindow::show_context_menu(Menu *menu, int x, int y, uint32_t serial)
+    void WaylandWindow::show_context_menu(Menu *menu, int x, int y, uint32_t serial, Widget *owner)
     {
 
         if (!m_surface || !menu)
         {
             LOG_ERROR << "[WINDOW] show_context_menu: surface or menu is NULL";
             return;
+        }
+
+        // Automatic Fullscreen injection
+        if (owner && owner->supports_fullscreen())
+        {
+            // Check if it already has it
+            bool has_fullscreen = false;
+            for (auto const &child : menu->children())
+            {
+                if (auto *item = dynamic_cast<MenuItem *>(child.get()))
+                {
+                    if (item->id() == "fullscreen_context")
+                    {
+                        has_fullscreen = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!has_fullscreen)
+            {
+                if (!menu->children().empty())
+                {
+                    menu->add_separator();
+                }
+
+                auto *item = menu->add_item(is_fullscreen() ? "Salir de pantalla completa" : "Pantalla completa", "F11");
+                item->set_id("fullscreen_context");
+                item->when_click.connect([target_window = this](MouseButtonEventContext &)
+                                          {
+                                              if (target_window->is_fullscreen())
+                                                  target_window->unfullscreen();
+                                              else
+                                                  target_window->fullscreen();
+                                          });
+            }
         }
 
         close_context_menu(false);
