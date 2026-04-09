@@ -12,6 +12,7 @@
 #include <thread>
 #include <mutex>
 
+
 namespace horizon
 {
     namespace web
@@ -360,6 +361,22 @@ namespace horizon
             g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
                 auto* self = static_cast<WebWidget*>(data);
                 
+                struct FullscreenData {
+                    WebWidget* self;
+                    bool fs;
+                };
+
+                static auto fs_callback = [](void* data, bool fullscreen) {
+                    auto* self = static_cast<WebWidget*>(data);
+                    LOG_INFO << "[WEB] Backend requested fullscreen via reserved0: " << (fullscreen ? "ON" : "OFF");
+                    if (self->application()) {
+                        self->application()->post_task([self, fullscreen]() {
+                            bool fs = fullscreen;
+                            self->when_fullscreen_changed.run(fs);
+                        });
+                    }
+                };
+
                 static struct wpe_view_backend_exportable_fdo_client client = {
                     .export_buffer_resource = nullptr,
                     .export_dmabuf_resource = nullptr,
@@ -369,7 +386,7 @@ namespace horizon
                         auto *self = static_cast<WebWidget *>(data);
                         WebWidget::on_frame_exported(self, buffer);
                     },
-                    ._wpe_reserved0 = nullptr,
+                    ._wpe_reserved0 = reinterpret_cast<void(*)(void)>(static_cast<void(*)(void*, bool)>(fs_callback)),
                     ._wpe_reserved1 = nullptr};
 
                 int initial_width = self->width() > 0 ? self->width() : 800;
@@ -383,12 +400,15 @@ namespace horizon
                 // --- PERFORMANCE OPTIMIZATIONS ---
                 WebKitSettings* settings = webkit_settings_new();
                 webkit_settings_set_enable_fullscreen(settings, TRUE);
+                
+                // Verify it actually stuck
+                gboolean fs_enabled = FALSE;
+                g_object_get(settings, "enable-fullscreen", &fs_enabled, NULL);
+                LOG_INFO << "[WEB] WebKitSettings enable-fullscreen verified: " << (fs_enabled ? "TRUE" : "FALSE");
+
                 webkit_settings_set_enable_developer_extras(settings, TRUE);
                 webkit_settings_set_enable_media_stream(settings, TRUE);
-                webkit_settings_set_enable_page_cache(settings, TRUE);
-                webkit_settings_set_enable_smooth_scrolling(settings, TRUE);
                 webkit_settings_set_enable_webgl(settings, TRUE);
-                webkit_settings_set_javascript_can_access_clipboard(settings, TRUE);
                 webkit_settings_set_user_agent(settings, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
                 
                 self->m_web_view = webkit_web_view_new(webkit_backend);
@@ -423,11 +443,14 @@ namespace horizon
                 
                 const char* script_source = 
                     "const inject = () => {"
+                    "  if (window._horizon_injected) return;"
+                    "  window._horizon_injected = true;"
                     "  if (!document.documentElement) return false;"
                     "  const style = document.createElement('style');"
                     "  style.textContent = '::-webkit-scrollbar { display: none !important; }';"
                     "  (document.head || document.documentElement).appendChild(style);"
                     "  const bridge = (msg) => { if(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.nova) window.webkit.messageHandlers.nova.postMessage(String(msg)); };"
+                    "  bridge('[JS-FS] Fullscreen API diagnostic bridge injected');"
                     "  window.console.log = (...args) => bridge('[LOG] ' + args.map(String).join(' '));"
                     "  window.console.error = (...args) => bridge('[ERR] ' + args.map(String).join(' '));"
                     "  const origRF = Element.prototype.requestFullscreen || Element.prototype.webkitRequestFullscreen;"
@@ -443,6 +466,8 @@ namespace horizon
                     "  Element.prototype.requestFullscreen = wrap;"
                     "  Element.prototype.webkitRequestFullscreen = wrap;"
                     "  document.addEventListener('click', () => bridge('[JS-FS] document.fullscreenEnabled on click: ' + document.fullscreenEnabled));"
+                    "  document.addEventListener('fullscreenchange', () => bridge('[JS-FS] document.fullscreenElement: ' + (document.fullscreenElement ? '<' + document.fullscreenElement.tagName + '>' : 'null')));"
+                    "  document.addEventListener('fullscreenerror', (e) => bridge('[JS-FS] FULLSCREEN ERROR event caught'));"
                     "  bridge('[JS-FS] Fullscreen API intercepted successfully');"
                     "  } else { bridge('[JS-FS] Fullscreen API NOT FOUND in this browser'); }"
                     "  bridge('[JS-FS] document.fullscreenEnabled: ' + document.fullscreenEnabled);"
@@ -692,29 +717,30 @@ namespace horizon
         void WebWidget::on_mouse_target_changed(WebKitWebView*, void*, uint32_t, WebWidget* self) {}
         
         gboolean WebWidget::on_enter_fullscreen(WebKitWebView*, WebWidget* self) {
-            if (!self) return FALSE;
-            LOG_INFO << "[WEB] enter-fullscreen signal received for WebWidget: " << self;
-            if (self->application()) {
+            LOG_INFO << "[WEB] enter-fullscreen signal received (returning TRUE to acknowledge)";
+            if (self && self->application()) {
+                self->m_is_fullscreen = true;
+                self->m_pending_fullscreen_ack = true;
                 self->application()->post_task([self]() {
                     bool fs = true;
                     self->when_fullscreen_changed.run(fs);
                 });
             }
-            return FALSE; // Allow default handler to run
+            return TRUE; // We handled it
         }
-
+        
         gboolean WebWidget::on_leave_fullscreen(WebKitWebView*, WebWidget* self) {
-            if (!self) return FALSE;
-            LOG_INFO << "[WEB] leave-fullscreen signal received for WebWidget: " << self;
-            if (self->application()) {
+            LOG_INFO << "[WEB] leave-fullscreen signal received (returning TRUE to acknowledge)";
+            if (self && self->application()) {
+                self->m_is_fullscreen = false;
+                self->m_pending_fullscreen_ack = true;
                 self->application()->post_task([self]() {
                     bool fs = false;
                     self->when_fullscreen_changed.run(fs);
                 });
             }
-            return FALSE; // Allow default handler to run
+            return TRUE; // We handled it
         }
-
 
         gboolean WebWidget::on_permission_request(WebKitWebView*, void* request, WebWidget* self) {
             const char* type_name = G_OBJECT_TYPE_NAME(request);
@@ -993,14 +1019,37 @@ namespace horizon
                 m_last_dispatched_height = height();
 
                 struct ResizeData {
+                    WebWidget* self;
                     struct wpe_view_backend* backend;
                     int w;
                     int h;
                 };
-                auto* rd = new ResizeData{m_backend, width(), height()};
+                auto* rd = new ResizeData{this, m_backend, width(), height()};
                 g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
                     auto* d = static_cast<ResizeData*>(data);
-                    wpe_view_backend_dispatch_set_size(d->backend, d->w, d->h);
+                    // Acknowledge fullscreen state to the engine so it doesn't revert
+                    if (d->self->m_pending_fullscreen_ack) {
+                        if (d->self->m_is_fullscreen) {
+                            LOG_INFO << "[WEB] Dispatching full platform acknowledgment for fullscreen ON";
+                            wpe_view_backend_platform_set_fullscreen(d->backend, true);
+                            wpe_view_backend_dispatch_set_size(d->backend, d->w, d->h);
+                            wpe_view_backend_dispatch_did_enter_fullscreen(d->backend);
+                            // Ensure focus and visibility are bone-solid
+                            wpe_view_backend_add_activity_state(d->backend, 
+                                wpe_view_activity_state_visible | 
+                                wpe_view_activity_state_focused | 
+                                wpe_view_activity_state_in_window);
+                        } else {
+                            LOG_INFO << "[WEB] Dispatching full platform acknowledgment for fullscreen OFF";
+                            wpe_view_backend_platform_set_fullscreen(d->backend, false);
+                            wpe_view_backend_dispatch_set_size(d->backend, d->w, d->h);
+                            wpe_view_backend_dispatch_did_exit_fullscreen(d->backend);
+                        }
+                        d->self->m_pending_fullscreen_ack = false;
+                    } else {
+                        wpe_view_backend_dispatch_set_size(d->backend, d->w, d->h);
+                    }
+                    
                     delete d;
                     return FALSE;
                 }, rd);

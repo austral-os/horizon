@@ -129,6 +129,9 @@ private:
     std::chrono::steady_clock::time_point m_last_v_show_time;
     std::chrono::steady_clock::time_point m_last_h_show_time;
 
+    bool m_is_fullscreen = false;
+    bool m_pending_fullscreen_ack = false;
+
     mutable std::mutex m_scroll_mutex;
     static constexpr int SCROLLBAR_SIZE = 12;
 
