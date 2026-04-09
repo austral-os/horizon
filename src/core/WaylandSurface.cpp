@@ -229,12 +229,18 @@ namespace horizon
                     if (*state == XDG_TOPLEVEL_STATE_ACTIVATED) activated = true;
                     if (*state == XDG_TOPLEVEL_STATE_FULLSCREEN) fullscreen = true;
                 }
-                LOG_INFO << "[SURFACE] Configure: maximized=" << maximized << ", fullscreen=" << fullscreen << ", activated=" << activated;
+                // --- FOCUS LOCK ---
+                // Compositors like labwc might deactivate the surface when shifting layouts.
+                // We force activation to stay TRUE if it was already active (sticky focus) 
+                // or if we are in/entering fullscreen mode.
+                bool effective_activated = activated || self->m_is_activated || fullscreen || self->m_is_fullscreen;
+                
                 self->m_is_maximized = maximized; self->m_is_fullscreen = fullscreen;
-                if (self->m_is_activated != activated) {
-                    self->m_is_activated = activated;
-                    if (self->m_listener) self->m_listener->on_activated(activated);
+                if (self->m_is_activated != effective_activated) {
+                    self->m_is_activated = effective_activated;
+                    if (self->m_listener) self->m_listener->on_activated(effective_activated);
                 }
+                LOG_INFO << "[SURFACE] Configure Final: maximized=" << self->m_is_maximized << ", fullscreen=" << self->m_is_fullscreen << ", activated=" << self->m_is_activated;
                 if (width > 0 && height > 0) {
                     self->resize_buffer(width, height);
                     if (self->m_listener) self->m_listener->on_resize(width, height);

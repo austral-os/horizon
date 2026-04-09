@@ -24,11 +24,14 @@ namespace horizon
         Widget *content() const;
 
         void set_status_text(std::string text);
+        
+        void set_immersive_mode(bool immersive);
 
         CornerRadius get_window_corners() const override;
 
     protected:
         Widget *m_content;
         Statusbar *m_status_bar{nullptr};
+        bool m_is_immersive{false};
     };
 } // namespace horizon

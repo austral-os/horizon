@@ -15,6 +15,7 @@ typedef struct _WebKitWebView WebKitWebView;
 typedef struct _WebKitUserContentManager WebKitUserContentManager;
 typedef struct _WebKitJavascriptResult WebKitJavascriptResult;
 typedef struct _GParamSpec GParamSpec;
+typedef struct _WebKitPolicyDecision WebKitPolicyDecision;
 struct wpe_view_backend;
 struct wpe_view_backend_exportable_fdo;
 struct wpe_fdo_shm_exported_buffer;
@@ -62,15 +63,15 @@ private:
     static void on_frame_exported(void* data, struct wpe_fdo_shm_exported_buffer* buffer);
     
     // WebKit Signal Handlers (Static for C-style callbacks)
-    static void on_title_notify(WebKitWebView* web_view, GParamSpec* pspec, WebWidget* self);
-    static void on_uri_notify(WebKitWebView* web_view, GParamSpec* pspec, WebWidget* self);
-    static void on_load_changed(WebKitWebView* web_view, int load_event, WebWidget* self);
-    static void on_progress_notify(WebKitWebView* web_view, GParamSpec* pspec, WebWidget* self);
-    static void on_mouse_target_changed(WebKitWebView* web_view, void* hit_test_result, uint32_t modifiers, WebWidget* self);
-    static gboolean on_enter_fullscreen(WebKitWebView* web_view, WebWidget* self);
-    static gboolean on_leave_fullscreen(WebKitWebView* web_view, WebWidget* self);
-    static gboolean on_permission_request(WebKitWebView* web_view, void* request, WebWidget* self);
-    static void on_script_message_received(WebKitUserContentManager* manager, void* result, WebWidget* self);
+    static void on_title_notify(void* web_view, void* pspec, void* self);
+    static void on_uri_notify(void* web_view, void* pspec, void* self);
+    static void on_load_changed(void* web_view, int load_event, void* self);
+    static void on_progress_notify(void* web_view, void* pspec, void* self);
+    static void on_mouse_target_changed(void* web_view, void* hit_test_result, uint32_t modifiers, void* self);
+    static int on_enter_fullscreen(void* web_view, void* self);
+    static int on_leave_fullscreen(void* web_view, void* self);
+    static int on_permission_request(void* web_view, void* request, void* self);
+    static int on_decide_policy(void* web_view, void* decision, int type, void* self);
 
     void update_scrollbars();
     void handle_ui_scroll(int x, int y);
@@ -131,6 +132,7 @@ private:
 
     bool m_is_fullscreen = false;
     bool m_pending_fullscreen_ack = false;
+    unsigned int m_fullscreen_ack_timer = 0;
 
     mutable std::mutex m_scroll_mutex;
     static constexpr int SCROLLBAR_SIZE = 12;

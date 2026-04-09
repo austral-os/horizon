@@ -4,6 +4,18 @@
 
 namespace horizon
 {
+    void ApplicationWindow::set_immersive_mode(bool immersive)
+    {
+        m_is_immersive = immersive;
+        if (m_titlebar)
+            m_titlebar->set_visible(!immersive);
+        
+        if (m_content)
+            m_content->set_margin(immersive ? 0 : 1);
+        
+        invalidate();
+    }
+
     ApplicationWindow::ApplicationWindow(std::string title)
         : Window(std::make_unique<Toolbar>(std::move(title)))
     {
@@ -66,6 +78,10 @@ namespace horizon
 
     CornerRadius ApplicationWindow::get_window_corners() const
     {
+        if (m_is_immersive)
+        {
+            return {0, 0, 0, 0};
+        }
         if (m_status_bar)
         {
             return {10, 10, 10, 10};

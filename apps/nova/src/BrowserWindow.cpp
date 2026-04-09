@@ -151,18 +151,16 @@ namespace horizon
                     {
                         if (fullscreen)
                         {
+                            this->set_immersive_mode(true);
                             this->application()->fullscreen();
-                            if (m_toolbar)
-                                m_toolbar->set_visible(false);
                             if (m_tabs)
                                 m_tabs->show_header(false);
                             this->hide_status_bar();
                         }
                         else
                         {
+                            this->set_immersive_mode(false);
                             this->application()->unfullscreen();
-                            if (m_toolbar)
-                                m_toolbar->set_visible(true);
                             if (m_tabs)
                                 m_tabs->show_header(true);
                             this->show_status_bar();
