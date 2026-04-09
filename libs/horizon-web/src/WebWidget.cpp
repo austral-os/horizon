@@ -214,20 +214,11 @@ namespace horizon
             when_key_press.connect(
                 [this](KeyEventContext &ctx)
                 {
-                    // ESCAPE BYPASS: Allow manual exit even during the shield window
-                    if (ctx.keysym == 0xFF1B && m_is_fullscreen) {
-                        LOG_INFO << "[WEB] ESC pressed: Triggering manual Exit Fullscreen";
-                        m_is_fullscreen = false;
-                        m_pending_fullscreen_ack = false;
-                        m_waiting_for_native_frame = false;
-                        m_last_fullscreen_time = std::chrono::steady_clock::now() - std::chrono::seconds(10);
-                        if (application()) {
-                            application()->unfullscreen();
-                            application()->post_task([this]() {
-                                bool fs = false;
-                                this->when_fullscreen_changed.run(fs);
-                            });
-                        }
+                    // ESCAPE BYPASS: Infalible Nova-level handle
+                    if (m_is_fullscreen && ctx.keysym == 0xFF1B) {
+                        LOG_INFO << "[WEB] ESC detected in C++. Triggering Leave FS.";
+                        webkit_web_view_evaluate_javascript(m_web_view, "const re = document.exitFullscreen || document.webkitExitFullscreen; if(re) re.call(document);", -1, NULL, NULL, NULL, NULL, NULL);
+                        on_leave_fullscreen(NULL, this);
                         return;
                     }
 
@@ -516,21 +507,28 @@ namespace horizon
                 webkit_user_content_manager_add_script(manager, script);
                 webkit_user_script_unref(script);
 
-                // PERSISTENT NUCLEAR SHIM: High-fidelity environment spoofing
+                // PERSISTENT NUCLEAR SHIM: V7.2 (Total Illusion)
                 const char* nuclear_source = 
                     "window._fsStartTime = Date.now();"
-                    "const realExit = document.exitFullscreen || document.webkitExitFullscreen;"
-                    "const wrapExit = function() { if (Date.now() - window._fsStartTime > 5000) { if(realExit) realExit.apply(document); } };"
-                    "document.exitFullscreen = document.webkitExitFullscreen = wrapExit;"
-                    "window.addEventListener('keydown', (e) => { if (e.keyCode === 27) { if(realExit) realExit.apply(document); } }, true);"
+                    "window.addEventListener('keydown', (e) => { if (e.keyCode === 27) { const re = document.exitFullscreen || document.webkitExitFullscreen; if(re) re.call(document); } }, true);"
                     "Object.defineProperty(screen, 'width', { value: 1920, configurable: true });"
                     "Object.defineProperty(screen, 'height', { value: 1080, configurable: true });"
                     "Object.defineProperty(window, 'innerWidth', { value: 1920, configurable: true });"
                     "Object.defineProperty(window, 'innerHeight', { value: 1080, configurable: true });"
-                    "Object.defineProperty(document, 'fullscreenElement', { get: function() { return document.querySelector('.horizon-fs #movie_player') || document.querySelector('.horizon-fs video'); }, configurable: true });"
-                    "Object.defineProperty(document, 'webkitIsFullScreen', { get: function() { return document.documentElement.classList.contains('horizon-fs'); }, configurable: true });"
-                    "Object.defineProperty(document, 'fullscreen', { get: function() { return document.documentElement.classList.contains('horizon-fs'); }, configurable: true });"
-                    "if (document.documentElement.classList.contains('horizon-fs')) { const wakeUp = setInterval(() => { window.dispatchEvent(new Event('resize')); const v = document.querySelector('video'); if(v) v.play(); if(Date.now() - window._fsStartTime > 2000) clearInterval(wakeUp); }, 200); }";
+                    "try {"
+                    "  const getFsEl = () => document.documentElement.classList.contains('horizon-fs') ? (document.querySelector('#movie_player') || document.querySelector('video')) : null;"
+                    "  Object.defineProperty(document, 'fullscreenElement', { get: getFsEl, configurable: true });"
+                    "  Object.defineProperty(document, 'webkitFullscreenElement', { get: getFsEl, configurable: true });"
+                    "  Object.defineProperty(document, 'webkitIsFullScreen', { get: () => document.documentElement.classList.contains('horizon-fs'), configurable: true });"
+                    "} catch(e) {}"
+                    "const wakeUp = setInterval(() => {"
+                    "  if (!document.documentElement.classList.contains('horizon-fs')) { clearInterval(wakeUp); return; }"
+                    "  window.dispatchEvent(new Event('resize'));"
+                    "  document.dispatchEvent(new Event('fullscreenchange'));"
+                    "  document.dispatchEvent(new Event('webkitfullscreenchange'));"
+                    "  const v = document.querySelector('video'); if(v && v.paused) v.play();"
+                    "  if(Date.now() - window._fsStartTime > 2000) clearInterval(wakeUp);"
+                    "}, 250);";
 
                 WebKitUserScript* n_script = webkit_user_script_new(
                     nuclear_source,
@@ -541,7 +539,7 @@ namespace horizon
                 webkit_user_script_unref(n_script);
 
                 WebKitUserStyleSheet* fs_style = webkit_user_style_sheet_new(
-                    "html.horizon-fs #secondary, html.horizon-fs #comments, html.horizon-fs ytd-masthead, html.horizon-fs #masthead-container, html.horizon-fs #below, html.horizon-fs ytd-merch-shelf-renderer { display: none !important; }"
+                    "html.horizon-fs #secondary, html.horizon-fs #comments, html.horizon-fs ytd-masthead, html.horizon-fs #masthead-container, html.horizon-fs #below { display: none !important; }"
                     "html.horizon-fs #player, html.horizon-fs .html5-video-player, html.horizon-fs #movie_player { background: black !important; width: 100vw !important; height: 100vh !important; position: fixed !important; top: 0 !important; left: 0 !important; z-index: 2147483647 !important; visibility: visible !important; }"
                     "html.horizon-fs video { background: transparent !important; width: 100% !important; height: 100% !important; position: relative !important; z-index: 2147483647 !important; visibility: visible !important; }",
                     WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
@@ -828,6 +826,16 @@ namespace horizon
             
             // UNFREEZE IMMEDIATELY: Reset the timer so calculate_layout can restore the UI
             self->m_last_fullscreen_time = std::chrono::steady_clock::now() - std::chrono::seconds(10);
+
+            // RESTORE REALITY: V7.1 (Stability First)
+            const char* restoration_js = 
+                "document.documentElement.classList.remove('horizon-fs');"
+                "document.body.classList.remove('horizon-fs');"
+                "try { delete window.innerWidth; delete window.innerHeight; } catch(e) {}"
+                "window.dispatchEvent(new Event('resize'));"
+                "document.dispatchEvent(new Event('fullscreenchange'));";
+
+            webkit_web_view_evaluate_javascript(self->m_web_view, restoration_js, -1, NULL, NULL, NULL, NULL, NULL);
 
             if (self->application()) {
                 self->application()->post_task([self]() {
