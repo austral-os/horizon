@@ -18,6 +18,8 @@ namespace horizon
         const std::string &title() const;
         void set_title(std::string title);
 
+        Titlebar *titlebar() const { return m_titlebar; }
+
         virtual CornerRadius get_window_corners() const;
 
         void render(GraphicsContext &gc, int cx, int cy, int cw, int ch,

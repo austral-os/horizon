@@ -400,6 +400,11 @@ namespace horizon
             return nullptr;
         }
 
+        void apply_fullscreen_isolation(Widget *target);
+        void restore_fullscreen_isolation();
+        bool detect_fullscreen_support(Widget *root);
+        Widget *find_fullscreen_target(Widget *root);
+
     protected:
         /**
          * @brief Notifies the application manager about lifecycle events.
@@ -526,6 +531,9 @@ namespace horizon
 
         static WaylandWindow *m_active_window;
         std::unique_ptr<class WaylandClipboardBackend> m_clipboard_backend;
+
+        Widget *m_fullscreen_target{nullptr};
+        std::vector<Widget *> m_hidden_by_fullscreen;
 
         Widget* find_clipboard_target();
     };

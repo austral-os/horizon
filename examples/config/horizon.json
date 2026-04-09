@@ -78,6 +78,12 @@
                 "run_id": "arkfm"
             },
             {
+                "app_id": "org.horizon.nova",
+                "icon": "nova-browser",
+                "name": "Nova",
+                "run_id": "org.horizon.nova"
+            },
+            {
                 "app_id": "firefox",
                 "icon": "firefox",
                 "name": "Web Browser",
@@ -88,12 +94,6 @@
                 "icon": "antigravity",
                 "name": "antigravity",
                 "run_id": ""
-            },
-            {
-                "app_id": "alacritty",
-                "icon": "utilities-terminal",
-                "name": "Terminal",
-                "run_id": "terminal"
             },
             {
                 "app_id": "horizon.preferences",
@@ -122,11 +122,11 @@
         "rate": 16.088890075683594
     },
     "terminal": {
+        "cursor_style": "underline",
         "font": "CaskaydiaCove Nerd Font Mono",
         "font_size": 18,
-        "cursor_style": "underline",
-        "show_scrollbar": true,
+        "scroll_without_scrollbar": true,
         "scrollback_lines": 5000,
-        "scroll_without_scrollbar": true
+        "show_scrollbar": true
     }
 }

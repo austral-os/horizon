@@ -201,6 +201,7 @@ namespace horizon
         CursorType cursor_type() const;
 
         // --- Clipboard ---
+        virtual bool supports_fullscreen() const { return false; }
         virtual bool supports_clipboard() const { return false; }
         virtual bool can_perform(ClipboardAction action) const { return false; }
         virtual void perform(ClipboardAction action) {}
@@ -271,6 +272,8 @@ namespace horizon
         EventsManager<EventContext> when_focus;
         EventsManager<EventContext> when_blur;
         EventsManager<EventContext> when_application_load;
+        EventsManager<FullscreenEventContext> when_enter_fullscreen;
+        EventsManager<FullscreenEventContext> when_leave_fullscreen;
 
         virtual void set_application_recursive(WaylandWindow *app);
 

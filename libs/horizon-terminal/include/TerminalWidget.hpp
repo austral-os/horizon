@@ -41,6 +41,9 @@ public:
     void update_selection(BufferPos end_pos);
     void copy_selection();
 
+    // Fullscreen Support
+    bool supports_fullscreen() const override { return true; }
+
     // Clipboard Support
     bool supports_clipboard() const override { return true; }
     bool can_perform(horizon::ClipboardAction action) const override;

@@ -56,6 +56,13 @@ namespace horizon
         int height{0};
     };
 
+    class FullscreenEventContext : public EventContext
+    {
+    public:
+        int width{0};
+        int height{0};
+    };
+
     class ThemeEventContext : public EventContext
     {
     public:

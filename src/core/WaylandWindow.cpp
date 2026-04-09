@@ -3,6 +3,7 @@
 #include "horizon/IpcClient.hpp"
 #include "horizon/LabwcCompositorContext.hpp"
 #include "horizon/Menu.hpp"
+#include "horizon/Window.hpp"
 #include "horizon/WayfireCompositorContext.hpp"
 #include <GLES2/gl2.h>
 #include <algorithm>
@@ -837,8 +838,6 @@ namespace horizon
         m_app_menu->set_title(m_name);
         m_app_menu->set_bold(true);
         m_app_menu->add_item("Preferencias", "Ctrl+,");
-        auto *fullscreen_item = m_app_menu->add_item("Pantalla completa", "F11");
-        fullscreen_item->set_id("fullscreen");
         m_app_menu->add_separator();
         auto *global_quit = m_app_menu->add_item("Salir", "Ctrl+Q");
         global_quit->set_id("quit");
@@ -875,6 +874,47 @@ namespace horizon
             if (is_new)
             {
                 m_global_menus.push_back(edit_menu);
+            }
+        }
+
+        // Automatic Visualization Menu detection & merging
+        if (detect_fullscreen_support(m_root.get()))
+        {
+            Menu *vis_menu = get_menu("view");
+            bool is_new = false;
+
+            if (!vis_menu)
+            {
+                auto new_menu = std::make_unique<Menu>();
+                new_menu->set_title("Visualización");
+                new_menu->set_id("view");
+                vis_menu = new_menu.get();
+                m_menues.push_back(std::move(new_menu));
+                is_new = true;
+            }
+
+            // Check if fullscreen is already there
+            bool has_fullscreen = false;
+            for (auto const &child : vis_menu->children()) {
+                if (auto *item = dynamic_cast<MenuItem *>(child.get())) {
+                    if (item->id() == "fullscreen") {
+                        has_fullscreen = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!has_fullscreen) {
+                if (!vis_menu->children().empty()) {
+                    vis_menu->add_separator();
+                }
+                auto *item = vis_menu->add_item("Pantalla completa", "F11");
+                item->set_id("fullscreen");
+            }
+
+            if (is_new)
+            {
+                m_global_menus.push_back(vis_menu);
             }
         }
 
@@ -1645,8 +1685,35 @@ namespace horizon
         if (m_compositor_context)
         {
             if (is_fullscreen()) return;
-            
+
+            // 1. Identify target
+            Widget *target = m_focused;
+            if (!target || !target->supports_fullscreen()) {
+                target = find_fullscreen_target(m_root.get());
+            }
+
+            if (!target) return;
+
+            // 2. Apply isolation
+            apply_fullscreen_isolation(target);
+
+            // 3. Hide titlebar if we are a Window
+            if (Window *win = dynamic_cast<Window *>(m_root.get())) {
+                if (win->titlebar()) {
+                    win->titlebar()->set_visible(false);
+                    m_hidden_by_fullscreen.push_back(win->titlebar());
+                }
+            }
+
             m_compositor_context->fullscreen();
+            
+            // 4. Trigger event
+            FullscreenEventContext ev;
+            ev.sender = target;
+            ev.width = m_surface->width(); // This might be updated after resize
+            ev.height = m_surface->height();
+            target->when_enter_fullscreen.run(ev);
+
             invalidate();
         }
     }
@@ -1655,7 +1722,21 @@ namespace horizon
     {
         if (m_compositor_context)
         {
+            if (!is_fullscreen()) return;
+
             m_compositor_context->unfullscreen();
+
+            // Restore isolation
+            restore_fullscreen_isolation();
+
+            if (m_fullscreen_target) {
+                FullscreenEventContext ev;
+                ev.sender = m_fullscreen_target;
+                ev.width = m_surface->width();
+                ev.height = m_surface->height();
+                m_fullscreen_target->when_leave_fullscreen.run(ev);
+            }
+
             invalidate();
         }
     }
@@ -2319,6 +2400,98 @@ namespace horizon
             return m_clipboard_backend->get_mime_types();
         }
         return {};
+    }
+
+    void WaylandWindow::apply_fullscreen_isolation(Widget *target)
+    {
+        if (!target || !m_root)
+            return;
+
+        m_fullscreen_target = target;
+        m_hidden_by_fullscreen.clear();
+
+        // 1. Identify valid path (target and its ancestors)
+        std::vector<Widget *> valid_path;
+        Widget *temp = target;
+        while (temp)
+        {
+            valid_path.push_back(temp);
+            temp = temp->parent();
+        }
+
+        // 2. Recursive hiding of siblings
+        std::function<void(Widget *)> traverse = [&](Widget *w) {
+            for (auto const &child : w->children())
+            {
+                // If child is NOT in the valid path, hide it and its subtree
+                auto it = std::find(valid_path.begin(), valid_path.end(), child.get());
+                if (it == valid_path.end())
+                {
+                    if (child->is_visible())
+                    {
+                        child->set_visible(false);
+                        m_hidden_by_fullscreen.push_back(child.get());
+                    }
+                }
+                else
+                {
+                    // If child IS in the valid path, we need to visit its children
+                    // EXCEPT if it's the target itself (all descendants of the target
+                    // should remain visible).
+                    if (child.get() != target)
+                    {
+                        traverse(child.get());
+                    }
+                }
+            }
+        };
+
+        traverse(m_root.get());
+    }
+
+    void WaylandWindow::restore_fullscreen_isolation()
+    {
+        for (Widget *w : m_hidden_by_fullscreen)
+        {
+            w->set_visible(true);
+        }
+        m_hidden_by_fullscreen.clear();
+        m_fullscreen_target = nullptr;
+    }
+
+    bool WaylandWindow::detect_fullscreen_support(Widget *root)
+    {
+        if (!root)
+            return false;
+
+        if (root->supports_fullscreen())
+            return true;
+
+        for (auto const &child : root->children())
+        {
+            if (detect_fullscreen_support(child.get()))
+                return true;
+        }
+
+        return false;
+    }
+
+    Widget *WaylandWindow::find_fullscreen_target(Widget *root)
+    {
+        if (!root)
+            return nullptr;
+
+        if (root->supports_fullscreen())
+            return root;
+
+        for (auto const &child : root->children())
+        {
+            Widget *target = find_fullscreen_target(child.get());
+            if (target)
+                return target;
+        }
+
+        return nullptr;
     }
 
 } // namespace horizon

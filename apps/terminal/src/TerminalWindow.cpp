@@ -13,6 +13,8 @@ TerminalWindow::TerminalWindow()
     
     // Set it as the content of the ApplicationWindow
     set_content(std::move(terminal));
+
+    m_terminal->set_focus(true);
 }
 
 } // namespace terminal
