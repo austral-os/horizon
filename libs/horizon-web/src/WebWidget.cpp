@@ -528,10 +528,9 @@ namespace horizon
                     "Object.defineProperty(window, 'innerWidth', { value: 1920, configurable: true });"
                     "Object.defineProperty(window, 'innerHeight', { value: 1080, configurable: true });"
                     "Object.defineProperty(document, 'fullscreenElement', { get: function() { return document.querySelector('.horizon-fs #movie_player') || document.querySelector('.horizon-fs video'); }, configurable: true });"
-                    "const fsStyle = document.createElement('style');"
-                    "fsStyle.innerHTML = 'html.horizon-fs, body.horizon-fs { background: transparent !important; } .horizon-fs *:fullscreen, .horizon-fs video { width: 100vw !important; height: 100vh !important; position: fixed !important; top: 0 !important; left: 0 !important; z-index: 2147483647 !important; display: block !important; }';"
-                    "document.head.appendChild(fsStyle);"
-                    "const wakeUp = setInterval(() => { window.dispatchEvent(new Event('resize')); if(Date.now() - window._fsStartTime > 2000) clearInterval(wakeUp); }, 200);";
+                    "Object.defineProperty(document, 'webkitIsFullScreen', { get: function() { return document.documentElement.classList.contains('horizon-fs'); }, configurable: true });"
+                    "Object.defineProperty(document, 'fullscreen', { get: function() { return document.documentElement.classList.contains('horizon-fs'); }, configurable: true });"
+                    "if (document.documentElement.classList.contains('horizon-fs')) { const wakeUp = setInterval(() => { window.dispatchEvent(new Event('resize')); const v = document.querySelector('video'); if(v) v.play(); if(Date.now() - window._fsStartTime > 2000) clearInterval(wakeUp); }, 200); }";
 
                 WebKitUserScript* n_script = webkit_user_script_new(
                     nuclear_source,
@@ -542,9 +541,9 @@ namespace horizon
                 webkit_user_script_unref(n_script);
 
                 WebKitUserStyleSheet* fs_style = webkit_user_style_sheet_new(
-                    "html.horizon-fs #secondary, html.horizon-fs #comments, html.horizon-fs ytd-masthead, html.horizon-fs #page-manager-container { display: none !important; }"
-                    "html.horizon-fs #player, html.horizon-fs .html5-video-player, html.horizon-fs #movie_player { background: transparent !important; width: 100vw !important; height: 100vh !important; position: fixed !important; top: 0 !important; left: 0 !important; z-index: 2147483647 !important; }"
-                    "html.horizon-fs video { background: transparent !important; width: 100% !important; height: 100% !important; }",
+                    "html.horizon-fs #secondary, html.horizon-fs #comments, html.horizon-fs ytd-masthead, html.horizon-fs #masthead-container, html.horizon-fs #below, html.horizon-fs ytd-merch-shelf-renderer { display: none !important; }"
+                    "html.horizon-fs #player, html.horizon-fs .html5-video-player, html.horizon-fs #movie_player { background: black !important; width: 100vw !important; height: 100vh !important; position: fixed !important; top: 0 !important; left: 0 !important; z-index: 2147483647 !important; visibility: visible !important; }"
+                    "html.horizon-fs video { background: transparent !important; width: 100% !important; height: 100% !important; position: relative !important; z-index: 2147483647 !important; visibility: visible !important; }",
                     WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
                     WEBKIT_USER_STYLE_LEVEL_USER,
                     NULL, NULL);
@@ -803,7 +802,7 @@ namespace horizon
 
             // ACTIVATE TRANSPARENCY SHIM
             webkit_web_view_evaluate_javascript(self->m_web_view, 
-                "window._fsStartTime = Date.now(); window.focus(); document.querySelector('video')?.play();",
+                "document.documentElement.classList.add('horizon-fs'); document.body.classList.add('horizon-fs'); window._fsStartTime = Date.now(); window.focus(); document.querySelector('video')?.play();",
                 -1, NULL, NULL, NULL, NULL, NULL);
 
             return 1; // Handled
