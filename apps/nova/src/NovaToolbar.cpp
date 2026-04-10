@@ -44,7 +44,7 @@ namespace horizon::nova
         auto home_group = std::make_unique<horizon::GroupButton>();
         m_home_group = home_group.get();
         m_home_group->set_fixed_size(40);
-        
+
         auto home_icon = std::make_unique<horizon::Icon>();
         home_icon->set_icon_name("go-home");
         home_icon->set_icon_size(16);
@@ -67,7 +67,8 @@ namespace horizon::nova
         m_search_box->when_key_press.connect(
             [this](KeyEventContext &ctx)
             {
-                if (ctx.keysym == 0xff0d || ctx.keysym == 0xff8d) { // Enter key or KP_Enter
+                if (ctx.keysym == 0xff0d || ctx.keysym == 0xff8d)
+                { // Enter key or KP_Enter
                     std::string query = m_search_box->text();
                     LOG_INFO << "[NOVA] Search submitted: " << query;
                     SearchChangedEvent ev;
@@ -75,14 +76,13 @@ namespace horizon::nova
                     this->when_search_submitted.run(ev);
                 }
             });
-        
-        m_search_box->when_focus.connect(
+
+        m_search_box->when_click.connect(
             [this](EventContext &)
             {
                 if (application())
                 {
-                    application()->post_task([this]()
-                                             { m_search_box->select_all(); });
+                    application()->post_task([this]() { m_search_box->select_all(); });
                 }
             });
 
@@ -105,10 +105,13 @@ namespace horizon::nova
         m_actions_group->when_button_clicked.connect(
             [this](horizon::GroupButtonClickEvent &ctx)
             {
-                if (ctx.button_index == 0) {
+                if (ctx.button_index == 0)
+                {
                     BookmarkButtonClickEvent ev;
                     this->when_bookmark_clicked.run(ev);
-                } else {
+                }
+                else
+                {
                     OptionsButtonClickEvent ev;
                     this->when_options_clicked.run(ev);
                 }
@@ -120,7 +123,7 @@ namespace horizon::nova
         add_child(std::move(actions_group));
     }
 
-    void NovaToolbar::set_url(const std::string& url)
+    void NovaToolbar::set_url(const std::string &url)
     {
         if (m_search_box)
             m_search_box->set_text(url);
