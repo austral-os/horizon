@@ -649,9 +649,10 @@ namespace horizon
                 }), self);
 
                 g_signal_connect(manager, "script-message-received::nova_exit", G_CALLBACK(+[](WebKitUserContentManager*, WebKitJavascriptResult*, WebView* self) {
-                    LOG_INFO << "[WEB-BRIDGE] Direct trigger: EXIT FS";
                     self->on_leave_fullscreen(NULL, self);
                 }), self);
+
+                
 
                 // PERSISTENT NUCLEAR SHIM: V9.2 (Channel Bridge)
                 const char* nuclear_source = 
@@ -681,6 +682,28 @@ namespace horizon
                     "window.addEventListener('keydown', (e) => {"
                     "  if (e.keyCode === 27 || e.key === 'f' || e.key === 'F') { msgEnter(); } "
                     "}, true);"
+                    "if (navigator.clipboard) {"
+                    "  const oldWrite = navigator.clipboard.writeText;"
+                    "  navigator.clipboard.writeText = async (text) => {"
+                    "    const oldTitle = document.title;"
+                    "    document.title = 'HORIZON_CLIPBOARD:' + text;"
+                    "    setTimeout(() => { document.title = oldTitle; }, 200);"
+                    "    return oldWrite.apply(navigator.clipboard, [text]);"
+                    "  };"
+                    "}"
+                    "const oldExec = document.execCommand;"
+                    "document.execCommand = function(cmd, s, v) {"
+                    "  const res = oldExec.apply(this, arguments);"
+                    "  if (cmd.toLowerCase() === 'copy') {"
+                    "    const sel = window.getSelection().toString();"
+                    "    if (sel) {"
+                    "      const oldT = document.title;"
+                    "      document.title = 'HORIZON_CLIPBOARD:' + sel;"
+                    "      setTimeout(() => { document.title = oldT; }, 200);"
+                    "    }"
+                    "  }"
+                    "  return res;"
+                    "};"
                     "Object.defineProperty(screen, 'width', { value: 1920, configurable: true });"
                     "Object.defineProperty(screen, 'height', { value: 1080, configurable: true });"
                     "Object.defineProperty(window, 'innerWidth', { value: 1920, configurable: true });"
@@ -868,6 +891,17 @@ namespace horizon
                     }
                     return;
                 }
+            }
+
+            if (title.find("HORIZON_CLIPBOARD:") == 0) {
+                std::string content = title.substr(18);
+                if (!content.empty()) {
+                    self->m_clipboard_content = content;
+                    if (self->application()) {
+                        self->application()->set_clipboard_owner(self);
+                    }
+                }
+                return;
             }
 
             if (title.find("FS_ERROR:") == 0 || title.find("FS_LOG:") == 0) {
