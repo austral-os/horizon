@@ -129,7 +129,11 @@ int TabCollection::add_tab(const std::string& title, std::unique_ptr<Widget> bod
     int tab_index = index;
     when_tab_added.run(tab_index);
     int count = (int)m_tabs.size();
-    when_tab_changed.run(count);
+    when_items_changed.run(count);
+    
+    if (m_smart_header) {
+        show_header(count > 1);
+    }
     
     invalidate();
     return index;
@@ -159,7 +163,12 @@ void TabCollection::remove_tab(int index) {
     }
     
     int count = (int)m_tabs.size();
-    when_tab_changed.run(count);
+    when_items_changed.run(count);
+    
+    if (m_smart_header) {
+        show_header(count > 1);
+    }
+    
     invalidate();
 }
 
@@ -175,6 +184,15 @@ void TabCollection::show_header(bool visible) {
     if (m_header) {
         m_header->set_visible(visible);
         invalidate();
+    }
+}
+
+void TabCollection::set_smart_header(bool enabled) {
+    m_smart_header = enabled;
+    if (m_smart_header) {
+        show_header(m_tabs.size() > 1);
+    } else {
+        show_header(true);
     }
 }
 

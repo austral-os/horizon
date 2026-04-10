@@ -65,13 +65,24 @@ public:
     void show_header(bool visible);
 
     /**
+     * @brief Sets whether the header should be automatically hidden when there is only one tab.
+     * @param enabled True to enable smart header behavior, false otherwise.
+     */
+    void set_smart_header(bool enabled);
+
+    /**
+     * @return True if smart header behavior is enabled.
+     */
+    bool smart_header() const { return m_smart_header; }
+
+    /**
      * @return The number of tabs in the collection.
      */
     size_t tab_count() const { return m_tabs.size(); }
 
     // --- Signals ---
     EventsManager<int> when_tab_added;      /**< Emitted when a tab is added (index). */
-    EventsManager<int> when_tab_changed;    /**< Emitted when the tab list changes (count). */
+    EventsManager<int> when_items_changed;  /**< Emitted when the tab list changes (count). */
     EventsManager<int> when_tab_selected;   /**< Emitted when a tab is selected (index). */
     EventsManager<EventContext> when_add_tab_clicked; /**< Emitted when the "+" button is clicked. */
 
@@ -105,6 +116,7 @@ private:
     
     std::vector<TabPage> m_tabs;
     int m_current_tab = -1;
+    bool m_smart_header = false;
 };
 
 } // namespace horizon

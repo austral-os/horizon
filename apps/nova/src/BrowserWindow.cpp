@@ -53,6 +53,7 @@ namespace horizon
             // 3. Tab Collection
             auto tabs = std::make_unique<TabCollection>();
             m_tabs = tabs.get();
+            m_tabs->set_smart_header(true);
 
             m_tabs->when_add_tab_clicked.connect([this](EventContext &)
                                                  { this->create_new_tab(DEFAULT_URL); });
