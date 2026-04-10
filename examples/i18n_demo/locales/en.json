@@ -1,0 +1,11 @@
+{
+  "i18n_demo": {
+    "title": "Horizon i18n Demo",
+    "welcome": "Welcome to the Horizon Translation System!",
+    "greeting": "Hello, {user}!",
+    "messages_count": {
+      "one": "You have one new message.",
+      "other": "You have {count} new messages."
+    }
+  }
+}

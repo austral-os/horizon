@@ -5,6 +5,7 @@
 #include "horizon/Clipboard.hpp"
 #include "horizon/Menu.hpp"
 #include "horizon/MenuItem.hpp"
+#include "horizon/I18n.hpp"
 #include <linux/input-event-codes.h>
 
 
@@ -63,6 +64,13 @@ TerminalWidget::TerminalWidget() {
     when_right_click.connect([this](MouseButtonEventContext &ctx) {
         if (m_app) {
             auto menu = std::make_unique<horizon::Menu>();
+            
+            auto* copy_item = menu->add_item(i18n().tr("terminal.menu.copy"));
+            copy_item->when_click.connect([this](auto&){ this->perform(horizon::ClipboardAction::Copy); });
+            
+            auto* paste_item = menu->add_item(i18n().tr("terminal.menu.paste"));
+            paste_item->when_click.connect([this](auto&){ this->perform(horizon::ClipboardAction::Paste); });
+
             m_app->show_context_menu(menu.release(), -1, -1, ctx.serial, this);
             ctx.stop_propagation = true;
         }

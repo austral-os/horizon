@@ -55,6 +55,12 @@ target_link_libraries(preferences
         PkgConfig::PIPEWIRE
 )
 
+add_custom_command(TARGET preferences POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/locales
+    $<TARGET_FILE_DIR:preferences>/locales
+)
+
 target_include_directories(preferences
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include

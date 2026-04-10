@@ -1,0 +1,12 @@
+{
+  "file": {
+    "open": "Open file",
+    "count": {
+      "one": "{count} file",
+      "other": "{count} files"
+    }
+  },
+  "welcome": {
+    "user": "Welcome, {user}"
+  }
+}

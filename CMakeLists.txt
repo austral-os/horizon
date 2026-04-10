@@ -218,3 +218,27 @@ add_custom_target(run_notification
     DEPENDS notification_demo
     COMMENT "Ejecutando la demo de notificaciones..."
 )
+
+add_executable(i18n_example
+    examples/i18n_example.cpp
+)
+
+target_link_libraries(i18n_example
+    PRIVATE
+        horizon
+)
+add_executable(i18n_demo
+    examples/i18n_demo.cpp
+)
+
+target_link_libraries(i18n_demo
+    PRIVATE
+        horizon
+)
+
+add_custom_command(TARGET i18n_demo POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/examples/i18n_demo/locales
+    ${CMAKE_CURRENT_BINARY_DIR}/locales
+    COMMENT "Copying demo locales to build directory"
+)

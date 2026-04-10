@@ -5,6 +5,7 @@
 #include <horizon/Label.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/SystemInfo.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon
 {
@@ -12,6 +13,9 @@ namespace horizon
 
     Overview::Overview()
     {
+        // Load translations
+        i18n().load_app_locales("horizon-overview");
+
         set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
 
         auto icon = std::make_unique<Icon>();
@@ -61,11 +65,11 @@ namespace horizon
         button_container->set_fixed_size(LABEL_HEIGHT);
 
         auto btn_system = std::make_unique<Button<SolidObject>>();
-        btn_system->set_text("System Report");
+        btn_system->set_text(i18n().tr("overview.system_report"));
         btn_system->set_fixed_size(200);
 
         auto btn_update = std::make_unique<Button<SolidObject>>();
-        btn_update->set_text("Update");
+        btn_update->set_text(i18n().tr("overview.update"));
         btn_update->set_fixed_size(200);
 
         button_container->add_child(std::move(btn_system));

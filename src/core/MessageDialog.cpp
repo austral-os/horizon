@@ -6,6 +6,7 @@
 #include <horizon/Spacer.hpp>
 #include <horizon/VPanel.hpp>
 #include <horizon/Window.hpp>
+#include <horizon/I18n.hpp>
 #include <memory>
 
 namespace horizon
@@ -55,7 +56,7 @@ namespace horizon
         {
             auto btn_cancel = std::make_unique<Button<AquaObject>>();
             m_cancel_btn = btn_cancel.get();
-            btn_cancel->set_text("Cancelar");
+            btn_cancel->set_text(i18n().tr("core.dialog.cancel"));
             btn_cancel->set_fixed_size(100);
             btn_cancel->when_click.connect(
                 [this](MouseButtonEventContext &)
@@ -71,7 +72,7 @@ namespace horizon
 
         auto btn_accept = std::make_unique<Button<AquaObject>>();
         m_accept_btn = btn_accept.get();
-        btn_accept->set_text("Aceptar");
+        btn_accept->set_text(i18n().tr("core.dialog.accept"));
         btn_accept->set_fixed_size(100);
         btn_accept->set_accent_color(get_color_for_type(type));
         btn_accept->when_click.connect(

@@ -10,6 +10,7 @@
 #include <horizon/Menu.hpp>
 #include <horizon/WayfireAppAdapter.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/I18n.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <set>
 #include <fstream>
@@ -23,10 +24,13 @@ namespace horizon
 
     DockApplication::DockApplication() : Application("org.horizon.dock", 800, 160, true, true)
     {
+        // Load translations
+        i18n().load_app_locales("dock");
+
         m_pinned_apps = {};
         m_window = create_layer_window("org.horizon.dock", 2); // ZWLR_LAYER_SHELL_V1_LAYER_TOP
 
-        m_window->set_name("Dock");
+        m_window->set_name(i18n().tr("dock.title"));
         m_window->set_anchor(2 | 4 | 8); // BOTTOM | LEFT | RIGHT
         m_window->set_size(0, 160);
         m_window->set_exclusive_zone(100);
@@ -126,7 +130,7 @@ namespace horizon
             std::string launch_id = run_id.empty() ? app_id : run_id;
             if (!launch_id.empty())
             {
-                auto *new_instance_item = menu->add_item("Abrir nueva instancia");
+                auto *new_instance_item = menu->add_item(i18n().tr("dock.context.open"));
                 new_instance_item->when_click.connect(
                     [launch_id](auto &)
                     {
@@ -151,7 +155,7 @@ namespace horizon
             menu->add_separator();
             if (is_pinned)
             {
-                auto *unpin_item = menu->add_item("Desanclar del Dock");
+                auto *unpin_item = menu->add_item(i18n().tr("dock.context.unpin"));
                 unpin_item->when_click.connect(
                     [this, app_id](auto &)
                     {
@@ -160,7 +164,7 @@ namespace horizon
             }
             else
             {
-                auto *pin_item = menu->add_item("Anclar al Dock");
+                auto *pin_item = menu->add_item(i18n().tr("dock.context.pin"));
                 std::string pin_id = app_id.empty() ? run_id : app_id;
                 std::string pin_run_id = run_id.empty() ? app_id : run_id;
                 
@@ -183,7 +187,7 @@ namespace horizon
                 // 2. List all open windows/instances
                 for (const auto &info : instances)
                 {
-                    std::string title = info.title.empty() ? "Ventana sin título" : info.title;
+                    std::string title = info.title.empty() ? i18n().tr("dock.context.untitled") : info.title;
                     auto *window_item = menu->add_item(title);
                     
                     struct zwlr_foreign_toplevel_handle_v1 *handle = info.handle;
@@ -204,7 +208,7 @@ namespace horizon
                 menu->add_separator();
 
                 // 3. Global actions for the app
-                auto *exit_item = menu->add_item("Salir de la aplicación");
+                auto *exit_item = menu->add_item(i18n().tr("dock.context.quit"));
                 exit_item->when_click.connect(
                     [this, app_id](auto &)
                     {

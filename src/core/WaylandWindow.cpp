@@ -10,6 +10,7 @@
 #include <glib-object.h>
 #include <horizon/Logger.hpp>
 #include <horizon/WaylandWindow.hpp>
+#include <horizon/I18n.hpp>
 #include "WaylandClipboardBackend.hpp"
 #include "MainThreadDataSink.hpp"
 
@@ -18,7 +19,6 @@
 #include <linux/input-event-codes.h>
 #include <memory>
 #include <poll.h>
-#include <set>
 #include <sys/eventfd.h>
 #include <unistd.h>
 
@@ -837,9 +837,9 @@ namespace horizon
 
         m_app_menu->set_title(m_name);
         m_app_menu->set_bold(true);
-        m_app_menu->add_item("Preferencias", "Ctrl+,");
+        m_app_menu->add_item(i18n().tr("core.global_menu.preferences"), "Ctrl+,");
         m_app_menu->add_separator();
-        auto *global_quit = m_app_menu->add_item("Salir", "Ctrl+Q");
+        auto *global_quit = m_app_menu->add_item(i18n().tr("core.global_menu.quit"), "Ctrl+Q");
         global_quit->set_id("quit");
         m_app_menu->set_id("app");
 
@@ -852,7 +852,7 @@ namespace horizon
             if (!edit_menu)
             {
                 auto new_menu = std::make_unique<Menu>();
-                new_menu->set_title("Edición");
+                new_menu->set_title(i18n().tr("core.global_menu.edit"));
                 new_menu->set_id("edit");
                 edit_menu = new_menu.get();
                 m_menues.push_back(std::move(new_menu));
@@ -867,9 +867,9 @@ namespace horizon
                 }
             }
 
-            edit_menu->add_item("Copiar", "Ctrl+C", "copy");
-            edit_menu->add_item("Cortar", "Ctrl+X", "cut");
-            edit_menu->add_item("Pegar", "Ctrl+V", "paste");
+            edit_menu->add_item(i18n().tr("core.global_menu.copy"), "Ctrl+C", "copy");
+            edit_menu->add_item(i18n().tr("core.global_menu.cut"), "Ctrl+X", "cut");
+            edit_menu->add_item(i18n().tr("core.global_menu.paste"), "Ctrl+V", "paste");
 
             if (is_new)
             {
@@ -886,7 +886,7 @@ namespace horizon
             if (!vis_menu)
             {
                 auto new_menu = std::make_unique<Menu>();
-                new_menu->set_title("Visualización");
+                new_menu->set_title(i18n().tr("core.global_menu.view"));
                 new_menu->set_id("view");
                 vis_menu = new_menu.get();
                 m_menues.push_back(std::move(new_menu));
@@ -908,7 +908,7 @@ namespace horizon
                 if (!vis_menu->children().empty()) {
                     vis_menu->add_separator();
                 }
-                auto *item = vis_menu->add_item("Pantalla completa", "F11");
+                auto *item = vis_menu->add_item(i18n().tr("core.global_menu.fullscreen"), "F11");
                 item->set_id("fullscreen");
             }
 

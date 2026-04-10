@@ -4,6 +4,7 @@
 #include <horizon/ApplicationLauncher.hpp>
 #include <horizon/IconThemeLookup.hpp>
 #include <horizon/Logger.hpp>
+#include <horizon/I18n.hpp>
 
 using namespace horizon;
 
@@ -142,14 +143,14 @@ std::unique_ptr<Menu> TopPanelMenuBar::create_system_menu()
             });
     };
 
-    add_sys_item("About This System", "run_aboutus");
+    add_sys_item(i18n().tr("top_panel.system_menu.about"), "run_aboutus");
     menu->add_separator();
-    add_sys_item("Terminal", "run_terminal");
-    add_sys_item("System Settings...", "run_settings");
+    add_sys_item(i18n().tr("top_panel.system_menu.terminal"), "run_terminal");
+    add_sys_item(i18n().tr("top_panel.system_menu.settings"), "run_settings");
     menu->add_separator();
-    add_sys_item("Force Quit...", "force_quit");
+    add_sys_item(i18n().tr("top_panel.system_menu.force_quit"), "force_quit");
     menu->add_separator();
-    add_sys_item("Log Out...", "run_logout");
+    add_sys_item(i18n().tr("top_panel.system_menu.logout"), "run_logout");
 
     return menu;
 }

@@ -6,6 +6,7 @@
 #include <horizon/DesktopEntry.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Spacer.hpp>
+#include <horizon/I18n.hpp>
 
 namespace fs = std::filesystem;
 
@@ -33,7 +34,7 @@ namespace horizon
         // Search Box
         auto search_box = std::make_unique<SearchBox>();
         search_box->set_fixed_size(300);
-        search_box->set_placeholder("Search Applications...");
+        search_box->set_placeholder(i18n().tr("launchpad.placeholder"));
         m_search_box = search_box.get();
         search_container->add_child(std::move(search_box));
 

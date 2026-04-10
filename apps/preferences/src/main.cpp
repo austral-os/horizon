@@ -1,6 +1,7 @@
 #include "PreferencesWindow.hpp"
 #include <horizon/Logger.hpp>
 #include <horizon/WaylandWindow.hpp>
+#include <horizon/I18n.hpp>
 #include <memory>
 
 int main(int argc, char *argv[])
@@ -12,7 +13,11 @@ int main(int argc, char *argv[])
 
         // 1. Setup the basic Wayland/Horizon context
         horizon::WaylandWindow app("horizon.preferences", 800, 650);
-        app.set_name("Preferencias del Sistema");
+
+        // Load translations
+        horizon::i18n().load_app_locales("preferences");
+
+        app.set_name(horizon::i18n().tr("preferences.title"));
         app.set_icon_name("preferences-system");
         app.set_show_in_dock(true);
 

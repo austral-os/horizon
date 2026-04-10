@@ -2,6 +2,7 @@
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/ThemeManager.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/I18n.hpp>
 #include <iomanip>
 #include <iostream>
 #include <memory>
@@ -151,7 +152,7 @@ namespace horizon
         hex_panel->set_position_type(FILL);
 
         auto hex_label = std::make_unique<Label>();
-        hex_label->set_text("Notación HTML:");
+        hex_label->set_text(i18n().tr("core.color_picker.html_notation"));
         hex_panel->add_child(std::move(hex_label));
 
         auto hex_box_container = std::make_unique<Widget>();

@@ -22,6 +22,9 @@
 #include <wayland-client-core.h>
 #include <wayland-client-protocol.h>
 #include <wayland-client.h>
+#include <horizon/I18n.hpp>
+#include <horizon/JsonBackend.hpp>
+#include <cstdlib>
 
 namespace horizon
 {
@@ -36,6 +39,10 @@ namespace horizon
     {
         // Global safeguard: ignore SIGPIPE to prevent crash when writing to broken sockets
         signal(SIGPIPE, SIG_IGN);
+
+        // Initialize i18n
+        i18n(); // Ensure singleton is initialized, it will load core locales automatically
+
         m_name = "Horizon Application";
         if (!skip_window)
         {

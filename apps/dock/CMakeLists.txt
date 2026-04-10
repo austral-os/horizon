@@ -14,3 +14,9 @@ target_link_libraries(dock
     PRIVATE
         horizon
 )
+
+add_custom_command(TARGET dock POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/locales
+    $<TARGET_FILE_DIR:dock>/locales
+)

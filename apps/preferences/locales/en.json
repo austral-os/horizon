@@ -1,0 +1,32 @@
+{
+  "preferences": {
+    "title": "System Preferences",
+    "home": "Home",
+    "groups": {
+      "personal": "Personal",
+      "hardware": "Hardware",
+      "network": "Internet & Network",
+      "system": "System"
+    },
+    "sections": {
+      "appearance": "Appearance",
+      "desktop": "Desktop",
+      "screensaver": "Screensaver",
+      "notifications": "Notifications",
+      "display": "Displays",
+      "sound": "Sound",
+      "mouse": "Mouse & Touchpad",
+      "keyboard": "Keyboard",
+      "printers": "Printers",
+      "power": "Power",
+      "wifi": "Wi-Fi",
+      "bluetooth": "Bluetooth",
+      "network": "Network",
+      "users": "Users",
+      "datetime": "Date & Time",
+      "region": "Region & Language",
+      "applications": "Applications",
+      "details": "About"
+    }
+  }
+}

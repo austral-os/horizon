@@ -17,3 +17,9 @@ target_link_libraries(nova
         horizon
         horizon-web
 )
+
+add_custom_command(TARGET nova POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/locales
+    $<TARGET_FILE_DIR:nova>/locales
+)

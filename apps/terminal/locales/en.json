@@ -1,0 +1,9 @@
+{
+  "terminal": {
+    "title": "Terminal",
+    "menu": {
+      "copy": "Copy",
+      "paste": "Paste"
+    }
+  }
+}

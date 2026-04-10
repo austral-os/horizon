@@ -1,0 +1,12 @@
+{
+  "dock": {
+    "title": "Dock",
+    "context": {
+      "open": "Open new instance",
+      "pin": "Pin to Dock",
+      "unpin": "Unpin from Dock",
+      "quit": "Quit application",
+      "untitled": "Untitled window"
+    }
+  }
+}

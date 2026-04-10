@@ -1,0 +1,24 @@
+{
+  "core": {
+    "dialog": {
+      "accept": "Accept",
+      "cancel": "Cancel"
+    },
+    "global_menu": {
+      "edit": "Edit",
+      "view": "View",
+      "preferences": "Preferences",
+      "quit": "Quit",
+      "copy": "Copy",
+      "cut": "Cut",
+      "paste": "Paste",
+      "fullscreen": "Fullscreen"
+    },
+    "color_picker": {
+      "html_notation": "HTML Notation:"
+    },
+    "search": {
+      "placeholder": "Search..."
+    }
+  }
+}

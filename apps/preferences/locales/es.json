@@ -1,0 +1,32 @@
+{
+  "preferences": {
+    "title": "Preferencias del Sistema",
+    "home": "Inicio",
+    "groups": {
+      "personal": "Personal",
+      "hardware": "Hardware",
+      "network": "Internet y Redes",
+      "system": "Sistema"
+    },
+    "sections": {
+      "appearance": "Apariencia",
+      "desktop": "Escritorio",
+      "screensaver": "Salvapantallas",
+      "notifications": "Notificaciones",
+      "display": "Pantalla",
+      "sound": "Sonido",
+      "mouse": "Ratón y Panel táctil",
+      "keyboard": "Teclado",
+      "printers": "Impresoras",
+      "power": "Energía",
+      "wifi": "Wi-Fi",
+      "bluetooth": "Bluetooth",
+      "network": "Red",
+      "users": "Usuarios",
+      "datetime": "Fecha y Hora",
+      "region": "Región e Idioma",
+      "applications": "Aplicaciones",
+      "details": "Acerca de"
+    }
+  }
+}

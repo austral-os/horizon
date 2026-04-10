@@ -6,6 +6,7 @@
 #include <horizon/DesktopEntry.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/I18n.hpp>
 #include <nlohmann/json.hpp>
 
 using namespace horizon;
@@ -21,6 +22,9 @@ TopPanelApplication::TopPanelApplication()
 
     DesktopEntry::add_search_path(
         "/home/horacio/Desarrollo/austral-os/horizon/examples/config/apps/");
+
+    // Load translations
+    i18n().load_app_locales("top_panel");
 
     setup_window();
     setup_ipc();

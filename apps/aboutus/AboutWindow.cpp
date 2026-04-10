@@ -9,10 +9,11 @@
 #include <horizon/Widget.hpp>
 #include <iostream>
 #include <memory>
+#include <horizon/I18n.hpp>
 
 namespace horizon
 {
-    AboutWindow::AboutWindow() : ApplicationWindow("About System")
+    AboutWindow::AboutWindow() : ApplicationWindow(i18n().tr("aboutus.title"))
     {
 
         auto tool_widget = std::make_unique<Widget>();
@@ -23,33 +24,33 @@ namespace horizon
         navigation->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         navigation->set_fixed_size(600);
 
-        navigation->add_item("Overview");
-        navigation->add_item("Displays");
-        navigation->add_item("Storage");
-        navigation->add_item("Memory");
+        navigation->add_item(i18n().tr("aboutus.tabs.overview"));
+        navigation->add_item(i18n().tr("aboutus.tabs.displays"));
+        navigation->add_item(i18n().tr("aboutus.tabs.storage"));
+        navigation->add_item(i18n().tr("aboutus.tabs.memory"));
 
         navigation->set_current_item(0);
 
         navigation->when_button_clicked.connect(
             [this](GroupButtonClickEvent &ev)
             {
-                if (ev.button_text == "Overview")
+                if (ev.button_text == i18n().tr("aboutus.tabs.overview"))
                 {
 
                     set_content(std::make_unique<Overview>());
                 }
-                else if (ev.button_text == "Displays")
+                else if (ev.button_text == i18n().tr("aboutus.tabs.displays"))
                 {
 
                     set_content(std::make_unique<Displays>());
                 }
-                else if (ev.button_text == "Storage")
+                else if (ev.button_text == i18n().tr("aboutus.tabs.storage"))
                 {
 
                     set_content(std::make_unique<DiskInfoWidget>());
                 }
 
-                else if (ev.button_text == "Memory")
+                else if (ev.button_text == i18n().tr("aboutus.tabs.memory"))
                 {
                     set_content(std::make_unique<MemoryInfoWidget>());
                 }
@@ -68,7 +69,7 @@ namespace horizon
         toolbar()->add_toolbar_widget(std::move(tool_widget));
 
         show_status_bar();
-        set_status_text("System Information");
+        set_status_text(i18n().tr("aboutus.status"));
 
         set_content(std::make_unique<Overview>());
     }

@@ -19,3 +19,9 @@ target_link_libraries(terminal
         horizon
         horizon-terminal
 )
+
+add_custom_command(TARGET terminal POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/locales
+    $<TARGET_FILE_DIR:terminal>/locales
+)

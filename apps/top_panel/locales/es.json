@@ -1,0 +1,11 @@
+{
+  "top_panel": {
+    "system_menu": {
+      "about": "Acerca de este sistema",
+      "terminal": "Terminal",
+      "settings": "Configuración del sistema...",
+      "force_quit": "Forzar salida...",
+      "logout": "Cerrar sesión..."
+    }
+  }
+}

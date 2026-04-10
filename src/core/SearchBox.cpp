@@ -1,6 +1,7 @@
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/SearchBox.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon
 {
@@ -25,7 +26,7 @@ namespace horizon
         m_clear_ptr = clear_icon.get();
         add_child(std::move(clear_icon));
 
-        set_placeholder("Search...");
+        set_placeholder(i18n().tr("core.search.placeholder"));
 
         when_text_changed.connect(
             [this](KeyEventContext &)

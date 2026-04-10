@@ -1,11 +1,12 @@
 #include "TerminalWindow.hpp"
+#include "horizon/I18n.hpp"
 #include <memory>
 
 namespace horizon {
 namespace terminal {
 
 TerminalWindow::TerminalWindow()
-    : ApplicationWindow("Terminal") {
+    : ApplicationWindow(i18n().tr("terminal.title")) {
     
     // Create the terminal widget
     auto terminal = std::make_unique<TerminalWidget>();

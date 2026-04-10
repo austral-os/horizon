@@ -1,0 +1,42 @@
+{
+  "arkfm": {
+    "title": "Ark File Manager",
+    "menu": {
+      "file": "File",
+      "edit": "Edit",
+      "help": "Help",
+      "open": "Open",
+      "new_folder": "New Folder",
+      "delete": "Delete",
+      "properties": "Properties",
+      "about": "About",
+      "rename": "Rename"
+    },
+    "dialog": {
+      "properties": "Properties",
+      "new_folder": "New Folder",
+      "rename": "Rename",
+      "new_name": "New name:",
+      "folder_name": "Folder name:"
+    },
+    "properties": {
+      "type": "Type",
+      "size": "Size",
+      "location": "Location",
+      "modified": "Modified",
+      "folder": "Folder",
+      "file": "File",
+      "general": "General",
+      "permissions": "Permissions",
+      "details": "Details",
+      "owner": "Owner",
+      "group": "Group",
+      "others": "Others",
+      "execute": "Execute",
+      "allow_exec": "Allow executing file as program",
+      "none": "None",
+      "read_only": "Read-only",
+      "read_write": "Read & Write"
+    }
+  }
+}

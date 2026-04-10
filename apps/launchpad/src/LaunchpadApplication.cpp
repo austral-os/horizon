@@ -1,12 +1,16 @@
 #include "LaunchpadApplication.hpp"
 #include "LaunchpadWindow.hpp"
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
+#include <horizon/I18n.hpp>
 
 namespace horizon
 {
     LaunchpadApplication::LaunchpadApplication()
         : Application("org.horizon.launchpad", 800, 600, true, true)
     {
+        // Load translations
+        i18n().load_app_locales("launchpad");
+
         // Create a LayerWindow for the launchpad
         m_window = create_layer_window("org.horizon.launchpad", ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY);
         

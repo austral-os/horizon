@@ -9,6 +9,7 @@
 #include "horizon/Notebook.hpp"
 #include "horizon/Spacer.hpp"
 #include "horizon/Window.hpp"
+#include "horizon/I18n.hpp"
 #include <chrono>
 #include <iomanip>
 #include <sstream>
@@ -18,13 +19,13 @@ namespace horizon::arkfm
     PropertiesDialog::PropertiesDialog(const arkutils::FileInfo &file_info)
         : WaylandWindow("horizon.arkfm.properties", 650, 500, false, true), m_file_info(file_info)
     {
-        set_name("Propiedades - " + ArkfmFileProvider::get_display_name(m_file_info));
+        set_name(i18n().tr("arkfm.dialog.properties") + " - " + ArkfmFileProvider::get_display_name(m_file_info));
         setup_ui();
     }
 
     void PropertiesDialog::setup_ui()
     {
-        auto window_widget = std::make_unique<horizon::Window>("Propiedades");
+        auto window_widget = std::make_unique<horizon::Window>(i18n().tr("arkfm.dialog.properties"));
 
         auto root_panel = std::make_unique<horizon::Widget>();
         root_panel->set_layout_type(WIDGET_LAYOUT_VERTICAL);
@@ -77,10 +78,10 @@ namespace horizon::arkfm
         };
 
         std::string type_str =
-            (m_file_info.type == arkutils::FileType::Directory) ? "Carpeta" : "Archivo";
-        add_info_row("Tipo", type_str);
-        add_info_row("Tamaño", std::to_string(m_file_info.size / 1024) + " KB");
-        add_info_row("Ubicación", m_file_info.path);
+            (m_file_info.type == arkutils::FileType::Directory) ? i18n().tr("arkfm.properties.folder") : i18n().tr("arkfm.properties.file");
+        add_info_row(i18n().tr("arkfm.properties.type"), type_str);
+        add_info_row(i18n().tr("arkfm.properties.size"), std::to_string(m_file_info.size / 1024) + " KB");
+        add_info_row(i18n().tr("arkfm.properties.location"), m_file_info.path);
 
         auto t = std::chrono::system_clock::to_time_t(m_file_info.last_modified);
         char time_str[26] = {0};
@@ -89,10 +90,10 @@ namespace horizon::arkfm
         {
             time_str[24] = '\0'; // Remove newline
         }
-        add_info_row("Modificado", std::string(time_str));
+        add_info_row(i18n().tr("arkfm.properties.modified"), std::string(time_str));
 
         general_tab->add_child(std::move(info_grid));
-        notebook->add_tab(NotebookPage("General", std::move(general_tab)));
+        notebook->add_tab(NotebookPage(i18n().tr("arkfm.properties.general"), std::move(general_tab)));
 
         // --- Permissions Tab ---
         auto permissions_tab = std::make_unique<horizon::Widget>();
@@ -100,7 +101,7 @@ namespace horizon::arkfm
         permissions_tab->set_spacing(15);
         permissions_tab->set_margin(30);
 
-        auto section_title = std::make_unique<horizon::Label>("Permisos de acceso");
+        auto section_title = std::make_unique<horizon::Label>(i18n().tr("arkfm.properties.permissions"));
         section_title->set_font_weight(FONT_WEIGHT_BOLD);
         section_title->set_alignment(TextAlignment::Center);
         permissions_tab->add_child(std::move(section_title));
@@ -118,9 +119,9 @@ namespace horizon::arkfm
             row->add_child(std::move(lbl));
 
             auto combo = std::make_unique<horizon::Combo>();
-            combo->add_item("none", "Ninguno");
-            combo->add_item("read", "Solo puede ver");
-            combo->add_item("write", "Puede ver y modificar");
+            combo->add_item("none", i18n().tr("arkfm.properties.none"));
+            combo->add_item("read", i18n().tr("arkfm.properties.read_only"));
+            combo->add_item("write", i18n().tr("arkfm.properties.read_write"));
             combo->set_selected_item_by_id(selected_id);
             row->add_child(std::move(combo));
 
@@ -136,36 +137,36 @@ namespace horizon::arkfm
             return "none";
         };
 
-        add_permission_row("Propietario", get_perm_id(m_file_info.permissions, S_IRUSR, S_IWUSR));
-        add_permission_row("Grupo", get_perm_id(m_file_info.permissions, S_IRGRP, S_IWGRP));
-        add_permission_row("Otros", get_perm_id(m_file_info.permissions, S_IROTH, S_IWOTH));
+        add_permission_row(i18n().tr("arkfm.properties.owner"), get_perm_id(m_file_info.permissions, S_IRUSR, S_IWUSR));
+        add_permission_row(i18n().tr("arkfm.properties.group"), get_perm_id(m_file_info.permissions, S_IRGRP, S_IWGRP));
+        add_permission_row(i18n().tr("arkfm.properties.others"), get_perm_id(m_file_info.permissions, S_IROTH, S_IWOTH));
 
         auto exec_row = std::make_unique<horizon::Widget>();
         exec_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         exec_row->set_spacing(15);
         exec_row->set_fixed_size(40);
 
-        auto exec_lbl = std::make_unique<horizon::Label>("Ejecutar:");
+        auto exec_lbl = std::make_unique<horizon::Label>(i18n().tr("arkfm.properties.execute") + ":");
         exec_lbl->set_fixed_size(150);
         exec_lbl->set_alignment(TextAlignment::Right);
         exec_row->add_child(std::move(exec_lbl));
 
         auto exec_check = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
-        exec_check->set_text("Permitir la ejecución del archivo como programa");
+        exec_check->set_text(i18n().tr("arkfm.properties.allow_exec"));
         exec_check->set_checked(m_file_info.permissions & (S_IXUSR | S_IXGRP | S_IXOTH));
         exec_row->add_child(std::move(exec_check));
 
         permissions_tab->add_child(std::move(exec_row));
 
-        notebook->add_tab(NotebookPage("Permisos", std::move(permissions_tab)));
+        notebook->add_tab(NotebookPage(i18n().tr("arkfm.properties.permissions"), std::move(permissions_tab)));
 
         // --- Details Tab ---
         auto details_tab = std::make_unique<horizon::Widget>();
         details_tab->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         details_tab->set_spacing(10);
         details_tab->set_margin(20);
-        details_tab->add_child(std::make_unique<horizon::Label>("Aquí detalles."));
-        notebook->add_tab(NotebookPage("Detalles", std::move(details_tab)));
+        details_tab->add_child(std::make_unique<horizon::Label>("..."));
+        notebook->add_tab(NotebookPage(i18n().tr("arkfm.properties.details"), std::move(details_tab)));
 
         root_panel->add_child(std::move(notebook));
 

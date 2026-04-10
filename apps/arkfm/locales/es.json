@@ -1,0 +1,42 @@
+{
+  "arkfm": {
+    "title": "Explorador de Archivos Ark",
+    "menu": {
+      "file": "Archivo",
+      "edit": "Edición",
+      "help": "Ayuda",
+      "open": "Abrir",
+      "new_folder": "Nueva Carpeta",
+      "delete": "Eliminar",
+      "properties": "Propiedades",
+      "about": "Acerca de",
+      "rename": "Renombrar"
+    },
+    "dialog": {
+      "properties": "Propiedades",
+      "new_folder": "Nueva Carpeta",
+      "rename": "Cambiar nombre",
+      "new_name": "Nuevo nombre:",
+      "folder_name": "Nombre de la carpeta:"
+    },
+    "properties": {
+      "type": "Tipo",
+      "size": "Tamaño",
+      "location": "Ubicación",
+      "modified": "Modificado",
+      "folder": "Carpeta",
+      "file": "Archivo",
+      "general": "General",
+      "permissions": "Permisos",
+      "details": "Detalles",
+      "owner": "Propietario",
+      "group": "Grupo",
+      "others": "Otros",
+      "execute": "Ejecutar",
+      "allow_exec": "Permitir la ejecución del archivo como programa",
+      "none": "Ninguno",
+      "read_only": "Solo puede ver",
+      "read_write": "Puede ver y modificar"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "top_panel": {
+    "system_menu": {
+      "about": "About This System",
+      "terminal": "Terminal",
+      "settings": "System Settings...",
+      "force_quit": "Force Quit...",
+      "logout": "Log Out..."
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "aboutus": {
+    "title": "Acerca de este Sistema",
+    "display_settings": "Configuración de Pantalla",
+    "processor": "Procesador",
+    "memory": "Memoria",
+    "graphics": "Gráficos",
+    "storage": "Almacenamiento",
+    "os_name": "Nombre del SO",
+    "os_version": "Versión del SO",
+    "os_type": "Tipo de SO",
+    "tabs": {
+      "overview": "Resumen",
+      "displays": "Pantallas",
+      "storage": "Almacenamiento",
+      "memory": "Memoria"
+    },
+    "status": "Información del Sistema"
+  }
+}

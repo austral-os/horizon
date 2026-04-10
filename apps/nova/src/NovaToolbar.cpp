@@ -5,6 +5,7 @@
 #include <horizon/SearchBox.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/WaylandWindow.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::nova
 {
@@ -60,7 +61,7 @@ namespace horizon::nova
         // 3. Search Box (URL) - This one FILLs the space
         auto search_box = std::make_unique<horizon::SearchBox>();
         m_search_box = search_box.get();
-        m_search_box->set_placeholder("Enter URL or search...");
+        m_search_box->set_placeholder(i18n().tr("nova.placeholder"));
         m_search_box->set_position_type(FILL);
         m_search_box->set_fixed_size(-1); // Override default TextBox fixed size to allow expansion
 

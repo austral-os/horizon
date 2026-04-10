@@ -1,0 +1,20 @@
+{
+  "aboutus": {
+    "title": "About this System",
+    "display_settings": "Display Settings",
+    "processor": "Processor",
+    "memory": "Memory",
+    "graphics": "Graphics",
+    "storage": "Storage",
+    "os_name": "OS Name",
+    "os_version": "OS Version",
+    "os_type": "OS Type",
+    "tabs": {
+      "overview": "Overview",
+      "displays": "Displays",
+      "storage": "Storage",
+      "memory": "Memory"
+    },
+    "status": "System Information"
+  }
+}

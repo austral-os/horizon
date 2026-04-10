@@ -1,0 +1,11 @@
+{
+  "i18n_demo": {
+    "title": "Demo de i18n de Horizon",
+    "welcome": "¡Bienvenido al sistema de traducción de Horizon!",
+    "greeting": "¡Hola, {user}!",
+    "messages_count": {
+      "one": "Tienes un nuevo mensaje.",
+      "other": "Tienes {count} nuevos mensajes."
+    }
+  }
+}
