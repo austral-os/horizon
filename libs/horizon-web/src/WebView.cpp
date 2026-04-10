@@ -294,6 +294,7 @@ namespace horizon
                     // Scale factor: dy/dx in Wayland are typically ~10 units per notch.
                     // WebKit often expects these to be roughly pixel-equivalent or at least significant.
                     // Positive multiplier because WebKit expects positive value for scrolling DOWN.
+                    dispatch_axis(0, (int)(ctx.dy * 8)); // Vertical
                     dispatch_axis(1, (int)(ctx.dx * 8)); // Horizontal
                 });
 
