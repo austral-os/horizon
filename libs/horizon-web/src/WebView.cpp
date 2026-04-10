@@ -613,6 +613,29 @@ namespace horizon
                     NULL, NULL);
                 webkit_user_content_manager_add_style_sheet(manager, fs_style);
                 webkit_user_style_sheet_unref(fs_style);
+                
+                // --- SCROLL BEACON SYSTEM ---
+                // Syncs web content dimensions with Horizon OS scrollbars
+                const char* scroll_beacon_source = 
+                    "const scrollBeacon = () => {"
+                    "  const y = window.scrollY; const x = window.scrollX;"
+                    "  const h = document.documentElement.scrollHeight; const w = document.documentElement.scrollWidth;"
+                    "  const beacon = 'HORIZON_SCROLL:' + y + ' ' + x + ' ' + h + ' ' + w;"
+                    "  document.title = beacon;"
+                    "};"
+                    "window.addEventListener('scroll', () => requestAnimationFrame(scrollBeacon));"
+                    "window.addEventListener('resize', () => requestAnimationFrame(scrollBeacon));"
+                    "const scrollObs = new ResizeObserver(() => requestAnimationFrame(scrollBeacon));"
+                    "scrollObs.observe(document.documentElement);"
+                    "setInterval(scrollBeacon, 1000);";
+
+                WebKitUserScript* s_script = webkit_user_script_new(
+                    scroll_beacon_source,
+                    WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES,
+                    WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START,
+                    NULL, NULL);
+                webkit_user_content_manager_add_script(manager, s_script);
+                webkit_user_script_unref(s_script);
 
                 return FALSE;
             }, this, NULL);
