@@ -297,9 +297,9 @@ namespace horizon
 
         if (!ev.stop_propagation)
         {
-            if (m_client_menu)
+            if (m_client_menu && m_is_activated)
             {
-                m_client_menu->set_global_menu({}); // Clear global menu before exit
+                m_client_menu->set_global_menu({}); // Clear global menu before exit, only if we were active
             }
             quit();
         }
@@ -928,8 +928,10 @@ namespace horizon
         {
             m_client_menu = std::make_shared<ClientMenu>();
         }
-
-        m_client_menu->set_global_menu(m_global_menus);
+        if (m_client_menu && m_is_activated)
+        {
+            m_client_menu->set_global_menu(m_global_menus);
+        }
     }
 
     void WaylandWindow::add_menu(std::unique_ptr<Menu> menu)

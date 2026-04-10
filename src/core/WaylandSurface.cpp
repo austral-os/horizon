@@ -229,11 +229,10 @@ namespace horizon
                     if (*state == XDG_TOPLEVEL_STATE_ACTIVATED) activated = true;
                     if (*state == XDG_TOPLEVEL_STATE_FULLSCREEN) fullscreen = true;
                 }
-                // --- FOCUS LOCK ---
-                // Compositors like labwc might deactivate the surface when shifting layouts.
-                // We force activation to stay TRUE if it was already active (sticky focus) 
-                // or if we are in/entering fullscreen mode.
-                bool effective_activated = activated || self->m_is_activated || fullscreen || self->m_is_fullscreen;
+                // --- FOCUS MANAGEMENT ---
+                // We trust the compositor activation signal, but we maintain activation
+                // if we are in fullscreen mode to ensure input consistency.
+                bool effective_activated = activated || fullscreen;
                 
                 self->m_is_maximized = maximized; self->m_is_fullscreen = fullscreen;
                 if (self->m_is_activated != effective_activated) {

@@ -50,7 +50,8 @@ void TopPanelMenuBar::handle_message(const std::string &msg)
             }
             else
             {
-                if (m_current_owner_pid == -1 || request_pid == m_current_owner_pid)
+                // Only allow clearing if the requester is the current owner
+                if (m_current_owner_pid != -1 && request_pid == m_current_owner_pid)
                 {
                     if (m_clear_menu_timer_id)
                     {
