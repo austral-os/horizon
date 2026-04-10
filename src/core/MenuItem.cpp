@@ -16,11 +16,6 @@ namespace horizon
         m_content = content.get();
         m_content->set_position_type(FREE);
         static_cast<Label *>(m_content)->set_vertical_alignment(VerticalAlignment::Middle);
-        
-        // --- LOCAL FIX: Propagate clics from label to menu item ---
-        m_content->when_mouse_press.connect([this](MouseButtonEventContext &ev) { this->when_mouse_press.run(ev); });
-        m_content->when_click.connect([this](MouseButtonEventContext &ev) { this->when_click.run(ev); });
-        
         add_child(std::move(content));
 
         auto shortcut = std::make_unique<Label>();
@@ -28,11 +23,6 @@ namespace horizon
         m_shortcut_label->set_position_type(FREE);
         m_shortcut_label->set_vertical_alignment(VerticalAlignment::Middle);
         m_shortcut_label->set_alignment(TextAlignment::Right);
-        
-        // --- LOCAL FIX: Propagate clics from shortcut to menu item ---
-        m_shortcut_label->when_mouse_press.connect([this](MouseButtonEventContext &ev) { this->when_mouse_press.run(ev); });
-        m_shortcut_label->when_click.connect([this](MouseButtonEventContext &ev) { this->when_click.run(ev); });
-        
         add_child(std::move(shortcut));
 
         set_size(200, 24); // Default menu item size

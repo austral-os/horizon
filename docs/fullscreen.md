@@ -6,13 +6,14 @@ This document explains how to implement and utilize standardized fullscreen supp
 
 Horizon's fullscreen system follows a declarative and automated model:
 - **Declarative**: Widgets optionally declare their ability to take over the screen.
-- **Automated Menu Management**: The Window system automatically manages the "Visualización" (View) menu based on the widget tree's capabilities.
-- **Visual Isolation**: Entering fullscreen automatically isolates the target widget, hiding distractions like siblings, titlebars, and other non-essential UI elements.
-- **Smart Targeting**: Fullscreen can be triggered globally (via F11 or the menu) and the system will intelligently find the best candidate widget to fulfill the request.
+- **Signal-Based**: Global interactions use the `"fullscreen"` signal to toggle state.
+- **Automated Menu Management**: The Window system automatically manages the "Visualización" (View) menu.
+- **Visual Isolation**: Entering fullscreen isolates the target widget, hiding siblings, titlebars, and other UI distractions.
+- **Menu Ordering**: In context menus, Fullscreen actions always appear **after** Clipboard actions, separated by a line.
 
 ## 2. Enabling Fullscreen Support in a Widget
 
-To make your widget eligible for fullscreen, you only need to override one method and optionally connect to transition events.
+To make your widget eligible for fullscreen, override the support method and handle dimensions.
 
 ### 2.1. Declaration
 
@@ -26,59 +27,72 @@ bool supports_fullscreen() const override {
 
 ### 2.2. Handling Transitions
 
-When a widget enters or leaves fullscreen, it receives events containing the final dimensions of the window. This allows the widget to adjust its layout or internal state (e.g., resizing a video buffer or a terminal PTY).
-
-In your widget constructor:
+When a widget enters or leaves fullscreen, it should respond to size changes to adapt its content.
 
 ```cpp
 when_enter_fullscreen.connect([this](FullscreenEventContext &ctx) {
-    LOG_INFO << "Entering fullscreen: " << ctx.width << "x" << ctx.height;
-    // Adjust internal state if necessary
-});
-
-when_leave_fullscreen.connect([this](FullscreenEventContext &ctx) {
-    LOG_INFO << "Leaving fullscreen: " << ctx.width << "x" << ctx.height;
-    // Restore normal state
+    LOG_INFO << "Resizing content for fullscreen: " << ctx.width << "x" << ctx.height;
+    // Update internal geometry or engine state
 });
 ```
 
-## 3. Window System Behavior
+## 3. The Fullscreen Standard
 
-The `WaylandWindow` class manages the lifecycle of the fullscreen transition.
+### 3.1. Global Signal
+The system listens to the `"fullscreen"` signal. Items with the ID `"fullscreen"` in the global menu trigger this behavior.
 
-### 3.1. Automatic Menu Integration
+### 3.2. Context Menu Ordering
+Horizon enforces a consistent UX order for context menus:
+1.  **Clipboard Section** (Cut, Copy, Paste).
+2.  (Separator)
+3.  **Fullscreen Section** (Toggle Fullscreen).
+4.  (Separator)
+5.  **Widget-Specific Actions**.
 
-If at least one widget in the application's tree (starting from the root) returns `true` for `supports_fullscreen()`, the system will:
-1. Ensure a **"Visualización"** (View) menu exists in the global menu bar.
-2. Add a **"Pantalla completa"** (F11) item to that menu.
-3. Automatically handle the activation of this item.
+The framework automatically handles this ordering in `show_context_menu`.
 
-### 3.2. Transition Logic (The Isolation Protocol)
+## 4. Minimal Implementation Example
+
+```cpp
+#include <horizon/Application.hpp>
+#include <horizon/Widget.hpp>
+#include <horizon/ColorArea2D.hpp>
+
+class MyFullscreenWidget : public horizon::ColorArea2D {
+public:
+    MyFullscreenWidget() : ColorArea2D({0.2f, 0.4f, 0.8f, 1.0f}) {
+        set_focusable(true);
+        
+        when_enter_fullscreen.connect([this](horizon::FullscreenEventContext &ctx) {
+            set_background_color({0.8f, 0.2f, 0.2f, 1.0f}); // Change color when fullscreen
+        });
+        
+        when_leave_fullscreen.connect([this](horizon::FullscreenEventContext &ctx) {
+            set_background_color({0.2f, 0.4f, 0.8f, 1.0f}); // Restore color
+        });
+    }
+
+    bool supports_fullscreen() const override { return true; }
+};
+
+int main(int argc, char **argv) {
+    horizon::Application app("com.example.fullscreen", 800, 600);
+    app.set_name("Fullscreen Example");
+    
+    auto widget = std::make_unique<MyFullscreenWidget>();
+    app.set_root(std::move(widget));
+    
+    app.run();
+    return 0;
+}
+```
+
+## 5. Transition Logic (The Isolation Protocol)
 
 When a fullscreen request is initiated:
-1. **Target Selection**: The system looks for the current focused widget. If it doesn't support fullscreen, it performs a depth-first search to find the first widget in the tree that does.
-2. **Isolation**: Every widget that is not a direct ancestor or a descendant of the target is hidden (`set_visible(false)`).
-3. **Decoration Hiding**: The window's `Titlebar` is automatically hidden.
-4. **Compositor Request**: The window sends a request to the Wayland compositor to enter the fullscreen state.
-5. **Event Dispatch**: The `when_enter_fullscreen` event is fired on the target widget.
-
-Upon exit:
-- All hidden widgets are restored to their original visibility state.
-- The `Titlebar` is restored.
-- The `when_leave_fullscreen` event is fired.
-
-### 3.3. Context Menu Integration
-
-The system automatically manages context menu entries for fullscreen-capable widgets:
-1. **Manual Menus**: If a widget provides its own context menu (via `show_context_menu`), the system will inject "Pantalla completa" (or "Salir de pantalla completa") at the bottom, adding a separator if the menu is not empty.
-2. **Automatic Menus**: If a widget declares `supports_fullscreen()` but has no custom context menu, right-clicking it will automatically generate a menu containing the fullscreen toggle.
-3. **Dynamic State**: The menu text updates in real-time based on the window's current state.
-
-## 4. Best Practices
-
-- **Layout Fluidity**: Since fullscreen usually changes the aspect ratio and size of your widget significantly, ensure yours uses a responsive layout strategy (e.g., `calculate_layout` should handle all sizing).
-- **Focus Management**: Focus helps the system identify *which* widget should go fullscreen if there are multiple candidates. Ensure your primary interactive widgets use `set_focusable(true)`.
-- **Shortcut Handling**: Standard `F11` is reserved for the global fullscreen toggle and should not be overridden for other purposes in fullscreen-capable widgets.
+1. **Target Selection**: The system uses the focused widget if it supports fullscreen. Otherwise, it finds the best candidate in the tree.
+2. **Isolation**: Non-descendant widgets are hidden, and the window titlebar disappears.
+3. **Dispatch**: Final dimensions are sent to the target via `when_enter_fullscreen`.
 
 ---
 *Horizon Toolkit - Standardized User Interface Management*

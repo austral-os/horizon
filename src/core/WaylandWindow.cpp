@@ -2235,47 +2235,15 @@ namespace horizon
 
     void WaylandWindow::show_context_menu(Menu *menu, int x, int y, uint32_t serial, Widget *owner)
     {
-
         if (!m_surface || !menu)
         {
             LOG_ERROR << "[WINDOW] show_context_menu: surface or menu is NULL";
             return;
         }
 
-        // Automatic Fullscreen injection
-        if (owner && owner->supports_fullscreen())
+        if (owner && owner->is_focusable())
         {
-            // Check if it already has it
-            bool has_fullscreen = false;
-            for (auto const &child : menu->children())
-            {
-                if (auto *item = dynamic_cast<MenuItem *>(child.get()))
-                {
-                    if (item->id() == "fullscreen_context")
-                    {
-                        has_fullscreen = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!has_fullscreen)
-            {
-                if (!menu->children().empty())
-                {
-                    menu->add_separator();
-                }
-
-                auto *item = menu->add_item(is_fullscreen() ? "Salir de pantalla completa" : "Pantalla completa", "F11");
-                item->set_id("fullscreen_context");
-                item->when_click.connect([target_window = this](MouseButtonEventContext &)
-                                          {
-                                              if (target_window->is_fullscreen())
-                                                  target_window->unfullscreen();
-                                              else
-                                                  target_window->fullscreen();
-                                          });
-            }
+            owner->set_focus(true);
         }
 
         // Automatic Clipboard injection
@@ -2313,10 +2281,42 @@ namespace horizon
                 cut->set_enabled(owner->can_perform(ClipboardAction::Cut));
                 copy->set_enabled(owner->can_perform(ClipboardAction::Copy));
                 paste->set_enabled(owner->can_perform(ClipboardAction::Paste));
+            }
+        }
 
-                cut->when_click.connect([owner](MouseButtonEventContext &) { owner->perform(ClipboardAction::Cut); });
-                copy->when_click.connect([owner](MouseButtonEventContext &) { owner->perform(ClipboardAction::Copy); });
-                paste->when_click.connect([owner](MouseButtonEventContext &) { owner->perform(ClipboardAction::Paste); });
+        // Automatic Fullscreen injection
+        if (owner && owner->supports_fullscreen())
+        {
+            // Check if it already has it
+            bool has_fullscreen = false;
+            for (auto const &child : menu->children())
+            {
+                if (auto *item = dynamic_cast<MenuItem *>(child.get()))
+                {
+                    if (item->id() == "fullscreen_context")
+                    {
+                        has_fullscreen = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!has_fullscreen)
+            {
+                if (!menu->children().empty())
+                {
+                    menu->add_separator();
+                }
+
+                auto *item = menu->add_item(is_fullscreen() ? "Salir de pantalla completa" : "Pantalla completa", "F11");
+                item->set_id("fullscreen_context");
+                item->when_click.connect([target_window = this](MouseButtonEventContext &)
+                                          {
+                                              if (target_window->is_fullscreen())
+                                                  target_window->unfullscreen();
+                                              else
+                                                  target_window->fullscreen();
+                                          });
             }
         }
 

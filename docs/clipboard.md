@@ -1,13 +1,14 @@
 # Horizon Clipboard System Integration
 
-This document explains how to implement clipboard support (Copy, Cut, Paste) in your Horizon widgets using the standardized action-based API.
+This document explains how to implement clipboard support (Copy, Cut, Paste) in your Horizon widgets using the standardized signal-based and action-based API.
 
 ## 1. Overview
 
-The Horizon clipboard system uses an **action-based** and **lazy-delivery** model.
-- **Action-Based**: Instead of manual copy/paste methods, widgets respond to `ClipboardAction` commands.
+The Horizon clipboard system uses a **signal-driven**, **action-based**, and **lazy-delivery** model.
+- **Signal-Driven**: Interactions (Global Menus, Context Menus, IPC) emit standardized signals (`"copy"`, `"cut"`, `"paste"`) which are handled by the framework.
+- **Action-Based**: Widgets respond to these signals via the `perform(ClipboardAction)` method.
 - **Lazy-Delivery**: Data is only transferred when requested by the destination, following the Wayland protocol model.
-- **State-Driven**: The system manages the selection life cycle (Local Ownership, Remote Offer, Transference) automatically.
+- **Targeting**: When a context menu is opened, the framework automatically focuses the target widget to ensure signals are routed correctly.
 
 ## 2. Implementing Clipboard Support in a Widget
 
@@ -15,7 +16,7 @@ To make your widget clipboard-aware, you need to override several methods from t
 
 ### 2.1. Basic Requirements
 
-Override `supports_clipboard()` to return `true`.
+Override `supports_clipboard()` to return `true`. This informs the framework that it should inject clipboard menus when this widget is focused or right-clicked.
 
 ```cpp
 bool supports_clipboard() const override { return true; }
@@ -23,7 +24,7 @@ bool supports_clipboard() const override { return true; }
 
 ### 2.2. Validating Actions
 
-Override `can_perform(ClipboardAction action)` to indicate which actions are currently available (e.g., if there is a selection).
+Override `can_perform(ClipboardAction action)` to indicate which actions are currently available. The framework uses this to enable/disable menu items.
 
 ```cpp
 bool can_perform(ClipboardAction action) const override {
@@ -40,79 +41,96 @@ bool can_perform(ClipboardAction action) const override {
 
 ### 2.3. Performing Actions
 
-Override `perform(ClipboardAction action)` to handle the logic for Copy, Cut, and Paste.
+Override `perform(ClipboardAction action)` to handle the logic. This is the **internal entry point** triggered by both keyboard shortcuts and signals.
 
 ```cpp
 void perform(ClipboardAction action) override {
     switch (action) {
         case ClipboardAction::Copy:
             // Notify the system that we now own the clipboard
-            window()->set_clipboard_owner(this);
-            break;
-        case ClipboardAction::Cut:
-            copy_selection_to_internal_buffer();
-            window()->set_clipboard_owner(this);
-            delete_selection();
+            application()->set_clipboard_owner(this);
             break;
         case ClipboardAction::Paste:
             // Request data from the system
-            window()->request_clipboard_data(this);
+            application()->request_clipboard_data(this);
+            break;
+        case ClipboardAction::Cut:
+            // Combine Copy + Delete logic
+            copy_selection_to_buffer();
+            application()->set_clipboard_owner(this);
+            delete_selection();
             break;
     }
 }
 ```
 
-### 2.4. Providing Data (Copy/Cut)
+## 3. The Signal Protocol
 
-If your widget becomes the clipboard owner via `set_clipboard_owner(this)`, the system will call `provide_clipboard_data` when another application (or your own) requests data.
+The standardization relies on reserved signal IDs. When creating menu items for clipboard:
+- Use IDs: `"copy"`, `"cut"`, `"paste"`.
+- **CRITICAL**: Do NOT add manual `when_click` listeners to these items if they are created for a context menu via the framework injection, as the framework already provides global handlers for these IDs.
+
+## 4. Minimal Implementation Example
 
 ```cpp
-void provide_clipboard_data(const std::string &mime, DataSink &sink) override {
-    if (mime == "text/plain") {
-        std::string text = get_selected_text();
-        sink.write(std::vector<uint8_t>(text.begin(), text.end()));
-        sink.done();
-    } else {
-        sink.error();
+#include <horizon/Application.hpp>
+#include <horizon/Widget.hpp>
+#include <iostream>
+
+class MyCustomWidget : public horizon::Widget {
+public:
+    MyCustomWidget() {
+        set_focusable(true); // Required for signal targeting
     }
-}
 
-// You must also specify which MIME types you provide
-virtual std::vector<std::string> provided_mime_types() const {
-    return {"text/plain"};
-}
-```
+    bool supports_clipboard() const override { return true; }
 
-### 2.5. Consuming Data (Paste)
+    bool can_perform(horizon::ClipboardAction action) const override {
+        return true; // Always allow for this example
+    }
 
-When you call `window()->request_clipboard_data(this)`, the system negotiates MIME types and calls `on_clipboard_data_received` when the data arrives.
+    void perform(horizon::ClipboardAction action) override {
+        if (action == horizon::ClipboardAction::Copy) {
+            application()->set_clipboard_owner(this);
+            std::cout << "Widget: Copied state set!" << std::endl;
+        } else if (action == horizon::ClipboardAction::Paste) {
+            application()->request_clipboard_data(this, "text/plain");
+        }
+    }
 
-```cpp
-void on_clipboard_data_received(const std::string &mime, const std::vector<uint8_t> &data) override {
-    if (mime == "text/plain") {
+    void provide_clipboard_data(const std::string &mime, horizon::DataSink &sink) override {
+        if (mime == "text/plain") {
+            std::string data = "Hello from MyCustomWidget!";
+            sink.write(std::vector<uint8_t>(data.begin(), data.end()));
+            sink.done();
+        }
+    }
+
+    void on_clipboard_data_received(const std::string &mime, const std::vector<uint8_t> &data) override {
         std::string text(data.begin(), data.end());
-        insert_text_at_cursor(text);
+        std::cout << "Widget Received: " << text << std::endl;
     }
-}
 
-// Specify which MIME types your widget accepts (in preference order)
-std::vector<std::string> accepted_mime_types() const override {
-    return {"text/plain", "text/plain;charset=utf-8"};
+    std::vector<std::string> provided_mime_types() const override { return {"text/plain"}; }
+    std::vector<std::string> accepted_mime_types() const override { return {"text/plain"}; }
+};
+
+int main(int argc, char **argv) {
+    horizon::Application app("com.example.clipboard", 400, 300);
+    auto widget = std::make_unique<MyCustomWidget>();
+    app.set_root(std::move(widget));
+    app.run();
+    return 0;
 }
 ```
 
-## 3. UI Integration
+## 5. UI Integration
 
 The `WaylandWindow` automatically handles:
-- **Global Menu**: An "Edición" menu is added to the system top bar with Copy, Cut, and Paste items.
-- **Shortcuts**: `Ctrl+C`, `Ctrl+X`, and `Ctrl+V` are automatically dispatched to the focused widget.
-- **Context Menus**: If your widget supports clipboard, standard actions are automatically injected into its right-click context menu.
-
-## 4. Best Practices
-
-- **Never use raw pointers**: The system uses `generation_id` to track selection age. If your widget is destroyed, the backend is notified automatically.
-- **Non-blocking logic**: `provide_clipboard_data` can be called from internal protocol threads. The `sink` handles data safely. `on_clipboard_data_received` is always called from the **main UI thread**.
-- **MIME Negotiation**: Always provide and accept standard MIME types (like `text/plain`) for maximum compatibility.
+- **Focus Management**: Right-clicking a widget focuses it before showing the menu.
+- **Global Menu**: An "Edición" menu is added to the system top bar.
+- **Shortcuts**: `Ctrl+C`, `Ctrl+X`, and `Ctrl+V` emit the standard signals.
+- **Context Menus**: Standard actions are injected at the **top** of the menu (followed by a separator if needed).
 
 ---
 *Horizon Toolkit - Standardized Selection Management*
