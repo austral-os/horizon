@@ -24,7 +24,7 @@ DateAndTimeIndicator::DateAndTimeIndicator() : ITopPanelWidget()
             // For simplicity, we just update every 10s or 60s.
             if (application())
             {
-                m_timer_id = application()->add_timer(30000, [this]() { update_time(); });
+                m_timer_id = application()->add_timer(1000, [this]() { update_time(); }, true);
             }
         });
 }
