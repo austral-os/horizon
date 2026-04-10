@@ -2,11 +2,14 @@
 #include "horizon/Logger.hpp"
 #include "horizon/Spacer.hpp"
 #include <memory>
+#include <string>
 
 namespace horizon
 {
     namespace nova
     {
+
+        const std::string DEFAULT_URL = "https://clasesllavallol.com.ar";
 
         BrowserWindow::BrowserWindow() : ApplicationWindow("Nova Web Browser")
         {
@@ -51,9 +54,8 @@ namespace horizon
             auto tabs = std::make_unique<TabCollection>();
             m_tabs = tabs.get();
 
-            m_tabs->when_add_tab_clicked.connect(
-                [this](EventContext &)
-                { this->create_new_tab("https://www.youtube.com/watch?v=nDnecvEbaQ8"); });
+            m_tabs->when_add_tab_clicked.connect([this](EventContext &)
+                                                 { this->create_new_tab(DEFAULT_URL); });
 
             m_tabs->when_tab_selected.connect(
                 [this](int index)
@@ -80,9 +82,8 @@ namespace horizon
                         web_view->go_forward();
                 });
 
-            m_toolbar->when_home_clicked.connect(
-                [this](HomeButtonClickEvent &)
-                { this->navigate_to_url("https://www.youtube.com/watch?v=nDnecvEbaQ8"); });
+            m_toolbar->when_home_clicked.connect([this](HomeButtonClickEvent &)
+                                                 { this->navigate_to_url(DEFAULT_URL); });
 
             m_toolbar->when_search_submitted.connect([this](SearchChangedEvent &ctx)
                                                      { this->navigate_to_url(ctx.query); });
@@ -94,7 +95,7 @@ namespace horizon
                                                     { LOG_INFO << "[NOVA] Options clicked"; });
 
             // Initial tab
-            create_new_tab("https://www.youtube.com/watch?v=nDnecvEbaQ8");
+            create_new_tab(DEFAULT_URL);
 
             set_content(std::move(tabs));
         }
@@ -144,29 +145,11 @@ namespace horizon
                     }
                 });
 
-            ptr->when_fullscreen_changed.connect(
-                [this](bool fullscreen)
-                {
-                    if (this->application())
-                    {
-                        if (fullscreen)
-                        {
-                            this->set_immersive_mode(true);
-                            this->application()->fullscreen();
-                            if (m_tabs)
-                                m_tabs->show_header(false);
-                            this->hide_status_bar();
-                        }
-                        else
-                        {
-                            this->set_immersive_mode(false);
-                            this->application()->unfullscreen();
-                            if (m_tabs)
-                                m_tabs->show_header(true);
-                            this->show_status_bar();
-                        }
-                    }
-                });
+            ptr->when_enter_fullscreen.connect([this](FullscreenEventContext &)
+                                               { this->set_immersive_mode(true); });
+
+            ptr->when_leave_fullscreen.connect([this](FullscreenEventContext &)
+                                               { this->set_immersive_mode(false); });
 
             ptr->load_url(url);
         }

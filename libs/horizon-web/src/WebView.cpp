@@ -688,27 +688,17 @@ namespace horizon
             // PURE SOFTWARE PATH (No GPU Process, No Compositing)
             g_setenv("WEBKIT_DISABLE_GPU_PROCESS", "1", TRUE);
             g_setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", TRUE);
-            g_setenv("WEBKIT_FORCE_COMPOSITING_MODE", "0", TRUE);
             g_setenv("WEBKIT_SKIA_ENABLE_CPU_RENDERING", "1", TRUE);
             g_setenv("WEBKIT_DISABLE_ACCELERATED_2D_CANVAS", "1", TRUE);
             
-            // WAYLAND ENVIRONMENT REDUNDANCY
-            const char* wayland_disp = "wayland-1"; 
-            g_setenv("WAYLAND_DISPLAY", wayland_disp, TRUE);
-            g_setenv("WEBKIT_WAYLAND_DISPLAY", wayland_disp, TRUE);
-            g_setenv("GDK_BACKEND", "wayland", TRUE);
-            g_setenv("QT_QPA_PLATFORM", "wayland", TRUE);
-            g_setenv("XDG_RUNTIME_DIR", "/run/user/1000", TRUE);
+            // DEBUGGING & STABILITY
+            g_setenv("WPE_DEBUG", "1", TRUE);
+            g_setenv("WPE_FDO_FORCE_SHM", "1", TRUE);
             
             // DEBUGGING & STABILITY
             g_setenv("WPE_DEBUG", "1", TRUE);
             g_setenv("WPE_FDO_FORCE_SHM", "1", TRUE);
             g_setenv("WEBKIT_DISABLE_WAYLAND_DISPLAY_CHECK", "1", TRUE);
-            g_setenv("GIO_USE_NETWORK_MONITOR", "base", TRUE);
-            g_setenv("WEBKIT_DISABLE_NETWORK_PROCESS_SANDBOX", "1", TRUE);
-            
-            // LOADER INIT (Already handled by loop above, but ensure it's fdo)
-            g_setenv("WPE_BACKEND", "fdo", TRUE);
 
             LOG_INFO << "[WEB] Initializing WPE for SHM";
             wpe_fdo_initialize_shm();
@@ -1047,7 +1037,9 @@ namespace horizon
             if (self->m_waiting_for_native_frame) {
                 bool matched = false;
                 if (self->m_is_fullscreen) {
-                    matched = (width == 1920 && height == 1080);
+                    int target_w = self->application() ? self->application()->width() : 1920;
+                    int target_h = self->application() ? self->application()->height() : 1080;
+                    matched = (width == target_w && height == target_h);
                 } else {
                     // When leaving, we wait for a frame that matches our current widget size
                     matched = (width == self->m_last_dispatched_width && height == self->m_last_dispatched_height);
@@ -1071,10 +1063,14 @@ namespace horizon
                             
                             if (self->application()) {
                                 self->application()->post_task([self]() {
-                                    // RE-RE-REFRESH JS ENVIRONMENT
-                                    const char* fs_js = "window.dispatchEvent(new Event('resize'));"
-                                                        "if(window.screen) { screen.width=1920; screen.height=1080; }";
-                                    webkit_web_view_evaluate_javascript(self->m_web_view, fs_js, -1, NULL, NULL, NULL, NULL, NULL);
+                                // Reinforce FS geometry in JS
+                                char fs_js[512];
+                                snprintf(fs_js, sizeof(fs_js), 
+                                    "window.dispatchEvent(new Event('resize'));"
+                                    "if(window.screen) { try { Object.defineProperty(screen, 'width', { value: %d, configurable: true }); Object.defineProperty(screen, 'height', { value: %d, configurable: true }); } catch(e) {} }",
+                                    self->application() ? self->application()->width() : 1920, 
+                                    self->application() ? self->application()->height() : 1080);
+                                webkit_web_view_evaluate_javascript(self->m_web_view, fs_js, -1, NULL, NULL, NULL, NULL, NULL);
                                 });
                             }
                         }
@@ -1297,7 +1293,9 @@ namespace horizon
             }
             if (m_is_fullscreen) {
                 set_position(0, 0);
-                set_size(1920, 1080);
+                if (application()) {
+                    set_size(application()->width(), application()->height());
+                }
             }
 
             Widget::calculate_layout();
@@ -1332,10 +1330,10 @@ namespace horizon
 
                 // GEOMETRIC HARD-OVERRIDE: If in fullscreen, we MUST be exactly 1920x1080.
                 // This ignores any small margins or borders Nova's layout might have.
-                int forced_w = (m_is_fullscreen) ? 1920 : width();
-                int forced_h = (m_is_fullscreen) ? 1080 : height();
+                int target_w = (m_is_fullscreen && application()) ? application()->width() : width();
+                int target_h = (m_is_fullscreen && application()) ? application()->height() : height();
 
-                auto* rd = new ResizeData{this, m_backend, forced_w, forced_h};
+                auto* rd = new ResizeData{this, m_backend, target_w, target_h};
                 g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
                     auto* d = static_cast<ResizeData*>(data);
                     
@@ -1349,22 +1347,30 @@ namespace horizon
                         wpe_view_backend_platform_set_fullscreen(d->backend, d->self->m_is_fullscreen);
                         
                         bool target_satisfied = false;
+                        
                         if (d->self->m_is_fullscreen) {
-                            if (d->w == 1920 && d->h == 1080) {
-                                LOG_INFO << "[WEB] Native 1080p detected. Arming ENTER Frame Synchronization...";
+                            int tw = d->self->application() ? d->self->application()->width() : 1920;
+                            int th = d->self->application() ? d->self->application()->height() : 1080;
+                            if (d->w == tw && d->h == th) {
+                                LOG_INFO << "[WEB] Native " << d->w << "x" << d->h << " detected. Arming ENTER Frame Synchronization...";
                                 target_satisfied = true;
                             }
                         } else {
-                            // When leaving, any non-1080p size that matches the window is good
-                            LOG_INFO << "[WEB] Windowed size detected (" << d->w << "x" << d->h << "). Arming LEAVE Frame Synchronization...";
-                            target_satisfied = true;
+                            int tw = d->self->application() ? d->self->application()->width() : 1920;
+                            int th = d->self->application() ? d->self->application()->height() : 1080;
+                            if (d->w != tw || d->h != th) {
+                                LOG_INFO << "[WEB] Windowed size detected (" << d->w << "x" << d->h << "). Arming LEAVE Frame Synchronization...";
+                                target_satisfied = true;
+                            }
                         }
 
                         if (target_satisfied) {
                             d->self->m_pending_fullscreen_ack = false;
                             d->self->m_waiting_for_native_frame = true;
                         } else {
-                            LOG_INFO << "[WEB] Waiting for resolution matching state (" << (d->self->m_is_fullscreen ? "1920x1080" : "windowed") << ")...";
+                            int tw = d->self->application() ? d->self->application()->width() : 1920;
+                            int th = d->self->application() ? d->self->application()->height() : 1080;
+                            LOG_INFO << "[WEB] Waiting for resolution matching state (" << (d->self->m_is_fullscreen ? std::to_string(tw) + "x" + std::to_string(th) : "windowed") << ")...";
                         }
                     }
                     

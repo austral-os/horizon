@@ -46,6 +46,8 @@ public:
     std::string get_title() const;
     std::string get_url() const;
 
+    bool supports_fullscreen() const override { return true; }
+
     // Signals
     EventsManager<std::string> when_title_changed;
     EventsManager<std::string> when_url_changed;
@@ -132,6 +134,7 @@ private:
     std::chrono::steady_clock::time_point m_last_h_show_time;
 
     bool m_is_fullscreen = false;
+    bool m_last_is_fullscreen = false;
     bool m_pending_fullscreen_ack = false;
     bool m_waiting_for_native_frame = false;
     unsigned int m_fullscreen_ack_timer = 0;
