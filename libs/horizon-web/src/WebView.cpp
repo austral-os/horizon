@@ -52,6 +52,7 @@ namespace horizon
         WebView::WebView()
         {
             set_focusable(true);
+            set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
             // Thumbs are drawn directly now
 
             // Initialization is now managed by a shared static method called from the worker thread
@@ -967,11 +968,11 @@ namespace horizon
                 wpe_view_backend_add_activity_state(self->m_backend, 7);
             }
             
-            // HARDWARE TRANSPARENCY: Allow the GPU video plane to show through the web view
-            WebKitColor transparent_color;
-            transparent_color.red = 0; transparent_color.green = 0;
-            transparent_color.blue = 0; transparent_color.alpha = 0;
-            webkit_web_view_set_background_color(self->m_web_view, &transparent_color);
+            // DEFAULT BACKGROUND: Ensure a solid white background
+            WebKitColor background_color;
+            background_color.red = 1; background_color.green = 1;
+            background_color.blue = 1; background_color.alpha = 1;
+            webkit_web_view_set_background_color(self->m_web_view, &background_color);
 
             webkit_policy_decision_use((WebKitPolicyDecision*)decision);
             return 1; // TRUE
