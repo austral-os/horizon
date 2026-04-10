@@ -2249,7 +2249,13 @@ namespace horizon
         }
 
         // Automatic Clipboard injection
-        if (owner && owner->supports_clipboard())
+        Widget *clipboard_target = owner;
+        while (clipboard_target && !clipboard_target->supports_clipboard())
+        {
+            clipboard_target = clipboard_target->parent();
+        }
+
+        if (clipboard_target && clipboard_target->supports_clipboard())
         {
             // Check if it already has items
             bool has_clipboard = false;
@@ -2280,9 +2286,9 @@ namespace horizon
                 copy->set_id("copy");
                 paste->set_id("paste");
 
-                cut->set_enabled(owner->can_perform(ClipboardAction::Cut));
-                copy->set_enabled(owner->can_perform(ClipboardAction::Copy));
-                paste->set_enabled(owner->can_perform(ClipboardAction::Paste));
+                cut->set_enabled(clipboard_target->can_perform(ClipboardAction::Cut));
+                copy->set_enabled(clipboard_target->can_perform(ClipboardAction::Copy));
+                paste->set_enabled(clipboard_target->can_perform(ClipboardAction::Paste));
             }
         }
 

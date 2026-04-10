@@ -114,23 +114,6 @@ namespace horizon::arkfm
                     win = dynamic_cast<ArkfmWindow *>(app->root());
                 }
 
-                auto copy_item = bg_menu->add_item("Copiar");
-                copy_item->set_enabled(false);
-
-                auto cut_item = bg_menu->add_item("Cortar");
-                cut_item->set_enabled(false);
-
-                auto paste_item = bg_menu->add_item("Pegar");
-                if (auto *view = dynamic_cast<ArkfmView *>(parent()))
-                {
-                    paste_item->when_click.connect([view](horizon::MouseButtonEventContext &)
-                                                   { view->perform(ClipboardAction::Paste); });
-                }
-                else
-                {
-                    paste_item->set_enabled(false);
-                }
-
                 auto rename_item = bg_menu->add_item("Cambiar nombre");
                 rename_item->set_enabled(false);
 
@@ -181,38 +164,6 @@ namespace horizon::arkfm
                             view->open_selection();
                         }
                     });
-
-                menu->add_separator();
-
-                auto copy_item = menu->add_item("Copiar");
-                copy_item->when_click.connect(
-                    [this](horizon::MouseButtonEventContext &)
-                    {
-                        if (auto *view = dynamic_cast<ArkfmView *>(parent()))
-                            view->perform(ClipboardAction::Copy);
-                    });
-
-                auto cut_item = menu->add_item("Cortar");
-                cut_item->when_click.connect(
-                    [this](horizon::MouseButtonEventContext &)
-                    {
-                        if (auto *view = dynamic_cast<ArkfmView *>(parent()))
-                            view->perform(ClipboardAction::Cut);
-                    });
-
-                auto paste_item = menu->add_item("Pegar");
-                if (auto *view = dynamic_cast<ArkfmView *>(parent()))
-                {
-                    paste_item->when_click.connect(
-                        [view](horizon::MouseButtonEventContext &)
-                        {
-                            view->perform(ClipboardAction::Paste);
-                        });
-                }
-                else
-                {
-                    paste_item->set_enabled(false);
-                }
 
                 auto rename_item = menu->add_item("Cambiar nombre");
                 rename_item->when_click.connect(
