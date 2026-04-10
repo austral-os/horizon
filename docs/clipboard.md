@@ -143,18 +143,18 @@ int main(int argc, char **argv) {
 }
 ```
 
-## 5. Triggers Manuales vía Señales
+## 5. Manual Triggers via Signals
 
-Si necesitas disparar estas acciones desde tu propia lógica (por ejemplo, desde un botón personalizado), la forma correcta es emitir la señal directamente a través del gestor de señales de la ventana. Esto asegura que la acción pase por el pipeline estándar (enfocando el widget correcto, notificando al sistema, etc.).
+If you need to trigger these actions from your own logic (e.g., from a custom button), the correct way is to emit the signal directly through the window's signal manager. This ensures the action goes through the standard pipeline (focusing the right widget, notifying the system, etc.).
 
 ```cpp
-// Ejemplo: Disparar Pegar desde un botón
+// Example: Trigger Paste from a button
 my_button->when_click.connect([window = application()](auto&) {
     window->signal_manager.emit("paste");
 });
 ```
 
-Los IDs de señal soportados para clipboard son:
+Supported signal IDs for clipboard are:
 - `"copy"`
 - `"cut"`
 - `"paste"`

@@ -87,18 +87,18 @@ int main(int argc, char **argv) {
 }
 ```
 
-## 5. Triggers Manuales vía Señales
+## 5. Manual Triggers via Signals
 
-Puedes forzar el cambio de estado de pantalla completa desde cualquier parte de tu código emitiendo la señal `"fullscreen"`. Esto disparará la lógica de aislamiento y ocultación de la barra de título automáticamente.
+You can force the fullscreen state change from anywhere in your code by emitting the `"fullscreen"` signal. This will automatically trigger the isolation logic and hide the titlebar.
 
 ```cpp
-// Ejemplo: Botón personalizado para alternar pantalla completa
+// Example: Custom button to toggle fullscreen
 my_custom_button->when_click.connect([window = application()](auto&) {
     window->signal_manager.emit("fullscreen");
 });
 ```
 
-*Nota: La señal `"fullscreen"` actúa como un toggle (alterna entre estados).*
+*Note: The "fullscreen" signal acts as a toggle (switches between states).*
 
 ## 6. Transition Logic (The Isolation Protocol)
 
