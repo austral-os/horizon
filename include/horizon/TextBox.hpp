@@ -21,6 +21,8 @@ namespace horizon
         void set_text(const std::string &text);
         const std::string &text() const;
 
+        void select_all();
+
         void set_placeholder(const std::string &placeholder);
         const std::string &placeholder() const;
 

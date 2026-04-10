@@ -4,6 +4,7 @@
 #include <horizon/Logger.hpp>
 #include <horizon/SearchBox.hpp>
 #include <horizon/Spacer.hpp>
+#include <horizon/WaylandWindow.hpp>
 
 namespace horizon::nova
 {
@@ -72,6 +73,16 @@ namespace horizon::nova
                     SearchChangedEvent ev;
                     ev.query = query;
                     this->when_search_submitted.run(ev);
+                }
+            });
+        
+        m_search_box->when_focus.connect(
+            [this](EventContext &)
+            {
+                if (application())
+                {
+                    application()->post_task([this]()
+                                             { m_search_box->select_all(); });
                 }
             });
 

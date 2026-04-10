@@ -348,4 +348,12 @@ namespace horizon
         return m_text;
     }
 
+    void TextBoxBase::select_all()
+    {
+        m_selection_anchor = 0;
+        m_cursor_pos = m_text.length();
+        m_has_pending_click = false;
+        invalidate();
+    }
+
 } // namespace horizon
