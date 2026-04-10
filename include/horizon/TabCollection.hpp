@@ -76,6 +76,17 @@ public:
     bool smart_header() const { return m_smart_header; }
 
     /**
+     * @brief Sets whether tabs should have a close button.
+     * @param enabled True to enable close buttons, false otherwise.
+     */
+    void set_closable_tabs(bool enabled);
+
+    /**
+     * @return True if closable tabs are enabled.
+     */
+    bool closable_tabs() const { return m_closable_tabs; }
+
+    /**
      * @return The number of tabs in the collection.
      */
     size_t tab_count() const { return m_tabs.size(); }
@@ -84,6 +95,7 @@ public:
     EventsManager<int> when_tab_added;      /**< Emitted when a tab is added (index). */
     EventsManager<int> when_items_changed;  /**< Emitted when the tab list changes (count). */
     EventsManager<int> when_tab_selected;   /**< Emitted when a tab is selected (index). */
+    EventsManager<int> when_tab_close_requested; /**< Emitted when a tab's close button is clicked. */
     EventsManager<EventContext> when_add_tab_clicked; /**< Emitted when the "+" button is clicked. */
 
 protected:
@@ -101,11 +113,13 @@ private:
         bool m_active = false;
         TabCollection* m_owner;
         int m_index;
+        Button<SolidObject>* m_close_button = nullptr;
 
     public:
         TabButton(TabCollection* owner, int index, const std::string& title);
         void set_active(bool active);
         void set_title(const std::string& title);
+        void set_index(int index) { m_index = index; }
         void draw(GraphicsContext& ctx) override;
         int preferred_width() const override;
     };
@@ -117,6 +131,7 @@ private:
     std::vector<TabPage> m_tabs;
     int m_current_tab = -1;
     bool m_smart_header = false;
+    bool m_closable_tabs = false;
 };
 
 } // namespace horizon

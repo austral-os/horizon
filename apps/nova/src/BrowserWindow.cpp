@@ -55,9 +55,16 @@ namespace horizon
             auto tabs = std::make_unique<TabCollection>();
             m_tabs = tabs.get();
             m_tabs->set_smart_header(true);
+            m_tabs->set_closable_tabs(true);
 
             m_tabs->when_add_tab_clicked.connect([this](EventContext &)
                                                  { this->create_new_tab(DEFAULT_URL); });
+
+            m_tabs->when_tab_close_requested.connect([this](int index) {
+                application()->post_task([this, index]() {
+                    m_tabs->remove_tab(index);
+                });
+            });
 
             m_tabs->when_items_changed.connect([this](int count) {
                 m_toolbar->show_add_tab_button(count == 1);

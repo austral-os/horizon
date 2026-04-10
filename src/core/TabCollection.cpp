@@ -3,6 +3,8 @@
 #include "horizon/Application.hpp"
 #include "horizon/ThemeManager.hpp"
 #include "horizon/Logger.hpp"
+#include "horizon/Button.hpp"
+#include "horizon/Icon.hpp"
 #include <algorithm>
 
 namespace horizon {
@@ -16,6 +18,24 @@ TabCollection::TabButton::TabButton(TabCollection* owner, int index, const std::
         m_owner->set_current_tab(m_index);
         m_owner->when_tab_selected.run(m_index);
     });
+
+    if (m_owner->closable_tabs()) {
+        auto close_btn = std::make_unique<Button<SolidObject>>();
+        close_btn->set_fixed_size(28);
+        close_btn->set_position_type(FILL);
+        
+        auto close_icon = std::make_unique<Icon>();
+        close_icon->set_icon_name("window-close-symbolic");
+        close_icon->set_icon_size(14);
+        close_btn->add_child(std::move(close_icon));
+
+        m_close_button = close_btn.get();
+        add_child(std::move(close_btn));
+
+        m_close_button->when_mouse_press.connect([this](MouseButtonEventContext& ctx) {
+            m_owner->when_tab_close_requested.run(m_index);
+        });
+    }
 }
 
 void TabCollection::TabButton::set_active(bool active) {
@@ -63,7 +83,12 @@ void TabCollection::TabButton::draw(GraphicsContext& ctx) {
         }
     }
 
-    int tx = x() + (width() - metrics.width) / 2;
+    int text_offset = 0;
+    if (m_close_button && m_close_button->is_effectively_visible()) {
+        text_offset = 14; // Half of container width (28px)
+    }
+
+    int tx = x() + (width() - metrics.width) / 2 + text_offset;
     int ty = y() + (height() + metrics.height) / 2 - 2;
     
     ctx.drawText(tx, ty, display_title.c_str());
@@ -151,8 +176,7 @@ void TabCollection::remove_tab(int index) {
     // Correct indices in remaining tab buttons
     for (int i = 0; i < (int)m_header->children().size() - 1; ++i) {
         if (auto* btn = dynamic_cast<TabButton*>(m_header->children()[i].get())) {
-            // We need a way to update the index in TabButton... 
-            // but let's just keep it simple for now as tabs are usually added, not removed in this demo.
+            btn->set_index(i);
         }
     }
     
@@ -194,6 +218,10 @@ void TabCollection::set_smart_header(bool enabled) {
     } else {
         show_header(true);
     }
+}
+
+void TabCollection::set_closable_tabs(bool enabled) {
+    m_closable_tabs = enabled;
 }
 
 void TabCollection::set_current_tab(int index) {
