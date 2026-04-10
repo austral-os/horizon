@@ -50,11 +50,15 @@ namespace horizon::nova
         void set_url(const std::string& url);
         std::string get_url() const;
 
+        void show_add_tab_button(bool show);
+        horizon::GroupButton* add_tab_button() const { return m_add_tab_group; }
+
     private:
         horizon::GroupButton *m_navigation;
         horizon::GroupButton *m_home_group;
         horizon::SearchBox *m_search_box;
         horizon::GroupButton *m_actions_group;
+        horizon::GroupButton *m_add_tab_group;
     };
 
 } // namespace horizon::nova

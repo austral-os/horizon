@@ -118,10 +118,22 @@ namespace horizon::nova
                 }
             });
 
+        // 5. Add Tab Button (Hidden by default)
+        auto add_tab_group = std::make_unique<horizon::GroupButton>();
+        m_add_tab_group = add_tab_group.get();
+        m_add_tab_group->set_fixed_size(40);
+        m_add_tab_group->set_visible(false);
+
+        auto add_icon = std::make_unique<horizon::Icon>();
+        add_icon->set_icon_name("list-add");
+        add_icon->set_icon_size(16);
+        m_add_tab_group->add_item(std::move(add_icon));
+
         add_child(std::move(navigation));
         add_child(std::move(home_group));
         add_child(std::move(search_box));
         add_child(std::move(actions_group));
+        add_child(std::move(add_tab_group));
     }
 
     void NovaToolbar::set_url(const std::string &url)
@@ -133,6 +145,15 @@ namespace horizon::nova
     std::string NovaToolbar::get_url() const
     {
         return m_search_box ? m_search_box->text() : "";
+    }
+
+    void NovaToolbar::show_add_tab_button(bool show)
+    {
+        if (m_add_tab_group)
+        {
+            m_add_tab_group->set_visible(show);
+            invalidate();
+        }
     }
 
 } // namespace horizon::nova

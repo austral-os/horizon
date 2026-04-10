@@ -1,6 +1,7 @@
 #include "BrowserWindow.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/Spacer.hpp"
+#include "horizon/GroupButton.hpp"
 #include <memory>
 #include <string>
 
@@ -57,6 +58,14 @@ namespace horizon
 
             m_tabs->when_add_tab_clicked.connect([this](EventContext &)
                                                  { this->create_new_tab(DEFAULT_URL); });
+
+            m_tabs->when_items_changed.connect([this](int count) {
+                m_toolbar->show_add_tab_button(count == 1);
+            });
+
+            m_toolbar->add_tab_button()->when_button_clicked.connect([this](horizon::GroupButtonClickEvent &) {
+                this->create_new_tab(DEFAULT_URL);
+            });
 
             m_tabs->when_tab_selected.connect(
                 [this](int index)
