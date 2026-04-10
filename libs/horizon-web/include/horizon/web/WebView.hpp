@@ -20,6 +20,9 @@ struct wpe_view_backend;
 struct wpe_view_backend_exportable_fdo;
 struct wpe_fdo_shm_exported_buffer;
 
+#include "horizon/ClipboardProvider.hpp"
+#include "horizon/ClipboardActions.hpp"
+
 namespace horizon {
 class WaylandWindow;
 namespace web {
@@ -48,13 +51,22 @@ public:
 
     bool supports_fullscreen() const override { return true; }
 
+    // Clipboard Support
+    bool can_perform(horizon::ClipboardAction action) const override;
+    void perform(horizon::ClipboardAction action) override;
+    
+    // ClipboardProvider overrides
+    void provide_clipboard_data(const std::string& mime, horizon::DataSink& sink) override;
+    std::vector<std::string> provided_mime_types() const override;
+    std::vector<std::string> accepted_mime_types() const override;
+    void on_clipboard_data_received(const std::string& mime, const std::vector<uint8_t>& data) override;
+
     // Signals
     EventsManager<std::string> when_title_changed;
     EventsManager<std::string> when_url_changed;
     EventsManager<bool> when_loading_changed;
     EventsManager<double> when_progress_changed;
     EventsManager<bool> when_fullscreen_changed;
-
 
 protected:
     void draw(GraphicsContext& ctx) override;
@@ -147,6 +159,9 @@ private:
     // Wayfire Stabilization
     bool m_window_activated = false;
     std::string m_pending_url;
+
+    // Clipboard Content Cache
+    std::string m_clipboard_content;
 };
 
 } // namespace web

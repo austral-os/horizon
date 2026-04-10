@@ -4,6 +4,8 @@
 #include "horizon/WaylandWindow.hpp"
 #include <cstring>
 #include <wayland-server-core.h>
+#include "horizon/Menu.hpp"
+#include "horizon/MenuItem.hpp"
 #include <jsc/jsc.h>
 #include <wpe/webkit.h>
 #include <wpe/fdo.h>
@@ -297,6 +299,34 @@ namespace horizon
                     dispatch_axis(0, (int)(ctx.dy * 8)); // Vertical
                     dispatch_axis(1, (int)(ctx.dx * 8)); // Horizontal
                 });
+
+            // Context Menu (Horizon Style)
+            when_right_click.connect([this](MouseButtonEventContext &ctx) {
+                auto menu = std::make_unique<horizon::Menu>();
+                
+                auto* cut = menu->add_item("Cortar", "Ctrl+X", "clipboard_cut");
+                auto* copy = menu->add_item("Copiar", "Ctrl+C", "clipboard_copy");
+                auto* paste = menu->add_item("Pegar", "Ctrl+V", "clipboard_paste");
+
+                cut->set_enabled(can_perform(ClipboardAction::Cut));
+                copy->set_enabled(can_perform(ClipboardAction::Copy));
+                paste->set_enabled(can_perform(ClipboardAction::Paste));
+
+                cut->when_click.connect([this](MouseButtonEventContext&) { 
+                    perform(ClipboardAction::Cut); 
+                });
+                copy->when_click.connect([this](MouseButtonEventContext&) { 
+                    perform(ClipboardAction::Copy); 
+                });
+                paste->when_click.connect([this](MouseButtonEventContext&) { 
+                    perform(ClipboardAction::Paste); 
+                });
+                
+                if (application()) {
+                    application()->show_context_menu(menu.release(), -1, -1, ctx.serial, this);
+                    ctx.stop_propagation = true;
+                }
+            });
 
             // Keyboard
             when_key_press.connect(
@@ -1516,5 +1546,103 @@ namespace horizon
         bool WebView::can_go_back() const { return m_web_view && webkit_web_view_can_go_back(m_web_view); }
         bool WebView::can_go_forward() const { return m_web_view && webkit_web_view_can_go_forward(m_web_view); }
 
+
+        bool WebView::can_perform(horizon::ClipboardAction action) const {
+            if (action == horizon::ClipboardAction::Paste) return true;
+            // For Copy/Cut, we'd ideally check webkit_web_view_can_execute_editing_command
+            // but for simplicity and since we have text selection working, we'll allow it.
+            return true; 
+        }
+
+        void WebView::perform(horizon::ClipboardAction action) {
+            if (!m_web_view) return;
+
+            if (action == horizon::ClipboardAction::Copy || action == horizon::ClipboardAction::Cut) {
+                const char* cmd = (action == horizon::ClipboardAction::Copy) ? "copy" : "cut";
+                
+                // 1. Execute everything on the WebKit worker thread
+                g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+                    auto* self = static_cast<WebView*>(data);
+                    
+                    // a) Execute native command
+                    webkit_web_view_execute_editing_command(self->m_web_view, "copy");
+
+                    // b) Evaluate JS to extract text for Horizon
+                    const char* js = "window.getSelection().toString()";
+                    webkit_web_view_evaluate_javascript(self->m_web_view, js, -1, NULL, NULL, NULL, 
+                        +[](GObject*, GAsyncResult* res, gpointer user_data) {
+                            WebView* self = static_cast<WebView*>(user_data);
+                            GError* error = NULL;
+                            JSCValue* value = webkit_web_view_evaluate_javascript_finish(self->m_web_view, res, &error);
+                            if (value) {
+                                char* text = jsc_value_to_string(value);
+                                if (text) {
+                                    self->m_clipboard_content = text;
+                                    if (self->application()) {
+                                        self->application()->set_clipboard_owner(self);
+                                    }
+                                    g_free(text);
+                                }
+                                g_object_unref(value);
+                            }
+                            if (error) {
+                                g_error_free(error);
+                            }
+                        }, self);
+
+                    return FALSE;
+                }, this);
+
+            } else if (action == horizon::ClipboardAction::Paste) {
+                if (application()) {
+                    application()->request_clipboard_data(this, "text/plain");
+                }
+            }
+        }
+
+        void WebView::provide_clipboard_data(const std::string& mime, horizon::DataSink& sink) {
+            if (mime == "text/plain" || mime == "text/plain;charset=utf-8") {
+                if (!m_clipboard_content.empty()) {
+                    std::vector<uint8_t> data(m_clipboard_content.begin(), m_clipboard_content.end());
+                    sink.write(data);
+                    sink.done();
+                }
+            } else {
+                sink.error();
+            }
+        }
+
+        std::vector<std::string> WebView::provided_mime_types() const {
+            return {"text/plain", "text/plain;charset=utf-8"};
+        }
+
+        std::vector<std::string> WebView::accepted_mime_types() const {
+            return {"text/plain", "text/plain;charset=utf-8"};
+        }
+
+        void WebView::on_clipboard_data_received(const std::string& mime, const std::vector<uint8_t>& data) {
+            if (mime == "text/plain" || mime == "text/plain;charset=utf-8") {
+                std::string text((const char*)data.data(), data.size());
+                
+                // Escape text for JS
+                std::string escaped;
+                for (char c : text) {
+                    if (c == '\'') escaped += "\\'";
+                    else if (c == '\\') escaped += "\\\\";
+                    else if (c == '\n') escaped += "\\n";
+                    else if (c == '\r') escaped += "\\r";
+                    else escaped += c;
+                }
+
+                std::string js = "document.execCommand('insertText', false, '" + escaped + "')";
+                
+                g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* d) -> gboolean {
+                    auto* p = static_cast<std::pair<WebView*, std::string>*>(d);
+                    webkit_web_view_evaluate_javascript(p->first->m_web_view, p->second.c_str(), -1, NULL, NULL, NULL, NULL, NULL);
+                    delete p;
+                    return FALSE;
+                }, new std::pair<WebView*, std::string>(this, js));
+            }
+        }
     } // namespace web
 } // namespace horizon
