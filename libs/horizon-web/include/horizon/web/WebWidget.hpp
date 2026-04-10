@@ -72,6 +72,7 @@ private:
     static int on_leave_fullscreen(void* web_view, void* self);
     static int on_permission_request(void* web_view, void* request, void* self);
     static int on_decide_policy(void* web_view, void* decision, int type, void* self);
+    static int on_context_menu(void* web_view, void* context_menu, void* event, void* hit_test_result, void* self);
 
     void update_scrollbars();
     void handle_ui_scroll(int x, int y);

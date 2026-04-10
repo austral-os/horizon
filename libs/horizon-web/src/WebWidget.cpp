@@ -34,8 +34,8 @@ namespace horizon
             switch (button)
             {
             case 272: return 1; // BTN_LEFT
-            case 273: return 2; // BTN_RIGHT
-            case 274: return 3; // BTN_MIDDLE
+            case 273: return 3; // BTN_RIGHT
+            case 274: return 2; // BTN_MIDDLE
             default: return button;
             }
         }
@@ -60,6 +60,7 @@ namespace horizon
             when_mouse_press.connect(
                 [this](MouseButtonEventContext &ctx)
                 {
+                    if (ctx.button == 274) return; // DISALLOW MIDDLE BUTTON (Prevent Autoscroll Modal)
                     set_focus(true);
                     // Check for scrollbar interaction first
                     if (m_show_v_scroll && ctx.x >= m_v_track_x && ctx.x <= m_v_track_x + m_v_track_w &&
@@ -84,7 +85,7 @@ namespace horizon
                     }
 
                     auto* event = new wpe_input_pointer_event{wpe_input_pointer_event_type_button,
-                                                             0, 
+                                                             (uint32_t)(g_get_monotonic_time() / 1000), 
                                                              (int)(ctx.x - x()),
                                                              (int)(ctx.y - y()),
                                                              map_to_wpe_button(ctx.button),
@@ -107,11 +108,12 @@ namespace horizon
             when_mouse_release.connect(
                 [this](MouseButtonEventContext &ctx)
                 {
+                    if (ctx.button == 274) return; // DISALLOW MIDDLE BUTTON
                     m_is_dragging_v = false;
                     m_is_dragging_h = false;
 
                     auto* event = new wpe_input_pointer_event{wpe_input_pointer_event_type_button,
-                                                             0,
+                                                             (uint32_t)(g_get_monotonic_time() / 1000),
                                                              (int)(ctx.x - x()),
                                                              (int)(ctx.y - y()),
                                                              map_to_wpe_button(ctx.button),
@@ -138,7 +140,7 @@ namespace horizon
                     }
 
                     auto* event = new wpe_input_pointer_event{wpe_input_pointer_event_type_motion,
-                                                             0,
+                                                             (uint32_t)(g_get_monotonic_time() / 1000),
                                                              (int)(ctx.x - x()),
                                                              (int)(ctx.y - y()),
                                                              0,
@@ -187,7 +189,7 @@ namespace horizon
                         
                         auto* event = new wpe_input_axis_event{
                             wpe_input_axis_event_type_motion,
-                            0u,
+                            (uint32_t)(g_get_monotonic_time() / 1000),
                             (int)(ctx.x - x()),
                             (int)(ctx.y - y()),
                             axis,
@@ -221,7 +223,7 @@ namespace horizon
                         return;
                     }
 
-                    auto* event = new wpe_input_keyboard_event{0, ctx.keysym, ctx.key + 8, true,
+                    auto* event = new wpe_input_keyboard_event{(uint32_t)(g_get_monotonic_time() / 1000), ctx.keysym, ctx.key + 8, true,
                                                              map_horizon_to_wpe_modifiers(ctx.modifiers)};
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
                         auto* d = static_cast<std::pair<WebWidget*, wpe_input_keyboard_event*>*>(data);
@@ -235,7 +237,7 @@ namespace horizon
             when_key_release.connect(
                 [this](KeyEventContext &ctx)
                 {
-                    auto* event = new wpe_input_keyboard_event{0, ctx.keysym, ctx.key + 8, false,
+                    auto* event = new wpe_input_keyboard_event{(uint32_t)(g_get_monotonic_time() / 1000), ctx.keysym, ctx.key + 8, false,
                                                              map_horizon_to_wpe_modifiers(ctx.modifiers)};
 
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
@@ -479,6 +481,7 @@ namespace horizon
                 unsigned long id_ls = g_signal_connect(self->m_web_view, "leave-fullscreen", G_CALLBACK(WebWidget::on_leave_fullscreen), self);
                 unsigned long id_pr = g_signal_connect(self->m_web_view, "permission-request", G_CALLBACK(WebWidget::on_permission_request), self);
                 unsigned long id_dp = g_signal_connect(self->m_web_view, "decide-policy", G_CALLBACK(WebWidget::on_decide_policy), self);
+                g_signal_connect(self->m_web_view, "context-menu", G_CALLBACK(WebWidget::on_context_menu), self);
                 
                 g_signal_connect(self->m_web_view, "web-process-terminated", G_CALLBACK(+[](WebKitWebView*, WebKitWebProcessTerminationReason reason, void*) {
                     LOG_ERROR << "[WEB-CRITICAL] Web process terminated! Reason: " << reason;
@@ -982,6 +985,10 @@ namespace horizon
 
             webkit_policy_decision_use((WebKitPolicyDecision*)decision);
             return 1; // TRUE
+        }
+        
+        int WebWidget::on_context_menu(void* web_view, void* context_menu, void* event, void* hit_test_result, void* self) {
+            return 1; // TRUE = Handled, prevents native menu
         }
 
     
