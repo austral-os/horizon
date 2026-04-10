@@ -124,6 +124,7 @@ private:
     
     int m_last_dispatched_width = 0;
     int m_last_dispatched_height = 0;
+    uint32_t m_active_button = 0;
 
     // Production-grade stability members
     std::atomic<bool> m_scroll_dirty{false};

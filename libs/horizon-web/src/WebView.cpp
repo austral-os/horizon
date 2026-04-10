@@ -1,7 +1,6 @@
 #include "horizon/web/WebView.hpp"
 #include "horizon/GraphicsContext.hpp"
 #include "horizon/Logger.hpp"
-#include "horizon/Application.hpp"
 #include "horizon/WaylandWindow.hpp"
 #include <cstring>
 #include <wayland-server-core.h>
@@ -20,13 +19,19 @@ namespace horizon
     namespace web
     {
         // Helper to map Horizon modifiers to WPE modifiers
-        static uint32_t map_horizon_to_wpe_modifiers(uint32_t mods)
+        static uint32_t map_horizon_to_wpe_modifiers(uint32_t mods, uint32_t active_button = 0)
         {
-            uint32_t result = 0;
-            if (mods & 0x1) result |= (1 << 1); // Shift (Horizon 0x1 -> WPE Shift 1<<1)
-            if (mods & 0x2) result |= (1 << 0); // Control (Horizon 0x2 -> WPE Control 1<<0)
-            if (mods & 0x4) result |= (1 << 2); // Alt (Horizon 0x4 -> WPE Alt 1<<2)
-            return result;
+            uint32_t wpe_mods = 0;
+            // Native horizon bits (Standard mapping)
+            if (mods & 0x1) wpe_mods |= wpe_input_keyboard_modifier_shift;
+            if (mods & 0x2) wpe_mods |= wpe_input_keyboard_modifier_control;
+            if (mods & 0x4) wpe_mods |= wpe_input_keyboard_modifier_alt;
+            if (mods & 0x8) wpe_mods |= wpe_input_keyboard_modifier_meta;
+            if (active_button == 272) wpe_mods |= (1 << 8) | wpe_input_pointer_modifier_button1;
+            if (active_button == 273) wpe_mods |= (1 << 9) | wpe_input_pointer_modifier_button2;
+            if (active_button == 274) wpe_mods |= (1 << 10) | wpe_input_pointer_modifier_button3;
+
+            return wpe_mods;
         }
 
         static uint32_t map_to_wpe_button(uint32_t button)
@@ -48,12 +53,27 @@ namespace horizon
 
         static int s_instance_count = 0;
         static std::mutex s_instance_mutex;
+        
+        static uint32_t get_wpe_timestamp() {
+            static std::atomic<uint32_t> s_last_time{0};
+            uint32_t now = (uint32_t)(g_get_monotonic_time() / 1000);
+            uint32_t last = s_last_time.load();
+            uint32_t next;
+            do {
+                next = (now > last) ? now : last + 1;
+            } while (!s_last_time.compare_exchange_weak(last, next));
+            return next;
+        }
 
         WebView::WebView()
         {
             set_focusable(true);
             set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
-            // Thumbs are drawn directly now
+            m_show_v_scroll = false;
+            m_show_h_scroll = false;
+            m_is_dragging_v = false;
+            m_is_dragging_h = false;
+            m_active_button = 0;
 
             // Initialization is now managed by a shared static method called from the worker thread
 
@@ -61,48 +81,51 @@ namespace horizon
             when_mouse_press.connect(
                 [this](MouseButtonEventContext &ctx)
                 {
-                    if (ctx.button == 274) return; // DISALLOW MIDDLE BUTTON (Prevent Autoscroll Modal)
                     set_focus(true);
-                    // Check for scrollbar interaction first
-                    if (m_show_v_scroll && ctx.x >= m_v_track_x && ctx.x <= m_v_track_x + m_v_track_w &&
-                        ctx.y >= m_v_track_y && ctx.y <= m_v_track_y + m_v_track_h) {
+                    m_active_button = ctx.button;
+
+                    // Consolidated Scrollbar Check
+                    if (m_show_v_scroll && ctx.x >= m_v_track_x && ctx.x < m_v_track_x + m_v_track_w &&
+                        ctx.y >= m_v_track_y && ctx.y < m_v_track_y + m_v_track_h) {
                         m_is_dragging_v = true;
                         m_drag_start_pos = ctx.y;
                         {
                             std::lock_guard<std::mutex> lock{m_scroll_mutex};
                             m_drag_start_scroll = m_scroll_y;
                         }
+                        ctx.stop_propagation = true;
                         return;
                     }
-                    if (m_show_h_scroll && ctx.x >= m_h_track_x && ctx.x <= m_h_track_x + m_h_track_w &&
-                        ctx.y >= m_h_track_y && ctx.y <= m_h_track_y + m_h_track_h) {
+                    if (m_show_h_scroll && ctx.y >= m_h_track_y && ctx.y < m_h_track_y + m_h_track_h &&
+                        ctx.x >= m_h_track_x && ctx.x < m_h_track_x + m_h_track_w) {
                         m_is_dragging_h = true;
                         m_drag_start_pos = ctx.x;
                         {
                             std::lock_guard<std::mutex> lock{m_scroll_mutex};
                             m_drag_start_scroll = m_scroll_x;
                         }
+                        ctx.stop_propagation = true;
                         return;
                     }
 
-                    auto* event = new wpe_input_pointer_event{wpe_input_pointer_event_type_button,
-                                                             (uint32_t)(g_get_monotonic_time() / 1000), 
-                                                             (int)(ctx.x - x()),
-                                                             (int)(ctx.y - y()),
-                                                             map_to_wpe_button(ctx.button),
-                                                             1,
-                                                             map_horizon_to_wpe_modifiers(ctx.modifiers)};
+                    auto lx = (int)(ctx.x - x());
+                    auto ly = (int)(ctx.y - y());
+                    
+                    uint32_t mods_press = map_horizon_to_wpe_modifiers(ctx.modifiers, ctx.button);
+
+                    // Send the Actual Press
+                    auto* ev_press = new wpe_input_pointer_event{wpe_input_pointer_event_type_button, get_wpe_timestamp(), lx, ly, map_to_wpe_button(ctx.button), 1, mods_press};
+                    
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                        auto* d = static_cast<std::pair<WebView*, wpe_input_pointer_event*>*>(data);
-                        if (d->first->m_backend) {
-                            // Heartbeat focus on click to refresh user gesture timer
-                            wpe_view_backend_add_activity_state(d->first->m_backend, wpe_view_activity_state_visible | wpe_view_activity_state_focused | wpe_view_activity_state_in_window);
-                            wpe_view_backend_dispatch_pointer_event(d->first->m_backend, d->second);
+                        auto* pair = static_cast<std::pair<WebView*, wpe_input_pointer_event*>*>(data);
+                        auto* self = pair->first;
+                        if (self->m_backend) {
+                            wpe_view_backend_dispatch_pointer_event(self->m_backend, pair->second);
                         }
-                        delete d->second;
-                        delete d;
+                        delete pair->second;
+                        delete pair;
                         return FALSE;
-                    }, new std::pair<WebView*, wpe_input_pointer_event*>(this, event));
+                    }, new std::pair<WebView*, wpe_input_pointer_event*>(this, ev_press));
                 });
 
             // Mouse Release
@@ -111,15 +134,22 @@ namespace horizon
                 {
                     if (ctx.button == 274) return; // DISALLOW MIDDLE BUTTON
                     m_is_dragging_v = false;
-                    m_is_dragging_h = false;
+                    m_active_button = 0;
+
+                    auto wx = x();
+                    auto wy = y();
+                    auto lx = (int)(ctx.x - wx);
+                    auto ly = (int)(ctx.y - wy);
+                    auto mods = map_horizon_to_wpe_modifiers(ctx.modifiers, 0); // RELEASE: No button down
+                    
 
                     auto* event = new wpe_input_pointer_event{wpe_input_pointer_event_type_button,
-                                                             (uint32_t)(g_get_monotonic_time() / 1000),
-                                                             (int)(ctx.x - x()),
-                                                             (int)(ctx.y - y()),
+                                                             get_wpe_timestamp(),
+                                                             lx, ly,
                                                              map_to_wpe_button(ctx.button),
                                                              0,
-                                                             map_horizon_to_wpe_modifiers(ctx.modifiers)};
+                                                             mods};
+                    ctx.stop_propagation = true;
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
                         auto* d = static_cast<std::pair<WebView*, wpe_input_pointer_event*>*>(data);
                         if (d->first->m_backend) wpe_view_backend_dispatch_pointer_event(d->first->m_backend, d->second);
@@ -130,23 +160,18 @@ namespace horizon
                 });
 
             // Mouse Move
+            // Mouse Move (Hover)
             when_mouse_move.connect(
                 [this](MouseMoveEventContext &ctx)
                 {
-                    // TRANSITION SHIELD: Ignore mouse moves for 1s after entering FS to prevent UI popups/aborts
-                    auto now = std::chrono::steady_clock::now();
-                    auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_fullscreen_time).count();
-                    if (m_is_fullscreen && elapsed_ms < 1000) {
-                        return;
-                    }
 
                     auto* event = new wpe_input_pointer_event{wpe_input_pointer_event_type_motion,
-                                                             (uint32_t)(g_get_monotonic_time() / 1000),
+                                                             get_wpe_timestamp(),
                                                              (int)(ctx.x - x()),
                                                              (int)(ctx.y - y()),
                                                              0,
                                                              0,
-                                                             0};
+                                                             map_horizon_to_wpe_modifiers(ctx.modifiers, m_active_button)};
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
                         auto* d = static_cast<std::pair<WebView*, wpe_input_pointer_event*>*>(data);
                         if (d->first->m_backend) wpe_view_backend_dispatch_pointer_event(d->first->m_backend, d->second);
@@ -156,28 +181,88 @@ namespace horizon
                     }, new std::pair<WebView*, wpe_input_pointer_event*>(this, event));
                 });
 
-            // Mouse Drag
             when_mouse_drag.connect(
                 [this](MouseMoveEventContext &ctx)
                 {
                     if (m_is_dragging_v) {
-                        int delta = ctx.y - m_drag_start_pos;
-                        double scrollable_height = m_content_height - height();
-                        double track_space = m_v_track_h - 20;
-                        if (track_space > 0) {
-                            double scroll_delta = (double)delta / track_space * scrollable_height;
-                            handle_ui_scroll(-1, (int)(m_drag_start_scroll + scroll_delta));
+                        double delta_y = ctx.y - m_drag_start_pos;
+                        double track_usable = m_v_track_h - std::max(20, (int)(m_v_track_h * ((double)height() / m_content_height)));
+                        if (track_usable > 0) {
+                            double scroll_max = m_content_height - height();
+                            double new_y = m_drag_start_scroll + (delta_y * (scroll_max / track_usable));
+                            handle_ui_scroll(-1, (int)new_y);
                         }
                     } else if (m_is_dragging_h) {
-                        int delta = ctx.x - m_drag_start_pos;
-                        double scrollable_width = m_content_width - width();
-                        double track_space = m_h_track_w - 20;
-                        if (track_space > 0) {
-                            double scroll_delta = (double)delta / track_space * scrollable_width;
-                            handle_ui_scroll((int)(m_drag_start_scroll + scroll_delta), -1);
+                        double delta_x = ctx.x - m_drag_start_pos;
+                        double track_usable = m_h_track_w - std::max(20, (int)(m_h_track_w * ((double)width() / m_content_width)));
+                        if (track_usable > 0) {
+                            double scroll_max = m_content_width - width();
+                            double new_x = m_drag_start_scroll + (delta_x * (scroll_max / track_usable));
+                            handle_ui_scroll((int)new_x, -1);
                         }
+                    } else {
+                        auto lx = (int)(ctx.x - x());
+                        auto ly = (int)(ctx.y - y());
+                        uint32_t drag_mods = map_horizon_to_wpe_modifiers(ctx.modifiers, 272); 
+                        
+                        
+                        struct DragData {
+                            WebView* self;
+                            wpe_input_pointer_event* event;
+                            double lx, ly;
+                        };
+
+                        auto* event = new wpe_input_pointer_event{wpe_input_pointer_event_type_motion,
+                                                                 get_wpe_timestamp(), 
+                                                                 lx, ly,
+                                                                 0, 1, 
+                                                                 drag_mods};
+                        
+                        ctx.stop_propagation = true;
+
+                        g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+                            auto* d = static_cast<DragData*>(data);
+                            auto* self = d->self;
+                            
+                            if (self->m_web_view && self->m_backend) {
+                                // 1. Dispatch Native Motion first to let the engine update its internal pointer location
+                                wpe_view_backend_dispatch_pointer_event(self->m_backend, d->event);
+
+                                // 2. Force Selection Extension via JS to overcome stuck Focus
+                                char buf[1024];
+                                snprintf(buf, sizeof(buf), 
+                                    "{ const sel = window.getSelection();"
+                                    "  if (sel && sel.anchorNode) {"
+                                    "    const range = document.caretRangeFromPoint(%f, %f) || document.caretPositionFromPoint(%f, %f);"
+                                    "    if (range) {"
+                                    "      const node = range.startContainer || range.offsetNode;"
+                                    "      const offset = range.startOffset || range.offset;"
+                                    "      if (node) sel.extend(node, offset);"
+                                    "    }"
+                                    "  } }", d->lx, d->ly, d->lx, d->ly);
+                                webkit_web_view_evaluate_javascript(self->m_web_view, buf, -1, NULL, NULL, NULL, NULL, NULL);
+                            }
+                            delete d->event;
+                            delete d;
+                            return FALSE;
+                        }, new DragData{this, event, (double)lx, (double)ly});
                     }
                 });
+
+            // Mouse Enter
+            when_mouse_enter.connect(
+                [this](EventContext &ctx)
+                {
+                    g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+                        auto* self = static_cast<WebView*>(data);
+                        if (self->m_backend) {
+                            wpe_view_backend_add_activity_state(self->m_backend, 7);
+                        }
+                        return FALSE;
+                    }, this);
+                });
+                
+            when_mouse_leave.connect([this](EventContext &ctx) {});
 
             // Mouse Wheel
             when_mouse_wheel.connect(
@@ -209,7 +294,6 @@ namespace horizon
                     // Scale factor: dy/dx in Wayland are typically ~10 units per notch.
                     // WebKit often expects these to be roughly pixel-equivalent or at least significant.
                     // Positive multiplier because WebKit expects positive value for scrolling DOWN.
-                    dispatch_axis(0, (int)(ctx.dy * 8)); // Vertical
                     dispatch_axis(1, (int)(ctx.dx * 8)); // Horizontal
                 });
 
@@ -249,48 +333,6 @@ namespace horizon
                         return FALSE;
                     }, new std::pair<WebView*, wpe_input_keyboard_event*>(this, event));
                 });
-
-            // Interaction for Scrollbars
-            when_mouse_press.connect([this](MouseButtonEventContext &ev) {
-                if (m_show_v_scroll && ev.x >= m_v_track_x && ev.x < m_v_track_x + m_v_track_w &&
-                    ev.y >= m_v_track_y && ev.y < m_v_track_y + m_v_track_h) {
-                    m_is_dragging_v = true;
-                    m_drag_start_pos = ev.y;
-                    m_drag_start_scroll = m_scroll_y;
-                    ev.stop_propagation = true;
-                } else if (m_show_h_scroll && ev.y >= m_h_track_y && ev.y < m_h_track_y + m_h_track_h &&
-                         ev.x >= m_h_track_x && ev.x < m_h_track_x + m_h_track_w) {
-                    m_is_dragging_h = true;
-                    m_drag_start_pos = ev.x;
-                    m_drag_start_scroll = m_scroll_x;
-                    ev.stop_propagation = true;
-                }
-            });
-
-            when_mouse_drag.connect([this](MouseMoveEventContext &ev) {
-                if (m_is_dragging_v) {
-                    double delta_y = ev.y - m_drag_start_pos;
-                    double track_usable = m_v_track_h - std::max(20, (int)(m_v_track_h * ((double)height() / m_content_height)));
-                    if (track_usable > 0) {
-                        double scroll_max = m_content_height - height();
-                        double new_y = m_drag_start_scroll + (delta_y * (scroll_max / track_usable));
-                        handle_ui_scroll(-1, (int)new_y);
-                    }
-                } else if (m_is_dragging_h) {
-                    double delta_x = ev.x - m_drag_start_pos;
-                    double track_usable = m_h_track_w - std::max(20, (int)(m_h_track_w * ((double)width() / m_content_width)));
-                    if (track_usable > 0) {
-                        double scroll_max = m_content_width - width();
-                        double new_x = m_drag_start_scroll + (delta_x * (scroll_max / track_usable));
-                        handle_ui_scroll((int)new_x, -1);
-                    }
-                }
-            });
-
-            when_mouse_release.connect([this](MouseButtonEventContext &) {
-                m_is_dragging_v = false;
-                m_is_dragging_h = false;
-            });
 
             m_last_v_show_time = std::chrono::steady_clock::now();
             m_last_h_show_time = std::chrono::steady_clock::now();
@@ -445,33 +487,43 @@ namespace horizon
                 g_object_get(settings, "enable-fullscreen", &fs_enabled, NULL);
                 LOG_INFO << "[WEB] WebKitSettings enable-fullscreen verified: " << (fs_enabled ? "TRUE" : "FALSE");
 
+                webkit_settings_set_enable_write_console_messages_to_stdout(settings, TRUE);
                 webkit_settings_set_enable_developer_extras(settings, TRUE);
                 webkit_settings_set_enable_media_stream(settings, TRUE);
                 webkit_settings_set_enable_webgl(settings, TRUE);
+                webkit_settings_set_enable_caret_browsing(settings, FALSE);
                 webkit_settings_set_user_agent(settings, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
                 webkit_settings_set_allow_modal_dialogs(settings, TRUE);
                 webkit_settings_set_javascript_can_access_clipboard(settings, TRUE);
                 webkit_settings_set_media_playback_requires_user_gesture(settings, FALSE);
                 webkit_settings_set_media_playback_allows_inline(settings, TRUE);
                 
-                // version-safe check for potential properties
+                // Explicitly DISABLE gestures as they might hijack selection dragging
                 if (g_object_class_find_property(G_OBJECT_GET_CLASS(settings), "enable-back-forward-navigation-gestures")) {
-                    g_object_set(settings, "enable-back-forward-navigation-gestures", TRUE, NULL);
+                    g_object_set(settings, "enable-back-forward-navigation-gestures", FALSE, NULL);
                 }
                 
                 self->m_web_view = webkit_web_view_new(webkit_backend);
                 webkit_web_view_set_settings(self->m_web_view, settings);
+                
+                // FORCE RESIZE on the actual WebKitWebView GtkWidget-like object
+                int force_w = self->width() > 0 ? self->width() : 1022;
+                int force_h = self->height() > 0 ? self->height() : 620;
+                // wpe_view_backend_dispatch_set_size(self->m_backend, force_w, force_h); // Already tried, maybe redundant
+                
                 g_object_unref(settings);
 
                 LOG_INFO << "WebView created with performance optimizations for WebView: " << self;
 
+                g_signal_connect(self->m_web_view, "mouse-target-changed", G_CALLBACK(+[](WebKitWebView*, WebKitHitTestResult*, guint, void*) {
+                }), NULL);
+                
                 g_signal_connect(self->m_web_view, "notify::title", G_CALLBACK(on_title_notify), self);
                 g_signal_connect(self->m_web_view, "notify::uri", G_CALLBACK(on_uri_notify), self);
                 g_signal_connect(self->m_web_view, "notify::estimated-load-progress", G_CALLBACK(on_progress_notify), self);
                 g_signal_connect(self->m_web_view, "load-changed", G_CALLBACK(on_load_changed), self);
                 g_signal_connect(self->m_web_view, "resource-load-started", G_CALLBACK(+[](WebKitWebView*, WebKitWebResource* resource, WebKitURIRequest* request, void*) {
                     const char* uri = webkit_uri_request_get_uri(request);
-                    LOG_INFO << "[WEB-RESOURCE] Resource load started: " << (uri ? uri : "unknown");
                 }), NULL);
                 g_signal_connect(self->m_web_view, "load-failed", G_CALLBACK(+[](WebKitWebView*, WebKitLoadEvent, const char* url, GError* error, void*) -> gboolean {
                     LOG_ERROR << "[WEB-CRITICAL] Load failed for " << url << ": " << (error ? error->message : "Unknown error");
@@ -496,7 +548,6 @@ namespace horizon
                 for(guint i=0; i<n_ids; i++) {
                     const char* name = g_signal_name(ids[i]);
                     if (strstr(name, "fullscreen") || strstr(name, "full-screen") || strstr(name, "policy")) {
-                        LOG_INFO << "[WEB-DEBUG] Interesting Signal found: " << name;
                     }
                 }
                 g_free(ids);
@@ -506,6 +557,27 @@ namespace horizon
                     "const inject = () => {"
                     "  if (window._horizon_injected) return;"
                     "  const bridge = (msg) => { document.title = msg; };"
+                    "  "
+                    "  const style = document.createElement('style');"
+                    "  style.innerHTML = '* { -webkit-user-select: text !important; -webkit-user-drag: none !important; }';"
+                    "  const inject_style = () => {"
+                    "    const target = document.head || document.documentElement;"
+                    "    if (target) { target.appendChild(style); } else { setTimeout(inject_style, 10); }"
+                    "  };"
+                    "  inject_style();"
+                    "  "
+                    "  const blocker = (e) => { e.preventDefault(); };"
+                    "  window.addEventListener('dragstart', blocker, true);"
+                    "  window.addEventListener('drop', blocker, true);"
+                    "  "
+                    "  window._horizon_extend_selection = (x, y) => {"
+                    "    const sel = window.getSelection();"
+                    "    if (!sel || sel.rangeCount === 0) return;"
+                    "    const range = document.caretRangeFromPoint(x, y);"
+                    "    if (range) {"
+                    "      try { sel.extend(range.startContainer, range.startOffset); } catch(e) {}"
+                    "    }"
+                    "  };"
                     "  "
                     "  const origRF = Element.prototype.requestFullscreen || Element.prototype.webkitRequestFullscreen;"
                     "  if (origRF) {"
@@ -817,11 +889,9 @@ namespace horizon
             // BREAK 10% STALL: Reinforce focus/visibility on EVERY load state transition
             if (self->m_backend) {
                 wpe_view_backend_add_activity_state(self->m_backend, 7); // 7 = VISIBLE | FOCUSED | IN_WINDOW
-                LOG_INFO << "[WEB] Focus reinforced for load event: " << load_event;
             }
 
             if (load_event == 2 || load_event == 3) { // COMMITTED or FINISHED
-                LOG_INFO << "[WEB] Injecting diagnostic script bridge into WebView: " << self;
                 const char* diag_script = 
                     "if (!window._horizon_injected) {"
                     "  const bridge = (msg) => { document.title = msg; };"
@@ -957,7 +1027,6 @@ namespace horizon
             WebView* self = static_cast<WebView*>(p_self);
             if (!self) return 0;
 
-            LOG_INFO << "[WEB-POLICY] Decision requested. Type: " << type << " for WebView: " << self;
 
             // PERSISTENT NAVIGATION SHIELD (5 Seconds)
             auto now = std::chrono::steady_clock::now();
@@ -984,7 +1053,6 @@ namespace horizon
                     return 1;
                 }
 
-                LOG_INFO << "[WEB-DEBUG] Policy Navigation allowed: is_fs=" << self->m_is_fullscreen << ", elapsed=" << elapsed << "s, uri=" << (uri ? uri : "unknown");
             }
             if (self && self->m_backend) {
                 // Using 7 = VISIBLE | FOCUSED | IN_WINDOW
@@ -1024,7 +1092,6 @@ namespace horizon
 
             static int frame_count = 0;
             if (++frame_count % 30 == 0) {
-                LOG_INFO << "[WEB-DEBUG] Frame exported: #" << frame_count;
             }
 
             struct wl_shm_buffer *shm_buffer = wpe_fdo_shm_exported_buffer_get_shm_buffer(buffer);
