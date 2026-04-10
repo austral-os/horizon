@@ -1,5 +1,6 @@
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
+#include <horizon/Menu.hpp>
 #include <horizon/TextBox.hpp>
 #include <linux/input-event-codes.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
@@ -51,6 +52,17 @@ namespace horizon
             });
 
         when_mouse_release.connect([this](MouseButtonEventContext &ev) { m_is_dragging = false; });
+
+        when_right_click.connect(
+            [this](MouseButtonEventContext &ev)
+            {
+                if (application())
+                {
+                    auto menu = std::make_unique<Menu>();
+                    application()->show_context_menu(menu.release(), -1, -1, ev.serial, this);
+                    ev.stop_propagation = true;
+                }
+            });
 
         when_key_press.connect(
             [this](KeyEventContext &ev)

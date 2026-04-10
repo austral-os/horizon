@@ -17,6 +17,7 @@ namespace horizon
         virtual ~TextBoxBase() = default;
 
         void draw(GraphicsContext &gc) override;
+        bool supports_clipboard() const override { return true; }
 
         void set_text(const std::string &text);
         const std::string &text() const;

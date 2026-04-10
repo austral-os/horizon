@@ -2278,6 +2278,48 @@ namespace horizon
             }
         }
 
+        // Automatic Clipboard injection
+        if (owner && owner->supports_clipboard())
+        {
+            // Check if it already has items
+            bool has_clipboard = false;
+            for (auto const &child : menu->children())
+            {
+                if (auto *item = dynamic_cast<MenuItem *>(child.get()))
+                {
+                    if (item->id() == "copy" || item->id() == "cut" || item->id() == "paste")
+                    {
+                        has_clipboard = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!has_clipboard)
+            {
+                if (!menu->children().empty())
+                {
+                    menu->add_separator();
+                }
+
+                auto *cut = menu->add_item("Cortar", "Ctrl+X", "clipboard_cut");
+                auto *copy = menu->add_item("Copiar", "Ctrl+C", "clipboard_copy");
+                auto *paste = menu->add_item("Pegar", "Ctrl+V", "clipboard_paste");
+
+                cut->set_id("cut");
+                copy->set_id("copy");
+                paste->set_id("paste");
+
+                cut->set_enabled(owner->can_perform(ClipboardAction::Cut));
+                copy->set_enabled(owner->can_perform(ClipboardAction::Copy));
+                paste->set_enabled(owner->can_perform(ClipboardAction::Paste));
+
+                cut->when_click.connect([owner](MouseButtonEventContext &) { owner->perform(ClipboardAction::Cut); });
+                copy->when_click.connect([owner](MouseButtonEventContext &) { owner->perform(ClipboardAction::Copy); });
+                paste->when_click.connect([owner](MouseButtonEventContext &) { owner->perform(ClipboardAction::Paste); });
+            }
+        }
+
         close_context_menu(false);
 
         if (x == -1 && y == -1)

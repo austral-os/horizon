@@ -50,6 +50,7 @@ public:
     std::string get_url() const;
 
     bool supports_fullscreen() const override { return true; }
+    bool supports_clipboard() const override { return true; }
 
     // Clipboard Support
     bool can_perform(horizon::ClipboardAction action) const override;

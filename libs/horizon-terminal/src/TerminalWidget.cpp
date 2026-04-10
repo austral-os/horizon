@@ -61,21 +61,8 @@ TerminalWidget::TerminalWidget() {
     });
 
     when_right_click.connect([this](MouseButtonEventContext &ctx) {
-        auto menu = std::make_unique<horizon::Menu>();
-        
-        auto* cut = menu->add_item("Cortar", "Ctrl+X", "clipboard_cut");
-        auto* copy = menu->add_item("Copiar", "Ctrl+C", "clipboard_copy");
-        auto* paste = menu->add_item("Pegar", "Ctrl+V", "clipboard_paste");
-
-        cut->set_enabled(can_perform(ClipboardAction::Cut));
-        copy->set_enabled(can_perform(ClipboardAction::Copy));
-        paste->set_enabled(can_perform(ClipboardAction::Paste));
-
-        cut->when_click.connect([this](MouseButtonEventContext&) { perform(ClipboardAction::Cut); });
-        copy->when_click.connect([this](MouseButtonEventContext&) { perform(ClipboardAction::Copy); });
-        paste->when_click.connect([this](MouseButtonEventContext&) { perform(ClipboardAction::Paste); });
-        
         if (m_app) {
+            auto menu = std::make_unique<horizon::Menu>();
             m_app->show_context_menu(menu.release(), -1, -1, ctx.serial, this);
             ctx.stop_propagation = true;
         }
