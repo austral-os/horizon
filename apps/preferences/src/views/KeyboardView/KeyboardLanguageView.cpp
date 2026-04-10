@@ -12,6 +12,7 @@
 #include <thread>
 #include <views/ApplicationsView/LayoutPickerDialog.hpp>
 #include <views/KeyboardView/KeyboardLanguageView.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
@@ -35,13 +36,13 @@ namespace horizon::preferences
         toolbar->set_spacing(10);
 
         auto btn_add = std::make_unique<Button<AquaObject>>();
-        btn_add->set_text("Agregar");
+        btn_add->set_text(i18n().tr("preferences.keyboard.add"));
         btn_add->set_fixed_size(100);
         btn_add->when_click.connect([this](MouseButtonEventContext &) { add_layout(); });
         toolbar->add_child(std::move(btn_add));
 
         auto btn_remove = std::make_unique<Button<AquaObject>>();
-        btn_remove->set_text("Quitar");
+        btn_remove->set_text(i18n().tr("preferences.keyboard.remove"));
         btn_remove->set_fixed_size(100);
         btn_remove->when_click.connect([this](MouseButtonEventContext &) { remove_layout(); });
         toolbar->add_child(std::move(btn_remove));
@@ -49,7 +50,7 @@ namespace horizon::preferences
         toolbar->add_child(Spacer());
 
         auto btn_default = std::make_unique<Button<AquaObject>>();
-        btn_default->set_text("Predeterminado");
+        btn_default->set_text(i18n().tr("preferences.keyboard.default"));
         btn_default->set_fixed_size(140);
         btn_default->when_click.connect([this](MouseButtonEventContext &)
                                         { set_default_layout(); });
@@ -64,7 +65,7 @@ namespace horizon::preferences
 
         // Column: Name
         TableColumn<KeyboardLayoutSelection> col_name;
-        col_name.title = "Nombre";
+        col_name.title = i18n().tr("preferences.applications.labels.name");
         col_name.width = 250;
         col_name.cell_factory = [](const KeyboardLayoutSelection &sel)
         { return std::make_unique<Label>(sel.description); };
@@ -80,7 +81,7 @@ namespace horizon::preferences
 
         // Column: Default
         TableColumn<KeyboardLayoutSelection> col_def;
-        col_def.title = "Estado";
+        col_def.title = i18n().tr("preferences.bluetooth.status");
         col_def.width = 150;
         col_def.cell_factory = [](const KeyboardLayoutSelection &sel)
         {
@@ -90,7 +91,7 @@ namespace horizon::preferences
 
             if (sel.is_default)
             {
-                auto lbl = std::make_unique<Label>("Predeterminado");
+                auto lbl = std::make_unique<Label>(i18n().tr("preferences.keyboard.default"));
                 lbl->set_font_weight(FONT_WEIGHT_BOLD);
                 lbl->set_font_size(12);
                 cell->add_child(std::move(lbl));

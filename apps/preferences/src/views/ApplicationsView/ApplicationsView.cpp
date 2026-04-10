@@ -3,6 +3,7 @@
 #include <views/ApplicationsView/StartupAppsView.hpp>
 #include <views/ApplicationsView/DefaultAppsView.hpp>
 #include <horizon/ScrollArea.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
@@ -19,7 +20,7 @@ namespace horizon::preferences
 
         // Inicio Tab
         auto inicio_view = std::make_unique<StartupAppsView>();
-        m_notebook->add_tab(NotebookPage("Inicio", std::move(inicio_view)));
+        m_notebook->add_tab(NotebookPage(i18n().tr("preferences.applications.tabs.startup"), std::move(inicio_view)));
 
         // Predeterminadas Tab
         auto container = std::make_unique<Widget>();
@@ -35,11 +36,11 @@ namespace horizon::preferences
         
         scroll_area->set_content(std::move(default_apps_view));
         container->add_child(std::move(scroll_area));
-        m_notebook->add_tab(NotebookPage("Predeterminadas", std::move(container)));
+        m_notebook->add_tab(NotebookPage(i18n().tr("preferences.applications.tabs.default"), std::move(container)));
 
         // MIME Types Tab
         auto mime_types_view = std::make_unique<MimeTypesView>();
-        m_notebook->add_tab(NotebookPage("MIME Types", std::move(mime_types_view)));
+        m_notebook->add_tab(NotebookPage(i18n().tr("preferences.applications.tabs.mime_types"), std::move(mime_types_view)));
 
         add_child(std::move(notebook));
     }

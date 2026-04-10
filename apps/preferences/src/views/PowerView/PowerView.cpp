@@ -1,4 +1,5 @@
 #include <views/PowerView/PowerView.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
@@ -9,7 +10,7 @@ namespace horizon::preferences
         set_margin(20);
         set_spacing(10);
 
-        auto title = std::make_unique<Label>("Energía");
+        auto title = std::make_unique<Label>(i18n().tr("preferences.sections.power"));
         title->set_fixed_size(30);
         m_title_label = title.get();
         add_child(std::move(title));

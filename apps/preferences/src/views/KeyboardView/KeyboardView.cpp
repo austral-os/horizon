@@ -1,6 +1,7 @@
 #include <views/KeyboardView/KeyboardView.hpp>
 #include <horizon/Notebook.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/I18n.hpp>
 #include <views/KeyboardView/KeyboardHardwareView.hpp>
 #include <views/KeyboardView/KeyboardLanguageView.hpp>
 
@@ -18,15 +19,15 @@ namespace horizon::preferences
         m_notebook = notebook.get();
 
         // Hardware Tab
-        m_notebook->add_tab(NotebookPage("Hardware", std::make_unique<KeyboardHardwareView>()));
+        m_notebook->add_tab(NotebookPage(i18n().tr("preferences.keyboard.hardware"), std::make_unique<KeyboardHardwareView>()));
 
         // Idioma Tab
-        m_notebook->add_tab(NotebookPage("Idioma", std::make_unique<KeyboardLanguageView>()));
+        m_notebook->add_tab(NotebookPage(i18n().tr("preferences.keyboard.language"), std::make_unique<KeyboardLanguageView>()));
 
         // Atajos Tab
-        auto atajos_label = std::make_unique<Label>("Atajos");
+        auto atajos_label = std::make_unique<Label>(i18n().tr("preferences.keyboard.shortcuts"));
         atajos_label->set_position_type(WidgetPositionTypes::FILL);
-        m_notebook->add_tab(NotebookPage("Atajos", std::move(atajos_label)));
+        m_notebook->add_tab(NotebookPage(i18n().tr("preferences.keyboard.shortcuts"), std::move(atajos_label)));
 
         add_child(std::move(notebook));
     }

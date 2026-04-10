@@ -2,6 +2,7 @@
 #include <horizon/Spacer.hpp>
 #include <horizon/Widget.hpp>
 #include <views/DesktopView/DockView.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
@@ -17,7 +18,7 @@ namespace horizon::preferences
         size_container->set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
         size_container->set_spacing(10);
 
-        auto size_title = std::make_unique<horizon::Label>("Tamaño de Iconos");
+        auto size_title = std::make_unique<horizon::Label>(i18n().tr("preferences.desktop.icon_size"));
         size_container->add_child(std::move(size_title));
 
         auto slider = std::make_unique<horizon::Slider>();
@@ -55,7 +56,7 @@ namespace horizon::preferences
         size_container->add_child(horizon::Spacer());
 
         auto mag_check = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
-        mag_check->set_text("Usar Magnificación");
+        mag_check->set_text(i18n().tr("preferences.desktop.use_magnification"));
         mag_check->set_fixed_size(25);
         m_magnification_check = mag_check.get();
 

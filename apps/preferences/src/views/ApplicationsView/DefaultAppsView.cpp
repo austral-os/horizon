@@ -3,6 +3,7 @@
 #include <horizon/Icon.hpp>
 #include <horizon/ScrollArea.hpp>
 #include <horizon/Spacer.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
@@ -51,26 +52,26 @@ namespace horizon::preferences
     {
         // Define categories
         DefaultAppCategory internet;
-        internet.name = "Internet";
-        internet.items.push_back({"Navegador web:", "x-scheme-handler/https", {"x-scheme-handler/http", "text/html", "application/xhtml+xml"}, nullptr});
-        internet.items.push_back({"Cliente de correo electrónico:", "x-scheme-handler/mailto", {}, nullptr});
+        internet.name = i18n().tr("preferences.applications.categories.internet");
+        internet.items.push_back({i18n().tr("preferences.applications.labels.web_browser"), "x-scheme-handler/https", {"x-scheme-handler/http", "text/html", "application/xhtml+xml"}, nullptr});
+        internet.items.push_back({i18n().tr("preferences.applications.labels.email_client"), "x-scheme-handler/mailto", {}, nullptr});
 
         DefaultAppCategory multimedia;
-        multimedia.name = "Multimedia";
-        multimedia.items.push_back({"Visor de imágenes:", "image/jpeg", {"image/png", "image/gif", "image/bmp", "image/webp"}, nullptr});
-        multimedia.items.push_back({"Reproductor de música:", "audio/mpeg", {"audio/mp4", "audio/ogg", "audio/flac", "audio/wav"}, nullptr});
-        multimedia.items.push_back({"Reproductor de vídeo:", "video/mp4", {"video/x-matroska", "video/webm", "video/quicktime"}, nullptr});
+        multimedia.name = i18n().tr("preferences.applications.categories.multimedia");
+        multimedia.items.push_back({i18n().tr("preferences.applications.labels.image_viewer"), "image/jpeg", {"image/png", "image/gif", "image/bmp", "image/webp"}, nullptr});
+        multimedia.items.push_back({i18n().tr("preferences.applications.labels.music_player"), "audio/mpeg", {"audio/mp4", "audio/ogg", "audio/flac", "audio/wav"}, nullptr});
+        multimedia.items.push_back({i18n().tr("preferences.applications.labels.video_player"), "video/mp4", {"video/x-matroska", "video/webm", "video/quicktime"}, nullptr});
 
         DefaultAppCategory documentos;
-        documentos.name = "Documentos";
-        documentos.items.push_back({"Editor de texto:", "text/plain", {}, nullptr});
-        documentos.items.push_back({"Visor PDF:", "application/pdf", {}, nullptr});
+        documentos.name = i18n().tr("preferences.applications.categories.documents");
+        documentos.items.push_back({i18n().tr("preferences.applications.labels.text_editor"), "text/plain", {}, nullptr});
+        documentos.items.push_back({i18n().tr("preferences.applications.labels.pdf_viewer"), "application/pdf", {}, nullptr});
 
         DefaultAppCategory utilidades;
-        utilidades.name = "Utilidades";
-        utilidades.items.push_back({"Gestor de archivos:", "inode/directory", {}, nullptr});
-        utilidades.items.push_back({"Emulador de terminal:", "x-scheme-handler/terminal", {}, nullptr});
-        utilidades.items.push_back({"Gestor de archivos comprimidos:", "application/zip", {"application/x-tar", "application/x-compressed-tar", "application/x-7z-compressed-tar", "application/x-7z-compressed"}, nullptr});
+        utilidades.name = i18n().tr("preferences.applications.categories.utilities");
+        utilidades.items.push_back({i18n().tr("preferences.applications.labels.file_manager"), "inode/directory", {}, nullptr});
+        utilidades.items.push_back({i18n().tr("preferences.applications.labels.terminal"), "x-scheme-handler/terminal", {}, nullptr});
+        utilidades.items.push_back({i18n().tr("preferences.applications.labels.archiver"), "application/zip", {"application/x-tar", "application/x-compressed-tar", "application/x-7z-compressed-tar", "application/x-7z-compressed"}, nullptr});
 
         add_category(internet);
         add_category(multimedia);
@@ -130,7 +131,7 @@ namespace horizon::preferences
     {
         auto apps = DesktopManager::get_apps_for_mime(mime_type);
         if (apps.empty()) {
-            combo->add_item("", "Ninguna aplicación disponible");
+            combo->add_item("", i18n().tr("preferences.applications.mime_types.no_app_available"));
             return;
         }
 

@@ -10,6 +10,7 @@
 #include <thread>
 #include <views/WifiView/WifiConfigView.hpp>
 #include <views/WifiView/WifiConnectDialog.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
@@ -130,7 +131,7 @@ namespace horizon::preferences
     void WifiConfigView::setup_ui()
     {
         // 1. Label: Redes Preferidas
-        auto label = std::make_unique<Label>("Redes Preferidas");
+        auto label = std::make_unique<Label>(i18n().tr("preferences.wifi.preferred_networks"));
         label->set_font_weight(FONT_WEIGHT_BOLD);
         label->set_fixed_size(24);
         m_title_label = label.get();
@@ -141,32 +142,32 @@ namespace horizon::preferences
         table->set_height(250);
 
         TableColumn<WifiNetwork> ssid_col;
-        ssid_col.title = "Nombre de la red";
+        ssid_col.title = i18n().tr("preferences.wifi.network_name");
         ssid_col.width = 250;
         ssid_col.cell_factory = [](const WifiNetwork &data)
         { return std::make_unique<Label>(data.ssid); };
         table->add_column(std::move(ssid_col));
 
         TableColumn<WifiNetwork> security_col;
-        security_col.title = "Tipo de seguridad";
+        security_col.title = i18n().tr("preferences.wifi.security_type");
         security_col.width = 150;
         security_col.cell_factory = [](const WifiNetwork &data)
         { return std::make_unique<Label>(data.security); };
         table->add_column(std::move(security_col));
 
         TableColumn<WifiNetwork> signal_col;
-        signal_col.title = "Señal";
+        signal_col.title = i18n().tr("preferences.wifi.signal");
         signal_col.width = 70;
         signal_col.cell_factory = [](const WifiNetwork &data)
         { return std::make_unique<Label>(std::to_string(data.signal) + "%"); };
         table->add_column(std::move(signal_col));
 
         TableColumn<WifiNetwork> connection_col;
-        connection_col.title = "Conexion";
+        connection_col.title = i18n().tr("preferences.wifi.connection");
         connection_col.width = 150;
         connection_col.cell_factory = [](const WifiNetwork &data)
         {
-            auto lbl = std::make_unique<Label>(data.connected ? "Conectado" : "");
+            auto lbl = std::make_unique<Label>(data.connected ? i18n().tr("preferences.wifi.connected") : "");
             if (data.connected)
             {
                 lbl->set_text_color(Color("#0b7c37ff")); // Emerald Green
@@ -188,7 +189,7 @@ namespace horizon::preferences
         button_container->set_spacing(10);
 
         auto connect_btn = std::make_unique<Button<SolidObject>>();
-        connect_btn->set_text("Conectar");
+        connect_btn->set_text(i18n().tr("preferences.wifi.connect"));
         connect_btn->set_enabled(false);
         connect_btn->when_click.connect([this](MouseButtonEventContext &) { this->on_connect_clicked(); });
 
@@ -196,7 +197,7 @@ namespace horizon::preferences
         button_container->add_child(std::move(connect_btn));
 
         auto refresh_btn = std::make_unique<Button<SolidObject>>();
-        refresh_btn->set_text("Refrescar");
+        refresh_btn->set_text(i18n().tr("preferences.wifi.refresh"));
 
         refresh_btn->when_click.connect([this](MouseButtonEventContext &)
                                         { this->refresh_networks(); });
@@ -213,7 +214,7 @@ namespace horizon::preferences
         options_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         options_container->set_fixed_size(24);
 
-        auto status_label = std::make_unique<Label>("Sin conexion");
+        auto status_label = std::make_unique<Label>(i18n().tr("preferences.wifi.no_connection"));
         status_label->set_alignment(TextAlignment::Center);
         m_active_network_label = status_label.get();
         options_container->add_child(std::move(status_label));
@@ -233,7 +234,7 @@ namespace horizon::preferences
             {
                 if (m_active_network_label)
                 {
-                    m_active_network_label->set_text("Conectado a " + active_ssid);
+                    m_active_network_label->set_text(i18n().tr("preferences.wifi.connected_to", {{"0", active_ssid}}));
                     m_active_network_label->set_text_color(Color("#2ecc71"));
                     m_active_network_label->set_font_weight(FONT_WEIGHT_BOLD);
                 }
@@ -242,7 +243,7 @@ namespace horizon::preferences
             {
                 if (m_active_network_label)
                 {
-                    m_active_network_label->set_text("Sin conexion");
+                    m_active_network_label->set_text(i18n().tr("preferences.wifi.no_connection"));
                     m_active_network_label->set_text_color(Color("#000000"));
                     m_active_network_label->set_font_weight(FONT_WEIGHT_NORMAL);
                 }
@@ -397,7 +398,7 @@ namespace horizon::preferences
                 }
 
                 if (ssid_str.empty())
-                    ssid_str = "<Red Oculta>";
+                    ssid_str = i18n().tr("preferences.wifi.hidden_network");
 
                 uint32_t wpa =
                     std::holds_alternative<uint32_t>(wpa_var) ? std::get<uint32_t>(wpa_var) : 0;
@@ -440,7 +441,7 @@ namespace horizon::preferences
         if (m_connect_button)
         {
             m_connect_button->set_enabled(true);
-            m_connect_button->set_text(network.connected ? "Desconectar" : "Conectar");
+            m_connect_button->set_text(network.connected ? i18n().tr("preferences.wifi.disconnect") : i18n().tr("preferences.wifi.connect"));
         }
     }
 

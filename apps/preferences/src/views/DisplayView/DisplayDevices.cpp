@@ -7,6 +7,7 @@
 #include <horizon/SystemInfo.hpp>
 #include <algorithm>
 #include <cmath>
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
@@ -83,8 +84,8 @@ namespace horizon::preferences
                 for (const auto &d : details)
                 {
                     MonitorInfo info;
-                    info.conn_name = d.name.empty() ? "Monitor" : d.name;
-                    info.model = d.description.empty() ? (d.name.empty() ? "Monitor" : d.name) : d.description;
+                    info.conn_name = d.name.empty() ? i18n().tr("preferences.display.monitor") : d.name;
+                    info.model = d.description.empty() ? (d.name.empty() ? i18n().tr("preferences.display.monitor") : d.name) : d.description;
                     
                     // Try to find matching monitor in SystemInfo to get ALL modes
                     const MonitorInfo* sys_match = nullptr;
@@ -261,7 +262,8 @@ namespace horizon::preferences
             // Name/Model Label
             gc.setColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
             std::string label = m.info.model;
-            if (label == "Generic Monitor") label = m.info.conn_name;
+            if (label == "Generic Monitor") label = i18n().tr("preferences.display.generic_monitor");
+            else if (label == "Monitor") label = i18n().tr("preferences.display.monitor");
 
             int font_size = std::max(10, (int)(12 * m_scale * 5)); // Scaled font
             font_size = std::min(font_size, 14);

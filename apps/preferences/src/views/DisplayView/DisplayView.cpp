@@ -11,6 +11,7 @@
 #include <views/DisplayView/LabwcAdapter.hpp>
 #include <views/DisplayView/WayfireAdapter.hpp>
 #include <utils/WayfireConfigWriter.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
@@ -39,7 +40,7 @@ namespace horizon::preferences
             m_adapter = std::make_unique<LabwcAdapter>();
         }
 
-        auto title = std::make_unique<Label>("Pantalla");
+        auto title = std::make_unique<Label>(i18n().tr("preferences.sections.display"));
         title->set_fixed_size(30);
         m_title_label = title.get();
         add_child(std::move(title));
@@ -98,7 +99,7 @@ namespace horizon::preferences
         res_section->set_position_type(FILL);
         res_section->set_spacing(10);
 
-        auto lbl_restitle = std::make_unique<Label>("Resolución");
+        auto lbl_restitle = std::make_unique<Label>(i18n().tr("preferences.display.resolution"));
         lbl_restitle->set_fixed_size(32);
 
         res_section->add_child(std::move(lbl_restitle));
@@ -106,7 +107,7 @@ namespace horizon::preferences
         auto native_check = std::make_unique<Checkbox<AquaObject>>();
         m_native_res_checkbox = native_check.get();
         m_native_res_checkbox->set_fixed_size(25);
-        m_native_res_checkbox->set_text("Usar resolución nativa");
+        m_native_res_checkbox->set_text(i18n().tr("preferences.display.use_native"));
         m_native_res_checkbox->set_checked(true);
         m_native_res_checkbox->set_on_toggle(
             [this](bool checked)
@@ -120,7 +121,7 @@ namespace horizon::preferences
         m_res_table = table.get();
 
         TableColumn<MonitorMode> col_res;
-        col_res.title = "Resolución";
+        col_res.title = i18n().tr("preferences.display.resolution");
         col_res.width = 150;
         col_res.cell_factory = [](const MonitorMode &m)
         {
@@ -130,7 +131,7 @@ namespace horizon::preferences
         m_res_table->add_column(col_res);
 
         TableColumn<MonitorMode> col_hz;
-        col_hz.title = "Refresco";
+        col_hz.title = i18n().tr("preferences.display.refresh_rate");
         col_hz.width = 80;
         col_hz.cell_factory = [](const MonitorMode &m)
         { return std::make_unique<Label>(std::to_string((int)m.refresh_rate) + " Hz"); };
@@ -147,20 +148,20 @@ namespace horizon::preferences
         settings_section->set_fixed_size(300); // Fixed width for combos
         settings_section->set_spacing(8);
 
-        auto lbl_rot = std::make_unique<Label>("Rotación");
+        auto lbl_rot = std::make_unique<Label>(i18n().tr("preferences.display.rotation"));
         lbl_rot->set_fixed_size(32);
 
         settings_section->add_child(std::move(lbl_rot));
         auto rot_combo = std::make_unique<Combo>();
         rot_combo->set_fixed_size(32);
-        rot_combo->add_item("0", "Normal");
-        rot_combo->add_item("90", "90° Derecha");
-        rot_combo->add_item("180", "180° (Invertido)");
-        rot_combo->add_item("270", "90° Izquierda");
+        rot_combo->add_item("0", i18n().tr("preferences.display.normal"));
+        rot_combo->add_item("90", i18n().tr("preferences.display.90_right"));
+        rot_combo->add_item("180", i18n().tr("preferences.display.180_inverted"));
+        rot_combo->add_item("270", i18n().tr("preferences.display.90_left"));
         m_rotation_combo = rot_combo.get();
         settings_section->add_child(std::move(rot_combo));
 
-        auto lbl_speed = std::make_unique<Label>("Velocidad de Refresco");
+        auto lbl_speed = std::make_unique<Label>(i18n().tr("preferences.display.refresh_speed"));
         lbl_speed->set_fixed_size(32);
 
         settings_section->add_child(std::move(lbl_speed));
@@ -172,7 +173,7 @@ namespace horizon::preferences
         // 2.2.3 Apply Button
         auto apply_btn = std::make_unique<Button<AquaObject>>();
         m_apply_button = apply_btn.get();
-        m_apply_button->set_text("Aplicar Cambios");
+        m_apply_button->set_text(i18n().tr("preferences.display.apply_changes"));
         m_apply_button->set_fixed_size(36);
         m_apply_button->when_mouse_press.connect(
             [this](MouseButtonEventContext &ctx)
@@ -258,15 +259,13 @@ namespace horizon::preferences
     void DisplayView::show_confirmation()
     {
         m_countdown = 10;
-
-        std::string msg = "¿Desea mantener esta configuración de pantalla? Revirtiendo en " +
-                          std::to_string(m_countdown) + " segundos...";
+        std::string msg = i18n().tr("preferences.display.confirm_msg", {{"0", std::to_string(m_countdown)}});
 
         auto dialog =
-            std::make_unique<MessageDialog>("Confirmar Pantalla", msg, MessageType::Question, true);
+            std::make_unique<MessageDialog>(i18n().tr("preferences.display.confirm_title"), msg, MessageType::Question, true);
         m_confirm_dialog = dialog.get();
-        m_confirm_dialog->set_accept_text("Mantener");
-        m_confirm_dialog->set_cancel_text("Revertir");
+        m_confirm_dialog->set_accept_text(i18n().tr("preferences.display.keep_changes"));
+        m_confirm_dialog->set_cancel_text(i18n().tr("preferences.display.revert"));
 
         m_confirm_dialog->when_responded.connect(
             [this](MessageResponseEvent res)
@@ -288,10 +287,10 @@ namespace horizon::preferences
 
         // Run the dialog in a separate thread, similar to how Application::alert does it.
         std::thread(
-            [dialog_ptr = std::move(dialog)]() mutable
+            [d = std::move(dialog)]() mutable
             {
-                dialog_ptr->initialize();
-                dialog_ptr->run();
+                d->initialize();
+                d->run();
             })
             .detach();
 
@@ -314,8 +313,7 @@ namespace horizon::preferences
                     if (m_confirm_dialog)
                     {
                         m_confirm_dialog->set_message(
-                            "¿Desea mantener esta configuración de pantalla?\nRevirtiendo en " +
-                            std::to_string(m_countdown) + " segundos...");
+                            i18n().tr("preferences.display.confirm_msg", {{"0", std::to_string(m_countdown)}}));
                     }
                 }
             },

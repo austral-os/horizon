@@ -9,6 +9,7 @@
 #include <views/ApplicationsView/AppPickerDialog.hpp>
 #include <views/ApplicationsView/StartupEditDialog.hpp>
 #include <horizon/ScrollArea.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
@@ -49,7 +50,7 @@ namespace horizon::preferences
 
         // Column: Name
         TableColumn<DesktopEntry> col_name;
-        col_name.title = "Nombre";
+        col_name.title = i18n().tr("preferences.applications.labels.name");
         col_name.width = 200;
         col_name.cell_factory = [](const DesktopEntry& entry) {
             auto label = std::make_unique<Label>(entry.name);
@@ -61,7 +62,7 @@ namespace horizon::preferences
 
         // Column: Command
         TableColumn<DesktopEntry> col_exec;
-        col_exec.title = "Comando";
+        col_exec.title = i18n().tr("preferences.applications.labels.command");
         col_exec.width = 300;
         col_exec.cell_factory = [](const DesktopEntry& entry) {
             auto label = std::make_unique<Label>(entry.exec);
@@ -80,20 +81,20 @@ namespace horizon::preferences
         buttons->set_spacing(10);
 
         auto btn_add = std::make_unique<Button<AquaObject>>();
-        btn_add->set_text("Agregar");
+        btn_add->set_text(i18n().tr("preferences.applications.buttons.add"));
         btn_add->set_fixed_size(100);
         btn_add->set_accent_color(WidgetAccentColor::Primary);
         btn_add->when_click.connect([this](MouseButtonEventContext&) { this->add_app(); });
         buttons->add_child(std::move(btn_add));
 
         auto btn_edit = std::make_unique<Button<AquaObject>>();
-        btn_edit->set_text("Editar");
+        btn_edit->set_text(i18n().tr("preferences.applications.buttons.edit"));
         btn_edit->set_fixed_size(100);
         btn_edit->when_click.connect([this](MouseButtonEventContext&) { this->edit_app(); });
         buttons->add_child(std::move(btn_edit));
 
         auto btn_remove = std::make_unique<Button<AquaObject>>();
-        btn_remove->set_text("Eliminar");
+        btn_remove->set_text(i18n().tr("preferences.applications.buttons.remove"));
         btn_remove->set_fixed_size(100);
         btn_remove->when_click.connect([this](MouseButtonEventContext&) { this->remove_app(); });
         buttons->add_child(std::move(btn_remove));

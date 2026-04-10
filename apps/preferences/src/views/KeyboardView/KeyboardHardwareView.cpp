@@ -2,6 +2,7 @@
 #include <utils/XkbParser.hpp>
 #include <horizon/VPanel.hpp>
 #include <ConfigManager.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
@@ -24,7 +25,7 @@ namespace horizon::preferences
         model_section->set_fixed_size(60);
         model_section->set_spacing(5);
 
-        auto model_label = std::make_unique<Label>("Modelo de Teclado");
+        auto model_label = std::make_unique<Label>(i18n().tr("preferences.keyboard.keyboard_model"));
         model_label->set_fixed_size(20);
         model_section->add_child(std::move(model_label));
 
@@ -57,7 +58,7 @@ namespace horizon::preferences
         delay_container->set_position_type(WidgetPositionTypes::FILL);
         delay_container->set_spacing(0);
 
-        auto delay_label = std::make_unique<Label>("Delay");
+        auto delay_label = std::make_unique<Label>(i18n().tr("preferences.keyboard.delay"));
         delay_label->set_fixed_size(20);
         delay_container->add_child(std::move(delay_label));
 
@@ -100,7 +101,7 @@ namespace horizon::preferences
         rate_container->set_position_type(WidgetPositionTypes::FILL);
         rate_container->set_spacing(0);
 
-        auto rate_label = std::make_unique<Label>("Rate");
+        auto rate_label = std::make_unique<Label>(i18n().tr("preferences.keyboard.rate"));
         rate_label->set_fixed_size(20);
         rate_container->add_child(std::move(rate_label));
 
@@ -141,7 +142,7 @@ namespace horizon::preferences
 
         // --- Second Row: Checkbox ---
         auto numlock_check = std::make_unique<Checkbox<AquaObject>>();
-        numlock_check->set_text("Iniciar Num Lock activado");
+        numlock_check->set_text(i18n().tr("preferences.keyboard.numlock_on"));
         numlock_check->set_fixed_size(30);
         m_numlock_checkbox = numlock_check.get();
         m_numlock_checkbox->set_on_toggle([this](bool) { save_config(); });

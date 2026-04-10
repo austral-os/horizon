@@ -1,4 +1,5 @@
 #include <views/DesktopView/DesktopView.hpp>
+#include <horizon/I18n.hpp>
 #include <memory>
 
 namespace horizon::preferences
@@ -16,12 +17,12 @@ namespace horizon::preferences
         // --- Tab 1: Wallpaper ---
         auto wallpaper_view = std::make_unique<WallpaperView>();
         m_wallpaper_view = wallpaper_view.get();
-        m_notebook->add_tab(horizon::NotebookPage("Escritorio", "preferences-desktop-wallpaper", std::move(wallpaper_view)));
+        m_notebook->add_tab(horizon::NotebookPage(i18n().tr("preferences.desktop.wallpaper"), "preferences-desktop-wallpaper", std::move(wallpaper_view)));
 
         // --- Tab 2: Dock ---
         auto dock_view = std::make_unique<DockView>();
         m_dock_view = dock_view.get();
-        m_notebook->add_tab(horizon::NotebookPage("Dock", "preferences-system", std::move(dock_view)));
+        m_notebook->add_tab(horizon::NotebookPage(i18n().tr("preferences.desktop.dock"), "preferences-system", std::move(dock_view)));
 
         add_child(std::move(notebook));
     }

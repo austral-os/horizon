@@ -27,6 +27,151 @@
       "region": "Región e Idioma",
       "applications": "Aplicaciones",
       "details": "Acerca de"
+    },
+    "toolbar": {
+        "show_all": "Mostrar todo",
+        "search_placeholder": "Buscar en ajustes"
+    },
+    "applications": {
+        "tabs": {
+            "startup": "Inicio",
+            "default": "Predeterminadas",
+            "mime_types": "Tipos MIME"
+        },
+        "labels": {
+            "name": "Nombre",
+            "command": "Comando",
+            "web_browser": "Navegador web:",
+            "email_client": "Cliente de correo electrónico:",
+            "image_viewer": "Visor de imágenes:",
+            "music_player": "Reproductor de música:",
+            "video_player": "Reproductor de vídeo:",
+            "text_editor": "Editor de texto:",
+            "pdf_viewer": "Visor PDF:",
+            "file_manager": "Gestor de archivos:",
+            "terminal": "Emulador de terminal:",
+            "archiver": "Gestor de archivos comprimidos:"
+        },
+        "buttons": {
+            "add": "Agregar",
+            "edit": "Editar",
+            "remove": "Eliminar"
+        },
+        "categories": {
+            "internet": "Internet",
+            "multimedia": "Multimedia",
+            "documents": "Documentos",
+            "utilities": "Utilidades"
+        },
+        "mime_types": {
+            "search_placeholder": "Buscar MIME types...",
+            "select_mime": "Seleccione un MIME type",
+            "associated_extensions": "Extensiones asociadas",
+            "applications_priority": "Aplicaciones (Orden de prioridad)",
+            "add_extension_title": "Agregar Extensión",
+            "add_extension_label": "Ingrese la extensión (ej: .txt):",
+            "error_remove_system_ext": "No es posible eliminar esta extensión porque pertenece a la configuración del sistema.",
+            "no_app_available": "Ninguna aplicación disponible"
+        }
+    },
+    "bluetooth": {
+        "paired_devices": "Dispositivos Vinculados",
+        "device_name": "Nombre del dispositivo",
+        "status": "Estado",
+        "connected": "Conectado",
+        "disconnected": "Desconectado",
+        "sync_new": "Sincronizar nuevo",
+        "connect": "Conectar",
+        "disconnect": "Desconectar",
+        "refresh": "Refrescar",
+        "select_device": "Seleccione un dispositivo",
+        "search": "Buscar...",
+        "scanning": "Explorando...",
+        "pin_manual": "PIN manual:",
+        "pairing": "Vinculando...",
+        "paired_success": "Vinculado con éxito",
+        "next": "Siguiente"
+    },
+    "desktop": {
+        "wallpaper": "Escritorio",
+        "dock": "Dock",
+        "select_image": "Seleccione una imagen",
+        "fill": "Rellenar pantalla",
+        "fit": "Ajustar a pantalla",
+        "stretch": "Estirar para rellenar",
+        "center": "Centrar",
+        "change_image": "Cambiar imagen:",
+        "every_5_sec": "Cada 5 segundos",
+        "every_30_min": "Cada 30 minutos",
+        "every_hour": "Cada hora",
+        "random_order": "Orden aleatorio",
+        "translucent_bar": "Barra de menú translúcida",
+        "icon_size": "Tamaño de Iconos",
+        "use_magnification": "Usar Magnificación"
+    },
+    "display": {
+        "resolution": "Resolución",
+        "use_native": "Usar resolución nativa",
+        "refresh_rate": "Refresco",
+        "rotation": "Rotación",
+        "normal": "Normal",
+        "90_right": "90° Derecha",
+        "180_inverted": "180° (Invertido)",
+        "90_left": "90° Izquierda",
+        "refresh_speed": "Velocidad de Refresco",
+        "apply_changes": "Aplicar Cambios",
+        "confirm_title": "Confirmar Pantalla",
+        "keep_changes": "Mantener",
+        "revert": "Revertir",
+        "confirm_msg": "¿Desea mantener esta configuración de pantalla?\nRevirtiendo en {0} segundos...",
+        "monitor": "Monitor",
+        "generic_monitor": "Monitor Genérico"
+    },
+    "keyboard": {
+        "hardware": "Hardware",
+        "language": "Idioma",
+        "shortcuts": "Atajos",
+        "keyboard_model": "Modelo de Teclado",
+        "delay": "Retraso",
+        "rate": "Velocidad",
+        "numlock_on": "Iniciar Num Lock activado",
+        "add": "Agregar",
+        "remove": "Quitar",
+        "default": "Predeterminado"
+    },
+    "sound": {
+        "output": "Salida",
+        "input": "Entrada",
+        "apps": "Aplicaciones",
+        "output_devices": "Dispositivos de salida de audio disponibles:",
+        "input_devices": "Dispositivos de entrada de audio disponibles:",
+        "output_volume": "Volumen de salida:",
+        "input_volume": "Volumen de entrada:",
+        "balance": "Balance:",
+        "left": "Izquierda",
+        "center": "Centro",
+        "right": "Derecha",
+        "test_speakers": "Probar altavoces...",
+        "individual_volume": "Aplicaciones (Volumen Individual)"
+    },
+    "wifi": {
+        "preferred_networks": "Redes Preferidas",
+        "network_name": "Nombre de la red",
+        "security_type": "Tipo de seguridad",
+        "signal": "Señal",
+        "connection": "Conexión",
+        "connected": "Conectado",
+        "no_connection": "Sin conexión",
+        "connect": "Conectar",
+        "disconnect": "Desconectar",
+        "refresh": "Refrescar",
+        "connected_to": "Conectado a {0}",
+        "hidden_network": "<Red Oculta>",
+        "tcp_ip_config": "Configuración TCP/IP (Próximamente)"
+    },
+    "common": {
+        "error": "Error",
+        "warning": "Advertencia"
     }
   }
 }

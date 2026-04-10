@@ -8,6 +8,7 @@
 #include <thread>
 #include <views/BluetoothView/BluetoothPairDialog.hpp>
 #include <views/BluetoothView/BluetoothView.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
@@ -125,7 +126,7 @@ namespace horizon::preferences
     void BluetoothView::setup_ui()
     {
         // 1. Label: Dispositivos Vinculados
-        auto label = std::make_unique<Label>("Dispositivos Vinculados");
+        auto label = std::make_unique<Label>(i18n().tr("preferences.bluetooth.paired_devices"));
         label->set_font_weight(FONT_WEIGHT_BOLD);
         label->set_fixed_size(24);
         m_title_label = label.get();
@@ -135,18 +136,18 @@ namespace horizon::preferences
         auto table = std::make_unique<TableView<BluetoothDevice>>();
 
         TableColumn<BluetoothDevice> name_col;
-        name_col.title = "Nombre del dispositivo";
+        name_col.title = i18n().tr("preferences.bluetooth.device_name");
         name_col.width = 300;
         name_col.cell_factory = [](const BluetoothDevice &data) -> std::unique_ptr<Widget>
         { return std::make_unique<Label>(data.name.empty() ? data.address : data.name); };
         table->add_column(std::move(name_col));
 
         TableColumn<BluetoothDevice> status_col;
-        status_col.title = "Estado";
+        status_col.title = i18n().tr("preferences.bluetooth.status");
         status_col.width = 150;
         status_col.cell_factory = [](const BluetoothDevice &data) -> std::unique_ptr<Widget>
         {
-            auto lbl = std::make_unique<Label>(data.connected ? "Conectado" : "Desconectado");
+            auto lbl = std::make_unique<Label>(data.connected ? i18n().tr("preferences.bluetooth.connected") : i18n().tr("preferences.bluetooth.disconnected"));
             if (data.connected)
             {
                 lbl->set_text_color(Color("#0b7c37ff")); // Emerald Green
@@ -168,14 +169,14 @@ namespace horizon::preferences
         button_container->set_spacing(10);
 
         auto sync_btn = std::make_unique<Button<SolidObject>>();
-        sync_btn->set_text("Sincronizar nuevo");
+        sync_btn->set_text(i18n().tr("preferences.bluetooth.sync_new"));
         sync_btn->when_click.connect([this](MouseButtonEventContext &)
                                      { this->on_sync_new_clicked(); });
         m_sync_button = sync_btn.get();
         button_container->add_child(std::move(sync_btn));
 
         auto connect_btn = std::make_unique<Button<SolidObject>>();
-        connect_btn->set_text("Conectar");
+        connect_btn->set_text(i18n().tr("preferences.bluetooth.connect"));
         connect_btn->set_enabled(false);
         connect_btn->when_click.connect([this](MouseButtonEventContext &)
                                         { this->on_connect_clicked(); });
@@ -183,7 +184,7 @@ namespace horizon::preferences
         button_container->add_child(std::move(connect_btn));
 
         auto refresh_btn = std::make_unique<Button<SolidObject>>();
-        refresh_btn->set_text("Refrescar");
+        refresh_btn->set_text(i18n().tr("preferences.bluetooth.refresh"));
         refresh_btn->when_click.connect([this](MouseButtonEventContext &)
                                         { this->refresh_devices(); });
         m_refresh_button = refresh_btn.get();
@@ -215,8 +216,8 @@ namespace horizon::preferences
                 }
                 if (m_connect_button)
                 {
-                    m_connect_button->set_text(m_selected_device.connected ? "Desconectar"
-                                                                           : "Conectar");
+                    m_connect_button->set_text(m_selected_device.connected ? i18n().tr("preferences.bluetooth.disconnect")
+                                                                           : i18n().tr("preferences.bluetooth.connect"));
                 }
                 if (!found && m_connect_button)
                 {
@@ -352,7 +353,7 @@ namespace horizon::preferences
         if (m_connect_button)
         {
             m_connect_button->set_enabled(true);
-            m_connect_button->set_text(device.connected ? "Desconectar" : "Conectar");
+            m_connect_button->set_text(device.connected ? i18n().tr("preferences.bluetooth.disconnect") : i18n().tr("preferences.bluetooth.connect"));
         }
     }
 

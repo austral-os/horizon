@@ -8,6 +8,7 @@
 #include <horizon/VPanel.hpp>
 #include <utils/PipeWireManager.hpp>
 #include <views/SoundView/SoundView.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
@@ -47,27 +48,27 @@ namespace horizon::preferences
         output_container->set_margin(20);
         output_container->set_spacing(15);
         setup_output_tab(output_container.get());
-        m_notebook->add_tab({"Salida", std::move(output_container)});
+        m_notebook->add_tab({i18n().tr("preferences.sound.output"), std::move(output_container)});
 
         auto input_container = std::make_unique<Widget>();
         input_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         input_container->set_margin(20);
         input_container->set_spacing(15);
         setup_input_tab(input_container.get());
-        m_notebook->add_tab({"Entrada", std::move(input_container)});
+        m_notebook->add_tab({i18n().tr("preferences.sound.input"), std::move(input_container)});
 
         auto apps_container = std::make_unique<Widget>();
         apps_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         apps_container->set_margin(20);
         apps_container->set_spacing(15);
         setup_apps_tab(apps_container.get());
-        m_notebook->add_tab({"Aplicaciones", std::move(apps_container)});
+        m_notebook->add_tab({i18n().tr("preferences.sound.apps"), std::move(apps_container)});
     }
 
     void SoundView::setup_output_tab(Widget *container)
     {
         auto label_devices =
-            std::make_unique<Label>("Dispositivos de salida de audio disponibles:");
+            std::make_unique<Label>(i18n().tr("preferences.sound.output_devices"));
         label_devices->set_fixed_size(25);
         label_devices->set_font_weight(FONT_WEIGHT_BOLD);
         container->add_child(std::move(label_devices));
@@ -106,7 +107,7 @@ namespace horizon::preferences
         col_type.width = 100;
         col_type.cell_factory = [](const AudioItem &dev) -> std::unique_ptr<Widget>
         {
-            auto lbl = std::make_unique<Label>("Salida");
+            auto lbl = std::make_unique<Label>(i18n().tr("preferences.sound.output"));
             lbl->set_vertical_alignment(VerticalAlignment::Middle);
             lbl->set_alignment(TextAlignment::Right);
             return std::unique_ptr<Widget>(lbl.release());
@@ -131,7 +132,7 @@ namespace horizon::preferences
         vol_panel->set_fixed_size(40);
         vol_panel->set_spacing(10);
 
-        auto lbl_vol = std::make_unique<Label>("Volumen de salida:");
+        auto lbl_vol = std::make_unique<Label>(i18n().tr("preferences.sound.output_volume"));
         lbl_vol->set_fixed_size(150);
         vol_panel->add_child(std::move(lbl_vol));
 
@@ -153,7 +154,7 @@ namespace horizon::preferences
         bal_panel->set_fixed_size(60);
         bal_panel->set_spacing(10);
 
-        auto lbl_bal = std::make_unique<Label>("Balance:");
+        auto lbl_bal = std::make_unique<Label>(i18n().tr("preferences.sound.balance"));
         lbl_bal->set_fixed_size(150);
         bal_panel->add_child(std::move(lbl_bal));
 
@@ -175,10 +176,10 @@ namespace horizon::preferences
         auto bal_labels = std::make_unique<Widget>();
         bal_labels->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         bal_labels->set_fixed_size(20);
-        auto l_left = std::make_unique<Label>("Izquierda");
-        auto l_center = std::make_unique<Label>("Centro");
+        auto l_left = std::make_unique<Label>(i18n().tr("preferences.sound.left"));
+        auto l_center = std::make_unique<Label>(i18n().tr("preferences.sound.center"));
         l_center->set_alignment(TextAlignment::Center);
-        auto l_right = std::make_unique<Label>("Derecha");
+        auto l_right = std::make_unique<Label>(i18n().tr("preferences.sound.right"));
         l_right->set_alignment(TextAlignment::Right);
         bal_labels->add_child(std::move(l_left));
         bal_labels->add_child(std::move(l_center));
@@ -195,7 +196,7 @@ namespace horizon::preferences
         footer->add_child(Spacer());
 
         auto btn_test = std::make_unique<Button<AquaObject>>();
-        btn_test->set_text("Probar altavoces...");
+        btn_test->set_text(i18n().tr("preferences.sound.test_speakers"));
         btn_test->set_fixed_size(150);
         btn_test->when_mouse_press.connect([this](MouseButtonEventContext &) { test_speakers(); });
         m_test_btn = btn_test.get();
@@ -207,7 +208,7 @@ namespace horizon::preferences
     void SoundView::setup_input_tab(Widget *container)
     {
         auto label_devices =
-            std::make_unique<Label>("Dispositivos de entrada de audio disponibles:");
+            std::make_unique<Label>(i18n().tr("preferences.sound.input_devices"));
         label_devices->set_fixed_size(25);
         label_devices->set_font_weight(FONT_WEIGHT_BOLD);
         container->add_child(std::move(label_devices));
@@ -244,7 +245,7 @@ namespace horizon::preferences
         col_type.width = 100;
         col_type.cell_factory = [](const AudioItem &dev) -> std::unique_ptr<Widget>
         {
-            auto lbl = std::make_unique<Label>("Entrada");
+            auto lbl = std::make_unique<Label>(i18n().tr("preferences.sound.input"));
             lbl->set_vertical_alignment(VerticalAlignment::Middle);
             lbl->set_alignment(TextAlignment::Right);
             return std::unique_ptr<Widget>(lbl.release());
@@ -258,7 +259,7 @@ namespace horizon::preferences
         vol_panel->set_fixed_size(40);
         vol_panel->set_spacing(10);
 
-        auto lbl_vol = std::make_unique<Label>("Volumen de entrada:");
+        auto lbl_vol = std::make_unique<Label>(i18n().tr("preferences.sound.input_volume"));
         lbl_vol->set_fixed_size(150);
         vol_panel->add_child(std::move(lbl_vol));
 
@@ -277,7 +278,7 @@ namespace horizon::preferences
         container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         container->set_margin(20);
 
-        auto label_devices = std::make_unique<Label>("Aplicaciones (Volumen Individual)");
+        auto label_devices = std::make_unique<Label>(i18n().tr("preferences.sound.individual_volume"));
         label_devices->set_fixed_size(35);
         label_devices->set_alignment(TextAlignment::Left);
         label_devices->set_font_weight(FONT_WEIGHT_BOLD);
@@ -317,7 +318,10 @@ namespace horizon::preferences
         col_type.width = 100;
         col_type.cell_factory = [](const AudioItem &dev) -> std::unique_ptr<Widget>
         {
-            auto lbl = std::make_unique<Label>(dev.stream_type); // "Salida" / "Entrada"
+            std::string st = dev.stream_type;
+            if (st == "Salida") st = i18n().tr("preferences.sound.output");
+            else if (st == "Entrada") st = i18n().tr("preferences.sound.input");
+            auto lbl = std::make_unique<Label>(st);
             lbl->set_vertical_alignment(VerticalAlignment::Middle);
             return std::unique_ptr<Widget>(lbl.release());
         };

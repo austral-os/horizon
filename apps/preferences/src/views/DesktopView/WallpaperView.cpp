@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <horizon/TreeViewItem.hpp>
 #include <memory>
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
@@ -52,7 +53,7 @@ namespace horizon::preferences
         right_vbox->set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
         right_vbox->set_spacing(10);
 
-        auto name_label = std::make_unique<horizon::Label>("Seleccione una imagen");
+        auto name_label = std::make_unique<horizon::Label>(i18n().tr("preferences.desktop.select_image"));
         m_image_name_label = name_label.get();
         right_vbox->add_child(std::move(name_label));
 
@@ -62,10 +63,10 @@ namespace horizon::preferences
 
         auto fit_combo = std::make_unique<horizon::Combo>();
         fit_combo->set_fixed_size(250);
-        fit_combo->add_item("fill", "Rellenar pantalla");
-        fit_combo->add_item("fit", "Ajustar a pantalla");
-        fit_combo->add_item("stretch", "Estirar para rellenar");
-        fit_combo->add_item("center", "Centrar");
+        fit_combo->add_item("fill", i18n().tr("preferences.desktop.fill"));
+        fit_combo->add_item("fit", i18n().tr("preferences.desktop.fit"));
+        fit_combo->add_item("stretch", i18n().tr("preferences.desktop.stretch"));
+        fit_combo->add_item("center", i18n().tr("preferences.desktop.center"));
         m_fit_combo = fit_combo.get();
         m_fit_combo->when_item_selected.connect([this](const horizon::ComboItemSelectedContext &)
                                                 { save_config(); });
@@ -154,7 +155,7 @@ namespace horizon::preferences
         row1->set_fixed_size(32);
 
         auto change_chk = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
-        change_chk->set_text("Cambiar imagen:");
+        change_chk->set_text(i18n().tr("preferences.desktop.change_image"));
         change_chk->set_fixed_size(230);
         m_change_check = change_chk.get();
         m_change_check->set_on_toggle([this](bool)
@@ -162,9 +163,9 @@ namespace horizon::preferences
         row1->add_child(std::move(change_chk));
 
         auto timer_combo = std::make_unique<horizon::Combo>();
-        timer_combo->add_item("5", "Cada 5 segundos");
-        timer_combo->add_item("1800", "Cada 30 minutos");
-        timer_combo->add_item("3600", "Cada hora");
+        timer_combo->add_item("5", i18n().tr("preferences.desktop.every_5_sec"));
+        timer_combo->add_item("1800", i18n().tr("preferences.desktop.every_30_min"));
+        timer_combo->add_item("3600", i18n().tr("preferences.desktop.every_hour"));
         timer_combo->set_fixed_size(250);
         m_timer_combo = timer_combo.get();
         m_timer_combo->when_item_selected.connect([this](const horizon::ComboItemSelectedContext &)
@@ -174,7 +175,7 @@ namespace horizon::preferences
         settings_vbox->add_child(std::move(row1));
 
         auto random_chk = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
-        random_chk->set_text("Orden aleatorio");
+        random_chk->set_text(i18n().tr("preferences.desktop.random_order"));
         random_chk->set_fixed_size(30);
         m_random_check = random_chk.get();
         m_random_check->set_on_toggle([this](bool)
@@ -182,7 +183,7 @@ namespace horizon::preferences
         settings_vbox->add_child(std::move(random_chk));
 
         auto translucent_chk = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
-        translucent_chk->set_text("Barra de menú translúcida");
+        translucent_chk->set_text(i18n().tr("preferences.desktop.translucent_bar"));
         translucent_chk->set_fixed_size(30);
         m_translucent_check = translucent_chk.get();
         m_translucent_check->set_on_toggle([this](bool)

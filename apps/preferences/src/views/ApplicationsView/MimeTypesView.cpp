@@ -13,6 +13,7 @@
 #include <thread>
 #include <fstream>
 #include <views/ApplicationsView/AppPickerDialog.hpp>
+#include <horizon/I18n.hpp>
 #include <regex>
 
 namespace fs = std::filesystem;
@@ -39,7 +40,7 @@ namespace horizon::preferences
         left_column->set_spacing(10);
 
         auto search_box = std::make_unique<SearchBox>();
-        search_box->set_placeholder("Buscar MIME types...");
+        search_box->set_placeholder(i18n().tr("preferences.applications.mime_types.search_placeholder"));
         m_search_box = search_box.get();
         left_column->add_child(std::move(search_box));
 
@@ -82,14 +83,14 @@ namespace horizon::preferences
         right_column->set_margin(10);
         right_column->set_spacing(15);
 
-        auto title = std::make_unique<Label>("Seleccione un MIME type");
+        auto title = std::make_unique<Label>(i18n().tr("preferences.applications.mime_types.select_mime"));
         title->set_fixed_size(30);
         title->set_font_weight(FONT_WEIGHT_BOLD);
         m_mime_title_label = title.get();
         right_column->add_child(std::move(title));
 
         // --- Extensiones Section ---
-        auto ext_label = std::make_unique<Label>("Extensiones asociadas");
+        auto ext_label = std::make_unique<Label>(i18n().tr("preferences.applications.mime_types.associated_extensions"));
         ext_label->set_fixed_size(25);
         right_column->add_child(std::move(ext_label));
 
@@ -131,7 +132,7 @@ namespace horizon::preferences
         right_column->add_child(std::move(ext_toolbar));
 
         // --- Aplicaciones Section ---
-        auto app_label = std::make_unique<Label>("Aplicaciones (Orden de prioridad)");
+        auto app_label = std::make_unique<Label>(i18n().tr("preferences.applications.mime_types.applications_priority"));
         app_label->set_fixed_size(25);
         right_column->add_child(std::move(app_label));
 
@@ -250,7 +251,7 @@ namespace horizon::preferences
     void MimeTypesView::update_details(const std::string& mime_type)
     {
         if (mime_type.empty()) {
-            m_mime_title_label->set_text("Seleccione un MIME type");
+            m_mime_title_label->set_text(i18n().tr("preferences.applications.mime_types.select_mime"));
             m_extensions_table->set_data({});
             m_apps_table->set_data({});
             return;
@@ -308,7 +309,7 @@ namespace horizon::preferences
             }
             
             if (apps.empty()) {
-                apps.push_back({"text-editor.desktop", "Editor de Texto", "text-editor"});
+                apps.push_back({"text-editor.desktop", i18n().tr("preferences.applications.labels.text_editor"), "text-editor"});
             }
             m_mime_apps[mime_type] = apps;
         }
@@ -319,7 +320,9 @@ namespace horizon::preferences
     {
         if (m_current_mime.empty()) return;
         
-        auto dialog = std::make_unique<InputDialog>("Agregar Extensión", "Ingrese la extensión (ej: .txt):");
+        auto dialog = std::make_unique<InputDialog>(
+            i18n().tr("preferences.applications.mime_types.add_extension_title"), 
+            i18n().tr("preferences.applications.mime_types.add_extension_label"));
         dialog->when_accepted.connect([this](std::string& text) {
             std::string val = text;
             if (auto* app = application()) {
@@ -378,8 +381,9 @@ namespace horizon::preferences
         MimeExtension ext = extens[idx];
 
         if (!ext.is_user) {
-            auto dialog = std::make_unique<MessageDialog>("Error", 
-                "No es posible eliminar esta extensión porque pertenece a la configuración del sistema.",
+            auto dialog = std::make_unique<MessageDialog>(
+                i18n().tr("preferences.common.error"), 
+                i18n().tr("preferences.applications.mime_types.error_remove_system_ext"),
                 MessageType::Warning);
             
             std::thread([d = std::move(dialog)]() mutable {

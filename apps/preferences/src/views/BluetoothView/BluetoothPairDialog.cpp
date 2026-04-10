@@ -6,13 +6,14 @@
 #include <horizon/Window.hpp>
 #include <iostream>
 #include <views/BluetoothView/BluetoothPairDialog.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
     BluetoothPairDialog::BluetoothPairDialog()
         : WaylandWindow("horizon.bluetooth_pair", 550, 500, true, false)
     {
-        set_name("Seleccione un dispositivo");
+        set_name(i18n().tr("preferences.bluetooth.select_device"));
 
         try
         {
@@ -75,7 +76,7 @@ namespace horizon::preferences
 
     void BluetoothPairDialog::setup_ui()
     {
-        auto root_wnd = std::make_unique<Window>("Seleccione un dispositivo");
+        auto root_wnd = std::make_unique<Window>(i18n().tr("preferences.bluetooth.select_device"));
         root_wnd->set_layout_type(WIDGET_LAYOUT_VERTICAL);
 
         auto container = std::make_unique<Widget>();
@@ -84,7 +85,7 @@ namespace horizon::preferences
         container->set_spacing(15);
 
         // 1. Title
-        auto title = std::make_unique<Label>("Seleccione un dispositivo");
+        auto title = std::make_unique<Label>(i18n().tr("preferences.bluetooth.select_device"));
         title->set_font_weight(FONT_WEIGHT_BOLD);
         title->set_font_size(18);
         title->set_fixed_size(35);
@@ -92,7 +93,7 @@ namespace horizon::preferences
 
         // 2. Search Box
         auto search_box = std::make_unique<TextBox<TextPolicy>>();
-        search_box->set_placeholder("Buscar...");
+        search_box->set_placeholder(i18n().tr("preferences.bluetooth.search"));
         search_box->set_fixed_size(35);
         search_box->when_text_changed.connect([this](KeyEventContext &)
                                               { this->filter_devices(m_search_box->text()); });
@@ -139,14 +140,14 @@ namespace horizon::preferences
         refresh_icon->set_fixed_size(20); // Simulating refresh spin
         bottom_status->add_child(std::move(refresh_icon));
 
-        auto scan_label = std::make_unique<Label>("Explorando...");
+        auto scan_label = std::make_unique<Label>(i18n().tr("preferences.bluetooth.scanning"));
         m_status_label = scan_label.get();
         bottom_status->add_child(std::move(scan_label));
 
         bottom_status->add_child(Spacer(20));
 
         // Manual PIN (placeholder for now)
-        auto pin_label = std::make_unique<Label>("PIN manual:");
+        auto pin_label = std::make_unique<Label>(i18n().tr("preferences.bluetooth.pin_manual"));
         pin_label->set_alignment(TextAlignment::Right);
         bottom_status->add_child(std::move(pin_label));
 
@@ -171,14 +172,14 @@ namespace horizon::preferences
         buttons->add_child(Spacer());
 
         auto btn_cancel = std::make_unique<Button<AquaObject>>();
-        btn_cancel->set_text("Cancelar");
+        btn_cancel->set_text(i18n().tr("preferences.common.cancel"));
         btn_cancel->set_fixed_size(100);
         btn_cancel->when_click.connect([this](MouseButtonEventContext &) { this->quit(); });
         m_cancel_btn = btn_cancel.get();
         buttons->add_child(std::move(btn_cancel));
 
         auto btn_next = std::make_unique<Button<AquaObject>>();
-        btn_next->set_text("Siguiente");
+        btn_next->set_text(i18n().tr("preferences.bluetooth.next"));
         btn_next->set_fixed_size(100);
         btn_next->set_accent_color(WidgetAccentColor::Primary);
         btn_next->set_enabled(false);
@@ -383,7 +384,7 @@ namespace horizon::preferences
             return;
 
         if (m_status_label)
-            m_status_label->set_text("Vinculando...");
+            m_status_label->set_text(i18n().tr("preferences.bluetooth.pairing"));
         if (m_next_btn)
             m_next_btn->set_enabled(false);
 
@@ -413,13 +414,13 @@ namespace horizon::preferences
                             if (success)
                             {
                                 if (m_status_label)
-                                    m_status_label->set_text("Vinculado con éxito");
+                                    m_status_label->set_text(i18n().tr("preferences.bluetooth.paired_success"));
                                 this->quit();
                             }
                             else
                             {
                                 if (m_status_label)
-                                    m_status_label->set_text("Error: " + err_msg);
+                                    m_status_label->set_text(i18n().tr("preferences.common.error_details", {{"0", err_msg}}));
                                 if (m_next_btn)
                                     m_next_btn->set_enabled(true);
                             }

@@ -1,6 +1,7 @@
 #include "PreferencesToolbar.hpp"
 #include "horizon/Spacer.hpp"
 #include "horizon/Widget.hpp"
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
@@ -29,7 +30,7 @@ namespace horizon::preferences
 
         // Home Button (Show All)
         auto home_btn = std::make_unique<GroupButton>();
-        home_btn->add_item("Show All");
+        home_btn->add_item(i18n().tr("preferences.toolbar.show_all"));
         home_btn->set_fixed_size(100);
         m_home_button = home_btn.get();
         add_child(std::move(home_btn));
@@ -38,7 +39,7 @@ namespace horizon::preferences
 
         // Search Box
         auto search_box = std::make_unique<SearchBox>();
-        search_box->set_placeholder("Buscar en ajustes");
+        search_box->set_placeholder(i18n().tr("preferences.toolbar.search_placeholder"));
         search_box->set_fixed_size(220);
         m_search_box = search_box.get();
         add_child(std::move(search_box));
