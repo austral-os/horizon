@@ -1,6 +1,6 @@
 #include "horizon/Application.hpp"
 #include "BrowserWindow.hpp"
-#include "horizon/web/WebWidget.hpp"
+#include "horizon/web/WebView.hpp"
 
 using namespace horizon;
 using namespace horizon::nova;
@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     // Force destruction of UI components while the worker thread is still alive
     app.set_root(nullptr);
 
-    horizon::web::WebWidget::shutdown();
+    horizon::web::WebView::shutdown();
     
     return 0;
 }

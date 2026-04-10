@@ -5,7 +5,7 @@ pkg_check_modules(WPE REQUIRED wpe-1.0 wpebackend-fdo-1.0)
 pkg_check_modules(CAIRO REQUIRED cairo)
 
 set(SOURCES
-    src/WebWidget.cpp
+    src/WebView.cpp
 )
 
 add_library(horizon-web SHARED ${SOURCES})

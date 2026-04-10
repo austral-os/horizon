@@ -1,4 +1,4 @@
-#include "horizon/web/WebWidget.hpp"
+#include "horizon/web/WebView.hpp"
 #include "horizon/GraphicsContext.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/Application.hpp"
@@ -40,16 +40,16 @@ namespace horizon
             }
         }
 
-        std::thread WebWidget::s_worker_thread;
-        GMainContext* WebWidget::s_worker_context = nullptr;
-        GMainLoop* WebWidget::s_worker_loop = nullptr;
-        bool WebWidget::s_running = false;
-        std::mutex WebWidget::s_worker_mutex;
+        std::thread WebView::s_worker_thread;
+        GMainContext* WebView::s_worker_context = nullptr;
+        GMainLoop* WebView::s_worker_loop = nullptr;
+        bool WebView::s_running = false;
+        std::mutex WebView::s_worker_mutex;
 
         static int s_instance_count = 0;
         static std::mutex s_instance_mutex;
 
-        WebWidget::WebWidget()
+        WebView::WebView()
         {
             set_focusable(true);
             // Thumbs are drawn directly now
@@ -92,7 +92,7 @@ namespace horizon
                                                              1,
                                                              map_horizon_to_wpe_modifiers(ctx.modifiers)};
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                        auto* d = static_cast<std::pair<WebWidget*, wpe_input_pointer_event*>*>(data);
+                        auto* d = static_cast<std::pair<WebView*, wpe_input_pointer_event*>*>(data);
                         if (d->first->m_backend) {
                             // Heartbeat focus on click to refresh user gesture timer
                             wpe_view_backend_add_activity_state(d->first->m_backend, wpe_view_activity_state_visible | wpe_view_activity_state_focused | wpe_view_activity_state_in_window);
@@ -101,7 +101,7 @@ namespace horizon
                         delete d->second;
                         delete d;
                         return FALSE;
-                    }, new std::pair<WebWidget*, wpe_input_pointer_event*>(this, event));
+                    }, new std::pair<WebView*, wpe_input_pointer_event*>(this, event));
                 });
 
             // Mouse Release
@@ -120,12 +120,12 @@ namespace horizon
                                                              0,
                                                              map_horizon_to_wpe_modifiers(ctx.modifiers)};
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                        auto* d = static_cast<std::pair<WebWidget*, wpe_input_pointer_event*>*>(data);
+                        auto* d = static_cast<std::pair<WebView*, wpe_input_pointer_event*>*>(data);
                         if (d->first->m_backend) wpe_view_backend_dispatch_pointer_event(d->first->m_backend, d->second);
                         delete d->second;
                         delete d;
                         return FALSE;
-                    }, new std::pair<WebWidget*, wpe_input_pointer_event*>(this, event));
+                    }, new std::pair<WebView*, wpe_input_pointer_event*>(this, event));
                 });
 
             // Mouse Move
@@ -147,12 +147,12 @@ namespace horizon
                                                              0,
                                                              0};
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                        auto* d = static_cast<std::pair<WebWidget*, wpe_input_pointer_event*>*>(data);
+                        auto* d = static_cast<std::pair<WebView*, wpe_input_pointer_event*>*>(data);
                         if (d->first->m_backend) wpe_view_backend_dispatch_pointer_event(d->first->m_backend, d->second);
                         delete d->second;
                         delete d;
                         return FALSE;
-                    }, new std::pair<WebWidget*, wpe_input_pointer_event*>(this, event));
+                    }, new std::pair<WebView*, wpe_input_pointer_event*>(this, event));
                 });
 
             // Mouse Drag
@@ -197,12 +197,12 @@ namespace horizon
                             wpe_mods};
 
                         g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                            auto* d = static_cast<std::pair<WebWidget*, wpe_input_axis_event*>*>(data);
+                            auto* d = static_cast<std::pair<WebView*, wpe_input_axis_event*>*>(data);
                             if (d->first->m_backend) wpe_view_backend_dispatch_axis_event(d->first->m_backend, d->second);
                             delete d->second;
                             delete d;
                             return FALSE;
-                        }, new std::pair<WebWidget*, wpe_input_axis_event*>(this, event));
+                        }, new std::pair<WebView*, wpe_input_axis_event*>(this, event));
                     };
 
                     // Scale factor: dy/dx in Wayland are typically ~10 units per notch.
@@ -226,12 +226,12 @@ namespace horizon
                     auto* event = new wpe_input_keyboard_event{(uint32_t)(g_get_monotonic_time() / 1000), ctx.keysym, ctx.key + 8, true,
                                                              map_horizon_to_wpe_modifiers(ctx.modifiers)};
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                        auto* d = static_cast<std::pair<WebWidget*, wpe_input_keyboard_event*>*>(data);
+                        auto* d = static_cast<std::pair<WebView*, wpe_input_keyboard_event*>*>(data);
                         if (d->first->m_backend) wpe_view_backend_dispatch_keyboard_event(d->first->m_backend, d->second);
                         delete d->second;
                         delete d;
                         return FALSE;
-                    }, new std::pair<WebWidget*, wpe_input_keyboard_event*>(this, event));
+                    }, new std::pair<WebView*, wpe_input_keyboard_event*>(this, event));
                 });
 
             when_key_release.connect(
@@ -241,12 +241,12 @@ namespace horizon
                                                              map_horizon_to_wpe_modifiers(ctx.modifiers)};
 
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                        auto* d = static_cast<std::pair<WebWidget*, wpe_input_keyboard_event*>*>(data);
+                        auto* d = static_cast<std::pair<WebView*, wpe_input_keyboard_event*>*>(data);
                         if (d->first->m_backend) wpe_view_backend_dispatch_keyboard_event(d->first->m_backend, d->second);
                         delete d->second;
                         delete d;
                         return FALSE;
-                    }, new std::pair<WebWidget*, wpe_input_keyboard_event*>(this, event));
+                    }, new std::pair<WebView*, wpe_input_keyboard_event*>(this, event));
                 });
 
             // Interaction for Scrollbars
@@ -295,7 +295,7 @@ namespace horizon
             m_last_h_show_time = std::chrono::steady_clock::now();
         }
 
-        WebWidget::~WebWidget()
+        WebView::~WebView()
         {
             // Disconnect all signals immediately to prevent any worker callbacks to dead UI objects
             when_title_changed.disconnect_all();
@@ -362,10 +362,10 @@ namespace horizon
             std::lock_guard<std::mutex> ilock(s_worker_mutex);
             s_instance_count--;
             // We no longer join the thread in the destructor.
-            // Joining is now handled explicitly in WebWidget::shutdown().
+            // Joining is now handled explicitly in WebView::shutdown().
         }
 
-        void WebWidget::init_wpe()
+        void WebView::init_wpe()
         {
             if (m_initialized)
                 return;
@@ -380,15 +380,15 @@ namespace horizon
             // Create backend/webview in the worker thread
             // USE HIGH PRIORITY: Must match load_url priority to avoid race conditions
             g_main_context_invoke_full(s_worker_context, G_PRIORITY_HIGH, (GSourceFunc)+[](void* data) -> gboolean {
-                auto* self = static_cast<WebWidget*>(data);
+                auto* self = static_cast<WebView*>(data);
                 
                 struct FullscreenData {
-                    WebWidget* self;
+                    WebView* self;
                     bool fs;
                 };
 
                 static auto fs_callback = [](void* data, bool fullscreen) {
-                    auto* self = static_cast<WebWidget*>(data);
+                    auto* self = static_cast<WebView*>(data);
                     LOG_INFO << "[WEB] Backend requested fullscreen via reserved0: " << (fullscreen ? "ON" : "OFF");
                     if (self->application()) {
                         self->application()->post_task([self, fullscreen]() {
@@ -402,7 +402,7 @@ namespace horizon
                     .export_buffer_resource = nullptr,
                     .export_dmabuf_resource = [](void *data, struct wpe_view_backend_exportable_fdo_dmabuf_resource *dmabuf)
                     {
-                        auto *self = static_cast<WebWidget *>(data);
+                        auto *self = static_cast<WebView *>(data);
                         // LOG_INFO << "[WEB-DMA] DMABUF exported: " << dmabuf->width << "x" << dmabuf->height;
                         
                         // ACK the frame immediately to keep the engine pumping
@@ -414,8 +414,8 @@ namespace horizon
                     .export_shm_buffer =
                         [](void *data, struct wpe_fdo_shm_exported_buffer *buffer)
                     {
-                        auto *self = static_cast<WebWidget *>(data);
-                        WebWidget::on_frame_exported(self, buffer);
+                        auto *self = static_cast<WebView *>(data);
+                        WebView::on_frame_exported(self, buffer);
                     },
                     ._wpe_reserved0 = reinterpret_cast<void(*)(void)>(static_cast<void(*)(void*, bool)>(fs_callback)),
                     ._wpe_reserved1 = nullptr};
@@ -462,7 +462,7 @@ namespace horizon
                 webkit_web_view_set_settings(self->m_web_view, settings);
                 g_object_unref(settings);
 
-                LOG_INFO << "WebView created with performance optimizations for WebWidget: " << self;
+                LOG_INFO << "WebView created with performance optimizations for WebView: " << self;
 
                 g_signal_connect(self->m_web_view, "notify::title", G_CALLBACK(on_title_notify), self);
                 g_signal_connect(self->m_web_view, "notify::uri", G_CALLBACK(on_uri_notify), self);
@@ -477,11 +477,11 @@ namespace horizon
                     return FALSE;
                 }), NULL);
                 g_signal_connect(self->m_web_view, "mouse-target-changed", G_CALLBACK(on_mouse_target_changed), self);
-                unsigned long id_fs = g_signal_connect(self->m_web_view, "enter-fullscreen", G_CALLBACK(WebWidget::on_enter_fullscreen), self);
-                unsigned long id_ls = g_signal_connect(self->m_web_view, "leave-fullscreen", G_CALLBACK(WebWidget::on_leave_fullscreen), self);
-                unsigned long id_pr = g_signal_connect(self->m_web_view, "permission-request", G_CALLBACK(WebWidget::on_permission_request), self);
-                unsigned long id_dp = g_signal_connect(self->m_web_view, "decide-policy", G_CALLBACK(WebWidget::on_decide_policy), self);
-                g_signal_connect(self->m_web_view, "context-menu", G_CALLBACK(WebWidget::on_context_menu), self);
+                unsigned long id_fs = g_signal_connect(self->m_web_view, "enter-fullscreen", G_CALLBACK(WebView::on_enter_fullscreen), self);
+                unsigned long id_ls = g_signal_connect(self->m_web_view, "leave-fullscreen", G_CALLBACK(WebView::on_leave_fullscreen), self);
+                unsigned long id_pr = g_signal_connect(self->m_web_view, "permission-request", G_CALLBACK(WebView::on_permission_request), self);
+                unsigned long id_dp = g_signal_connect(self->m_web_view, "decide-policy", G_CALLBACK(WebView::on_decide_policy), self);
+                g_signal_connect(self->m_web_view, "context-menu", G_CALLBACK(WebView::on_context_menu), self);
                 
                 g_signal_connect(self->m_web_view, "web-process-terminated", G_CALLBACK(+[](WebKitWebView*, WebKitWebProcessTerminationReason reason, void*) {
                     LOG_ERROR << "[WEB-CRITICAL] Web process terminated! Reason: " << reason;
@@ -539,12 +539,12 @@ namespace horizon
                 webkit_user_content_manager_register_script_message_handler(manager, "nova_enter", NULL);
                 webkit_user_content_manager_register_script_message_handler(manager, "nova_exit", NULL);
                 
-                g_signal_connect(manager, "script-message-received::nova_enter", G_CALLBACK(+[](WebKitUserContentManager*, WebKitJavascriptResult*, WebWidget* self) {
+                g_signal_connect(manager, "script-message-received::nova_enter", G_CALLBACK(+[](WebKitUserContentManager*, WebKitJavascriptResult*, WebView* self) {
                     LOG_INFO << "[WEB-BRIDGE] Direct trigger: ENTER FS";
                     self->on_enter_fullscreen(NULL, self);
                 }), self);
 
-                g_signal_connect(manager, "script-message-received::nova_exit", G_CALLBACK(+[](WebKitUserContentManager*, WebKitJavascriptResult*, WebWidget* self) {
+                g_signal_connect(manager, "script-message-received::nova_exit", G_CALLBACK(+[](WebKitUserContentManager*, WebKitJavascriptResult*, WebView* self) {
                     LOG_INFO << "[WEB-BRIDGE] Direct trigger: EXIT FS";
                     self->on_leave_fullscreen(NULL, self);
                 }), self);
@@ -619,11 +619,11 @@ namespace horizon
             m_initialized = true;
         }
 
-        void WebWidget::shutdown() {
+        void WebView::shutdown() {
             std::lock_guard<std::mutex> lock(s_worker_mutex);
             if (!s_running) return;
 
-            LOG_INFO << "Global WebWidget shutdown initiated...";
+            LOG_INFO << "Global WebView shutdown initiated...";
             
             if (s_worker_loop) {
                 g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
@@ -636,16 +636,16 @@ namespace horizon
                 s_worker_thread.join();
             }
             s_running = false;
-            LOG_INFO << "Global WebWidget shutdown complete.";
+            LOG_INFO << "Global WebView shutdown complete.";
         }
 
-        void WebWidget::ensure_worker_thread()
+        void WebView::ensure_worker_thread()
         {
             std::lock_guard<std::mutex> lock(s_worker_mutex);
             if (s_running) return;
 
             s_running = true;
-            s_worker_thread = std::thread(&WebWidget::worker_thread_func);
+            s_worker_thread = std::thread(&WebView::worker_thread_func);
             
             // Wait for context to be initialized
             while (!s_worker_context) {
@@ -653,7 +653,7 @@ namespace horizon
             }
         }
 
-        void WebWidget::worker_thread_func() 
+        void WebView::worker_thread_func() 
         {
             s_worker_context = g_main_context_new();
             g_main_context_push_thread_default(s_worker_context);
@@ -723,8 +723,8 @@ namespace horizon
         }
 
 
-        void WebWidget::on_title_notify(void*, void*, void* p_self) {
-            WebWidget* self = static_cast<WebWidget*>(p_self);
+        void WebView::on_title_notify(void*, void*, void* p_self) {
+            WebView* self = static_cast<WebView*>(p_self);
             if (!self) return;
             const char* title_str = webkit_web_view_get_title(self->m_web_view);
             if (!title_str) return;
@@ -775,8 +775,8 @@ namespace horizon
             }
         }
 
-        void WebWidget::on_uri_notify(void*, void*, void* p_self) {
-            WebWidget* self = static_cast<WebWidget*>(p_self);
+        void WebView::on_uri_notify(void*, void*, void* p_self) {
+            WebView* self = static_cast<WebView*>(p_self);
             if (!self) return;
             const char* uri_str = webkit_web_view_get_uri(self->m_web_view);
             std::string url = uri_str ? uri_str : "";
@@ -794,8 +794,8 @@ namespace horizon
             }
         }
 
-        void WebWidget::on_load_changed(void*, int load_event, void* p_self) {
-            WebWidget* self = static_cast<WebWidget*>(p_self);
+        void WebView::on_load_changed(void*, int load_event, void* p_self) {
+            WebView* self = static_cast<WebView*>(p_self);
             if (!self) return;
             const char* url = webkit_web_view_get_uri(self->m_web_view);
             LOG_INFO << "[WEB] Load status changed for " << (url ? url : "unknown") << " (Event: " << load_event << ")";
@@ -807,7 +807,7 @@ namespace horizon
             }
 
             if (load_event == 2 || load_event == 3) { // COMMITTED or FINISHED
-                LOG_INFO << "[WEB] Injecting diagnostic script bridge into WebWidget: " << self;
+                LOG_INFO << "[WEB] Injecting diagnostic script bridge into WebView: " << self;
                 const char* diag_script = 
                     "if (!window._horizon_injected) {"
                     "  const bridge = (msg) => { document.title = msg; };"
@@ -839,8 +839,8 @@ namespace horizon
             }
         }
 
-        void WebWidget::on_progress_notify(void*, void*, void* p_self) {
-            WebWidget* self = static_cast<WebWidget*>(p_self);
+        void WebView::on_progress_notify(void*, void*, void* p_self) {
+            WebView* self = static_cast<WebView*>(p_self);
             if (!self || !self->application()) return;
             
             double progress = webkit_web_view_get_estimated_load_progress(self->m_web_view);
@@ -850,10 +850,10 @@ namespace horizon
             });
         }
 
-        void WebWidget::on_mouse_target_changed(void*, void*, uint32_t, void*) {}
+        void WebView::on_mouse_target_changed(void*, void*, uint32_t, void*) {}
         
-        int WebWidget::on_enter_fullscreen(void* view, void* p_self) {
-            WebWidget* self = static_cast<WebWidget*>(p_self);
+        int WebView::on_enter_fullscreen(void* view, void* p_self) {
+            WebView* self = static_cast<WebView*>(p_self);
             if (!self) return 1;
 
             LOG_INFO << "[WEB] enter-fullscreen signal received (is_fs=" << self->m_is_fullscreen << ")";
@@ -893,8 +893,8 @@ namespace horizon
             return 1; // Handled
         }
         
-        int WebWidget::on_leave_fullscreen(void* view, void* p_self) {
-            WebWidget* self = static_cast<WebWidget*>(p_self);
+        int WebView::on_leave_fullscreen(void* view, void* p_self) {
+            WebView* self = static_cast<WebView*>(p_self);
             if (!self) return 1;
 
             LOG_INFO << "[WEB] leave-fullscreen signal received";
@@ -931,7 +931,7 @@ namespace horizon
             return 1; // Handled
         }
 
-        int WebWidget::on_permission_request(void*, void* request, void*) {
+        int WebView::on_permission_request(void*, void* request, void*) {
             const char* type_name = G_OBJECT_TYPE_NAME(request);
             LOG_INFO << "[WEB] Permission request received: " << (type_name ? type_name : "unknown");
             
@@ -939,11 +939,11 @@ namespace horizon
             return 1; // TRUE
         }
 
-        int WebWidget::on_decide_policy(void* view, void* decision, int type, void* p_self) {
-            WebWidget* self = static_cast<WebWidget*>(p_self);
+        int WebView::on_decide_policy(void* view, void* decision, int type, void* p_self) {
+            WebView* self = static_cast<WebView*>(p_self);
             if (!self) return 0;
 
-            LOG_INFO << "[WEB-POLICY] Decision requested. Type: " << type << " for WebWidget: " << self;
+            LOG_INFO << "[WEB-POLICY] Decision requested. Type: " << type << " for WebView: " << self;
 
             // PERSISTENT NAVIGATION SHIELD (5 Seconds)
             auto now = std::chrono::steady_clock::now();
@@ -987,25 +987,25 @@ namespace horizon
             return 1; // TRUE
         }
         
-        int WebWidget::on_context_menu(void* web_view, void* context_menu, void* event, void* hit_test_result, void* self) {
+        int WebView::on_context_menu(void* web_view, void* context_menu, void* event, void* hit_test_result, void* self) {
             return 1; // TRUE = Handled, prevents native menu
         }
 
     
 
-        std::string WebWidget::get_title() const {
+        std::string WebView::get_title() const {
              std::lock_guard<std::mutex> lock(m_metadata_mutex);
              return m_cached_title;
         }
 
-        std::string WebWidget::get_url() const {
+        std::string WebView::get_url() const {
              std::lock_guard<std::mutex> lock(m_metadata_mutex);
              return m_cached_url;
         }
 
-        void WebWidget::on_frame_exported(void *data, struct wpe_fdo_shm_exported_buffer *buffer)
+        void WebView::on_frame_exported(void *data, struct wpe_fdo_shm_exported_buffer *buffer)
         {
-            auto *self = static_cast<WebWidget *>(data);
+            auto *self = static_cast<WebView *>(data);
             if (!self || !self->m_exportable) return;
 
             static int frame_count = 0;
@@ -1059,7 +1059,7 @@ namespace horizon
                     self->m_waiting_for_native_frame = false;
                     
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                        WebWidget* self = static_cast<WebWidget*>(data);
+                        WebView* self = static_cast<WebView*>(data);
                         if (self && self->m_backend) {
                             if (self->m_is_fullscreen) {
                                 // REINFORCE FOCUS: level 7 = VISIBLE | FOCUSED | IN_WINDOW
@@ -1097,7 +1097,7 @@ namespace horizon
             }
         }
 
-        void WebWidget::update_scrollbars()
+        void WebView::update_scrollbars()
         {
             if (m_is_fullscreen) return; 
             
@@ -1152,7 +1152,7 @@ namespace horizon
             }
         }
     
-        void WebWidget::handle_ui_scroll(int x, int y) {
+        void WebView::handle_ui_scroll(int x, int y) {
             if (s_worker_context) {
                 std::string js;
                 if (x >= 0 && y >= 0) js = "window.scrollTo(" + std::to_string(x) + "," + std::to_string(y) + ")";
@@ -1171,7 +1171,7 @@ namespace horizon
             }
         }
 
-        void WebWidget::load_url(const std::string &url)
+        void WebView::load_url(const std::string &url)
         {
             if (!m_initialized) init_wpe();
 
@@ -1184,20 +1184,20 @@ namespace horizon
 
             if (s_worker_context) {
                 g_main_context_invoke_full(s_worker_context, G_PRIORITY_HIGH, (GSourceFunc)+[](void* data) -> gboolean {
-                    auto* pair = static_cast<std::pair<WebWidget*, std::string>*>(data);
+                    auto* pair = static_cast<std::pair<WebView*, std::string>*>(data);
                     if (pair->first->m_web_view) {
-                        LOG_INFO << "Loading URI (High Priority): " << pair->second << " in WebWidget: " << pair->first;
+                        LOG_INFO << "Loading URI (High Priority): " << pair->second << " in WebView: " << pair->first;
                         webkit_web_view_load_uri(pair->first->m_web_view, pair->second.c_str());
                     } else {
-                        LOG_ERROR << "Failed to load URI: m_web_view is NULL for WebWidget: " << pair->first;
+                        LOG_ERROR << "Failed to load URI: m_web_view is NULL for WebView: " << pair->first;
                     }
                     delete pair;
                     return FALSE;
-                }, new std::pair<WebWidget*, std::string>(this, url), NULL);
+                }, new std::pair<WebView*, std::string>(this, url), NULL);
             }
         }
 
-        void WebWidget::draw(GraphicsContext &ctx)
+        void WebView::draw(GraphicsContext &ctx)
         {
             update_scrollbars();
             
@@ -1283,7 +1283,7 @@ namespace horizon
             }
         }
 
-        void WebWidget::calculate_layout()
+        void WebView::calculate_layout()
         {
             // LOAD GATE: Release the pending URL once we are active and have dimensions
             if (!m_window_activated && is_effectively_visible() && width() > 100) {
@@ -1324,7 +1324,7 @@ namespace horizon
                 }
 
                 struct ResizeData {
-                    WebWidget* self;
+                    WebView* self;
                     struct wpe_view_backend* backend;
                     int w;
                     int h;
@@ -1378,45 +1378,45 @@ namespace horizon
             }
         }
 
-        void WebWidget::reload() { 
+        void WebView::reload() { 
             if (s_worker_context) {
                 g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                    auto* self = static_cast<WebWidget*>(data);
+                    auto* self = static_cast<WebView*>(data);
                     if (self->m_web_view) webkit_web_view_reload(self->m_web_view);
                     return FALSE;
                 }, this);
             }
         }
-        void WebWidget::stop_loading() { 
+        void WebView::stop_loading() { 
             if (s_worker_context) {
                 g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                    auto* self = static_cast<WebWidget*>(data);
+                    auto* self = static_cast<WebView*>(data);
                     if (self->m_web_view) webkit_web_view_stop_loading(self->m_web_view);
                     return FALSE;
                 }, this);
             }
         }
-        void WebWidget::go_back() { 
+        void WebView::go_back() { 
             if (s_worker_context) {
                 g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                    auto* self = static_cast<WebWidget*>(data);
+                    auto* self = static_cast<WebView*>(data);
                     if (self->m_web_view) webkit_web_view_go_back(self->m_web_view);
                     return FALSE;
                 }, this);
             }
         }
-        void WebWidget::go_forward() { 
+        void WebView::go_forward() { 
             if (s_worker_context) {
                 g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                    auto* self = static_cast<WebWidget*>(data);
+                    auto* self = static_cast<WebView*>(data);
                     if (self->m_web_view) webkit_web_view_go_forward(self->m_web_view);
                     return FALSE;
                 }, this);
             }
         }
 
-        bool WebWidget::can_go_back() const { return m_web_view && webkit_web_view_can_go_back(m_web_view); }
-        bool WebWidget::can_go_forward() const { return m_web_view && webkit_web_view_can_go_forward(m_web_view); }
+        bool WebView::can_go_back() const { return m_web_view && webkit_web_view_can_go_back(m_web_view); }
+        bool WebView::can_go_forward() const { return m_web_view && webkit_web_view_can_go_forward(m_web_view); }
 
     } // namespace web
 } // namespace horizon

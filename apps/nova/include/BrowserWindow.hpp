@@ -1,7 +1,7 @@
 #pragma once
 
 #include "horizon/ApplicationWindow.hpp"
-#include "horizon/web/WebWidget.hpp"
+#include "horizon/web/WebView.hpp"
 #include "horizon/VPanel.hpp"
 #include "NovaToolbar.hpp"
 #include "horizon/Label.hpp"

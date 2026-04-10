@@ -58,7 +58,7 @@ namespace horizon
             m_tabs->when_tab_selected.connect(
                 [this](int index)
                 {
-                    auto *web_view = dynamic_cast<web::WebWidget *>(m_tabs->current_tab_body());
+                    auto *web_view = dynamic_cast<web::WebView *>(m_tabs->current_tab_body());
                     if (web_view)
                     {
                         m_toolbar->set_url(web_view->get_url());
@@ -71,7 +71,7 @@ namespace horizon
             m_toolbar->when_navigation_clicked.connect(
                 [this](NavigationButtonClickEvent &ctx)
                 {
-                    auto *web_view = dynamic_cast<web::WebWidget *>(m_tabs->current_tab_body());
+                    auto *web_view = dynamic_cast<web::WebView *>(m_tabs->current_tab_body());
                     if (!web_view)
                         return;
                     if (ctx.index == 0)
@@ -102,7 +102,7 @@ namespace horizon
         void BrowserWindow::create_new_tab(const std::string &url)
         {
             LOG_INFO << "[NOVA] Creating new tab for URL: " << url;
-            auto web_view = std::make_unique<web::WebWidget>();
+            auto web_view = std::make_unique<web::WebView>();
             auto *ptr = web_view.get();
 
             // Connect signals for the new web view
@@ -173,7 +173,7 @@ namespace horizon
 
         void BrowserWindow::navigate_to_url(const std::string &input_url)
         {
-            auto *web_view = dynamic_cast<web::WebWidget *>(m_tabs->current_tab_body());
+            auto *web_view = dynamic_cast<web::WebView *>(m_tabs->current_tab_body());
             if (web_view)
             {
                 std::string url = input_url;

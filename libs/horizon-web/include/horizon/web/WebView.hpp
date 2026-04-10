@@ -24,10 +24,10 @@ namespace horizon {
 class WaylandWindow;
 namespace web {
 
-class WebWidget : public horizon::Widget {
+class WebView : public horizon::Widget {
 public:
-    WebWidget();
-    virtual ~WebWidget();
+    WebView();
+    virtual ~WebView();
 
     /**
      * @brief Explicitly shuts down the worker thread and cleans up global WPE state.
