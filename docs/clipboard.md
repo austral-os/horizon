@@ -70,7 +70,7 @@ The standardization relies on reserved signal IDs. When creating menu items for 
 - Use IDs: `"copy"`, `"cut"`, `"paste"`.
 - **CRITICAL**: Do NOT add manual `when_click` listeners to these items if they are created for a context menu via the framework injection, as the framework already provides global handlers for these IDs.
 
-## 4. Minimal Implementation Example
+## 4. Minimal Implementation Example (Multi-Type Support)
 
 ```cpp
 #include <horizon/Application.hpp>
@@ -92,31 +92,50 @@ public:
     void perform(horizon::ClipboardAction action) override {
         if (action == horizon::ClipboardAction::Copy) {
             application()->set_clipboard_owner(this);
-            std::cout << "Widget: Copied state set!" << std::endl;
+            std::cout << "Widget: Offering multiple formats (plain + html)" << std::endl;
         } else if (action == horizon::ClipboardAction::Paste) {
-            application()->request_clipboard_data(this, "text/plain");
+            // The framework will negotiate the best mime type from accepted_mime_types()
+            application()->request_clipboard_data(this);
         }
     }
 
+    // --- Offering multiple formats (Lazy Delivery) ---
     void provide_clipboard_data(const std::string &mime, horizon::DataSink &sink) override {
         if (mime == "text/plain") {
-            std::string data = "Hello from MyCustomWidget!";
+            std::string data = "Standard text from MyCustomWidget";
             sink.write(std::vector<uint8_t>(data.begin(), data.end()));
             sink.done();
+        } else if (mime == "text/html") {
+            std::string data = "<b>Rich text</b> from <i>MyCustomWidget</i>";
+            sink.write(std::vector<uint8_t>(data.begin(), data.end()));
+            sink.done();
+        } else {
+            sink.error();
         }
     }
 
+    // --- Consuming multiple formats ---
     void on_clipboard_data_received(const std::string &mime, const std::vector<uint8_t> &data) override {
-        std::string text(data.begin(), data.end());
-        std::cout << "Widget Received: " << text << std::endl;
+        std::string content(data.begin(), data.end());
+        if (mime == "text/html") {
+            std::cout << "Widget Received HTML: " << content << std::endl;
+        } else {
+            std::cout << "Widget Received Plain Text: " << content << std::endl;
+        }
     }
 
-    std::vector<std::string> provided_mime_types() const override { return {"text/plain"}; }
-    std::vector<std::string> accepted_mime_types() const override { return {"text/plain"}; }
+    // Inform the framework of our capabilities
+    std::vector<std::string> provided_mime_types() const override { 
+        return {"text/html", "text/plain"}; 
+    }
+    
+    std::vector<std::string> accepted_mime_types() const override { 
+        return {"text/html", "text/plain"}; 
+    }
 };
 
 int main(int argc, char **argv) {
-    horizon::Application app("com.example.clipboard", 400, 300);
+    horizon::Application app("com.example.multi_clipboard", 400, 300);
     auto widget = std::make_unique<MyCustomWidget>();
     app.set_root(std::move(widget));
     app.run();
@@ -124,7 +143,23 @@ int main(int argc, char **argv) {
 }
 ```
 
-## 5. UI Integration
+## 5. Triggers Manuales vía Señales
+
+Si necesitas disparar estas acciones desde tu propia lógica (por ejemplo, desde un botón personalizado), la forma correcta es emitir la señal directamente a través del gestor de señales de la ventana. Esto asegura que la acción pase por el pipeline estándar (enfocando el widget correcto, notificando al sistema, etc.).
+
+```cpp
+// Ejemplo: Disparar Pegar desde un botón
+my_button->when_click.connect([window = application()](auto&) {
+    window->signal_manager.emit("paste");
+});
+```
+
+Los IDs de señal soportados para clipboard son:
+- `"copy"`
+- `"cut"`
+- `"paste"`
+
+## 6. UI Integration
 
 The `WaylandWindow` automatically handles:
 - **Focus Management**: Right-clicking a widget focuses it before showing the menu.

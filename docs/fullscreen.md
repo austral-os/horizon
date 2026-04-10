@@ -87,7 +87,20 @@ int main(int argc, char **argv) {
 }
 ```
 
-## 5. Transition Logic (The Isolation Protocol)
+## 5. Triggers Manuales vía Señales
+
+Puedes forzar el cambio de estado de pantalla completa desde cualquier parte de tu código emitiendo la señal `"fullscreen"`. Esto disparará la lógica de aislamiento y ocultación de la barra de título automáticamente.
+
+```cpp
+// Ejemplo: Botón personalizado para alternar pantalla completa
+my_custom_button->when_click.connect([window = application()](auto&) {
+    window->signal_manager.emit("fullscreen");
+});
+```
+
+*Nota: La señal `"fullscreen"` actúa como un toggle (alterna entre estados).*
+
+## 6. Transition Logic (The Isolation Protocol)
 
 When a fullscreen request is initiated:
 1. **Target Selection**: The system uses the focused widget if it supports fullscreen. Otherwise, it finds the best candidate in the tree.
