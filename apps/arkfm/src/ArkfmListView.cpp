@@ -156,7 +156,6 @@ namespace horizon::arkfm
                     });
 
                 set_context_menu(std::move(bg_menu));
-                ctx.stop_propagation = true;
             });
 
         when_application_load.connect([this](EventContext &) { this->refresh(m_current_path); });

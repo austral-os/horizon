@@ -215,8 +215,8 @@ namespace horizon::arkfm
                     });
 
                 item->set_context_menu(std::move(menu));
-                item->when_right_click.connect([](horizon::MouseButtonEventContext &ctx)
-                                               { ctx.stop_propagation = true; });
+                item->when_right_click.connect([](horizon::MouseButtonEventContext &)
+                                               { });
 
                 return item;
             });
@@ -285,7 +285,6 @@ namespace horizon::arkfm
                     });
 
                 set_context_menu(std::move(bg_menu));
-                ctx.stop_propagation = true;
             });
 
         when_application_load.connect([this](EventContext &) { this->refresh(m_current_path); });
