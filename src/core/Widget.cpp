@@ -628,6 +628,12 @@ namespace horizon
         if (m_has_focus != focus)
         {
             m_has_focus = focus;
+            
+            if (m_has_focus && application())
+            {
+                application()->set_focused_widget(this);
+            }
+
             EventContext ev;
             ev.sender = this;
             if (m_has_focus)
@@ -680,6 +686,11 @@ namespace horizon
         m_app = app;
         if (m_app)
         {
+            if (m_has_focus)
+            {
+                m_app->set_focused_widget(this);
+            }
+
             EventContext ev;
             ev.sender = this;
             when_application_load.run(ev);

@@ -1564,13 +1564,7 @@ namespace horizon
             m_pressed = under;
 
             // Update focus
-            if (m_focused != under)
-            {
-                if (m_focused)
-                    m_focused->set_focus(false);
-                m_focused = under;
-                m_focused->set_focus(true);
-            }
+            set_focused_widget(under);
 
             MouseButtonEventContext new_ev;
             new_ev.sender = m_pressed;
@@ -1604,11 +1598,7 @@ namespace horizon
         }
         else
         {
-            if (m_focused)
-            {
-                m_focused->set_focus(false);
-                m_focused = nullptr;
-            }
+            set_focused_widget(nullptr);
         }
     }
 
@@ -2075,6 +2065,24 @@ namespace horizon
             m_root->set_size(m_surface->width(), m_surface->height());
             m_full_repaint = true;
             invalidate();
+        }
+    }
+
+    void WaylandWindow::set_focused_widget(Widget *widget)
+    {
+        if (m_focused == widget)
+            return;
+
+        if (m_focused)
+        {
+            m_focused->set_focus(false);
+        }
+
+        m_focused = widget;
+
+        if (m_focused)
+        {
+            m_focused->set_focus(true);
         }
     }
 

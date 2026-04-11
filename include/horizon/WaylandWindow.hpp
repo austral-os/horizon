@@ -136,6 +136,12 @@ namespace horizon
         Widget *root() const { return m_root.get(); }
         Menu *get_menu(const std::string &id) const;
 
+        /**
+         * @brief Sets the focused widget of the application.
+         * @param widget The widget to grab keyboard focus.
+         */
+        void set_focused_widget(Widget *widget);
+
 
         /**
          * @brief Invalidates the entire application or a specific widget.

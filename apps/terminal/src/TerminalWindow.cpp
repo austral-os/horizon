@@ -85,8 +85,15 @@ void TerminalWindow::create_new_tab() {
 
     m_tabs->add_tab(i18n().tr("terminal.title"), std::move(terminal));
     
-    // Focus the newly created terminal
-    ptr->set_focus(true);
+    // Focus the newly created terminal (deferred if window is ready, direct if still initializing)
+    auto* app = application();
+    if (app) {
+        app->post_task([ptr]() {
+            ptr->set_focus(true);
+        });
+    } else {
+        ptr->set_focus(true);
+    }
 }
 
 } // namespace terminal
