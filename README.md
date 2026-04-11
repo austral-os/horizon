@@ -56,6 +56,7 @@ Detailed guides on implementing core framework features:
 - [**IPC System**](docs/ipc_system.md): Inter-process communication and remote signal management.
 - [**Window Management**](docs/window_management_mechanisms.md): Deep dive into Wayland surface and window lifecycle.
 - [**Localization (i18n)**](docs/localization.md): Native multi-language support with JSON backends.
+- [**FileDialog System**](docs/file_dialog.md): Usage and invocation of the standard file selection dialog.
 
 ---
 
