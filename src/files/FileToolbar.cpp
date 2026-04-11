@@ -1,13 +1,12 @@
-#include "ArkfmToolbar.hpp"
+#include "horizon/files/FileToolbar.hpp"
 #include <horizon/GroupButton.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/SearchBox.hpp>
 #include <horizon/ToggleGroupButton.hpp>
 
-namespace horizon::arkfm
+namespace horizon::files
 {
-
-    ArkToolbar::ArkToolbar() : Widget()
+    FileToolbar::FileToolbar() : Widget()
     {
         set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         set_position_type(WidgetPositionTypes::FILL);
@@ -53,7 +52,7 @@ namespace horizon::arkfm
         m_view_modes->add_item(std::move(column_view));
 
         auto cover_flow = std::make_unique<horizon::Icon>();
-        cover_flow->set_icon_name("view-coverflow"); // Generic enough for cover flow demo
+        cover_flow->set_icon_name("view-coverflow");
         cover_flow->set_icon_size(16);
         m_view_modes->add_item(std::move(cover_flow));
 
@@ -96,4 +95,9 @@ namespace horizon::arkfm
         add_child(std::move(search_box));
     }
 
-} // namespace horizon::arkfm
+    void FileToolbar::update_navigation_state(bool can_back, bool can_forward)
+    {
+        // For now, GroupButton doesn't support individual item enabling easily via public API,
+        // but it's part of the plan to improve it.
+    }
+} // namespace horizon::files

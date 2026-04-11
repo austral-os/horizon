@@ -1,6 +1,6 @@
-#include "ArkfmCoverFlowView.hpp"
-#include "ArkfmFileProvider.hpp"
-#include "ArkfmListView.hpp"
+#include "horizon/files/FileCoverFlowView.hpp"
+#include "horizon/files/FileIconProvider.hpp"
+#include "horizon/files/FileListView.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/CoverFlow.hpp"
 #include "horizon/EventsManager.hpp"
@@ -11,37 +11,31 @@
 #include <algorithm>
 #include <cctype>
 
-namespace horizon::arkfm
+namespace horizon::files
 {
-    struct PathChangedEvent : public EventContext
-    {
-        std::string path;
-    };
-
-    class ArkfmCoverFlowItem : public Widget
+    class FileCoverFlowItem : public Widget
     {
     public:
-        ArkfmCoverFlowItem() : Widget()
+        FileCoverFlowItem() : Widget()
         {
             set_layout_type(WIDGET_LAYOUT_VERTICAL);
             auto icon = std::make_unique<Icon>();
             icon->set_icon_size(128);
             icon->set_enabled(false);
             m_icon = icon.get();
-
             add_child(std::move(icon));
         }
 
         void set_data(const arkutils::FileInfo &f)
         {
-            m_icon->set_icon_name(ArkfmFileProvider::get_icon_name(f));
+            m_icon->set_icon_name(FileIconProvider::get_icon_name(f));
         }
 
     private:
         Icon *m_icon;
     };
 
-    ArkfmCoverFlowView::ArkfmCoverFlowView(std::string path)
+    FileCoverFlowView::FileCoverFlowView(std::string path)
         : Widget(), m_current_path(std::move(path))
     {
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
@@ -55,37 +49,33 @@ namespace horizon::arkfm
         m_cover_flow->set_item_factory(
             [](const arkutils::FileInfo &f, bool selected)
             {
-                auto item = std::make_unique<ArkfmCoverFlowItem>();
+                auto item = std::make_unique<FileCoverFlowItem>();
                 item->set_data(f);
                 return item;
             });
 
-        // Navigation Label
         auto navigation_label = std::make_unique<Label>("No selection");
         m_navigation_label = navigation_label.get();
         m_navigation_label->set_alignment(TextAlignment::Center);
         m_navigation_label->set_text_color(Color(1.0f, 1.0f, 1.0f));
-        m_navigation_label->set_background_color(Color(0.0f, 0.0f, 0.0f)); // Black background
+        m_navigation_label->set_background_color(Color(0.0f, 0.0f, 0.0f));
         m_navigation_label->set_fixed_size(30);
 
-        // Communication
         m_cover_flow->when_selection_changed.connect(
             [this](EventContext &)
             {
                 int idx = m_cover_flow->selected_index();
                 if (m_list_view)
-                {
                     m_list_view->set_selected_index(idx);
-                }
 
                 if (idx >= 0 && idx < (int)m_cover_flow->data().size())
                 {
                     const auto &f = m_cover_flow->data()[idx];
-                    m_navigation_label->set_text(ArkfmFileProvider::get_display_name(f));
+                    m_navigation_label->set_text(FileIconProvider::get_display_name(f));
                 }
             });
 
-        auto list_view = std::make_unique<ArkfmListView>(m_current_path);
+        auto list_view = std::make_unique<FileListView>(m_current_path);
         m_list_view = list_view.get();
 
         m_list_view->when_row_click.connect(
@@ -94,7 +84,7 @@ namespace horizon::arkfm
                 if (m_cover_flow)
                 {
                     m_cover_flow->set_selected_index(ctx.row_index);
-                    m_navigation_label->set_text(ArkfmFileProvider::get_display_name(ctx.row_data));
+                    m_navigation_label->set_text(FileIconProvider::get_display_name(ctx.row_data));
                 }
             });
 
@@ -114,9 +104,9 @@ namespace horizon::arkfm
         refresh(m_current_path);
     }
 
-    ArkfmCoverFlowView::~ArkfmCoverFlowView() = default;
+    FileCoverFlowView::~FileCoverFlowView() = default;
 
-    void ArkfmCoverFlowView::refresh(const std::string &path, const std::string &filter)
+    void FileCoverFlowView::refresh(const std::string &path, const std::string &filter)
     {
         m_current_path = path;
         LOG_INFO << "Refreshing cover flow view for path: " << path << " with filter: " << filter;
@@ -126,29 +116,20 @@ namespace horizon::arkfm
             std::vector<arkutils::FileInfo> visible_files;
 
             std::string filter_lower = filter;
-            std::transform(filter_lower.begin(), filter_lower.end(), filter_lower.begin(),
-                           ::tolower);
+            std::transform(filter_lower.begin(), filter_lower.end(), filter_lower.begin(), ::tolower);
 
             for (const auto &f : files)
             {
-                if (f.is_hidden)
-                    continue;
-
+                if (f.is_hidden) continue;
                 if (!filter.empty())
                 {
-                    std::string display_name = ArkfmFileProvider::get_display_name(f);
-                    std::transform(display_name.begin(), display_name.end(),
-                                   display_name.begin(), ::tolower);
-
-                    if (display_name.find(filter_lower) == std::string::npos)
-                    {
-                        continue;
-                    }
+                    std::string display_name = FileIconProvider::get_display_name(f);
+                    std::transform(display_name.begin(), display_name.end(), display_name.begin(), ::tolower);
+                    if (display_name.find(filter_lower) == std::string::npos) continue;
                 }
-
                 visible_files.push_back(f);
             }
-            update_data(visible_files);
+            update_table(visible_files);
         }
         catch (std::exception &e)
         {
@@ -156,10 +137,21 @@ namespace horizon::arkfm
         }
     }
 
-    void ArkfmCoverFlowView::update_data(const std::vector<arkutils::FileInfo> &files)
+    void FileCoverFlowView::set_context_menu_factory(std::function<std::unique_ptr<horizon::Menu>(const arkutils::FileInfo &)> factory)
+    {
+        m_context_menu_factory = factory;
+        if (m_list_view)
+            m_list_view->set_context_menu_factory(factory);
+    }
+
+    void FileCoverFlowView::set_search_query(const std::string &query)
+    {
+        refresh(m_current_path, query);
+    }
+
+    void FileCoverFlowView::update_table(const std::vector<arkutils::FileInfo> &files)
     {
         m_cover_flow->set_data(files);
         m_list_view->update_table(files);
     }
-
-} // namespace horizon::arkfm
+} // namespace horizon::files

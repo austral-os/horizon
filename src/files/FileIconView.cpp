@@ -1,29 +1,25 @@
-#include "ArkfmIconView.hpp"
-#include "ArkfmFileProvider.hpp"
-#include "ArkfmView.hpp"
-#include "ArkfmWindow.hpp"
-#include "dialogs/PropertiesDialog.hpp"
+#include "horizon/files/FileIconView.hpp"
+#include "horizon/files/FileIconProvider.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/Icon.hpp"
 #include "horizon/Label.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/Menu.hpp"
 #include "horizon/ThemeManager.hpp"
-#include "horizon/WaylandWindow.hpp"
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
 
-namespace horizon::arkfm
+namespace horizon::files
 {
-    class ArkfmIconItem : public Widget
+    class FileIconItem : public Widget
     {
     public:
-        ArkfmIconItem() : Widget()
+        FileIconItem() : Widget()
         {
             auto icon = std::make_unique<Icon>();
             icon->set_position_type(FREE);
-            icon->set_enabled(false); // Propagate events to parent
+            icon->set_enabled(false);
             m_icon_ptr = icon.get();
             add_child(std::move(icon));
 
@@ -31,7 +27,7 @@ namespace horizon::arkfm
             label->set_position_type(FREE);
             label->set_alignment(TextAlignment::Center);
             label->set_vertical_alignment(VerticalAlignment::Middle);
-            label->set_enabled(false); // Propagate events to parent
+            label->set_enabled(false);
             m_label_ptr = label.get();
             add_child(std::move(label));
 
@@ -42,9 +38,9 @@ namespace horizon::arkfm
         {
             m_zoom = zoom;
             m_selected = selected;
-            m_label_ptr->set_text(ArkfmFileProvider::get_display_name(f));
+            m_label_ptr->set_text(FileIconProvider::get_display_name(f));
 
-            std::string icon_name = ArkfmFileProvider::get_icon_name(f);
+            std::string icon_name = FileIconProvider::get_icon_name(f);
 
             m_icon_size = static_cast<int>(48 * m_zoom);
             m_icon_ptr->set_icon_name(icon_name);
@@ -111,7 +107,7 @@ namespace horizon::arkfm
         bool m_selected{false};
     };
 
-    ArkfmIconView::ArkfmIconView(std::string path) : IconView<arkutils::FileInfo>()
+    FileIconView::FileIconView(std::string path) : IconView<arkutils::FileInfo>()
     {
         set_position_type(FILL);
         set_zoom(1.5f);
@@ -124,68 +120,8 @@ namespace horizon::arkfm
         set_item_factory(
             [this](const arkutils::FileInfo &f, float zoom, bool selected)
             {
-                auto item = std::make_unique<ArkfmIconItem>();
+                auto item = std::make_unique<FileIconItem>();
                 item->set_data(f, zoom, selected);
-
-                auto menu = std::make_unique<horizon::Menu>();
-                menu->set_title(ArkfmFileProvider::get_display_name(f));
-
-                ArkfmWindow *win = nullptr;
-                if (auto *app = application())
-                {
-                    win = dynamic_cast<ArkfmWindow *>(app->root());
-                }
-
-                auto open_item = menu->add_item("Abrir");
-                open_item->when_click.connect(
-                    [this](horizon::MouseButtonEventContext &)
-                    {
-                        // IconView doesn't have open_selection, but ArkfmIconView is a child of
-                        // ArkfmView Actually, I can just use win->handle_open() or similar if I
-                        // want to be consistent, but since I'm in the view, I should probably call
-                        // the view's method if it was there. ArkfmListView/ArkfmIconView don't have
-                        // open_selection, it's in ArkfmView. However, ArkfmListView/ArkfmIconView
-                        // are what emit double click signals that ArkfmView listens to. Let's check
-                        // how they are nested. ArkfmView contains ONE ArkfmListView or
-                        // ArkfmIconView.
-                        if (auto *view = dynamic_cast<ArkfmView *>(parent()))
-                        {
-                            view->open_selection();
-                        }
-                    });
-
-                auto rename_item = menu->add_item("Cambiar nombre");
-                rename_item->when_click.connect(
-                    [win, f](horizon::MouseButtonEventContext &)
-                    {
-                        if (win)
-                            win->handle_rename(f.path);
-                    });
-
-                menu->add_separator();
-
-                auto delete_item = menu->add_item("Eliminar");
-                delete_item->when_click.connect(
-                    [win, f](horizon::MouseButtonEventContext &)
-                    {
-                        if (win)
-                            win->handle_delete(f.path);
-                    });
-
-                menu->add_separator();
-
-                auto prop_item = menu->add_item("Propiedades");
-                prop_item->when_click.connect(
-                    [f](horizon::MouseButtonEventContext &)
-                    {
-                        auto dialog = std::make_unique<PropertiesDialog>(f);
-                        dialog->run();
-                    });
-
-                item->set_context_menu(std::move(menu));
-                item->when_right_click.connect([](horizon::MouseButtonEventContext &)
-                                               { });
-
                 return item;
             });
 
@@ -199,49 +135,10 @@ namespace horizon::arkfm
                                                  }
                                              });
 
-        when_right_click.connect(
-            [this](horizon::MouseButtonEventContext &ctx)
-            {
-                auto bg_menu = std::make_unique<horizon::Menu>();
-                bg_menu->set_title("Carpeta");
-
-                ArkfmWindow *win = nullptr;
-                if (auto *app = application())
-                {
-                    win = dynamic_cast<ArkfmWindow *>(app->root());
-                }
-
-                auto rename_item = bg_menu->add_item("Cambiar nombre");
-                rename_item->set_enabled(false);
-
-                bg_menu->add_separator();
-
-                auto delete_item = bg_menu->add_item("Eliminar");
-                delete_item->set_enabled(false);
-
-                bg_menu->add_separator();
-
-                auto bg_prop_item = bg_menu->add_item("Propiedades");
-                bg_prop_item->when_click.connect(
-                    [this](horizon::MouseButtonEventContext &)
-                    {
-                        arkutils::FileInfo f;
-                        f.name = std::filesystem::path(m_current_path).filename().string();
-                        if (f.name.empty())
-                            f.name = "/";
-                        f.path = m_current_path;
-                        f.type = arkutils::FileType::Directory;
-                        auto dialog = std::make_unique<PropertiesDialog>(f);
-                        dialog->run();
-                    });
-
-                set_context_menu(std::move(bg_menu));
-            });
-
         when_application_load.connect([this](EventContext &) { this->refresh(m_current_path); });
     }
 
-    void ArkfmIconView::refresh(const std::string &path, const std::string &filter)
+    void FileIconView::refresh(const std::string &path, const std::string &filter)
     {
         LOG_INFO << "Refreshing icon view for path: " << path << " with filter: " << filter;
         try
@@ -260,7 +157,7 @@ namespace horizon::arkfm
 
                 if (!filter.empty())
                 {
-                    std::string display_name = ArkfmFileProvider::get_display_name(f);
+                    std::string display_name = FileIconProvider::get_display_name(f);
                     std::transform(display_name.begin(), display_name.end(), display_name.begin(),
                                    ::tolower);
 
@@ -280,8 +177,8 @@ namespace horizon::arkfm
         }
     }
 
-    void ArkfmIconView::update_icons(const std::vector<arkutils::FileInfo> &files)
+    void FileIconView::update_icons(const std::vector<arkutils::FileInfo> &files)
     {
         set_data(files);
     }
-} // namespace horizon::arkfm
+} // namespace horizon::files

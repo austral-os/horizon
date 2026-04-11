@@ -3,9 +3,9 @@
 #include <string>
 #include <vector>
 
-namespace horizon::arkfm
+namespace horizon::files
 {
-    class NavigationHistory
+    class FileHistory
     {
     public:
         void push(const std::string &path)
@@ -64,4 +64,4 @@ namespace horizon::arkfm
         std::vector<std::string> m_history;
         std::vector<std::string> m_forward_stack;
     };
-} // namespace horizon::arkfm
+} // namespace horizon::files

@@ -1,12 +1,6 @@
 add_executable(arkfm
     src/main.cpp
     src/ArkfmApplication.cpp
-    src/ArkfmListView.cpp
-    src/ArkfmIconView.cpp
-    src/ArkfmCoverFlowView.cpp
-    src/ArkfmSidebar.cpp
-    src/ArkfmToolbar.cpp
-    src/ArkfmView.cpp
     src/ArkfmWindow.cpp
     src/ArkfmFileProvider.cpp
     src/dialogs/NewFolderDialog.cpp

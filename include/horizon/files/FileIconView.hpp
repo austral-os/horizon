@@ -6,15 +6,20 @@
 #include <memory>
 #include <string>
 
-namespace horizon::arkfm
+namespace horizon::files
 {
-    class ArkfmIconView : public IconView<arkutils::FileInfo>
+    class FileIconView : public IconView<arkutils::FileInfo>
     {
     public:
-        ArkfmIconView(std::string path);
-        ~ArkfmIconView() override = default;
+        FileIconView(std::string path);
+        ~FileIconView() override = default;
 
         void refresh(const std::string &path, const std::string &filter = "");
+        void update_grid(const std::vector<arkutils::FileInfo> &files);
+        void set_context_menu_factory(std::function<std::unique_ptr<Menu>(const arkutils::FileInfo &)> factory)
+        {
+            set_item_menu_factory(factory);
+        }
 
     private:
         void update_icons(const std::vector<arkutils::FileInfo> &files);
@@ -22,4 +27,4 @@ namespace horizon::arkfm
         std::string m_current_path;
         std::unique_ptr<arkutils::FileSystemModel> m_fs_model;
     };
-} // namespace horizon::arkfm
+} // namespace horizon::files

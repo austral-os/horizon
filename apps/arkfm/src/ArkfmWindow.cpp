@@ -1,7 +1,7 @@
 #include "ArkfmWindow.hpp"
-#include "ArkfmSidebar.hpp"
-#include "ArkfmToolbar.hpp"
-#include "ArkfmView.hpp"
+#include <horizon/files/FileSidebar.hpp>
+#include <horizon/files/FileToolbar.hpp>
+#include <horizon/files/FileView.hpp>
 #include "dialogs/NewFolderDialog.hpp"
 #include "dialogs/RenameDialog.hpp"
 #include "dialogs/PropertiesDialog.hpp"
@@ -14,6 +14,7 @@
 #include "horizon/VPanel.hpp"
 #include "horizon/Widget.hpp"
 #include "horizon/arkutils/FileOperations.hpp"
+#include "horizon/Menu.hpp"
 #include <filesystem>
 #include <memory>
 #include <thread>
@@ -24,7 +25,7 @@ namespace horizon::arkfm
     ArkfmWindow::ArkfmWindow(int w, int h) : ApplicationWindow("Ark File Manager")
     {
         set_size(w, h);
-        auto ark_toolbar = std::make_unique<ArkToolbar>();
+        auto ark_toolbar = std::make_unique<files::FileToolbar>();
         auto *ark_toolbar_ptr = ark_toolbar.get();
         toolbar()->add_toolbar_widget(std::move(ark_toolbar));
         show_status_bar();
@@ -32,9 +33,9 @@ namespace horizon::arkfm
         auto vpanel = std::make_unique<horizon::VPanel>();
         vpanel->set_spacing(10);
 
-        auto sidebar = std::make_unique<ArkfmSidebar>();
+        auto sidebar = std::make_unique<files::FileSidebar>();
         auto *sidebar_ptr = sidebar.get();
-        auto view = std::make_unique<ArkfmView>(getenv("HOME") ? getenv("HOME") : "~/");
+        auto view = std::make_unique<files::FileView>(getenv("HOME") ? getenv("HOME") : "~/");
         m_view_ptr = view.get();
         auto *view_ptr = m_view_ptr;
 
@@ -72,7 +73,7 @@ namespace horizon::arkfm
         sb->add_child(horizon::Spacer(10));
 
         ark_toolbar_ptr->when_navigation_clicked.connect(
-            [view_ptr](NavigationButtonClickEvent &ctx)
+            [view_ptr](files::NavigationButtonClickEvent &ctx)
             {
                 if (ctx.index == 0)
                 {
@@ -85,27 +86,63 @@ namespace horizon::arkfm
             });
 
         ark_toolbar_ptr->when_view_mode_changed.connect(
-            [view_ptr](ViewModeChangeEvent &ctx)
+            [view_ptr](files::ViewModeChangeEvent &ctx)
             {
                 if (ctx.view_mode_index == 0)
                 {
-                    view_ptr->set_view_mode(ViewMode::Grid);
+                    view_ptr->set_view_mode(files::ViewMode::Grid);
                 }
                 else if (ctx.view_mode_index == 1)
                 {
-                    view_ptr->set_view_mode(ViewMode::List);
+                    view_ptr->set_view_mode(files::ViewMode::List);
                 }
                 else if (ctx.view_mode_index == 3)
                 {
-                    view_ptr->set_view_mode(ViewMode::CoverFlow);
+                    view_ptr->set_view_mode(files::ViewMode::CoverFlow);
                 }
             });
 
         ark_toolbar_ptr->when_search_changed.connect(
-            [view_ptr](SearchChangedEvent &ctx)
+            [view_ptr](files::SearchChangedEvent &ctx)
             {
                 view_ptr->set_search_query(ctx.query);
             });
+
+        m_view_ptr->set_context_menu_factory([this](const arkutils::FileInfo &f) {
+            auto menu = std::make_unique<horizon::Menu>();
+            
+            auto item_open = menu->add_item("Abrir");
+            item_open->when_click.connect([this, f](auto&) { this->m_view_ptr->open_item(f); });
+            
+            menu->add_separator();
+            
+            auto item_copy = menu->add_item("Copiar");
+            item_copy->when_click.connect([this](auto&) { this->m_view_ptr->perform(ClipboardAction::Copy); });
+            
+            auto item_cut = menu->add_item("Cortar");
+            item_cut->when_click.connect([this](auto&) { this->m_view_ptr->perform(ClipboardAction::Cut); });
+            
+            auto item_paste = menu->add_item("Pegar");
+            item_paste->when_click.connect([this](auto&) { this->m_view_ptr->perform(ClipboardAction::Paste); });
+            
+            menu->add_separator();
+            
+            auto item_rename = menu->add_item("Renombrar");
+            item_rename->when_click.connect([this, f](auto&) { this->handle_rename(f.path); });
+            
+            auto item_delete = menu->add_item("Eliminar");
+            item_delete->when_click.connect([this, f](auto&) { this->handle_delete(f.path); });
+            
+            menu->add_separator();
+            
+            auto item_props = menu->add_item("Propiedades");
+            item_props->when_click.connect([this, f](auto&) { 
+                auto dialog = std::make_unique<PropertiesDialog>(f);
+                dialog->run();
+            });
+            
+            return menu;
+        });
 
         vpanel->add_child(std::move(sidebar));
         vpanel->add_child(std::move(view));

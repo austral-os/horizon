@@ -9,18 +9,20 @@ namespace horizon
     class ProgressBar;
 }
 
+namespace horizon::files
+{
+    class FileView;
+}
+
 namespace horizon::arkfm
 {
-    class ArkfmView;
-
 
     class ArkfmWindow : public ApplicationWindow
     {
     public:
-        ArkfmWindow(int w, int h);
+        ArkfmWindow(int w = 1200, int h = 720);
         ~ArkfmWindow() override = default;
 
-        bool has_clipboard_content() const { return false; } // Stub for now, can be removed later
         void handle_rename(const std::string &path);
         void handle_delete(const std::string &path);
         void handle_open();
@@ -28,13 +30,12 @@ namespace horizon::arkfm
 
         void alert(const std::string &message, const std::string &title = "Alert", horizon::MessageType type = horizon::MessageType::Info);
         bool confirm(const std::string &message, const std::string &title = "Confirm");
-        void show_status_message(const std::string &msg, int timeout_ms = 5000);
+        void show_status_message(const std::string &msg, int timeout_ms = 3000);
 
     private:
-
+        files::FileView *m_view_ptr{nullptr};
         horizon::Label *m_status_label{nullptr};
         horizon::ProgressBar *m_progress_bar{nullptr};
-        ArkfmView *m_view_ptr{nullptr};
 
     };
 

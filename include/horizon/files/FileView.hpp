@@ -1,10 +1,14 @@
+#pragma once
+
 #include "horizon/Widget.hpp"
 #include "horizon/arkutils/FileInfo.hpp"
+#include "horizon/files/FileHistory.hpp"
 #include <memory>
+#include <string>
+#include <vector>
 
-namespace horizon::arkfm
+namespace horizon::files
 {
-
     enum class ViewMode
     {
         List,
@@ -17,11 +21,11 @@ namespace horizon::arkfm
         std::string path;
     };
 
-    class ArkfmView : public Widget
+    class FileView : public Widget
     {
     public:
-        ArkfmView(std::string path = ".");
-        ~ArkfmView() override;
+        FileView(std::string path = ".");
+        ~FileView() override;
 
         void set_view_mode(ViewMode mode);
 
@@ -34,11 +38,16 @@ namespace horizon::arkfm
         void open_item(const arkutils::FileInfo &f);
 
         void set_search_query(const std::string &query);
+        void set_context_menu_factory(std::function<std::unique_ptr<Menu>(const arkutils::FileInfo &)> factory);
 
         bool can_back() const;
         bool can_forward() const;
 
         const std::string &current_path() const;
+
+        // Signals
+        EventsManager<PathChangedEvent> when_path_changed;
+        EventsManager<arkutils::FileInfo> when_item_opened;
 
         // Clipboard integration
         bool supports_clipboard() const override { return true; }
@@ -48,18 +57,16 @@ namespace horizon::arkfm
         std::vector<std::string> provided_mime_types() const override;
         void on_clipboard_data_received(const std::string &mime, const std::vector<uint8_t> &data) override;
 
-    protected:
-        EventsManager<PathChangedEvent> when_path_changed;
-
     private:
         ViewMode m_view_mode;
         std::string m_current_path;
         std::string m_search_query;
-        std::unique_ptr<class NavigationHistory> m_history;
+        std::unique_ptr<FileHistory> m_history;
 
         // Clipboard state
         std::vector<std::string> m_clipboard_paths;
         bool m_is_cut = false;
-    };
 
-} // namespace horizon::arkfm
+        std::function<std::unique_ptr<Menu>(const arkutils::FileInfo &)> m_context_menu_factory;
+    };
+} // namespace horizon::files

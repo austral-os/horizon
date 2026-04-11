@@ -4,6 +4,7 @@
 #include <functional>
 #include <horizon/ScrollArea.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/Menu.hpp>
 #include <memory>
 #include <vector>
 
@@ -119,6 +120,12 @@ namespace horizon
             rebuild_items();
         }
 
+        void set_item_menu_factory(std::function<std::unique_ptr<Menu>(const T &)> factory)
+        {
+            m_item_menu_factory = factory;
+            rebuild_items();
+        }
+
         void refresh()
         {
             rebuild_items();
@@ -178,7 +185,16 @@ namespace horizon
                                     m_last_item_click_button = ctx.button;
                                 }
                             }
+                            else if (ctx.button == 0x111) // Right click
+                            {
+                                set_selected_index(i);
+                            }
                         });
+
+                    if (m_item_menu_factory)
+                    {
+                        item_widget->set_context_menu(m_item_menu_factory(m_data[i]));
+                    }
 
                     m_content_pane->add_child(std::move(item_widget));
                 }
@@ -191,5 +207,6 @@ namespace horizon
     private:
         std::vector<T> m_data;
         ItemFactory m_item_factory;
+        std::function<std::unique_ptr<Menu>(const T &)> m_item_menu_factory;
     };
 } // namespace horizon

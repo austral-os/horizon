@@ -1,11 +1,11 @@
-#include "ArkfmSidebar.hpp"
+#include "horizon/files/FileSidebar.hpp"
 #include <horizon/XdgUserDirs.hpp>
+#include <horizon/SidebarItem.hpp>
 #include <cstdlib>
 
-namespace horizon::arkfm
+namespace horizon::files
 {
-
-    ArkfmSidebar::ArkfmSidebar() : Sidebar()
+    FileSidebar::FileSidebar() : Sidebar()
     {
         add_group("Favorites");
 
@@ -34,5 +34,4 @@ namespace horizon::arkfm
         item_downloads->set_path(horizon::XdgUserDirs::get_download());
         add_item("Favorites", std::move(item_downloads));
     }
-
-} // namespace horizon::arkfm
+} // namespace horizon::files

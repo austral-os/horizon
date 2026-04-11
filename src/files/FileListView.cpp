@@ -1,8 +1,5 @@
-#include "ArkfmListView.hpp"
-#include "ArkfmFileProvider.hpp"
-#include "ArkfmView.hpp"
-#include "ArkfmWindow.hpp"
-#include "dialogs/PropertiesDialog.hpp"
+#include "horizon/files/FileListView.hpp"
+#include "horizon/files/FileIconProvider.hpp"
 #include "horizon/Logger.hpp"
 #include <algorithm>
 #include <cctype>
@@ -10,11 +7,10 @@
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Menu.hpp>
-#include <horizon/WaylandWindow.hpp>
 
-namespace horizon::arkfm
+namespace horizon::files
 {
-    ArkfmListView::ArkfmListView(std::string path)
+    FileListView::FileListView(std::string path)
     {
         m_current_path = path;
         m_fs_model = std::make_unique<arkutils::FileSystemModel>();
@@ -29,8 +25,7 @@ namespace horizon::arkfm
         {
             auto icon = std::make_unique<Icon>();
             icon->set_icon_size(24);
-
-            icon->set_icon_name(ArkfmFileProvider::get_icon_name(f));
+            icon->set_icon_name(FileIconProvider::get_icon_name(f));
             return icon;
         };
 
@@ -40,7 +35,7 @@ namespace horizon::arkfm
         col_name.width = 300;
         col_name.cell_factory = [](const arkutils::FileInfo &f)
         {
-            auto lbl = std::make_unique<Label>(ArkfmFileProvider::get_display_name(f));
+            auto lbl = std::make_unique<Label>(FileIconProvider::get_display_name(f));
             if (f.type == arkutils::FileType::Directory)
             {
                 lbl->set_font_weight(FONT_WEIGHT_BOLD);
@@ -87,10 +82,6 @@ namespace horizon::arkfm
         add_column(col_size);
         add_column(col_mod);
 
-        // Handle row selection
-        // We don't navigate here anymore, parent ArkfmView handles this via the same signal.
-        // We keep it empty or remove it if not needed, but signal is public so others can use it.
-
         m_fs_model->signal_manager().connect(arkutils::FileSystemModel::SIGNAL_DIRECTORY_CHANGED,
                                              [this](SignalContext &ctx)
                                              {
@@ -101,103 +92,10 @@ namespace horizon::arkfm
                                                  }
                                              });
 
-        // Dynamically update background menu before showing
-        when_right_click.connect(
-            [this](horizon::MouseButtonEventContext &ctx)
-            {
-                auto bg_menu = std::make_unique<horizon::Menu>();
-                bg_menu->set_title("Carpeta");
-
-                ArkfmWindow *win = nullptr;
-                if (auto *app = application())
-                {
-                    win = dynamic_cast<ArkfmWindow *>(app->root());
-                }
-
-                auto rename_item = bg_menu->add_item("Cambiar nombre");
-                rename_item->set_enabled(false);
-
-                bg_menu->add_separator();
-
-                auto delete_item = bg_menu->add_item("Eliminar");
-                delete_item->set_enabled(false);
-
-                bg_menu->add_separator();
-
-                auto bg_prop_item = bg_menu->add_item("Propiedades");
-                bg_prop_item->when_click.connect(
-                    [this](horizon::MouseButtonEventContext &)
-                    {
-                        arkutils::FileInfo f;
-                        f.name = std::filesystem::path(m_current_path).filename().string();
-                        if (f.name.empty())
-                            f.name = "/";
-                        f.path = m_current_path;
-                        f.type = arkutils::FileType::Directory;
-                        auto dialog = std::make_unique<PropertiesDialog>(f);
-                        dialog->run();
-                    });
-
-                set_context_menu(std::move(bg_menu));
-            });
-
         when_application_load.connect([this](EventContext &) { this->refresh(m_current_path); });
-
-        set_row_menu_factory(
-            [this](const arkutils::FileInfo &f)
-            {
-                auto menu = std::make_unique<horizon::Menu>();
-                menu->set_title(ArkfmFileProvider::get_display_name(f));
-
-                ArkfmWindow *win = nullptr;
-                if (auto *app = application())
-                {
-                    win = dynamic_cast<ArkfmWindow *>(app->root());
-                }
-
-                auto open_item = menu->add_item("Abrir");
-                open_item->when_click.connect(
-                    [this](horizon::MouseButtonEventContext &)
-                    {
-                        if (auto *view = dynamic_cast<ArkfmView *>(parent()))
-                        {
-                            view->open_selection();
-                        }
-                    });
-
-                auto rename_item = menu->add_item("Cambiar nombre");
-                rename_item->when_click.connect(
-                    [win, f](horizon::MouseButtonEventContext &)
-                    {
-                        if (win)
-                            win->handle_rename(f.path);
-                    });
-
-                menu->add_separator();
-
-                auto delete_item = menu->add_item("Eliminar");
-                delete_item->when_click.connect(
-                    [win, f](horizon::MouseButtonEventContext &)
-                    {
-                        if (win)
-                            win->handle_delete(f.path);
-                    });
-
-                menu->add_separator();
-
-                auto prop_item = menu->add_item("Propiedades");
-                prop_item->when_click.connect(
-                    [f](horizon::MouseButtonEventContext &)
-                    {
-                        auto dialog = std::make_unique<PropertiesDialog>(f);
-                        dialog->run();
-                    });
-
-                return menu;
-            });
     }
 
-    void ArkfmListView::refresh(const std::string &path, const std::string &filter)
+    void FileListView::refresh(const std::string &path, const std::string &filter)
     {
         LOG_INFO << "Refreshing list view for path: " << path << " with filter: " << filter;
         try
@@ -216,7 +114,7 @@ namespace horizon::arkfm
 
                 if (!filter.empty())
                 {
-                    std::string display_name = ArkfmFileProvider::get_display_name(f);
+                    std::string display_name = FileIconProvider::get_display_name(f);
                     std::transform(display_name.begin(), display_name.end(), display_name.begin(),
                                    ::tolower);
 
@@ -236,12 +134,11 @@ namespace horizon::arkfm
         }
     }
 
-    void ArkfmListView::update_table(const std::vector<arkutils::FileInfo> &files)
+    void FileListView::update_table(const std::vector<arkutils::FileInfo> &files)
     {
         try
         {
             LOG_INFO << "Updating table with " << files.size() << " files.";
-            // TableView stores data by value, copy it.
             std::vector<arkutils::FileInfo> files_copy = files;
             this->set_data(std::move(files_copy));
         }
@@ -251,4 +148,4 @@ namespace horizon::arkfm
         }
     }
 
-} // namespace horizon::arkfm
+} // namespace horizon::files
