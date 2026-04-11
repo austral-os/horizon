@@ -186,9 +186,21 @@ static VTermScreenCell get_cell_at(int r, int c, int size, int offset, TerminalC
             cell = line.cells[c];
         }
     } else if (history_index >= size) {
-
         vterm_screen_get_cell(ctrl->get_screen(), {history_index - size, c}, &cell);
     }
+
+    // Ensure colors are converted to RGB for drawing and comparison
+    VTermScreen* screen = ctrl->get_screen();
+    vterm_screen_convert_color_to_rgb(screen, &cell.fg);
+    vterm_screen_convert_color_to_rgb(screen, &cell.bg);
+
+    // Handle "Reverse Video" attribute (libvterm doesn't swap them automatically in the struct)
+    if (cell.attrs.reverse) {
+        VTermColor temp = cell.fg;
+        cell.fg = cell.bg;
+        cell.bg = temp;
+    }
+
     return cell;
 }
 
@@ -243,8 +255,8 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
             double y_pos = y() + r * m_char_height;
 
             // Draw segment background
+            // We use converted RGB values. If bg is not the default background, draw it.
             if (!VTERM_COLOR_IS_DEFAULT_BG(&cell.bg)) {
-                vterm_screen_convert_color_to_rgb(screen, &cell.bg);
                 cairo_set_source_rgb(cr, cell.bg.rgb.red / 255.0, cell.bg.rgb.green / 255.0, cell.bg.rgb.blue / 255.0);
                 cairo_rectangle(cr, x_pos, y_pos, (c - start_c) * m_char_width, m_char_height);
                 cairo_fill(cr);
@@ -272,12 +284,8 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
                     current_x += (glyph_pos[i].x_advance / 64.0);
                 }
 
-                if (!VTERM_COLOR_IS_DEFAULT_FG(&cell.fg)) {
-                    vterm_screen_convert_color_to_rgb(screen, &cell.fg);
-                    cairo_set_source_rgb(cr, cell.fg.rgb.red / 255.0, cell.fg.rgb.green / 255.0, cell.fg.rgb.blue / 255.0);
-                } else {
-                    cairo_set_source_rgb(cr, 0.9, 0.9, 0.9);
-                }
+                // Set text color using converted RGB
+                cairo_set_source_rgb(cr, cell.fg.rgb.red / 255.0, cell.fg.rgb.green / 255.0, cell.fg.rgb.blue / 255.0);
 
                 cairo_show_glyphs(cr, cairo_glyphs.data(), glyph_count);
             }

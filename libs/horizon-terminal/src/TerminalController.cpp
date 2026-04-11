@@ -33,6 +33,16 @@ TerminalController::TerminalController(int rows, int cols) {
     vterm_set_utf8(m_vt, 1);
     m_screen = vterm_obtain_screen(m_vt);
     vterm_screen_enable_altscreen(m_screen, 1);
+    
+    // Set default colors (matches TerminalWidget theme)
+    VTermState* state = vterm_obtain_state(m_vt);
+    VTermColor fg_color, bg_color;
+    fg_color.type = VTERM_COLOR_RGB;
+    fg_color.rgb.red = 230; fg_color.rgb.green = 230; fg_color.rgb.blue = 230;
+    bg_color.type = VTERM_COLOR_RGB;
+    bg_color.rgb.red = 13; bg_color.rgb.green = 13; bg_color.rgb.blue = 13;
+    vterm_state_set_default_colors(state, &fg_color, &bg_color);
+
     vterm_screen_reset(m_screen, 1);
 
     static VTermScreenCallbacks screen_callbacks = {
