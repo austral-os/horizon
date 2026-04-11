@@ -54,7 +54,7 @@ dialog->set_current_path("/home/user/Documents");
 ```cpp
 FileDialog(FileDialogMode mode, const std::string &title = "");
 ```
-*   `mode`: El modo de operación (`Open`, `Save`, etc.).
+*   `mode`: El modo de operación (`Open`, `Save`, `SaveAs`, `SelectFolder` o `New`).
 *   `title`: El título que se mostrará en la barra de la ventana. Si se deja vacío, se usará un valor por defecto según el modo.
 
 ### Métodos
@@ -67,7 +67,7 @@ FileDialog(FileDialogMode mode, const std::string &title = "");
 
 ## 4. Detalles de Implementación y Navegación
 
-*   **Barra Lateral (Sidebar)**: Permite accesos rápidos a carpetas del sistema (Home, Desktop, Documents, etc.).
+*   **Barra Lateral (Sidebar)**: Permite accesos rápidos a carpetas del sistema como **All My Files**, **Aplicaciones**, **Desktop**, **Documents**, **Downloads** e **iCloud Drive**.
 *   **Búsqueda**: La barra de herramientas incluye un campo de búsqueda filtrada en tiempo real.
 *   **Modos de Vista**: El usuario puede alternar entre vista de **Iconos (Grid)**, **Lista (List)** y **CoverFlow** a través de los controles en la barra de herramientas.
 *   **Navegación**: Soporta navegación hacia atrás y hacia adelante, similar a un navegador web.
