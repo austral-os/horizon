@@ -1,6 +1,7 @@
 # MessageDialog System
 
-Horizon provides a standardized way to display simple message dialogs, such as alerts and confirmations. These dialogs are integrated into the core `Application` class for ease of use.
+Horizon provides a standardized way to display simple message dialogs, such as alerts and confirmations. These dialogs are integrated into the core `WaylandWindow` class, making them accessible from any window or widget in the framework.
+
 
 ## Overview
 
@@ -13,48 +14,49 @@ The `MessageDialog` system supports four types of messages, each with its own vi
 
 ## Basic Usage
 
-The easiest way to show dialogs is using the `Application` methods. These methods handle the window lifecycle and event loop integration for you.
+The easiest way to show dialogs is using the `WaylandWindow` methods. Since every `Widget` has access to its parent window via the `application()` method, you can trigger dialogs from anywhere in your UI.
+
 
 ### Alerts
 
 An alert is a non-blocking dialog (from the perspective of the application's internal tasks, though it's technically a child window) that displays a message and an "Accept" button.
 
 ```cpp
-#include <horizon/Application.hpp>
+#include <horizon/WaylandWindow.hpp>
 
-// ... inside your application logic
-app().alert("This is an information message.", "Information", MessageType::Info);
+// ... inside a Widget's event handler
+application()->alert("This is an information message.", "Information", MessageType::Info);
 ```
 
 **Signature:**
 ```cpp
-void Application::alert(const std::string &message, 
-                        const std::string &title = "Alert", 
-                        MessageType type = MessageType::Info);
+void WaylandWindow::alert(const std::string &message, 
+                         const std::string &title = "Alert", 
+                         MessageType type = MessageType::Info);
 ```
+
 
 ### Confirmations
 
 A confirmation dialog allows the user to choice between "Accept" and "Cancel". The `confirm` method is **blocking**; it waits for the user to respond and returns a boolean.
 
 ```cpp
-#include <horizon/Application.hpp>
+#include <horizon/WaylandWindow.hpp>
 
-// ... inside your application logic
-if (app().confirm("Are you sure you want to delete this file?", "Confirm Delete")) {
+// ... inside a Widget's event handler
+if (application()->confirm("Are you sure you want to delete this file?", "Confirm Delete")) {
     // User clicked Accept
     delete_file();
-} else {
-    // User clicked Cancel or closed the dialog
 }
 ```
 
 **Signature:**
 ```cpp
-bool Application::confirm(const std::string &message, 
-                         const std::string &title = "Confirm", 
-                         MessageType type = MessageType::Question);
+bool WaylandWindow::confirm(const std::string &message, 
+                           const std::string &title = "Confirm", 
+                           MessageType type = MessageType::Question);
 ```
+
 
 > [!WARNING]
 > Since `confirm()` is blocking, it should only be called when you want to stop the current execution flow until the user responds.
@@ -89,6 +91,8 @@ dialog->when_responded.connect([](MessageResponseEvent res) {
 
 ## Reference
 
+These enums are defined in `<horizon/DialogTypes.hpp>` and are shared across the framework to avoid circular dependencies.
+
 ### `MessageType`
 ```cpp
 enum class MessageType {
@@ -106,3 +110,4 @@ enum class MessageResponse {
     Cancel
 };
 ```
+

@@ -11,6 +11,8 @@
 #include <horizon/Logger.hpp>
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/I18n.hpp>
+#include <horizon/MessageDialog.hpp>
+#include <horizon/DialogTypes.hpp>
 #include "WaylandClipboardBackend.hpp"
 #include "MainThreadDataSink.hpp"
 
@@ -2581,4 +2583,31 @@ namespace horizon
         return nullptr;
     }
 
+
+    void WaylandWindow::alert(const std::string &message, const std::string &title, MessageType type)
+    {
+        auto dialog = std::make_unique<MessageDialog>(title, message, type, false);
+        std::thread([d = std::move(dialog)]() mutable {
+            d->initialize();
+            d->run();
+        }).detach();
+    }
+
+    bool WaylandWindow::confirm(const std::string &message, const std::string &title, MessageType type)
+    {
+        auto dialog = std::make_unique<MessageDialog>(title, message, type, true);
+        std::promise<bool> promise;
+        auto future = promise.get_future();
+
+        dialog->when_responded.connect([&promise](MessageResponseEvent res) {
+            promise.set_value(res.response == MessageResponse::Accept);
+        });
+
+        std::thread([d = std::move(dialog)]() mutable {
+            d->initialize();
+            d->run();
+        }).detach();
+
+        return future.get();
+    }
 } // namespace horizon

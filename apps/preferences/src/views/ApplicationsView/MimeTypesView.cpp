@@ -381,15 +381,10 @@ namespace horizon::preferences
         MimeExtension ext = extens[idx];
 
         if (!ext.is_user) {
-            auto dialog = std::make_unique<MessageDialog>(
-                i18n().tr("preferences.common.error"), 
+            application()->alert(
                 i18n().tr("preferences.applications.mime_types.error_remove_system_ext"),
+                i18n().tr("preferences.common.error"), 
                 MessageType::Warning);
-            
-            std::thread([d = std::move(dialog)]() mutable {
-                d->initialize();
-                d->run();
-            }).detach();
             return;
         }
 

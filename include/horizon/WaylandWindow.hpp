@@ -12,7 +12,9 @@
 #include <deque>
 #include "horizon/WaylandEventListener.hpp"
 #include "horizon/Clipboard.hpp"
+#include <horizon/DialogTypes.hpp>
 #include <mutex>
+#include <future>
 
 namespace horizon
 {
@@ -254,8 +256,17 @@ namespace horizon
          * @brief Requests the window to exit fullscreen mode.
          */
         void unfullscreen();
-
         void set_blur(bool enabled);
+
+        /**
+         * @brief Shows an alert dialog.
+         */
+        void alert(const std::string &message, const std::string &title = "Alert", MessageType type = MessageType::Info);
+
+        /**
+         * @brief Shows a confirmation dialog and returns true if accepted.
+         */
+        bool confirm(const std::string &message, const std::string &title = "Confirm", MessageType type = MessageType::Question);
 
         // --- Application Metadata ---
         const std::string &app_id() const

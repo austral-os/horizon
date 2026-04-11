@@ -1,5 +1,5 @@
 #include <horizon/AquaObject.hpp>
-#include <horizon/MessageDialog.hpp>
+
 #include <horizon/Spacer.hpp>
 #include <horizon/TextBoxPolicies.hpp>
 #include <iostream>

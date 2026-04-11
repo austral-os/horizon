@@ -5,8 +5,8 @@
 #include "dialogs/NewFolderDialog.hpp"
 #include "dialogs/RenameDialog.hpp"
 #include "dialogs/PropertiesDialog.hpp"
-#include "horizon/MessageDialog.hpp"
 #include "horizon/ApplicationWindow.hpp"
+#include <horizon/DialogTypes.hpp>
 #include "horizon/Label.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/ProgressBar.hpp"
@@ -193,7 +193,7 @@ namespace horizon::arkfm
 
             if (std::filesystem::exists(new_path))
             {
-                alert("Ya existe un archivo o carpeta con el nombre '" + ctx.new_name + "' en esta ubicación.", "Error al renombrar", MessageType::Error);
+                application()->alert("Ya existe un archivo o carpeta con el nombre '" + ctx.new_name + "' en esta ubicación.", "Error al renombrar", MessageType::Error);
                 return;
             }
 
@@ -211,7 +211,7 @@ namespace horizon::arkfm
                         }
                         else
                         {
-                            alert("No se pudo renombrar el archivo o carpeta.", "Error", MessageType::Error);
+                            application()->alert("No se pudo renombrar el archivo o carpeta.", "Error", MessageType::Error);
                         }
                     });
                 }
@@ -223,7 +223,7 @@ namespace horizon::arkfm
     void ArkfmWindow::handle_delete(const std::string &path)
     {
         std::string filename = std::filesystem::path(path).filename().string();
-        if (confirm("¿Está seguro que desea eliminar '" + filename + "'?", "Confirmar eliminación"))
+        if (application()->confirm("¿Está seguro que desea eliminar '" + filename + "'?", "Confirmar eliminación"))
         {
             show_status_message("Eliminando...");
             auto future = arkutils::FileOperations::remove(path);
@@ -240,7 +240,7 @@ namespace horizon::arkfm
                         }
                         else
                         {
-                            alert("Error al intentar eliminar el archivo o carpeta.", "Error", MessageType::Error);
+                            application()->alert("Error al intentar eliminar el archivo o carpeta.", "Error", MessageType::Error);
                         }
                     });
                 }
@@ -278,33 +278,7 @@ namespace horizon::arkfm
         dialog->run();
     }
 
-    void ArkfmWindow::alert(const std::string &message, const std::string &title, horizon::MessageType type)
-    {
-        auto dialog = std::make_unique<horizon::MessageDialog>(title, message, type, false);
-        // We use a detached thread to run the dialog, similar to how Application does it but locally
-        std::thread([d = std::move(dialog)]() mutable {
-            d->initialize();
-            d->run();
-        }).detach();
-    }
 
-    bool ArkfmWindow::confirm(const std::string &message, const std::string &title)
-    {
-        auto dialog = std::make_unique<horizon::MessageDialog>(title, message, horizon::MessageType::Question, true);
-        std::promise<bool> promise;
-        auto future = promise.get_future();
-
-        dialog->when_responded.connect([&promise](horizon::MessageResponseEvent ev) {
-            promise.set_value(ev.response == horizon::MessageResponse::Accept);
-        });
-
-        std::thread([d = std::move(dialog)]() mutable {
-            d->initialize();
-            d->run();
-        }).detach();
-
-        return future.get();
-    }
 
     void ArkfmWindow::show_status_message(const std::string &msg, int timeout_ms)
     {

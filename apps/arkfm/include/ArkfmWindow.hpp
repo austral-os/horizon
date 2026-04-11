@@ -1,7 +1,6 @@
 #pragma once
 
 #include <horizon/ApplicationWindow.hpp>
-#include <horizon/MessageDialog.hpp>
 
 namespace horizon
 {
@@ -28,8 +27,7 @@ namespace horizon::arkfm
         void handle_open();
         void handle_properties();
 
-        void alert(const std::string &message, const std::string &title = "Alert", horizon::MessageType type = horizon::MessageType::Info);
-        bool confirm(const std::string &message, const std::string &title = "Confirm");
+
         void show_status_message(const std::string &msg, int timeout_ms = 3000);
 
     private:

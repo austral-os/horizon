@@ -2,6 +2,7 @@
 
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/EventsManager.hpp>
+#include <horizon/DialogTypes.hpp>
 #include <string>
 
 namespace horizon
@@ -10,19 +11,7 @@ namespace horizon
     template <typename T> class Button;
     class AquaObject;
 
-    enum class MessageType
-    {
-        Info,
-        Warning,
-        Error,
-        Question
-    };
 
-    enum class MessageResponse
-    {
-        Accept,
-        Cancel
-    };
 
     struct MessageResponseEvent : public EventContext
     {
