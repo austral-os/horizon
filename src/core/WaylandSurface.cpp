@@ -188,6 +188,9 @@ namespace horizon
     {
         m_egl_display = eglGetDisplay((EGLNativeDisplayType)m_display);
         if (m_egl_display == EGL_NO_DISPLAY) throw std::runtime_error("Failed to get EGL display");
+        
+        eglBindAPI(EGL_OPENGL_ES_API);
+        
         if (!eglInitialize(m_egl_display, nullptr, nullptr)) throw std::runtime_error("Failed to initialize EGL");
 
         EGLint attr[] = {EGL_SURFACE_TYPE, EGL_WINDOW_BIT, EGL_RED_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_BLUE_SIZE, 8, EGL_ALPHA_SIZE, 8, EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT, EGL_NONE};

@@ -45,7 +45,8 @@ namespace horizon
         "uniform float u_gradient_end;\n"
         "void main() {\n"
         "    float gradient = mix(u_gradient_start, u_gradient_end, v_texcoord.y);\n"
-        "    gl_FragColor = texture2D(u_texture, v_texcoord).bgra * u_opacity * gradient;\n"
+        "    vec4 tex = texture2D(u_texture, v_texcoord);\n"
+        "    gl_FragColor = vec4(tex.b, tex.g, tex.r, tex.a) * u_opacity * gradient;\n"
         "}\n";
 
     WaylandWindow::WaylandWindow(std::string app_id, int w, int h, bool defer_init, bool resizable,
@@ -1769,7 +1770,7 @@ namespace horizon
         {
             char info[512];
             glGetShaderInfoLog(shader, 512, nullptr, info);
-            LOG_ERROR << "Shader compilation failed: " << info;
+            LOG_ERROR << "Shader compilation failed:\n" << info << "\nSource:\n" << source;
         }
         return shader;
     }

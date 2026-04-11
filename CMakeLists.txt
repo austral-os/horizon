@@ -167,6 +167,15 @@ target_link_libraries(dialog_demo
         horizon
 )
 
+add_executable(file_picker_demo
+    examples/file_picker_demo.cpp
+)
+
+target_link_libraries(file_picker_demo
+    PRIVATE
+        horizon
+)
+
 add_executable(min_size_test
     examples/min_size_test.cpp
 )
