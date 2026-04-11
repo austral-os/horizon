@@ -1,9 +1,8 @@
 #pragma once
 
 #include "horizon/ApplicationWindow.hpp"
-#include "TerminalWidget.hpp"
-#include <memory>
-#include <string>
+#include "TerminalToolbar.hpp"
+#include <horizon/TabCollection.hpp>
 
 namespace horizon {
 namespace terminal {
@@ -13,8 +12,11 @@ public:
     TerminalWindow();
     ~TerminalWindow() = default;
 
+    void create_new_tab();
+
 private:
-    TerminalWidget* m_terminal;
+    TabCollection* m_tabs;
+    TerminalToolbar* m_toolbar;
 };
 
 } // namespace terminal
