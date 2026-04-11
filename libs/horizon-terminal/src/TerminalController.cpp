@@ -32,6 +32,7 @@ TerminalController::TerminalController(int rows, int cols) {
     m_vt = vterm_new(rows, cols);
     vterm_set_utf8(m_vt, 1);
     m_screen = vterm_obtain_screen(m_vt);
+    vterm_screen_enable_altscreen(m_screen, 1);
     vterm_screen_reset(m_screen, 1);
 
     static VTermScreenCallbacks screen_callbacks = {
@@ -75,7 +76,7 @@ int TerminalController::screen_damage(VTermRect rect, void *user) {
     if (self->m_damage_cb) {
         self->m_damage_cb(rect);
     }
-    return 1;
+    return 0;
 }
 
 int TerminalController::screen_moverect(VTermRect dest, VTermRect src, void *user) {
@@ -84,7 +85,7 @@ int TerminalController::screen_moverect(VTermRect dest, VTermRect src, void *use
     if (self->m_damage_cb) {
         self->m_damage_cb(dest);
     }
-    return 1;
+    return 0;
 }
 
 int TerminalController::screen_movecursor(VTermPos pos, VTermPos oldpos, int visible, void *user) {
@@ -92,24 +93,40 @@ int TerminalController::screen_movecursor(VTermPos pos, VTermPos oldpos, int vis
     if (self->m_move_cursor_cb) {
         self->m_move_cursor_cb(pos);
     }
-    return 1;
+    return 0;
 }
 
 int TerminalController::screen_settermprop(VTermProp prop, VTermValue *val, void *user) {
-    return 1;
+    auto self = static_cast<TerminalController*>(user);
+    if (prop == VTERM_PROP_ALTSCREEN) {
+        self->m_is_altscreen = val->boolean;
+        // Invalidate full screen when switching buffers
+        if (self->m_damage_cb) {
+            int rows, cols;
+            vterm_get_size(self->m_vt, &rows, &cols);
+            VTermRect rect = {0, rows, 0, cols};
+            self->m_damage_cb(rect);
+        }
+    }
+    return 0;
 }
 
 int TerminalController::screen_bell(void *user) {
-    return 1;
+    return 0;
 }
 
 int TerminalController::screen_resize(int rows, int cols, void *user) {
-    return 1;
+    return 0;
 }
 
 int TerminalController::screen_sb_pushline(int cols, const VTermScreenCell *cells, void *user) {
     auto self = static_cast<TerminalController*>(user);
     
+    // Do not push to scrollback if we are in the alternative screen
+    if (self->m_is_altscreen) {
+        return 1;
+    }
+
     // El scrollback de libvterm empuja la línea 0 (la de arriba) cuando hay scroll hacia abajo.
     VTermState* state = vterm_obtain_state(self->m_vt);
     const VTermLineInfo* info = vterm_state_get_lineinfo(state, 0);
