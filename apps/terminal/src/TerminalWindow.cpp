@@ -46,8 +46,18 @@ TerminalWindow::TerminalWindow()
     });
 
     m_toolbar->when_fullscreen_clicked.connect([this](FullscreenClickEvent &) {
-        LOG_INFO << "[TERMINAL] Fullscreen clicked";
-        set_immersive_mode(!m_is_immersive);
+        if (!application()) return;
+
+        LOG_INFO << "[TERMINAL] Fullscreen toggle clicked";
+        if (application()->is_fullscreen()) {
+            application()->unfullscreen();
+        } else {
+            // Ensure we have a focused terminal to target
+            if (m_tabs->current_tab_body()) {
+                m_tabs->current_tab_body()->set_focus(true);
+            }
+            application()->fullscreen();
+        }
     });
 
     m_toolbar->when_preferences_clicked.connect([this](PreferencesClickEvent &) {
@@ -63,6 +73,15 @@ void TerminalWindow::create_new_tab() {
     
     // Initialize the terminal shell
     ptr->spawn();
+
+    // Sincronizar el modo inmersivo con las señales de pantalla completa del widget
+    ptr->when_enter_fullscreen.connect([this](FullscreenEventContext &) {
+        this->set_immersive_mode(true);
+    });
+
+    ptr->when_leave_fullscreen.connect([this](FullscreenEventContext &) {
+        this->set_immersive_mode(false);
+    });
 
     m_tabs->add_tab(i18n().tr("terminal.title"), std::move(terminal));
     
