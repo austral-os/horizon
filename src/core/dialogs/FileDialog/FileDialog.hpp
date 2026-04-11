@@ -1,9 +1,9 @@
 #pragma once
 
 #include "horizon/WaylandWindow.hpp"
+#include "horizon/EventsManager.hpp"
 #include <string>
 #include <vector>
-#include <functional>
 
 namespace horizon::files
 {
@@ -17,6 +17,17 @@ namespace horizon
     class TextBoxBase;
     class Combo;
     class Label;
+
+    class FileDialogAcceptedContext : public EventContext
+    {
+    public:
+        std::string selected_path;
+    };
+
+    class FileDialogCancelledContext : public EventContext
+    {
+    public:
+    };
 
     enum class FileDialogMode
     {
@@ -36,8 +47,8 @@ namespace horizon
         void set_current_path(const std::string &path);
         std::string selected_path() const;
 
-        std::function<void(const std::string &)> on_accepted;
-        std::function<void()> on_cancelled;
+        EventsManager<FileDialogAcceptedContext> when_accepted;
+        EventsManager<FileDialogCancelledContext> when_cancelled;
 
     private:
         void setup_ui();

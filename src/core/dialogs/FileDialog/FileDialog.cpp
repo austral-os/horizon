@@ -138,8 +138,9 @@ namespace horizon
         btn_cancel->when_click.connect(
             [this](MouseButtonEventContext &)
             {
-                if (on_cancelled)
-                    on_cancelled();
+                FileDialogCancelledContext ctx;
+                ctx.sender = this;
+                when_cancelled.run(ctx);
                 on_close();
             });
 
@@ -199,8 +200,12 @@ namespace horizon
         }
 
         std::filesystem::path p = std::filesystem::path(m_view->current_path()) / filename;
-        if (on_accepted)
-            on_accepted(p.string());
+        
+        FileDialogAcceptedContext ctx;
+        ctx.sender = this;
+        ctx.selected_path = p.string();
+        when_accepted.run(ctx);
+        
         on_close();
     }
 

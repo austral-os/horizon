@@ -38,12 +38,12 @@ int main(int argc, char** argv)
             auto dialog = std::make_unique<FileDialog>(FileDialogMode::Open, "Selecciona un archivo");
             
             // Configurar qué pasa cuando se acepta un archivo
-            dialog->on_accepted = [btn_ptr](const std::string& path) {
-                std::filesystem::path p(path);
+            dialog->when_accepted.connect([btn_ptr](horizon::FileDialogAcceptedContext &ctx) {
+                std::filesystem::path p(ctx.selected_path);
                 // Cambiar el label del botón al nombre del archivo
                 btn_ptr->set_text(p.filename().string());
-                LOG_INFO << "Archivo seleccionado: " << path;
-            };
+                LOG_INFO << "Archivo seleccionado: " << ctx.selected_path;
+            });
 
             // Ejecutar el diálogo de forma síncrona en el hilo principal (Patrón ArkFM)
             // Esto bloquea la ventana padre, haciéndola modal.

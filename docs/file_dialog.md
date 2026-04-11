@@ -31,15 +31,15 @@ auto dialog = std::make_unique<horizon::FileDialog>(
 );
 
 // Configurar qué hacer cuando el usuario selecciona un archivo
-dialog->on_accepted = [](const std::string& path) {
-    LOG_INFO("Archivo seleccionado: {}", path);
-    // Lógica para abrir el archivo en p
-};
+dialog->when_accepted.connect([](horizon::FileDialogAcceptedContext &ctx) {
+    LOG_INFO("Archivo seleccionado: {}", ctx.selected_path);
+    // Lógica para abrir el archivo
+});
 
 // Configurar qué hacer si el usuario cancela
-dialog->on_cancelled = []() {
+dialog->when_cancelled.connect([](horizon::FileDialogCancelledContext &ctx) {
     LOG_INFO("Selección cancelada");
-};
+});
 
 // Establecer la ruta inicial (opcional)
 dialog->set_current_path("/home/user/Documents");
@@ -61,9 +61,9 @@ FileDialog(FileDialogMode mode, const std::string &title = "");
 *   `void set_current_path(const std::string &path)`: Cambia el directorio actual que muestra el diálogo.
 *   `std::string selected_path() const`: Retorna la ruta completa actualmente ingresada o seleccionada en el diálogo.
 
-### Callbacks (Signals)
-*   `on_accepted`: `std::function<void(const std::string &)>`. Se ejecuta cuando el usuario confirma la acción (clic en Open/Save o Enter en el campo de texto). Recibe la ruta absoluta del archivo seleccionado.
-*   `on_cancelled`: `std::function<void()>`. Se ejecuta cuando el usuario cierra el diálogo o presiona "Cancel".
+### Señales (EventsManager)
+*   `when_accepted`: `EventsManager<FileDialogAcceptedContext>`. Se ejecuta cuando el usuario confirma la acción (clic en Open/Save o Enter en el campo de texto). El contexto contiene la propiedad `selected_path`.
+*   `when_cancelled`: `EventsManager<FileDialogCancelledContext>`. Se ejecuta cuando el usuario cierra el diálogo o presiona "Cancel".
 
 ## 4. Detalles de Implementación y Navegación
 
@@ -74,7 +74,7 @@ FileDialog(FileDialogMode mode, const std::string &title = "");
 
 ## 5. Consideraciones para el modo de Guardado
 
-En el modo `Save` o `SaveAs`, el diálogo permite al usuario escribir un nombre de archivo que aún no existe en el directorio actual. El callback `on_accepted` devolverá la ruta completa construida a partir del directorio actual y el nombre ingresado.
+En el modo `Save` o `SaveAs`, el diálogo permite al usuario escribir un nombre de archivo que aún no existe en el directorio actual. La señal `when_accepted` devolverá la ruta completa construida a partir del directorio actual y el nombre ingresado.
 
 ---
 > [!TIP]
