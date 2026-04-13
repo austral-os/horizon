@@ -7,7 +7,7 @@
 #include <horizon/Button.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/EventsManager.hpp>
-#include <horizon/MessageDialog.hpp>
+#include <horizon/dialogs/MessageDialog.hpp>
 #include <filesystem>
 #include <algorithm>
 #include <thread>

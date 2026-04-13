@@ -9,7 +9,7 @@
 
 #pragma once // Solo se incluye una vez.
 
-#include <horizon/MessageDialog.hpp>
+#include <horizon/dialogs/MessageDialog.hpp>
 #include <future>
 
 namespace horizon

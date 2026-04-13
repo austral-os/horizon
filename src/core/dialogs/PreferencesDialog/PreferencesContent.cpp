@@ -1,4 +1,4 @@
-#include "PreferencesContent.hpp"
+#include <horizon/dialogs/PreferencesContent.hpp>
 
 namespace horizon
 {

@@ -1,4 +1,4 @@
-#include "FileDialog.hpp"
+#include <horizon/dialogs/FileDialog.hpp>
 #include "horizon/Frame.hpp"
 #include <filesystem>
 #include <horizon/ApplicationWindow.hpp>

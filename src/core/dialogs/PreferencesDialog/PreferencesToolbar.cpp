@@ -1,5 +1,5 @@
-#include "PreferencesToolbar.hpp"
-#include "PreferencesContent.hpp"
+#include <horizon/dialogs/PreferencesToolbar.hpp>
+#include <horizon/dialogs/PreferencesContent.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Application.hpp>

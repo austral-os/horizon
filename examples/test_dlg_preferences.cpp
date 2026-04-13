@@ -3,8 +3,8 @@
 #include <horizon/Button.hpp>
 #include <horizon/AquaObject.hpp>
 #include <horizon/Label.hpp>
-#include <core/dialogs/PreferencesDialog/DialogPreferences.hpp>
-#include <core/dialogs/PreferencesDialog/PreferencesContent.hpp>
+#include <horizon/dialogs/DialogPreferences.hpp>
+#include <horizon/dialogs/PreferencesContent.hpp>
 #include <horizon/Icon.hpp>
 #include <iostream>
 
@@ -29,8 +29,17 @@ int main()
         btn_open->set_text("Open Preferences Dialog");
         btn_open->set_fixed_size(40);
         btn_open->when_click.connect([&app](MouseButtonEventContext &) {
-            auto dialog = std::make_unique<DialogPreferences>("User Preferences", 500, 400);
+            // Instantiate with the config filename
+            auto dialog = std::make_unique<DialogPreferences>("User Preferences", "test_preferences.json", 500, 400, true);
             
+            // Set some default configuration values as requested
+            dialog->set_config_value("general", "propiedad1", "valor");
+            dialog->set_config_value("advanced", "otra_propiedad", "valor");
+            
+            // Save immediately to verify the file creation
+            dialog->save_config();
+            std::cout << "[Test] Configuration saved to test_preferences.json" << std::endl;
+
             // Create PreferencesContent
             auto pref_content = std::make_unique<PreferencesContent>();
             auto pref_content_ptr = pref_content.get();

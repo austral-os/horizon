@@ -11,7 +11,7 @@
 #include <horizon/Logger.hpp>
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/I18n.hpp>
-#include <horizon/MessageDialog.hpp>
+#include <horizon/dialogs/MessageDialog.hpp>
 #include <horizon/DialogTypes.hpp>
 #include "WaylandClipboardBackend.hpp"
 #include "MainThreadDataSink.hpp"

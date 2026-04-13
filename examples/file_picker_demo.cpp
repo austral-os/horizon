@@ -2,7 +2,7 @@
 #include <horizon/Window.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/AquaObject.hpp>
-#include <core/dialogs/FileDialog/FileDialog.hpp>
+#include <horizon/dialogs/FileDialog.hpp>
 #include <horizon/Logger.hpp>
 #include <filesystem>
 #include <iostream>

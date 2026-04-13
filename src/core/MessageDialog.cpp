@@ -2,7 +2,7 @@
 #include <horizon/Button.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
-#include <horizon/MessageDialog.hpp>
+#include <horizon/dialogs/MessageDialog.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/VPanel.hpp>
 #include <horizon/Window.hpp>
