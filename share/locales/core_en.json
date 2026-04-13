@@ -2,7 +2,16 @@
   "core": {
     "dialog": {
       "accept": "Accept",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "font": {
+        "family": "Family",
+        "style": "Style",
+        "size": "Size",
+        "type_label": "Font:",
+        "style_label": "Font Style:",
+        "size_label": "Size:",
+        "sample_label": "Sample:"
+      }
     },
     "global_menu": {
       "edit": "Edit",

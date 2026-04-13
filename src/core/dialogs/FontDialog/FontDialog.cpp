@@ -1,3 +1,4 @@
+#include "FontPreview.hpp"
 #include <algorithm>
 #include <fontconfig/fontconfig.h>
 #include <horizon/AquaObject.hpp>
@@ -154,20 +155,9 @@ namespace horizon
             sample_lbl->set_fixed_size(25);
             sector_b->add_child(std::move(sample_lbl));
 
-            auto preview_box = std::make_unique<Widget>();
-            preview_box->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-            preview_box->set_background_color(Color(1.0f, 1.0f, 1.0f, 0.05f));
-            preview_box->set_border_radius(4);
-            preview_box->set_margin(8);
-
-            auto p_lbl = std::make_unique<Label>("00Q 1Il!| 5S 8B rnm :; ,. \"'` ~-= ({[<>]}) \n"
-                                                 "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \n"
-                                                 "ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 \n"
-                                                 "abcdefghijklmnopqrstuvwxyz");
-            preview_label = p_lbl.get();
-            preview_label->set_vertical_alignment(VerticalAlignment::Top);
-            preview_box->add_child(std::move(p_lbl));
-            sector_b->add_child(std::move(preview_box));
+            auto preview = std::make_unique<FontPreview>();
+            preview_widget = preview.get();
+            sector_b->add_child(std::move(preview));
 
             root->add_child(std::move(sector_b));
 
@@ -176,11 +166,6 @@ namespace horizon
             sector_c->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
             sector_c->set_fixed_size(40);
             sector_c->set_spacing(12);
-
-            auto cb = std::make_unique<Checkbox<AquaObject>>();
-            show_all_fonts_cb = cb.get();
-            show_all_fonts_cb->set_text(i18n().tr("core.dialog.font.show_all_fonts"));
-            sector_c->add_child(std::move(cb));
 
             auto spacer = std::make_unique<Widget>();
             sector_c->add_child(std::move(spacer));
@@ -285,29 +270,11 @@ namespace horizon
 
         void update_preview()
         {
-            if (preview_label)
+            if (preview_widget)
             {
-                preview_label->set_font_family(selection_data.family);
-                preview_label->set_font_size(static_cast<int>(selection_data.size));
-
-                FontWeight weight = FONT_WEIGHT_NORMAL;
-                FontSlant slant = FONT_SLANT_NORMAL;
-
-                std::string style = selection_data.style;
-                std::transform(style.begin(), style.end(), style.begin(), ::tolower);
-
-                if (style.find("bold") != std::string::npos)
-                    weight = FONT_WEIGHT_BOLD;
-
-                if (style.find("italic") != std::string::npos)
-                    slant = FONT_SLANT_ITALIC;
-                else if (style.find("oblique") != std::string::npos)
-                    slant = FONT_SLANT_OBLIQUE;
-
-                preview_label->set_font_weight(weight);
-                preview_label->set_font_slant(slant);
-
-                preview_label->invalidate();
+                preview_widget->set_font_family(selection_data.family);
+                preview_widget->set_font_style(selection_data.style);
+                preview_widget->set_font_size(selection_data.size);
             }
         }
 
@@ -373,7 +340,7 @@ namespace horizon
         TextBox<> *size_input{nullptr};
         TextBox<> *features_input{nullptr};
         Checkbox<AquaObject> *show_all_fonts_cb{nullptr};
-        Label *preview_label{nullptr};
+        FontPreview *preview_widget{nullptr};
         FontSelection selection_data{"Inter", "Regular", 12.0f, ""};
         std::map<std::string, FontInfo> font_map;
     };
