@@ -82,6 +82,16 @@ namespace horizon
          */
         bool confirm(const std::string &message, const std::string &title = "Confirm", MessageType type = MessageType::Question);
 
+        /**
+         * @brief Sets the application preferences content factory.
+         */
+        void set_preferences_content(WaylandWindow::PreferencesFactory factory, int width = 500, int height = 400);
+
+        /**
+         * @brief Shows the preferences dialog.
+         */
+        void show_preferences();
+
     private:
         /**
          * @brief Removes a window and its thread.

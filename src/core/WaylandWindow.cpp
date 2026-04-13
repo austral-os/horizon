@@ -2636,9 +2636,11 @@ namespace horizon
         return future.get();
     }
 
-    void WaylandWindow::set_preferences_content(PreferencesFactory factory)
+    void WaylandWindow::set_preferences_content(PreferencesFactory factory, int width, int height)
     {
         m_preferences_factory = std::move(factory);
+        m_preferences_width = width;
+        m_preferences_height = height;
         if (m_is_running)
         {
             init_global_menu(); // Refresh menu if already running
@@ -2665,7 +2667,8 @@ namespace horizon
         // We run the dialog in a separate thread.
         std::thread([this, content = std::move(content)]() mutable
         {
-            auto dialog = std::make_unique<DialogPreferences>(i18n().tr("core.global_menu.preferences"), 500, 400, true);
+            auto dialog = std::make_unique<DialogPreferences>(i18n().tr("core.global_menu.preferences"), 
+                                                              m_preferences_width, m_preferences_height, true);
             
             // Setup the toolbar automatically using the PreferencesContent
             dialog->setup_toolbar(content.get());

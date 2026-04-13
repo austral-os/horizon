@@ -282,7 +282,7 @@ namespace horizon
          * The factory will be invoked each time a preferences dialog is opened.
          */
         using PreferencesFactory = std::function<std::unique_ptr<PreferencesContent>()>;
-        void set_preferences_content(PreferencesFactory factory);
+        void set_preferences_content(PreferencesFactory factory, int width = 500, int height = 400);
 
         /**
          * @brief Shows the preferences dialog.
@@ -577,6 +577,8 @@ namespace horizon
         Widget* find_clipboard_target();
 
         PreferencesFactory m_preferences_factory;
+        int m_preferences_width{500};
+        int m_preferences_height{400};
         bool m_use_global_menu{true};
     };
 

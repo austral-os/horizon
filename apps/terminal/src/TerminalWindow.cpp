@@ -62,6 +62,9 @@ TerminalWindow::TerminalWindow()
 
     m_toolbar->when_preferences_clicked.connect([this](PreferencesClickEvent &) {
         LOG_INFO << "[TERMINAL] Preferences clicked";
+        if (application()) {
+            application()->show_preferences();
+        }
     });
 }
 

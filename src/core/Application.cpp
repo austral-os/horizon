@@ -343,4 +343,22 @@ namespace horizon
         return future.get();
     }
 
+    void Application::set_preferences_content(WaylandWindow::PreferencesFactory factory, int width, int height)
+    {
+        std::lock_guard<std::mutex> lock(m_windows_mutex);
+        if (!m_managed_windows.empty())
+        {
+            m_managed_windows[0].window->set_preferences_content(std::move(factory), width, height);
+        }
+    }
+
+    void Application::show_preferences()
+    {
+        std::lock_guard<std::mutex> lock(m_windows_mutex);
+        if (!m_managed_windows.empty())
+        {
+            m_managed_windows[0].window->show_preferences();
+        }
+    }
+
 } // namespace horizon
