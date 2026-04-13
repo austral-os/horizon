@@ -44,6 +44,12 @@ namespace horizon
             return m_font_size;
         }
 
+        void set_font_family(const std::string &family);
+        const std::string &font_family() const
+        {
+            return m_font_family;
+        }
+
         void set_text_color(Color color);
         Color text_color() const
         {
@@ -70,6 +76,7 @@ namespace horizon
         FontWeight m_font_weight{FONT_WEIGHT_NORMAL};
         FontSlant m_font_slant{FONT_SLANT_NORMAL};
         int m_font_size{-1};                         // -1 means use theme default
+        std::string m_font_family{""};               // empty means use theme default
         Color m_text_color{0.0f, 0.0f, 0.0f, -1.0f}; // a < 0 means use theme default
         int m_left_padding{0};
 
@@ -80,6 +87,7 @@ namespace horizon
         std::string m_last_text;
         FontWeight m_last_font_weight{FONT_WEIGHT_NORMAL};
         int m_last_font_size{-1};
+        std::string m_last_font_family{""};
     };
 
 } // namespace horizon

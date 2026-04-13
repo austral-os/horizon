@@ -79,7 +79,7 @@ namespace horizon
         }
         auto theme_font = tm->get_font("window");
 
-        std::string family = theme_font.family;
+        std::string family = m_font_family.empty() ? theme_font.family : m_font_family;
         int size = (m_font_size > 0) ? m_font_size : theme_font.size;
 
         Color text_color;
@@ -100,16 +100,17 @@ namespace horizon
         // Cache-based layout
         if (m_last_width != m_available_draw_width || m_last_height != m_available_draw_height ||
             m_last_text != m_text || m_last_font_weight != m_font_weight ||
-            m_last_font_size != size)
-        {
-            m_cached_lines = calculate_lines(gc, m_available_draw_width - m_left_padding,
-                                             m_available_draw_height, line_height);
-            m_last_width = m_available_draw_width;
-            m_last_height = m_available_draw_height;
-            m_last_text = m_text;
-            m_last_font_weight = m_font_weight;
-            m_last_font_size = size;
-        }
+            m_last_font_size != size || m_last_font_family != family)
+         {
+             m_cached_lines = calculate_lines(gc, m_available_draw_width - m_left_padding,
+                                              m_available_draw_height, line_height);
+             m_last_width = m_available_draw_width;
+             m_last_height = m_available_draw_height;
+             m_last_text = m_text;
+             m_last_font_weight = m_font_weight;
+             m_last_font_size = size;
+             m_last_font_family = family;
+         }
 
         const auto &lines = m_cached_lines;
 
@@ -229,6 +230,12 @@ namespace horizon
         }
     }
 
+    void Label::set_font_family(const std::string &family)
+    {
+        m_font_family = family;
+        invalidate();
+    }
+
     void Label::set_text_color(Color color)
     {
         if (m_text_color.r != color.r || m_text_color.g != color.g || m_text_color.b != color.b ||
@@ -248,7 +255,8 @@ namespace horizon
         std::vector<std::string> lines;
         auto theme_font = application()->theme_manager->get_font("window");
         int font_size = (m_font_size > 0) ? m_font_size : theme_font.size;
-        const char *font_family = theme_font.family.c_str();
+        std::string family = m_font_family.empty() ? theme_font.family : m_font_family;
+        const char *font_family = family.c_str();
 
         // Split by hard newlines first
         size_t start = 0;

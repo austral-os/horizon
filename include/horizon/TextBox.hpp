@@ -27,6 +27,9 @@ namespace horizon
         void set_placeholder(const std::string &placeholder);
         const std::string &placeholder() const;
 
+        void set_font_family(const std::string &family);
+        const std::string &font_family() const;
+
         virtual bool is_valid() const = 0;
         virtual std::string get_display_text() const = 0;
 
@@ -35,6 +38,7 @@ namespace horizon
     protected:
         std::string m_text{""};
         std::string m_placeholder{""};
+        std::string m_font_family{""};
         int m_cursor_pos{0};
         int m_selection_anchor{-1};
         int m_scroll_offset{0};

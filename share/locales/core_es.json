@@ -2,7 +2,18 @@
   "core": {
     "dialog": {
       "accept": "Aceptar",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "font": {
+        "family": "Familia",
+        "style": "Estilo",
+        "size": "Tamaño",
+        "type_label": "Tipo de letra:",
+        "style_label": "Estilo del tipo de letra:",
+        "size_label": "Tamaño:",
+        "features_help": "Lista separada por comas de funcionalidades del tipo de letra (por ejemplo, «liga, calt»):",
+        "sample_label": "Muestra:",
+        "show_all_fonts": "Mostrar todos los tipos de letra"
+      }
     },
     "global_menu": {
       "edit": "Edición",

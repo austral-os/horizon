@@ -21,7 +21,7 @@ namespace horizon
 
             if (std::is_same<T, AquaObject>::value)
             {
-                this->set_corner_radius({10, 10, 10, 10});
+                this->set_corner_radius({15, 15, 15, 15});
             }
             else if (std::is_same<T, SolidObject>::value)
             {

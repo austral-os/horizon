@@ -16,6 +16,7 @@ pkg_check_modules(EGL REQUIRED egl)
 pkg_check_modules(GLESV2 REQUIRED glesv2)
 pkg_check_modules(DBUS REQUIRED dbus-1)
 pkg_check_modules(UUID REQUIRED uuid)
+pkg_check_modules(FONTCONFIG REQUIRED fontconfig)
 pkg_check_modules(PIPEWIRE REQUIRED IMPORTED_TARGET libpipewire-0.3)
 set(PIPEWIRE_INCLUDE_DIRS ${PIPEWIRE_INCLUDE_DIRS} CACHE INTERNAL "")
 set(PIPEWIRE_LIBRARIES ${PIPEWIRE_LIBRARIES} CACHE INTERNAL "")
@@ -51,6 +52,7 @@ target_include_directories(horizon
         ${RSVG_INCLUDE_DIRS}
         ${EGL_INCLUDE_DIRS}
         ${GLESV2_INCLUDE_DIRS}
+        ${FONTCONFIG_INCLUDE_DIRS}
 )
 
 target_link_libraries(horizon
@@ -65,6 +67,7 @@ target_link_libraries(horizon
         ${RSVG_LIBRARIES}
         ${EGL_LIBRARIES}
         ${GLESV2_LIBRARIES}
+        ${FONTCONFIG_LIBRARIES}
 )
 
 add_executable(minimal
@@ -251,6 +254,15 @@ add_executable(test_dlg_preferences
 )
 
 target_link_libraries(test_dlg_preferences
+    PRIVATE
+        horizon
+)
+
+add_executable(font_dialog_demo
+    examples/font_dialog_demo.cpp
+)
+
+target_link_libraries(font_dialog_demo
     PRIVATE
         horizon
 )
