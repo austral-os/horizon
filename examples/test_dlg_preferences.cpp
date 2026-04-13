@@ -175,7 +175,7 @@ int main()
 {
     try
     {
-        Application app("horizon.test_dlg_preferences", 400, 300);
+        WaylandWindow app("horizon.test_dlg_preferences", 400, 300);
         app.set_name("Test DialogPreferences");
 
         auto wnd = std::make_unique<Window>("DialogPreferences Tester");
