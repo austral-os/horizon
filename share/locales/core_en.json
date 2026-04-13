@@ -10,7 +10,8 @@
         "type_label": "Font:",
         "style_label": "Font Style:",
         "size_label": "Size:",
-        "sample_label": "Sample:"
+        "sample_label": "Sample:",
+        "select": "Select Font"
       }
     },
     "global_menu": {

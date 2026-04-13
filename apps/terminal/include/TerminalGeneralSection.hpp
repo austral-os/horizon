@@ -9,6 +9,8 @@
 #include <horizon/Combo.hpp>
 #include <horizon/VPanel.hpp>
 #include <horizon/TextBoxPolicies.hpp>
+#include <horizon/FontSelector.hpp>
+#include <horizon/I18n.hpp>
 #include <functional>
 #include <string>
 
@@ -39,22 +41,14 @@ public:
         m_cursor_combo->when_item_selected.connect([this](const ComboItemSelectedContext &) { if (m_on_change) m_on_change(); });
         add_child(std::move(combo));
 
-        // 2. Font
-        add_label("Fuente:");
-        auto font_box = std::make_unique<TextBox<>>();
-        font_box->set_placeholder("Ej: CaskaydiaCove Nerd Font Mono");
-        font_box->set_width(350);
-        m_font_box = font_box.get();
-        m_font_box->when_text_changed.connect([this](const KeyEventContext &) { if (m_on_change) m_on_change(); });
-        add_child(std::move(font_box));
-
-        // 3. Font Size
-        add_label("Tamaño de Fuente:");
-        auto size_box = std::make_unique<TextBox<IntegerPolicy>>();
-        size_box->set_width(100);
-        m_font_size_box = size_box.get();
-        m_font_size_box->when_text_changed.connect([this](const KeyEventContext &) { if (m_on_change) m_on_change(); });
-        add_child(std::move(size_box));
+        // 2. Font & Font Size
+        add_label(i18n().tr("core.dialog.font.type_label"));
+        auto font_selector = std::make_unique<FontSelector>();
+        m_font_selector = font_selector.get();
+        m_font_selector->when_font_changed.connect([this](const FontDialogAcceptedContext &) {
+            if (m_on_change) m_on_change();
+        });
+        add_child(std::move(font_selector));
 
         // 4. Scrollback Lines
         add_label("Líneas de Scrollback:");
@@ -82,8 +76,12 @@ public:
         if (j.is_null()) return;
         
         if (j.contains("cursor_style")) m_cursor_combo->set_selected_item_by_id(j["cursor_style"].get<std::string>());
-        if (j.contains("font")) m_font_box->set_text(j["font"].get<std::string>());
-        if (j.contains("font_size")) m_font_size_box->set_text(std::to_string(j["font_size"].get<int>()));
+        
+        FontSelection sel;
+        if (j.contains("font")) sel.family = j["font"].get<std::string>();
+        if (j.contains("font_size")) sel.size = (float)j["font_size"].get<int>();
+        m_font_selector->set_selection(sel);
+
         if (j.contains("scrollback_lines")) m_scrollback_lines_box->set_text(std::to_string(j["scrollback_lines"].get<int>()));
         if (j.contains("scroll_without_scrollbar")) m_scroll_without_bar_check->set_checked(j["scroll_without_scrollbar"].get<bool>());
         if (j.contains("show_scrollbar")) m_show_scrollbar_check->set_checked(j["show_scrollbar"].get<bool>());
@@ -96,11 +94,9 @@ public:
         } else {
             j["cursor_style"] = "block";
         }
-        j["font"] = m_font_box->text();
-        
-        try {
-            j["font_size"] = std::stoi(m_font_size_box->text());
-        } catch (...) { j["font_size"] = 12; }
+        auto sel = m_font_selector->selection();
+        j["font"] = sel.family;
+        j["font_size"] = (int)sel.size;
 
         try {
             j["scrollback_lines"] = std::stoi(m_scrollback_lines_box->text());
@@ -113,8 +109,7 @@ public:
 
 private:
     Combo *m_cursor_combo;
-    TextBox<TextPolicy> *m_font_box;
-    TextBox<IntegerPolicy> *m_font_size_box;
+    FontSelector *m_font_selector;
     TextBox<IntegerPolicy> *m_scrollback_lines_box;
     Checkbox<AquaObject> *m_scroll_without_bar_check;
     Checkbox<AquaObject> *m_show_scrollbar_check;

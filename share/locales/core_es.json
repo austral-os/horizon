@@ -10,7 +10,8 @@
                 "type_label": "Tipo de letra:",
                 "style_label": "Estilo del tipo de letra:",
                 "size_label": "Tamaño:",
-                "sample_label": "Muestra:"
+                "sample_label": "Muestra:",
+                "select": "Seleccionar fuente"
             }
         },
         "global_menu": {
