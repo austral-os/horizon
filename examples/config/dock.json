@@ -1,0 +1,44 @@
+{
+    "dock": {
+        "icon_size": 48,
+        "magnification_enabled": true,
+        "pinned": [
+            {
+                "app_id": "org.horizon.launchpad",
+                "icon": "slingscold",
+                "name": "Launchpad",
+                "run_id": "launchpad"
+            },
+            {
+                "app_id": "arkfm",
+                "icon": "arkfm",
+                "name": "Ark File Manager",
+                "run_id": "arkfm"
+            },
+            {
+                "app_id": "org.horizon.nova",
+                "icon": "nova-browser",
+                "name": "Nova",
+                "run_id": "org.horizon.nova"
+            },
+            {
+                "app_id": "firefox",
+                "icon": "firefox",
+                "name": "Web Browser",
+                "run_id": "firefox"
+            },
+            {
+                "app_id": "antigravity",
+                "icon": "antigravity",
+                "name": "antigravity",
+                "run_id": ""
+            },
+            {
+                "app_id": "horizon.preferences",
+                "icon": "applications-system",
+                "name": "Preferences",
+                "run_id": "preferences"
+            }
+        ]
+    }
+}

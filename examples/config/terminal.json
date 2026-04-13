@@ -1,0 +1,10 @@
+{
+"terminal": {
+        "cursor_style": "underline",
+        "font": "CaskaydiaCove Nerd Font Mono",
+        "font_size": 18,
+        "scroll_without_scrollbar": true,
+        "scrollback_lines": 5000,
+        "show_scrollbar": true
+    }
+}

@@ -1,0 +1,20 @@
+{
+    "keyboard": {
+        "delay": 322.8571472167969,
+        "layouts": [
+            {
+                "default": false,
+                "description": "Spanish",
+                "id": "es"
+            },
+            {
+                "default": true,
+                "description": "English (US)",
+                "id": "us"
+            }
+        ],
+        "model": "pc105",
+        "numlock": true,
+        "rate": 16.088890075683594
+    }
+}
