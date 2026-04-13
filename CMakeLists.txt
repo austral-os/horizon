@@ -245,6 +245,15 @@ target_link_libraries(i18n_demo
         horizon
 )
 
+add_executable(test_dlg_preferences
+    examples/test_dlg_preferences.cpp
+)
+
+target_link_libraries(test_dlg_preferences
+    PRIVATE
+        horizon
+)
+
 add_custom_command(TARGET i18n_demo POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/i18n_demo/locales
