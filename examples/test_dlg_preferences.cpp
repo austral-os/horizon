@@ -1,15 +1,15 @@
 #include <horizon/Application.hpp>
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
+#include <horizon/Checkbox.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/Slider.hpp>
+#include <horizon/Spacer.hpp>
+#include <horizon/TextBox.hpp>
 #include <horizon/Window.hpp>
 #include <horizon/dialogs/DialogPreferences.hpp>
 #include <horizon/dialogs/PreferencesContent.hpp>
-#include <horizon/Slider.hpp>
-#include <horizon/Checkbox.hpp>
-#include <horizon/TextBox.hpp>
-#include <horizon/Spacer.hpp>
 #include <iostream>
 
 using namespace horizon;
@@ -36,7 +36,8 @@ public:
         m_rate_slider->when_value_changed.connect(
             [this](const EventContext &)
             {
-                if (m_on_change) m_on_change();
+                if (m_on_change)
+                    m_on_change();
             });
 
         add_child(std::move(slider));
@@ -49,7 +50,8 @@ public:
         m_boot_check->set_on_toggle(
             [this](bool)
             {
-                if (m_on_change) m_on_change();
+                if (m_on_change)
+                    m_on_change();
             });
 
         add_child(std::move(check));
@@ -58,9 +60,12 @@ public:
     // ConfigSection implementation
     void from_json(const nlohmann::json &j) override
     {
-        if (j.is_null()) return;
-        if (j.contains("rate")) m_rate_slider->set_value(j["rate"].get<float>());
-        if (j.contains("cargar-inicio")) m_boot_check->set_checked(j["cargar-inicio"].get<bool>());
+        if (j.is_null())
+            return;
+        if (j.contains("rate"))
+            m_rate_slider->set_value(j["rate"].get<float>());
+        if (j.contains("cargar-inicio"))
+            m_boot_check->set_checked(j["cargar-inicio"].get<bool>());
     }
 
     nlohmann::json to_json() const override
@@ -98,7 +103,8 @@ public:
         m_file_box->when_text_changed.connect(
             [this](const KeyEventContext &)
             {
-                if (m_on_change) m_on_change();
+                if (m_on_change)
+                    m_on_change();
             });
 
         add_child(std::move(box));
@@ -111,7 +117,8 @@ public:
         m_clean_check->set_on_toggle(
             [this](bool)
             {
-                if (m_on_change) m_on_change();
+                if (m_on_change)
+                    m_on_change();
             });
 
         add_child(std::move(check));
@@ -128,7 +135,8 @@ public:
         m_rate2_slider->when_value_changed.connect(
             [this](const EventContext &)
             {
-                if (m_on_change) m_on_change();
+                if (m_on_change)
+                    m_on_change();
             });
 
         add_child(std::move(slider));
@@ -137,10 +145,14 @@ public:
     // ConfigSection implementation
     void from_json(const nlohmann::json &j) override
     {
-        if (j.is_null()) return;
-        if (j.contains("file")) m_file_box->set_text(j["file"].get<std::string>());
-        if (j.contains("clean")) m_clean_check->set_checked(j["clean"].get<bool>());
-        if (j.contains("rate2")) m_rate2_slider->set_value(j["rate2"].get<float>());
+        if (j.is_null())
+            return;
+        if (j.contains("file"))
+            m_file_box->set_text(j["file"].get<std::string>());
+        if (j.contains("clean"))
+            m_clean_check->set_checked(j["clean"].get<bool>());
+        if (j.contains("rate2"))
+            m_rate2_slider->set_value(j["rate2"].get<float>());
     }
 
     nlohmann::json to_json() const override
@@ -167,8 +179,8 @@ int main()
         app.set_name("Test DialogPreferences");
 
         auto wnd = std::make_unique<Window>("DialogPreferences Tester");
-        wnd->set_margin(20);
-        wnd->set_spacing(10);
+        wnd->set_margin(0);
+        wnd->set_spacing(0);
         wnd->set_layout_type(WIDGET_LAYOUT_VERTICAL);
 
         auto lbl_info = std::make_unique<Label>("Click the button to open DialogPreferences");
@@ -192,16 +204,19 @@ int main()
                 auto pref_content_ptr = pref_content.get();
 
                 // Define auto-save callback
-                auto save_callback = [pref_content_ptr]() {
+                auto save_callback = [pref_content_ptr]()
+                {
                     pref_content_ptr->save_config();
                     std::cout << "[Test] Configuration auto-saved to disk." << std::endl;
                 };
 
                 // Section 1: General (Automated Sync + Auto-save)
-                pref_content->add_section("General Settings", "preferences-system", std::make_unique<GeneralSection>(save_callback));
+                pref_content->add_section("General Settings", "preferences-system",
+                                          std::make_unique<GeneralSection>(save_callback));
 
                 // Section 2: Advanced (Automated Sync + Auto-save)
-                pref_content->add_section("Advanced Options", "preferences-system-details", std::make_unique<AdvancedSection>(save_callback));
+                pref_content->add_section("Advanced Options", "preferences-system-details",
+                                          std::make_unique<AdvancedSection>(save_callback));
 
                 // Initial save to verify file existence
                 pref_content->save_config();
