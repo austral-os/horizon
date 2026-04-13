@@ -11,6 +11,7 @@
 #include <horizon/TextBoxPolicies.hpp>
 #include <horizon/FontSelector.hpp>
 #include <horizon/I18n.hpp>
+#include <horizon/Logger.hpp>
 #include <functional>
 #include <string>
 
@@ -46,6 +47,7 @@ public:
         auto font_selector = std::make_unique<FontSelector>();
         m_font_selector = font_selector.get();
         m_font_selector->when_font_changed.connect([this](const FontDialogAcceptedContext &) {
+            LOG_INFO << "[TERMINAL] Font changed, triggering configuration update";
             if (m_on_change) m_on_change();
         });
         add_child(std::move(font_selector));
@@ -80,6 +82,11 @@ public:
         FontSelection sel;
         if (j.contains("font")) sel.family = j["font"].get<std::string>();
         if (j.contains("font_size")) sel.size = (float)j["font_size"].get<int>();
+        if (j.contains("font_weight")) {
+            int weight = j["font_weight"].get<int>();
+            if (weight == 1) sel.style = "Bold";
+            else sel.style = "Regular";
+        }
         m_font_selector->set_selection(sel);
 
         if (j.contains("scrollback_lines")) m_scrollback_lines_box->set_text(std::to_string(j["scrollback_lines"].get<int>()));
@@ -97,6 +104,12 @@ public:
         auto sel = m_font_selector->selection();
         j["font"] = sel.family;
         j["font_size"] = (int)sel.size;
+        
+        int weight = 0;
+        if (sel.style.find("Bold") != std::string::npos || sel.style.find("bold") != std::string::npos) {
+            weight = 1;
+        }
+        j["font_weight"] = weight;
 
         try {
             j["scrollback_lines"] = std::stoi(m_scrollback_lines_box->text());

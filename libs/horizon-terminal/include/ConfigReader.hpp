@@ -9,6 +9,7 @@ namespace terminal {
 struct TerminalConfig {
     std::string font = "Monospace";
     int font_size = 12;
+    int font_weight = 0;
     std::string cursor_style = "block";
     
     // Scrollbar settings

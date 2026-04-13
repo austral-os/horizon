@@ -90,6 +90,7 @@ bool TerminalWidget::init_fonts() {
     // Use Fontconfig to find the font path
     FcConfig* config = FcInitLoadConfigAndFonts();
     FcPattern* pat = FcNameParse((const FcChar8*)m_config.font.c_str());
+    FcPatternAddInteger(pat, FC_WEIGHT, m_config.font_weight == 1 ? FC_WEIGHT_BOLD : FC_WEIGHT_NORMAL);
     FcConfigSubstitute(config, pat, FcMatchPattern);
     FcDefaultSubstitute(pat);
     
