@@ -8,13 +8,8 @@ namespace terminal {
 
 TerminalConfig ConfigReader::load() {
     TerminalConfig config;
-    const char* home = std::getenv("HOME");
-    if (!home) return config;
-
-    std::filesystem::path config_path(home);
-    config_path /= ".config/horizon/terminal.json";
-
-    if (!std::filesystem::exists(config_path)) return config;
+    std::string config_path = get_config_path();
+    if (config_path.empty() || !std::filesystem::exists(config_path)) return config;
 
     try {
         std::ifstream file(config_path);
@@ -55,6 +50,15 @@ TerminalConfig ConfigReader::load() {
     }
 
     return config;
+}
+
+std::string ConfigReader::get_config_path() {
+    const char* home = std::getenv("HOME");
+    if (!home) return "";
+
+    std::filesystem::path config_path(home);
+    config_path /= ".config/horizon/terminal.json";
+    return config_path.string();
 }
 
 } // namespace terminal

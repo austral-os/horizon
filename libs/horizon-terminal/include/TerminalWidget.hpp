@@ -13,6 +13,8 @@
 #include <horizon/AquaPolygon.hpp>
 #include <cairo-ft.h>
 #include <fontconfig/fontconfig.h>
+#include <thread>
+#include <atomic>
 
 #include <horizon/ClipboardProvider.hpp>
 
@@ -71,6 +73,11 @@ private:
     
     bool init_fonts();
     void cleanup_fonts();
+    
+    void start_watcher();
+    void stop_watcher();
+    void watch_loop();
+    void reload_config();
 
     std::unique_ptr<TerminalController> m_controller;
     std::unique_ptr<PtyHandler> m_pty;
@@ -111,6 +118,12 @@ private:
     FT_Face m_ft_face = nullptr;
     hb_font_t* m_hb_font = nullptr;
     cairo_font_face_t* m_cairo_font_face = nullptr;
+
+    // Config watcher
+    int m_inotify_fd = -1;
+    int m_watch_fd = -1;
+    std::thread m_watcher_thread;
+    std::atomic<bool> m_watcher_running{false};
 };
 
 } // namespace terminal

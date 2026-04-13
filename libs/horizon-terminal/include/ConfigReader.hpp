@@ -21,6 +21,7 @@ struct TerminalConfig {
 class ConfigReader {
 public:
     static TerminalConfig load();
+    static std::string get_config_path();
 };
 
 } // namespace terminal
