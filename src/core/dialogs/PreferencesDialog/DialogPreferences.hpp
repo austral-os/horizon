@@ -7,6 +7,7 @@
 
 namespace horizon
 {
+    class PreferencesContent;
     class DialogPreferences : public WaylandWindow
     {
     public:
@@ -27,6 +28,11 @@ namespace horizon
          * @brief Returns the content widget of the dialog.
          */
         Widget *content() const;
+
+        /**
+         * @brief Sets up a PreferencesToolbar for the given content.
+         */
+        void setup_toolbar(PreferencesContent *content);
 
     private:
         ApplicationWindow *m_app_window{nullptr};

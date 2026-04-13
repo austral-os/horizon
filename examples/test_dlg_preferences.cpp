@@ -3,7 +3,8 @@
 #include <horizon/Button.hpp>
 #include <horizon/AquaObject.hpp>
 #include <horizon/Label.hpp>
-#include <horizon/DialogPreferences.hpp>
+#include <core/dialogs/PreferencesDialog/DialogPreferences.hpp>
+#include <core/dialogs/PreferencesDialog/PreferencesContent.hpp>
 #include <horizon/Icon.hpp>
 #include <iostream>
 
@@ -30,26 +31,34 @@ int main()
         btn_open->when_click.connect([&app](MouseButtonEventContext &) {
             auto dialog = std::make_unique<DialogPreferences>("User Preferences", 500, 400);
             
-            // Add something to the toolbar
-            auto btn_save = std::make_unique<Button<AquaObject>>();
-            btn_save->set_text("Save");
-            btn_save->set_fixed_size(80);
-            btn_save->set_accent_color(WidgetAccentColor::Primary);
+            // Create PreferencesContent
+            auto pref_content = std::make_unique<PreferencesContent>();
+            auto pref_content_ptr = pref_content.get();
+
+            // Section 1: General
+            auto section1 = std::make_unique<Widget>();
+            section1->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+            section1->set_margin(20);
+            section1->set_spacing(15);
+            section1->add_child(std::make_unique<Label>("This is the General section"));
             
-            dialog->toolbar()->add_toolbar_widget(std::move(btn_save));
+            pref_content->add_section("General", "preferences-system", std::move(section1));
 
-            // Set content
-            auto content = std::make_unique<Widget>();
-            content->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-            content->set_margin(20);
-            content->set_spacing(10);
+            // Section 2: Advanced
+            auto section2 = std::make_unique<Widget>();
+            section2->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+            section2->set_margin(20);
+            section2->set_spacing(15);
+            section2->add_child(std::make_unique<Label>("This is the Advanced section"));
+            
+            pref_content->add_section("Advanced", "preferences-system-details", std::move(section2));
 
-            auto lbl_content = std::make_unique<Label>("This is the preferences content area.");
-            content->add_child(std::move(lbl_content));
+            // Setup the toolbar automatically using our new widget
+            dialog->setup_toolbar(pref_content_ptr);
 
-            dialog->set_content(std::move(content));
+            dialog->set_content(std::move(pref_content));
 
-            // Run dialog in a separate thread (Horizon pattern for dialogs)
+            // Run dialog in a separate thread
             std::thread([d = std::move(dialog)]() mutable {
                 d->initialize();
                 d->run();
