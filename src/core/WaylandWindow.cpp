@@ -852,7 +852,7 @@ namespace horizon
         m_app_menu->set_title(m_name);
         m_app_menu->set_bold(true);
 
-        if (m_preferences_content)
+        if (m_preferences_factory)
         {
             auto *pref_item = m_app_menu->add_item(i18n().tr("core.global_menu.preferences"), "Ctrl+,");
             pref_item->set_id("preferences");
@@ -2636,9 +2636,9 @@ namespace horizon
         return future.get();
     }
 
-    void WaylandWindow::set_preferences_content(std::unique_ptr<PreferencesContent> content)
+    void WaylandWindow::set_preferences_content(PreferencesFactory factory)
     {
-        m_preferences_content = std::move(content);
+        m_preferences_factory = std::move(factory);
         if (m_is_running)
         {
             init_global_menu(); // Refresh menu if already running
@@ -2647,17 +2647,23 @@ namespace horizon
 
     void WaylandWindow::show_preferences()
     {
-        if (!m_preferences_content)
+        if (!m_preferences_factory)
         {
-            LOG_ERROR << "[WINDOW] show_preferences: no PreferencesContent set";
+            LOG_ERROR << "[WINDOW] show_preferences: no PreferencesFactory set";
             return;
         }
 
-        // We move the content to the dialog thread.
-        // Note: Once shown, the preferences content is "consumed" by the dialog.
-        // If the application wants to allow multiple openings, it should re-set it
-        // or we should implement a factory pattern.
-        std::thread([this, content = std::move(m_preferences_content)]() mutable
+        // Invoking the factory to create a fresh PreferencesContent for this dialog
+        auto content = m_preferences_factory();
+
+        if (!content)
+        {
+            LOG_ERROR << "[WINDOW] show_preferences: factory returned null content";
+            return;
+        }
+
+        // We run the dialog in a separate thread.
+        std::thread([this, content = std::move(content)]() mutable
         {
             auto dialog = std::make_unique<DialogPreferences>(i18n().tr("core.global_menu.preferences"), 500, 400, true);
             
@@ -2668,9 +2674,6 @@ namespace horizon
             dialog->initialize();
             dialog->run();
         }).detach();
-
-        // Update menu since we no longer have the content (it's in the dialog now)
-        init_global_menu();
     }
 
     void WaylandWindow::set_use_global_menu(bool use)

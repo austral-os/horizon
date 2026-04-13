@@ -12,6 +12,7 @@
 #include <deque>
 #include "horizon/WaylandEventListener.hpp"
 #include "horizon/Clipboard.hpp"
+#include <functional>
 #include <horizon/DialogTypes.hpp>
 #include <mutex>
 #include <future>
@@ -276,10 +277,12 @@ namespace horizon
         bool confirm(const std::string &message, const std::string &title = "Confirm", MessageType type = MessageType::Question);
 
         /**
-         * @brief Sets the application preferences content.
+         * @brief Sets the application preferences content factory.
          * If set, a "Preferences" item will be automatically added to the global menu.
+         * The factory will be invoked each time a preferences dialog is opened.
          */
-        void set_preferences_content(std::unique_ptr<PreferencesContent> content);
+        using PreferencesFactory = std::function<std::unique_ptr<PreferencesContent>()>;
+        void set_preferences_content(PreferencesFactory factory);
 
         /**
          * @brief Shows the preferences dialog.
@@ -573,7 +576,7 @@ namespace horizon
 
         Widget* find_clipboard_target();
 
-        std::unique_ptr<PreferencesContent> m_preferences_content;
+        PreferencesFactory m_preferences_factory;
         bool m_use_global_menu{true};
     };
 

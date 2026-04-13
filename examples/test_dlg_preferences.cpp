@@ -190,27 +190,28 @@ int main()
         std::string home = std::getenv("HOME") ? std::getenv("HOME") : "";
         std::string absolute_path = home + "/" + "test_preferences_abs.json";
 
-        auto pref_content = std::make_unique<PreferencesContent>(absolute_path);
-        auto pref_content_ptr = pref_content.get();
+        // Set preferences content factory in the application
+        // This lambda will be called every time show_preferences() is invoked.
+        app.set_preferences_content([absolute_path]() {
+            auto content = std::make_unique<PreferencesContent>(absolute_path);
+            auto content_ptr = content.get();
 
-        // Define auto-save callback
-        auto save_callback = [pref_content_ptr]()
-        {
-            pref_content_ptr->save_config();
-            std::cout << "[Test] Configuration auto-saved to disk." << std::endl;
-        };
+            // Define auto-save callback for this instance
+            auto save_callback = [content_ptr]()
+            {
+                content_ptr->save_config();
+                std::cout << "[Test] Configuration auto-saved to disk." << std::endl;
+            };
 
-        // Section 1: General (Automated Sync + Auto-save)
-        pref_content->add_section("General Settings", "preferences-system",
-                                    std::make_unique<GeneralSection>(save_callback));
+            // Add sections to this instance
+            content->add_section("General Settings", "preferences-system",
+                                        std::make_unique<GeneralSection>(save_callback));
 
-        // Section 2: Advanced (Automated Sync + Auto-save)
-        pref_content->add_section("Advanced Options", "preferences-system-details",
-                                    std::make_unique<AdvancedSection>(save_callback));
+            content->add_section("Advanced Options", "preferences-system-details",
+                                        std::make_unique<AdvancedSection>(save_callback));
 
-        // Set preferences content in the application
-        // This will automatically enable the "Preferences" item in the global menu.
-        app.set_preferences_content(std::move(pref_content));
+            return content;
+        });
 
         auto btn_open = std::make_unique<Button<AquaObject>>();
         btn_open->set_text("Invoke show_preferences() manually");
