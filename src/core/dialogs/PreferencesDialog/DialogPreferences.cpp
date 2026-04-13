@@ -8,6 +8,7 @@ namespace horizon
         : WaylandWindow("horizon.dialog.preferences", width, height, defer_init, true)
     {
         set_name(title);
+        set_use_global_menu(false);
 
         auto app_window = std::make_unique<ApplicationWindow>(title);
         m_app_window = app_window.get();

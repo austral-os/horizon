@@ -15,6 +15,8 @@
 #include <horizon/DialogTypes.hpp>
 #include "WaylandClipboardBackend.hpp"
 #include "MainThreadDataSink.hpp"
+#include <horizon/dialogs/PreferencesContent.hpp>
+#include <horizon/dialogs/DialogPreferences.hpp>
 
 #include <horizon/Notification.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
@@ -395,8 +397,15 @@ namespace horizon
     {
 
         m_is_running = true;
+        if (m_use_global_menu)
+        {
+            init_global_menu();
+        }
 
-        init_global_menu();
+        signal_manager.connect("preferences", [this](SignalContext &) {
+            LOG_INFO << "WaylandWindow: Received 'preferences' signal";
+            this->show_preferences();
+        });
 
         // Standard clipboard signal routing: automatically dispatch to best candidate
         signal_manager.connect("copy", [this](SignalContext&) {
@@ -837,10 +846,18 @@ namespace horizon
 
     void WaylandWindow::init_global_menu()
     {
+        if (!m_use_global_menu)
+            return;
 
         m_app_menu->set_title(m_name);
         m_app_menu->set_bold(true);
-        m_app_menu->add_item(i18n().tr("core.global_menu.preferences"), "Ctrl+,");
+
+        if (m_preferences_content)
+        {
+            auto *pref_item = m_app_menu->add_item(i18n().tr("core.global_menu.preferences"), "Ctrl+,");
+            pref_item->set_id("preferences");
+        }
+
         m_app_menu->add_separator();
         auto *global_quit = m_app_menu->add_item(i18n().tr("core.global_menu.quit"), "Ctrl+Q");
         global_quit->set_id("quit");
@@ -1081,8 +1098,8 @@ namespace horizon
     void WaylandWindow::on_activated(bool active)
     {
         m_is_activated = active;
-
-        if (m_client_menu && m_is_running)
+ 
+        if (m_client_menu && m_is_running && m_use_global_menu)
         {
             if (active)
                 m_client_menu->set_global_menu(m_global_menus);
@@ -2617,5 +2634,47 @@ namespace horizon
         }).detach();
 
         return future.get();
+    }
+
+    void WaylandWindow::set_preferences_content(std::unique_ptr<PreferencesContent> content)
+    {
+        m_preferences_content = std::move(content);
+        if (m_is_running)
+        {
+            init_global_menu(); // Refresh menu if already running
+        }
+    }
+
+    void WaylandWindow::show_preferences()
+    {
+        if (!m_preferences_content)
+        {
+            LOG_ERROR << "[WINDOW] show_preferences: no PreferencesContent set";
+            return;
+        }
+
+        // We move the content to the dialog thread.
+        // Note: Once shown, the preferences content is "consumed" by the dialog.
+        // If the application wants to allow multiple openings, it should re-set it
+        // or we should implement a factory pattern.
+        std::thread([this, content = std::move(m_preferences_content)]() mutable
+        {
+            auto dialog = std::make_unique<DialogPreferences>(i18n().tr("core.global_menu.preferences"), 500, 400, true);
+            
+            // Setup the toolbar automatically using the PreferencesContent
+            dialog->setup_toolbar(content.get());
+            dialog->set_content(std::move(content));
+            
+            dialog->initialize();
+            dialog->run();
+        }).detach();
+
+        // Update menu since we no longer have the content (it's in the dialog now)
+        init_global_menu();
+    }
+
+    void WaylandWindow::set_use_global_menu(bool use)
+    {
+        m_use_global_menu = use;
     }
 } // namespace horizon

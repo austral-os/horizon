@@ -183,57 +183,43 @@ int main()
         wnd->set_spacing(0);
         wnd->set_layout_type(WIDGET_LAYOUT_VERTICAL);
 
-        auto lbl_info = std::make_unique<Label>("Click the button to open DialogPreferences");
+        auto lbl_info = std::make_unique<Label>("The 'Preferences' item in the global menu (App Menu) is now linked to the settings.");
         lbl_info->set_alignment(TextAlignment::Center);
 
+        // Create PreferencesContent with an absolute path
+        std::string home = std::getenv("HOME") ? std::getenv("HOME") : "";
+        std::string absolute_path = home + "/" + "test_preferences_abs.json";
+
+        auto pref_content = std::make_unique<PreferencesContent>(absolute_path);
+        auto pref_content_ptr = pref_content.get();
+
+        // Define auto-save callback
+        auto save_callback = [pref_content_ptr]()
+        {
+            pref_content_ptr->save_config();
+            std::cout << "[Test] Configuration auto-saved to disk." << std::endl;
+        };
+
+        // Section 1: General (Automated Sync + Auto-save)
+        pref_content->add_section("General Settings", "preferences-system",
+                                    std::make_unique<GeneralSection>(save_callback));
+
+        // Section 2: Advanced (Automated Sync + Auto-save)
+        pref_content->add_section("Advanced Options", "preferences-system-details",
+                                    std::make_unique<AdvancedSection>(save_callback));
+
+        // Set preferences content in the application
+        // This will automatically enable the "Preferences" item in the global menu.
+        app.set_preferences_content(std::move(pref_content));
+
         auto btn_open = std::make_unique<Button<AquaObject>>();
-        btn_open->set_text("Open Preferences Dialog");
+        btn_open->set_text("Invoke show_preferences() manually");
         btn_open->set_fixed_size(40);
         btn_open->when_click.connect(
             [&app](MouseButtonEventContext &)
             {
-                // Instantiate DialogPreferences (no config required)
-                auto dialog =
-                    std::make_unique<DialogPreferences>("User Preferences", 500, 400, true);
-
-                // Create PreferencesContent with an absolute path
-                std::string home = std::getenv("HOME") ? std::getenv("HOME") : "";
-                std::string absolute_path = home + "/" + "test_preferences_abs.json";
-
-                auto pref_content = std::make_unique<PreferencesContent>(absolute_path);
-                auto pref_content_ptr = pref_content.get();
-
-                // Define auto-save callback
-                auto save_callback = [pref_content_ptr]()
-                {
-                    pref_content_ptr->save_config();
-                    std::cout << "[Test] Configuration auto-saved to disk." << std::endl;
-                };
-
-                // Section 1: General (Automated Sync + Auto-save)
-                pref_content->add_section("General Settings", "preferences-system",
-                                          std::make_unique<GeneralSection>(save_callback));
-
-                // Section 2: Advanced (Automated Sync + Auto-save)
-                pref_content->add_section("Advanced Options", "preferences-system-details",
-                                          std::make_unique<AdvancedSection>(save_callback));
-
-                // Initial save to verify file existence
-                pref_content->save_config();
-
-                // Setup the toolbar automatically using our new widget
-                dialog->setup_toolbar(pref_content_ptr);
-
-                dialog->set_content(std::move(pref_content));
-
-                // Run dialog in a separate thread
-                std::thread(
-                    [d = std::move(dialog)]() mutable
-                    {
-                        d->initialize();
-                        d->run();
-                    })
-                    .detach();
+                // Simple standardized call
+                app.show_preferences();
             });
 
         wnd->add_child(std::move(lbl_info));

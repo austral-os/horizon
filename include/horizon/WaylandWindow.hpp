@@ -22,6 +22,7 @@ namespace horizon
     class GraphicsContext;
     class ClientMenu;
     class IpcClient;
+    class PreferencesContent;
 
     class WaylandWindow : public WaylandEventListener
     {
@@ -274,6 +275,17 @@ namespace horizon
          */
         bool confirm(const std::string &message, const std::string &title = "Confirm", MessageType type = MessageType::Question);
 
+        /**
+         * @brief Sets the application preferences content.
+         * If set, a "Preferences" item will be automatically added to the global menu.
+         */
+        void set_preferences_content(std::unique_ptr<PreferencesContent> content);
+
+        /**
+         * @brief Shows the preferences dialog.
+         */
+        void show_preferences();
+
         // --- Application Metadata ---
         const std::string &app_id() const
         {
@@ -379,6 +391,13 @@ namespace horizon
          * @param menu The menu to set as the application menu.
          */
         void set_app_menu(std::unique_ptr<Menu> menu);
+        
+        /**
+         * @brief Enables or disables the use of a global system menu for this window.
+         * By default, all windows try to register a global menu. Dialogs should usually disable this.
+         * @param use True to use global menu, false otherwise.
+         */
+        void set_use_global_menu(bool use);
 
         /**
          * @brief Returns the compositor context for this application.
@@ -553,6 +572,9 @@ namespace horizon
         std::vector<Widget *> m_hidden_by_fullscreen;
 
         Widget* find_clipboard_target();
+
+        std::unique_ptr<PreferencesContent> m_preferences_content;
+        bool m_use_global_menu{true};
     };
 
 }; // namespace horizon
