@@ -1,35 +1,34 @@
 {
-  "core": {
-    "dialog": {
-      "accept": "Aceptar",
-      "cancel": "Cancelar",
-      "font": {
-        "family": "Familia",
-        "style": "Estilo",
-        "size": "Tamaño",
-        "type_label": "Tipo de letra:",
-        "style_label": "Estilo del tipo de letra:",
-        "size_label": "Tamaño:",
-        "features_help": "Lista separada por comas de funcionalidades del tipo de letra (por ejemplo, «liga, calt»):",
-        "sample_label": "Muestra:",
-        "show_all_fonts": "Mostrar todos los tipos de letra"
-      }
-    },
-    "global_menu": {
-      "edit": "Edición",
-      "view": "Visualización",
-      "preferences": "Preferencias",
-      "quit": "Salir",
-      "copy": "Copiar",
-      "cut": "Cortar",
-      "paste": "Pegar",
-      "fullscreen": "Pantalla completa"
-    },
-    "color_picker": {
-      "html_notation": "Notación HTML:"
-    },
-    "search": {
-      "placeholder": "Buscar..."
+    "core": {
+        "dialog": {
+            "accept": "Aceptar",
+            "cancel": "Cancelar",
+            "font": {
+                "family": "Familia",
+                "style": "Estilo",
+                "size": "Tamaño",
+                "type_label": "Tipo de letra:",
+                "style_label": "Estilo del tipo de letra:",
+                "size_label": "Tamaño:",
+                "sample_label": "Muestra:",
+                "show_all_fonts": "Mostrar todos los tipos de letra"
+            }
+        },
+        "global_menu": {
+            "edit": "Edición",
+            "view": "Visualización",
+            "preferences": "Preferencias",
+            "quit": "Salir",
+            "copy": "Copiar",
+            "cut": "Cortar",
+            "paste": "Pegar",
+            "fullscreen": "Pantalla completa"
+        },
+        "color_picker": {
+            "html_notation": "Notación HTML:"
+        },
+        "search": {
+            "placeholder": "Buscar..."
+        }
     }
-  }
 }

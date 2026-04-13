@@ -96,6 +96,7 @@ namespace horizon
             style_col.id = "style";
             style_col.title = i18n().tr("core.dialog.font.style");
             style_col.width_policy = ColumnWidthPolicy::Flexible;
+            style_col.width = -1;
             style_col.cell_factory = [](const std::string &s)
             {
                 auto lbl = std::make_unique<Label>(s);
@@ -149,17 +150,8 @@ namespace horizon
             sector_b->set_layout_type(WIDGET_LAYOUT_VERTICAL);
             sector_b->set_spacing(8);
 
-            auto feat_lbl = std::make_unique<Label>(i18n().tr("core.dialog.font.features_help"));
-            feat_lbl->set_height(40);
-            sector_b->add_child(std::move(feat_lbl));
-
-            auto feat_in = std::make_unique<TextBox<>>();
-            features_input = feat_in.get();
-            features_input->set_height(32);
-            sector_b->add_child(std::move(feat_in));
-
             auto sample_lbl = std::make_unique<Label>(i18n().tr("core.dialog.font.sample_label"));
-            sample_lbl->set_height(25);
+            sample_lbl->set_fixed_size(25);
             sector_b->add_child(std::move(sample_lbl));
 
             auto preview_box = std::make_unique<Widget>();
@@ -167,7 +159,6 @@ namespace horizon
             preview_box->set_background_color(Color(1.0f, 1.0f, 1.0f, 0.05f));
             preview_box->set_border_radius(4);
             preview_box->set_margin(8);
-            preview_box->set_height(140);
 
             auto p_lbl = std::make_unique<Label>("00Q 1Il!| 5S 8B rnm :; ,. \"'` ~-= ({[<>]}) \n"
                                                  "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~ \n"
@@ -298,6 +289,24 @@ namespace horizon
             {
                 preview_label->set_font_family(selection_data.family);
                 preview_label->set_font_size(static_cast<int>(selection_data.size));
+
+                FontWeight weight = FONT_WEIGHT_NORMAL;
+                FontSlant slant = FONT_SLANT_NORMAL;
+
+                std::string style = selection_data.style;
+                std::transform(style.begin(), style.end(), style.begin(), ::tolower);
+
+                if (style.find("bold") != std::string::npos)
+                    weight = FONT_WEIGHT_BOLD;
+
+                if (style.find("italic") != std::string::npos)
+                    slant = FONT_SLANT_ITALIC;
+                else if (style.find("oblique") != std::string::npos)
+                    slant = FONT_SLANT_OBLIQUE;
+
+                preview_label->set_font_weight(weight);
+                preview_label->set_font_slant(slant);
+
                 preview_label->invalidate();
             }
         }
