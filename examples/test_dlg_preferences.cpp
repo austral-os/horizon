@@ -6,9 +6,158 @@
 #include <horizon/Window.hpp>
 #include <horizon/dialogs/DialogPreferences.hpp>
 #include <horizon/dialogs/PreferencesContent.hpp>
+#include <horizon/Slider.hpp>
+#include <horizon/Checkbox.hpp>
+#include <horizon/TextBox.hpp>
+#include <horizon/Spacer.hpp>
 #include <iostream>
 
 using namespace horizon;
+
+// --- Section 1: General Settings ---
+class GeneralSection : public Widget, public ConfigSection
+{
+public:
+    GeneralSection(std::function<void()> on_change) : Widget(), m_on_change(on_change)
+    {
+        set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        set_margin(30);
+        set_spacing(20);
+
+        // Rate Slider
+        add_child(std::make_unique<Label>("Velocidad (Rate):"));
+        auto slider = std::make_unique<Slider>();
+        slider->set_min(0.0f);
+        slider->set_max(100.0f);
+        slider->set_value(50.0f);
+        slider->set_width(300);
+        m_rate_slider = slider.get();
+
+        m_rate_slider->when_value_changed.connect(
+            [this](const EventContext &)
+            {
+                if (m_on_change) m_on_change();
+            });
+
+        add_child(std::move(slider));
+
+        // Start at boot Checkbox
+        auto check = std::make_unique<Checkbox<AquaObject>>();
+        check->set_text("Cargar al inicio");
+        m_boot_check = check.get();
+
+        m_boot_check->set_on_toggle(
+            [this](bool)
+            {
+                if (m_on_change) m_on_change();
+            });
+
+        add_child(std::move(check));
+    }
+
+    // ConfigSection implementation
+    void from_json(const nlohmann::json &j) override
+    {
+        if (j.is_null()) return;
+        if (j.contains("rate")) m_rate_slider->set_value(j["rate"].get<float>());
+        if (j.contains("cargar-inicio")) m_boot_check->set_checked(j["cargar-inicio"].get<bool>());
+    }
+
+    nlohmann::json to_json() const override
+    {
+        nlohmann::json j;
+        j["rate"] = m_rate_slider->value();
+        j["cargar-inicio"] = m_boot_check->is_checked();
+        return j;
+    }
+
+private:
+    Slider *m_rate_slider;
+    Checkbox<AquaObject> *m_boot_check;
+    std::function<void()> m_on_change;
+};
+
+// --- Section 2: Advanced Options ---
+class AdvancedSection : public Widget, public ConfigSection
+{
+public:
+    AdvancedSection(std::function<void()> on_change) : Widget(), m_on_change(on_change)
+    {
+        set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        set_margin(30);
+        set_spacing(20);
+
+        // File Path TextBox
+        add_child(std::make_unique<Label>("Ruta de archivo:"));
+        auto box = std::make_unique<TextBox<>>();
+        box->set_placeholder("Ingrese ruta...");
+        box->set_width(350);
+        box->set_fixed_size(35);
+        m_file_box = box.get();
+
+        m_file_box->when_text_changed.connect(
+            [this](const KeyEventContext &)
+            {
+                if (m_on_change) m_on_change();
+            });
+
+        add_child(std::move(box));
+
+        // Clean Checkbox
+        auto check = std::make_unique<Checkbox<AquaObject>>();
+        check->set_text("Limpiar al salir");
+        m_clean_check = check.get();
+
+        m_clean_check->set_on_toggle(
+            [this](bool)
+            {
+                if (m_on_change) m_on_change();
+            });
+
+        add_child(std::move(check));
+
+        // Rate2 Slider
+        add_child(std::make_unique<Label>("Prioridad (Rate 2):"));
+        auto slider = std::make_unique<Slider>();
+        slider->set_min(0.0f);
+        slider->set_max(1.0f);
+        slider->set_value(0.5f);
+        slider->set_width(300);
+        m_rate2_slider = slider.get();
+
+        m_rate2_slider->when_value_changed.connect(
+            [this](const EventContext &)
+            {
+                if (m_on_change) m_on_change();
+            });
+
+        add_child(std::move(slider));
+    }
+
+    // ConfigSection implementation
+    void from_json(const nlohmann::json &j) override
+    {
+        if (j.is_null()) return;
+        if (j.contains("file")) m_file_box->set_text(j["file"].get<std::string>());
+        if (j.contains("clean")) m_clean_check->set_checked(j["clean"].get<bool>());
+        if (j.contains("rate2")) m_rate2_slider->set_value(j["rate2"].get<float>());
+    }
+
+    nlohmann::json to_json() const override
+    {
+        nlohmann::json j;
+        j["file"] = m_file_box->text();
+        j["clean"] = m_clean_check->is_checked();
+        j["rate2"] = m_rate2_slider->value();
+        return j;
+    }
+
+private:
+    TextBox<> *m_file_box;
+    Checkbox<AquaObject> *m_clean_check;
+    Slider *m_rate2_slider;
+    std::function<void()> m_on_change;
+};
 
 int main()
 {
@@ -42,32 +191,20 @@ int main()
                 auto pref_content = std::make_unique<PreferencesContent>(absolute_path);
                 auto pref_content_ptr = pref_content.get();
 
-                // Set some default configuration values on the content
-                pref_content->set_config_value("general", "propiedad1", "valor");
-                pref_content->set_config_value("advanced", "otra_propiedad", "valor");
+                // Define auto-save callback
+                auto save_callback = [pref_content_ptr]() {
+                    pref_content_ptr->save_config();
+                    std::cout << "[Test] Configuration auto-saved to disk." << std::endl;
+                };
 
-                // Save immediately to verify the file creation
+                // Section 1: General (Automated Sync + Auto-save)
+                pref_content->add_section("General Settings", "preferences-system", std::make_unique<GeneralSection>(save_callback));
+
+                // Section 2: Advanced (Automated Sync + Auto-save)
+                pref_content->add_section("Advanced Options", "preferences-system-details", std::make_unique<AdvancedSection>(save_callback));
+
+                // Initial save to verify file existence
                 pref_content->save_config();
-                std::cout << "[Test] Configuration saved to " << absolute_path << std::endl;
-
-                // Section 1: General
-                auto section1 = std::make_unique<Widget>();
-                section1->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-                section1->set_margin(20);
-                section1->set_spacing(15);
-                section1->add_child(std::make_unique<Label>("This is the General section"));
-
-                pref_content->add_section("General", "preferences-system", std::move(section1));
-
-                // Section 2: Advanced
-                auto section2 = std::make_unique<Widget>();
-                section2->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-                section2->set_margin(20);
-                section2->set_spacing(15);
-                section2->add_child(std::make_unique<Label>("This is the Advanced section"));
-
-                pref_content->add_section("Advanced", "preferences-system-details",
-                                          std::move(section2));
 
                 // Setup the toolbar automatically using our new widget
                 dialog->setup_toolbar(pref_content_ptr);

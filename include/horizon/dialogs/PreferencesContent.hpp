@@ -2,6 +2,7 @@
 
 #include <horizon/Widget.hpp>
 #include <horizon/ConfigManager.hpp>
+#include <horizon/ConfigSection.hpp>
 #include <string>
 #include <memory>
 #include <vector>
@@ -11,21 +12,27 @@ namespace horizon
     /**
      * @brief Represents a section in the PreferencesContent widget.
      */
-    class PreferencesContentItem
+    class PreferencesContentItem : public ConfigSection
     {
     public:
-        PreferencesContentItem(std::string title, std::string icon, Widget *content)
-            : m_title(std::move(title)), m_icon(std::move(icon)), m_content(content)
+        PreferencesContentItem(std::string title, std::string icon, std::string section_name, Widget *content)
+            : m_title(std::move(title)), m_icon(std::move(icon)), m_section_name(std::move(section_name)), m_content(content)
         {
         }
 
         const std::string &title() const { return m_title; }
         const std::string &icon() const { return m_icon; }
+        const std::string &section_name() const { return m_section_name; }
         Widget *content() const { return m_content; }
+
+        // ConfigSection implementation to delegate to internal widget if it implements it
+        void from_json(const nlohmann::json &j) override;
+        nlohmann::json to_json() const override;
 
     private:
         std::string m_title;
         std::string m_icon;
+        std::string m_section_name;
         Widget *m_content;
     };
 
@@ -40,8 +47,12 @@ namespace horizon
 
         /**
          * @brief Adds a new section to the preferences content.
+         * @param title Display title in the sidebar/toolbar.
+         * @param icon Icon name.
+         * @param content The widget containing the settings.
+         * @param section_name Optional section name for JSON storage. If empty, it's slugified from the title.
          */
-        void add_section(std::string title, std::string icon, std::unique_ptr<Widget> content);
+        void add_section(std::string title, std::string icon, std::unique_ptr<Widget> content, std::string section_name = "");
 
         /**
          * @brief Sets the active section by index.
@@ -97,5 +108,8 @@ namespace horizon
         Widget *m_container{nullptr};
 
         std::unique_ptr<ConfigManager> m_config_manager;
+
+    private:
+        static std::string slugify(const std::string &text);
     };
 } // namespace horizon

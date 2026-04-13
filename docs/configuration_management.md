@@ -99,6 +99,36 @@ config->save();
 
 ---
 
+## 🏗️ Automated Integration (PreferencesContent)
+
+The `PreferencesContent` widget (used in standard preferences dialogs) provides an even higher level of automation. It uses a `ConfigManager` internally and can automatically sync with any `Widget` that implements `ConfigSection`.
+
+### Automatic Loading & Saving
+
+When you add a section to `PreferencesContent`, the framework automatically handles the JSON mapping during `load_config()` and `save_config()` calls.
+
+```cpp
+auto content = std::make_unique<PreferencesContent>(config_path);
+
+// Add a widget that implements ConfigSection
+content->add_section("Display Settings", "video-display", std::move(display_widget));
+
+// Calling load_config() will automatically find "display-settings" 
+// in the JSON and call display_widget->from_json()
+content->load_config();
+```
+
+### Section Name Slugification
+
+By default, the title provided in `add_section` is converted to a "slug" (lowercase, hyphen-separated) to be used as a key in the JSON file:
+
+- `"Display Settings"` → `"display-settings"`
+- `"Power & Battery"` → `"power-battery"`
+
+You can override this by providing an explicit `section_name` as the fourth argument to `add_section`.
+
+---
+
 ## 💡 Best Practices
 
 ### Path Resolution
@@ -136,14 +166,18 @@ class SettingsView : public horizon::ConfigSection {
 
 // In your application logic:
 void init_app() {
-    auto config = std::make_unique<horizon::ConfigManager>(path);
-    config->load();
+    auto config_path = "/home/user/.config/horizon/settings.json";
+    auto pref_content = std::make_unique<horizon::PreferencesContent>(config_path);
     
+    // The widget below implements ConfigSection
     auto view = std::make_unique<SettingsView>();
-    view->from_json(config->get_section("ui"));
     
-    // ... after user changes theme ...
-    config->set_section("ui", view->to_json());
-    config->save();
+    // Integration is automatic! 
+    // It will look for the "ui-settings" key in settings.json
+    pref_content->add_section("UI Settings", "preferences-desktop", std::move(view));
+    
+    // Load and Save are now one-liners that sync all sections
+    pref_content->load_config();
+    pref_content->save_config();
 }
 ```

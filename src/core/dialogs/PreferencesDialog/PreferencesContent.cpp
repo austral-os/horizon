@@ -20,14 +20,41 @@ namespace horizon
         load_config();
     }
 
-    void PreferencesContent::add_section(std::string title, std::string icon, std::unique_ptr<Widget> content)
+    void PreferencesContentItem::from_json(const nlohmann::json &j)
     {
+        if (auto section = dynamic_cast<ConfigSection *>(m_content))
+        {
+            section->from_json(j);
+        }
+    }
+
+    nlohmann::json PreferencesContentItem::to_json() const
+    {
+        if (auto section = dynamic_cast<ConfigSection *>(m_content))
+        {
+            return section->to_json();
+        }
+        return nlohmann::json();
+    }
+
+    void PreferencesContent::add_section(std::string title, std::string icon, std::unique_ptr<Widget> content, std::string section_name)
+    {
+        if (section_name.empty())
+        {
+            section_name = slugify(title);
+        }
+
         content->set_visible(false);
-        Widget* content_ptr = content.get();
+        Widget *content_ptr = content.get();
         m_container->add_child(std::move(content));
+
+        auto item = std::make_unique<PreferencesContentItem>(std::move(title), std::move(icon), std::move(section_name), content_ptr);
         
-        m_items.push_back(std::make_unique<PreferencesContentItem>(std::move(title), std::move(icon), content_ptr));
-        
+        // Sync the item with current config data if available
+        item->from_json(m_config_manager->get_section(item->section_name()));
+
+        m_items.push_back(std::move(item));
+
         if (m_items.size() == 1)
         {
             set_active_section(0);
@@ -62,11 +89,27 @@ namespace horizon
 
     bool PreferencesContent::load_config()
     {
-        return m_config_manager->load();
+        bool success = m_config_manager->load();
+        if (success)
+        {
+            for (auto &item : m_items)
+            {
+                item->from_json(m_config_manager->get_section(item->section_name()));
+            }
+        }
+        return success;
     }
 
     bool PreferencesContent::save_config()
     {
+        for (auto &item : m_items)
+        {
+            nlohmann::json section_data = item->to_json();
+            if (!section_data.is_null())
+            {
+                m_config_manager->set_section(item->section_name(), section_data);
+            }
+        }
         return m_config_manager->save();
     }
 
@@ -78,5 +121,33 @@ namespace horizon
     nlohmann::json PreferencesContent::get_config_value(const std::string &section, const std::string &key, const nlohmann::json &default_value)
     {
         return m_config_manager->get_value(section, key, default_value);
+    }
+
+    std::string PreferencesContent::slugify(const std::string &text)
+    {
+        std::string result;
+        bool last_was_dash = false;
+
+        for (char c : text)
+        {
+            if (std::isalnum(c))
+            {
+                result += static_cast<char>(std::tolower(c));
+                last_was_dash = false;
+            }
+            else if (!last_was_dash && !result.empty())
+            {
+                result += '-';
+                last_was_dash = true;
+            }
+        }
+
+        // Remove trailing dash
+        if (!result.empty() && result.back() == '-')
+        {
+            result.pop_back();
+        }
+
+        return result;
     }
 } // namespace horizon
