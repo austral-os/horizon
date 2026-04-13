@@ -1,4 +1,4 @@
-#include <ConfigManager.hpp>
+#include <utils/ConfigUtils.hpp>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -22,6 +22,9 @@ namespace horizon::preferences
         set_position_type(WidgetPositionTypes::FILL);
         set_margin(20);
         set_spacing(15);
+
+        m_config = std::make_unique<ConfigManager>(get_config_path("keyboard.json"));
+        m_config->load();
 
         setup_ui();
         load_config();
@@ -109,7 +112,7 @@ namespace horizon::preferences
 
     void KeyboardLanguageView::load_config()
     {
-        auto keyboard = ConfigManager::instance().get_section("keyboard");
+        auto keyboard = m_config->get_section("keyboard");
         if (keyboard.contains("layouts") && keyboard["layouts"].is_array())
         {
             m_selected_layouts.clear();
@@ -138,7 +141,7 @@ namespace horizon::preferences
 
     void KeyboardLanguageView::save_config()
     {
-        auto keyboard = ConfigManager::instance().get_section("keyboard");
+        auto keyboard = m_config->get_section("keyboard");
 
         nlohmann::json layouts_json = nlohmann::json::array();
         for (const auto &sel : m_selected_layouts)
@@ -151,7 +154,8 @@ namespace horizon::preferences
         }
 
         keyboard["layouts"] = layouts_json;
-        ConfigManager::instance().set_section("keyboard", keyboard);
+        m_config->set_section("keyboard", keyboard);
+        m_config->save();
     }
 
     void KeyboardLanguageView::add_layout()

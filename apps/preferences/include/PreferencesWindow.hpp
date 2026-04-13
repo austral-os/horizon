@@ -1,10 +1,12 @@
 #pragma once
 
+#include <horizon/ConfigManager.hpp>
 #include <horizon/ApplicationWindow.hpp>
 #include "PreferencesToolbar.hpp"
 #include "ContentView.hpp"
 #include <vector>
 #include <string>
+#include <memory>
 
 namespace horizon::preferences
 {

@@ -1,4 +1,4 @@
-#include <ConfigManager.hpp>
+#include <utils/ConfigUtils.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/Widget.hpp>
 #include <views/DesktopView/DockView.hpp>
@@ -8,6 +8,8 @@ namespace horizon::preferences
 {
     DockView::DockView() : horizon::Widget()
     {
+        m_config = std::make_unique<ConfigManager>(get_config_path("dock.json"));
+        m_config->load();
         set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
         set_position_type(horizon::WidgetPositionTypes::FILL);
         set_margin(30);
@@ -75,7 +77,7 @@ namespace horizon::preferences
         add_child(horizon::Spacer());
 
         // Load configuration
-        from_json(ConfigManager::instance().get_section("dock"));
+        from_json(m_config->get_section("dock"));
     }
 
     void DockView::from_json(const nlohmann::json &j)
@@ -110,7 +112,7 @@ namespace horizon::preferences
 
     void DockView::save_config()
     {
-        ConfigManager::instance().set_section("dock", to_json());
-        ConfigManager::instance().save();
+        m_config->set_section("dock", to_json());
+        m_config->save();
     }
 } // namespace horizon::preferences

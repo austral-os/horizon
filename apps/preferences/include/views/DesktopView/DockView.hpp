@@ -1,6 +1,7 @@
 #pragma once
 
-#include <ConfigSection.hpp>
+#include <horizon/ConfigSection.hpp>
+#include <horizon/ConfigManager.hpp>
 #include <horizon/Checkbox.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Slider.hpp>
@@ -33,5 +34,7 @@ namespace horizon::preferences
         int m_icon_size{64};
         bool m_magnification_enabled{true};
         nlohmann::json m_config_data;
+
+        std::unique_ptr<ConfigManager> m_config;
     };
 } // namespace horizon::preferences

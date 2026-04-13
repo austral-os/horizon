@@ -1,6 +1,7 @@
 #pragma once
 
 #include <horizon/Widget.hpp>
+#include <horizon/ConfigManager.hpp>
 #include <string>
 #include <memory>
 #include <vector>
@@ -34,7 +35,7 @@ namespace horizon
     class PreferencesContent : public Widget
     {
     public:
-        PreferencesContent();
+        PreferencesContent(const std::string &config_path);
         ~PreferencesContent() override = default;
 
         /**
@@ -62,9 +63,39 @@ namespace horizon
          */
         PreferencesContentItem *item_at(int index);
 
-    private:
+        // --- Configuration Persistence ---
+
+        /**
+         * @brief Loads the configuration from ~/.config/horizon/<config_filename>.
+         * @return true if successful.
+         */
+        bool load_config();
+
+        /**
+         * @brief Saves the current configuration to disk.
+         * @return true if successful.
+         */
+        bool save_config();
+
+        /**
+         * @brief Sets a configuration value for a specific section.
+         */
+        void set_config_value(const std::string &section, const std::string &key, const nlohmann::json &value);
+
+        /**
+         * @brief Gets a configuration value from a specific section.
+         */
+        nlohmann::json get_config_value(const std::string &section, const std::string &key, const nlohmann::json &default_value = nlohmann::json());
+
+        /**
+         * @brief Access to the underlying configuration object.
+         */
+        nlohmann::json &config_data() { return m_config_manager->config_data(); }
+
         std::vector<std::unique_ptr<PreferencesContentItem>> m_items;
         int m_active_index{-1};
         Widget *m_container{nullptr};
+
+        std::unique_ptr<ConfigManager> m_config_manager;
     };
 } // namespace horizon

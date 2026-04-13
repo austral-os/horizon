@@ -1,5 +1,7 @@
 #pragma once
 #include <horizon/Widget.hpp>
+#include <horizon/ConfigManager.hpp>
+#include <memory>
 #include <horizon/Slider.hpp>
 #include <horizon/Checkbox.hpp>
 #include <horizon/Label.hpp>
@@ -25,5 +27,6 @@ namespace horizon::preferences
         Checkbox<AquaObject>* m_numlock_checkbox{nullptr};
         Combo* m_model_combo{nullptr};
         bool m_is_loading{false};
+        std::unique_ptr<ConfigManager> m_config;
     };
 } // namespace horizon::preferences

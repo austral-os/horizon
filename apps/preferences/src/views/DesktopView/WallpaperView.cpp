@@ -1,7 +1,7 @@
 #include <views/DesktopView/WallpaperView.hpp>
 #include "horizon/Spacer.hpp"
 #include "horizon/Widget.hpp"
-#include <ConfigManager.hpp>
+#include <utils/ConfigUtils.hpp>
 #include <filesystem>
 #include <horizon/TreeViewItem.hpp>
 #include <memory>
@@ -11,6 +11,8 @@ namespace horizon::preferences
 {
     WallpaperView::WallpaperView() : horizon::Widget()
     {
+        m_config = std::make_unique<ConfigManager>(get_config_path("desktop.json"));
+        m_config->load();
         set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
         set_position_type(horizon::WidgetPositionTypes::FILL);
         set_margin(10);
@@ -32,7 +34,7 @@ namespace horizon::preferences
         add_child(std::move(section_d_widget));
 
         // Load configuration
-        from_json(ConfigManager::instance().get_section("desktop"));
+        from_json(m_config->get_section("desktop"));
     }
 
     void WallpaperView::create_section_b(horizon::Widget *parent)
@@ -374,7 +376,7 @@ namespace horizon::preferences
 
     void WallpaperView::save_config()
     {
-        ConfigManager::instance().set_section("desktop", to_json());
-        ConfigManager::instance().save();
+        m_config->set_section("desktop", to_json());
+        m_config->save();
     }
 } // namespace horizon::preferences

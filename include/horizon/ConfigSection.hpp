@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace horizon::preferences
+namespace horizon
 {
     /**
      * @class ConfigSection
@@ -25,4 +25,4 @@ namespace horizon::preferences
          */
         virtual nlohmann::json to_json() const = 0;
     };
-} // namespace horizon::preferences
+} // namespace horizon

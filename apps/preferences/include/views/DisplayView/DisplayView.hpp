@@ -1,5 +1,6 @@
 #pragma once
-#include <ConfigSection.hpp>
+#include <horizon/ConfigSection.hpp>
+#include <horizon/ConfigManager.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/TableView.hpp>
@@ -46,5 +47,7 @@ namespace horizon::preferences
         horizon::MessageDialog* m_confirm_dialog{nullptr};
 
         int m_selected_monitor_idx = -1;
+
+        std::unique_ptr<ConfigManager> m_config;
     };
 }

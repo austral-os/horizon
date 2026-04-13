@@ -3,6 +3,8 @@
 #include <horizon/TableView.hpp>
 #include <utils/XkbParser.hpp>
 #include <vector>
+#include <memory>
+#include <horizon/ConfigManager.hpp>
 
 namespace horizon::preferences
 {
@@ -24,5 +26,6 @@ namespace horizon::preferences
 
         TableView<KeyboardLayoutSelection>* m_layout_table{nullptr};
         std::vector<KeyboardLayoutSelection> m_selected_layouts;
+        std::unique_ptr<ConfigManager> m_config;
     };
 } // namespace horizon::preferences

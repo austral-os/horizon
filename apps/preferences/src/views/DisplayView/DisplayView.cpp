@@ -1,4 +1,4 @@
-#include <ConfigManager.hpp>
+#include <utils/ConfigUtils.hpp>
 #include <algorithm>
 #include <horizon/Application.hpp>
 #include <horizon/AquaObject.hpp>
@@ -17,6 +17,8 @@ namespace horizon::preferences
 {
     DisplayView::DisplayView() : Widget()
     {
+        m_config = std::make_unique<ConfigManager>(get_config_path("display.json"));
+        m_config->load();
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_position_type(FILL);
         set_margin(20);
@@ -70,7 +72,7 @@ namespace horizon::preferences
                 }
 
                 // Load configuration after monitors are identified
-                from_json(ConfigManager::instance().get_section("displays"));
+                from_json(m_config->get_section("displays"));
             });
 
         // 1. Display Devices (Upper Part)
@@ -83,7 +85,7 @@ namespace horizon::preferences
             [this](EventContext &)
             {
                 // Re-apply saved configuration whenever monitors are refreshed
-                from_json(ConfigManager::instance().get_section("displays"));
+                from_json(m_config->get_section("displays"));
             });
         add_child(std::move(devices));
 
@@ -502,7 +504,7 @@ namespace horizon::preferences
 
     void DisplayView::save_config()
     {
-        ConfigManager::instance().set_section("displays", to_json());
-        ConfigManager::instance().save();
+        m_config->set_section("displays", to_json());
+        m_config->save();
     }
 } // namespace horizon::preferences

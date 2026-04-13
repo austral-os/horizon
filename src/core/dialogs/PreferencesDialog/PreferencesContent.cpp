@@ -2,8 +2,10 @@
 
 namespace horizon
 {
-    PreferencesContent::PreferencesContent() : Widget()
+    PreferencesContent::PreferencesContent(const std::string &config_path) 
+        : Widget()
     {
+        m_config_manager = std::make_unique<ConfigManager>(config_path);
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_position_type(WidgetPositionTypes::FILL);
         
@@ -13,6 +15,9 @@ namespace horizon
         m_container = container.get();
         
         add_child(std::move(container));
+
+        // Load configuration on startup
+        load_config();
     }
 
     void PreferencesContent::add_section(std::string title, std::string icon, std::unique_ptr<Widget> content)
@@ -51,5 +56,27 @@ namespace horizon
         if (index < 0 || index >= static_cast<int>(m_items.size()))
             return nullptr;
         return m_items[index].get();
+    }
+
+    // --- Configuration Persistence ---
+
+    bool PreferencesContent::load_config()
+    {
+        return m_config_manager->load();
+    }
+
+    bool PreferencesContent::save_config()
+    {
+        return m_config_manager->save();
+    }
+
+    void PreferencesContent::set_config_value(const std::string &section, const std::string &key, const nlohmann::json &value)
+    {
+        m_config_manager->set_value(section, key, value);
+    }
+
+    nlohmann::json PreferencesContent::get_config_value(const std::string &section, const std::string &key, const nlohmann::json &default_value)
+    {
+        return m_config_manager->get_value(section, key, default_value);
     }
 } // namespace horizon

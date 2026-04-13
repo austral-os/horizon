@@ -780,7 +780,7 @@ void HorizonSession::apply_display_config()
         return;
 
     fs::path config_path(home);
-    config_path /= ".config/horizon/horizon.json";
+    config_path /= ".config/horizon/display.json";
 
     if (!fs::exists(config_path))
     {

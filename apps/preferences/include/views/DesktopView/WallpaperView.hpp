@@ -1,6 +1,7 @@
 #pragma once
 
-#include <ConfigSection.hpp>
+#include <horizon/ConfigSection.hpp>
+#include <horizon/ConfigManager.hpp>
 #include <ImagesView.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Checkbox.hpp>
@@ -83,5 +84,7 @@ namespace horizon::preferences
         std::string m_current_image_name;
         std::string m_current_image_full_path;
         std::string m_current_source;
+
+        std::unique_ptr<ConfigManager> m_config;
     };
 } // namespace horizon::preferences

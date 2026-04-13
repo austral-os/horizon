@@ -59,6 +59,7 @@ Detailed guides on implementing core framework features:
 - **Dialog System**: Unified interface for user interaction via modal dialogs.
   - [**MessageDialog System**](docs/message_dialogs.md): Standardized alert and confirmation dialogs.
   - [**FileDialog System**](docs/file_dialog.md): Usage and invocation of the standard file selection dialog.
+- [**Configuration Management**](docs/configuration_management.md): Robust system for managing application preferences and JSON-based configurations.
 
 ---
 

@@ -1,7 +1,7 @@
 #include <views/KeyboardView/KeyboardHardwareView.hpp>
 #include <utils/XkbParser.hpp>
 #include <horizon/VPanel.hpp>
-#include <ConfigManager.hpp>
+#include <utils/ConfigUtils.hpp>
 #include <horizon/I18n.hpp>
 
 namespace horizon::preferences
@@ -12,6 +12,9 @@ namespace horizon::preferences
         set_position_type(WidgetPositionTypes::FILL);
         set_margin(20);
         set_spacing(20);
+
+        m_config = std::make_unique<ConfigManager>(get_config_path("keyboard.json"));
+        m_config->load();
 
         setup_ui();
         load_config();
@@ -155,7 +158,7 @@ namespace horizon::preferences
     void KeyboardHardwareView::load_config()
     {
         m_is_loading = true;
-        auto keyboard = ConfigManager::instance().get_section("keyboard");
+        auto keyboard = m_config->get_section("keyboard");
         
         if (keyboard.contains("model")) {
             m_model_combo->set_selected_item_by_id(keyboard["model"].get<std::string>());
@@ -173,7 +176,7 @@ namespace horizon::preferences
     {
         if (m_is_loading) return;
 
-        auto keyboard = ConfigManager::instance().get_section("keyboard");
+        auto keyboard = m_config->get_section("keyboard");
         
         if (auto* sel = m_model_combo->selected_item()) {
             keyboard["model"] = sel->id;
@@ -183,6 +186,7 @@ namespace horizon::preferences
         keyboard["rate"] = m_rate_slider->value();
         keyboard["numlock"] = m_numlock_checkbox->is_checked();
         
-        ConfigManager::instance().set_section("keyboard", keyboard);
+        m_config->set_section("keyboard", keyboard);
+        m_config->save();
     }
 } // namespace horizon::preferences

@@ -27,6 +27,7 @@ file(GLOB_RECURSE SOURCES
     "src/*.cpp" 
     "src/*.c"
     "src/core/*.cpp"
+    "src/core/ConfigManager.cpp"
     "src/protocols/*.c"
 )
 

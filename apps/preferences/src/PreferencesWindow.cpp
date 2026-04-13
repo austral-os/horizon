@@ -1,5 +1,4 @@
 #include "PreferencesWindow.hpp"
-#include "ConfigManager.hpp"
 #include "ViewPanel.hpp"
 #include <horizon/I18n.hpp>
 #include "views/AppearanceView/AppearanceView.hpp"
@@ -26,7 +25,6 @@ namespace horizon::preferences
     PreferencesWindow::PreferencesWindow(const std::string &initial_section)
         : ApplicationWindow(i18n().tr("preferences.title"))
     {
-        ConfigManager::instance().load();
         set_size(800, 650);
 
         // Custom Toolbar
