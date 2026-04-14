@@ -1,42 +1,43 @@
 {
-  "core": {
-    "dialog": {
-      "accept": "Accept",
-      "cancel": "Cancel",
-      "aboutus": {
-        "title": "About",
-        "about": "About",
-        "components": "Components",
-        "auths": "Authors",
-        "thanks": "Thanks To",
-        "translate": "Translation"
-      },
-      "font": {
-        "family": "Family",
-        "style": "Style",
-        "size": "Size",
-        "type_label": "Font:",
-        "style_label": "Font Style:",
-        "size_label": "Size:",
-        "sample_label": "Sample:",
-        "select": "Select Font"
-      }
-    },
-    "global_menu": {
-      "edit": "Edit",
-      "view": "View",
-      "preferences": "Preferences",
-      "quit": "Quit",
-      "copy": "Copy",
-      "cut": "Cut",
-      "paste": "Paste",
-      "fullscreen": "Fullscreen"
-    },
-    "color_picker": {
-      "html_notation": "HTML Notation:"
-    },
-    "search": {
-      "placeholder": "Search..."
+    "core": {
+        "dialog": {
+            "accept": "Accept",
+            "cancel": "Cancel",
+            "aboutus": {
+                "title": "About",
+                "about": "About",
+                "components": "Components",
+                "auths": "Authors",
+                "thanks": "Thanks To",
+                "translate": "Translation"
+            },
+            "font": {
+                "family": "Family",
+                "style": "Style",
+                "size": "Size",
+                "type_label": "Font:",
+                "style_label": "Font Style:",
+                "size_label": "Size:",
+                "sample_label": "Sample:",
+                "select": "Select Font"
+            }
+        },
+        "global_menu": {
+            "edit": "Edit",
+            "view": "View",
+            "preferences": "Preferences",
+            "aboutus": "About us",
+            "quit": "Quit",
+            "copy": "Copy",
+            "cut": "Cut",
+            "paste": "Paste",
+            "fullscreen": "Fullscreen"
+        },
+        "color_picker": {
+            "html_notation": "HTML Notation:"
+        },
+        "search": {
+            "placeholder": "Search..."
+        }
     }
-  }
 }
