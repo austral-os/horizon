@@ -2,6 +2,7 @@
 #include "TerminalWindow.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/I18n.hpp"
+#include "horizon/Link.hpp"
 #include "horizon/Spacer.hpp"
 #include "horizon/dialogs/AboutUsDialog.hpp"
 #include "horizon/dialogs/PreferencesContent.hpp"
@@ -51,8 +52,15 @@ int main(int argc, char **argv)
             auto lbl_about = std::make_unique<Label>();
             lbl_about->set_text(horizon::i18n().tr("terminal.aboutus.about"));
             lbl_about->set_vertical_alignment(VerticalAlignment::Top);
+            lbl_about->set_fixed_size(25);
+
+            auto link_horizon = std::make_unique<Link>();
+            link_horizon->set_text("https://github.com/austral-os/horizon");
+            link_horizon->set_url("https://github.com/austral-os/horizon");
+            link_horizon->set_fixed_size(25);
 
             content_about->add_child(std::move(lbl_about));
+            content_about->add_child(std::move(link_horizon));
             content_about->add_child(Spacer());
 
             auto content_translate = std::make_unique<Widget>();
