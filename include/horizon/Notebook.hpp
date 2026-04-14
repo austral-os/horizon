@@ -35,6 +35,7 @@ namespace horizon
         void draw(GraphicsContext &ctx) override;
 
         void add_tab(NotebookPage page);
+        void add_tab(std::unique_ptr<NotebookPage> page);
 
         void set_current_tab(int index);
 

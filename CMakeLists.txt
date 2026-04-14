@@ -267,6 +267,15 @@ target_link_libraries(font_dialog_demo
         horizon
 )
 
+add_executable(aboutus_dialog_demo
+    examples/aboutus_dialog_demo.cpp
+)
+
+target_link_libraries(aboutus_dialog_demo
+    PRIVATE
+        horizon
+)
+
 add_executable(color_picker_demo
     examples/color_picker_demo.cpp
 )

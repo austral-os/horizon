@@ -168,4 +168,35 @@ namespace horizon
         }
     }
 
+    void Notebook::add_tab(std::unique_ptr<NotebookPage> page)
+    {
+
+        page->body->set_visible(false);
+
+        m_tab_content->add_child(std::move(page->body));
+
+        auto button = std::make_unique<Button<AquaObject>>();
+        button->set_text(page->label);
+        button->set_font_weight(FontWeight::FONT_WEIGHT_BOLD);
+
+        auto &children = m_header->children();
+
+        int index = children.size() - 1;
+
+        button->when_mouse_press.connect(
+            [this, index](MouseButtonEventContext &context)
+            {
+                this->set_current_tab(index - 1);
+                this->invalidate();
+            });
+
+        m_header->add_child_at(index, std::move(button));
+        configure_header();
+
+        if (m_current_tab < 0)
+        {
+            set_current_tab(0);
+        }
+    }
+
 } // namespace horizon
