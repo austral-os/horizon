@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Visor de Documentos
+Exec=/home/horacio/Desarrollo/austral-os/horizon/build/apps/document-viewer/document-viewer
+Icon=document-viewer
+Comment=Ver y leer documentos PDF
+Terminal=false
+Categories=Office;Viewer;
