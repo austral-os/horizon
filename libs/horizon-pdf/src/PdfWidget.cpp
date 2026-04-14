@@ -2,6 +2,7 @@
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/ScrollArea.hpp>
 #include <horizon/WaylandWindow.hpp>
+#include <horizon/Menu.hpp>
 #include <poppler.h>
 #include <cairo.h>
 #include <iostream>
@@ -14,10 +15,17 @@ namespace pdf {
 PdfWidget::PdfWidget() : Widget(), m_page_spacing(20) {
     set_layout_type(WIDGET_LAYOUT_VERTICAL);
     set_cursor_type(CursorType::Text);
+    set_focusable(true);
     
     when_mouse_press.connect([this](horizon::MouseButtonEventContext& ev) { handle_mouse_press(ev); });
     when_mouse_drag.connect([this](horizon::MouseMoveEventContext& ev) { handle_mouse_drag(ev); });
     when_mouse_release.connect([this](horizon::MouseButtonEventContext& ev) { handle_mouse_release(ev); });
+    
+    when_right_click.connect([this](horizon::MouseButtonEventContext& ev) {
+        if (application()) {
+            application()->show_context_menu(std::make_unique<horizon::Menu>().release(), ev.x, ev.y, ev.serial, this);
+        }
+    });
 }
 
 PdfWidget::~PdfWidget() {}
@@ -299,6 +307,7 @@ void PdfWidget::provide_clipboard_data(const std::string &mime, horizon::DataSin
             if (text) {
                 std::string s(text);
                 sink.write(std::vector<uint8_t>(s.begin(), s.end()));
+                sink.done();
                 g_free(text);
             }
             g_object_unref(page);
