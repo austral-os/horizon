@@ -184,6 +184,13 @@ void DocumentWindow::open_file(const std::string& path) {
         scroll_ptr->set_scroll_position(0, y);
     });
     
+    // Conectar sincronización inversa: scroll -> seleccionar miniatura
+    scroll_ptr->when_scroll.connect([scroll_ptr, pdf_ptr, sidebar_ptr](const horizon::EventContext&) {
+        // Obtenemos qué página está en la parte superior del visor actualmente
+        int current_idx = pdf_ptr->get_page_at_y(scroll_ptr->scroll_y());
+        sidebar_ptr->update_selection_from_scroll(current_idx);
+    });
+    
     vpanel->add_child(std::move(sidebar));
     vpanel->add_child(std::move(scroll));
     

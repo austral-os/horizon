@@ -17,6 +17,7 @@ public:
     ~PdfSidebar() = default;
 
     void set_document(std::shared_ptr<PdfDocument> doc);
+    void update_selection_from_scroll(int page_index);
     
     void render(horizon::GraphicsContext &ctx, int cx, int cy, int cw, int ch, bool force) override;
     void draw(horizon::GraphicsContext &ctx) override;

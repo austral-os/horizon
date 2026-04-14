@@ -72,6 +72,12 @@ void PdfSidebar::set_document(std::shared_ptr<PdfDocument> doc) {
     invalidate();
 }
 
+void PdfSidebar::update_selection_from_scroll(int page_index) {
+    for (size_t i = 0; i < m_thumbnails.size(); ++i) {
+        m_thumbnails[i]->set_selected((int)i == page_index);
+    }
+}
+
 void PdfSidebar::render(horizon::GraphicsContext &ctx, int cx, int cy, int cw, int ch, bool force) {
     if (!is_visible()) return;
 

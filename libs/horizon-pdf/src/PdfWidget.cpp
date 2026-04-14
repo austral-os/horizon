@@ -24,11 +24,14 @@ void PdfWidget::set_document(std::shared_ptr<PdfDocument> doc) {
 void PdfWidget::calculate_page_layout() {
     if (!m_document) return;
 
+    m_page_y_positions.clear();
     double current_y = m_page_spacing;
     double max_width = 0;
     int count = m_document->page_count();
 
     for (int i = 0; i < count; ++i) {
+        m_page_y_positions.push_back((int)current_y);
+        
         PopplerPage* page = m_document->get_page(i);
         if (page) {
             double w, h;
@@ -44,6 +47,21 @@ void PdfWidget::calculate_page_layout() {
     
     set_width(m_total_width);
     set_height(m_total_height);
+}
+
+int PdfWidget::get_page_at_y(int y) const {
+    if (m_page_y_positions.empty()) return 0;
+    
+    // Ajustar Y para considerar el margen inicial
+    // Buscamos la página cuya posición Y sea la más cercana a 'y' sin pasarse
+    int last_idx = 0;
+    for (size_t i = 0; i < m_page_y_positions.size(); ++i) {
+        if (m_page_y_positions[i] > y + 50) { // Offset de 50px para dar margen de visualización
+            break;
+        }
+        last_idx = (int)i;
+    }
+    return last_idx;
 }
 
 void PdfWidget::calculate_layout() {

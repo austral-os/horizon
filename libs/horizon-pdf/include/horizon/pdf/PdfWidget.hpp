@@ -25,12 +25,16 @@ public:
     
     // Devuelve la posición Y de una página para scroll
     int get_page_y(int page_index) const;
+    
+    // Devuelve el índice de la página más visible en una coordenada Y
+    int get_page_at_y(int y) const;
 
 protected:
     bool supports_clipboard() const override { return true; }
     
 private:
     std::shared_ptr<PdfDocument> m_document;
+    std::vector<int> m_page_y_positions;
     int m_page_spacing = 20;
     int m_total_width{0};
     int m_total_height{0};
