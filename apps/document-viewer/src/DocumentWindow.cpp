@@ -18,7 +18,12 @@ namespace horizon {
 namespace pdf {
 
 DocumentWindow::DocumentWindow() 
-    : ApplicationWindow(i18n().tr("app.title")) {
+    : ApplicationWindow("Document Viewer") {
+    
+    std::string title = i18n().tr("app.title");
+    if (title != "app.title") {
+        set_title(title);
+    }
     
     build_content();
     build_toolbar();

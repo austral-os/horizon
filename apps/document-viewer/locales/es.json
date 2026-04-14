@@ -1,12 +1,20 @@
 {
-    "app.title": "Visor de Documentos",
-    "toolbar.open": "Abrir",
-    "toolbar.zoom_in": "Ampliar",
-    "toolbar.zoom_out": "Reducir",
-    "toolbar.zoom_fit": "Ajustar",
-    "toolbar.fullscreen": "Pantalla Completa",
-    "toolbar.settings": "Ajustes",
-    "dialog.open_pdf": "Abrir PDF",
-    "sidebar.thumbnails": "Miniaturas",
-    "sidebar.index": "Índice"
+    "app": {
+        "title": "Visor de Documentos"
+    },
+    "toolbar": {
+        "open": "Abrir",
+        "zoom_in": "Ampliar",
+        "zoom_out": "Reducir",
+        "zoom_fit": "Ajustar",
+        "fullscreen": "Pantalla Completa",
+        "settings": "Ajustes"
+    },
+    "dialog": {
+        "open_pdf": "Abrir PDF"
+    },
+    "sidebar": {
+        "thumbnails": "Miniaturas",
+        "index": "Índice"
+    }
 }

@@ -1,12 +1,20 @@
 {
-    "app.title": "Document Viewer",
-    "toolbar.open": "Open",
-    "toolbar.zoom_in": "Zoom In",
-    "toolbar.zoom_out": "Zoom Out",
-    "toolbar.zoom_fit": "Fit",
-    "toolbar.fullscreen": "Full Screen",
-    "toolbar.settings": "Settings",
-    "dialog.open_pdf": "Open PDF",
-    "sidebar.thumbnails": "Thumbnails",
-    "sidebar.index": "Index"
+    "app": {
+        "title": "Document Viewer"
+    },
+    "toolbar": {
+        "open": "Open",
+        "zoom_in": "Zoom In",
+        "zoom_out": "Zoom Out",
+        "zoom_fit": "Zoom Fit",
+        "fullscreen": "Full Screen",
+        "settings": "Settings"
+    },
+    "dialog": {
+        "open_pdf": "Open PDF"
+    },
+    "sidebar": {
+        "thumbnails": "Thumbnails",
+        "index": "Index"
+    }
 }
