@@ -3,6 +3,14 @@
     "dialog": {
       "accept": "Accept",
       "cancel": "Cancel",
+      "aboutus": {
+        "title": "About",
+        "about": "About",
+        "components": "Components",
+        "auths": "Authors",
+        "thanks": "Thanks To",
+        "translate": "Translation"
+      },
       "font": {
         "family": "Family",
         "style": "Style",

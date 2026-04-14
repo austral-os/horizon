@@ -21,14 +21,9 @@
 namespace horizon
 {
 
-    AboutUsDialog::AboutUsDialog(const std::string &title)
+    void AboutUsDialog::setup_ui()
     {
-        setup_ui(title);
-    }
-
-    void AboutUsDialog::setup_ui(const std::string &title)
-    {
-        auto window_widget = std::make_unique<Window>(title);
+        auto window_widget = std::make_unique<Window>(i18n().tr("core.dialog.aboutus.title"));
         auto *app_window = window_widget.get();
         app_window->set_size(700, 550);
 
@@ -39,10 +34,10 @@ namespace horizon
 
         auto header = std::make_unique<Widget>();
         header->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        header->set_fixed_size(64);
+        header->set_fixed_size(50);
 
         auto icon = std::make_unique<Icon>();
-        icon->set_icon_name("austral-os");
+        icon->set_icon_name(m_content->icon);
         icon->set_icon_size(64);
         icon->set_vertical_alignment(VerticalAlignment::Top);
         icon->set_horizontal_alignment(TextAlignment::Center);
@@ -52,12 +47,13 @@ namespace horizon
         title_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
 
         auto app_name = std::make_unique<Label>();
-        app_name->set_text("About Us");
+        app_name->set_text(m_content->title);
         app_name->set_font_weight(FontWeight::FONT_WEIGHT_BOLD);
         app_name->set_font_size(24);
+        app_name->set_fixed_size(40);
 
         auto app_version = std::make_unique<Label>();
-        app_version->set_text("0.1.0");
+        app_version->set_text(m_content->version);
         app_version->set_font_size(16);
         app_version->set_vertical_alignment(VerticalAlignment::Top);
 
@@ -69,7 +65,6 @@ namespace horizon
 
         auto notebook = std::make_unique<Notebook>();
         m_notebook = notebook.get();
-        m_page_about = nullptr;
 
         root->add_child(std::move(header));
         root->add_child(std::move(notebook));
@@ -81,90 +76,45 @@ namespace horizon
 
     void AboutUsDialog::build_tabs()
     {
-        if (m_page_about != nullptr)
+        if (m_content->about != nullptr)
         {
-            m_notebook->add_tab(NotebookPage("About", std::move(m_page_about)));
-            m_page_about = nullptr;
+            m_notebook->add_tab(
+                NotebookPage(i18n().tr("core.dialog.aboutus.about"), std::move(m_content->about)));
+            m_content->about = nullptr;
         }
 
-        if (m_page_components != nullptr)
+        if (m_content->components != nullptr)
         {
-            m_notebook->add_tab(NotebookPage("Components", std::move(m_page_components)));
-            m_page_components = nullptr;
+            m_notebook->add_tab(NotebookPage(i18n().tr("core.dialog.aboutus.components"),
+                                             std::move(m_content->components)));
+            m_content->components = nullptr;
         }
 
-        if (m_page_auths != nullptr)
+        if (m_content->auths != nullptr)
         {
-            m_notebook->add_tab(NotebookPage("Auths", std::move(m_page_auths)));
-            m_page_auths = nullptr;
+            m_notebook->add_tab(
+                NotebookPage(i18n().tr("core.dialog.aboutus.auths"), std::move(m_content->auths)));
+            m_content->auths = nullptr;
         }
 
-        if (m_page_thanks != nullptr)
+        if (m_content->thanks != nullptr)
         {
-            m_notebook->add_tab(NotebookPage("Thanks", std::move(m_page_thanks)));
-            m_page_thanks = nullptr;
+            m_notebook->add_tab(NotebookPage(i18n().tr("core.dialog.aboutus.thanks"),
+                                             std::move(m_content->thanks)));
+            m_content->thanks = nullptr;
         }
 
-        if (m_page_translate != nullptr)
+        if (m_content->translate != nullptr)
         {
-            m_notebook->add_tab(NotebookPage("Translate", std::move(m_page_translate)));
-            m_page_translate = nullptr;
+            m_notebook->add_tab(NotebookPage(i18n().tr("core.dialog.aboutus.translate"),
+                                             std::move(m_content->translate)));
+            m_content->translate = nullptr;
         }
 
         if (m_notebook->children().size() > 0)
         {
             m_notebook->set_current_tab(0);
         }
-    }
-
-    void AboutUsDialog::set_about_content(std::unique_ptr<Widget> content)
-    {
-        m_page_about = std::move(content);
-    }
-
-    Widget *AboutUsDialog::get_about_content()
-    {
-        return m_page_about.get();
-    }
-
-    void AboutUsDialog::set_components_content(std::unique_ptr<Widget> content)
-    {
-        m_page_components = std::move(content);
-    }
-
-    Widget *AboutUsDialog::get_components_content()
-    {
-        return m_page_components.get();
-    }
-
-    void AboutUsDialog::set_auths_content(std::unique_ptr<Widget> content)
-    {
-        m_page_auths = std::move(content);
-    }
-
-    Widget *AboutUsDialog::get_auths_content()
-    {
-        return m_page_auths.get();
-    }
-
-    void AboutUsDialog::set_thanks_content(std::unique_ptr<Widget> content)
-    {
-        m_page_thanks = std::move(content);
-    }
-
-    Widget *AboutUsDialog::get_thanks_content()
-    {
-        return m_page_thanks.get();
-    }
-
-    void AboutUsDialog::set_translate_content(std::unique_ptr<Widget> content)
-    {
-        m_page_translate = std::move(content);
-    }
-
-    Widget *AboutUsDialog::get_translate_content()
-    {
-        return m_page_translate.get();
     }
 
 } // namespace horizon

@@ -1,21 +1,19 @@
 #pragma once
 
+#include "horizon/Clipboard.hpp"
 #include "horizon/CompositorAppInterface.hpp"
 #include "horizon/CompositorContext.hpp"
 #include "horizon/EventsManager.hpp"
 #include "horizon/SignalManager.hpp"
 #include "horizon/ThemeManager.hpp"
+#include "horizon/WaylandEventListener.hpp"
 #include "horizon/WaylandSurface.hpp"
 #include "horizon/Widget.hpp"
 #include <atomic>
-#include <condition_variable>
 #include <deque>
-#include "horizon/WaylandEventListener.hpp"
-#include "horizon/Clipboard.hpp"
 #include <functional>
 #include <horizon/DialogTypes.hpp>
 #include <mutex>
-#include <future>
 
 namespace horizon
 {
@@ -24,35 +22,38 @@ namespace horizon
     class ClientMenu;
     class IpcClient;
     class PreferencesContent;
+    class AboutDialogContent;
 
     class WaylandWindow : public WaylandEventListener
     {
         friend class CairoGraphicContext;
-    class PopupEventListener : public WaylandEventListener
-    {
-        WaylandWindow *m_window;
-        Widget *m_hovered = nullptr;
+        class PopupEventListener : public WaylandEventListener
+        {
+            WaylandWindow *m_window;
+            Widget *m_hovered = nullptr;
 
-    public:
-        PopupEventListener(WaylandWindow *window) : m_window(window) {}
+        public:
+            PopupEventListener(WaylandWindow *window) : m_window(window) {}
 
-        void on_pointer_event(const PointerEvent &event) override;
-        void on_key_event(const KeyEvent &event) override {}
-        void on_modifiers_event(uint32_t modifiers) override {}
-        void on_resize(int width, int height) override {}
-        void on_activated(bool active) override {}
-        void on_close() override;
-    };
+            void on_pointer_event(const PointerEvent &event) override;
+            void on_key_event(const KeyEvent &event) override {}
+            void on_modifiers_event(uint32_t modifiers) override {}
+            void on_resize(int width, int height) override {}
+            void on_activated(bool active) override {}
+            void on_close() override;
+        };
 
     public:
         WaylandWindow(std::string app_id = "horizon.app", int w = 800, int h = 600,
-                      bool defer_init = false, bool resizable = true,
-                      int min_w = -1, int min_h = -1);
+                      bool defer_init = false, bool resizable = true, int min_w = -1,
+                      int min_h = -1);
         virtual ~WaylandWindow();
 
-        static WaylandWindow *get_active_window() { return m_active_window; }
-        void set_clipboard_data(const ClipboardData& data);
-
+        static WaylandWindow *get_active_window()
+        {
+            return m_active_window;
+        }
+        void set_clipboard_data(const ClipboardData &data);
 
         // Modifiers
         enum Modifier
@@ -135,7 +136,10 @@ namespace horizon
          * @param root Unique pointer to the new root widget.
          */
         void set_root(std::unique_ptr<Widget> root);
-        Widget *root() const { return m_root.get(); }
+        Widget *root() const
+        {
+            return m_root.get();
+        }
         Menu *get_menu(const std::string &id) const;
 
         /**
@@ -143,7 +147,6 @@ namespace horizon
          * @param widget The widget to grab keyboard focus.
          */
         void set_focused_widget(Widget *widget);
-
 
         /**
          * @brief Invalidates the entire application or a specific widget.
@@ -153,11 +156,15 @@ namespace horizon
         void request_clipboard_data(Widget *target, const std::string &mime_type = "text/plain");
         void set_clipboard_owner(Widget *owner);
         std::vector<std::string> get_clipboard_mime_types() const;
-        void show_context_menu(Menu *menu, int x = -1, int y = -1, uint32_t serial = 0, Widget *owner = nullptr);
+        void show_context_menu(Menu *menu, int x = -1, int y = -1, uint32_t serial = 0,
+                               Widget *owner = nullptr);
         void close_context_menu(bool emit_signal = true);
         void show_tooltip(Widget *owner, Notification *tooltip);
         void hide_tooltip();
-        Widget *tooltip_owner() const { return m_tooltip_owner; }
+        Widget *tooltip_owner() const
+        {
+            return m_tooltip_owner;
+        }
 
         /**
          * @brief Signals the application to wake up its event loop (e.g. from another thread).
@@ -196,7 +203,8 @@ namespace horizon
         void queue_gl_draw(const GLDrawCall &call) const;
 
         /**
-         * @brief Initializes the window. Should be called from the thread where the event loop will run.
+         * @brief Initializes the window. Should be called from the thread where the event loop will
+         * run.
          */
         virtual void initialize();
 
@@ -205,11 +213,23 @@ namespace horizon
          */
         void quit();
 
-        int screen_x() const { return m_screen_x; }
-        int screen_y() const { return m_screen_y; }
+        int screen_x() const
+        {
+            return m_screen_x;
+        }
+        int screen_y() const
+        {
+            return m_screen_y;
+        }
 
-        int pointer_x() const { return (int)m_pointer_x; }
-        int pointer_y() const { return (int)m_pointer_y; }
+        int pointer_x() const
+        {
+            return (int)m_pointer_x;
+        }
+        int pointer_y() const
+        {
+            return (int)m_pointer_y;
+        }
 
         void set_screen_position(int x, int y)
         {
@@ -227,11 +247,20 @@ namespace horizon
         widget_position get_global_pointer_position() const;
 
         void set_resizable(bool resizable);
-        bool is_resizable() const { return m_resizable; }
+        bool is_resizable() const
+        {
+            return m_resizable;
+        }
 
         void set_min_size(int w, int h);
-        int min_width() const { return m_min_width; }
-        int min_height() const { return m_min_height; }
+        int min_width() const
+        {
+            return m_min_width;
+        }
+        int min_height() const
+        {
+            return m_min_height;
+        }
 
         /**
          * @brief Posts a task to be executed on the main application thread.
@@ -269,12 +298,14 @@ namespace horizon
         /**
          * @brief Shows an alert dialog.
          */
-        void alert(const std::string &message, const std::string &title = "Alert", MessageType type = MessageType::Info);
+        void alert(const std::string &message, const std::string &title = "Alert",
+                   MessageType type = MessageType::Info);
 
         /**
          * @brief Shows a confirmation dialog and returns true if accepted.
          */
-        bool confirm(const std::string &message, const std::string &title = "Confirm", MessageType type = MessageType::Question);
+        bool confirm(const std::string &message, const std::string &title = "Confirm",
+                     MessageType type = MessageType::Question);
 
         /**
          * @brief Sets the application preferences content factory.
@@ -288,6 +319,19 @@ namespace horizon
          * @brief Shows the preferences dialog.
          */
         void show_preferences();
+
+        /**
+         * @brief Sets the application preferences content factory.
+         * If set, a "Preferences" item will be automatically added to the global menu.
+         * The factory will be invoked each time a preferences dialog is opened.
+         */
+        using AboutUsFactory = std::function<std::unique_ptr<AboutDialogContent>()>;
+        void set_aboutus_content(AboutUsFactory factory);
+
+        /**
+         * @brief Shows the preferences dialog.
+         */
+        void show_aboutus();
 
         // --- Application Metadata ---
         const std::string &app_id() const
@@ -394,10 +438,11 @@ namespace horizon
          * @param menu The menu to set as the application menu.
          */
         void set_app_menu(std::unique_ptr<Menu> menu);
-        
+
         /**
          * @brief Enables or disables the use of a global system menu for this window.
-         * By default, all windows try to register a global menu. Dialogs should usually disable this.
+         * By default, all windows try to register a global menu. Dialogs should usually disable
+         * this.
          * @param use True to use global menu, false otherwise.
          */
         void set_use_global_menu(bool use);
@@ -497,7 +542,8 @@ namespace horizon
 
         std::unique_ptr<Widget> m_root;
         bool m_full_repaint = true; /**< Flag indicating if the entire UI needs re-rendering. */
-        bool m_first_frame = true; /**< True until the first buffer is committed. Breaking Wayfire deadlock. */
+        bool m_first_frame =
+            true; /**< True until the first buffer is committed. Breaking Wayfire deadlock. */
         std::vector<Widget *> m_dirty_widgets; /**< List of widgets that need re-rendering. */
         int m_wakeup_fd{-1};                   /**< File descriptor for waking up the event loop. */
 
@@ -528,7 +574,6 @@ namespace horizon
         std::map<size_t, std::function<void()>> m_on_exit_handlers;
         std::map<size_t, std::function<void(bool)>> m_on_maximize_handlers;
         std::map<size_t, std::function<void()>> m_on_minimize_handlers;
-
 
         bool m_was_maximized_before_minimize{false};
 
@@ -574,11 +619,14 @@ namespace horizon
         Widget *m_fullscreen_target{nullptr};
         std::vector<Widget *> m_hidden_by_fullscreen;
 
-        Widget* find_clipboard_target();
+        Widget *find_clipboard_target();
 
         PreferencesFactory m_preferences_factory;
         int m_preferences_width{500};
         int m_preferences_height{400};
+
+        AboutUsFactory m_aboutus_factory;
+
         bool m_use_global_menu{true};
     };
 

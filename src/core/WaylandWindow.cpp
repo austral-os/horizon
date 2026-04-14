@@ -1,24 +1,25 @@
+#include "MainThreadDataSink.hpp"
+#include "WaylandClipboardBackend.hpp"
 #include "horizon/CairoGraphicsContext.hpp"
 #include "horizon/ClientMenu.hpp"
 #include "horizon/IpcClient.hpp"
 #include "horizon/LabwcCompositorContext.hpp"
 #include "horizon/Menu.hpp"
-#include "horizon/Window.hpp"
 #include "horizon/WayfireCompositorContext.hpp"
+#include "horizon/Window.hpp"
+#include "horizon/dialogs/AboutUsDialog.hpp"
 #include <GLES2/gl2.h>
 #include <algorithm>
+#include <future>
 #include <glib-object.h>
-#include <horizon/Logger.hpp>
-#include <horizon/WaylandWindow.hpp>
-#include <horizon/I18n.hpp>
-#include <horizon/dialogs/MessageDialog.hpp>
 #include <horizon/DialogTypes.hpp>
-#include "WaylandClipboardBackend.hpp"
-#include "MainThreadDataSink.hpp"
-#include <horizon/dialogs/PreferencesContent.hpp>
-#include <horizon/dialogs/DialogPreferences.hpp>
-
+#include <horizon/I18n.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/Notification.hpp>
+#include <horizon/WaylandWindow.hpp>
+#include <horizon/dialogs/DialogPreferences.hpp>
+#include <horizon/dialogs/MessageDialog.hpp>
+#include <horizon/dialogs/PreferencesContent.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
 #include <linux/input-event-codes.h>
 #include <memory>
@@ -29,7 +30,6 @@
 namespace horizon
 {
     WaylandWindow *WaylandWindow::m_active_window = nullptr;
-
 
     static const char *VERTEX_SHADER = "attribute vec3 position;\n"
                                        "attribute vec2 texcoord;\n"
@@ -152,10 +152,10 @@ namespace horizon
         m_active_window = this;
     };
 
-
     WaylandWindow::~WaylandWindow()
     {
-        if (m_active_window == this) {
+        if (m_active_window == this)
+        {
             m_active_window = nullptr;
         }
 
@@ -197,13 +197,13 @@ namespace horizon
         }
     }
 
-    void WaylandWindow::set_clipboard_data(const ClipboardData& data)
+    void WaylandWindow::set_clipboard_data(const ClipboardData &data)
     {
-        if (m_clipboard_backend) {
+        if (m_clipboard_backend)
+        {
             m_clipboard_backend->set(data);
         }
     }
-
 
     void WaylandWindow::send_remote_signal(int target_pid, const std::string &signal,
                                            const std::string &token)
@@ -304,7 +304,8 @@ namespace horizon
         {
             if (m_client_menu && m_is_activated)
             {
-                m_client_menu->set_global_menu({}); // Clear global menu before exit, only if we were active
+                m_client_menu->set_global_menu(
+                    {}); // Clear global menu before exit, only if we were active
             }
             quit();
         }
@@ -358,11 +359,11 @@ namespace horizon
             m_surface->set_min_size(std::max(0, m_min_width), std::max(0, m_min_height));
         }
 
-        if (!m_clipboard_backend) {
+        if (!m_clipboard_backend)
+        {
             m_clipboard_backend = std::make_unique<WaylandClipboardBackend>(m_surface.get());
         }
     }
-
 
     void WaylandWindow::set_resizable(bool resizable)
     {
@@ -402,30 +403,48 @@ namespace horizon
             init_global_menu();
         }
 
-        signal_manager.connect("preferences", [this](SignalContext &) {
-            LOG_INFO << "WaylandWindow: Received 'preferences' signal";
-            this->show_preferences();
-        });
+        signal_manager.connect("preferences",
+                               [this](SignalContext &)
+                               {
+                                   LOG_INFO << "WaylandWindow: Received 'preferences' signal";
+                                   this->show_preferences();
+                               });
 
         // Standard clipboard signal routing: automatically dispatch to best candidate
-        signal_manager.connect("copy", [this](SignalContext&) {
-            LOG_INFO << "WaylandWindow: Received 'copy' signal from menu/IPC";
-            auto* target = find_clipboard_target();
-            if (target) target->perform(ClipboardAction::Copy);
-            else LOG_INFO << "WaylandWindow: No clipboard target found for 'copy'";
-        });
-        signal_manager.connect("cut", [this](SignalContext&) {
-            LOG_INFO << "WaylandWindow: Received 'cut' signal from menu/IPC";
-            auto* target = find_clipboard_target();
-            if (target) target->perform(ClipboardAction::Cut);
-            else LOG_INFO << "WaylandWindow: No clipboard target found for 'cut'";
-        });
-        signal_manager.connect("paste", [this](SignalContext&) {
-            LOG_INFO << "WaylandWindow: Received 'paste' signal from menu/IPC";
-            auto* target = find_clipboard_target();
-            if (target) target->perform(ClipboardAction::Paste);
-            else LOG_INFO << "WaylandWindow: No clipboard target found for 'paste'";
-        });
+        signal_manager.connect("copy",
+                               [this](SignalContext &)
+                               {
+                                   LOG_INFO
+                                       << "WaylandWindow: Received 'copy' signal from menu/IPC";
+                                   auto *target = find_clipboard_target();
+                                   if (target)
+                                       target->perform(ClipboardAction::Copy);
+                                   else
+                                       LOG_INFO
+                                           << "WaylandWindow: No clipboard target found for 'copy'";
+                               });
+        signal_manager.connect("cut",
+                               [this](SignalContext &)
+                               {
+                                   LOG_INFO << "WaylandWindow: Received 'cut' signal from menu/IPC";
+                                   auto *target = find_clipboard_target();
+                                   if (target)
+                                       target->perform(ClipboardAction::Cut);
+                                   else
+                                       LOG_INFO
+                                           << "WaylandWindow: No clipboard target found for 'cut'";
+                               });
+        signal_manager.connect(
+            "paste",
+            [this](SignalContext &)
+            {
+                LOG_INFO << "WaylandWindow: Received 'paste' signal from menu/IPC";
+                auto *target = find_clipboard_target();
+                if (target)
+                    target->perform(ClipboardAction::Paste);
+                else
+                    LOG_INFO << "WaylandWindow: No clipboard target found for 'paste'";
+            });
 
         for (auto const &[id, handler] : m_on_start_handlers)
         {
@@ -797,8 +816,9 @@ namespace horizon
         m_global_menus = menus;
     }
 
-    namespace {
-        Widget* detect_clipboard_target(Widget *root)
+    namespace
+    {
+        Widget *detect_clipboard_target(Widget *root)
         {
             if (!root)
                 return nullptr;
@@ -806,7 +826,7 @@ namespace horizon
                 return root;
             for (const auto &child : root->children())
             {
-                auto* found = detect_clipboard_target(child.get());
+                auto *found = detect_clipboard_target(child.get());
                 if (found)
                     return found;
             }
@@ -832,7 +852,7 @@ namespace horizon
             }
             void error() override {}
         };
-    }
+    } // namespace
 
     Menu *WaylandWindow::get_menu(const std::string &id) const
     {
@@ -854,8 +874,15 @@ namespace horizon
 
         if (m_preferences_factory)
         {
-            auto *pref_item = m_app_menu->add_item(i18n().tr("core.global_menu.preferences"), "Ctrl+,");
+            auto *pref_item =
+                m_app_menu->add_item(i18n().tr("core.global_menu.preferences"), "Ctrl+,");
             pref_item->set_id("preferences");
+        }
+
+        if (m_aboutus_factory)
+        {
+            auto *ab_item = m_app_menu->add_item(i18n().tr("core.global_menu.aboutus"), "Ctrl+H");
+            ab_item->set_id("aboutus");
         }
 
         m_app_menu->add_separator();
@@ -915,17 +942,22 @@ namespace horizon
 
             // Check if fullscreen is already there
             bool has_fullscreen = false;
-            for (auto const &child : vis_menu->children()) {
-                if (auto *item = dynamic_cast<MenuItem *>(child.get())) {
-                    if (item->id() == "fullscreen") {
+            for (auto const &child : vis_menu->children())
+            {
+                if (auto *item = dynamic_cast<MenuItem *>(child.get()))
+                {
+                    if (item->id() == "fullscreen")
+                    {
                         has_fullscreen = true;
                         break;
                     }
                 }
             }
-            
-            if (!has_fullscreen) {
-                if (!vis_menu->children().empty()) {
+
+            if (!has_fullscreen)
+            {
+                if (!vis_menu->children().empty())
+                {
                     vis_menu->add_separator();
                 }
                 auto *item = vis_menu->add_item(i18n().tr("core.global_menu.fullscreen"), "F11");
@@ -1098,7 +1130,7 @@ namespace horizon
     void WaylandWindow::on_activated(bool active)
     {
         m_is_activated = active;
- 
+
         if (m_client_menu && m_is_running && m_use_global_menu)
         {
             if (active)
@@ -1187,7 +1219,7 @@ namespace horizon
         // Standard shortcuts for clipboard: automatically dispatch if widget hierarchy supports it
         if ((m_modifiers & CTRL))
         {
-            auto* clipboard_target = find_clipboard_target();
+            auto *clipboard_target = find_clipboard_target();
             if (clipboard_target)
             {
                 if (event.key == KEY_C)
@@ -1696,29 +1728,34 @@ namespace horizon
     {
         if (m_compositor_context)
         {
-            if (is_fullscreen()) return;
+            if (is_fullscreen())
+                return;
 
             // 1. Identify target
             Widget *target = m_focused;
-            if (!target || !target->supports_fullscreen()) {
+            if (!target || !target->supports_fullscreen())
+            {
                 target = find_fullscreen_target(m_root.get());
             }
 
-            if (!target) return;
+            if (!target)
+                return;
 
             // 2. Apply isolation
             apply_fullscreen_isolation(target);
 
             // 3. Hide titlebar if we are a Window
-            if (Window *win = dynamic_cast<Window *>(m_root.get())) {
-                if (win->titlebar()) {
+            if (Window *win = dynamic_cast<Window *>(m_root.get()))
+            {
+                if (win->titlebar())
+                {
                     win->titlebar()->set_visible(false);
                     m_hidden_by_fullscreen.push_back(win->titlebar());
                 }
             }
 
             m_compositor_context->fullscreen();
-            
+
             // 4. Trigger event
             FullscreenEventContext ev;
             ev.sender = target;
@@ -1734,14 +1771,16 @@ namespace horizon
     {
         if (m_compositor_context)
         {
-            if (!is_fullscreen()) return;
+            if (!is_fullscreen())
+                return;
 
             m_compositor_context->unfullscreen();
 
             // Restore isolation
             restore_fullscreen_isolation();
 
-            if (m_fullscreen_target) {
+            if (m_fullscreen_target)
+            {
                 FullscreenEventContext ev;
                 ev.sender = m_fullscreen_target;
                 ev.width = m_surface->width();
@@ -2344,15 +2383,17 @@ namespace horizon
                     menu->add_separator();
                 }
 
-                auto *item = menu->add_item(is_fullscreen() ? "Salir de pantalla completa" : "Pantalla completa", "F11");
+                auto *item = menu->add_item(
+                    is_fullscreen() ? "Salir de pantalla completa" : "Pantalla completa", "F11");
                 item->set_id("fullscreen_context");
-                item->when_click.connect([target_window = this](MouseButtonEventContext &)
-                                          {
-                                              if (target_window->is_fullscreen())
-                                                  target_window->unfullscreen();
-                                              else
-                                                  target_window->fullscreen();
-                                          });
+                item->when_click.connect(
+                    [target_window = this](MouseButtonEventContext &)
+                    {
+                        if (target_window->is_fullscreen())
+                            target_window->unfullscreen();
+                        else
+                            target_window->fullscreen();
+                    });
             }
         }
 
@@ -2426,18 +2467,19 @@ namespace horizon
         m_tooltip_widget->set_application_recursive(this);
         m_tooltip_widget->set_visible(true);
         m_tooltip_widget->set_position(0, 0);
-        
+
         // Calculate layout with a maximum width to allow wrapping
         int max_w = 400; // Tooltip max width
         int h = m_tooltip_widget->preferred_height(max_w);
         int w = m_tooltip_widget->preferred_width();
-        if (w > max_w) w = max_w;
+        if (w > max_w)
+            w = max_w;
 
         m_tooltip_widget->set_size(w, h);
         m_tooltip_widget->calculate_layout();
 
         m_tooltip_surface = std::make_unique<WaylandSurface>(w, h);
-        
+
         // Tooltip position: 20px below the mouse cursor
         int x = (int)m_pointer_x;
         int y = (int)m_pointer_y + 20;
@@ -2463,16 +2505,17 @@ namespace horizon
         {
             auto target_sink = std::make_shared<WidgetDataSink>(target, mime_type);
             auto loopback_sink = std::make_shared<MainThreadDataSink>(this, target_sink);
-            
+
             m_clipboard_backend->request_data(mime_type, loopback_sink);
         }
     }
 
-    void WaylandWindow::set_clipboard_owner(Widget* owner)
+    void WaylandWindow::set_clipboard_owner(Widget *owner)
     {
         if (m_clipboard_backend && owner)
         {
-            m_clipboard_backend->set_provider(owner->get_clipboard_provider(), owner->provided_mime_types());
+            m_clipboard_backend->set_provider(owner->get_clipboard_provider(),
+                                              owner->provided_mime_types());
         }
     }
 
@@ -2481,13 +2524,15 @@ namespace horizon
         // 1. Bottom-up search starting from the focused widget
         if (m_focused)
         {
-            LOG_INFO << "WaylandWindow: find_clipboard_target starting bottom-up from focused widget";
+            LOG_INFO
+                << "WaylandWindow: find_clipboard_target starting bottom-up from focused widget";
             Widget *temp = m_focused;
             while (temp)
             {
                 if (temp->supports_clipboard())
                 {
-                    LOG_INFO << "WaylandWindow: find_clipboard_target found candidate in parent chain";
+                    LOG_INFO
+                        << "WaylandWindow: find_clipboard_target found candidate in parent chain";
                     return temp;
                 }
                 temp = temp->parent();
@@ -2497,9 +2542,12 @@ namespace horizon
         // 2. Global fallback search (top-down)
         if (m_root)
         {
-            LOG_INFO << "WaylandWindow: find_clipboard_target falling back to top-down search from root";
-            auto* found = detect_clipboard_target(m_root.get());
-            if (found) LOG_INFO << "WaylandWindow: find_clipboard_target found candidate via top-down search";
+            LOG_INFO
+                << "WaylandWindow: find_clipboard_target falling back to top-down search from root";
+            auto *found = detect_clipboard_target(m_root.get());
+            if (found)
+                LOG_INFO
+                    << "WaylandWindow: find_clipboard_target found candidate via top-down search";
             return found;
         }
 
@@ -2534,7 +2582,8 @@ namespace horizon
         }
 
         // 2. Recursive hiding of siblings
-        std::function<void(Widget *)> traverse = [&](Widget *w) {
+        std::function<void(Widget *)> traverse = [&](Widget *w)
+        {
             for (auto const &child : w->children())
             {
                 // If child is NOT in the valid path, hide it and its subtree
@@ -2608,30 +2657,37 @@ namespace horizon
         return nullptr;
     }
 
-
-    void WaylandWindow::alert(const std::string &message, const std::string &title, MessageType type)
+    void WaylandWindow::alert(const std::string &message, const std::string &title,
+                              MessageType type)
     {
         auto dialog = std::make_unique<MessageDialog>(title, message, type, false);
-        std::thread([d = std::move(dialog)]() mutable {
-            d->initialize();
-            d->run();
-        }).detach();
+        std::thread(
+            [d = std::move(dialog)]() mutable
+            {
+                d->initialize();
+                d->run();
+            })
+            .detach();
     }
 
-    bool WaylandWindow::confirm(const std::string &message, const std::string &title, MessageType type)
+    bool WaylandWindow::confirm(const std::string &message, const std::string &title,
+                                MessageType type)
     {
         auto dialog = std::make_unique<MessageDialog>(title, message, type, true);
         std::promise<bool> promise;
         auto future = promise.get_future();
 
-        dialog->when_responded.connect([&promise](MessageResponseEvent res) {
-            promise.set_value(res.response == MessageResponse::Accept);
-        });
+        dialog->when_responded.connect(
+            [&promise](MessageResponseEvent res)
+            { promise.set_value(res.response == MessageResponse::Accept); });
 
-        std::thread([d = std::move(dialog)]() mutable {
-            d->initialize();
-            d->run();
-        }).detach();
+        std::thread(
+            [d = std::move(dialog)]() mutable
+            {
+                d->initialize();
+                d->run();
+            })
+            .detach();
 
         return future.get();
     }
@@ -2665,18 +2721,58 @@ namespace horizon
         }
 
         // We run the dialog in a separate thread.
-        std::thread([this, content = std::move(content)]() mutable
+        std::thread(
+            [this, content = std::move(content)]() mutable
+            {
+                auto dialog = std::make_unique<DialogPreferences>(
+                    i18n().tr("core.global_menu.preferences"), m_preferences_width,
+                    m_preferences_height, true);
+
+                // Setup the toolbar automatically using the PreferencesContent
+                dialog->setup_toolbar(content.get());
+                dialog->set_content(std::move(content));
+
+                dialog->initialize();
+                dialog->run();
+            })
+            .detach();
+    }
+
+    void WaylandWindow::set_aboutus_content(AboutUsFactory factory)
+    {
+        m_aboutus_factory = std::move(factory);
+        if (m_is_running)
         {
-            auto dialog = std::make_unique<DialogPreferences>(i18n().tr("core.global_menu.preferences"), 
-                                                              m_preferences_width, m_preferences_height, true);
-            
-            // Setup the toolbar automatically using the PreferencesContent
-            dialog->setup_toolbar(content.get());
-            dialog->set_content(std::move(content));
-            
-            dialog->initialize();
-            dialog->run();
-        }).detach();
+            init_global_menu(); // Refresh menu if already running
+        }
+    }
+
+    void WaylandWindow::show_aboutus()
+    {
+        if (!m_aboutus_factory)
+        {
+            LOG_ERROR << "[WINDOW] show_aboutus: no AboutUsFactory set";
+            return;
+        }
+
+        // Invoking the factory to create a fresh PreferencesContent for this dialog
+        auto content = m_aboutus_factory();
+
+        if (!content)
+        {
+            LOG_ERROR << "[WINDOW] show_aboutus: factory returned null content";
+            return;
+        }
+
+        // We run the dialog in a separate thread.
+        std::thread(
+            [this, content = std::move(content)]() mutable
+            {
+                auto dialog = std::make_unique<AboutUsDialog>();
+                dialog->set_content(std::move(content));
+                dialog->show();
+            })
+            .detach();
     }
 
     void WaylandWindow::set_use_global_menu(bool use)

@@ -8,43 +8,46 @@
 namespace horizon
 {
 
+    struct AboutDialogContent
+    {
+        std::string title;
+        std::string version;
+        std::string icon;
+        std::unique_ptr<Widget> about;
+        std::unique_ptr<Widget> components;
+        std::unique_ptr<Widget> auths;
+        std::unique_ptr<Widget> thanks;
+        std::unique_ptr<Widget> translate;
+    };
+
     class AboutUsDialog : public WaylandWindow
     {
     public:
-        AboutUsDialog(const std::string &title = "About us");
+        AboutUsDialog() = default;
         ~AboutUsDialog() = default;
 
         void show()
         {
+            setup_ui();
             build_tabs();
             WaylandWindow::run();
         }
 
         void build_tabs();
 
-        void set_about_content(std::unique_ptr<Widget> content);
-        Widget *get_about_content();
-
-        void set_components_content(std::unique_ptr<Widget> content);
-        Widget *get_components_content();
-
-        void set_auths_content(std::unique_ptr<Widget> content);
-        Widget *get_auths_content();
-
-        void set_thanks_content(std::unique_ptr<Widget> content);
-        Widget *get_thanks_content();
-
-        void set_translate_content(std::unique_ptr<Widget> content);
-        Widget *get_translate_content();
+        void set_content(std::unique_ptr<AboutDialogContent> content)
+        {
+            m_content = std::move(content);
+        }
+        AboutDialogContent *get_content()
+        {
+            return m_content.get();
+        }
 
     private:
-        void setup_ui(const std::string &title);
+        void setup_ui();
 
         Notebook *m_notebook;
-        std::unique_ptr<Widget> m_page_about;
-        std::unique_ptr<Widget> m_page_components;
-        std::unique_ptr<Widget> m_page_auths;
-        std::unique_ptr<Widget> m_page_thanks;
-        std::unique_ptr<Widget> m_page_translate;
+        std::unique_ptr<AboutDialogContent> m_content = nullptr;
     };
 } // namespace horizon

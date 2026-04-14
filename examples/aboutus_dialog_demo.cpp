@@ -15,7 +15,7 @@ int main(int argc, char **argv)
 {
     try
     {
-        Application app("horizon.aboutus_demo", 400, 200);
+        WaylandWindow app("horizon.aboutus_demo", 400, 200);
         app.set_name("AboutUs Dialog Demo");
 
         auto wnd = std::make_unique<Window>("Demo de dialogo de AboutUs");
@@ -27,24 +27,26 @@ int main(int argc, char **argv)
 
         auto *btn_ptr = btn.get();
 
-        btn->when_click.connect(
-            [btn_ptr](MouseButtonEventContext &)
+        app.set_aboutus_content(
+            []()
             {
-                LOG_INFO << "Abriendo Dialogo...";
-                auto dialog = std::make_unique<AboutUsDialog>("About us");
-
                 auto content_about = std::make_unique<Label>();
                 content_about->set_text("Este es el contenido");
 
                 auto content_translate = std::make_unique<Label>();
                 content_translate->set_text("Este es el contenido de traduccion");
 
-                dialog->set_about_content(std::move(content_about));
-                dialog->set_translate_content(std::move(content_translate));
+                auto abus_content = std::make_unique<AboutDialogContent>();
+                abus_content->title = "AustralOS";
+                abus_content->version = "0.0.1";
+                abus_content->icon = "utilities-terminal";
+                abus_content->about = std::move(content_about);
+                abus_content->translate = std::move(content_translate);
 
-                dialog->show();
-                LOG_INFO << "Aboutus cerrado";
+                return abus_content;
             });
+
+        btn->when_click.connect([&app, btn_ptr](MouseButtonEventContext &) { app.show_aboutus(); });
 
         wnd->add_child(std::move(btn));
         app.set_root(std::move(wnd));
