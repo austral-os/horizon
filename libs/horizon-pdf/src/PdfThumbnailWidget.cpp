@@ -10,7 +10,7 @@ PdfThumbnailWidget::PdfThumbnailWidget(int page_index)
     : Widget(), m_page_index(page_index) {
     set_margin(10);
     set_width(m_thumb_width + 20); // Width + padding
-    set_height(200); // Initial estimated height to reserve space in layout
+    set_fixed_size(200); // Fixed vertical size for layout stability
     
     when_click.connect([this](horizon::MouseButtonEventContext& ev) {
         when_page_selected.run(m_page_index);

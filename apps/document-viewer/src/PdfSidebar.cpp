@@ -25,6 +25,14 @@ void PdfSidebar::set_document(std::shared_ptr<PdfDocument> doc) {
     container->set_margin(10);
     
     int page_count = m_document->page_count();
+    int thumb_h = 200;
+    int spacing = 15;
+    int margin = 10;
+    
+    // Calcular altura total del contenedor para habilitar scroll
+    int total_height = (margin * 2) + (page_count * thumb_h) + (std::max(0, page_count - 1) * spacing);
+    container->set_fixed_size(total_height);
+    
     for (int i = 0; i < page_count; ++i) {
         auto thumb = std::make_unique<PdfThumbnailWidget>(i);
         thumb->set_document(m_document);
