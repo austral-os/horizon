@@ -60,6 +60,7 @@ Detailed guides on implementing core framework features:
   - [**MessageDialog System**](docs/message_dialogs.md): Standardized alert and confirmation dialogs.
   - [**FileDialog System**](docs/file_dialog.md): Usage and invocation of the standard file selection dialog.
   - [**Preferences Dialog System**](docs/preferences_dialog.md): Integration and architecture of the settings management system.
+  - [**Font Selection System**](docs/font_dialog.md): Usage and integration of system font selection tools.
 - [**Configuration Management**](docs/configuration_management.md): Robust system for managing application preferences and JSON-based configurations.
 - [**File Watcher System**](docs/file_watcher.md): Real-time monitoring of filesystem changes for automated reloading.
 
