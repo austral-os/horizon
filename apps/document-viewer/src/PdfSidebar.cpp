@@ -31,6 +31,7 @@ void PdfSidebar::set_document(std::shared_ptr<PdfDocument> doc) {
     
     // Calcular altura total del contenedor para habilitar scroll
     int total_height = (margin * 2) + (page_count * thumb_h) + (std::max(0, page_count - 1) * spacing);
+    container->set_height(total_height);
     container->set_fixed_size(total_height);
     
     for (int i = 0; i < page_count; ++i) {
