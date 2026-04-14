@@ -15,6 +15,8 @@ PdfSidebar::PdfSidebar() : ScrollArea() {
 
 void PdfSidebar::set_document(std::shared_ptr<PdfDocument> doc) {
     m_document = doc;
+    m_thumbnails.clear();
+    
     if (!m_document) return;
     
     // Crear un contenedor para la lista de miniaturas
@@ -38,12 +40,29 @@ void PdfSidebar::set_document(std::shared_ptr<PdfDocument> doc) {
         auto thumb = std::make_unique<PdfThumbnailWidget>(i);
         thumb->set_document(m_document);
         
+        // Guardar referencia para gestión de selección
+        auto* thumb_ptr = thumb.get();
+        m_thumbnails.push_back(thumb_ptr);
+        
         // Conectar señal de selección
-        thumb->when_page_selected.connect([this](int index) {
+        thumb->when_page_selected.connect([this, thumb_ptr, i](int index) {
+            // Deseleccionar todos
+            for (auto* t : m_thumbnails) {
+                t->set_selected(false);
+            }
+            // Seleccionar el actual
+            thumb_ptr->set_selected(true);
+            
+            // Notificar hacia arriba para cambiar página en el visor
             this->when_page_selected.run(index);
         });
         
         container->add_child(std::move(thumb));
+    }
+    
+    // Seleccionar por defecto la primera página
+    if (!m_thumbnails.empty()) {
+        m_thumbnails[0]->set_selected(true);
     }
     
     // El ScrollArea ahora contiene directamente esta lista
@@ -56,7 +75,7 @@ void PdfSidebar::set_document(std::shared_ptr<PdfDocument> doc) {
 void PdfSidebar::render(horizon::GraphicsContext &ctx, int cx, int cy, int cw, int ch, bool force) {
     if (!is_visible()) return;
 
-    // Dibujar el fondo ANTES que cualquier otra cosa (incluso antes del clip del ScrollArea)
+    // Dibujar el fondo ANTES que cualquier otra cosa
     auto* cr = static_cast<cairo_t*>(ctx.getNativeContext());
     if (cr) {
         int bx = x();
@@ -64,8 +83,8 @@ void PdfSidebar::render(horizon::GraphicsContext &ctx, int cx, int cy, int cw, i
         int bw = width();
         int bh = height();
 
-        // Fondo gris sutilmente más oscuro para contraste premium
-        cairo_set_source_rgb(cr, 0.94, 0.94, 0.94);
+        // Fondo blanco (pedido por usuario)
+        cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
         cairo_rectangle(cr, bx, by, bw, bh);
         cairo_fill(cr);
 
@@ -77,13 +96,11 @@ void PdfSidebar::render(horizon::GraphicsContext &ctx, int cx, int cy, int cw, i
         cairo_stroke(cr);
     }
 
-    // Llamar a ScrollArea::render para que gestione el clipping y renderice los hijos (miniaturas)
+    // Llamar a ScrollArea::render para que gestione el clipping y renderice los hijos
     ScrollArea::render(ctx, cx, cy, cw, ch, force);
 }
 
 void PdfSidebar::draw(horizon::GraphicsContext &ctx) {
-    // Aquí solo dibujamos elementos que deben estar ENCIMA de todo (como los botones de scroll si se desea)
-    // El fondo ya se dibujó en render()
     ScrollArea::draw(ctx);
 }
 

@@ -14,8 +14,10 @@ public:
     ~PdfThumbnailWidget() = default;
 
     void set_document(std::shared_ptr<PdfDocument> doc);
-    
     void draw(horizon::GraphicsContext &ctx) override;
+    
+    void set_selected(bool selected);
+    bool is_selected() const { return m_selected; }
     
     horizon::EventsManager<int> when_page_selected;
 
@@ -24,6 +26,7 @@ private:
     int m_page_index;
     int m_thumb_width = 120;
     int m_thumb_height = 0;
+    bool m_selected = false;
 };
 
 } // namespace pdf

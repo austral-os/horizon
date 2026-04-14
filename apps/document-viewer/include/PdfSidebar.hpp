@@ -9,6 +9,8 @@
 namespace horizon {
 namespace pdf {
 
+class PdfThumbnailWidget;
+
 class PdfSidebar : public horizon::ScrollArea {
 public:
     PdfSidebar();
@@ -24,6 +26,7 @@ public:
 
 private:
     std::shared_ptr<PdfDocument> m_document;
+    std::vector<PdfThumbnailWidget*> m_thumbnails;
 };
 
 } // namespace pdf

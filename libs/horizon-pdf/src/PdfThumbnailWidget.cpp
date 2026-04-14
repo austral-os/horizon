@@ -1,6 +1,6 @@
 #include "horizon/pdf/PdfThumbnailWidget.hpp"
+#include <horizon/Logger.hpp>
 #include <horizon/GraphicsContext.hpp>
-#include <poppler.h>
 #include <cairo.h>
 
 namespace horizon {
@@ -15,49 +15,62 @@ PdfThumbnailWidget::PdfThumbnailWidget(int page_index)
     
     when_click.connect([this](horizon::MouseButtonEventContext& ev) {
         when_page_selected.run(m_page_index);
+        ev.stop_propagation = true;
     });
 }
 
 void PdfThumbnailWidget::set_document(std::shared_ptr<PdfDocument> doc) {
     m_document = doc;
+    invalidate();
+}
+
+void PdfThumbnailWidget::set_selected(bool selected) {
+    if (m_selected != selected) {
+        m_selected = selected;
+        invalidate();
+    }
 }
 
 void PdfThumbnailWidget::draw(horizon::GraphicsContext &ctx) {
     if (!m_document) return;
 
-    PopplerPage* page = poppler_document_get_page(m_document->raw(), m_page_index);
-    if (!page) return;
-
-    double pg_w, pg_h;
-    poppler_page_get_size(page, &pg_w, &pg_h);
-
-    double scale = (double)m_thumb_width / pg_w;
-    int render_w = m_thumb_width;
-    int render_h = (int)(pg_h * scale);
-
-    // Ajustar altura del widget si es necesario
-    if (m_thumb_height != render_h) {
-        m_thumb_height = render_h;
-        set_height(m_thumb_height + 20);
-        invalidate();
-    }
-
-    // Coordenadas absolutas del widget
     int bx = x();
     int by = y();
-
-    // Center horizontally in the widget
-    int rx_offset = (width() - render_w) / 2;
-    int ry_offset = 10;
-
-    // Coordenadas finales de dibujo
-    int fx = bx + rx_offset;
-    int fy = by + ry_offset;
+    int bw = width();
+    int bh = height();
 
     cairo_t* cr = static_cast<cairo_t*>(ctx.getNativeContext());
     if (!cr) return;
+
+    // Obtener página de Poppler
+    PopplerPage* page = m_document->get_page(m_page_index);
+    if (!page) return;
+
+    // Calcular dimensiones de la miniatura manteniendo aspecto
+    double page_w, page_h;
+    poppler_page_get_size(page, &page_w, &page_h);
     
-    // Dibujar fondo sombreado muy suave (premium look)
+    double aspect = page_h / page_w;
+    int render_w = m_thumb_width;
+    int render_h = (int)(render_w * aspect);
+    
+    // Centrar en el widget
+    int fx = bx + (bw - render_w) / 2;
+    int fy = by + 10;
+
+    // Resalto de Selección
+    if (m_selected) {
+        cairo_set_source_rgba(cr, 0.0, 0.47, 0.85, 0.1);
+        cairo_rectangle(cr, bx + 2, by + 2, bw - 4, bh - 4);
+        cairo_fill(cr);
+
+        cairo_set_source_rgb(cr, 0.0, 0.47, 0.85);
+        cairo_set_line_width(cr, 2.0);
+        cairo_rectangle(cr, bx + 2, by + 2, bw - 4, bh - 4);
+        cairo_stroke(cr);
+    }
+
+    // Sombreado de la página
     cairo_set_source_rgba(cr, 0, 0, 0, 0.05);
     cairo_rectangle(cr, fx + 2, fy + 2, render_w, render_h);
     cairo_fill(cr);
@@ -67,19 +80,22 @@ void PdfThumbnailWidget::draw(horizon::GraphicsContext &ctx) {
     cairo_rectangle(cr, fx, fy, render_w, render_h);
     cairo_fill(cr);
 
-    // Renderizar PDF
-    cairo_save(cr);
-    cairo_translate(cr, fx, fy);
-    cairo_scale(cr, scale, scale);
-    poppler_page_render(page, cr);
-    cairo_restore(cr);
-
-    // Borde delimitador sutil
+    // Borde delimitador de la página
     cairo_set_source_rgb(cr, 0.8, 0.8, 0.8);
-    cairo_set_line_width(cr, 0.5);
+    cairo_set_line_width(cr, 1.0);
     cairo_rectangle(cr, fx, fy, render_w, render_h);
     cairo_stroke(cr);
 
+    // Renderizar contenido PDF
+    cairo_save(cr);
+    cairo_translate(cr, fx, fy);
+    double scale = (double)render_w / page_w;
+    cairo_scale(cr, scale, scale);
+    
+    // Usar Poppler directamente para renderizar
+    poppler_page_render(page, cr);
+    cairo_restore(cr);
+    
     g_object_unref(page);
 }
 
