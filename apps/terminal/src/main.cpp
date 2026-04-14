@@ -2,6 +2,7 @@
 #include "TerminalWindow.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/I18n.hpp"
+#include "horizon/Spacer.hpp"
 #include "horizon/dialogs/AboutUsDialog.hpp"
 #include "horizon/dialogs/PreferencesContent.hpp"
 #include <cstdlib>
@@ -43,11 +44,27 @@ int main(int argc, char **argv)
     app.set_aboutus_content(
         []()
         {
-            auto content_about = std::make_unique<Label>();
-            content_about->set_text("Este es el contenido");
+            auto content_about = std::make_unique<Widget>();
+            content_about->set_margin(15);
+            content_about->set_spacing(15);
 
-            auto content_translate = std::make_unique<Label>();
-            content_translate->set_text("Este es el contenido de traduccion");
+            auto lbl_about = std::make_unique<Label>();
+            lbl_about->set_text("Emulador de terminal de Horizon para Austral OS");
+            lbl_about->set_vertical_alignment(VerticalAlignment::Top);
+
+            content_about->add_child(std::move(lbl_about));
+            content_about->add_child(Spacer());
+
+            auto content_translate = std::make_unique<Widget>();
+            content_translate->set_spacing(15);
+            content_translate->set_margin(15);
+
+            auto lbl_translate = std::make_unique<Label>();
+            lbl_translate->set_text("Traducido por Horacio Daniel Ros");
+            lbl_translate->set_vertical_alignment(VerticalAlignment::Top);
+
+            content_translate->add_child(std::move(lbl_translate));
+            content_translate->add_child(Spacer());
 
             auto abus_content = std::make_unique<AboutDialogContent>();
             abus_content->title = "Horizon Terminal";
