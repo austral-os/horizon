@@ -28,6 +28,10 @@ private:
     void on_zoom_out();
     void on_zoom_fit();
     void on_toggle_fullscreen();
+    void on_toggle_sidebar();
+    
+    bool m_sidebar_visible{true};
+    bool m_is_immersive{false};
 };
 
 } // namespace pdf

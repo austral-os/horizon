@@ -14,6 +14,7 @@ public:
 
     // Signals for actions
     horizon::EventsManager<horizon::EventContext> when_open_clicked;
+    horizon::EventsManager<horizon::EventContext> when_sidebar_toggled;
     horizon::EventsManager<horizon::GroupButtonClickEvent> when_zoom_clicked;
     horizon::EventsManager<horizon::GroupButtonClickEvent> when_view_clicked;
 

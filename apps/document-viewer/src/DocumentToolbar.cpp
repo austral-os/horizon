@@ -30,6 +30,21 @@ void DocumentToolbar::setup_ui() {
         this->when_open_clicked.run(ctx);
     });
     add_child(std::move(file_group));
+    
+    // 1.5 Botón de Barra Lateral (Ocultar/Mostrar)
+    auto sidebar_group = std::make_unique<horizon::GroupButton>();
+    sidebar_group->set_fixed_size(44);
+    
+    auto sidebar_icon = std::make_unique<horizon::Icon>();
+    sidebar_icon->set_icon_name("view-sidebar");
+    sidebar_icon->set_icon_size(18);
+    sidebar_group->add_item(std::move(sidebar_icon));
+    
+    sidebar_group->when_button_clicked.connect([this](horizon::GroupButtonClickEvent& ev) {
+        horizon::EventContext ctx;
+        this->when_sidebar_toggled.run(ctx);
+    });
+    add_child(std::move(sidebar_group));
 
     add_child(horizon::Spacer());
 

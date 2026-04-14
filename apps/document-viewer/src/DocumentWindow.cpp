@@ -45,6 +45,10 @@ void DocumentWindow::build_toolbar() {
         dialog->run();
     });
 
+    dtb->when_sidebar_toggled.connect([this](const horizon::EventContext&) {
+        this->on_toggle_sidebar();
+    });
+
     dtb->when_zoom_clicked.connect([this](const horizon::GroupButtonClickEvent& ev) {
         if (ev.button_index == 0) on_zoom_out();
         else if (ev.button_index == 1) on_zoom_in();
@@ -111,6 +115,10 @@ void DocumentWindow::open_file(const std::string& path) {
     auto* sidebar_ptr = sidebar.get();
     sidebar_ptr->set_document(shared_doc);
     
+    // Aplicar visibilidad actual
+    sidebar_ptr->set_visible(m_sidebar_visible);
+    vpanel->set_left_width(m_sidebar_visible ? 180 : 0);
+    
     // 2. Visor principal (ScrollArea + PdfWidget)
     auto scroll = std::make_unique<horizon::ScrollArea>();
     auto* scroll_ptr = scroll.get();
@@ -150,7 +158,30 @@ void DocumentWindow::on_zoom_fit() {
 }
 
 void DocumentWindow::on_toggle_fullscreen() {
-    set_immersive_mode(!m_is_immersive);
+    m_is_immersive = !m_is_immersive;
+    set_immersive_mode(m_is_immersive);
+}
+
+void DocumentWindow::on_toggle_sidebar() {
+    m_sidebar_visible = !m_sidebar_visible;
+    
+    // Aplicar a la pestaña actual si existe
+    auto current = m_tabs->current_tab_body();
+    if (current) {
+        // VPanel es el widget de la pestaña
+        auto vpanel = dynamic_cast<horizon::VPanel*>(current);
+        if (vpanel) {
+            vpanel->set_left_width(m_sidebar_visible ? 180 : 0);
+            
+            // Localizar el sidebar (primer hijo del VPanel)
+            auto& children = vpanel->children();
+            if (!children.empty()) {
+                children[0]->set_visible(m_sidebar_visible);
+            }
+            vpanel->invalidate();
+            vpanel->calculate_layout();
+        }
+    }
 }
 
 } // namespace pdf
