@@ -148,9 +148,11 @@ add_subdirectory(apps/preferences)
 add_subdirectory(libs/horizon-overview)
 add_subdirectory(libs/horizon-terminal)
 add_subdirectory(libs/horizon-web)
+add_subdirectory(libs/horizon-pdf)
 
 add_subdirectory(apps/terminal)
 add_subdirectory(apps/nova)
+add_subdirectory(apps/document-viewer)
 
 
 add_executable(combo_demo

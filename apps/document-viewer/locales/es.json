@@ -1,0 +1,12 @@
+{
+    "app.title": "Visor de Documentos",
+    "toolbar.open": "Abrir",
+    "toolbar.zoom_in": "Ampliar",
+    "toolbar.zoom_out": "Reducir",
+    "toolbar.zoom_fit": "Ajustar",
+    "toolbar.fullscreen": "Pantalla Completa",
+    "toolbar.settings": "Ajustes",
+    "dialog.open_pdf": "Abrir PDF",
+    "sidebar.thumbnails": "Miniaturas",
+    "sidebar.index": "Índice"
+}

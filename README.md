@@ -89,7 +89,7 @@ sudo apt install build-essential g++ pkg-config \
                  libfontconfig1-dev libfreetype6-dev \
                  libharfbuzz-dev uuid-dev \
                  libwpe-1.0-dev libwpebackend-fdo-1.0-dev \
-                 libwpewebkit-2.0-dev \
+                 libwpewebkit-2.0-dev libpoppler-glib-dev \
                  nlohmann-json3-dev weston wayland-utils \
                  wlr-randr xdg-utils shared-mime-info \
                  desktop-file-utils

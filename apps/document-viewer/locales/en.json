@@ -1,0 +1,12 @@
+{
+    "app.title": "Document Viewer",
+    "toolbar.open": "Open",
+    "toolbar.zoom_in": "Zoom In",
+    "toolbar.zoom_out": "Zoom Out",
+    "toolbar.zoom_fit": "Fit",
+    "toolbar.fullscreen": "Full Screen",
+    "toolbar.settings": "Settings",
+    "dialog.open_pdf": "Open PDF",
+    "sidebar.thumbnails": "Thumbnails",
+    "sidebar.index": "Index"
+}
