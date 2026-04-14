@@ -27,6 +27,44 @@ DocumentWindow::DocumentWindow()
     
     build_content();
     build_toolbar();
+    
+    // Statusbar setup
+    // Statusbar setup (Estilo Nova/Arkfm)
+    show_status_bar();
+    auto sb = statusbar();
+    if (sb) {
+        sb->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        
+        // 1. Margen izquierdo y Etiqueta de estado
+        sb->add_child(horizon::Spacer(10));
+        
+        auto lbl = std::make_unique<horizon::Label>("");
+        m_status_label = lbl.get();
+        sb->add_child(std::move(lbl));
+        
+        // 2. Espaciador flexible para empujar el progreso a la derecha
+        sb->add_child(horizon::Spacer());
+        
+        // 3. Contenedor para ProgressBar (Centrado verticalmente)
+        auto pbc = std::make_unique<horizon::Widget>();
+        pbc->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        pbc->set_fixed_size(200); // Ancho para el indicador
+        
+        pbc->add_child(horizon::Spacer());
+        
+        auto pb = std::make_unique<horizon::ProgressBar>();
+        m_progress_bar = pb.get();
+        m_progress_bar->set_fixed_size(10); // Altura de la barra
+        m_progress_bar->set_visible(false);
+        pbc->add_child(std::move(pb));
+        
+        pbc->add_child(horizon::Spacer());
+        
+        sb->add_child(std::move(pbc));
+        
+        // 4. Margen derecho
+        sb->add_child(horizon::Spacer(10));
+    }
 }
 
 DocumentWindow::~DocumentWindow() {}
@@ -99,14 +137,25 @@ void DocumentWindow::build_content() {
 }
 
 void DocumentWindow::open_file(const std::string& path) {
+    if (m_status_label) m_status_label->set_text(i18n().tr("status.loading"));
+    if (m_progress_bar) {
+        m_progress_bar->set_visible(true);
+        m_progress_bar->set_indeterminate(true);
+    }
+    
     auto doc = PdfDocument::open(path);
-    if (!doc) return;
+    if (!doc) {
+        if (m_status_label) m_status_label->set_text(i18n().tr("status.error_opening"));
+        if (m_progress_bar) m_progress_bar->set_visible(false);
+        return;
+    }
 
     LOG_INFO << "DocumentViewer: Opening " << path;
+    int page_count = doc->page_count();
 
     auto shared_doc = std::shared_ptr<PdfDocument>(doc.release());
     
-    // Layout principal de la pestaña: Panel con divisor (Sidebar | Contenido)
+    // ... (resto de la lógica de creación de VPanel)
     auto vpanel = std::make_unique<horizon::VPanel>();
     vpanel->set_left_width(180);
     
@@ -146,6 +195,20 @@ void DocumentWindow::open_file(const std::string& path) {
     
     m_tabs->add_tab(title, std::move(vpanel));
     m_tabs->set_current_tab(m_tabs->tab_count() - 1);
+    
+    // Actualizar estado final
+    std::string status = i18n().tr("status.loaded_pages");
+    size_t pos = status.find("%1");
+    if (pos != std::string::npos) {
+        status.replace(pos, 2, std::to_string(page_count));
+    } else {
+        status += " " + std::to_string(page_count);
+    }
+    
+    if (m_status_label) m_status_label->set_text(status);
+    if (m_progress_bar) {
+        m_progress_bar->set_visible(false);
+    }
 }
 
 void DocumentWindow::on_zoom_in() {

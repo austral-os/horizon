@@ -16,5 +16,10 @@
     "sidebar": {
         "thumbnails": "Miniaturas",
         "index": "Índice"
+    },
+    "status": {
+        "loading": "Cargando documento...",
+        "error_opening": "Error al abrir el documento",
+        "loaded_pages": "Cargado: %1 páginas"
     }
 }

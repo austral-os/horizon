@@ -4,6 +4,8 @@
 #include <horizon/TabCollection.hpp>
 #include <horizon/pdf/PdfWidget.hpp>
 #include <horizon/pdf/PdfDocument.hpp>
+#include <horizon/ProgressBar.hpp>
+#include <horizon/Label.hpp>
 #include <memory>
 
 namespace horizon {
@@ -22,6 +24,8 @@ private:
     
     // UI Components
     horizon::TabCollection* m_tabs{nullptr};
+    horizon::Label* m_status_label{nullptr};
+    horizon::ProgressBar* m_progress_bar{nullptr};
     
     // Actions
     void on_zoom_in();

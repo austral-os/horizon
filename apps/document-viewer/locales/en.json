@@ -16,5 +16,10 @@
     "sidebar": {
         "thumbnails": "Thumbnails",
         "index": "Index"
+    },
+    "status": {
+        "loading": "Loading document...",
+        "error_opening": "Error opening document",
+        "loaded_pages": "Loaded: %1 pages"
     }
 }
