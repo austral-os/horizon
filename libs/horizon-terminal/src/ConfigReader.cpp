@@ -45,6 +45,9 @@ TerminalConfig ConfigReader::load() {
         if (term_data.contains("scroll_without_scrollbar")) {
             config.scroll_without_scrollbar = term_data["scroll_without_scrollbar"];
         }
+        if (term_data.contains("cursor_blink")) {
+            config.cursor_blink = term_data["cursor_blink"];
+        }
     } catch (const std::exception& e) {
         std::cerr << "[TerminalConfig] Error loading config: " << e.what() << std::endl;
     }

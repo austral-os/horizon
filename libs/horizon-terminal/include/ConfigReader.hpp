@@ -16,6 +16,8 @@ struct TerminalConfig {
     bool show_scrollbar = false;
     int scrollback_lines = 5000;
     bool scroll_without_scrollbar = true;
+
+    bool cursor_blink = true;
 };
 
 class ConfigReader {

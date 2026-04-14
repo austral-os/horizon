@@ -7,9 +7,7 @@
 #include "horizon/MenuItem.hpp"
 #include "horizon/I18n.hpp"
 #include <linux/input-event-codes.h>
-#include <poll.h>
-#include <sys/inotify.h>
-#include <unistd.h>
+#include <horizon/FileWatcher.hpp>
 
 
 namespace horizon {
@@ -21,7 +19,7 @@ TerminalWidget::TerminalWidget() {
     
     m_config = ConfigReader::load();
     init_fonts();
-    start_watcher();
+    start_watching(ConfigReader::get_config_path());
 
     m_v_thumb = std::make_unique<horizon::AquaPolygon>();
     m_v_thumb->set_accent_color(horizon::WidgetAccentColor::Primary);
@@ -82,7 +80,6 @@ TerminalWidget::TerminalWidget() {
 }
 
 TerminalWidget::~TerminalWidget() {
-    stop_watcher();
     if (m_pty) {
         m_pty->close();
     }
@@ -643,7 +640,11 @@ void TerminalWidget::set_application_recursive(WaylandWindow *app) {
     if (m_app && m_cursor_timer == 0) {
         m_cursor_timer = m_app->add_timer(600, [this]() {
             if (this->has_focus()) {
-                this->m_cursor_visible = !this->m_cursor_visible;
+                if (m_config.cursor_blink) {
+                    this->m_cursor_visible = !this->m_cursor_visible;
+                } else {
+                    this->m_cursor_visible = true;
+                }
                 this->invalidate();
             } else {
                 this->m_cursor_visible = true; // when focus comes back, start visible
@@ -747,64 +748,14 @@ void TerminalWidget::on_clipboard_data_received(const std::string& mime, const s
     }
 }
 
-void TerminalWidget::start_watcher() {
-    std::string config_path = ConfigReader::get_config_path();
-    if (config_path.empty()) return;
-
-    m_inotify_fd = inotify_init();
-    if (m_inotify_fd < 0) {
-        LOG_ERROR << "[TERMINAL] Failed to initialize inotify";
-        return;
-    }
-
-    m_watch_fd = inotify_add_watch(m_inotify_fd, config_path.c_str(), IN_CLOSE_WRITE | IN_MOVED_TO);
-    if (m_watch_fd < 0) {
-        LOG_ERROR << "[TERMINAL] Failed to add watch for: " << config_path;
-        return;
-    }
-
-    m_watcher_running = true;
-    m_watcher_thread = std::thread(&TerminalWidget::watch_loop, this);
-    LOG_INFO << "[TERMINAL] Started config watcher for: " << config_path;
+void TerminalWidget::on_file_changed() {
+    LOG_INFO << "[TERMINAL] Config change detected, reloading...";
+    reload_config();
 }
 
-void TerminalWidget::stop_watcher() {
-    m_watcher_running = false;
-    if (m_watcher_thread.joinable()) {
-        m_watcher_thread.join();
-    }
-
-    if (m_watch_fd >= 0) {
-        inotify_rm_watch(m_inotify_fd, m_watch_fd);
-    }
-
-    if (m_inotify_fd >= 0) {
-        close(m_inotify_fd);
-    }
-}
-
-void TerminalWidget::watch_loop() {
-    char buffer[1024];
-    struct pollfd pfd = {m_inotify_fd, POLLIN, 0};
-
-    while (m_watcher_running) {
-        int ret = poll(&pfd, 1, 500); // 500 ms timeout
-
-        if (ret > 0 && (pfd.revents & POLLIN)) {
-            int length = read(m_inotify_fd, buffer, sizeof(buffer));
-
-            if (length > 0) {
-                // Debounce a bit
-                std::this_thread::sleep_for(std::chrono::milliseconds(200));
-                
-                if (m_app) {
-                    LOG_INFO << "[TERMINAL] Config change detected, reloading...";
-                    m_app->post_task([this]() {
-                        this->reload_config();
-                    });
-                }
-            }
-        }
+void TerminalWidget::post_watcher_task(std::function<void()> task) {
+    if (m_app) {
+        m_app->post_task(task);
     }
 }
 

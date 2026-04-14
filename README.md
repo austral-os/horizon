@@ -61,6 +61,7 @@ Detailed guides on implementing core framework features:
   - [**FileDialog System**](docs/file_dialog.md): Usage and invocation of the standard file selection dialog.
   - [**Preferences Dialog System**](docs/preferences_dialog.md): Integration and architecture of the settings management system.
 - [**Configuration Management**](docs/configuration_management.md): Robust system for managing application preferences and JSON-based configurations.
+- [**File Watcher System**](docs/file_watcher.md): Real-time monitoring of filesystem changes for automated reloading.
 
 ---
 

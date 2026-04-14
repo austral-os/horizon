@@ -1,9 +1,19 @@
 {
-  "terminal": {
-    "title": "Terminal",
-    "menu": {
-      "copy": "Copy",
-      "paste": "Paste"
+    "terminal": {
+        "title": "Terminal",
+        "menu": {
+            "copy": "Copy",
+            "paste": "Paste"
+        },
+        "preferences": {
+            "cursor_style": "Cursor Style:",
+            "cursor_type_block": "Block",
+            "cursor_type_underline": "Underline",
+            "cursor_type_bar": "Bar",
+            "scrollback_lines": "Scrollback Lines:",
+            "scroll_without_scrollbar": "Scroll without scrollbar",
+            "show_scrollbar": "Show scrollbar",
+            "cursor_blink": "Cursor blink"
+        }
     }
-  }
 }

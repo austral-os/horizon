@@ -56,14 +56,13 @@ namespace horizon
         }
 
         load_config();
-        start_watcher();
+        start_watching(m_config_path);
 
         setup_ipc();
     }
 
     DockApplication::~DockApplication()
     {
-        stop_watcher();
     }
 
     void DockApplication::detect_environment()
@@ -536,75 +535,19 @@ namespace horizon
         update_dock(m_last_apps);
     }
 
-    void DockApplication::start_watcher()
+    void DockApplication::on_file_changed()
     {
-        if (m_config_path.empty()) return;
-
-        inotify_fd = inotify_init();
-        if (inotify_fd < 0)
-        {
-            LOG_ERROR << "[DOCK] Failed to initialize inotify";
-            return;
-        }
-
-        watch_fd = inotify_add_watch(inotify_fd, m_config_path.c_str(),
-                                     IN_CLOSE_WRITE | IN_MOVED_TO);
-        
-        if (watch_fd < 0)
-        {
-            LOG_ERROR << "[DOCK] Failed to add watch for: " << m_config_path;
-            return;
-        }
-
-        running = true;
-        watcher_thread = std::thread(&DockApplication::watch_loop, this);
-        LOG_INFO << "[DOCK] Started config watcher for: " << m_config_path;
+        LOG_INFO << "[DOCK] Config change detected, reloading...";
+        load_config();
     }
 
-    void DockApplication::stop_watcher()
+    void DockApplication::post_watcher_task(std::function<void()> task)
     {
-        running = false;
-        if (watcher_thread.joinable())
+        if (m_window)
         {
-            watcher_thread.join();
-        }
-
-        if (watch_fd >= 0)
-        {
-            inotify_rm_watch(inotify_fd, watch_fd);
-        }
-
-        if (inotify_fd >= 0)
-        {
-            close(inotify_fd);
+            m_window->post_task(task);
         }
     }
 
-    void DockApplication::watch_loop()
-    {
-        char buffer[1024];
-        struct pollfd pfd = {inotify_fd, POLLIN, 0};
-
-        while (running)
-        {
-            int ret = poll(&pfd, 1, 500); // 500 ms timeout
-
-            if (ret > 0 && (pfd.revents & POLLIN))
-            {
-                int length = read(inotify_fd, buffer, sizeof(buffer));
-
-                if (length > 0)
-                {
-                    // Debounce a bit
-                    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-                    
-                    LOG_INFO << "[DOCK] Config change detected, reloading...";
-                    m_window->post_task([this]() {
-                        load_config();
-                    });
-                }
-            }
-        }
-    }
 
 } // namespace horizon

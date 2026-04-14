@@ -1,5 +1,6 @@
 {
     "terminal": {
+        "cursor_blink": false,
         "cursor_style": "block",
         "font": "CaskaydiaCove Nerd Font",
         "font_size": 18,

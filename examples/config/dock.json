@@ -1,7 +1,7 @@
 {
     "dock": {
         "icon_size": 48,
-        "magnification_enabled": true,
+        "magnification_enabled": false,
         "pinned": [
             {
                 "app_id": "org.horizon.launchpad",

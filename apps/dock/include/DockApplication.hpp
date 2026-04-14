@@ -3,6 +3,7 @@
 #include <horizon/Application.hpp>
 #include <horizon/WaylandLayerWindow.hpp>
 #include <horizon/CompositorAppInterface.hpp>
+#include <horizon/FileWatcher.hpp>
 #include <atomic>
 #include <memory>
 #include <string>
@@ -24,7 +25,7 @@ namespace horizon
         std::string run_id;
     };
 
-    class DockApplication : public Application
+    class DockApplication : public Application, public FileWatcher
     {
     public:
         DockApplication();
@@ -47,12 +48,11 @@ namespace horizon
         void setup_ipc();
         void update_dock(const std::vector<ApplicationInfo> &apps);
         void save_config();
-
-        // Configuration watching
         void load_config();
-        void start_watcher();
-        void stop_watcher();
-        void watch_loop();
+
+        // FileWatcher overrides
+        void on_file_changed() override;
+        void post_watcher_task(std::function<void()> task) override;
 
         bool _is_wayfire = false;
         WaylandLayerWindow *m_window = nullptr;
@@ -61,10 +61,6 @@ namespace horizon
         std::vector<PinnedApp> m_pinned_apps;
 
         std::string m_config_path;
-        int inotify_fd = -1;
-        int watch_fd = -1;
-        std::thread watcher_thread;
-        std::atomic<bool> running{false};
 
         // Last known app list — used to rebuild icons after a config change
         std::vector<ApplicationInfo> m_last_apps;

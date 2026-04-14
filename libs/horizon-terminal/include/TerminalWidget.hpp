@@ -2,8 +2,8 @@
 
 #include "horizon/Widget.hpp"
 #include "TerminalController.hpp"
-#include "PtyHandler.hpp"
 #include "ConfigReader.hpp"
+#include <horizon/FileWatcher.hpp>
 #include <memory>
 #include <map>
 #include <ft2build.h>
@@ -21,7 +21,7 @@
 namespace horizon {
 namespace terminal {
 
-class TerminalWidget : public horizon::Widget, public horizon::DataSink {
+class TerminalWidget : public horizon::Widget, public horizon::DataSink, public horizon::FileWatcher {
 public:
     TerminalWidget();
     ~TerminalWidget();
@@ -73,11 +73,11 @@ private:
     
     bool init_fonts();
     void cleanup_fonts();
-    
-    void start_watcher();
-    void stop_watcher();
-    void watch_loop();
     void reload_config();
+
+    // FileWatcher overrides
+    void on_file_changed() override;
+    void post_watcher_task(std::function<void()> task) override;
 
     std::unique_ptr<TerminalController> m_controller;
     std::unique_ptr<PtyHandler> m_pty;
@@ -118,12 +118,6 @@ private:
     FT_Face m_ft_face = nullptr;
     hb_font_t* m_hb_font = nullptr;
     cairo_font_face_t* m_cairo_font_face = nullptr;
-
-    // Config watcher
-    int m_inotify_fd = -1;
-    int m_watch_fd = -1;
-    std::thread m_watcher_thread;
-    std::atomic<bool> m_watcher_running{false};
 };
 
 } // namespace terminal

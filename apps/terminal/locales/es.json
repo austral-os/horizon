@@ -1,9 +1,19 @@
 {
-  "terminal": {
-    "title": "Terminal",
-    "menu": {
-      "copy": "Copiar",
-      "paste": "Pegar"
+    "terminal": {
+        "title": "Terminal",
+        "menu": {
+            "copy": "Copiar",
+            "paste": "Pegar"
+        },
+        "preferences": {
+            "cursor_style": "Estilo del Cursor:",
+            "cursor_type_block": "Bloque",
+            "cursor_type_underline": "Subrayado",
+            "cursor_type_bar": "Barra",
+            "scrollback_lines": "Líneas de Scrollback:",
+            "scroll_without_scrollbar": "Scroll sin barra de desplazamiento",
+            "show_scrollbar": "Mostrar barra de desplazamiento",
+            "cursor_blink": "El cursor parpadea"
+        }
     }
-  }
 }

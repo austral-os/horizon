@@ -32,11 +32,11 @@ public:
         };
 
         // 1. Cursor Style
-        add_label("Estilo del Cursor:");
+        add_label(i18n().tr("terminal.preferences.cursor_style"));
         auto combo = std::make_unique<Combo>();
-        combo->add_item("block", "Bloque");
-        combo->add_item("underline", "Subrayado");
-        combo->add_item("bar", "Barra");
+        combo->add_item("block", i18n().tr("terminal.preferences.cursor_type_block"));
+        combo->add_item("underline", i18n().tr("terminal.preferences.cursor_type_underline"));
+        combo->add_item("bar", i18n().tr("terminal.preferences.cursor_type_bar"));
         combo->set_width(200);
         m_cursor_combo = combo.get();
         m_cursor_combo->when_item_selected.connect([this](const ComboItemSelectedContext &) { if (m_on_change) m_on_change(); });
@@ -53,7 +53,7 @@ public:
         add_child(std::move(font_selector));
 
         // 4. Scrollback Lines
-        add_label("Líneas de Scrollback:");
+        add_label(i18n().tr("terminal.preferences.scrollback_lines"));
         auto scrollback_box = std::make_unique<TextBox<IntegerPolicy>>();
         scrollback_box->set_width(150);
         m_scrollback_lines_box = scrollback_box.get();
@@ -62,16 +62,22 @@ public:
 
         // 5. Checkboxes (Scroll without scrollbar & Show scrollbar)
         auto scroll_check = std::make_unique<Checkbox<AquaObject>>();
-        scroll_check->set_text("Scroll sin barra de desplazamiento");
+        scroll_check->set_text(i18n().tr("terminal.preferences.scroll_without_scrollbar"));
         m_scroll_without_bar_check = scroll_check.get();
         m_scroll_without_bar_check->set_on_toggle([this](bool) { if (m_on_change) m_on_change(); });
         add_child(std::move(scroll_check));
 
         auto show_bar_check = std::make_unique<Checkbox<AquaObject>>();
-        show_bar_check->set_text("Mostrar barra de desplazamiento");
+        show_bar_check->set_text(i18n().tr("terminal.preferences.show_scrollbar"));
         m_show_scrollbar_check = show_bar_check.get();
         m_show_scrollbar_check->set_on_toggle([this](bool) { if (m_on_change) m_on_change(); });
         add_child(std::move(show_bar_check));
+
+        auto blink_check = std::make_unique<Checkbox<AquaObject>>();
+        blink_check->set_text(i18n().tr("terminal.preferences.cursor_blink"));
+        m_cursor_blink_check = blink_check.get();
+        m_cursor_blink_check->set_on_toggle([this](bool) { if (m_on_change) m_on_change(); });
+        add_child(std::move(blink_check));
     }
 
     void from_json(const nlohmann::json &j) override {
@@ -92,6 +98,7 @@ public:
         if (j.contains("scrollback_lines")) m_scrollback_lines_box->set_text(std::to_string(j["scrollback_lines"].get<int>()));
         if (j.contains("scroll_without_scrollbar")) m_scroll_without_bar_check->set_checked(j["scroll_without_scrollbar"].get<bool>());
         if (j.contains("show_scrollbar")) m_show_scrollbar_check->set_checked(j["show_scrollbar"].get<bool>());
+        if (j.contains("cursor_blink")) m_cursor_blink_check->set_checked(j["cursor_blink"].get<bool>());
     }
 
     nlohmann::json to_json() const override {
@@ -117,6 +124,7 @@ public:
 
         j["scroll_without_scrollbar"] = m_scroll_without_bar_check->is_checked();
         j["show_scrollbar"] = m_show_scrollbar_check->is_checked();
+        j["cursor_blink"] = m_cursor_blink_check->is_checked();
         return j;
     }
 
@@ -126,6 +134,7 @@ private:
     TextBox<IntegerPolicy> *m_scrollback_lines_box;
     Checkbox<AquaObject> *m_scroll_without_bar_check;
     Checkbox<AquaObject> *m_show_scrollbar_check;
+    Checkbox<AquaObject> *m_cursor_blink_check;
     std::function<void()> m_on_change;
 };
 
