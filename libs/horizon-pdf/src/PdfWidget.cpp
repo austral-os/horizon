@@ -47,8 +47,16 @@ void PdfWidget::calculate_page_layout() {
 }
 
 void PdfWidget::calculate_layout() {
-    // Aseguramos que el tamaño se mantenga según lo calculado
-    set_width(m_total_width);
+    // Si tenemos un padre (ScrollArea), permitimos que el widget se ensanche
+    // para cubrir todo el visor y permitir el centrado horizontal.
+    if (parent()) {
+        int target_w = std::max(m_total_width, parent()->width());
+        if (width() != target_w) {
+            set_width(target_w);
+        }
+    } else {
+        set_width(m_total_width);
+    }
     set_height(m_total_height);
 }
 
@@ -85,12 +93,13 @@ void PdfWidget::draw(horizon::GraphicsContext &ctx) {
     cairo_t* cr = static_cast<cairo_t*>(ctx.getNativeContext());
     if (!cr) return;
     
-    // El widget usa coordenadas absolutas en la ventana
+    // Coordenadas absolutas en ventana
     int bx = x();
     int by = y();
+    int bw = width();
+    int bh = height();
 
     // Obtener área visible para renderizado selectivo
-    // viewport_y es relativo al inicio del documento
     int viewport_y = -by; 
     int viewport_h = 0;
     
@@ -100,9 +109,9 @@ void PdfWidget::draw(horizon::GraphicsContext &ctx) {
         viewport_h = 800; // Fallback
     }
 
-    // Dibujar fondo de documento suave (sustituye a los bordes negros)
-    ctx.setColor(Color(0.9f, 0.9f, 0.9f, 1.0f));
-    ctx.fillRect(bx, by, width(), height());
+    // Dibujar fondo de documento que cubra TODO el widget (ahora posiblemente más ancho)
+    ctx.setColor(Color(0.85f, 0.85f, 0.85f, 1.0f)); // Gris un poco más neutro estilo Nova
+    ctx.fillRect(bx, by, bw, bh);
 
     double current_y = m_page_spacing;
     int count = m_document->page_count();
@@ -113,36 +122,35 @@ void PdfWidget::draw(horizon::GraphicsContext &ctx) {
             double w, h;
             poppler_page_get_size(page, &w, &h);
 
-            // Verificar si la página es visible en el viewport actual
+            // Verificar visibilidad
             bool is_visible = (current_y + h >= viewport_y) && (current_y <= viewport_y + viewport_h);
 
             if (is_visible) {
-                // Centrar página con un margen mínimo m_page_spacing relativo al widget
-                double rx = std::max((double)m_page_spacing, (width() - w) / 2.0);
+                // Centrado dinámico basado en el ANCHO TOTAL del widget (bw)
+                double rx = std::max((double)m_page_spacing, (bw - w) / 2.0);
                 
-                // Coordenadas absolutas finales
                 double fx = bx + rx;
                 double fy = by + current_y;
 
-                // Sombra de la página
-                cairo_set_source_rgba(cr, 0, 0, 0, 0.5);
-                cairo_rectangle(cr, fx + 4, fy + 4, w, h);
+                // Sombra suave (Shadow)
+                cairo_set_source_rgba(cr, 0, 0, 0, 0.15);
+                cairo_rectangle(cr, fx + 2, fy + 2, w + 2, h + 2);
                 cairo_fill(cr);
 
-                // Fondo blanco de la página
+                // Fondo blanco
                 cairo_set_source_rgb(cr, 1, 1, 1);
                 cairo_rectangle(cr, fx, fy, w, h);
                 cairo_fill(cr);
 
-                // Renderizado de Poppler
+                // Renderizado Poppler
                 cairo_save(cr);
                 cairo_translate(cr, fx, fy);
                 poppler_page_render(page, cr);
                 cairo_restore(cr);
 
-                // Borde de la página
-                cairo_set_source_rgb(cr, 0.7, 0.7, 0.7);
-                cairo_set_line_width(cr, 0.5);
+                // Borde suave
+                cairo_set_source_rgb(cr, 0.8, 0.8, 0.8);
+                cairo_set_line_width(cr, 1.0);
                 cairo_rectangle(cr, fx, fy, w, h);
                 cairo_stroke(cr);
             }
