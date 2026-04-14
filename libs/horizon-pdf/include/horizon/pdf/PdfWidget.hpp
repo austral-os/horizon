@@ -28,9 +28,15 @@ public:
     
     // Devuelve el índice de la página más visible en una coordenada Y
     int get_page_at_y(int y) const;
+    
+    // Controles de portapapeles
+    bool supports_clipboard() const override { return true; }
+    bool can_perform(horizon::ClipboardAction action) const override;
+    void perform(horizon::ClipboardAction action) override;
+    void provide_clipboard_data(const std::string &mime, horizon::DataSink &sink) override;
+    std::vector<std::string> provided_mime_types() const override { return {"text/plain"}; }
 
 protected:
-    bool supports_clipboard() const override { return true; }
     
 private:
     std::shared_ptr<PdfDocument> m_document;
@@ -38,6 +44,16 @@ private:
     int m_page_spacing = 20;
     int m_total_width{0};
     int m_total_height{0};
+    
+    // Estado de selección
+    bool m_is_selecting{false};
+    int m_sel_page_idx{-1};
+    double m_sel_start_x{0}, m_sel_start_y{0};
+    double m_sel_end_x{0}, m_sel_end_y{0};
+    
+    void handle_mouse_press(horizon::MouseButtonEventContext &ev);
+    void handle_mouse_drag(horizon::MouseMoveEventContext &ev);
+    void handle_mouse_release(horizon::MouseButtonEventContext &ev);
 };
 
 } // namespace pdf

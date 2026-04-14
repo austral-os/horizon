@@ -19,7 +19,8 @@ int main(int argc, char **argv)
     }
     else
     {
-        window->open_file("/home/horacio/Descargas/Analisis de graficos completo.pdf");
+        // window->open_file("/home/horacio/Descargas/Analisis de graficos completo.pdf");
+        window->open_file("/home/horacio/Descargas/comandos de git.pdf");
     }
 
     app.set_root(std::move(window));

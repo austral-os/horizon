@@ -248,10 +248,7 @@ namespace horizon
         if (!m_children.empty())
         {
             Widget *hit = m_children[0]->hit_test(x, y);
-            if (hit && hit != m_children[0].get())
-                return hit;
-            if (hit == m_children[0].get())
-                return this; // Return self or child? Usually ScrollArea captures.
+            if (hit) return hit;
         }
 
         return this;
