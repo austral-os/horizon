@@ -49,7 +49,7 @@ int main(int argc, char **argv)
             content_about->set_spacing(15);
 
             auto lbl_about = std::make_unique<Label>();
-            lbl_about->set_text("Emulador de terminal de Horizon para Austral OS");
+            lbl_about->set_text(horizon::i18n().tr("terminal.aboutus.about"));
             lbl_about->set_vertical_alignment(VerticalAlignment::Top);
 
             content_about->add_child(std::move(lbl_about));
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
             content_translate->set_margin(15);
 
             auto lbl_translate = std::make_unique<Label>();
-            lbl_translate->set_text("Traducido por Horacio Daniel Ros");
+            lbl_translate->set_text(horizon::i18n().tr("terminal.aboutus.translate"));
             lbl_translate->set_vertical_alignment(VerticalAlignment::Top);
 
             content_translate->add_child(std::move(lbl_translate));

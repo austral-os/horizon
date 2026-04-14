@@ -14,6 +14,10 @@
             "scroll_without_scrollbar": "Scroll without scrollbar",
             "show_scrollbar": "Show scrollbar",
             "cursor_blink": "Cursor blink"
+        },
+        "aboutus": {
+            "about": "Horizon terminal emulator for Austral OS",
+            "translate": "Translated by Horacio Daniel Ros"
         }
     }
 }

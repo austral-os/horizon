@@ -14,6 +14,10 @@
             "scroll_without_scrollbar": "Scroll sin barra de desplazamiento",
             "show_scrollbar": "Mostrar barra de desplazamiento",
             "cursor_blink": "El cursor parpadea"
+        },
+        "aboutus": {
+            "about": "Emulador de terminal de Horizon para Austral OS",
+            "translate": "Traducido por Horacio Daniel Ros"
         }
     }
 }
