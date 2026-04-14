@@ -410,6 +410,13 @@ namespace horizon
                                    this->show_preferences();
                                });
 
+        signal_manager.connect("aboutus",
+                               [this](SignalContext &)
+                               {
+                                   LOG_INFO << "WaylandWindow: Received 'aboutus' signal";
+                                   this->show_aboutus();
+                               });
+
         // Standard clipboard signal routing: automatically dispatch to best candidate
         signal_manager.connect("copy",
                                [this](SignalContext &)

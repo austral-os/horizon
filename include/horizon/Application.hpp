@@ -1,16 +1,15 @@
 
 #include "horizon/WaylandWindow.hpp"
 #include <GLES2/gl2.h>
+#include <atomic>
 #include <horizon/CompositorAppInterface.hpp>
 #include <horizon/WaylandSurface.hpp>
-#include <thread>
 #include <mutex>
-#include <atomic>
+#include <thread>
 
 #pragma once // Solo se incluye una vez.
 
 #include <horizon/dialogs/MessageDialog.hpp>
-#include <future>
 
 namespace horizon
 {
@@ -70,27 +69,41 @@ namespace horizon
         /**
          * @brief Creates a new layer-shell window.
          */
-        class WaylandLayerWindow *create_layer_window(const std::string &namespace_id, uint32_t layer = 3, int monitor_index = -1);
+        class WaylandLayerWindow *create_layer_window(const std::string &namespace_id,
+                                                      uint32_t layer = 3, int monitor_index = -1);
 
         /**
          * @brief Shows an alert dialog.
          */
-        void alert(const std::string &message, const std::string &title = "Alert", MessageType type = MessageType::Info);
+        void alert(const std::string &message, const std::string &title = "Alert",
+                   MessageType type = MessageType::Info);
 
         /**
          * @brief Shows a confirmation dialog and returns true if accepted.
          */
-        bool confirm(const std::string &message, const std::string &title = "Confirm", MessageType type = MessageType::Question);
+        bool confirm(const std::string &message, const std::string &title = "Confirm",
+                     MessageType type = MessageType::Question);
 
         /**
          * @brief Sets the application preferences content factory.
          */
-        void set_preferences_content(WaylandWindow::PreferencesFactory factory, int width = 500, int height = 400);
+        void set_preferences_content(WaylandWindow::PreferencesFactory factory, int width = 500,
+                                     int height = 400);
 
         /**
          * @brief Shows the preferences dialog.
          */
         void show_preferences();
+
+        /**
+         * @brief Sets the application aboutus content factory.
+         */
+        void set_aboutus_content(WaylandWindow::AboutUsFactory factory);
+
+        /**
+         * @brief Shows the preferences dialog.
+         */
+        void show_aboutus();
 
     private:
         /**
@@ -102,16 +115,18 @@ namespace horizon
         /**
          * @brief Protected constructor for derived classes that need custom initialization.
          */
-        Application(const std::string &app_id, int w, int h, bool defer_init, bool skip_window = false);
+        Application(const std::string &app_id, int w, int h, bool defer_init,
+                    bool skip_window = false);
 
     protected:
         std::string m_app_id;
         std::string m_name;
         std::string m_icon_name;
 
-        struct ManagedWindow {
+        struct ManagedWindow
+        {
             std::unique_ptr<WaylandWindow> window;
-            WaylandWindow* parent{nullptr};
+            WaylandWindow *parent{nullptr};
             std::thread thread;
         };
 

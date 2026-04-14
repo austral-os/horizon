@@ -1,15 +1,19 @@
-#include <horizon/WaylandLayerWindow.hpp>
 #include "horizon/CairoGraphicsContext.hpp"
 #include "horizon/Widget.hpp"
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <future>
 #include <horizon/Application.hpp>
 #include <horizon/ClientMenu.hpp>
+#include <horizon/I18n.hpp>
 #include <horizon/IpcClient.hpp>
+#include <horizon/JsonBackend.hpp>
 #include <horizon/LabwcCompositorContext.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/WayfireCompositorContext.hpp>
+#include <horizon/WaylandLayerWindow.hpp>
 #include <horizon/Window.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
 #include <librsvg/rsvg.h>
@@ -22,9 +26,6 @@
 #include <wayland-client-core.h>
 #include <wayland-client-protocol.h>
 #include <wayland-client.h>
-#include <horizon/I18n.hpp>
-#include <horizon/JsonBackend.hpp>
-#include <cstdlib>
 
 namespace horizon
 {
@@ -34,7 +35,8 @@ namespace horizon
     {
     }
 
-    Application::Application(const std::string &app_id, int w, int h, bool defer_init, bool skip_window)
+    Application::Application(const std::string &app_id, int w, int h, bool defer_init,
+                             bool skip_window)
         : m_app_id(app_id)
     {
         // Global safeguard: ignore SIGPIPE to prevent crash when writing to broken sockets
@@ -53,7 +55,7 @@ namespace horizon
     Application::~Application()
     {
         m_is_running = false;
-        
+
         std::lock_guard<std::mutex> lock(m_windows_mutex);
         for (auto &mw : m_managed_windows)
         {
@@ -65,7 +67,7 @@ namespace horizon
             if (mw.thread.joinable())
                 mw.thread.join();
         }
-        
+
         m_managed_windows.clear();
     }
 
@@ -102,20 +104,22 @@ namespace horizon
     {
         // Must be called from the main thread to avoid deadlocks and ensure safety
         // if we are destroying windows that might be in use by other main-thread logic.
-        
+
         std::lock_guard<std::mutex> lock(m_windows_mutex);
-        if (m_managed_windows.empty()) return;
+        if (m_managed_windows.empty())
+            return;
 
         // Never remove the main window via this method
-        if (ptr == m_managed_windows[0].window.get()) return;
+        if (ptr == m_managed_windows[0].window.get())
+            return;
 
         auto it = std::find_if(m_managed_windows.begin() + 1, m_managed_windows.end(),
-            [ptr](const ManagedWindow &mw) { return mw.window.get() == ptr; });
-        
+                               [ptr](const ManagedWindow &mw) { return mw.window.get() == ptr; });
+
         if (it != m_managed_windows.end())
         {
             LOG_INFO << "[APP] Removing window: " << ptr->name();
-            // We can't join the thread if we are currently IN it, 
+            // We can't join the thread if we are currently IN it,
             // but this method is intended to be called via post_task on main thread.
             if (it->thread.joinable())
                 it->thread.detach(); // Detach since it's already finished or finishing
@@ -130,7 +134,7 @@ namespace horizon
         window->set_name(m_name);
         window->set_icon_name(m_icon_name);
         WaylandWindow *ptr = window.get();
-        
+
         {
             std::lock_guard<std::mutex> lock(m_windows_mutex);
             m_managed_windows.push_back({std::move(window), nullptr, {}});
@@ -140,21 +144,22 @@ namespace horizon
         {
             // Find the newly added ManagedWindow to set its thread
             std::lock_guard<std::mutex> lock(m_windows_mutex);
-            auto& mw = m_managed_windows.back();
-            mw.thread = std::thread([this, ptr]() {
-                ptr->initialize();
-                ptr->run();
-                
-                // Once run returns, clean up
-                std::lock_guard<std::mutex> lock(m_windows_mutex);
-                if (m_managed_windows.empty()) return;
-                WaylandWindow* mainWinPtr = m_managed_windows[0].window.get();
-                mainWinPtr->post_task([this, ptr]() {
-                    this->remove_window(ptr);
+            auto &mw = m_managed_windows.back();
+            mw.thread = std::thread(
+                [this, ptr]()
+                {
+                    ptr->initialize();
+                    ptr->run();
+
+                    // Once run returns, clean up
+                    std::lock_guard<std::mutex> lock(m_windows_mutex);
+                    if (m_managed_windows.empty())
+                        return;
+                    WaylandWindow *mainWinPtr = m_managed_windows[0].window.get();
+                    mainWinPtr->post_task([this, ptr]() { this->remove_window(ptr); });
                 });
-            });
         }
-        
+
         return ptr;
     }
 
@@ -164,7 +169,7 @@ namespace horizon
         window->set_name(m_name);
         window->set_icon_name(m_icon_name);
         WaylandWindow *ptr = window.get();
-        
+
         {
             std::lock_guard<std::mutex> lock(m_windows_mutex);
             m_managed_windows.push_back({std::move(window), parent, {}});
@@ -173,28 +178,31 @@ namespace horizon
         if (m_is_running)
         {
             std::lock_guard<std::mutex> lock(m_windows_mutex);
-            auto& mw = m_managed_windows.back();
-            mw.thread = std::thread([this, ptr]() {
-                ptr->initialize();
-                ptr->run();
-                
-                std::lock_guard<std::mutex> lock(m_windows_mutex);
-                if (m_managed_windows.empty()) return;
-                WaylandWindow* mainWinPtr = m_managed_windows[0].window.get();
-                mainWinPtr->post_task([this, ptr]() {
-                    this->remove_window(ptr);
+            auto &mw = m_managed_windows.back();
+            mw.thread = std::thread(
+                [this, ptr]()
+                {
+                    ptr->initialize();
+                    ptr->run();
+
+                    std::lock_guard<std::mutex> lock(m_windows_mutex);
+                    if (m_managed_windows.empty())
+                        return;
+                    WaylandWindow *mainWinPtr = m_managed_windows[0].window.get();
+                    mainWinPtr->post_task([this, ptr]() { this->remove_window(ptr); });
                 });
-            });
         }
-        
+
         return ptr;
     }
 
-    WaylandLayerWindow *Application::create_layer_window(const std::string &namespace_id, uint32_t layer, int monitor_index)
+    WaylandLayerWindow *Application::create_layer_window(const std::string &namespace_id,
+                                                         uint32_t layer, int monitor_index)
     {
-        auto window = std::make_unique<WaylandLayerWindow>(namespace_id, layer, true, monitor_index);
+        auto window =
+            std::make_unique<WaylandLayerWindow>(namespace_id, layer, true, monitor_index);
         WaylandLayerWindow *ptr = window.get();
-        
+
         {
             std::lock_guard<std::mutex> lock(m_windows_mutex);
             m_managed_windows.push_back({std::move(window), nullptr, {}});
@@ -203,20 +211,21 @@ namespace horizon
         if (m_is_running)
         {
             std::lock_guard<std::mutex> lock(m_windows_mutex);
-            auto& mw = m_managed_windows.back();
-            mw.thread = std::thread([this, ptr]() {
-                ptr->initialize();
-                ptr->run();
-                
-                std::lock_guard<std::mutex> lock(m_windows_mutex);
-                if (m_managed_windows.empty()) return;
-                WaylandWindow* mainWinPtr = m_managed_windows[0].window.get();
-                mainWinPtr->post_task([this, ptr]() {
-                    this->remove_window(ptr);
+            auto &mw = m_managed_windows.back();
+            mw.thread = std::thread(
+                [this, ptr]()
+                {
+                    ptr->initialize();
+                    ptr->run();
+
+                    std::lock_guard<std::mutex> lock(m_windows_mutex);
+                    if (m_managed_windows.empty())
+                        return;
+                    WaylandWindow *mainWinPtr = m_managed_windows[0].window.get();
+                    mainWinPtr->post_task([this, ptr]() { this->remove_window(ptr); });
                 });
-            });
         }
-        
+
         return ptr;
     }
 
@@ -233,17 +242,18 @@ namespace horizon
             for (size_t i = 1; i < m_managed_windows.size(); ++i)
             {
                 WaylandWindow *ptr = m_managed_windows[i].window.get();
-                m_managed_windows[i].thread = std::thread([this, ptr]() {
-                    ptr->initialize();
-                    ptr->run();
-                    
-                    std::lock_guard<std::mutex> lock(m_windows_mutex);
-                    if (m_managed_windows.empty()) return;
-                    WaylandWindow* mainWinPtr = m_managed_windows[0].window.get();
-                    mainWinPtr->post_task([this, ptr]() {
-                        this->remove_window(ptr);
+                m_managed_windows[i].thread = std::thread(
+                    [this, ptr]()
+                    {
+                        ptr->initialize();
+                        ptr->run();
+
+                        std::lock_guard<std::mutex> lock(m_windows_mutex);
+                        if (m_managed_windows.empty())
+                            return;
+                        WaylandWindow *mainWinPtr = m_managed_windows[0].window.get();
+                        mainWinPtr->post_task([this, ptr]() { this->remove_window(ptr); });
                     });
-                });
             }
         }
 
@@ -254,10 +264,11 @@ namespace horizon
 
         // Shutdown sequence: main window closed, stop everything else
         m_is_running = false;
-        
+
         {
             std::lock_guard<std::mutex> lock(m_windows_mutex);
-            for (auto &mw : m_managed_windows) {
+            for (auto &mw : m_managed_windows)
+            {
                 mw.window->quit();
             }
         }
@@ -266,14 +277,17 @@ namespace horizon
         std::vector<std::thread> threads_to_join;
         {
             std::lock_guard<std::mutex> lock(m_windows_mutex);
-            for (auto &mw : m_managed_windows) {
-                if (mw.thread.joinable()) {
+            for (auto &mw : m_managed_windows)
+            {
+                if (mw.thread.joinable())
+                {
                     threads_to_join.push_back(std::move(mw.thread));
                 }
             }
         }
 
-        for (auto &t : threads_to_join) {
+        for (auto &t : threads_to_join)
+        {
             t.join();
         }
     }
@@ -282,7 +296,7 @@ namespace horizon
     {
         auto dialog = std::make_unique<MessageDialog>(title, message, type, false);
         WaylandWindow *ptr = dialog.get();
-        
+
         {
             std::lock_guard<std::mutex> lock(m_windows_mutex);
             m_managed_windows.push_back({std::move(dialog), nullptr, {}});
@@ -291,32 +305,34 @@ namespace horizon
         if (m_is_running)
         {
             std::lock_guard<std::mutex> lock(m_windows_mutex);
-            auto& mw = m_managed_windows.back();
-            mw.thread = std::thread([this, ptr]() {
-                ptr->initialize();
-                ptr->run();
-                
-                std::lock_guard<std::mutex> lock(m_windows_mutex);
-                if (m_managed_windows.empty()) return;
-                WaylandWindow* mainWinPtr = m_managed_windows[0].window.get();
-                mainWinPtr->post_task([this, ptr]() {
-                    this->remove_window(ptr);
+            auto &mw = m_managed_windows.back();
+            mw.thread = std::thread(
+                [this, ptr]()
+                {
+                    ptr->initialize();
+                    ptr->run();
+
+                    std::lock_guard<std::mutex> lock(m_windows_mutex);
+                    if (m_managed_windows.empty())
+                        return;
+                    WaylandWindow *mainWinPtr = m_managed_windows[0].window.get();
+                    mainWinPtr->post_task([this, ptr]() { this->remove_window(ptr); });
                 });
-            });
         }
     }
 
-    bool Application::confirm(const std::string &message, const std::string &title, MessageType type)
+    bool Application::confirm(const std::string &message, const std::string &title,
+                              MessageType type)
     {
         auto dialog = std::make_unique<MessageDialog>(title, message, type, true);
         WaylandWindow *ptr = dialog.get();
-        
+
         std::promise<bool> promise;
         std::future<bool> future = promise.get_future();
 
-        dialog->when_responded.connect([&promise](MessageResponseEvent res) {
-            promise.set_value(res.response == MessageResponse::Accept);
-        });
+        dialog->when_responded.connect(
+            [&promise](MessageResponseEvent res)
+            { promise.set_value(res.response == MessageResponse::Accept); });
 
         {
             std::lock_guard<std::mutex> lock(m_windows_mutex);
@@ -326,24 +342,26 @@ namespace horizon
         if (m_is_running)
         {
             std::lock_guard<std::mutex> lock(m_windows_mutex);
-            auto& mw = m_managed_windows.back();
-            mw.thread = std::thread([this, ptr]() {
-                ptr->initialize();
-                ptr->run();
-                
-                std::lock_guard<std::mutex> lock(m_windows_mutex);
-                if (m_managed_windows.empty()) return;
-                WaylandWindow* mainWinPtr = m_managed_windows[0].window.get();
-                mainWinPtr->post_task([this, ptr]() {
-                    this->remove_window(ptr);
+            auto &mw = m_managed_windows.back();
+            mw.thread = std::thread(
+                [this, ptr]()
+                {
+                    ptr->initialize();
+                    ptr->run();
+
+                    std::lock_guard<std::mutex> lock(m_windows_mutex);
+                    if (m_managed_windows.empty())
+                        return;
+                    WaylandWindow *mainWinPtr = m_managed_windows[0].window.get();
+                    mainWinPtr->post_task([this, ptr]() { this->remove_window(ptr); });
                 });
-            });
         }
 
         return future.get();
     }
 
-    void Application::set_preferences_content(WaylandWindow::PreferencesFactory factory, int width, int height)
+    void Application::set_preferences_content(WaylandWindow::PreferencesFactory factory, int width,
+                                              int height)
     {
         std::lock_guard<std::mutex> lock(m_windows_mutex);
         if (!m_managed_windows.empty())
@@ -358,6 +376,24 @@ namespace horizon
         if (!m_managed_windows.empty())
         {
             m_managed_windows[0].window->show_preferences();
+        }
+    }
+
+    void Application::set_aboutus_content(WaylandWindow::AboutUsFactory factory)
+    {
+        std::lock_guard<std::mutex> lock(m_windows_mutex);
+        if (!m_managed_windows.empty())
+        {
+            m_managed_windows[0].window->set_aboutus_content(std::move(factory));
+        }
+    }
+
+    void Application::show_aboutus()
+    {
+        std::lock_guard<std::mutex> lock(m_windows_mutex);
+        if (!m_managed_windows.empty())
+        {
+            m_managed_windows[0].window->show_aboutus();
         }
     }
 
