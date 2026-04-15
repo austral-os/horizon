@@ -1,5 +1,7 @@
 {
+    "text_editor.title": "Editor de Texto",
     "core": {
+
         "dialog": {
             "accept": "Aceptar",
             "cancel": "Cancelar",
