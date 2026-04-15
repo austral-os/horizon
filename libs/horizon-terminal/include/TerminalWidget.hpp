@@ -3,6 +3,7 @@
 #include "horizon/Widget.hpp"
 #include "TerminalController.hpp"
 #include "ConfigReader.hpp"
+#include "TerminalColorScheme.hpp"
 #include <horizon/FileWatcher.hpp>
 #include <memory>
 #include <map>
@@ -66,10 +67,13 @@ public:
 
     void set_application_recursive(horizon::WaylandWindow *app) override;
 
+    void set_color_scheme(const TerminalColorScheme& scheme);
+
 private:
     void update_pty_size();
     void on_pty_read(const char* data, size_t len);
     void on_terminal_damage(VTermRect rect);
+    VTermScreenCell get_cell_at(int r, int c, int size, int offset);
     
     bool init_fonts();
     void cleanup_fonts();
@@ -89,6 +93,7 @@ private:
     
     bool m_initialized = false;
     TerminalConfig m_config;
+    TerminalColorScheme m_color_scheme;
 
     // Cursor state
     bool m_cursor_visible = true;

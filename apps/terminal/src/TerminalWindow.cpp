@@ -1,5 +1,6 @@
 #include "TerminalWindow.hpp"
 #include "TerminalWidget.hpp"
+#include "TerminalColorScheme.hpp"
 #include "horizon/I18n.hpp"
 #include "horizon/Logger.hpp"
 #include <memory>
@@ -10,6 +11,9 @@ namespace terminal {
 TerminalWindow::TerminalWindow()
     : ApplicationWindow(i18n().tr("terminal.title")) {
     
+    // 0. Load global color scheme
+    m_scheme = TerminalColorScheme::from_json("/home/horacio/Desarrollo/austral-os/horizon/examples/usr/data/terminal/dracula.json");
+
     // 1. Terminal Toolbar
     auto terminal_toolbar = std::make_unique<TerminalToolbar>();
     m_toolbar = terminal_toolbar.get();
@@ -74,6 +78,9 @@ void TerminalWindow::create_new_tab() {
     auto terminal = std::make_unique<TerminalWidget>();
     auto* ptr = terminal.get();
     
+    // Aplicar esquema de color cargado
+    ptr->set_color_scheme(m_scheme);
+
     // Initialize the terminal shell
     ptr->spawn();
 

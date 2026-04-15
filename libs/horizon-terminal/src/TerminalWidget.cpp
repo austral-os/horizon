@@ -177,28 +177,57 @@ void TerminalWidget::calculate_layout() {
     }
 }
 
-static VTermScreenCell get_cell_at(int r, int c, int size, int offset, TerminalController* ctrl) {
+VTermScreenCell TerminalWidget::get_cell_at(int r, int c, int size, int offset) {
     VTermScreenCell cell;
     memset(&cell, 0, sizeof(VTermScreenCell));
-    cell.bg.type = VTERM_COLOR_DEFAULT_BG;
-    cell.fg.type = VTERM_COLOR_DEFAULT_FG;
+    
+    // Fallback constants
+    const char* fallback_bg = "#282a36"; // Dracula background
+    const char* fallback_fg = "#f8f8f2"; // Dracula foreground
 
     int history_index = size - offset + r;
     if (history_index < size && history_index >= 0) {
-        const auto& line = ctrl->get_scrollback_line(history_index);
+        const auto& line = m_controller->get_scrollback_line(history_index);
         if (c < (int)line.cells.size()) {
             cell = line.cells[c];
+        } else {
+            cell.bg.type = VTERM_COLOR_DEFAULT_BG;
+            cell.fg.type = VTERM_COLOR_DEFAULT_FG;
         }
     } else if (history_index >= size) {
-        vterm_screen_get_cell(ctrl->get_screen(), {history_index - size, c}, &cell);
+        if (vterm_screen_get_cell(m_controller->get_screen(), {history_index - size, c}, &cell) == 0) {
+            cell.bg.type = VTERM_COLOR_DEFAULT_BG;
+            cell.fg.type = VTERM_COLOR_DEFAULT_FG;
+        }
+    } else {
+        cell.bg.type = VTERM_COLOR_DEFAULT_BG;
+        cell.fg.type = VTERM_COLOR_DEFAULT_FG;
     }
 
-    // Ensure colors are converted to RGB for drawing and comparison
-    VTermScreen* screen = ctrl->get_screen();
+    // Capture "default" status BEFORE conversion
+    bool is_default_bg = VTERM_COLOR_IS_DEFAULT_BG(&cell.bg);
+    bool is_default_fg = VTERM_COLOR_IS_DEFAULT_FG(&cell.fg);
+
+    // Convert potential palette/index colors to RGB
+    VTermScreen* screen = m_controller->get_screen();
     vterm_screen_convert_color_to_rgb(screen, &cell.fg);
     vterm_screen_convert_color_to_rgb(screen, &cell.bg);
 
-    // Handle "Reverse Video" attribute (libvterm doesn't swap them automatically in the struct)
+    // If it was default, FORCE our scheme colors
+    if (is_default_bg) {
+        horizon::Color c_bg(m_color_scheme.primary.background.empty() ? fallback_bg : m_color_scheme.primary.background);
+        cell.bg.rgb.red = (uint8_t)(c_bg.r * 255);
+        cell.bg.rgb.green = (uint8_t)(c_bg.g * 255);
+        cell.bg.rgb.blue = (uint8_t)(c_bg.b * 255);
+    }
+    
+    if (is_default_fg) {
+        horizon::Color c_fg(m_color_scheme.primary.foreground.empty() ? fallback_fg : m_color_scheme.primary.foreground);
+        cell.fg.rgb.red = (uint8_t)(c_fg.r * 255);
+        cell.fg.rgb.green = (uint8_t)(c_fg.g * 255);
+        cell.fg.rgb.blue = (uint8_t)(c_fg.b * 255);
+    }
+
     if (cell.attrs.reverse) {
         VTermColor temp = cell.fg;
         cell.fg = cell.bg;
@@ -209,17 +238,22 @@ static VTermScreenCell get_cell_at(int r, int c, int size, int offset, TerminalC
 }
 
 void TerminalWidget::draw(GraphicsContext &ctx) {
-    // Fill background
-    ctx.setColor(background_color());
-    ctx.fillRect(x(), y(), width(), height());
-
     cairo_t* cr = (cairo_t*)ctx.getNativeContext();
-
-
-
     if (!cr || !m_cairo_font_face) return;
 
     cairo_save(cr);
+
+    // 1. Fill background with Cairo
+    // Explicitly fallback to Dracula if scheme or background_color are not ready
+    horizon::Color bg_color = m_color_scheme.primary.background.empty() ? background_color() : horizon::Color(m_color_scheme.primary.background);
+    if (bg_color.to_hex() == "#000000" || bg_color.to_hex() == "#0d0d0d") {
+        bg_color = horizon::Color("#282a36");
+    }
+
+    cairo_set_source_rgb(cr, bg_color.r, bg_color.g, bg_color.b);
+    cairo_rectangle(cr, x(), y(), width(), height());
+    cairo_fill(cr);
+
     cairo_set_font_face(cr, m_cairo_font_face);
     cairo_set_font_size(cr, m_config.font_size);
 
@@ -232,7 +266,7 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
     
     for (int r = 0; r < m_rows; ++r) {
         for (int c = 0; c < m_cols; ) {
-            VTermScreenCell cell = get_cell_at(r, c, size, m_scroll_offset, m_controller.get());
+            VTermScreenCell cell = get_cell_at(r, c, size, m_scroll_offset);
 
             // Find segment of same style
             int start_c = c;
@@ -241,7 +275,7 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
             c++;
             
             while (c < m_cols) {
-                VTermScreenCell next_cell = get_cell_at(r, c, size, m_scroll_offset, m_controller.get());
+                VTermScreenCell next_cell = get_cell_at(r, c, size, m_scroll_offset);
                 // Simple style compare for now (colors)
                 if (next_cell.bg.rgb.red != cell.bg.rgb.red || 
                     next_cell.bg.rgb.green != cell.bg.rgb.green ||
@@ -259,7 +293,6 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
             double y_pos = y() + r * m_char_height;
 
             // Draw segment background
-            // We use converted RGB values. If bg is not the default background, draw it.
             if (!VTERM_COLOR_IS_DEFAULT_BG(&cell.bg)) {
                 cairo_set_source_rgb(cr, cell.bg.rgb.red / 255.0, cell.bg.rgb.green / 255.0, cell.bg.rgb.blue / 255.0);
                 cairo_rectangle(cr, x_pos, y_pos, (c - start_c) * m_char_width, m_char_height);
@@ -306,16 +339,19 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
             double cursor_y = y() + cursor_visual_row * m_char_height;
             
             if (m_config.cursor_style == "bar") {
-                cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
+                horizon::Color cc(m_color_scheme.primary.cursor.empty() ? m_color_scheme.primary.foreground : m_color_scheme.primary.cursor);
+                cairo_set_source_rgba(cr, cc.r, cc.g, cc.b, 1.0);
                 cairo_rectangle(cr, cursor_x, cursor_y, 2.0, m_char_height);
                 cairo_fill(cr);
             } else if (m_config.cursor_style == "underline") {
-                cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 1.0);
+                horizon::Color cc(m_color_scheme.primary.cursor.empty() ? m_color_scheme.primary.foreground : m_color_scheme.primary.cursor);
+                cairo_set_source_rgba(cr, cc.r, cc.g, cc.b, 1.0);
                 // Draw a 2-pixel tall line at the bottom of the character's bounding box
                 cairo_rectangle(cr, cursor_x, cursor_y + m_char_height - 2.0, m_char_width, 2.0);
                 cairo_fill(cr);
             } else {
-                cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.5);
+                horizon::Color cc(m_color_scheme.primary.cursor.empty() ? m_color_scheme.primary.foreground : m_color_scheme.primary.cursor);
+                cairo_set_source_rgba(cr, cc.r, cc.g, cc.b, 0.5);
                 cairo_rectangle(cr, cursor_x, cursor_y, m_char_width, m_char_height);
                 cairo_fill(cr);
             }
@@ -772,6 +808,19 @@ void TerminalWidget::reload_config() {
     invalidate();
     
     LOG_INFO << "[TERMINAL] Configuration reloaded.";
+}
+
+void TerminalWidget::set_color_scheme(const TerminalColorScheme& scheme) {
+    m_color_scheme = scheme;
+    if (m_controller) {
+        m_controller->set_color_scheme(scheme);
+    }
+    
+    if (!scheme.primary.background.empty()) {
+        set_background_color(horizon::Color(scheme.primary.background));
+    }
+    
+    invalidate();
 }
 
 } // namespace terminal

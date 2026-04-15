@@ -2,6 +2,7 @@
 
 #include "horizon/ApplicationWindow.hpp"
 #include "TerminalToolbar.hpp"
+#include "TerminalColorScheme.hpp"
 #include <horizon/TabCollection.hpp>
 
 namespace horizon {
@@ -17,6 +18,7 @@ public:
 private:
     TabCollection* m_tabs;
     TerminalToolbar* m_toolbar;
+    TerminalColorScheme m_scheme;
 };
 
 } // namespace terminal

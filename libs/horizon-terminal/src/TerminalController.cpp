@@ -2,6 +2,8 @@
 #include <cstring>
 #include <algorithm>
 #include <sstream>
+#include <horizon/Color.hpp>
+
 
 static std::string utf32_to_utf8(uint32_t codepoint) {
     if (codepoint == 0) return "";
@@ -172,8 +174,40 @@ int TerminalController::screen_sb_popline(int cols, VTermScreenCell *cells, void
 
 int TerminalController::screen_sb_clear(void *user) {
     auto self = static_cast<TerminalController*>(user);
-    self->m_scrollback_buffer.clear();
+        self->m_scrollback_buffer.clear();
     return 1;
+}
+
+void TerminalController::set_color_scheme(const TerminalColorScheme& scheme) {
+    VTermState* state = vterm_obtain_state(m_vt);
+    
+    auto to_vterm_color = [](const std::string& hex) {
+        horizon::Color c(hex);
+        VTermColor vc;
+        vc.type = VTERM_COLOR_RGB;
+        vc.rgb.red = (uint8_t)(c.r * 255);
+        vc.rgb.green = (uint8_t)(c.g * 255);
+        vc.rgb.blue = (uint8_t)(c.b * 255);
+        return vc;
+    };
+
+    VTermColor fg = to_vterm_color(scheme.primary.foreground);
+    VTermColor bg = to_vterm_color(scheme.primary.background);
+    vterm_state_set_default_colors(state, &fg, &bg);
+
+    // Normal colors (0-7)
+    std::vector<std::string> normal_colors = scheme.normal.to_vector();
+    for (int i = 0; i < 8; ++i) {
+        VTermColor vc = to_vterm_color(normal_colors[i]);
+        vterm_state_set_palette_color(state, i, &vc);
+    }
+
+    // Bright colors (8-15)
+    std::vector<std::string> bright_colors = scheme.bright.to_vector();
+    for (int i = 0; i < 8; ++i) {
+        VTermColor vc = to_vterm_color(bright_colors[i]);
+        vterm_state_set_palette_color(state, i + 8, &vc);
+    }
 }
 
 Cell TerminalController::get_cell(int row, int col) {

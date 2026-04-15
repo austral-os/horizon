@@ -10,6 +10,8 @@
 #include <string>
 
 
+#include "TerminalColorScheme.hpp"
+
 namespace horizon {
 namespace terminal {
 
@@ -33,6 +35,8 @@ public:
     void push_data(const char* data, size_t len);
     void write_to_pty(const char* data, size_t len);
     void resize(int rows, int cols);
+
+    void set_color_scheme(const TerminalColorScheme& scheme);
 
     VTerm* get_vterm() { return m_vt; }
     VTermScreen* get_screen() { return m_screen; }
