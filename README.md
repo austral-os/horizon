@@ -93,7 +93,7 @@ sudo apt install build-essential g++ pkg-config \
                  libwpewebkit-2.0-dev libpoppler-glib-dev \
                  nlohmann-json3-dev weston wayland-utils \
                  wlr-randr xdg-utils shared-mime-info \
-                 desktop-file-utils
+                 desktop-file-utils libpoppler-glib-dev
 ```
 
 Multimedia dependecies for Nova:
