@@ -182,6 +182,9 @@ namespace horizon
         m_show_h_scroll = content->width() > m_width;
         m_show_v_scroll = content->height() > m_height;
 
+        // Ensure scroll position is within valid bounds after content size changes
+        set_scroll_position(m_scroll_x, m_scroll_y);
+
         if (m_show_v_scroll)
         {
             m_v_track_x = m_x + m_width - SCROLLBAR_SIZE - 2;
@@ -191,7 +194,8 @@ namespace horizon
 
             float visible_ratio = (float)m_height / (float)content->height();
             int thumb_h = std::max(20, (int)(m_v_track_h * visible_ratio));
-            float scroll_ratio = (float)m_scroll_y / (float)(content->height() - m_height);
+            int max_scroll = content->height() - m_height;
+            float scroll_ratio = (max_scroll > 0) ? (float)m_scroll_y / (float)max_scroll : 0.0f;
             int thumb_y = m_v_track_y + (int)(scroll_ratio * (m_v_track_h - thumb_h));
 
             std::vector<PolygonPoint> pts;
@@ -212,7 +216,8 @@ namespace horizon
 
             float visible_ratio = (float)m_width / (float)content->width();
             int thumb_w = std::max(20, (int)(m_h_track_w * visible_ratio));
-            float scroll_ratio = (float)m_scroll_x / (float)(content->width() - m_width);
+            int max_scroll = content->width() - m_width;
+            float scroll_ratio = (max_scroll > 0) ? (float)m_scroll_x / (float)max_scroll : 0.0f;
             int thumb_x = m_h_track_x + (int)(scroll_ratio * (m_h_track_w - thumb_w));
 
             std::vector<PolygonPoint> pts;

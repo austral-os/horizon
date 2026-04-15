@@ -92,6 +92,7 @@ void ImageWidget::set_application_recursive(WaylandWindow* app) {
     if (app && !m_driver && !m_path.empty()) {
         load_driver();
         update_size();
+        invalidate();
     }
 }
 
@@ -134,7 +135,7 @@ void ImageWidget::draw(GraphicsContext& ctx) {
     int w = width();
     int h = height();
 
-    ctx.translate(w / 2.0f, h / 2.0f);
+    ctx.translate(x() + w / 2.0f, y() + h / 2.0f);
     ctx.rotate(m_rotation * (M_PI / 180.0f));
     ctx.scale(m_zoom, m_zoom);
     
