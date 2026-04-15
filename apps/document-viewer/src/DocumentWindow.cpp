@@ -228,8 +228,9 @@ void DocumentWindow::on_zoom_fit() {
 }
 
 void DocumentWindow::on_toggle_fullscreen() {
-    m_is_immersive = !m_is_immersive;
-    set_immersive_mode(m_is_immersive);
+    if (application()) {
+        application()->signal_manager.emit("fullscreen");
+    }
 }
 
 void DocumentWindow::on_toggle_sidebar() {

@@ -35,7 +35,6 @@ private:
     void on_toggle_sidebar();
     
     bool m_sidebar_visible{true};
-    bool m_is_immersive{false};
 };
 
 } // namespace pdf
