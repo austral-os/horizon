@@ -99,7 +99,7 @@ namespace horizon
         row1->set_spacing(10);
 
         auto lbl_name =
-            std::make_unique<Label>(m_mode == FileDialogMode::Save ? "Save as:" : "File name:");
+            std::make_unique<Label>((m_mode == FileDialogMode::Save || m_mode == FileDialogMode::SaveAs) ? "Save as:" : "File name:");
         lbl_name->set_fixed_size(SIDEBAR_WIDTH);
         lbl_name->set_alignment(TextAlignment::Right);
 
@@ -145,7 +145,7 @@ namespace horizon
             });
 
         auto btn_accept = std::make_unique<Button<AquaObject>>();
-        btn_accept->set_text(m_mode == FileDialogMode::Save ? "Save" : "Open");
+        btn_accept->set_text((m_mode == FileDialogMode::Save || m_mode == FileDialogMode::SaveAs) ? "Save" : "Open");
         btn_accept->set_width(100);
         btn_accept->set_accent_color(WidgetAccentColor::Primary);
         btn_accept->when_click.connect([this](MouseButtonEventContext &) { handle_accept(); });
@@ -212,7 +212,21 @@ namespace horizon
     void FileDialog::set_current_path(const std::string &path)
     {
         if (m_view)
-            m_view->navigate_to(path);
+        {
+            std::filesystem::path p(path);
+            if (std::filesystem::is_directory(p))
+            {
+                m_view->navigate_to(path);
+            }
+            else
+            {
+                m_view->navigate_to(p.parent_path().string());
+                if (m_filename_input)
+                {
+                    m_filename_input->set_text(p.filename().string());
+                }
+            }
+        }
     }
 
     std::string FileDialog::selected_path() const

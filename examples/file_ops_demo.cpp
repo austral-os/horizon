@@ -20,7 +20,7 @@ public:
         m_status_label = label.get();
         add_child(std::move(label));
 
-        auto info = std::make_unique<Label>("El menú 'Archivo' debería aparecer en la barra global.");
+        auto info = std::make_unique<Label>("El menú 'Archivo' debería incluir Guardar y Guardar como.");
         info->set_alignment(TextAlignment::Center);
         add_child(std::move(info));
 
@@ -40,6 +40,20 @@ public:
         when_file_close.connect([this](EventContext&) {
             LOG_INFO << "Demo: Evento de cierre de archivo recibido!";
             m_status_label->set_text("Estado: Cerrado");
+            m_current_path = "";
+            invalidate();
+        });
+
+        when_save.connect([this](Window::FileSaveContext& ctx) {
+            LOG_INFO << "Demo: Evento GUARDAR (Save) recibido para: " << ctx.path;
+            m_status_label->set_text("Guardado: " + ctx.path);
+            invalidate();
+        });
+
+        when_save_as.connect([this](Window::FileSaveContext& ctx) {
+            LOG_INFO << "Demo: Evento GUARDAR COMO (Save As) recibido para: " << ctx.path;
+            m_status_label->set_text("Guardado como: " + ctx.path);
+            m_current_path = ctx.path; // Simular que ahora tenemos un path
             invalidate();
         });
 
@@ -51,12 +65,17 @@ public:
     }
 
     uint32_t file_capabilities() const override {
-        // Habilitamos las tres capacidades
-        return FileOpen | FileOpenFolder | FileClose;
+        // Habilitamos todas las capacidades
+        return FileAll;
+    }
+
+    std::string current_file_path() const override {
+        return m_current_path;
     }
 
 private:
     Label *m_status_label{nullptr};
+    std::string m_current_path;
 };
 
 int main(int argc, char** argv) {

@@ -15,7 +15,8 @@ public:
     TextEditorWindow();
     virtual ~TextEditorWindow() = default;
 
-    uint32_t file_capabilities() const override { return FileOpen | FileClose; }
+    uint32_t file_capabilities() const override { return FileAll; }
+    std::string current_file_path() const override;
 
     void open_file(const std::string& path);
     void new_file();

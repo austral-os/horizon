@@ -15,7 +15,9 @@ namespace horizon
         FileOpen = 1 << 0,
         FileOpenFolder = 1 << 1,
         FileClose = 1 << 2,
-        FileAll = FileOpen | FileOpenFolder | FileClose
+        FileSave = 1 << 3,
+        FileSaveAs = 1 << 4,
+        FileAll = FileOpen | FileOpenFolder | FileClose | FileSave | FileSaveAs
     };
 
     class Window : public Widget
@@ -36,6 +38,7 @@ namespace horizon
                     bool force = false) override;
 
         virtual uint32_t file_capabilities() const { return FileNone; }
+        virtual std::string current_file_path() const { return ""; }
 
         SignalManager signals;
 
@@ -44,9 +47,16 @@ namespace horizon
             std::string path;
         };
 
+        struct FileSaveContext : public EventContext
+        {
+            std::string path;
+        };
+
         EventsManager<FileOpenedContext> when_file_opened;
         EventsManager<FileOpenedContext> when_folder_opened;
         EventsManager<EventContext> when_file_close;
+        EventsManager<FileSaveContext> when_save;
+        EventsManager<FileSaveContext> when_save_as;
 
     protected:
         explicit Window(std::unique_ptr<Titlebar> custom_titlebar);

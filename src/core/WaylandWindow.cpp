@@ -499,6 +499,58 @@ namespace horizon
                                    }
                                });
 
+        signal_manager.connect("file.save",
+                               [this](SignalContext &)
+                               {
+                                   LOG_INFO << "WaylandWindow: Received 'file.save' signal";
+                                   if (Window *win = find_window_target(m_root.get()))
+                                   {
+                                       std::string current_path = win->current_file_path();
+                                       if (!current_path.empty())
+                                       {
+                                           Window::FileSaveContext sctx;
+                                           sctx.path = current_path;
+                                           win->when_save.run(sctx);
+                                           win->signals.emit("file.saved", &sctx);
+                                       }
+                                       else
+                                       {
+                                           // Fallback to Save As
+                                           SignalContext empty_ctx;
+                                           this->signal_manager.emit("file.save_as", empty_ctx);
+                                       }
+                                   }
+                               });
+
+        signal_manager.connect("file.save_as",
+                               [this](SignalContext &)
+                               {
+                                   LOG_INFO << "WaylandWindow: Received 'file.save_as' signal";
+                                   if (Window *win = find_window_target(m_root.get()))
+                                   {
+                                       auto dialog = std::make_unique<FileDialog>(
+                                           FileDialogMode::SaveAs, i18n().tr("core.global_menu.file_save_as"));
+
+                                       // Pre-fill path if available
+                                       std::string current_path = win->current_file_path();
+                                       if (!current_path.empty())
+                                       {
+                                           dialog->set_current_path(current_path);
+                                       }
+
+                                       dialog->when_accepted.connect(
+                                           [win](FileDialogAcceptedContext &ctx)
+                                           {
+                                               Window::FileSaveContext sctx;
+                                               sctx.path = ctx.selected_path;
+                                               win->when_save_as.run(sctx);
+                                               win->signals.emit("file.saved_as", &sctx);
+                                           });
+
+                                       dialog->run();
+                                   }
+                               });
+
         signal_manager.connect("file.close",
                                [this](SignalContext &)
                                {
@@ -987,6 +1039,17 @@ namespace horizon
             {
                 file_menu->add_item(i18n().tr("core.global_menu.file_close"), "Ctrl+W",
                                     "file.close");
+            }
+
+            if (caps & FileSave)
+            {
+                file_menu->add_item(i18n().tr("core.global_menu.file_save"), "Ctrl+S", "file.save");
+            }
+
+            if (caps & FileSaveAs)
+            {
+                file_menu->add_item(i18n().tr("core.global_menu.file_save_as"), "Ctrl+Shift+S",
+                                    "file.save_as");
             }
 
             if (is_new)

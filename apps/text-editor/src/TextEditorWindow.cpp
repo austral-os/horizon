@@ -32,6 +32,34 @@ namespace text_editor {
             }
         });
 
+        when_save.connect([this](Window::FileSaveContext& ctx) {
+            auto* scroll = dynamic_cast<ScrollArea*>(m_tabs->current_tab_body());
+            if (scroll && !scroll->children().empty()) {
+                auto* editor = dynamic_cast<horizon::text::TextEditorWidget*>(scroll->children()[0].get());
+                if (editor && editor->get_document()) {
+                    if (editor->get_document()->save_to_file(ctx.path)) {
+                        editor->get_document()->clear_dirty();
+                        LOG_INFO << "File saved successfully to: " << ctx.path;
+                    }
+                }
+            }
+        });
+
+        when_save_as.connect([this](Window::FileSaveContext& ctx) {
+            auto* scroll = dynamic_cast<ScrollArea*>(m_tabs->current_tab_body());
+            if (scroll && !scroll->children().empty()) {
+                auto* editor = dynamic_cast<horizon::text::TextEditorWidget*>(scroll->children()[0].get());
+                if (editor && editor->get_document()) {
+                    if (editor->get_document()->save_to_file(ctx.path)) {
+                        editor->get_document()->set_path(ctx.path);
+                        editor->get_document()->clear_dirty();
+                        m_tabs->set_tab_title(m_tabs->current_tab_index(), ctx.path);
+                        LOG_INFO << "File saved as: " << ctx.path;
+                    }
+                }
+            }
+        });
+
         load_settings();
     }
 
@@ -43,14 +71,13 @@ void TextEditorWindow::setup_ui() {
     
     tb_ptr->when_new_clicked.connect([this](EventContext&) { this->new_file(); });
     tb_ptr->when_open_clicked.connect([this](EventContext&) {
-        auto dialog = std::make_unique<FileDialog>(FileDialogMode::Open);
-        dialog->when_accepted.connect([this](FileDialogAcceptedContext& ctx) {
-            this->open_file(ctx.selected_path);
-        });
-        
-        std::thread([d = std::move(dialog)]() mutable {
-            d->run();
-        }).detach();
+        SignalContext ctx;
+        application()->signal_manager.emit("file.open", ctx);
+    });
+
+    tb_ptr->when_save_clicked.connect([this](EventContext&) {
+        SignalContext ctx;
+        application()->signal_manager.emit("file.save", ctx);
     });
     
     tb_ptr->when_undo_clicked.connect([this](EventContext&) {
@@ -147,9 +174,22 @@ void TextEditorWindow::new_file() {
 void TextEditorWindow::open_file(const std::string& path) {
     auto doc = std::make_shared<horizon::text::TextDocument>();
     if (doc->load_from_file(path)) {
+        doc->set_path(path); // Set path after successful load
         m_documents.push_back(doc);
         create_tab(path, doc);
     }
+}
+
+std::string TextEditorWindow::current_file_path() const {
+    if (!m_tabs) return "";
+    auto* scroll = dynamic_cast<ScrollArea*>(m_tabs->current_tab_body());
+    if (scroll && !scroll->children().empty()) {
+        auto* editor = dynamic_cast<horizon::text::TextEditorWidget*>(scroll->children()[0].get());
+        if (editor && editor->get_document()) {
+            return editor->get_document()->get_path();
+        }
+    }
+    return "";
 }
 
 void TextEditorWindow::save_current_file() {

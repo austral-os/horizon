@@ -32,6 +32,8 @@
             "file_open": "Open file",
             "file_open_folder": "Open folder",
             "file_close": "Close",
+            "file_save": "Save",
+            "file_save_as": "Save As",
             "copy": "Copy",
             "cut": "Cut",
             "paste": "Paste",
