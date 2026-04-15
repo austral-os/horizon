@@ -17,6 +17,7 @@ public:
     virtual ~DocumentWindow();
 
     void open_file(const std::string& path);
+    uint32_t file_capabilities() const override { return FileOpen | FileClose; }
 
 private:
     void build_toolbar();

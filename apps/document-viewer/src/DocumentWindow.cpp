@@ -30,6 +30,17 @@ DocumentWindow::DocumentWindow()
     build_content();
     build_toolbar();
     
+    // Conectar eventos estándar de archivos
+    when_file_opened.connect([this](Window::FileOpenedContext& ctx) {
+        this->open_file(ctx.path);
+    });
+
+    when_file_close.connect([this](EventContext&) {
+        if (m_tabs && m_tabs->tab_count() > 0) {
+            m_tabs->remove_tab(m_tabs->current_tab_index());
+        }
+    });
+
     // Statusbar setup
     // Statusbar setup (Estilo Nova/Arkfm)
     show_status_bar();
@@ -78,11 +89,9 @@ void DocumentWindow::build_toolbar() {
     auto dtb = std::make_unique<DocumentToolbar>();
     
     dtb->when_open_clicked.connect([this](const horizon::EventContext&) {
-        auto dialog = std::make_unique<horizon::FileDialog>(horizon::FileDialogMode::Open, i18n().tr("dialog.open_pdf"));
-        dialog->when_accepted.connect([this](const horizon::FileDialogAcceptedContext& ev) {
-            this->open_file(ev.selected_path);
-        });
-        dialog->run();
+        if (application()) {
+            application()->signal_manager.emit("file.open");
+        }
     });
 
     dtb->when_sidebar_toggled.connect([this](const horizon::EventContext&) {
@@ -116,11 +125,9 @@ void DocumentWindow::build_content() {
 
     // Botón "+" para abrir nuevos archivos
     m_tabs->when_add_tab_clicked.connect([this](horizon::EventContext&) {
-        auto dialog = std::make_unique<horizon::FileDialog>(horizon::FileDialogMode::Open, i18n().tr("dialog.open_pdf"));
-        dialog->when_accepted.connect([this](const horizon::FileDialogAcceptedContext& ev) {
-            this->open_file(ev.selected_path);
-        });
-        dialog->run();
+        if (application()) {
+            application()->signal_manager.emit("file.open");
+        }
     });
 
     // Cierre de pestañas
