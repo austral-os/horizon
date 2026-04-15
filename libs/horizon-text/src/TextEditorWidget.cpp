@@ -161,30 +161,77 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
     cairo_rectangle(cr, text_x, m_y, m_width - (text_x - m_x), m_height);
     cairo_clip(cr);
 
-    // 5. Highlight Current Line
-    if (m_highlight_current_line && has_focus()) {
-        gc.setColor(0.9, 0.95, 1.0, 1.0); // Subtle light blue
-        gc.fillRect(m_x + (m_show_line_numbers ? m_line_number_margin : 0), 
-                    cursor_pixel_y, 
-                    m_width, 
-                    cursor_pixel_h);
+    // 5. Highlight Current Line & Selection
+    if (has_focus()) {
+        if (m_highlight_current_line) {
+            gc.setColor(0.9, 0.95, 1.0, 1.0); // Subtle light blue
+            gc.fillRect(m_x + (m_show_line_numbers ? m_line_number_margin : 0), 
+                        cursor_pixel_y, 
+                        m_width, 
+                        cursor_pixel_h);
+        }
+
+        if (m_doc->get_selection_start() != m_doc->get_selection_end()) {
+            int sel_start_char = m_doc->get_selection_start();
+            int sel_end_char = m_doc->get_selection_end();
+
+            // Convert character indices to byte indices
+            int sel_start_byte = 0;
+            int sel_end_byte = 0;
+            {
+                const char* start = utf8_text.c_str();
+                const char* p = start;
+                for (int i = 0; i < sel_start_char && *p; ++i) p = g_utf8_next_char(p);
+                sel_start_byte = p - start;
+                
+                p = start;
+                for (int i = 0; i < sel_end_char && *p; ++i) p = g_utf8_next_char(p);
+                sel_end_byte = p - start;
+            }
+
+            // Draw selection background for each line
+            gc.setColor(0.3, 0.6, 1.0, 0.4); // Semi-transparent selection blue
+            
+            PangoLayoutIter* iter = pango_layout_get_iter(m_layout);
+            do {
+                PangoLayoutLine* line = pango_layout_iter_get_line_readonly(iter);
+                int line_start_byte = line->start_index;
+                int line_end_byte = line_start_byte + line->length;
+
+                int intersect_start = std::max(sel_start_byte, line_start_byte);
+                int intersect_end = std::min(sel_end_byte, line_end_byte);
+
+                if (intersect_start < intersect_end) {
+                    int* ranges = nullptr;
+                    int n_ranges = 0;
+                    pango_layout_line_get_x_ranges(line, intersect_start, intersect_end, &ranges, &n_ranges);
+
+                    PangoRectangle line_rect;
+                    pango_layout_iter_get_line_extents(iter, nullptr, &line_rect);
+                    int ly = text_y + PANGO_PIXELS(line_rect.y);
+                    int lh = PANGO_PIXELS(line_rect.height);
+
+                    for (int i = 0; i < n_ranges; ++i) {
+                        int rx = text_x + PANGO_PIXELS(ranges[2*i]);
+                        int rw = PANGO_PIXELS(ranges[2*i+1] - ranges[2*i]);
+                        gc.fillRect(rx, ly, rw, lh);
+                    }
+                    g_free(ranges);
+                }
+            } while (pango_layout_iter_next_line(iter));
+            pango_layout_iter_free(iter);
+        }
     }
 
     gc.setColor(0.1, 0.1, 0.1, 1.0); // Default color
     cairo_move_to(cr, text_x, text_y);
     pango_cairo_show_layout(cr, m_layout);
 
-    // 6. Draw Selection & Cursor
-    if (has_focus()) {
-        if (m_doc->get_selection_start() != m_doc->get_selection_end()) {
-            // Selection drawing logic
-        }
-
-        if (m_cursor_visible) {
-            int cx = text_x + PANGO_PIXELS(cursor_strong_pos.x);
-            gc.setColor(0.1, 0.1, 0.1, 1.0);
-            gc.fillRect(cx, cursor_pixel_y, 2, cursor_pixel_h);
-        }
+    // 6. Draw Cursor
+    if (has_focus() && m_cursor_visible) {
+        int cx = text_x + PANGO_PIXELS(cursor_strong_pos.x);
+        gc.setColor(0.1, 0.1, 0.1, 1.0);
+        gc.fillRect(cx, cursor_pixel_y, 2, cursor_pixel_h);
     }
 
     cairo_restore(cr);
