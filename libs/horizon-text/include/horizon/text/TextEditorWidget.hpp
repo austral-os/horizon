@@ -58,6 +58,7 @@ private:
     // Internal state
     std::chrono::steady_clock::time_point m_last_blink;
     bool m_cursor_visible = true;
+    bool m_needs_ensure_visible = false;
 };
 
 } // namespace text

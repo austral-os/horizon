@@ -174,9 +174,10 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
     }
 
     cairo_restore(cr);
-
-    if (has_focus()) {
+    
+    if (m_needs_ensure_visible && has_focus()) {
         ensure_cursor_visible();
+        m_needs_ensure_visible = false;
     }
 }
 
@@ -232,6 +233,8 @@ void TextEditorWidget::handle_key_event(KeyEventContext& ev) {
             // Decoding error
         }
     }
+    
+    m_needs_ensure_visible = true;
 }
 
 void TextEditorWidget::calculate_layout() {
@@ -273,6 +276,7 @@ void TextEditorWidget::handle_mouse_event(MouseButtonEventContext& ev) {
     // Simplified for now
     m_doc->handle_click(ev.x - text_x, ev.y - text_y);
     set_focus(true);
+    m_needs_ensure_visible = true;
     invalidate();
 }
 
@@ -281,6 +285,7 @@ void TextEditorWidget::handle_mouse_drag(MouseMoveEventContext& ev) {
     int text_x = m_x + (m_show_line_numbers ? m_line_number_margin + 5 : 5);
     int text_y = m_y + 5;
     m_doc->handle_drag(ev.x - text_x, ev.y - text_y);
+    m_needs_ensure_visible = true;
     invalidate();
 }
 

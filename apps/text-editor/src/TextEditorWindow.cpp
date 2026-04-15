@@ -53,7 +53,7 @@ void TextEditorWindow::setup_ui() {
     // 2. Tab Collection
     auto tabs = std::make_unique<TabCollection>();
     m_tabs = tabs.get();
-    m_tabs->set_smart_header(false);
+    m_tabs->set_smart_header(true);
     m_tabs->set_closable_tabs(true);
     
     m_tabs->when_tab_close_requested.connect([this](int index) {
