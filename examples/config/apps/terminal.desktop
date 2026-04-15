@@ -2,7 +2,7 @@
 Type=Application
 Name=Terminal
 Exec=/home/horacio/Desarrollo/austral-os/horizon/build/apps/terminal/terminal
-Icon=utilities-terminal
+Icon=horizon-terminal
 Comment=Terminal emulator
 Terminal=false
 Categories=System;TerminalEmulator;

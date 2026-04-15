@@ -77,7 +77,7 @@ int main(int argc, char **argv)
             auto abus_content = std::make_unique<AboutDialogContent>();
             abus_content->title = "Horizon Terminal";
             abus_content->version = "0.1.0";
-            abus_content->icon = "utilities-terminal";
+            abus_content->icon = "horizon-terminal";
             abus_content->about = std::move(content_about);
             abus_content->translate = std::move(content_translate);
 

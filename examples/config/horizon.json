@@ -96,6 +96,12 @@
                 "run_id": ""
             },
             {
+                "app_id": "org.horizon.terminal",
+                "icon": "horizon-terminal",
+                "name": "Terminal",
+                "run_id": "org.horizon.terminal"
+            },
+            {
                 "app_id": "horizon.preferences",
                 "icon": "applications-system",
                 "name": "Preferences",
