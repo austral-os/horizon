@@ -62,6 +62,7 @@ namespace horizon
 
         void translate(float dx, float dy) override;
         void scale(float sx, float sy) override;
+        void rotate(float angle) override;
 
         void pushGroup() override;
         void popGroup() override;

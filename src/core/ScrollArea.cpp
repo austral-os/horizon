@@ -22,6 +22,7 @@ namespace horizon
         m_v_thumb->set_accent_color(WidgetAccentColor::Primary);
         m_v_thumb->set_has_border(true);
         m_v_thumb->set_border_size(1.0f);
+        m_v_thumb->set_rotation(270);
 
         when_mouse_press.connect([this](MouseButtonEventContext &ev) { handle_mouse_press(ev); });
         when_mouse_drag.connect([this](MouseMoveEventContext &ev) { handle_mouse_drag(ev); });
@@ -248,7 +249,8 @@ namespace horizon
         if (!m_children.empty())
         {
             Widget *hit = m_children[0]->hit_test(x, y);
-            if (hit) return hit;
+            if (hit)
+                return hit;
         }
 
         return this;

@@ -86,6 +86,7 @@ namespace horizon
 
         virtual void translate(float dx, float dy) {};
         virtual void scale(float sx, float sy) {};
+        virtual void rotate(float angle) {};
 
         virtual void setDrawFont(const char *font, int size, FontSlant slant, FontWeight weight) {};
         virtual TextMetrics getTextMetrics(const char *text, const char *font, int size,

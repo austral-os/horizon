@@ -19,11 +19,17 @@ namespace horizon
         void set_border_size(float size);
         float border_size() const;
 
+        void set_rotation(float angle);
+        float rotation() const;
+
+        void set_orientation(WidgetOrientation orientation);
+
         void draw(GraphicsContext &gc) override;
 
     protected:
         std::vector<PolygonPoint> m_points;
         bool m_has_border{false};
         float m_border_size{1.5f};
+        float m_rotation{0.0f};
     };
 } // namespace horizon

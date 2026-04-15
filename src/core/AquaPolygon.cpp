@@ -51,6 +51,27 @@ namespace horizon
         invalidate();
     }
 
+    void AquaPolygon::set_rotation(float angle)
+    {
+        if (m_rotation == angle)
+            return;
+        m_rotation = angle;
+        invalidate();
+    }
+
+    float AquaPolygon::rotation() const
+    {
+        return m_rotation;
+    }
+
+    void AquaPolygon::set_orientation(WidgetOrientation orientation)
+    {
+        if (orientation == WidgetOrientation::Horizontal)
+            set_rotation(0.0f);
+        else
+            set_rotation(90.0f);
+    }
+
     void AquaPolygon::draw(GraphicsContext &gc)
     {
         if (m_points.empty())
@@ -112,12 +133,53 @@ namespace horizon
 
         // Adjust points to widget position
         std::vector<PolygonPoint> absolute_points = m_points;
+
+        if (m_rotation != 0.0f)
+        {
+            // Calculate center of points to rotate around it
+            float sum_x = 0, sum_y = 0;
+            for (const auto &p : m_points)
+            {
+                sum_x += p.x + m_start_draw_x;
+                sum_y += p.y + m_start_draw_y;
+            }
+            float center_x = sum_x / m_points.size();
+            float center_y = sum_y / m_points.size();
+
+            gc.save();
+            gc.translate(center_x, center_y);
+            gc.rotate(m_rotation);
+            gc.translate(-center_x, -center_y);
+
+            // Rotate points BACKWARDS in the absolute points vector
+            // so they appear in their original screen position after GC rotation.
+            float angle_rad = -m_rotation * M_PI / 180.0;
+            float cos_a = std::cos(angle_rad);
+            float sin_a = std::sin(angle_rad);
+
+            for (auto &p : absolute_points)
+            {
+                float px = p.x + m_start_draw_x;
+                float py = p.y + m_start_draw_y;
+                float dx = px - center_x;
+                float dy = py - center_y;
+                p.x = static_cast<int>(center_x + dx * cos_a - dy * sin_a);
+                p.y = static_cast<int>(center_y + dx * sin_a + dy * cos_a);
+            }
+        }
+        else
+        {
+            for (auto &p : absolute_points)
+            {
+                p.x += m_start_draw_x;
+                p.y += m_start_draw_y;
+            }
+        }
+
         int min_x = 1e9, max_x = -1e9;
         int min_y = 1e9, max_y = -1e9;
         for (auto &p : absolute_points)
         {
-            p.x += m_start_draw_x;
-            p.y += m_start_draw_y;
             min_x = std::min(min_x, p.x);
             max_x = std::max(max_x, p.x);
             min_y = std::min(min_y, p.y);
@@ -194,5 +256,10 @@ namespace horizon
         gc.fillLinearGradientRect(min_x, min_y + 2, poly_width, h_height, highlight, highlight2,
                                   true, 0);
         gc.restore();
+
+        if (m_rotation != 0.0f)
+        {
+            gc.restore();
+        }
     }
 } // namespace horizon

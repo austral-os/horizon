@@ -26,6 +26,12 @@ namespace horizon
         Center,
         Right
     };
+    
+    enum class WidgetOrientation
+    {
+        Horizontal,
+        Vertical
+    };
 
     /**
      * @brief Vertical alignment options for widgets.

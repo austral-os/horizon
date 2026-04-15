@@ -610,6 +610,12 @@ namespace horizon
         if (cr)
             cairo_scale(cr, sx, sy);
     }
+    
+    void CairoGraphicContext::rotate(float angle)
+    {
+        if (cr)
+            cairo_rotate(cr, angle * M_PI / 180.0);
+    }
 
     void CairoGraphicContext::pushGroup()
     {
