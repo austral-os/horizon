@@ -25,6 +25,7 @@ TerminalWidget::TerminalWidget() {
     m_v_thumb->set_accent_color(horizon::WidgetAccentColor::Primary);
     m_v_thumb->set_has_border(true);
     m_v_thumb->set_border_size(1.0f);
+    m_v_thumb->set_rotation(270);
 
     m_controller = std::make_unique<TerminalController>(24, 80);
     m_controller->set_scrollback_limit(m_config.scrollback_lines);
@@ -349,12 +350,8 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
     }
 
     cairo_restore(cr);
-
-
-
-
-
-    if (m_config.show_scrollbar) {
+    
+    if (m_config.show_scrollbar && size > 0) {
 
         int track_w = 12;
         int track_x = x() + width() - track_w - 2;
@@ -445,10 +442,9 @@ void TerminalWidget::handle_mouse_wheel(MouseWheelEventContext &ctx) {
 
 void TerminalWidget::handle_mouse_press(MouseButtonEventContext &ctx) {
     set_focus(true);
-
-
     
-    if (m_config.show_scrollbar) {
+    int size = m_controller->get_scrollback_size();
+    if (m_config.show_scrollbar && size > 0) {
 
         int track_w = 12;
         int track_x = x() + width() - track_w - 2;
