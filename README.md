@@ -52,6 +52,7 @@ Detailed guides on implementing core framework features:
 
 - [**Clipboard System**](docs/clipboard.md): Standardized signal-based copy, cut, and paste implementation.
 - [**Fullscreen System**](docs/fullscreen.md): Declarative fullscreen support and visual isolation protocol.
+- [**File Operations Standard**](docs/file_operations_standard.md): Automated file menu injection and standardized signal-based open/save/close operations.
 - [**Application Responsibilities**](docs/application_responsibilities.md): Core requirements for high-level application behavior.
 - [**IPC System**](docs/ipc_system.md): Inter-process communication and remote signal management.
 - [**Window Management**](docs/window_management_mechanisms.md): Deep dive into Wayland surface and window lifecycle.

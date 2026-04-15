@@ -49,6 +49,7 @@ public:
     virtual ~ImageViewerWindow();
 
     void open_file(const std::string& path);
+    uint32_t file_capabilities() const override { return FileOpen | FileClose; }
 
 private:
     void setup_ui();

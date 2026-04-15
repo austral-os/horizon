@@ -289,6 +289,15 @@ target_link_libraries(color_picker_demo
         horizon
 )
 
+add_executable(file_ops_demo
+    examples/file_ops_demo.cpp
+)
+
+target_link_libraries(file_ops_demo
+    PRIVATE
+        horizon
+)
+
 add_custom_command(TARGET i18n_demo POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/examples/i18n_demo/locales

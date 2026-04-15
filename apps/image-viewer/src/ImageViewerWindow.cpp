@@ -93,6 +93,17 @@ ImageViewerWindow::ImageViewerWindow() : ApplicationWindow(i18n().tr("app.title"
     set_size(1024, 768);
     setup_ui();
     setup_toolbar();
+
+    // Conectar eventos estándar de archivos
+    when_file_opened.connect([this](Window::FileOpenedContext& ctx) {
+        this->open_file(ctx.path);
+    });
+
+    when_file_close.connect([this](EventContext&) {
+        if (m_tabs && m_tabs->tab_count() > 0) {
+            m_tabs->remove_tab(m_tabs->current_tab_index());
+        }
+    });
 }
 
 ImageViewerWindow::~ImageViewerWindow() {}
@@ -179,11 +190,10 @@ void ImageViewerWindow::open_file(const std::string& path) {
 }
 
 void ImageViewerWindow::on_open_clicked() {
-    auto dialog = std::make_unique<FileDialog>(FileDialogMode::Open, i18n().tr("dialog.open_image"));
-    dialog->when_accepted.connect([this](const FileDialogAcceptedContext& ev) {
-        this->open_file(ev.selected_path);
-    });
-    dialog->run();
+    // Usamos el sistema automatizado emitiendo la señal al manejador global
+    if (application()) {
+        application()->signal_manager.emit("file.open");
+    }
 }
 
 void ImageViewerWindow::on_navigation_clicked(int button_index) {

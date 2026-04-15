@@ -489,6 +489,8 @@ namespace horizon
         bool detect_fullscreen_support(Widget *root);
         Widget *find_fullscreen_target(Widget *root);
 
+        class Window *find_window_target(Widget *root);
+
     protected:
         /**
          * @brief Notifies the application manager about lifecycle events.

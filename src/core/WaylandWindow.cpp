@@ -18,6 +18,7 @@
 #include <horizon/Notification.hpp>
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/dialogs/DialogPreferences.hpp>
+#include <horizon/dialogs/FileDialog.hpp>
 #include <horizon/dialogs/MessageDialog.hpp>
 #include <horizon/dialogs/PreferencesContent.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
@@ -452,6 +453,64 @@ namespace horizon
                 else
                     LOG_INFO << "WaylandWindow: No clipboard target found for 'paste'";
             });
+
+        signal_manager.connect("file.open",
+                               [this](SignalContext &)
+                               {
+                                   LOG_INFO << "WaylandWindow: Received 'file.open' signal";
+                                   if (Window *win = find_window_target(m_root.get()))
+                                   {
+                                       auto dialog = std::make_unique<FileDialog>(
+                                           FileDialogMode::Open, i18n().tr("core.global_menu.file_open"));
+
+                                       dialog->when_accepted.connect(
+                                           [win](FileDialogAcceptedContext &ctx)
+                                           {
+                                               Window::FileOpenedContext fctx;
+                                               fctx.path = ctx.selected_path;
+                                               win->when_file_opened.run(fctx);
+                                               win->signals.emit("file.opened", &fctx);
+                                           });
+
+                                       dialog->run();
+                                   }
+                               });
+
+        signal_manager.connect("file.open_folder",
+                               [this](SignalContext &)
+                               {
+                                   LOG_INFO << "WaylandWindow: Received 'file.open_folder' signal";
+                                   if (Window *win = find_window_target(m_root.get()))
+                                   {
+                                       auto dialog = std::make_unique<FileDialog>(
+                                           FileDialogMode::SelectFolder,
+                                           i18n().tr("core.global_menu.file_open_folder"));
+
+                                       dialog->when_accepted.connect(
+                                           [win](FileDialogAcceptedContext &ctx)
+                                           {
+                                               Window::FileOpenedContext fctx;
+                                               fctx.path = ctx.selected_path;
+                                               win->when_folder_opened.run(fctx);
+                                               win->signals.emit("folder.opened", &fctx);
+                                           });
+
+                                       dialog->run();
+                                   }
+                               });
+
+        signal_manager.connect("file.close",
+                               [this](SignalContext &)
+                               {
+                                   LOG_INFO << "WaylandWindow: Received 'file.close' signal";
+                                   if (Window *win = find_window_target(m_root.get()))
+                                   {
+                                       EventContext ctx;
+                                       ctx.sender = win;
+                                       win->when_file_close.run(ctx);
+                                       win->signals.emit("file.close");
+                                   }
+                               });
 
         for (auto const &[id, handler] : m_on_start_handlers)
         {
@@ -896,6 +955,47 @@ namespace horizon
         auto *global_quit = m_app_menu->add_item(i18n().tr("core.global_menu.quit"), "Ctrl+Q");
         global_quit->set_id("quit");
         m_app_menu->set_id("app");
+
+        // Automatic File Menu detection
+        Window *file_win = find_window_target(m_root.get());
+        if (file_win)
+        {
+            uint32_t caps = file_win->file_capabilities();
+            Menu *file_menu = get_menu("file");
+            bool is_new = false;
+
+            if (!file_menu)
+            {
+                auto new_menu = std::make_unique<Menu>();
+                new_menu->set_title(i18n().tr("core.global_menu.file"));
+                new_menu->set_id("file");
+                file_menu = new_menu.get();
+                m_menues.push_back(std::move(new_menu));
+                is_new = true;
+            }
+
+            if (caps & FileOpen)
+            {
+                file_menu->add_item(i18n().tr("core.global_menu.file_open"), "Ctrl+O", "file.open");
+            }
+            if (caps & FileOpenFolder)
+            {
+                file_menu->add_item(i18n().tr("core.global_menu.file_open_folder"), "Ctrl+Shift+O",
+                                    "file.open_folder");
+            }
+            if (caps & FileClose)
+            {
+                file_menu->add_item(i18n().tr("core.global_menu.file_close"), "Ctrl+W",
+                                    "file.close");
+            }
+
+            if (is_new)
+            {
+                // We want File menu to be right after App menu.
+                // Since App menu will be inserted at 0 later, we insert at 0 now.
+                m_global_menus.insert(m_global_menus.begin(), file_menu);
+            }
+        }
 
         // Automatic Edit Menu detection & merging
         if (detect_clipboard_target(m_root.get()))
@@ -2661,6 +2761,22 @@ namespace horizon
                 return target;
         }
 
+        return nullptr;
+    }
+
+    Window *WaylandWindow::find_window_target(Widget *root)
+    {
+        if (Window *win = dynamic_cast<Window *>(root))
+        {
+            if (win->file_capabilities() != FileNone)
+                return win;
+        }
+
+        for (auto &child : root->children())
+        {
+            if (Window *win = find_window_target(child.get()))
+                return win;
+        }
         return nullptr;
     }
 
