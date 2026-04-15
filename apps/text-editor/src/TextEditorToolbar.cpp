@@ -2,6 +2,8 @@
 #include <horizon/GroupButton.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Spacer.hpp>
+#include <horizon/I18n.hpp>
+#include <horizon/Notification.hpp>
 #include <memory>
 
 namespace horizon
@@ -16,25 +18,28 @@ namespace horizon
             set_margin(5);
             set_spacing(10);
 
+            auto create_icon = [](const std::string &name, const std::string &tr_key)
+            {
+                auto icon = std::make_unique<horizon::Icon>();
+                icon->set_icon_name(name);
+                icon->set_icon_size(16);
+                if (!tr_key.empty())
+                {
+                    auto tooltip = std::make_unique<horizon::Notification>();
+                    tooltip->set_message(i18n().tr(tr_key));
+                    icon->set_tooltip(std::move(tooltip));
+                }
+                return icon;
+            };
+
             // 1. File Actions group
             auto file_group = std::make_unique<horizon::GroupButton>();
             m_file_group = file_group.get();
             m_file_group->set_fixed_size(150);
 
-            auto new_icon = std::make_unique<horizon::Icon>();
-            new_icon->set_icon_name("document-new");
-            new_icon->set_icon_size(16);
-            m_file_group->add_item(std::move(new_icon));
-
-            auto open_icon = std::make_unique<horizon::Icon>();
-            open_icon->set_icon_name("document-open");
-            open_icon->set_icon_size(16);
-            m_file_group->add_item(std::move(open_icon));
-
-            auto save_icon = std::make_unique<horizon::Icon>();
-            save_icon->set_icon_name("document-save");
-            save_icon->set_icon_size(16);
-            m_file_group->add_item(std::move(save_icon));
+            m_file_group->add_item(create_icon("document-new", "text_editor.toolbar.new"));
+            m_file_group->add_item(create_icon("document-open", "text_editor.toolbar.open"));
+            m_file_group->add_item(create_icon("document-save", "text_editor.toolbar.save"));
 
             m_file_group->when_button_clicked.connect(
                 [this](horizon::GroupButtonClickEvent &ctx)
@@ -53,15 +58,8 @@ namespace horizon
             m_edit_group = edit_group.get();
             m_edit_group->set_fixed_size(100);
 
-            auto undo_icon = std::make_unique<horizon::Icon>();
-            undo_icon->set_icon_name("edit-undo");
-            undo_icon->set_icon_size(16);
-            m_edit_group->add_item(std::move(undo_icon));
-
-            auto redo_icon = std::make_unique<horizon::Icon>();
-            redo_icon->set_icon_name("edit-redo");
-            redo_icon->set_icon_size(16);
-            m_edit_group->add_item(std::move(redo_icon));
+            m_edit_group->add_item(create_icon("edit-undo", "text_editor.toolbar.undo"));
+            m_edit_group->add_item(create_icon("edit-redo", "text_editor.toolbar.redo"));
 
             m_edit_group->when_button_clicked.connect(
                 [this](horizon::GroupButtonClickEvent &ctx)
@@ -82,15 +80,8 @@ namespace horizon
             m_settings_group = settings_group.get();
             m_settings_group->set_fixed_size(100);
 
-            auto fullscreen_icon = std::make_unique<horizon::Icon>();
-            fullscreen_icon->set_icon_name("view-fullscreen");
-            fullscreen_icon->set_icon_size(16);
-            m_settings_group->add_item(std::move(fullscreen_icon));
-
-            auto preferences_icon = std::make_unique<horizon::Icon>();
-            preferences_icon->set_icon_name("emblem-system");
-            preferences_icon->set_icon_size(16);
-            m_settings_group->add_item(std::move(preferences_icon));
+            m_settings_group->add_item(create_icon("view-fullscreen", "text_editor.toolbar.fullscreen"));
+            m_settings_group->add_item(create_icon("emblem-system", "text_editor.toolbar.preferences"));
 
             m_settings_group->when_button_clicked.connect(
                 [this](horizon::GroupButtonClickEvent &ctx)

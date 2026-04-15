@@ -9,6 +9,15 @@
         "preferences": {
             "highlight_current_line": "Resaltar línea actual",
             "show_line_numbers": "Mostrar números de línea"
+        },
+        "toolbar": {
+            "new": "Nuevo archivo",
+            "open": "Abrir archivo",
+            "save": "Guardar archivo",
+            "undo": "Deshacer",
+            "redo": "Rehacer",
+            "fullscreen": "Pantalla completa",
+            "preferences": "Preferencias"
         }
     }
 }
