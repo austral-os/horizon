@@ -1,6 +1,6 @@
 # Estándar de Operaciones de Archivos para Ventanas
 
-Horizon proporciona un sistema estandarizado para que las aplicaciones manejen operaciones comunes de archivos (Abrir Archivo, Abrir Carpeta y Cerrar). Este sistema automatiza la inyección de menús en la barra global y la gestión de diálogos de selección.
+Horizon proporciona un sistema estandarizado para que las aplicaciones manejen operaciones comunes de archivos (Abrir Archivo, Abrir Carpeta, Cerrar, Guardar y Guardar Como). Este sistema automatiza la inyección de menús en la barra global y la gestión de diálogos de selección.
 
 ## Concepto General
 
@@ -32,7 +32,19 @@ public:
 - `FileOpen`: Habilita "Abrir archivo" (Ctrl+O).
 - `FileOpenFolder`: Habilita "Abrir carpeta" (Ctrl+Shift+O).
 - `FileClose`: Habilita "Cerrar" (Ctrl+W).
+- `FileSave`: Habilita "Guardar" (Ctrl+S).
+- `FileSaveAs`: Habilita "Guardar como" (Ctrl+Shift+S).
 - `FileAll`: Habilita todas las anteriores.
+
+### Paso 1.1: Proveer la Ruta Actual
+
+Si habilitas `FileSave`, el framework necesita saber si el documento actual ya tiene una ruta en disco para decidir si debe o no mostrar el diálogo de "Guardar como". Para esto debes sobreescribir `current_file_path()`:
+
+```cpp
+std::string current_file_path() const override {
+    return m_current_document_path; // Devuelve "" si es un archivo nuevo sin guardar
+}
+```
 
 ## Paso 2: Manejar Eventos
 
@@ -63,6 +75,28 @@ La acción de "Cerrar" no requiere diálogo; simplemente notifica a la ventana p
 when_file_close.connect([this](EventContext&) {
     LOG_INFO << "Cerrando archivo actual...";
     // Lógica de limpieza aquí...
+});
+```
+
+### Guardar / Guardar Como
+
+- **Guardar**: Si `current_file_path()` devuelve una ruta válida, Horizon dispara de inmediato el evento `when_save`. De lo contrario, actúa como "Guardar como".
+- **Guardar como**: Siempre abre el diálogo de archivos y, tras la aceptación, dispara `when_save_as`.
+
+```cpp
+// Escuchar evento de guardar simple
+when_save.connect([this](Window::FileSaveContext& ctx) {
+    LOG_INFO << "Guardando en ruta existente: " << ctx.path;
+    this->mi_logica_de_guardado(ctx.path);
+});
+
+// Escuchar evento de guardar como
+when_save_as.connect([this](Window::FileSaveContext& ctx) {
+    LOG_INFO << "Guardando en nueva ubicación: " << ctx.path;
+    this->mi_logica_de_guardado(ctx.path);
+    // IMPORTANTE: Actualiza tu ruta interna para que current_file_path() 
+    // devuelva la nueva ruta en el futuro.
+    this->m_current_document_path = ctx.path;
 });
 ```
 
