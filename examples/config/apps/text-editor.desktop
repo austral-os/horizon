@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Text Editor
+Exec=/home/horacio/Desarrollo/austral-os/horizon/build/apps/text-editor/text-editor
+Icon=text-editor
+Comment=Standard text editor
+Terminal=false
+Categories=Utility;TextEditor;
