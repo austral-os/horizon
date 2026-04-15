@@ -11,8 +11,10 @@ namespace horizon {
 namespace text_editor {
 
 TextEditorWindow::TextEditorWindow() 
-    : ApplicationWindow(i18n().tr("text_editor.title")) {
-    set_size(800, 600);
+    : ApplicationWindow("Text Editor") {
+    i18n().load_app_locales("text-editor");
+    set_title(i18n().tr("text_editor.title"));
+    set_size(1024, 768);
     setup_ui();
 }
 
@@ -67,6 +69,16 @@ void TextEditorWindow::setup_ui() {
         new_file();
     });
 
+    m_tabs->when_tab_selected.connect([this](int) {
+        this->update_status_bar();
+    });
+
+    // 3. Status Bar
+    show_status_bar();
+    auto status_lbl = std::make_unique<horizon::Label>("Ln 1, Col 1 | Total: 1");
+    m_status_label = status_lbl.get();
+    statusbar()->add_child(std::move(status_lbl));
+
     set_content(std::move(tabs));
 }
 
@@ -75,6 +87,7 @@ void TextEditorWindow::create_tab(const std::string& title, std::shared_ptr<hori
     auto editor = std::make_unique<horizon::text::TextEditorWidget>();
     auto* editor_ptr = editor.get();
     editor->set_document(doc);
+    editor->set_highlight_current_line(true);
     
     scroll->set_content(std::move(editor));
     m_tabs->add_tab(title, std::move(scroll));
@@ -83,6 +96,14 @@ void TextEditorWindow::create_tab(const std::string& title, std::shared_ptr<hori
     if (application()) {
         application()->set_focused_widget(editor_ptr);
     }
+
+    editor_ptr->when_cursor_moved.connect([this](EventContext&) { this->update_status_bar(); });
+    doc->on_changed = [this, editor_ptr]() {
+        editor_ptr->invalidate();
+        this->update_status_bar();
+    };
+
+    update_status_bar();
 }
 
 void TextEditorWindow::new_file() {
@@ -102,6 +123,26 @@ void TextEditorWindow::open_file(const std::string& path) {
 
 void TextEditorWindow::save_current_file() {
     // Logic for saving...
+}
+
+void TextEditorWindow::update_status_bar() {
+    if (!m_status_label || !m_tabs) return;
+
+    auto* scroll = dynamic_cast<ScrollArea*>(m_tabs->current_tab_body());
+    if (!scroll) return;
+
+    auto* editor = dynamic_cast<horizon::text::TextEditorWidget*>(scroll->children()[0].get());
+    if (!editor || !editor->get_document()) return;
+
+    int row, col;
+    editor->get_document()->get_cursor_row_col(row, col);
+    int total = editor->get_document()->get_line_count();
+
+    std::string text = i18n().tr("text_editor.status.line") + " " + std::to_string(row) + ", " +
+                       i18n().tr("text_editor.status.col") + " " + std::to_string(col) + " | " +
+                       i18n().tr("text_editor.status.total") + ": " + std::to_string(total);
+    
+    m_status_label->set_text(text);
 }
 
 } // namespace text_editor

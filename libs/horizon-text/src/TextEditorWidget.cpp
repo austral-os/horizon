@@ -133,43 +133,50 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
     int text_x = m_x + (m_show_line_numbers ? m_line_number_margin + 5 : 5);
     int text_y = m_y + 5;
 
+    // Calculate cursor position in pixels for highlighting and cursor drawing
+    int byte_pos = 0;
+    {
+        const char* start = utf8_text.c_str();
+        const char* p = start;
+        int cursor_pos = m_doc->get_cursor_pos();
+        for (int i = 0; i < cursor_pos && *p; ++i) {
+            p = g_utf8_next_char(p);
+        }
+        byte_pos = p - start;
+    }
+
+    PangoRectangle cursor_strong_pos;
+    pango_layout_get_cursor_pos(m_layout, byte_pos, &cursor_strong_pos, nullptr);
+    int cursor_pixel_y = text_y + PANGO_PIXELS(cursor_strong_pos.y);
+    int cursor_pixel_h = PANGO_PIXELS(cursor_strong_pos.height);
+
     cairo_save(cr);
     cairo_rectangle(cr, text_x, m_y, m_width - (text_x - m_x), m_height);
     cairo_clip(cr);
+
+    // 5. Highlight Current Line
+    if (m_highlight_current_line && has_focus()) {
+        gc.setColor(0.9, 0.95, 1.0, 1.0); // Subtle light blue
+        gc.fillRect(m_x + (m_show_line_numbers ? m_line_number_margin : 0), 
+                    cursor_pixel_y, 
+                    m_width, 
+                    cursor_pixel_h);
+    }
 
     gc.setColor(0.1, 0.1, 0.1, 1.0); // Default color
     cairo_move_to(cr, text_x, text_y);
     pango_cairo_show_layout(cr, m_layout);
 
-    // 5. Draw Selection & Cursor
+    // 6. Draw Selection & Cursor
     if (has_focus()) {
         if (m_doc->get_selection_start() != m_doc->get_selection_end()) {
-            // Selection drawing logic using pango_layout_get_cursor_pos
-            // (Simplified for now: we'll add full selection overlay latter)
+            // Selection drawing logic
         }
 
         if (m_cursor_visible) {
-            PangoRectangle strong_pos, weak_pos;
-            // Map character index to byte index for Pango
-            // This is complex because m_doc uses UTF-32 and Pango uses UTF-8 byte indices
-            // We'll need a helper to convert char_pos to byte_pos
-            int byte_pos = 0;
-            const char* start = utf8_text.c_str();
-            const char* p = start;
-            int cursor_pos = m_doc->get_cursor_pos();
-            for (int i = 0; i < cursor_pos && *p; ++i) {
-                p = g_utf8_next_char(p);
-            }
-            byte_pos = p - start;
-
-            pango_layout_get_cursor_pos(m_layout, byte_pos, &strong_pos, &weak_pos);
-            
-            int cx = text_x + PANGO_PIXELS(strong_pos.x);
-            int cy = text_y + PANGO_PIXELS(strong_pos.y);
-            int ch = PANGO_PIXELS(strong_pos.height);
-
+            int cx = text_x + PANGO_PIXELS(cursor_strong_pos.x);
             gc.setColor(0.1, 0.1, 0.1, 1.0);
-            gc.fillRect(cx, cy, 2, ch);
+            gc.fillRect(cx, cursor_pixel_y, 2, cursor_pixel_h);
         }
     }
 
@@ -235,6 +242,9 @@ void TextEditorWidget::handle_key_event(KeyEventContext& ev) {
     }
     
     m_needs_ensure_visible = true;
+    EventContext cursor_ctx;
+    cursor_ctx.sender = this;
+    when_cursor_moved.run(cursor_ctx);
 }
 
 void TextEditorWidget::calculate_layout() {
@@ -277,6 +287,9 @@ void TextEditorWidget::handle_mouse_event(MouseButtonEventContext& ev) {
     m_doc->handle_click(ev.x - text_x, ev.y - text_y);
     set_focus(true);
     m_needs_ensure_visible = true;
+    EventContext cursor_ctx;
+    cursor_ctx.sender = this;
+    when_cursor_moved.run(cursor_ctx);
     invalidate();
 }
 
@@ -286,6 +299,9 @@ void TextEditorWidget::handle_mouse_drag(MouseMoveEventContext& ev) {
     int text_y = m_y + 5;
     m_doc->handle_drag(ev.x - text_x, ev.y - text_y);
     m_needs_ensure_visible = true;
+    EventContext cursor_ctx;
+    cursor_ctx.sender = this;
+    when_cursor_moved.run(cursor_ctx);
     invalidate();
 }
 
@@ -353,6 +369,15 @@ void TextEditorWidget::ensure_cursor_visible() {
             scroll->set_scroll_position(new_sx, new_sy);
         }
     }
+}
+void TextEditorWidget::set_show_line_numbers(bool show) {
+    m_show_line_numbers = show;
+    invalidate();
+}
+
+void TextEditorWidget::set_highlight_current_line(bool highlight) {
+    m_highlight_current_line = highlight;
+    invalidate();
 }
 
 } // namespace text

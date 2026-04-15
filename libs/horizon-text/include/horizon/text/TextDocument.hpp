@@ -57,6 +57,9 @@ public:
     int get_cursor_pos() const;
     int get_selection_start() const;
     int get_selection_end() const;
+
+    void get_cursor_row_col(int& row, int& col) const;
+    int get_line_count() const;
     
     // Callbacks helpers (used by the bridge)
     int get_length() const { return (int)m_data.size(); }

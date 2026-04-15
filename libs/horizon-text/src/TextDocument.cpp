@@ -196,5 +196,27 @@ int TextDocument::get_selection_end() const {
     return m_state->select_end;
 }
 
+void TextDocument::get_cursor_row_col(int& row, int& col) const {
+    row = 1;
+    col = 1;
+    int cursor = m_state->cursor;
+    for (int i = 0; i < cursor && i < (int)m_data.size(); ++i) {
+        if (m_data[i] == '\n') {
+            row++;
+            col = 1;
+        } else {
+            col++;
+        }
+    }
+}
+
+int TextDocument::get_line_count() const {
+    int count = 1;
+    for (char32_t c : m_data) {
+        if (c == '\n') count++;
+    }
+    return count;
+}
+
 } // namespace text
 } // namespace horizon

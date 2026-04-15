@@ -1,6 +1,7 @@
 #pragma once
 
 #include <horizon/Widget.hpp>
+#include <horizon/EventsManager.hpp>
 #include <horizon/text/TextDocument.hpp>
 #include <horizon/text/SyntaxHighlighter.hpp>
 #include <pango/pangocairo.h>
@@ -23,6 +24,8 @@ public:
 
     void draw(GraphicsContext& gc) override;
     void calculate_layout() override;
+
+    EventsManager<EventContext> when_cursor_moved;
     
     int preferred_width() const override;
     int preferred_height() const override;
@@ -31,6 +34,7 @@ public:
     void set_font_size(double size);
     void set_line_spacing(double spacing);
     void set_show_line_numbers(bool show);
+    void set_highlight_current_line(bool highlight);
 
     // Event overrides
     void handle_key_event(KeyEventContext& ev);
@@ -49,6 +53,7 @@ private:
     double m_font_size = 12.0;
     double m_line_spacing = 4.0;
     bool m_show_line_numbers = true;
+    bool m_highlight_current_line = false;
     int m_line_number_margin = 40;
     
     // Scroll state (if not using ScrollArea, but we'll try to integrate with it)

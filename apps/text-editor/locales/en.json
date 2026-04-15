@@ -1,0 +1,10 @@
+{
+    "text_editor": {
+        "title": "Text Editor",
+        "status": {
+            "line": "Ln",
+            "col": "Col",
+            "total": "Total"
+        }
+    }
+}
