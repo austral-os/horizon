@@ -48,6 +48,9 @@ TerminalConfig ConfigReader::load() {
         if (term_data.contains("cursor_blink")) {
             config.cursor_blink = term_data["cursor_blink"];
         }
+        if (term_data.contains("color_scheme_path")) {
+            config.color_scheme_path = term_data["color_scheme_path"];
+        }
     } catch (const std::exception& e) {
         std::cerr << "[TerminalConfig] Error loading config: " << e.what() << std::endl;
     }

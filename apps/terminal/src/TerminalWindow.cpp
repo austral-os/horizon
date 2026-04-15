@@ -11,8 +11,9 @@ namespace terminal {
 TerminalWindow::TerminalWindow()
     : ApplicationWindow(i18n().tr("terminal.title")) {
     
-    // 0. Load global color scheme
-    m_scheme = TerminalColorScheme::from_json("/home/horacio/Desarrollo/austral-os/horizon/examples/usr/data/terminal/dracula.json");
+    // 0. Load global color scheme from config
+    TerminalConfig config = ConfigReader::load();
+    m_scheme = TerminalColorScheme::from_json(config.color_scheme_path);
 
     // 1. Terminal Toolbar
     auto terminal_toolbar = std::make_unique<TerminalToolbar>();

@@ -7,6 +7,7 @@
         "font_weight": 1,
         "scroll_without_scrollbar": true,
         "scrollback_lines": 5000,
-        "show_scrollbar": true
+        "show_scrollbar": true,
+        "color_scheme_path": "/home/horacio/Desarrollo/austral-os/horizon/examples/usr/data/terminal/dracula.json"
     }
 }
