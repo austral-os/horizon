@@ -96,6 +96,23 @@ namespace horizon
 
     void VPanel::calculate_layout()
     {
+        bool left_visible = m_left_ptr && m_left_ptr->is_visible();
+        bool right_visible = m_right_ptr && m_right_ptr->is_visible();
+
+        if (!left_visible && right_visible)
+        {
+            m_right_ptr->set_position(m_x, m_y);
+            m_right_ptr->set_size(m_width, m_height);
+            return;
+        }
+
+        if (left_visible && !right_visible)
+        {
+            m_left_ptr->set_position(m_x, m_y);
+            m_left_ptr->set_size(m_width, m_height);
+            return;
+        }
+
         int divider_x = m_x + m_left_width;
 
         if (m_left_ptr)

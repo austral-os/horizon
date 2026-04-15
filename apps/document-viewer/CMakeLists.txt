@@ -9,6 +9,7 @@ set(SOURCES
     src/DocumentWindow.cpp
     src/DocumentToolbar.cpp
     src/PdfSidebar.cpp
+    src/PdfTabContent.cpp
 )
 
 add_executable(document-viewer ${SOURCES})

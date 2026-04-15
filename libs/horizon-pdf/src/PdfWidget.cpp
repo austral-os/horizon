@@ -20,12 +20,6 @@ PdfWidget::PdfWidget() : Widget(), m_page_spacing(20) {
     when_mouse_press.connect([this](horizon::MouseButtonEventContext& ev) { handle_mouse_press(ev); });
     when_mouse_drag.connect([this](horizon::MouseMoveEventContext& ev) { handle_mouse_drag(ev); });
     when_mouse_release.connect([this](horizon::MouseButtonEventContext& ev) { handle_mouse_release(ev); });
-    
-    when_right_click.connect([this](horizon::MouseButtonEventContext& ev) {
-        if (application()) {
-            application()->show_context_menu(std::make_unique<horizon::Menu>().release(), ev.x, ev.y, ev.serial, this);
-        }
-    });
 }
 
 PdfWidget::~PdfWidget() {}
@@ -81,16 +75,21 @@ int PdfWidget::get_page_at_y(int y) const {
 
 void PdfWidget::calculate_layout() {
     // Si tenemos un padre (ScrollArea), permitimos que el widget se ensanche
-    // para cubrir todo el visor y permitir el centrado horizontal.
+    // y se alargue para cubrir todo el visor.
     if (parent()) {
         int target_w = std::max(m_total_width, parent()->width());
         if (width() != target_w) {
             set_width(target_w);
         }
+
+        int target_h = std::max(m_total_height, parent()->height());
+        if (height() != target_h) {
+            set_height(target_h);
+        }
     } else {
         set_width(m_total_width);
+        set_height(m_total_height);
     }
-    set_height(m_total_height);
 }
 
 int PdfWidget::preferred_width() const {

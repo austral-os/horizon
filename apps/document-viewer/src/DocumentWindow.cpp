@@ -1,6 +1,7 @@
 #include "DocumentWindow.hpp"
 #include "DocumentToolbar.hpp"
 #include "PdfSidebar.hpp"
+#include "PdfTabContent.hpp"
 #include "horizon/pdf/PdfWidget.hpp"
 #include "horizon/pdf/PdfThumbnailWidget.hpp"
 #include <horizon/VPanel.hpp>
@@ -10,6 +11,7 @@
 #include <horizon/Spacer.hpp>
 #include <horizon/I18n.hpp>
 #include <horizon/ScrollArea.hpp>
+#include <horizon/Menu.hpp>
 #include <horizon/dialogs/FileDialog.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Application.hpp>
@@ -155,8 +157,7 @@ void DocumentWindow::open_file(const std::string& path) {
 
     auto shared_doc = std::shared_ptr<PdfDocument>(doc.release());
     
-    // ... (resto de la lógica de creación de VPanel)
-    auto vpanel = std::make_unique<horizon::VPanel>();
+    auto vpanel = std::make_unique<PdfTabContent>();
     vpanel->set_left_width(180);
     
     // 1. Sidebar de miniaturas
@@ -176,6 +177,40 @@ void DocumentWindow::open_file(const std::string& path) {
     auto widget = std::make_unique<PdfWidget>();
     auto* pdf_ptr = widget.get();
     widget->set_document(shared_doc);
+    
+    // MENU CONTEXTUAL: Toggle Sidebar + Fullscreen + Clipboard
+    widget->when_right_click.connect([this, pdf_ptr](horizon::MouseButtonEventContext& ev) {
+        if (application()) {
+            auto menu = std::make_unique<horizon::Menu>();
+            
+            // 1. Zoom/Vista (Opcional, pero centrémonos en lo pedido)
+            
+            // 2. Opción de Sidebar
+            std::string sb_label = m_sidebar_visible ? "Ocultar barra lateral" : "Mostrar barra lateral";
+            auto item_sb = std::make_unique<horizon::MenuItem>(sb_label);
+            item_sb->set_icon("view-sidebar");
+            item_sb->when_click.connect([this](const horizon::MouseButtonEventContext&) {
+                this->on_toggle_sidebar();
+            });
+            menu->add_item(std::move(item_sb));
+
+            // 3. Opción de Pantalla Completa (manual para dirigirla al DocumentWindow)
+            menu->add_separator();
+            std::string fs_label = application()->is_fullscreen() ? "Salir de pantalla completa" : "Pantalla completa";
+            auto item_fs = std::make_unique<horizon::MenuItem>(fs_label);
+            item_fs->set_shortcut("F11");
+            item_fs->set_id("fullscreen_context");
+            item_fs->when_click.connect([this](const horizon::MouseButtonEventContext&) {
+                this->on_toggle_fullscreen();
+            });
+            menu->add_item(std::move(item_fs));
+            
+            // Al pasar pdf_ptr como dueño, Horizon inyectará automáticamente 
+            // las opciones de "Copiar" (Clipboard) al final del menú.
+            application()->show_context_menu(menu.release(), ev.x, ev.y, ev.serial, pdf_ptr);
+        }
+    });
+
     scroll->set_content(std::move(widget));
     
     // Conectar navegación: click en miniatura -> scroll a la página

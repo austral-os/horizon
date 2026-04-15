@@ -31,7 +31,6 @@ public:
     
     // Controles de portapapeles
     bool supports_clipboard() const override { return true; }
-    bool supports_fullscreen() const override { return true; }
     bool can_perform(horizon::ClipboardAction action) const override;
     void perform(horizon::ClipboardAction action) override;
     void provide_clipboard_data(const std::string &mime, horizon::DataSink &sink) override;
