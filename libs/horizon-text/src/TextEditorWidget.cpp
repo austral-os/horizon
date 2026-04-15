@@ -157,6 +157,67 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
     int cursor_pixel_y = text_y + PANGO_PIXELS(cursor_strong_pos.y);
     int cursor_pixel_h = PANGO_PIXELS(cursor_strong_pos.height);
 
+    // 4.5. Draw Margin Background
+    if (m_show_line_numbers) {
+        cairo_save(cr);
+        cairo_set_source_rgb(cr, 0.96, 0.96, 0.96);
+        cairo_rectangle(cr, m_x, m_y, m_line_number_margin, m_height);
+        cairo_fill(cr);
+        
+        cairo_set_source_rgb(cr, 0.85, 0.85, 0.85);
+        cairo_move_to(cr, m_x + m_line_number_margin, m_y);
+        cairo_line_to(cr, m_x + m_line_number_margin, m_y + m_height);
+        cairo_stroke(cr);
+        
+        // Find logical line starts
+        std::vector<int> logical_line_starts;
+        logical_line_starts.push_back(0);
+        const char* start_ptr = utf8_text.c_str();
+        const char* p_ptr = start_ptr;
+        while (*p_ptr) {
+            if (*p_ptr == '\n') {
+                logical_line_starts.push_back((p_ptr - start_ptr) + 1);
+            }
+            p_ptr++;
+        }
+
+        // Draw line numbers
+        cairo_set_source_rgb(cr, 0.6, 0.6, 0.6);
+        PangoLayout* num_layout = pango_cairo_create_layout(cr);
+        PangoFontDescription* num_font = pango_font_description_new();
+        pango_font_description_set_family(num_font, m_font_family.c_str());
+        pango_font_description_set_absolute_size(num_font, m_font_size * 0.9 * PANGO_SCALE);
+        pango_layout_set_font_description(num_layout, num_font);
+        pango_font_description_free(num_font);
+
+        PangoLayoutIter* num_iter = pango_layout_get_iter(m_layout);
+        size_t current_log_idx = 0;
+        do {
+            PangoLayoutLine* line = pango_layout_iter_get_line_readonly(num_iter);
+            int line_start_byte = line->start_index;
+            
+            if (current_log_idx < logical_line_starts.size() && line_start_byte == logical_line_starts[current_log_idx]) {
+                PangoRectangle line_rect;
+                pango_layout_iter_get_line_extents(num_iter, nullptr, &line_rect);
+                int ly = text_y + PANGO_PIXELS(line_rect.y);
+                
+                std::string num_str = std::to_string(current_log_idx + 1);
+                pango_layout_set_text(num_layout, num_str.c_str(), -1);
+                
+                int nw, nh;
+                pango_layout_get_pixel_size(num_layout, &nw, &nh);
+                
+                cairo_move_to(cr, m_x + m_line_number_margin - nw - 5, ly);
+                pango_cairo_show_layout(cr, num_layout);
+                
+                current_log_idx++;
+            }
+        } while (pango_layout_iter_next_line(num_iter));
+        pango_layout_iter_free(num_iter);
+        g_object_unref(num_layout);
+        cairo_restore(cr);
+    }
+
     cairo_save(cr);
     cairo_rectangle(cr, text_x, m_y, m_width - (text_x - m_x), m_height);
     cairo_clip(cr);
