@@ -1,13 +1,13 @@
 {
-"desktop": {
+    "desktop": {
         "backgrounds": {
             "current": {
                 "change-time": 0,
                 "fit": "fill",
-                "name": "Wave.png",
+                "name": "nebula.png",
                 "order": "none",
-                "path": "/home/horacio/Desarrollo/austral-os/horizon/examples/config/backgrounds/pictures/Wave.png",
-                "source": "pictures",
+                "path": "/home/horacio/Desarrollo/austral-os/horizon/examples/config/backgrounds/abstract/nebula.png",
+                "source": "abstract",
                 "type": "image"
             },
             "sources": [

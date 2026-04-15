@@ -2766,6 +2766,9 @@ namespace horizon
 
     Window *WaylandWindow::find_window_target(Widget *root)
     {
+        if (!root)
+            return nullptr;
+
         if (Window *win = dynamic_cast<Window *>(root))
         {
             if (win->file_capabilities() != FileNone)

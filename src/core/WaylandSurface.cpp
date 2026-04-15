@@ -96,7 +96,7 @@ namespace horizon
 
     // --- Implementation ---
 
-    WaylandSurface::WaylandSurface(int w, int h) : m_width(w), m_height(h)
+    WaylandSurface::WaylandSurface(int w, int h) : m_width(w), m_height(h), m_mapped_size(0), m_data(nullptr)
     {
         m_xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     }
