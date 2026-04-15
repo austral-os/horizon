@@ -1,0 +1,28 @@
+{
+    "app": {
+        "title": "Image Viewer"
+    },
+    "dialog": {
+        "open_image": "Open Image"
+    },
+    "context": {
+        "zoom_in": "Zoom In",
+        "zoom_out": "Zoom Out",
+        "original_size": "Original Size",
+        "rotate_cw": "Rotate Clockwise",
+        "rotate_ccw": "Rotate Counter-clockwise"
+    },
+    "toolbar": {
+        "open": "Open file",
+        "previous": "Previous image",
+        "next": "Next image",
+        "zoom_in": "Zoom In",
+        "zoom_out": "Zoom Out",
+        "zoom_fit": "Zoom to fit",
+        "zoom_original": "Original size (1:1)",
+        "rotate_left": "Rotate left",
+        "rotate_right": "Rotate right",
+        "fullscreen": "Fullscreen",
+        "settings": "Preferences"
+    }
+}

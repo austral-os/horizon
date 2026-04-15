@@ -89,7 +89,7 @@ void ImageViewerTabContent::navigate(int direction) {
 
 // --- ImageViewerWindow Implementation ---
 
-ImageViewerWindow::ImageViewerWindow() : ApplicationWindow("Image Viewer") {
+ImageViewerWindow::ImageViewerWindow() : ApplicationWindow(i18n().tr("app.title")) {
     set_size(1024, 768);
     setup_ui();
     setup_toolbar();
@@ -112,6 +112,13 @@ void ImageViewerWindow::setup_ui() {
             application()->post_task([this, index]() {
                 m_tabs->remove_tab(index);
             });
+        }
+    });
+
+    m_tabs->when_tab_selected.connect([this](int index) {
+        auto* content = current_content();
+        if (content && content->image_widget()) {
+            content->image_widget()->set_focus(true);
         }
     });
 
@@ -162,7 +169,13 @@ void ImageViewerWindow::open_file(const std::string& path) {
     int index = m_tabs->add_tab(title, std::move(content));
     m_tabs->set_current_tab(index);
     
-    set_title(title + " - Image Viewer");
+    // Asignar foco al widget de imagen para soporte de fullscreen
+    auto* cur = current_content();
+    if (cur && cur->image_widget()) {
+        cur->image_widget()->set_focus(true);
+    }
+    
+    set_title(title + " - " + i18n().tr("app.title"));
 }
 
 void ImageViewerWindow::on_open_clicked() {
@@ -182,7 +195,7 @@ void ImageViewerWindow::on_navigation_clicked(int button_index) {
     
     // Update window title after navigation
     fs::path p(content->current_path());
-    set_title(p.filename().string() + " - Image Viewer");
+    set_title(p.filename().string() + " - " + i18n().tr("app.title"));
     m_tabs->set_tab_title(m_tabs->current_tab_index(), p.filename().string());
 }
 

@@ -32,6 +32,8 @@ public:
 
     int image_width() const;
     int image_height() const;
+    
+    bool supports_fullscreen() const override { return true; }
 
     void set_application_recursive(WaylandWindow* app) override;
 
@@ -46,6 +48,7 @@ private:
     
     void load_driver();
     void update_size();
+    void setup_context_menu();
 };
 
 } // namespace image

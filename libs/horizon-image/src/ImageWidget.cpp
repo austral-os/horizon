@@ -3,6 +3,9 @@
 #include <horizon/WaylandWindow.hpp>
 #include <cmath>
 #include <algorithm>
+#include <horizon/Menu.hpp>
+#include <horizon/I18n.hpp>
+#include <horizon/EventsManager.hpp>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -12,6 +15,39 @@ namespace horizon {
 namespace image {
 
 ImageWidget::ImageWidget() {
+    set_focusable(true);
+
+    when_enter_fullscreen.connect([this](FullscreenEventContext &ctx) {
+        zoom_fit(ctx.width, ctx.height);
+        invalidate();
+    });
+
+    when_leave_fullscreen.connect([this](FullscreenEventContext &) {
+        invalidate();
+    });
+
+    setup_context_menu();
+}
+
+void ImageWidget::setup_context_menu() {
+    auto menu = std::make_unique<Menu>();
+    
+    auto add_mn = [&](const std::string& text, const std::string& icon, std::function<void()> cb) {
+        auto* item = menu->add_item(text);
+        item->set_icon(icon);
+        item->when_click.connect([cb](EventContext&) { cb(); });
+    };
+
+    add_mn(i18n().tr("context.zoom_in"), "zoom-in", [this]() { zoom_in(); });
+    add_mn(i18n().tr("context.zoom_out"), "zoom-out", [this]() { zoom_out(); });
+    add_mn(i18n().tr("context.original_size"), "zoom-original", [this]() { original_size(); });
+    
+    menu->add_separator();
+    
+    add_mn(i18n().tr("context.rotate_cw"), "object-rotate-right", [this]() { rotate_cw(); });
+    add_mn(i18n().tr("context.rotate_ccw"), "object-rotate-left", [this]() { rotate_ccw(); });
+    
+    set_context_menu(std::move(menu));
 }
 
 ImageWidget::~ImageWidget() {

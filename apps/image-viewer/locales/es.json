@@ -1,0 +1,28 @@
+{
+    "app": {
+        "title": "Visor de Imágenes"
+    },
+    "dialog": {
+        "open_image": "Abrir Imagen"
+    },
+    "context": {
+        "zoom_in": "Acercar",
+        "zoom_out": "Alejar",
+        "original_size": "Tamaño Original",
+        "rotate_cw": "Girar Derecha",
+        "rotate_ccw": "Girar Izquierda"
+    },
+    "toolbar": {
+        "open": "Abrir archivo",
+        "previous": "Imagen anterior",
+        "next": "Imagen siguiente",
+        "zoom_in": "Acercar",
+        "zoom_out": "Alejar",
+        "zoom_fit": "Ajustar a la ventana",
+        "zoom_original": "Tamaño original (1:1)",
+        "rotate_left": "Girar a la izquierda",
+        "rotate_right": "Girar a la derecha",
+        "fullscreen": "Pantalla completa",
+        "settings": "Preferencias"
+    }
+}

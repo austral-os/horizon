@@ -1,8 +1,10 @@
 #include "ImageViewerWindow.hpp"
 #include <horizon/Application.hpp>
+#include <horizon/I18n.hpp>
 
 int main(int argc, char** argv) {
-    horizon::Application app("org.horizon.image-viewer", 1024, 768);
+    horizon::Application app("image-viewer", 1024, 768);
+    horizon::i18n().load_app_locales("image-viewer");
     
     auto window = std::make_unique<horizon::image::ImageViewerWindow>();
     
