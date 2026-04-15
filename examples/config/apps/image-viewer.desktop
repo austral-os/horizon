@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Visor de Imágenes
+Exec=/home/horacio/Desarrollo/austral-os/horizon/build/apps/image-viewer/image-viewer
+Icon=image-viewer
+Comment=Ver y rotar imágenes
+Terminal=false
+Categories=Graphics;Viewer;
