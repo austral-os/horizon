@@ -15,14 +15,18 @@ public:
     TextEditorWindow();
     virtual ~TextEditorWindow() = default;
 
+    uint32_t file_capabilities() const override { return FileOpen | FileClose; }
+
     void open_file(const std::string& path);
     void new_file();
     void save_current_file();
     void update_status_bar();
+    void load_settings();
 
 protected:
     void setup_ui();
     void create_tab(const std::string& title, std::shared_ptr<horizon::text::TextDocument> doc);
+    std::string get_config_path();
 
 private:
     TabCollection* m_tabs = nullptr;

@@ -5,6 +5,10 @@
             "line": "Ln",
             "col": "Col",
             "total": "Total"
+        },
+        "preferences": {
+            "highlight_current_line": "Highlight current line",
+            "show_line_numbers": "Show line numbers"
         }
     }
 }

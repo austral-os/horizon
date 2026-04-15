@@ -61,7 +61,29 @@ TextEditorToolbar::TextEditorToolbar() : Widget() {
 
     add_child(std::move(file_group));
     add_child(std::move(edit_group));
-    add_child(horizon::Spacer()); // Push everything to left
+    add_child(horizon::Spacer()); 
+
+    // 3. Settings Actions group (Right)
+    auto settings_group = std::make_unique<horizon::GroupButton>();
+    m_settings_group = settings_group.get();
+
+    auto fullscreen_icon = std::make_unique<horizon::Icon>();
+    fullscreen_icon->set_icon_name("view-fullscreen");
+    fullscreen_icon->set_icon_size(16);
+    m_settings_group->add_item(std::move(fullscreen_icon));
+
+    auto preferences_icon = std::make_unique<horizon::Icon>();
+    preferences_icon->set_icon_name("emblem-system");
+    preferences_icon->set_icon_size(16);
+    m_settings_group->add_item(std::move(preferences_icon));
+
+    m_settings_group->when_button_clicked.connect([this](horizon::GroupButtonClickEvent& ctx) {
+        EventContext dummy;
+        if (ctx.button_index == 0) when_fullscreen_clicked.run(dummy);
+        else if (ctx.button_index == 1) when_preferences_clicked.run(dummy);
+    });
+
+    add_child(std::move(settings_group));
 }
 
 } // namespace text_editor

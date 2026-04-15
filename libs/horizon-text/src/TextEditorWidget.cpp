@@ -76,7 +76,14 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
         m_layout = pango_cairo_create_layout(cr);
     }
     
-    PangoFontDescription* desc = pango_font_description_from_string("Monospace 12");
+    PangoFontDescription* desc = pango_font_description_new();
+    pango_font_description_set_family(desc, m_font_family.c_str());
+    pango_font_description_set_absolute_size(desc, m_font_size * PANGO_SCALE);
+    if (m_font_weight == 1) {
+        pango_font_description_set_weight(desc, PANGO_WEIGHT_BOLD);
+    } else {
+        pango_font_description_set_weight(desc, PANGO_WEIGHT_NORMAL);
+    }
     pango_layout_set_font_description(m_layout, desc);
     pango_font_description_free(desc);
 
@@ -315,6 +322,52 @@ int TextEditorWidget::preferred_height() const {
     return 600;
 }
 
+bool TextEditorWidget::can_perform(ClipboardAction action) const {
+    if (!m_doc) return false;
+    switch (action) {
+        case ClipboardAction::Copy:
+        case ClipboardAction::Cut:
+            return m_doc->get_selection_start() != m_doc->get_selection_end();
+        case ClipboardAction::Paste:
+            return true;
+    }
+    return false;
+}
+
+void TextEditorWidget::perform(ClipboardAction action) {
+    if (!m_doc) return;
+    switch (action) {
+        case ClipboardAction::Copy:
+            application()->set_clipboard_owner(this);
+            break;
+        case ClipboardAction::Cut:
+            application()->set_clipboard_owner(this);
+            m_doc->handle_key((int)EditorKey::Delete);
+            break;
+        case ClipboardAction::Paste:
+            application()->request_clipboard_data(this);
+            break;
+    }
+}
+
+void TextEditorWidget::provide_clipboard_data(const std::string& mime, DataSink& sink) {
+    if (mime == "text/plain") {
+        std::string selected = m_doc->get_selected_text();
+        sink.write(std::vector<uint8_t>(selected.begin(), selected.end()));
+        sink.done();
+    } else {
+        sink.error();
+    }
+}
+
+void TextEditorWidget::on_clipboard_data_received(const std::string& mime, const std::vector<uint8_t>& data) {
+    if (mime == "text/plain") {
+        std::string text(data.begin(), data.end());
+        m_doc->insert_text(text);
+        invalidate();
+    }
+}
+
 void TextEditorWidget::ensure_cursor_visible() {
     if (!m_doc || !m_layout) return;
 
@@ -370,6 +423,21 @@ void TextEditorWidget::ensure_cursor_visible() {
         }
     }
 }
+void TextEditorWidget::set_font_family(const std::string& family) {
+    m_font_family = family;
+    invalidate();
+}
+
+void TextEditorWidget::set_font_size(double size) {
+    m_font_size = size;
+    invalidate();
+}
+
+void TextEditorWidget::set_font_weight(int weight) {
+    m_font_weight = weight;
+    invalidate();
+}
+
 void TextEditorWidget::set_show_line_numbers(bool show) {
     m_show_line_numbers = show;
     invalidate();

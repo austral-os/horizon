@@ -57,6 +57,7 @@ public:
     int get_cursor_pos() const;
     int get_selection_start() const;
     int get_selection_end() const;
+    std::string get_selected_text() const;
 
     void get_cursor_row_col(int& row, int& col) const;
     int get_line_count() const;
@@ -67,6 +68,7 @@ public:
     
     void delete_chars(int index, int n);
     bool insert_chars(int index, const char32_t* chars, int n);
+    void insert_text(const std::string& utf8_text);
 
     // Undo/Redo
     void undo();

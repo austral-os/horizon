@@ -31,10 +31,24 @@ public:
     int preferred_height() const override;
     
     // Core properties
+    void set_font_family(const std::string& family);
     void set_font_size(double size);
+    void set_font_weight(int weight);
     void set_line_spacing(double spacing);
     void set_show_line_numbers(bool show);
     void set_highlight_current_line(bool highlight);
+
+    // Feature support
+    bool supports_fullscreen() const override { return true; }
+    bool supports_clipboard() const override { return true; }
+    bool can_perform(ClipboardAction action) const override;
+    void perform(ClipboardAction action) override;
+
+    // Clipboard data management
+    void provide_clipboard_data(const std::string& mime, DataSink& sink) override;
+    void on_clipboard_data_received(const std::string& mime, const std::vector<uint8_t>& data) override;
+    std::vector<std::string> provided_mime_types() const override { return {"text/plain"}; }
+    std::vector<std::string> accepted_mime_types() const override { return {"text/plain"}; }
 
     // Event overrides
     void handle_key_event(KeyEventContext& ev);
@@ -50,7 +64,9 @@ private:
     std::shared_ptr<TextDocument> m_doc;
     std::unique_ptr<SyntaxHighlighter> m_highlighter;
     PangoLayout* m_layout = nullptr;
+    std::string m_font_family = "Monospace";
     double m_font_size = 12.0;
+    int m_font_weight = 0;
     double m_line_spacing = 4.0;
     bool m_show_line_numbers = true;
     bool m_highlight_current_line = false;

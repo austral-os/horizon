@@ -189,11 +189,21 @@ int TextDocument::get_cursor_pos() const {
 }
 
 int TextDocument::get_selection_start() const {
-    return m_state->select_start;
+    return std::min(m_state->select_start, m_state->select_end);
 }
 
 int TextDocument::get_selection_end() const {
-    return m_state->select_end;
+    return std::max(m_state->select_start, m_state->select_end);
+}
+
+std::string TextDocument::get_selected_text() const {
+    int start = get_selection_start();
+    int end = get_selection_end();
+    if (start == end) return "";
+
+    std::u32string sub = m_data.substr(start, end - start);
+    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
+    return converter.to_bytes(sub);
 }
 
 void TextDocument::get_cursor_row_col(int& row, int& col) const {
@@ -216,6 +226,16 @@ int TextDocument::get_line_count() const {
         if (c == '\n') count++;
     }
     return count;
+}
+
+void TextDocument::insert_text(const std::string& utf8_text) {
+    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
+    std::u32string u32_text = converter.from_bytes(utf8_text);
+    
+    // We use stb_textedit_paste to handle insertion, as it handles selection replacement and undo.
+    stb_textedit_paste(this, m_state.get(), u32_text.c_str(), u32_text.length());
+    
+    if (on_changed) on_changed();
 }
 
 } // namespace text

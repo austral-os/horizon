@@ -6,17 +6,34 @@
 #include <horizon/Logger.hpp>
 #include <horizon/ScrollArea.hpp>
 #include <horizon/dialogs/FileDialog.hpp>
+#include <fstream>
+#include <nlohmann/json.hpp>
 
 namespace horizon {
 namespace text_editor {
 
-TextEditorWindow::TextEditorWindow() 
-    : ApplicationWindow("Text Editor") {
-    i18n().load_app_locales("text-editor");
-    set_title(i18n().tr("text_editor.title"));
-    set_size(1024, 768);
-    setup_ui();
-}
+    TextEditorWindow::TextEditorWindow() 
+        : ApplicationWindow("Text Editor") {
+        i18n().load_app_locales("text-editor");
+        set_title(i18n().tr("text_editor.title"));
+        set_size(1024, 768);
+        setup_ui();
+
+        when_file_opened.connect([this](Window::FileOpenedContext& ctx) {
+            this->open_file(ctx.path);
+        });
+
+        when_file_close.connect([this](EventContext&) {
+            if (m_tabs && m_tabs->tab_count() > 0) {
+                m_tabs->remove_tab(m_tabs->current_tab_index());
+                if (m_tabs->tab_count() == 0) {
+                    new_file();
+                }
+            }
+        });
+
+        load_settings();
+    }
 
 void TextEditorWindow::setup_ui() {
     // 1. Toolbar
@@ -49,6 +66,17 @@ void TextEditorWindow::setup_ui() {
         if (scroll) {
             auto* editor = dynamic_cast<horizon::text::TextEditorWidget*>(scroll->children()[0].get());
             if (editor && editor->get_document()) editor->get_document()->redo();
+        }
+    });
+
+    tb_ptr->when_preferences_clicked.connect([this](EventContext&) {
+        if (application()) application()->show_preferences();
+    });
+
+    tb_ptr->when_fullscreen_clicked.connect([this](EventContext&) {
+        if (application()) {
+            if (application()->is_fullscreen()) application()->unfullscreen();
+            else application()->fullscreen();
         }
     });
 
@@ -97,6 +125,9 @@ void TextEditorWindow::create_tab(const std::string& title, std::shared_ptr<hori
         application()->set_focused_widget(editor_ptr);
     }
 
+    // Apply current settings
+    load_settings();
+
     editor_ptr->when_cursor_moved.connect([this](EventContext&) { this->update_status_bar(); });
     doc->on_changed = [this, editor_ptr]() {
         editor_ptr->invalidate();
@@ -143,6 +174,41 @@ void TextEditorWindow::update_status_bar() {
                        i18n().tr("text_editor.status.total") + ": " + std::to_string(total);
     
     m_status_label->set_text(text);
+}
+
+std::string TextEditorWindow::get_config_path() {
+    char *home = std::getenv("HOME");
+    return home ? std::string(home) + "/.config/horizon/text-editor.json" : "text-editor.json";
+}
+
+void TextEditorWindow::load_settings() {
+    std::string path = get_config_path();
+    std::ifstream file(path);
+    if (!file.is_open()) return;
+
+    try {
+        nlohmann::json j;
+        file >> j;
+        if (j.contains("editor")) {
+            auto config = j["editor"];
+            
+            for (int i = 0; i < m_tabs->tab_count(); ++i) {
+                auto* scroll = dynamic_cast<ScrollArea*>(m_tabs->tab_body(i));
+                if (scroll && !scroll->children().empty()) {
+                    auto* editor = dynamic_cast<horizon::text::TextEditorWidget*>(scroll->children()[0].get());
+                    if (editor) {
+                        if (config.contains("font")) editor->set_font_family(config["font"]);
+                        if (config.contains("font_size")) editor->set_font_size(config["font_size"]);
+                        if (config.contains("font_weight")) editor->set_font_weight(config["font_weight"]);
+                        if (config.contains("highlight_line")) editor->set_highlight_current_line(config["highlight_line"]);
+                        if (config.contains("show_line_numbers")) editor->set_show_line_numbers(config["show_line_numbers"]);
+                    }
+                }
+            }
+        }
+    } catch (...) {
+        // Log error
+    }
 }
 
 } // namespace text_editor

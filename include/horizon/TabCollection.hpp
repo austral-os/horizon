@@ -53,6 +53,16 @@ public:
     Widget* current_tab_body() const;
 
     /**
+     * @return Pointer to the body of the tab at the given index.
+     */
+    Widget* tab_body(int index) const {
+        if (index >= 0 && index < (int)m_tabs.size()) {
+            return m_tabs[index].body;
+        }
+        return nullptr;
+    }
+
+    /**
      * @brief Updates the title of an existing tab.
      * @param index The index of the tab.
      * @param title The new title.

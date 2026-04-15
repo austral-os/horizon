@@ -18,10 +18,13 @@ public:
     EventsManager<EventContext> when_save_clicked;
     EventsManager<EventContext> when_undo_clicked;
     EventsManager<EventContext> when_redo_clicked;
+    EventsManager<EventContext> when_fullscreen_clicked;
+    EventsManager<EventContext> when_preferences_clicked;
 
 private:
     horizon::GroupButton* m_file_group = nullptr;
     horizon::GroupButton* m_edit_group = nullptr;
+    horizon::GroupButton* m_settings_group = nullptr;
 };
 
 } // namespace text_editor
