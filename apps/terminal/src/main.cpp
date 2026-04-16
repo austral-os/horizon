@@ -35,14 +35,14 @@ int main(int argc, char **argv)
 
             auto on_change = [content_ptr]() { content_ptr->save_config(); };
 
-            // We use "terminal" as the section name to match the requested JSON structure
+            // We use "terminal" as the section name for both pages to consolidate settings
             content->add_section("General", "preferences-system",
                                  std::make_unique<TerminalGeneralSection>(on_change), "terminal");
 
             auto color_section = std::make_unique<TerminalColorSection>(nullptr);
             auto *color_section_ptr = color_section.get();
             content->add_section("Colors", "preferences-desktop-color",
-                                 std::move(color_section), "terminal_colors");
+                                 std::move(color_section), "terminal");
 
             // --- Theme Integration (Root Level) ---
             // 1. Initial Load: Sync theme from root to the section UI

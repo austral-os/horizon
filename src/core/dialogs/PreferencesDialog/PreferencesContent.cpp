@@ -107,7 +107,11 @@ namespace horizon
             nlohmann::json section_data = item->to_json();
             if (!section_data.is_null())
             {
-                m_config_manager->set_section(item->section_name(), section_data);
+                // We merge the new data into the existing section to avoid overwriting 
+                // properties managed by other sections sharing the same name.
+                nlohmann::json existing = m_config_manager->get_section(item->section_name());
+                existing.update(section_data);
+                m_config_manager->set_section(item->section_name(), existing);
             }
         }
         return m_config_manager->save();

@@ -129,7 +129,6 @@ namespace horizon
                 if (j.is_null())
                     return;
 
-                m_original_json = j;
                 m_transparency = j.value("transparency", 100);
                 m_transparency_label->set_text(std::to_string(m_transparency) + "%");
 
@@ -157,7 +156,7 @@ namespace horizon
 
             nlohmann::json to_json() const override
             {
-                nlohmann::json j = m_original_json;
+                nlohmann::json j = nlohmann::json::object();
 
                 j["use_system_theme"] = m_chk_sys_theme->is_checked();
                 j["transparency"] = m_transparency;
@@ -171,7 +170,6 @@ namespace horizon
             Slider *m_transparency_slider;
             int m_transparency;
             std::function<void()> m_on_change;
-            nlohmann::json m_original_json;
             Combo *m_theme_combo;
             std::vector<TerminalColorScheme> m_themes;
             TerminalColorScheme m_current_theme;

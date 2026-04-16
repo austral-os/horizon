@@ -7,10 +7,8 @@
         "font_weight": 1,
         "scroll_without_scrollbar": false,
         "scrollback_lines": 1000,
-        "show_scrollbar": true
-    },
-    "terminal_colors": {
-        "transparency": 51,
+        "show_scrollbar": true,
+        "transparency": 100,
         "use_system_theme": false
     },
     "theme": {
