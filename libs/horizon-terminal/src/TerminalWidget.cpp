@@ -18,6 +18,7 @@ TerminalWidget::TerminalWidget() {
     set_background_color(Color(0.05f, 0.05f, 0.05f, 1.0f));
     
     m_config = ConfigReader::load();
+    m_color_scheme = m_config.theme;
     init_fonts();
     start_watching(ConfigReader::get_config_path());
 
@@ -28,6 +29,7 @@ TerminalWidget::TerminalWidget() {
     m_v_thumb->set_rotation(270);
 
     m_controller = std::make_unique<TerminalController>(24, 80);
+    m_controller->set_color_scheme(m_color_scheme);
     m_controller->set_scrollback_limit(m_config.scrollback_lines);
     m_pty = std::make_unique<PtyHandler>();
 
@@ -793,6 +795,7 @@ void TerminalWidget::post_watcher_task(std::function<void()> task) {
 
 void TerminalWidget::reload_config() {
     m_config = ConfigReader::load();
+    set_color_scheme(m_config.theme);
     
     // Refresh fonts
     cleanup_fonts();

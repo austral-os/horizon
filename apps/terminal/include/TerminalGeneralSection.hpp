@@ -82,6 +82,7 @@ public:
 
     void from_json(const nlohmann::json &j) override {
         if (j.is_null()) return;
+        m_original_json = j;
         
         if (j.contains("cursor_style")) m_cursor_combo->set_selected_item_by_id(j["cursor_style"].get<std::string>());
         
@@ -102,7 +103,7 @@ public:
     }
 
     nlohmann::json to_json() const override {
-        nlohmann::json j;
+        nlohmann::json j = m_original_json;
         if (auto selected = m_cursor_combo->selected_item()) {
             j["cursor_style"] = selected->id;
         } else {
@@ -136,6 +137,7 @@ private:
     Checkbox<AquaObject> *m_show_scrollbar_check;
     Checkbox<AquaObject> *m_cursor_blink_check;
     std::function<void()> m_on_change;
+    nlohmann::json m_original_json;
 };
 
 } // namespace terminal

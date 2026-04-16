@@ -2,6 +2,7 @@
 
 #include <string>
 #include <nlohmann/json.hpp>
+#include "TerminalColorScheme.hpp"
 
 namespace horizon {
 namespace terminal {
@@ -18,7 +19,7 @@ struct TerminalConfig {
     bool scroll_without_scrollbar = true;
 
     bool cursor_blink = true;
-    std::string color_scheme_path = "/home/horacio/Desarrollo/austral-os/horizon/examples/usr/data/terminal/dracula.json";
+    TerminalColorScheme theme = TerminalColorScheme::default_theme();
 };
 
 class ConfigReader {

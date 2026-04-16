@@ -1,7 +1,9 @@
 #pragma once
 
+#include "TerminalColorScheme.hpp"
 #include "horizon/AquaObject.hpp"
 #include "horizon/Notebook.hpp"
+#include <filesystem>
 #include <functional>
 #include <horizon/Checkbox.hpp>
 #include <horizon/ColorSelector.hpp>
@@ -28,12 +30,39 @@ namespace horizon
                 set_margin(0);
                 set_spacing(0);
 
+                // --- Load Themes (Multi-directory discovery) ---
+                m_themes = TerminalColorScheme::list_available_themes();
+
                 auto nb = std::make_unique<Notebook>();
 
                 auto general_page = std::make_unique<Widget>();
                 general_page->set_layout_type(WIDGET_LAYOUT_VERTICAL);
                 general_page->set_spacing(15);
                 general_page->set_margin(15);
+
+                // --- Theme Selection ---
+                auto combo_theme = std::make_unique<Combo>();
+                m_theme_combo = combo_theme.get();
+                m_theme_combo->set_fixed_size(30);
+                for (const auto &th : m_themes)
+                {
+                    m_theme_combo->add_item(th.name, th.name);
+                }
+
+                m_theme_combo->when_item_selected.connect(
+                    [this](const ComboItemSelectedContext &ctx)
+                    {
+                        for (const auto &th : m_themes)
+                        {
+                            if (th.name == ctx.item.id)
+                            {
+                                m_current_theme = th;
+                                break;
+                            }
+                        }
+                        if (m_on_change)
+                            m_on_change();
+                    });
 
                 auto chk_sys_theme = std::make_unique<Checkbox<AquaObject>>();
                 m_chk_sys_theme = chk_sys_theme.get();
@@ -84,6 +113,7 @@ namespace horizon
                 row_slider->add_child(std::move(slider));
                 row_slider->add_child(std::move(lbl_transparency));
 
+                general_page->add_child(std::move(combo_theme));
                 general_page->add_child(std::move(chk_sys_theme));
                 general_page->add_child(std::move(lbl_opacity));
                 general_page->add_child(std::move(row_slider));
@@ -96,10 +126,10 @@ namespace horizon
 
             void from_json(const nlohmann::json &j) override
             {
-
                 if (j.is_null())
                     return;
 
+                m_original_json = j;
                 m_transparency = j.value("transparency", 100);
                 m_transparency_label->set_text(std::to_string(m_transparency) + "%");
 
@@ -110,9 +140,24 @@ namespace horizon
                     m_transparency_slider->set_value(static_cast<float>(m_transparency));
             }
 
+            void set_current_theme(const TerminalColorScheme& theme) {
+                m_current_theme = theme;
+                if (m_theme_combo) {
+                    m_theme_combo->set_selected_item_by_id(theme.name);
+                }
+            }
+
+            void set_on_change(std::function<void()> on_change) {
+                m_on_change = on_change;
+            }
+
+            const TerminalColorScheme& get_current_theme() const {
+                return m_current_theme;
+            }
+
             nlohmann::json to_json() const override
             {
-                nlohmann::json j;
+                nlohmann::json j = m_original_json;
 
                 j["use_system_theme"] = m_chk_sys_theme->is_checked();
                 j["transparency"] = m_transparency;
@@ -126,6 +171,10 @@ namespace horizon
             Slider *m_transparency_slider;
             int m_transparency;
             std::function<void()> m_on_change;
+            nlohmann::json m_original_json;
+            Combo *m_theme_combo;
+            std::vector<TerminalColorScheme> m_themes;
+            TerminalColorScheme m_current_theme;
         };
 
     } // namespace terminal

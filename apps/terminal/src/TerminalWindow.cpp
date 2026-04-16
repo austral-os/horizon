@@ -13,7 +13,7 @@ TerminalWindow::TerminalWindow()
     
     // 0. Load global color scheme from config
     TerminalConfig config = ConfigReader::load();
-    m_scheme = TerminalColorScheme::from_json(config.color_scheme_path);
+    m_scheme = config.theme;
 
     // 1. Terminal Toolbar
     auto terminal_toolbar = std::make_unique<TerminalToolbar>();

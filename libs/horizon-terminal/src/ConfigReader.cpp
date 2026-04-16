@@ -23,6 +23,19 @@ TerminalConfig ConfigReader::load() {
             term_data = data; // Assume the root object contains terminal settings
         }
 
+        // Look for theme at root level first (prioritize root as requested)
+        if (data.contains("theme")) {
+            config.theme = TerminalColorScheme::from_json(data["theme"]);
+        } 
+        // Fallback: look inside terminal section if root doesn't have it
+        else if (term_data.contains("theme")) {
+            config.theme = TerminalColorScheme::from_json(term_data["theme"]);
+        } 
+        // Final fallback: default Dracula theme
+        else {
+            config.theme = TerminalColorScheme::default_theme();
+        }
+
         if (term_data.contains("font")) {
             config.font = term_data["font"];
         }
@@ -47,9 +60,6 @@ TerminalConfig ConfigReader::load() {
         }
         if (term_data.contains("cursor_blink")) {
             config.cursor_blink = term_data["cursor_blink"];
-        }
-        if (term_data.contains("color_scheme_path")) {
-            config.color_scheme_path = term_data["color_scheme_path"];
         }
     } catch (const std::exception& e) {
         std::cerr << "[TerminalConfig] Error loading config: " << e.what() << std::endl;
