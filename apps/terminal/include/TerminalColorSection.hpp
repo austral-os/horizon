@@ -150,6 +150,7 @@ namespace horizon
                                     m_current_theme.normal.from_vector(colors);
                                 }
 
+                                ensure_custom_theme();
                                 if (m_on_change)
                                     m_on_change();
                             });
@@ -204,6 +205,27 @@ namespace horizon
             void set_current_theme(const TerminalColorScheme &theme)
             {
                 m_current_theme = theme;
+
+                // Ensure the theme is in the list and combo (esp. for 'Personalizado' from config)
+                bool found = false;
+                for (const auto &th : m_themes)
+                {
+                    if (th.name == theme.name)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found && !theme.name.empty())
+                {
+                    m_themes.push_back(theme);
+                    if (m_theme_combo)
+                    {
+                        m_theme_combo->add_item(theme.name, theme.name);
+                    }
+                }
+
                 if (m_theme_combo)
                 {
                     m_theme_combo->set_selected_item_by_id(theme.name);
@@ -257,6 +279,40 @@ namespace horizon
                 for (size_t i = 0; i < 8 && i < m_bright_selectors.size(); ++i)
                 {
                     m_bright_selectors[i]->set_color(Color(bright_colors[i]));
+                }
+            }
+
+            void ensure_custom_theme()
+            {
+                if (m_current_theme.name == "Personalizado")
+                    return;
+
+                m_current_theme.name = "Personalizado";
+
+                // Check if it's already in the list to update logic
+                bool found = false;
+                for (auto &th : m_themes)
+                {
+                    if (th.name == "Personalizado")
+                    {
+                        th = m_current_theme;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    m_themes.push_back(m_current_theme);
+                    if (m_theme_combo)
+                    {
+                        m_theme_combo->add_item("Personalizado", "Personalizado");
+                    }
+                }
+
+                if (m_theme_combo)
+                {
+                    m_theme_combo->set_selected_item_by_id("Personalizado");
                 }
             }
         };
