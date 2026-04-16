@@ -38,6 +38,7 @@ namespace horizon
         if (m_app_window && content)
         {
             auto toolbar_widget = std::make_unique<PreferencesToolbar>(content);
+            m_app_window->toolbar()->set_bottom_height(58);
             m_app_window->toolbar()->add_toolbar_widget(std::move(toolbar_widget));
         }
     }

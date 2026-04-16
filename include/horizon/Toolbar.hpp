@@ -18,6 +18,11 @@ namespace horizon
          */
         void add_toolbar_widget(std::unique_ptr<Widget> widget);
 
+        /**
+         * @brief Sets the height of the bottom decorative area.
+         */
+        void set_bottom_height(int h);
+
         void draw(GraphicsContext &gc) override;
 
     private:

@@ -62,6 +62,16 @@ namespace horizon
         }
     }
 
+    void Toolbar::set_bottom_height(int h)
+    {
+        if (m_bottom_row)
+        {
+            m_bottom_row->set_fixed_size(h);
+            set_fixed_size(TOOLBAR_TOP_HEIGHT + h);
+            invalidate();
+        }
+    }
+
     void Toolbar::draw(GraphicsContext &gc)
     {
         auto *tm = application()->theme_manager.get();
