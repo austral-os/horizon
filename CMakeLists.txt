@@ -151,12 +151,14 @@ add_subdirectory(libs/horizon-web)
 add_subdirectory(libs/horizon-pdf)
 add_subdirectory(libs/horizon-image)
 add_subdirectory(libs/horizon-text)
+add_subdirectory(libs/horizon-disk-utilities)
 
 add_subdirectory(apps/terminal)
 add_subdirectory(apps/nova)
 add_subdirectory(apps/document-viewer)
 add_subdirectory(apps/image-viewer)
 add_subdirectory(apps/text-editor)
+add_subdirectory(apps/disk-utility)
 
 
 add_executable(combo_demo
