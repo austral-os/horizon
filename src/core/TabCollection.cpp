@@ -28,16 +28,15 @@ namespace horizon
         if (m_owner->closable_tabs())
         {
             auto close_icon = std::make_unique<Icon>();
-            close_icon->set_icon_name("window-close-symbolic");
-            close_icon->set_icon_size(14);
-            close_icon->set_fixed_size(28);
+            close_icon->set_icon_name("window-close");
+            close_icon->set_icon_size(16);
+            close_icon->set_fixed_size(32);
             close_icon->set_margin(5);
 
             m_close_button = close_icon.get();
 
-            m_close_button->when_click.connect(
-                [this](MouseButtonEventContext &ctx)
-                { m_owner->when_tab_close_requested.run(m_index); });
+            m_close_button->when_click.connect([this](MouseButtonEventContext &ctx)
+                                               { m_owner->when_tab_close_requested.run(m_index); });
 
             add_child(std::move(close_icon));
         }
