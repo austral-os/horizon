@@ -2,8 +2,8 @@
 #include <horizon/Application.hpp>
 #include <horizon/CairoGraphicsContext.hpp>
 #include <horizon/GraphicsContext.hpp>
-#include <horizon/Menu.hpp>
 #include <horizon/Logger.hpp>
+#include <horizon/Menu.hpp>
 #include <horizon/MenuItem.hpp>
 #include <horizon/ThemeManager.hpp>
 
@@ -46,11 +46,11 @@ namespace horizon
                 {
                     ev.stop_propagation = true;
                 }
-            });
+                /*});
 
-        when_click.connect(
-            [this](MouseButtonEventContext &)
-            {
+            when_click.connect(
+                [this](MouseButtonEventContext &)
+                {*/
                 if (!is_enabled())
                     return;
 
@@ -59,7 +59,7 @@ namespace horizon
                 {
                     // Capture necessary state before potential destruction
                     std::string signal_name = m_id.empty() ? text() : m_id;
-                    
+
                     // Emit signal - THIS WIDGET MAY BE DESTROYED AFTER THIS
                     app->signal_manager.emit(signal_name, this);
                 }
@@ -269,7 +269,8 @@ namespace horizon
             {
                 label->set_text_color({1.0f, 1.0f, 1.0f, 1.0f});
             }
-            if (m_shortcut_label) {
+            if (m_shortcut_label)
+            {
                 m_shortcut_label->set_text_color({1.0f, 1.0f, 1.0f, 0.8f});
             }
         }
@@ -281,10 +282,12 @@ namespace horizon
             {
                 label->set_text_color({0.0f, 0.0f, 0.0f, alpha});
             }
-            if (m_shortcut_label) {
+            if (m_shortcut_label)
+            {
                 m_shortcut_label->set_text_color({0.4f, 0.4f, 0.4f, alpha});
             }
-            if (m_icon) {
+            if (m_icon)
+            {
                 // We don't have a specific set_opacity for Icon, but we could if needed.
                 // For now, text already communicates the state.
             }
