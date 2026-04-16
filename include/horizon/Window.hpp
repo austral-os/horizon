@@ -40,6 +40,9 @@ namespace horizon
         virtual uint32_t file_capabilities() const { return FileNone; }
         virtual std::string current_file_path() const { return ""; }
 
+        bool draw_background() const { return m_draw_background; }
+        void set_draw_background(bool draw) { m_draw_background = draw; invalidate(); }
+
         SignalManager signals;
 
         struct FileOpenedContext : public EventContext
@@ -63,6 +66,7 @@ namespace horizon
 
         void draw(GraphicsContext &gc) override;
         Titlebar *m_titlebar;
+        bool m_draw_background = true;
     };
 
 } // namespace horizon

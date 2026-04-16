@@ -66,23 +66,29 @@ namespace horizon
         Color bg2 = bg.lighter(10.0f);
         Color brd = application()->theme_manager->get_color("window_border");
 
-        gc.setColor(bg);
-        gc.fillRect(0, 0, m_width, m_height, corners);
+        if (m_draw_background)
+        {
+            gc.setColor(bg);
+            gc.fillRect(0, 0, m_width, m_height, corners);
+        }
 
         gc.setColor(brd);
         gc.drawRect(0, 0, m_width, m_height, corners, 0.9f);
 
-        // Dibujamos rectangulos horizontales oscuros cada 10 pixeles
-        int titlebar_height = 30;
-        int pattern_size = 4;
-        int pattern_count = (m_height - titlebar_height) / (pattern_size * 2);
-        int pattern_y = titlebar_height;
-
-        for (int i = 0; i < pattern_count; i++)
+        if (m_draw_background)
         {
-            gc.setColor(bg2);
-            gc.fillRect(2, pattern_y, m_width - 4, pattern_size);
-            pattern_y += pattern_size * 2;
+            // Dibujamos rectangulos horizontales oscuros cada 10 pixeles
+            int titlebar_height = 30;
+            int pattern_size = 4;
+            int pattern_count = (m_height - titlebar_height) / (pattern_size * 2);
+            int pattern_y = titlebar_height;
+
+            for (int i = 0; i < pattern_count; i++)
+            {
+                gc.setColor(bg2);
+                gc.fillRect(2, pattern_y, m_width - 4, pattern_size);
+                pattern_y += pattern_size * 2;
+            }
         }
 
         gc.flush();

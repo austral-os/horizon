@@ -11,6 +11,8 @@ namespace terminal {
 TerminalWindow::TerminalWindow()
     : ApplicationWindow(i18n().tr("terminal.title")) {
     
+    set_draw_background(false);
+    
     // 0. Load global color scheme from config
     TerminalConfig config = ConfigReader::load();
     m_scheme = config.theme;

@@ -17,6 +17,7 @@ struct TerminalConfig {
     bool show_scrollbar = false;
     int scrollback_lines = 5000;
     bool scroll_without_scrollbar = true;
+    int transparency = 100;
 
     bool cursor_blink = true;
     TerminalColorScheme theme = TerminalColorScheme::default_theme();

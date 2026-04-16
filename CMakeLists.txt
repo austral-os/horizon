@@ -282,6 +282,11 @@ target_link_libraries(aboutus_dialog_demo
         horizon
 )
 
+target_link_libraries(aboutus_dialog_demo
+    PRIVATE
+        horizon
+)
+
 add_executable(color_picker_demo
     examples/color_picker_demo.cpp
 )
@@ -296,6 +301,15 @@ add_executable(file_ops_demo
 )
 
 target_link_libraries(file_ops_demo
+    PRIVATE
+        horizon
+)
+
+add_executable(transparent_window_demo
+    examples/transparent_window_demo.cpp
+)
+
+target_link_libraries(transparent_window_demo
     PRIVATE
         horizon
 )

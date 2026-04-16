@@ -15,7 +15,7 @@ namespace terminal {
 
 TerminalWidget::TerminalWidget() {
     set_focusable(true);
-    set_background_color(Color(0.05f, 0.05f, 0.05f, 1.0f));
+    set_background_color(Color(0.0f, 0.0f, 0.0f, 0.0f));
     
     m_config = ConfigReader::load();
     m_color_scheme = m_config.theme;
@@ -252,9 +252,12 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
         bg_color = horizon::Color("#282a36");
     }
 
-    cairo_set_source_rgb(cr, bg_color.r, bg_color.g, bg_color.b);
+    float alpha = m_config.transparency / 100.0f;
+    cairo_set_source_rgba(cr, bg_color.r, bg_color.g, bg_color.b, alpha);
+    cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
     cairo_rectangle(cr, x(), y(), width(), height());
     cairo_fill(cr);
+    cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 
     cairo_set_font_face(cr, m_cairo_font_face);
     cairo_set_font_size(cr, m_config.font_size);
@@ -296,9 +299,11 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
 
             // Draw segment background
             if (!VTERM_COLOR_IS_DEFAULT_BG(&cell.bg)) {
-                cairo_set_source_rgb(cr, cell.bg.rgb.red / 255.0, cell.bg.rgb.green / 255.0, cell.bg.rgb.blue / 255.0);
+                cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+                cairo_set_source_rgba(cr, cell.bg.rgb.red / 255.0, cell.bg.rgb.green / 255.0, cell.bg.rgb.blue / 255.0, alpha);
                 cairo_rectangle(cr, x_pos, y_pos, (c - start_c) * m_char_width, m_char_height);
                 cairo_fill(cr);
+                cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
             }
 
             // Draw text segment with HarfBuzz
@@ -817,10 +822,6 @@ void TerminalWidget::set_color_scheme(const TerminalColorScheme& scheme) {
     m_color_scheme = scheme;
     if (m_controller) {
         m_controller->set_color_scheme(scheme);
-    }
-    
-    if (!scheme.primary.background.empty()) {
-        set_background_color(horizon::Color(scheme.primary.background));
     }
     
     invalidate();
