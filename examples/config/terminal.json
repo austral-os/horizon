@@ -5,6 +5,7 @@
         "font": "CaskaydiaCove Nerd Font",
         "font_size": 18,
         "font_weight": 1,
+        "locations": [],
         "scroll_without_scrollbar": false,
         "scrollback_lines": 1000,
         "show_scrollbar": true,

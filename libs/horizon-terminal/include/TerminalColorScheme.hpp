@@ -6,6 +6,7 @@
 #include <horizon/Logger.hpp>
 #include <map>
 #include <nlohmann/json.hpp>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -225,7 +226,8 @@ namespace horizon
                 return dirs;
             }
 
-            static std::vector<TerminalColorScheme> list_available_themes()
+            static std::vector<TerminalColorScheme> list_available_themes(
+                const std::vector<std::string> &extra_dirs = {})
             {
                 std::map<std::string, TerminalColorScheme> themes_map;
 
@@ -235,10 +237,22 @@ namespace horizon
                 def.name = def_name;
                 themes_map[def_name] = def;
 
-                auto dirs = get_theme_directories();
+                auto default_dirs = get_theme_directories();
+                std::vector<std::string> dirs;
+                std::set<std::string> seen;
 
-                // Scan in reverse order (Dev -> System -> User) so that later ones (higher
-                // priority) overwrite earlier ones in the map
+                auto add_dir = [&](const std::string &d)
+                {
+                    if (d.empty() || seen.count(d))
+                        return;
+                    dirs.push_back(d);
+                    seen.insert(d);
+                };
+
+                for (const auto &d : default_dirs) add_dir(d);
+                for (const auto &d : extra_dirs) add_dir(d);
+
+                // Scan in reverse order (Custom -> User -> System -> Dev)
                 std::reverse(dirs.begin(), dirs.end());
 
                 for (const auto &dir_path : dirs)

@@ -3,6 +3,7 @@
 #include "TerminalColorScheme.hpp"
 #include "horizon/AquaObject.hpp"
 #include "horizon/Notebook.hpp"
+#include "horizon/SolidObject.hpp"
 #include <filesystem>
 #include <functional>
 #include <horizon/Checkbox.hpp>
@@ -13,7 +14,9 @@
 #include <horizon/Label.hpp>
 #include <horizon/Slider.hpp>
 #include <horizon/Spacer.hpp>
+#include <horizon/TableView.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/dialogs/FileDialog.hpp>
 #include <vector>
 
 namespace horizon
@@ -237,7 +240,93 @@ namespace horizon
                 sync_selectors_from_theme();
 
                 nb->add_tab(NotebookPage("General", std::move(general_page)));
-                nb->add_tab(NotebookPage("Temas", std::make_unique<Widget>()));
+
+                // --- Tab: Temas (Directory Management) ---
+                auto themes_page = std::make_unique<Widget>();
+                themes_page->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+                themes_page->set_spacing(10);
+                themes_page->set_margin(15);
+
+                auto lbl_dirs = std::make_unique<Label>("Directorios de Búsqueda");
+                lbl_dirs->set_font_weight(FONT_WEIGHT_BOLD);
+                lbl_dirs->set_fixed_size(25);
+
+                m_dirs_table = new TableView<std::string>();
+                m_dirs_table->set_header_visible(true);
+
+                TableColumn<std::string> col_path;
+                col_path.title = "Directorio";
+                col_path.width = 500;
+                col_path.cell_factory = [](const std::string &path)
+                {
+                    auto lbl = std::make_unique<Label>(path);
+                    lbl->set_margin(5);
+                    return lbl;
+                };
+                m_dirs_table->add_column(col_path);
+
+                auto row_actions = std::make_unique<Widget>();
+                row_actions->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+                row_actions->set_spacing(10);
+                row_actions->set_fixed_size(40);
+
+                auto btn_add = std::make_unique<Button<SolidObject>>();
+                btn_add->set_text("Agregar");
+                btn_add->set_fixed_size(100);
+                btn_add->when_click.connect(
+                    [this](MouseButtonEventContext &)
+                    {
+                        auto dlg = std::make_unique<FileDialog>(FileDialogMode::SelectFolder,
+                                                                "Seleccionar Directorio de Temas");
+                        auto dlg_ptr = dlg.get();
+                        dlg_ptr->when_accepted.connect(
+                            [this](const FileDialogAcceptedContext &ctx)
+                            {
+                                m_theme_directories.push_back(ctx.selected_path);
+                                m_dirs_table->set_data(m_theme_directories);
+
+                                // We run the refresh and signal through post_task to avoid blocking
+                                // the FileDialog loop while it is shutting down.
+                                if (application())
+                                {
+                                    application()->post_task(
+                                        [this]()
+                                        {
+                                            refresh_themes();
+                                            if (m_on_change)
+                                                m_on_change();
+                                        });
+                                }
+                            });
+                        dlg_ptr->run();
+                    });
+
+                auto btn_remove = std::make_unique<Button<SolidObject>>();
+                btn_remove->set_text("Quitar");
+                btn_remove->set_fixed_size(100);
+                btn_remove->when_click.connect(
+                    [this](MouseButtonEventContext &)
+                    {
+                        int idx = m_dirs_table->selected_index();
+                        if (idx >= 0 && (size_t)idx < m_theme_directories.size())
+                        {
+                            m_theme_directories.erase(m_theme_directories.begin() + idx);
+                            m_dirs_table->set_data(m_theme_directories);
+                            refresh_themes();
+                            if (m_on_change)
+                                m_on_change();
+                        }
+                    });
+
+                row_actions->add_child(std::move(btn_add));
+                row_actions->add_child(std::move(btn_remove));
+                row_actions->add_child(Spacer());
+
+                themes_page->add_child(std::move(lbl_dirs));
+                themes_page->add_child(std::unique_ptr<Widget>(m_dirs_table));
+                themes_page->add_child(std::move(row_actions));
+
+                nb->add_tab(NotebookPage("Temas", std::move(themes_page)));
 
                 add_child(std::move(nb));
             }
@@ -247,6 +336,10 @@ namespace horizon
                 if (j.is_null())
                     return;
 
+                if (m_is_updating)
+                    return; // Prevent loop
+                m_is_updating = true;
+
                 m_transparency = j.value("transparency", 100);
                 m_transparency_label->set_text(std::to_string(m_transparency) + "%");
 
@@ -255,6 +348,25 @@ namespace horizon
 
                 if (m_transparency_slider)
                     m_transparency_slider->set_value(static_cast<float>(m_transparency));
+
+                if (j.contains("locations") && j["locations"].is_array())
+                {
+                    m_theme_directories.clear();
+                    for (const auto &loc : j["locations"])
+                    {
+                        if (loc.is_string())
+                            m_theme_directories.push_back(loc.get<std::string>());
+                    }
+                    if (m_dirs_table)
+                        m_dirs_table->set_data(m_theme_directories);
+
+                    // Allow refresh_themes to run by temporarily clearing the flag
+                    m_is_updating = false;
+                    refresh_themes();
+                    m_is_updating = true;
+                }
+
+                m_is_updating = false;
             }
 
             void set_current_theme(const TerminalColorScheme &theme)
@@ -304,11 +416,13 @@ namespace horizon
 
                 j["use_system_theme"] = m_chk_sys_theme->is_checked();
                 j["transparency"] = m_transparency;
+                j["locations"] = m_theme_directories;
 
                 return j;
             }
 
         private:
+            bool m_is_updating = false;
             Checkbox<AquaObject> *m_chk_sys_theme;
             Label *m_transparency_label;
             Slider *m_transparency_slider;
@@ -316,7 +430,10 @@ namespace horizon
             std::function<void()> m_on_change;
             Combo *m_theme_combo;
             std::vector<TerminalColorScheme> m_themes;
+            std::vector<std::string> m_theme_directories;
             TerminalColorScheme m_current_theme;
+
+            TableView<std::string> *m_dirs_table;
 
             ColorSelector *m_bg_selector;
             ColorSelector *m_fg_selector;
@@ -380,6 +497,26 @@ namespace horizon
                 {
                     m_theme_combo->set_selected_item_by_id("Personalizado");
                 }
+            }
+
+            void refresh_themes()
+            {
+                if (m_is_updating)
+                    return;
+                m_is_updating = true;
+
+                m_themes = TerminalColorScheme::list_available_themes(m_theme_directories);
+                if (m_theme_combo)
+                {
+                    m_theme_combo->clear_items();
+                    for (const auto &th : m_themes)
+                    {
+                        m_theme_combo->add_item(th.name, th.name);
+                    }
+                    m_theme_combo->set_selected_item_by_id(m_current_theme.name);
+                }
+
+                m_is_updating = false;
             }
         };
 
