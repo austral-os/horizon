@@ -7,7 +7,7 @@
 namespace horizon
 {
 
-    Widget::Widget() : m_click_timer(0)
+    Widget::Widget()
     {
         m_layout_type = WIDGET_LAYOUT_VERTICAL;
         m_position_type = FILL;
@@ -52,84 +52,78 @@ namespace horizon
                 application()->hide_tooltip();
             });
         
-        when_mouse_drag.connect(
-            [this](MouseMoveEventContext &)
-            {
-                if (m_click_timer != 0)
-                {
-                    application()->stop_timer(m_click_timer);
-                    m_click_timer = 0;
-                }
-            });
+        // Nothing special for drag-and-drop timer cancelling anymore, 
+        // as single clicks are no longer timer-based.
 
         when_mouse_press.connect(
             [this](MouseButtonEventContext &ev)
             {
-                auto now = std::chrono::steady_clock::now();
-                auto duration =
-                    std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_click_time)
-                        .count();
-
-                if (m_last_click_button == ev.button && duration < 200)
-                {
-                    if (m_click_timer)
-                    {
-                        application()->stop_timer(m_click_timer);
-                        m_click_timer = 0;
-                    }
-
-                    when_dbl_click.run(ev);
-                    m_last_click_button = 0;
-                    return;
-                }
-
-                if (ev.button == BTN_RIGHT)
-                {
-                    when_right_click.run(ev);
-                    if (ev.stop_propagation) return;
-
-                    if (m_context_menu)
-                    {
-                        application()->show_context_menu(m_context_menu.get(), -1, -1, ev.serial, this);
-                    }
-                    else if (supports_fullscreen())
-                    {
-                        // Create a temporary menu to trigger automatic fullscreen injection
-                        auto temp_menu = std::make_unique<Menu>();
-                        application()->show_context_menu(temp_menu.release(), -1, -1, ev.serial, this);
-                    }
-                    return;
-                }
-
-                m_last_click_time = now;
-                m_last_click_button = ev.button;
-
-                m_click_timer = application()->add_timer(
-                    200,
-                    [this, ev]() mutable
-                    {
-                        if (ev.button == BTN_LEFT)
-                            when_click.run(ev);
-                        else if (ev.button == BTN_MIDDLE)
-                            when_middle_click.run(ev);
-
-                        m_last_click_button = 0;
-                        m_click_timer = 0;
-                    });
+                m_pressed_button = ev.button;
+                m_is_pressed = true;
             });
 
-        when_mouse_release.connect([this](MouseButtonEventContext &ev) { m_is_pressed = false; });
+        when_mouse_release.connect(
+            [this](MouseButtonEventContext &ev)
+            {
+                if (m_is_pressed && m_pressed_button == ev.button)
+                {
+                    // Verify that the release is within the widget's bounds
+                    if (ev.x >= m_x && ev.x < m_x + m_width && ev.y >= m_y && ev.y < m_y + m_height)
+                    {
+                        auto now = std::chrono::steady_clock::now();
+                        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                            now - m_last_click_time)
+                                            .count();
+
+                        // Logic for double click: two valid release-based clicks within 200ms
+                        if (m_last_click_button == ev.button && duration < 200)
+                        {
+                            when_dbl_click.run(ev);
+                            m_last_click_button = 0; // Reset to prevent triple-click being dbl-click
+                        }
+                        else
+                        {
+                            if (ev.button == BTN_LEFT)
+                            {
+                                when_click.run(ev);
+                            }
+                            else if (ev.button == BTN_RIGHT)
+                            {
+                                when_right_click.run(ev);
+                                if (!ev.stop_propagation)
+                                {
+                                    if (m_context_menu)
+                                    {
+                                        application()->show_context_menu(m_context_menu.get(), -1, -1,
+                                                                         ev.serial, this);
+                                    }
+                                    else if (supports_fullscreen())
+                                    {
+                                        auto temp_menu = std::make_unique<Menu>();
+                                        application()->show_context_menu(temp_menu.release(), -1, -1,
+                                                                         ev.serial, this);
+                                    }
+                                }
+                            }
+                            else if (ev.button == BTN_MIDDLE)
+                            {
+                                when_middle_click.run(ev);
+                            }
+
+                            m_last_click_time = now;
+                            m_last_click_button = ev.button;
+                        }
+                    }
+                }
+                m_is_pressed = false;
+                m_pressed_button = 0;
+            });
     }
 
     Widget::~Widget()
     {
         if (m_app)
         {
-            if (m_click_timer != 0)
-            {
-                m_app->stop_timer(m_click_timer);
-                m_click_timer = 0;
-            }
             // Notify about potential clipboard ownership loss before unregistering
             m_app->unregister_widget(this);
         }

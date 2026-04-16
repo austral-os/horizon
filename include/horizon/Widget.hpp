@@ -343,8 +343,8 @@ namespace horizon
         bool m_child_dirty{true};
 
         std::chrono::steady_clock::time_point m_last_click_time;
-        size_t m_click_timer;
         uint32_t m_last_click_button{0};
+        uint32_t m_pressed_button{0};
         std::unique_ptr<Notification> m_tooltip;
         size_t m_tooltip_timer_id{0};
     };
