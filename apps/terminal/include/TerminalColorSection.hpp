@@ -43,12 +43,11 @@ namespace horizon
                 // --- Theme Selection ---
                 auto combo_theme = std::make_unique<Combo>();
                 m_theme_combo = combo_theme.get();
-                m_theme_combo->set_fixed_size(30);
+                m_theme_combo->set_fixed_size(37);
                 for (const auto &th : m_themes)
                 {
                     m_theme_combo->add_item(th.name, th.name);
                 }
-
                 m_theme_combo->when_item_selected.connect(
                     [this](const ComboItemSelectedContext &ctx)
                     {
@@ -57,6 +56,7 @@ namespace horizon
                             if (th.name == ctx.item.id)
                             {
                                 m_current_theme = th;
+                                sync_selectors_from_theme();
                                 break;
                             }
                         }
@@ -77,7 +77,7 @@ namespace horizon
                 auto lbl_opacity = std::make_unique<horizon::Label>(
                     i18n().tr("terminal.preferences.colors.use_transparent_bg"));
                 lbl_opacity->set_fixed_size(25);
-                lbl_opacity->set_font_weight(FontWeight::FONT_WEIGHT_BOLD);
+                lbl_opacity->set_font_weight(FONT_WEIGHT_BOLD);
 
                 auto row_slider = std::make_unique<Widget>();
                 row_slider->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
@@ -113,10 +113,72 @@ namespace horizon
                 row_slider->add_child(std::move(slider));
                 row_slider->add_child(std::move(lbl_transparency));
 
+                auto lbl_palette = std::make_unique<Label>("Paleta de Colores");
+                lbl_palette->set_font_weight(FONT_WEIGHT_BOLD);
+                lbl_palette->set_fixed_size(25);
+
+                // --- Color Palette Rows ---
+                auto create_palette_row =
+                    [this](std::vector<ColorSelector *> &selectors, bool is_bright)
+                {
+                    auto row = std::make_unique<Widget>();
+                    row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+                    row->set_spacing(10);
+                    row->set_fixed_size(35);
+
+                    for (int i = 0; i < 8; ++i)
+                    {
+                        auto selector = std::make_unique<ColorSelector>();
+                        selector->set_fixed_size(60);
+                        selectors.push_back(selector.get());
+
+                        // Connect color change event
+                        selectors.back()->when_color_changed.connect(
+                            [this, i, is_bright](const ColorPickerDialogAcceptedContext &ctx)
+                            {
+                                std::string hex = ctx.color.to_hex();
+                                if (is_bright)
+                                {
+                                    auto colors = m_current_theme.bright.to_vector();
+                                    colors[i] = hex;
+                                    m_current_theme.bright.from_vector(colors);
+                                }
+                                else
+                                {
+                                    auto colors = m_current_theme.normal.to_vector();
+                                    colors[i] = hex;
+                                    m_current_theme.normal.from_vector(colors);
+                                }
+
+                                if (m_on_change)
+                                    m_on_change();
+                            });
+
+                        row->add_child(std::move(selector));
+                    }
+                    return row;
+                };
+
+                auto lbl_normal = std::make_unique<Label>("Normal:");
+                lbl_normal->set_margin(2);
+                lbl_normal->set_fixed_size(25);
+                auto row_normal = create_palette_row(m_normal_selectors, false);
+
+                auto lbl_bright = std::make_unique<Label>("Intenso:");
+                lbl_bright->set_fixed_size(25);
+                auto row_bright = create_palette_row(m_bright_selectors, true);
+
                 general_page->add_child(std::move(combo_theme));
                 general_page->add_child(std::move(chk_sys_theme));
-                general_page->add_child(std::move(lbl_opacity));
                 general_page->add_child(std::move(row_slider));
+                general_page->add_child(std::move(lbl_palette));
+                general_page->add_child(std::move(lbl_normal));
+                general_page->add_child(std::move(row_normal));
+                general_page->add_child(std::move(lbl_bright));
+                general_page->add_child(std::move(row_bright));
+
+                // Initial sync
+                sync_selectors_from_theme();
 
                 nb->add_tab(NotebookPage("General", std::move(general_page)));
                 nb->add_tab(NotebookPage("Paleta", std::make_unique<Widget>()));
@@ -139,18 +201,23 @@ namespace horizon
                     m_transparency_slider->set_value(static_cast<float>(m_transparency));
             }
 
-            void set_current_theme(const TerminalColorScheme& theme) {
+            void set_current_theme(const TerminalColorScheme &theme)
+            {
                 m_current_theme = theme;
-                if (m_theme_combo) {
+                if (m_theme_combo)
+                {
                     m_theme_combo->set_selected_item_by_id(theme.name);
                 }
+                sync_selectors_from_theme();
             }
 
-            void set_on_change(std::function<void()> on_change) {
+            void set_on_change(std::function<void()> on_change)
+            {
                 m_on_change = on_change;
             }
 
-            const TerminalColorScheme& get_current_theme() const {
+            const TerminalColorScheme &get_current_theme() const
+            {
                 return m_current_theme;
             }
 
@@ -173,6 +240,25 @@ namespace horizon
             Combo *m_theme_combo;
             std::vector<TerminalColorScheme> m_themes;
             TerminalColorScheme m_current_theme;
+
+            std::vector<ColorSelector *> m_normal_selectors;
+            std::vector<ColorSelector *> m_bright_selectors;
+
+            void sync_selectors_from_theme()
+            {
+                auto normal_colors = m_current_theme.normal.to_vector();
+                auto bright_colors = m_current_theme.bright.to_vector();
+
+                for (size_t i = 0; i < 8 && i < m_normal_selectors.size(); ++i)
+                {
+                    m_normal_selectors[i]->set_color(Color(normal_colors[i]));
+                }
+
+                for (size_t i = 0; i < 8 && i < m_bright_selectors.size(); ++i)
+                {
+                    m_bright_selectors[i]->set_color(Color(bright_colors[i]));
+                }
+            }
         };
 
     } // namespace terminal

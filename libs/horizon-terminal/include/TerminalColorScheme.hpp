@@ -29,6 +29,19 @@ namespace horizon
             {
                 return {black, red, green, yellow, blue, magenta, cyan, white};
             }
+
+            void from_vector(const std::vector<std::string> &vec)
+            {
+                if (vec.size() < 8) return;
+                black   = vec[0];
+                red     = vec[1];
+                green   = vec[2];
+                yellow  = vec[3];
+                blue    = vec[4];
+                magenta = vec[5];
+                cyan    = vec[6];
+                white   = vec[7];
+            }
         };
 
         struct TerminalColorScheme
