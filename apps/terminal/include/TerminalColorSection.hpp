@@ -117,7 +117,7 @@ namespace horizon
                 row_slider->add_child(std::move(lbl_transparency));
 
                 // --- Primary Colors ---
-                auto lbl_primary = std::make_unique<Label>("Colores Principales:");
+                auto lbl_primary = std::make_unique<Label>(i18n().tr("terminal.preferences.colors.primary_colors"));
                 lbl_primary->set_font_weight(FONT_WEIGHT_BOLD);
                 lbl_primary->set_fixed_size(25);
 
@@ -157,11 +157,11 @@ namespace horizon
                     return container;
                 };
 
-                auto sel_bg = create_primary_selector("Fondo:", m_bg_selector,
+                auto sel_bg = create_primary_selector(i18n().tr("terminal.preferences.colors.background_label"), m_bg_selector,
                                                       m_current_theme.primary.background);
-                auto sel_fg = create_primary_selector("Texto:", m_fg_selector,
+                auto sel_fg = create_primary_selector(i18n().tr("terminal.preferences.colors.text_label"), m_fg_selector,
                                                       m_current_theme.primary.foreground);
-                auto sel_cursor = create_primary_selector("Cursor:", m_cursor_selector,
+                auto sel_cursor = create_primary_selector(i18n().tr("terminal.preferences.colors.cursor_label"), m_cursor_selector,
                                                           m_current_theme.primary.cursor);
 
                 row_primary->add_child(std::move(sel_bg));
@@ -169,7 +169,7 @@ namespace horizon
                 row_primary->add_child(std::move(sel_cursor));
                 row_primary->add_child(Spacer());
 
-                auto lbl_palette = std::make_unique<Label>("Paleta de Colores");
+                auto lbl_palette = std::make_unique<Label>(i18n().tr("terminal.preferences.colors.palette_title"));
                 lbl_palette->set_font_weight(FONT_WEIGHT_BOLD);
                 lbl_palette->set_fixed_size(25);
 
@@ -216,12 +216,12 @@ namespace horizon
                     return row;
                 };
 
-                auto lbl_normal = std::make_unique<Label>("Normal:");
+                auto lbl_normal = std::make_unique<Label>(i18n().tr("terminal.preferences.colors.normal_label"));
                 lbl_normal->set_margin(2);
                 lbl_normal->set_fixed_size(25);
                 auto row_normal = create_palette_row(m_normal_selectors, false);
 
-                auto lbl_bright = std::make_unique<Label>("Intenso:");
+                auto lbl_bright = std::make_unique<Label>(i18n().tr("terminal.preferences.colors.bright_label"));
                 lbl_bright->set_fixed_size(25);
                 auto row_bright = create_palette_row(m_bright_selectors, true);
 
@@ -239,7 +239,7 @@ namespace horizon
                 // Initial sync
                 sync_selectors_from_theme();
 
-                nb->add_tab(NotebookPage("General", std::move(general_page)));
+                nb->add_tab(NotebookPage(i18n().tr("terminal.preferences.general_tab"), std::move(general_page)));
 
                 // --- Tab: Temas (Directory Management) ---
                 auto themes_page = std::make_unique<Widget>();
@@ -247,7 +247,7 @@ namespace horizon
                 themes_page->set_spacing(10);
                 themes_page->set_margin(15);
 
-                auto lbl_dirs = std::make_unique<Label>("Directorios de Búsqueda");
+                auto lbl_dirs = std::make_unique<Label>(i18n().tr("terminal.preferences.themes.search_directories"));
                 lbl_dirs->set_font_weight(FONT_WEIGHT_BOLD);
                 lbl_dirs->set_fixed_size(25);
 
@@ -255,7 +255,7 @@ namespace horizon
                 m_dirs_table->set_header_visible(true);
 
                 TableColumn<std::string> col_path;
-                col_path.title = "Directorio";
+                col_path.title = i18n().tr("terminal.preferences.themes.directory_column");
                 col_path.width = 500;
                 col_path.cell_factory = [](const std::string &path)
                 {
@@ -271,13 +271,13 @@ namespace horizon
                 row_actions->set_fixed_size(40);
 
                 auto btn_add = std::make_unique<Button<SolidObject>>();
-                btn_add->set_text("Agregar");
+                btn_add->set_text(i18n().tr("terminal.preferences.themes.add_button"));
                 btn_add->set_fixed_size(100);
                 btn_add->when_click.connect(
                     [this](MouseButtonEventContext &)
                     {
                         auto dlg = std::make_unique<FileDialog>(FileDialogMode::SelectFolder,
-                                                                "Seleccionar Directorio de Temas");
+                                                                i18n().tr("terminal.preferences.themes.file_dialog_title"));
                         auto dlg_ptr = dlg.get();
                         dlg_ptr->when_accepted.connect(
                             [this](const FileDialogAcceptedContext &ctx)
@@ -302,7 +302,7 @@ namespace horizon
                     });
 
                 auto btn_remove = std::make_unique<Button<SolidObject>>();
-                btn_remove->set_text("Quitar");
+                btn_remove->set_text(i18n().tr("terminal.preferences.themes.remove_button"));
                 btn_remove->set_fixed_size(100);
                 btn_remove->when_click.connect(
                     [this](MouseButtonEventContext &)
@@ -326,7 +326,7 @@ namespace horizon
                 themes_page->add_child(std::unique_ptr<Widget>(m_dirs_table));
                 themes_page->add_child(std::move(row_actions));
 
-                nb->add_tab(NotebookPage("Temas", std::move(themes_page)));
+                nb->add_tab(NotebookPage(i18n().tr("terminal.preferences.themes_tab"), std::move(themes_page)));
 
                 add_child(std::move(nb));
             }
@@ -467,16 +467,16 @@ namespace horizon
 
             void ensure_custom_theme()
             {
-                if (m_current_theme.name == "Personalizado")
+                if (m_current_theme.name == i18n().tr("terminal.preferences.themes.custom_theme_name"))
                     return;
 
-                m_current_theme.name = "Personalizado";
+                m_current_theme.name = i18n().tr("terminal.preferences.themes.custom_theme_name");
 
                 // Check if it's already in the list to update logic
                 bool found = false;
                 for (auto &th : m_themes)
                 {
-                    if (th.name == "Personalizado")
+                    if (th.name == i18n().tr("terminal.preferences.themes.custom_theme_name"))
                     {
                         th = m_current_theme;
                         found = true;
@@ -489,13 +489,13 @@ namespace horizon
                     m_themes.push_back(m_current_theme);
                     if (m_theme_combo)
                     {
-                        m_theme_combo->add_item("Personalizado", "Personalizado");
+                        m_theme_combo->add_item(i18n().tr("terminal.preferences.themes.custom_theme_name"), i18n().tr("terminal.preferences.themes.custom_theme_name"));
                     }
                 }
 
                 if (m_theme_combo)
                 {
-                    m_theme_combo->set_selected_item_by_id("Personalizado");
+                    m_theme_combo->set_selected_item_by_id(i18n().tr("terminal.preferences.themes.custom_theme_name"));
                 }
             }
 

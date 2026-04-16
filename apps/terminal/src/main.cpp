@@ -36,12 +36,12 @@ int main(int argc, char **argv)
             auto on_change = [content_ptr]() { content_ptr->save_config(); };
 
             // We use "terminal" as the section name for both pages to consolidate settings
-            content->add_section("General", "preferences-system",
+            content->add_section(horizon::i18n().tr("terminal.preferences.general_tab"), "preferences-system",
                                  std::make_unique<TerminalGeneralSection>(on_change), "terminal");
 
             auto color_section = std::make_unique<TerminalColorSection>(nullptr);
             auto *color_section_ptr = color_section.get();
-            content->add_section("Colors", "preferences-desktop-color", std::move(color_section),
+            content->add_section(horizon::i18n().tr("terminal.preferences.colors_tab"), "preferences-desktop-color", std::move(color_section),
                                  "terminal");
 
             // --- Theme Integration (Root Level) ---

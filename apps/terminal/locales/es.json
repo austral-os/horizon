@@ -28,9 +28,26 @@
                 "transparency_none": "ninguna",
                 "transparency_full": "total",
                 "use_system_transparency": "Usar transparencia del tema del sistema",
-                "palette_title": "Paleta",
+                "palette_title": "Paleta de Colores",
                 "color_palette": "Paleta de colores:",
-                "show_bold_bright": "Mostrar texto en negrita con colores brillantes"
+                "show_bold_bright": "Mostrar texto en negrita con colores brillantes",
+                "primary_colors": "Colores Principales:",
+                "background_label": "Fondo:",
+                "text_label": "Texto:",
+                "cursor_label": "Cursor:",
+                "normal_label": "Normal:",
+                "bright_label": "Intenso:"
+            },
+            "general_tab": "General",
+            "themes_tab": "Temas",
+            "colors_tab": "Colores",
+            "themes": {
+                "search_directories": "Directorios de Búsqueda",
+                "directory_column": "Directorio",
+                "add_button": "Agregar",
+                "remove_button": "Quitar",
+                "file_dialog_title": "Seleccionar Directorio de Temas",
+                "custom_theme_name": "Personalizado"
             }
         },
         "aboutus": {

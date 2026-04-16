@@ -28,9 +28,26 @@
                 "transparency_none": "none",
                 "transparency_full": "full",
                 "use_system_transparency": "Use transparency from system theme",
-                "palette_title": "Palette",
+                "palette_title": "Color Palette",
                 "color_palette": "Color palette:",
-                "show_bold_bright": "Show bold text in bright colors"
+                "show_bold_bright": "Show bold text in bright colors",
+                "primary_colors": "Primary Colors:",
+                "background_label": "Background:",
+                "text_label": "Text:",
+                "cursor_label": "Cursor:",
+                "normal_label": "Normal:",
+                "bright_label": "Bright:"
+            },
+            "general_tab": "General",
+            "themes_tab": "Themes",
+            "colors_tab": "Colors",
+            "themes": {
+                "search_directories": "Search Directories",
+                "directory_column": "Directory",
+                "add_button": "Add",
+                "remove_button": "Remove",
+                "file_dialog_title": "Select Themes Directory",
+                "custom_theme_name": "Custom"
             }
         },
         "aboutus": {
