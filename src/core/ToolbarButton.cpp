@@ -1,0 +1,54 @@
+#include <horizon/ToolbarButton.hpp>
+#include <horizon/Icon.hpp>
+#include <horizon/Label.hpp>
+#include <horizon/Application.hpp>
+#include <horizon/ThemeManager.hpp>
+
+namespace horizon
+{
+    ToolbarButton::ToolbarButton(std::string title, std::string icon_name)
+        : m_title(std::move(title)), m_icon_name(std::move(icon_name))
+    {
+        set_fixed_size(64);
+        set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        set_spacing(0);
+
+        auto icon_widget = std::make_unique<Icon>();
+        icon_widget->set_icon_name(m_icon_name);
+        icon_widget->set_icon_size(32);
+        icon_widget->set_margin(4);
+        add_child(std::move(icon_widget));
+
+        auto label_widget = std::make_unique<Label>(m_title);
+        label_widget->set_font_size(10);
+        label_widget->set_alignment(TextAlignment::Center);
+        label_widget->set_height(12);
+        add_child(std::move(label_widget));
+    }
+
+    void ToolbarButton::set_active(bool active)
+    {
+        if (m_active != active)
+        {
+            m_active = active;
+            invalidate();
+        }
+    }
+
+    void ToolbarButton::draw(GraphicsContext &gc)
+    {
+        auto *tm = application()->theme_manager.get();
+
+        if (m_active || m_is_hovered)
+        {
+            Color highlight = tm->get_color("titlebar_bg2");
+            if (m_active) {
+                highlight.a = 0.4f;
+            } else {
+                highlight.a = 0.2f;
+            }
+            gc.setColor(highlight);
+            gc.fillRect(m_start_draw_x + 2, m_start_draw_y + 2, m_width - 4, m_height - 4, 6);
+        }
+    }
+} // namespace horizon
