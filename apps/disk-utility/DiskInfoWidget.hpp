@@ -16,6 +16,8 @@ namespace horizon::disks
         void update_info(const DiskDevice& device);
 
     private:
+        Label* create_info_row(Widget* parent, const std::string& title);
+
         Label* m_mount_point_lbl{nullptr};
         Label* m_format_lbl{nullptr};
         Label* m_capacity_lbl{nullptr};

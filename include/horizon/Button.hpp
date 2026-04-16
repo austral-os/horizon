@@ -1,4 +1,5 @@
 #pragma once
+#include "horizon/AirObject.hpp"
 #include "horizon/AquaObject.hpp"
 #include <horizon/Application.hpp>
 #include <horizon/GraphicsContext.hpp>
@@ -26,6 +27,10 @@ namespace horizon
             else if (std::is_same<T, SolidObject>::value)
             {
                 this->set_corner_radius({6, 6, 6, 6});
+            }
+            else if (std::is_same<T, AirObject>::value)
+            {
+                this->set_corner_radius({8, 8, 8, 8});
             }
 
             m_label = std::make_unique<Label>();
