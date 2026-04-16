@@ -237,7 +237,7 @@ namespace horizon
                 sync_selectors_from_theme();
 
                 nb->add_tab(NotebookPage("General", std::move(general_page)));
-                nb->add_tab(NotebookPage("Paleta", std::make_unique<Widget>()));
+                nb->add_tab(NotebookPage("Temas", std::make_unique<Widget>()));
 
                 add_child(std::move(nb));
             }
