@@ -9,6 +9,9 @@
 
 namespace horizon {
 
+class Icon;
+template <typename T> class Button;
+
 class TabCollection : public Widget {
 public:
     TabCollection();
@@ -123,7 +126,7 @@ private:
         bool m_active = false;
         TabCollection* m_owner;
         int m_index;
-        Button<SolidObject>* m_close_button = nullptr;
+        Icon* m_close_button = nullptr;
 
     public:
         TabButton(TabCollection* owner, int index, const std::string& title);

@@ -27,28 +27,19 @@ namespace horizon
 
         if (m_owner->closable_tabs())
         {
-            auto close_btn = std::make_unique<Button<SolidObject>>();
-            close_btn->set_position_type(FILL);
-
             auto close_icon = std::make_unique<Icon>();
             close_icon->set_icon_name("window-close-symbolic");
             close_icon->set_icon_size(14);
-            close_btn->add_child(std::move(close_icon));
+            close_icon->set_fixed_size(28);
+            close_icon->set_margin(5);
 
-            m_close_button = close_btn.get();
+            m_close_button = close_icon.get();
 
-            auto btn_container = std::make_unique<Widget>();
-            btn_container->set_fixed_size(28);
-            btn_container->set_spacing(5);
-            btn_container->set_margin(5);
-
-            btn_container->add_child(std::move(close_btn));
-
-            add_child(std::move(btn_container));
-
-            m_close_button->when_mouse_press.connect(
+            m_close_button->when_click.connect(
                 [this](MouseButtonEventContext &ctx)
                 { m_owner->when_tab_close_requested.run(m_index); });
+
+            add_child(std::move(close_icon));
         }
     }
 
