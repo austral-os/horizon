@@ -1,5 +1,5 @@
-#include "TerminalGeneralSection.hpp"
 #include "TerminalColorSection.hpp"
+#include "TerminalGeneralSection.hpp"
 #include "TerminalWindow.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/I18n.hpp"
@@ -41,8 +41,8 @@ int main(int argc, char **argv)
 
             auto color_section = std::make_unique<TerminalColorSection>(nullptr);
             auto *color_section_ptr = color_section.get();
-            content->add_section("Colors", "preferences-desktop-color",
-                                 std::move(color_section), "terminal");
+            content->add_section("Colors", "preferences-desktop-color", std::move(color_section),
+                                 "terminal");
 
             // --- Theme Integration (Root Level) ---
             // 1. Initial Load: Sync theme from root to the section UI
@@ -56,13 +56,14 @@ int main(int argc, char **argv)
             color_section_ptr->set_on_change(
                 [content_ptr, color_section_ptr]()
                 {
-                    content_ptr->config_data()["theme"] = color_section_ptr->get_current_theme().to_json();
+                    content_ptr->config_data()["theme"] =
+                        color_section_ptr->get_current_theme().to_json();
                     content_ptr->save_config();
                 });
 
             return content;
         },
-        800, 600);
+        800, 650);
 
     app.set_aboutus_content(
         []()

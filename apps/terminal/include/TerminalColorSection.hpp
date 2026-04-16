@@ -113,6 +113,59 @@ namespace horizon
                 row_slider->add_child(std::move(slider));
                 row_slider->add_child(std::move(lbl_transparency));
 
+                // --- Primary Colors ---
+                auto lbl_primary = std::make_unique<Label>("Colores Principales:");
+                lbl_primary->set_font_weight(FONT_WEIGHT_BOLD);
+                lbl_primary->set_fixed_size(25);
+
+                auto row_primary = std::make_unique<Widget>();
+                row_primary->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+                row_primary->set_spacing(10);
+                row_primary->set_fixed_size(35);
+
+                auto create_primary_selector = [this](const std::string &label_text,
+                                                      ColorSelector *&ptr,
+                                                      std::string &target_field)
+                {
+                    auto container = std::make_unique<Widget>();
+                    container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+                    container->set_spacing(5);
+
+                    auto lbl = std::make_unique<Label>(label_text);
+                    lbl->set_margin(5);
+                    lbl->set_fixed_size(160);
+                    lbl->set_alignment(TextAlignment::Right);
+
+                    auto sel = std::make_unique<ColorSelector>();
+                    sel->set_fixed_size(60);
+                    ptr = sel.get();
+
+                    sel->when_color_changed.connect(
+                        [this, &target_field](const ColorPickerDialogAcceptedContext &ctx)
+                        {
+                            target_field = ctx.color.to_hex();
+                            ensure_custom_theme();
+                            if (m_on_change)
+                                m_on_change();
+                        });
+
+                    container->add_child(std::move(lbl));
+                    container->add_child(std::move(sel));
+                    return container;
+                };
+
+                auto sel_bg = create_primary_selector("Fondo:", m_bg_selector,
+                                                      m_current_theme.primary.background);
+                auto sel_fg = create_primary_selector("Texto:", m_fg_selector,
+                                                      m_current_theme.primary.foreground);
+                auto sel_cursor = create_primary_selector("Cursor:", m_cursor_selector,
+                                                          m_current_theme.primary.cursor);
+
+                row_primary->add_child(std::move(sel_bg));
+                row_primary->add_child(std::move(sel_fg));
+                row_primary->add_child(std::move(sel_cursor));
+                row_primary->add_child(Spacer());
+
                 auto lbl_palette = std::make_unique<Label>("Paleta de Colores");
                 lbl_palette->set_font_weight(FONT_WEIGHT_BOLD);
                 lbl_palette->set_fixed_size(25);
@@ -172,6 +225,8 @@ namespace horizon
                 general_page->add_child(std::move(combo_theme));
                 general_page->add_child(std::move(chk_sys_theme));
                 general_page->add_child(std::move(row_slider));
+                general_page->add_child(std::move(lbl_primary));
+                general_page->add_child(std::move(row_primary));
                 general_page->add_child(std::move(lbl_palette));
                 general_page->add_child(std::move(lbl_normal));
                 general_page->add_child(std::move(row_normal));
@@ -263,11 +318,22 @@ namespace horizon
             std::vector<TerminalColorScheme> m_themes;
             TerminalColorScheme m_current_theme;
 
+            ColorSelector *m_bg_selector;
+            ColorSelector *m_fg_selector;
+            ColorSelector *m_cursor_selector;
+
             std::vector<ColorSelector *> m_normal_selectors;
             std::vector<ColorSelector *> m_bright_selectors;
 
             void sync_selectors_from_theme()
             {
+                if (m_bg_selector)
+                    m_bg_selector->set_color(Color(m_current_theme.primary.background));
+                if (m_fg_selector)
+                    m_fg_selector->set_color(Color(m_current_theme.primary.foreground));
+                if (m_cursor_selector)
+                    m_cursor_selector->set_color(Color(m_current_theme.primary.cursor));
+
                 auto normal_colors = m_current_theme.normal.to_vector();
                 auto bright_colors = m_current_theme.bright.to_vector();
 
