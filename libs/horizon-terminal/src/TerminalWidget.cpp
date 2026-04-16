@@ -811,6 +811,10 @@ void TerminalWidget::reload_config() {
         m_controller->set_scrollback_limit(m_config.scrollback_lines);
     }
 
+    if (application()) {
+        application()->set_blur(m_config.blur);
+    }
+
     // Refresh layout and visuals
     calculate_layout();
     invalidate();

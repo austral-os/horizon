@@ -16,6 +16,9 @@ TerminalWindow::TerminalWindow()
     // 0. Load global color scheme from config
     TerminalConfig config = ConfigReader::load();
     m_scheme = config.theme;
+    if (application()) {
+        application()->set_blur(config.blur);
+    }
 
     // 1. Terminal Toolbar
     auto terminal_toolbar = std::make_unique<TerminalToolbar>();

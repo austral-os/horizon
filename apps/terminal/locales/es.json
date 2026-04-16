@@ -16,7 +16,7 @@
             "cursor_blink": "El cursor parpadea",
             "colors": {
                 "title": "Color de texto y fondo",
-                "use_system_theme": "Usar colores del tema del sistema",
+                "use_blur": "Fondo difuso",
                 "builtin_schemes": "Esquemas integrados:",
                 "text": "Texto",
                 "background": "Fondo",
@@ -24,7 +24,7 @@
                 "bold_color": "Color de negrita:",
                 "cursor_color": "Color del cursor:",
                 "highlight_color": "Color de resaltado:",
-                "use_transparent_bg": "Usar fondo transparente",
+                "use_transparent_bg": "Transparencia",
                 "transparency_none": "ninguna",
                 "transparency_full": "total",
                 "use_system_transparency": "Usar transparencia del tema del sistema",

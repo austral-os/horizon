@@ -67,10 +67,10 @@ namespace horizon
                             m_on_change();
                     });
 
-                auto chk_sys_theme = std::make_unique<Checkbox<AquaObject>>();
-                m_chk_sys_theme = chk_sys_theme.get();
-                chk_sys_theme->set_text(i18n().tr("terminal.preferences.colors.use_system_theme"));
-                chk_sys_theme->when_toggle.connect(
+                auto chk_blur = std::make_unique<Checkbox<AquaObject>>();
+                m_chk_blur = chk_blur.get();
+                chk_blur->set_text(i18n().tr("terminal.preferences.colors.use_blur"));
+                chk_blur->when_toggle.connect(
                     [this](ToggleEventContext &)
                     {
                         if (m_on_change)
@@ -226,7 +226,7 @@ namespace horizon
                 auto row_bright = create_palette_row(m_bright_selectors, true);
 
                 general_page->add_child(std::move(combo_theme));
-                general_page->add_child(std::move(chk_sys_theme));
+                general_page->add_child(std::move(chk_blur));
                 general_page->add_child(std::move(row_slider));
                 general_page->add_child(std::move(lbl_primary));
                 general_page->add_child(std::move(row_primary));
@@ -343,8 +343,8 @@ namespace horizon
                 m_transparency = j.value("transparency", 100);
                 m_transparency_label->set_text(std::to_string(m_transparency) + "%");
 
-                if (j.contains("use_system_theme"))
-                    m_chk_sys_theme->set_checked(j["use_system_theme"].get<bool>());
+                if (j.contains("blur"))
+                    m_chk_blur->set_checked(j["blur"].get<bool>());
 
                 if (m_transparency_slider)
                     m_transparency_slider->set_value(static_cast<float>(m_transparency));
@@ -414,7 +414,7 @@ namespace horizon
             {
                 nlohmann::json j = nlohmann::json::object();
 
-                j["use_system_theme"] = m_chk_sys_theme->is_checked();
+                j["blur"] = m_chk_blur->is_checked();
                 j["transparency"] = m_transparency;
                 j["locations"] = m_theme_directories;
 
@@ -423,7 +423,7 @@ namespace horizon
 
         private:
             bool m_is_updating = false;
-            Checkbox<AquaObject> *m_chk_sys_theme;
+            Checkbox<AquaObject> *m_chk_blur;
             Label *m_transparency_label;
             Slider *m_transparency_slider;
             int m_transparency;

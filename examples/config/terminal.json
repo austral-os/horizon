@@ -1,5 +1,6 @@
 {
     "terminal": {
+        "blur": true,
         "cursor_blink": false,
         "cursor_style": "block",
         "font": "CaskaydiaCove Nerd Font",
@@ -9,7 +10,7 @@
         "scroll_without_scrollbar": false,
         "scrollback_lines": 1000,
         "show_scrollbar": true,
-        "transparency": 41,
+        "transparency": 75,
         "use_system_theme": false
     },
     "theme": {

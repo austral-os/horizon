@@ -20,6 +20,7 @@ struct TerminalConfig {
     int transparency = 100;
 
     bool cursor_blink = true;
+    bool blur = false;
     TerminalColorScheme theme = TerminalColorScheme::default_theme();
 };
 

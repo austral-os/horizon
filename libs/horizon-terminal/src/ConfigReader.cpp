@@ -64,6 +64,9 @@ TerminalConfig ConfigReader::load() {
         if (term_data.contains("transparency")) {
             config.transparency = term_data["transparency"];
         }
+        if (term_data.contains("blur")) {
+            config.blur = term_data["blur"].get<bool>();
+        }
     } catch (const std::exception& e) {
         std::cerr << "[TerminalConfig] Error loading config: " << e.what() << std::endl;
     }

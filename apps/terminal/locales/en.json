@@ -16,7 +16,7 @@
             "cursor_blink": "Cursor blink",
             "colors": {
                 "title": "Text and Background Color",
-                "use_system_theme": "Use colors from system theme",
+                "use_blur": "Background blur",
                 "builtin_schemes": "Built-in schemes:",
                 "text": "Text",
                 "background": "Background",
@@ -24,7 +24,7 @@
                 "bold_color": "Bold color:",
                 "cursor_color": "Cursor color:",
                 "highlight_color": "Highlight color:",
-                "use_transparent_bg": "Use transparent background",
+                "use_transparent_bg": "Transparency",
                 "transparency_none": "none",
                 "transparency_full": "full",
                 "use_system_transparency": "Use transparency from system theme",
