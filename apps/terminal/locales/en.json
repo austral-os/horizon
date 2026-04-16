@@ -13,7 +13,25 @@
             "scrollback_lines": "Scrollback Lines:",
             "scroll_without_scrollbar": "Scroll without scrollbar",
             "show_scrollbar": "Show scrollbar",
-            "cursor_blink": "Cursor blink"
+            "cursor_blink": "Cursor blink",
+            "colors": {
+                "title": "Text and Background Color",
+                "use_system_theme": "Use colors from system theme",
+                "builtin_schemes": "Built-in schemes:",
+                "text": "Text",
+                "background": "Background",
+                "default_color": "Default color:",
+                "bold_color": "Bold color:",
+                "cursor_color": "Cursor color:",
+                "highlight_color": "Highlight color:",
+                "use_transparent_bg": "Use transparent background",
+                "transparency_none": "none",
+                "transparency_full": "full",
+                "use_system_transparency": "Use transparency from system theme",
+                "palette_title": "Palette",
+                "color_palette": "Color palette:",
+                "show_bold_bright": "Show bold text in bright colors"
+            }
         },
         "aboutus": {
             "about": "Horizon terminal emulator for Austral OS",

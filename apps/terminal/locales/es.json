@@ -13,7 +13,25 @@
             "scrollback_lines": "Líneas de Scrollback:",
             "scroll_without_scrollbar": "Scroll sin barra de desplazamiento",
             "show_scrollbar": "Mostrar barra de desplazamiento",
-            "cursor_blink": "El cursor parpadea"
+            "cursor_blink": "El cursor parpadea",
+            "colors": {
+                "title": "Color de texto y fondo",
+                "use_system_theme": "Usar colores del tema del sistema",
+                "builtin_schemes": "Esquemas integrados:",
+                "text": "Texto",
+                "background": "Fondo",
+                "default_color": "Color predeterminado:",
+                "bold_color": "Color de negrita:",
+                "cursor_color": "Color del cursor:",
+                "highlight_color": "Color de resaltado:",
+                "use_transparent_bg": "Usar fondo transparente",
+                "transparency_none": "ninguna",
+                "transparency_full": "total",
+                "use_system_transparency": "Usar transparencia del tema del sistema",
+                "palette_title": "Paleta",
+                "color_palette": "Paleta de colores:",
+                "show_bold_bright": "Mostrar texto en negrita con colores brillantes"
+            }
         },
         "aboutus": {
             "about": "Emulador de terminal de Horizon para Austral OS",

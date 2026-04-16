@@ -1,4 +1,5 @@
 #include "TerminalGeneralSection.hpp"
+#include "TerminalColorSection.hpp"
 #include "TerminalWindow.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/I18n.hpp"
@@ -37,6 +38,8 @@ int main(int argc, char **argv)
             // We use "terminal" as the section name to match the requested JSON structure
             content->add_section("General", "preferences-system",
                                  std::make_unique<TerminalGeneralSection>(on_change), "terminal");
+            content->add_section("Colors", "preferences-desktop-color",
+                                 std::make_unique<TerminalColorSection>(on_change), "terminal_colors");
 
             return content;
         },
