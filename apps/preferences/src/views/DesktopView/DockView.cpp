@@ -62,10 +62,10 @@ namespace horizon::preferences
         mag_check->set_fixed_size(25);
         m_magnification_check = mag_check.get();
 
-        m_magnification_check->set_on_toggle(
-            [this](bool checked)
+        m_magnification_check->when_toggle.connect(
+            [this](const ToggleEventContext &ctx)
             {
-                m_magnification_enabled = checked;
+                m_magnification_enabled = ctx.checked;
                 save_config();
             });
 

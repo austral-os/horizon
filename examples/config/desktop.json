@@ -4,10 +4,10 @@
             "current": {
                 "change-time": 0,
                 "fit": "fill",
-                "name": "nebula.png",
+                "name": "Wave.png",
                 "order": "none",
-                "path": "/home/horacio/Desarrollo/austral-os/horizon/examples/config/backgrounds/abstract/nebula.png",
-                "source": "abstract",
+                "path": "/home/horacio/Desarrollo/austral-os/horizon/examples/config/backgrounds/pictures/Wave.png",
+                "source": "pictures",
                 "type": "image"
             },
             "sources": [

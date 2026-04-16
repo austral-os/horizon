@@ -148,7 +148,7 @@ namespace horizon::preferences
         numlock_check->set_text(i18n().tr("preferences.keyboard.numlock_on"));
         numlock_check->set_fixed_size(30);
         m_numlock_checkbox = numlock_check.get();
-        m_numlock_checkbox->set_on_toggle([this](bool) { save_config(); });
+        m_numlock_checkbox->when_toggle.connect([this](ToggleEventContext&) { save_config(); });
         add_child(std::move(numlock_check));
 
         // --- Bottom Spacer ---

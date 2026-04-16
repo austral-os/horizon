@@ -47,8 +47,8 @@ public:
         check->set_text("Cargar al inicio");
         m_boot_check = check.get();
 
-        m_boot_check->set_on_toggle(
-            [this](bool)
+        m_boot_check->when_toggle.connect(
+            [this](ToggleEventContext &)
             {
                 if (m_on_change)
                     m_on_change();
@@ -114,8 +114,8 @@ public:
         check->set_text("Limpiar al salir");
         m_clean_check = check.get();
 
-        m_clean_check->set_on_toggle(
-            [this](bool)
+        m_clean_check->when_toggle.connect(
+            [this](ToggleEventContext &)
             {
                 if (m_on_change)
                     m_on_change();

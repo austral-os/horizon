@@ -666,6 +666,24 @@ namespace horizon
         return m_cursor_type;
     }
 
+    void Widget::set_debug_mode(bool debug_mode)
+    {
+        if (m_debug_mode != debug_mode)
+        {
+            m_debug_mode = debug_mode;
+            for (auto &child : m_children)
+            {
+                child->set_debug_mode(debug_mode);
+            }
+            invalidate();
+        }
+    }
+
+    bool Widget::debug_mode() const
+    {
+        return m_debug_mode;
+    }
+
     void Widget::draw(GraphicsContext &gc)
     {
         if (m_background_color.a > 0.001f)
@@ -678,6 +696,14 @@ namespace horizon
         {
             gc.setColor(m_border_color);
             gc.drawRect(m_x, m_y, m_width, m_height, m_border_radius, (float)m_border_width);
+        }
+
+        if (m_debug_mode)
+        {
+            gc.setColor(1.0f, 0.0f, 0.0f, 0.1f);
+            gc.fillRect(m_x, m_y, m_width, m_height);
+            gc.setColor(1.0f, 0.0f, 0.0f, 0.5f);
+            gc.drawRect(m_x, m_y, m_width, m_height, 0, 1.0f);
         }
     }
 

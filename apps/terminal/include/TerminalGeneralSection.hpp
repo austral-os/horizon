@@ -64,19 +64,19 @@ public:
         auto scroll_check = std::make_unique<Checkbox<AquaObject>>();
         scroll_check->set_text(i18n().tr("terminal.preferences.scroll_without_scrollbar"));
         m_scroll_without_bar_check = scroll_check.get();
-        m_scroll_without_bar_check->set_on_toggle([this](bool) { if (m_on_change) m_on_change(); });
+        m_scroll_without_bar_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
         add_child(std::move(scroll_check));
 
         auto show_bar_check = std::make_unique<Checkbox<AquaObject>>();
         show_bar_check->set_text(i18n().tr("terminal.preferences.show_scrollbar"));
         m_show_scrollbar_check = show_bar_check.get();
-        m_show_scrollbar_check->set_on_toggle([this](bool) { if (m_on_change) m_on_change(); });
+        m_show_scrollbar_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
         add_child(std::move(show_bar_check));
 
         auto blink_check = std::make_unique<Checkbox<AquaObject>>();
         blink_check->set_text(i18n().tr("terminal.preferences.cursor_blink"));
         m_cursor_blink_check = blink_check.get();
-        m_cursor_blink_check->set_on_toggle([this](bool) { if (m_on_change) m_on_change(); });
+        m_cursor_blink_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
         add_child(std::move(blink_check));
     }
 

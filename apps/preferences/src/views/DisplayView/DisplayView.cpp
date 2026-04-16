@@ -111,10 +111,10 @@ namespace horizon::preferences
         m_native_res_checkbox->set_fixed_size(25);
         m_native_res_checkbox->set_text(i18n().tr("preferences.display.use_native"));
         m_native_res_checkbox->set_checked(true);
-        m_native_res_checkbox->set_on_toggle(
-            [this](bool checked)
+        m_native_res_checkbox->when_toggle.connect(
+            [this](ToggleEventContext &ctx)
             {
-                m_res_table->set_enabled(!checked);
+                m_res_table->set_enabled(!ctx.checked);
                 on_monitor_selected(m_selected_monitor_idx);
             });
         res_section->add_child(std::move(native_check));

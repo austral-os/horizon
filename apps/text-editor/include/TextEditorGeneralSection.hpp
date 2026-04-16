@@ -38,14 +38,14 @@ public:
         auto highlight_check = std::make_unique<Checkbox<AquaObject>>();
         highlight_check->set_text(i18n().tr("text_editor.preferences.highlight_current_line"));
         m_highlight_check = highlight_check.get();
-        m_highlight_check->set_on_toggle([this](bool) { if (m_on_change) m_on_change(); });
+        m_highlight_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
         add_child(std::move(highlight_check));
 
         // 3. Line Numbers
         auto line_numbers_check = std::make_unique<Checkbox<AquaObject>>();
         line_numbers_check->set_text(i18n().tr("text_editor.preferences.show_line_numbers"));
         m_line_numbers_check = line_numbers_check.get();
-        m_line_numbers_check->set_on_toggle([this](bool) { if (m_on_change) m_on_change(); });
+        m_line_numbers_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
         add_child(std::move(line_numbers_check));
     }
 

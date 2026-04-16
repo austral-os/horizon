@@ -30,8 +30,11 @@ namespace horizon
                     {
                         m_checked = !m_checked;
                         this->invalidate();
-                        if (m_on_toggle)
-                            m_on_toggle(m_checked);
+                        
+                        ToggleEventContext tev;
+                        tev.sender = this;
+                        tev.checked = m_checked;
+                        when_toggle.run(tev);
                     }
                 });
 
@@ -41,13 +44,16 @@ namespace horizon
 
         void draw(GraphicsContext &gc) override
         {
+
+            Widget::draw(gc);
+
             auto *tm = this->application()->theme_manager.get();
             Color window_fg = tm->get_color("window_fg");
 
             int marker_size = 22;
             int margin_y = (this->m_height - marker_size);
             int marker_x = this->m_start_draw_x + 10;
-            int marker_y = this->m_start_draw_y + margin_y;
+            int marker_y = this->m_start_draw_y + margin_y / 2 + 1;
 
             // Update accent color based on state
             this->set_accent_color(m_checked ? WidgetAccentColor::Primary
@@ -111,7 +117,7 @@ namespace horizon
             m_label->set_application_recursive(this->application());
             m_label->set_position(label_x, this->m_y);
             m_label->set_size(label_w, this->m_height);
-            m_label->set_vertical_alignment(VerticalAlignment::Middle);
+            // m_label->set_vertical_alignment(VerticalAlignment::Top);
             m_label->calculate_layout();
             m_label->draw(gc);
         }
@@ -135,10 +141,7 @@ namespace horizon
             return m_checked;
         }
 
-        void set_on_toggle(std::function<void(bool)> handler)
-        {
-            m_on_toggle = std::move(handler);
-        }
+        EventsManager<ToggleEventContext> when_toggle;
 
         Label *label()
         {
@@ -148,7 +151,6 @@ namespace horizon
     private:
         std::unique_ptr<Label> m_label;
         bool m_checked{false};
-        std::function<void(bool)> m_on_toggle;
     };
 
 } // namespace horizon

@@ -91,6 +91,12 @@ namespace horizon
     public:
     };
 
+    class ToggleEventContext : public EventContext
+    {
+    public:
+        bool checked;
+    };
+
     /**
      * @class EventsManager
      * @brief Templated manager for event callbacks.

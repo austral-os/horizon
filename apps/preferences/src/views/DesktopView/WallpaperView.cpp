@@ -160,7 +160,7 @@ namespace horizon::preferences
         change_chk->set_text(i18n().tr("preferences.desktop.change_image"));
         change_chk->set_fixed_size(230);
         m_change_check = change_chk.get();
-        m_change_check->set_on_toggle([this](bool)
+        m_change_check->when_toggle.connect([this](ToggleEventContext &)
                                       { save_config(); });
         row1->add_child(std::move(change_chk));
 
@@ -180,7 +180,7 @@ namespace horizon::preferences
         random_chk->set_text(i18n().tr("preferences.desktop.random_order"));
         random_chk->set_fixed_size(30);
         m_random_check = random_chk.get();
-        m_random_check->set_on_toggle([this](bool)
+        m_random_check->when_toggle.connect([this](ToggleEventContext &)
                                       { save_config(); });
         settings_vbox->add_child(std::move(random_chk));
 
@@ -188,7 +188,7 @@ namespace horizon::preferences
         translucent_chk->set_text(i18n().tr("preferences.desktop.translucent_bar"));
         translucent_chk->set_fixed_size(30);
         m_translucent_check = translucent_chk.get();
-        m_translucent_check->set_on_toggle([this](bool)
+        m_translucent_check->when_toggle.connect([this](ToggleEventContext &)
                                             { save_config(); });
         settings_vbox->add_child(std::move(translucent_chk));
 

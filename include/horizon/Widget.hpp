@@ -206,6 +206,10 @@ namespace horizon
         void set_cursor_type(CursorType type);
         CursorType cursor_type() const;
 
+        // --- Debug Mode ---
+        void set_debug_mode(bool debug_mode);
+        bool debug_mode() const;
+
         // --- Clipboard ---
         virtual bool supports_fullscreen() const { return false; }
         virtual bool supports_clipboard() const { return false; }
@@ -319,6 +323,7 @@ namespace horizon
         bool m_has_focus{false};
         bool m_is_hovered{false};
         bool m_is_pressed{false};
+        bool m_debug_mode{false};
         CursorType m_cursor_type{CursorType::Default};
         std::unique_ptr<Menu> m_context_menu;
 
