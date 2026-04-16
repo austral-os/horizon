@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Utilidad de Discos
-Exec=/home/horacio/Desarrollo/austral-os/horizon/build/apps/disk-utility/disk-utility
-Icon=gnome-disks
-Comment=Administrar discos y particiones
-Terminal=false
-Categories=System;Settings;DiskUtility;
