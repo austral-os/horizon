@@ -63,3 +63,32 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/fonts")
         COMPONENT session
     )
 endif()
+
+# --- Icon Theme ---
+
+set(ICON_TARBALL "data/austral-icon-theme.tar.gz")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${ICON_TARBALL}")
+    set(EXTRACT_DIR "${CMAKE_CURRENT_BINARY_DIR}/icons_extracted")
+    file(MAKE_DIRECTORY "${EXTRACT_DIR}")
+    
+    # Extract at build time
+    add_custom_command(
+        OUTPUT "${EXTRACT_DIR}/.extracted"
+        COMMAND ${CMAKE_COMMAND} -E tar xzf "${CMAKE_CURRENT_SOURCE_DIR}/${ICON_TARBALL}"
+        COMMAND ${CMAKE_COMMAND} -E touch "${EXTRACT_DIR}/.extracted"
+        WORKING_DIRECTORY "${EXTRACT_DIR}"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${ICON_TARBALL}"
+        COMMENT "Extracting Australian Icon Theme..."
+    )
+    
+    add_custom_target(extract_icons ALL DEPENDS "${EXTRACT_DIR}/.extracted")
+
+    # Install the contents (the 'Light' theme folder among others)
+    # We exclude .git and other non-essential files
+    install(DIRECTORY "${EXTRACT_DIR}/austral-icon-theme/"
+        DESTINATION share/icons
+        COMPONENT session
+        PATTERN ".git" EXCLUDE
+        PATTERN "README.md" EXCLUDE
+    )
+endif()
