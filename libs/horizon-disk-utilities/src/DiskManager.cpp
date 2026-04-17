@@ -440,4 +440,45 @@ namespace horizon::disks
         }
     }
 
+    std::vector<FilesystemInfo> DiskManager::get_supported_filesystems()
+    {
+        std::vector<FilesystemInfo> supported;
+        
+        struct KnownFS {
+            std::string id;
+            std::string name;
+            std::string binary;
+        };
+
+        std::vector<KnownFS> known = {
+            {"ext4", "Linux Extended (EXT4)", "mkfs.ext4"},
+            {"ext3", "Linux Extended (EXT3)", "mkfs.ext3"},
+            {"ext2", "Linux Extended (EXT2)", "mkfs.ext2"},
+            {"ntfs", "Windows NT (NTFS)", "mkfs.ntfs"},
+            {"exfat", "Soporte Universal (exFAT)", "mkfs.exfat"},
+            {"fat32", "MS-DOS (FAT32)", "mkfs.vfat"},
+            {"btrfs", "Btrfs (Copy-on-write)", "mkfs.btrfs"},
+            {"xfs", "XFS (High Performance)", "mkfs.xfs"},
+            {"f2fs", "Flash-Friendly (F2FS)", "mkfs.f2fs"}
+        };
+
+        namespace fs = std::filesystem;
+        std::vector<std::string> search_paths = {"/usr/sbin/", "/sbin/", "/usr/bin/", "/bin/"};
+
+        for (const auto& fmt : known) {
+            bool found = false;
+            for (const auto& path : search_paths) {
+                if (fs::exists(path + fmt.binary)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                supported.push_back({fmt.id, fmt.name});
+            }
+        }
+
+        return supported;
+    }
+
 } // namespace horizon::disks

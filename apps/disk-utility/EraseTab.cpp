@@ -53,12 +53,16 @@ namespace horizon::disks
         format_label->set_fixed_size(120);
 
         auto combo = std::make_unique<Combo>();
-        combo->add_item("ext4", "Linux Extended (EXT4)");
-        combo->add_item("ext3", "Linux Extended (EXT3)");
-        combo->add_item("ntfs", "Windows NT (NTFS)");
-        combo->add_item("exfat", "Soporte Universal (exFAT)");
-        combo->add_item("fat32", "MS-DOS (FAT32)");
-        combo->set_selected_item_by_id("ext4");
+        
+        auto supported = m_disk_manager.get_supported_filesystems();
+        bool first = true;
+        for (const auto& fmt : supported) {
+            combo->add_item(fmt.id, fmt.name);
+            if (first) {
+                combo->set_selected_item_by_id(fmt.id);
+                first = false;
+            }
+        }
         m_format_combo = combo.get();
 
         form_container->add_child(std::move(format_label));

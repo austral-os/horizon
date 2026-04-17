@@ -10,6 +10,15 @@ namespace horizon::dbusutils { class DbusHelper; }
 namespace horizon::disks
 {
     /**
+     * @brief Information about a supported filesystem format.
+     */
+    struct FilesystemInfo
+    {
+        std::string id;   // e.g., "ext4"
+        std::string name; // e.g., "Linux Extended (EXT4)"
+    };
+
+    /**
      * @brief Result of a disk operation.
      */
     struct OperationResult
@@ -36,6 +45,11 @@ namespace horizon::disks
          * @brief Returns the list of detected disk devices.
          */
         const std::vector<std::unique_ptr<DiskDevice>>& devices() const { return m_devices; }
+
+        /**
+         * @brief Returns the list of filesystems supported by the system for formatting.
+         */
+        static std::vector<FilesystemInfo> get_supported_filesystems();
 
         /**
          * @brief Mounts a partition.
