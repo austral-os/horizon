@@ -1,5 +1,6 @@
 #include "DiskUtilityWindow.hpp"
 #include <horizon/Application.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/ThemeManager.hpp>
 #include <horizon/Toolbar.hpp>
@@ -17,6 +18,21 @@ namespace horizon::disks
 
         m_disk_manager.scan();
         populate_devices();
+
+        // Setup hardware monitoring via DBus/UDisks2
+        try {
+            m_dbus_helper = std::make_unique<dbusutils::DbusHelper>(DBUS_BUS_SYSTEM);
+            m_dbus_helper->add_match_rule("type='signal',interface='org.freedesktop.DBus.ObjectManager',path='/org/freedesktop/UDisks2'");
+            
+            // Add a timer to poll for DBus messages once the application is loaded
+            when_application_load.connect([this](EventContext&) {
+                if (application()) {
+                    application()->add_timer(500, [this]() { check_for_hardware_changes(); }, true);
+                }
+            });
+        } catch (const std::exception& e) {
+            LOG_ERROR << "[DiskUtility] Failed to initialize DBus monitoring: " << e.what();
+        }
     }
 
     void DiskUtilityWindow::setup_toolbar()
@@ -132,6 +148,30 @@ namespace horizon::disks
                     return;
                 }
             }
+        }
+    }
+
+    void DiskUtilityWindow::check_for_hardware_changes()
+    {
+        if (!m_dbus_helper) return;
+
+        bool changed = false;
+        DBusMessage* msg;
+        while ((msg = m_dbus_helper->pop_message()))
+        {
+            if (dbus_message_is_signal(msg, "org.freedesktop.DBus.ObjectManager", "InterfacesAdded") ||
+                dbus_message_is_signal(msg, "org.freedesktop.DBus.ObjectManager", "InterfacesRemoved"))
+            {
+                changed = true;
+            }
+            dbus_message_unref(msg);
+        }
+
+        if (changed)
+        {
+            LOG_INFO << "[DiskUtility] Hardware change detected, refreshing device list.";
+            m_disk_manager.scan();
+            populate_devices();
         }
     }
 

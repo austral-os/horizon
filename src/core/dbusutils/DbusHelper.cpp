@@ -281,4 +281,39 @@ namespace horizon::dbusutils
 
         return paths;
     }
+    void DbusHelper::add_match_rule(const std::string& rule)
+    {
+        DBusError error;
+        dbus_error_init(&error);
+        dbus_bus_add_match(m_connection, rule.c_str(), &error);
+        dbus_connection_flush(m_connection);
+        if (dbus_error_is_set(&error))
+        {
+            std::string msg = "D-Bus add_match error: ";
+            msg += error.message;
+            dbus_error_free(&error);
+            // We might want to log this instead of throwing, but for now:
+            std::cerr << msg << std::endl;
+        }
+    }
+
+    void DbusHelper::remove_match_rule(const std::string& rule)
+    {
+        DBusError error;
+        dbus_error_init(&error);
+        dbus_bus_remove_match(m_connection, rule.c_str(), &error);
+        dbus_connection_flush(m_connection);
+        if (dbus_error_is_set(&error))
+        {
+            dbus_error_free(&error);
+        }
+    }
+
+    DBusMessage* DbusHelper::pop_message(int timeout_ms)
+    {
+        if (m_connection == nullptr) return nullptr;
+
+        dbus_connection_read_write(m_connection, timeout_ms);
+        return dbus_connection_pop_message(m_connection);
+    }
 }

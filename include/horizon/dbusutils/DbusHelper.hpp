@@ -85,6 +85,24 @@ namespace horizon::dbusutils
         std::vector<std::string> get_object_path_list(DBusMessage* msg);
 
         /**
+         * @brief Adds a match rule to listen for specific signals.
+         * @param rule The D-Bus match rule (e.g., "type='signal',interface='org.freedesktop.DBus.Properties'").
+         */
+        void add_match_rule(const std::string& rule);
+
+        /**
+         * @brief Removes a match rule.
+         */
+        void remove_match_rule(const std::string& rule);
+
+        /**
+         * @brief Checks for incoming messages and returns the next one if available.
+         * @param timeout_ms Maximum time to wait for a message.
+         * @return A DBusMessage* representing the message, or nullptr if none. The caller is responsible for unref'ing it.
+         */
+        DBusMessage* pop_message(int timeout_ms = 0);
+
+        /**
          * @brief Retrieves all object paths provided as top-level arguments in a message.
          */
         std::vector<std::string> get_all_object_paths(DBusMessage* msg);
