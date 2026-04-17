@@ -131,6 +131,26 @@ namespace horizon::disks
             return;
         }
 
+        // --- Mount Validation ---
+        if (m_selected_partition) {
+            if (m_selected_partition->is_mounted) {
+                application()->alert("La partición está montada. Por favor, desmóntela primero para poder realizar la operación.", "Borrar");
+                return;
+            }
+        } else if (m_selected_disk) {
+            bool disk_mounted = false;
+            for (const auto& part : m_selected_disk->partitions) {
+                if (part->is_mounted) {
+                    disk_mounted = true;
+                    break;
+                }
+            }
+            if (disk_mounted) {
+                application()->alert("El disco tiene particiones montadas. Por favor, desmóntelas primero para poder realizar la operación.", "Borrar");
+                return;
+            }
+        }
+
         std::string target_name = m_selected_partition ? m_selected_partition->device_path : m_selected_disk->device_path;
         bool is_internal = m_selected_disk ? !m_selected_disk->is_removable : true;
 
