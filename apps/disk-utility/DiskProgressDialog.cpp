@@ -10,7 +10,7 @@ namespace horizon::disks
 {
     DiskProgressDialog::DiskProgressDialog(const std::string &title,
                                            const std::string &initial_status)
-        : WaylandWindow("disk-utility.progress", 350, 160, true, false)
+        : WaylandWindow("disk-utility.progress", 450, 120, true, false)
     {
         set_name(title);
         setup_ui(initial_status);
@@ -33,7 +33,6 @@ namespace horizon::disks
 
         // --- Label: Status ---
         auto status_lbl = std::make_unique<Label>(initial_status);
-        status_lbl->set_font_size(11);
         m_status_label = status_lbl.get();
         m_base_status = initial_status; // Store base text
 
@@ -55,18 +54,23 @@ namespace horizon::disks
         }
     }
 
-    void DiskProgressDialog::set_progress(float percent, const std::string& operation)
+    void DiskProgressDialog::set_progress(float percent, const std::string &operation)
     {
         if (!operation.empty())
         {
             // Map technical operation names to user-friendly text
             std::string status = operation;
-            if (operation == "partition-delete") status = "Borrando la partición anterior...";
-            else if (operation == "create-partition") status = "Creando la nueva partición...";
-            else if (operation == "create-filesystem" || operation == "format-mkfs") status = "Creando el sistema de archivos...";
-            else if (operation == "erase-device") status = "Borrando el dispositivo dispositivo...";
-            else if (operation == "ata-secure-erase") status = "Borrando de forma segura (ATA)...";
-            
+            if (operation == "partition-delete")
+                status = "Borrando la partición anterior...";
+            else if (operation == "create-partition")
+                status = "Creando la nueva partición...";
+            else if (operation == "create-filesystem" || operation == "format-mkfs")
+                status = "Creando el sistema de archivos...";
+            else if (operation == "erase-device")
+                status = "Borrando el dispositivo dispositivo...";
+            else if (operation == "ata-secure-erase")
+                status = "Borrando de forma segura (ATA)...";
+
             m_base_status = status;
         }
 
