@@ -27,3 +27,11 @@ add_custom_command(TARGET text-editor POST_BUILD
     ${CMAKE_CURRENT_BINARY_DIR}/locales
     COMMENT "Copying app locales to build directory"
 )
+
+horizon_install_app(text-editor
+    APP_ID "text-editor"
+    NAME "Text Editor"
+    COMMENT "Standard text editor"
+    ICON "text-editor"
+    CATEGORIES "Utility;TextEditor;"
+)

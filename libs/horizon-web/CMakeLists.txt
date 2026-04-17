@@ -28,3 +28,5 @@ target_link_libraries(horizon-web
     PRIVATE
         ${CAIRO_LIBRARIES}
 )
+
+install(TARGETS horizon-web DESTINATION lib COMPONENT libhorizon)

@@ -12,3 +12,12 @@ target_include_directories(horizon_wall PRIVATE
 target_link_libraries(horizon_wall PRIVATE
     horizon
 )
+
+horizon_install_app(horizon_wall
+    APP_ID "horizon-wall"
+    NAME "Horizon Wallpaper"
+    COMMENT "System Wallpaper Manager"
+    ICON "image-viewer"
+    CATEGORIES "System;"
+    EXTRA_DESKTOP "NoDisplay=true"
+)

@@ -23,3 +23,5 @@ target_link_libraries(horizon-disk-utilities
 )
 
 set_target_properties(horizon-disk-utilities PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+install(TARGETS horizon-disk-utilities DESTINATION lib COMPONENT libhorizon)

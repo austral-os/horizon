@@ -23,3 +23,12 @@ add_custom_command(TARGET top_panel POST_BUILD
     ${CMAKE_CURRENT_SOURCE_DIR}/locales
     $<TARGET_FILE_DIR:top_panel>/locales
 )
+
+horizon_install_app(top_panel
+    APP_ID "top-panel"
+    NAME "Top Panel"
+    COMMENT "System Top Panel"
+    ICON "slingscold"
+    CATEGORIES "System;"
+    EXTRA_DESKTOP "NoDisplay=true"
+)

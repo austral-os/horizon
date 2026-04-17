@@ -1,0 +1,30 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    configure)
+        # Update desktop database
+        if [ -x /usr/bin/update-desktop-database ]; then
+            update-desktop-database -q
+        fi
+        
+        # Update icon cache if common directories exist
+        if [ -x /usr/bin/gtk-update-icon-cache ]; then
+            for dir in /usr/share/icons/*; do
+                if [ -d "$dir" ] && [ -f "$dir/index.theme" ]; then
+                    gtk-update-icon-cache -f -t "$dir" >/dev/null 2>&1 || true
+                fi
+            done
+        fi
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+exit 0

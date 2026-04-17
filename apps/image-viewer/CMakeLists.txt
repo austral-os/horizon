@@ -17,10 +17,10 @@ target_link_libraries(${APP_NAME}
         horizon-image
 )
 
-install(TARGETS ${APP_NAME} DESTINATION bin)
-
-add_custom_command(TARGET ${APP_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/locales
-    $<TARGET_FILE_DIR:${APP_NAME}>/locales
+horizon_install_app(${APP_NAME}
+    APP_ID "image-viewer"
+    NAME "Visor de Imágenes"
+    COMMENT "Ver y rotar imágenes"
+    ICON "image-viewer"
+    CATEGORIES "Graphics;Viewer;"
 )

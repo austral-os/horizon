@@ -25,3 +25,16 @@ add_custom_command(TARGET terminal POST_BUILD
     ${CMAKE_CURRENT_SOURCE_DIR}/locales
     $<TARGET_FILE_DIR:terminal>/locales
 )
+
+horizon_install_app(terminal
+    APP_ID "terminal"
+    NAME "Terminal"
+    COMMENT "Horizon Terminal Emulator"
+    ICON "horizon-terminal"
+    CATEGORIES "System;TerminalEmulator;"
+)
+
+install(DIRECTORY assets/color-schemes/
+    DESTINATION share/horizon/terminal/color-schemes
+    COMPONENT terminal
+)

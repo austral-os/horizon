@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=@APP_NAME@
+Comment=@APP_COMMENT@
+Exec=@APP_EXEC@
+Icon=@APP_ICON@
+Terminal=@APP_TERMINAL@
+Categories=@APP_CATEGORIES@
+@APP_EXTRA@

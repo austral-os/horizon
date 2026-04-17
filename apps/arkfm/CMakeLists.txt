@@ -23,3 +23,11 @@ add_custom_command(TARGET arkfm POST_BUILD
     ${CMAKE_CURRENT_SOURCE_DIR}/locales
     $<TARGET_FILE_DIR:arkfm>/locales
 )
+
+horizon_install_app(arkfm
+    APP_ID "arkfm"
+    NAME "Ark"
+    COMMENT "Ark file manager"
+    ICON "arkfm"
+    CATEGORIES "System;"
+)

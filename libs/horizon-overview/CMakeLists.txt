@@ -19,3 +19,5 @@ add_custom_command(TARGET horizon-overview POST_BUILD
     ${CMAKE_CURRENT_SOURCE_DIR}/locales
     $<TARGET_FILE_DIR:horizon-overview>/locales
 )
+
+install(TARGETS horizon-overview DESTINATION lib COMPONENT libhorizon)

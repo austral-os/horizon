@@ -26,3 +26,5 @@ target_link_libraries(horizon-pdf
 )
 
 set_target_properties(horizon-pdf PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+install(TARGETS horizon-pdf DESTINATION lib COMPONENT libhorizon)

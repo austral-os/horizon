@@ -60,6 +60,14 @@ add_custom_command(TARGET preferences POST_BUILD
     $<TARGET_FILE_DIR:preferences>/locales
 )
 
+horizon_install_app(preferences
+    APP_ID "preferences"
+    NAME "Preferences"
+    COMMENT "Horizon System Preferences"
+    ICON "applications-system"
+    CATEGORIES "System;"
+)
+
 target_include_directories(preferences
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include

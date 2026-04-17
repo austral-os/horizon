@@ -5,6 +5,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# RPATH configuration for installation
+set(CMAKE_SKIP_INSTALL_RPATH TRUE)
+
 find_package(PkgConfig REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
@@ -34,6 +37,18 @@ file(GLOB_RECURSE SOURCES
 
 add_library(horizon SHARED ${SOURCES})
 set_target_properties(horizon PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# Install Core Library
+install(TARGETS horizon
+    DESTINATION lib
+    COMPONENT libhorizon
+)
+
+# Install Core Locales
+install(DIRECTORY share/locales/
+    DESTINATION share/horizon/locales
+    COMPONENT libhorizon
+)
 
 
 # Headers públicos de tu librería
@@ -87,6 +102,9 @@ target_link_libraries(main_window
     PRIVATE
         horizon
 )
+
+# --- Packaging ---
+include(cmake/HorizonPackaging.cmake)
 
 add_subdirectory(apps/top_panel)
 add_subdirectory(apps/dock)

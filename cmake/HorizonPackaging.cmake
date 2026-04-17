@@ -1,0 +1,117 @@
+include(CMakePackageConfigHelpers)
+
+# Function to install an app with its locales and desktop file
+macro(horizon_install_app TARGET_NAME)
+    set(options)
+    set(oneValueArgs APP_ID NAME COMMENT ICON TERMINAL CATEGORIES EXTRA_DESKTOP)
+    set(multiValueArgs)
+    cmake_parse_arguments(APP "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if(NOT APP_APP_ID)
+        set(APP_APP_ID ${TARGET_NAME})
+    endif()
+    if(NOT APP_NAME)
+        set(APP_NAME ${TARGET_NAME})
+    endif()
+    if(NOT APP_COMMENT)
+        set(APP_COMMENT "Horizon ${APP_NAME}")
+    endif()
+    if(NOT APP_ICON)
+        set(APP_ICON "applications-other")
+    endif()
+    if(NOT APP_TERMINAL)
+        set(APP_TERMINAL "false")
+    endif()
+    if(NOT APP_CATEGORIES)
+        set(APP_CATEGORIES "Utility;")
+    endif()
+
+    # Install Binary
+    install(TARGETS ${TARGET_NAME}
+        RUNTIME DESTINATION bin
+        COMPONENT ${APP_APP_ID}
+    )
+
+    # Install Locales
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/locales")
+        install(DIRECTORY locales/
+            DESTINATION share/horizon/apps/${APP_APP_ID}/locales
+            COMPONENT ${APP_APP_ID}
+        )
+    endif()
+
+    # Generate and Install Desktop File
+    set(APP_EXEC "${CMAKE_INSTALL_PREFIX}/bin/${TARGET_NAME}")
+    set(APP_EXTRA "${APP_EXTRA_DESKTOP}")
+    
+    configure_file(
+        ${CMAKE_SOURCE_DIR}/cmake/app.desktop.in
+        ${CMAKE_CURRENT_BINARY_DIR}/${APP_APP_ID}.desktop
+        @ONLY
+    )
+
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${APP_APP_ID}.desktop
+        DESTINATION share/applications
+        COMPONENT ${APP_APP_ID}
+    )
+
+    if(COMMAND cpack_add_component)
+        cpack_add_component(${APP_APP_ID}
+            DISPLAY_NAME "${APP_NAME}"
+            DESCRIPTION "${APP_COMMENT}"
+            DEPENDS libhorizon
+        )
+    endif()
+endmacro()
+
+# CPack Configuration
+set(CPACK_PACKAGE_NAME "horizon-desktop")
+set(CPACK_PACKAGE_VENDOR "Austral OS")
+set(CPACK_PACKAGE_VERSION "0.1.0")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Horizon Desktop Environment Applications")
+set(CPACK_PACKAGE_CONTACT "Horacio <user@example.com>") # Placeholder, should be updated if known
+
+# Configure scripts
+configure_file(${CMAKE_SOURCE_DIR}/cmake/postinst.in ${CMAKE_BINARY_DIR}/postinst @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/cmake/prerm.in ${CMAKE_BINARY_DIR}/prerm @ONLY)
+
+set(CPACK_STRIP_FILES TRUE)
+set(CPACK_SOURCE_GENERATOR "TGZ")
+set(CPACK_SET_DESTDIR ON)
+set(CPACK_INSTALL_PREFIX "/usr")
+
+# Debian specifics
+set(CPACK_GENERATOR "DEB")
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
+set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+
+# Scripts
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_BINARY_DIR}/postinst;${CMAKE_BINARY_DIR}/prerm")
+
+# Allow switching between monolithic and component-based packaging
+# Default to monolithic unless HORIZON_PACKAGING_COMPONENTS is ON
+option(HORIZON_PACKAGING_COMPONENTS "Generate separate .deb for each component" OFF)
+
+if(HORIZON_PACKAGING_COMPONENTS)
+    set(CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE OFF)
+    set(CPACK_COMPONENTS_GROUPING "IGNORE")
+else()
+    set(CPACK_DEB_COMPONENT_INSTALL OFF)
+    set(CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE ON)
+endif()
+
+include(CPack)
+
+# Native Ninja/Make targets for easy packaging
+add_custom_target(package-monolithic
+    COMMAND ${CMAKE_CPACK_COMMAND} -G DEB -D CPACK_DEB_COMPONENT_INSTALL=OFF -D CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE=ON
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Generating monolithic .deb package..."
+)
+
+add_custom_target(package-components
+    COMMAND ${CMAKE_CPACK_COMMAND} -G DEB -D CPACK_DEB_COMPONENT_INSTALL=ON -D CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE=OFF -D CPACK_COMPONENTS_GROUPING=IGNORE
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Generating individual .deb packages for each application..."
+)

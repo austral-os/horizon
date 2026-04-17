@@ -23,3 +23,11 @@ add_custom_command(TARGET nova POST_BUILD
     ${CMAKE_CURRENT_SOURCE_DIR}/locales
     $<TARGET_FILE_DIR:nova>/locales
 )
+
+horizon_install_app(nova
+    APP_ID "nova"
+    NAME "Nova"
+    COMMENT "Nova Web Browser"
+    ICON "nova-browser"
+    CATEGORIES "Internet;"
+)

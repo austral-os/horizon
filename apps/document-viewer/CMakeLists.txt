@@ -30,5 +30,10 @@ target_link_libraries(document-viewer
         ${CAIRO_LIBRARIES}
 )
 
-# Install locales
-install(DIRECTORY locales/ DESTINATION share/horizon/document-viewer/locales)
+horizon_install_app(document-viewer
+    APP_ID "document-viewer"
+    NAME "Visor de Documentos"
+    COMMENT "Ver y leer documentos PDF"
+    ICON "document-viewer"
+    CATEGORIES "Office;Viewer;"
+)

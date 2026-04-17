@@ -16,3 +16,5 @@ target_link_libraries(${LIBRARY_NAME}
     PUBLIC
         horizon
 )
+
+install(TARGETS horizon-image DESTINATION lib COMPONENT libhorizon)

@@ -20,3 +20,12 @@ add_custom_command(TARGET dock POST_BUILD
     ${CMAKE_CURRENT_SOURCE_DIR}/locales
     $<TARGET_FILE_DIR:dock>/locales
 )
+
+horizon_install_app(dock
+    APP_ID "dock"
+    NAME "Horizon Dock"
+    COMMENT "System Dock"
+    ICON "slingscold"
+    CATEGORIES "System;"
+    EXTRA_DESKTOP "NoDisplay=true"
+)

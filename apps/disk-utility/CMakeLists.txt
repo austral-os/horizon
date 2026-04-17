@@ -20,4 +20,10 @@ target_link_libraries(disk-utility
 )
 
 # Standard installation paths for applications
-install(TARGETS disk-utility DESTINATION bin)
+horizon_install_app(disk-utility
+    APP_ID "disk-utility"
+    NAME "Utilidad de Discos"
+    COMMENT "Administrar discos y particiones"
+    ICON "gnome-disks"
+    CATEGORIES "System;Settings;DiskUtility;"
+)

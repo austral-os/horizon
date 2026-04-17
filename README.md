@@ -127,6 +127,45 @@ _Note: Ensure you are in a Wayland session or running a compositor like Weston._
 
 ---
 
+## 📦 Packaging
+
+Horizon supports generating `.deb` packages for Debian-based systems. You can generate a single monolithic package or individual packages for each application.
+
+### 1. Using Ninja (Recommended)
+
+Three targets are available for easy packaging from the `build` directory:
+
+- **Monolithic Package** (All applications + libraries in one `.deb`):
+  ```bash
+  ninja package-monolithic
+  ```
+- **Individual Packages** (One `.deb` per application + library):
+  ```bash
+  ninja package-components
+  ```
+- **Standard Package** (Default configuration):
+  ```bash
+  ninja package
+  ```
+
+### 2. Using CPack directly
+
+If you prefer using CPack or need to override variables:
+
+```bash
+# For monolithic package
+cmake -DHORIZON_PACKAGING_COMPONENTS=OFF .
+cpack -G DEB
+
+# For component-based packages
+cmake -DHORIZON_PACKAGING_COMPONENTS=ON .
+cpack -G DEB
+```
+
+The generated packages will be located in the `build` directory.
+
+---
+
 ## 🌈 Customization (Themes)
 
 Horizon supports dynamic theming via JSON configuration. You can find or create your theme at `~/.config/horizon/color-scheme.json`.

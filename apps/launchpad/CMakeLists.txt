@@ -21,3 +21,11 @@ add_custom_command(TARGET launchpad POST_BUILD
     ${CMAKE_CURRENT_SOURCE_DIR}/locales
     $<TARGET_FILE_DIR:launchpad>/locales
 )
+
+horizon_install_app(launchpad
+    APP_ID "launchpad"
+    NAME "Launchpad"
+    COMMENT "Applications Launcher"
+    ICON "slingscold"
+    CATEGORIES "System;"
+)

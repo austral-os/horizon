@@ -14,3 +14,11 @@ add_custom_command(TARGET aboutus POST_BUILD
     ${CMAKE_CURRENT_SOURCE_DIR}/locales
     $<TARGET_FILE_DIR:aboutus>/locales
 )
+
+horizon_install_app(aboutus
+    APP_ID "aboutus"
+    NAME "About System"
+    COMMENT "About system info"
+    ICON "computer"
+    CATEGORIES "System;"
+)
