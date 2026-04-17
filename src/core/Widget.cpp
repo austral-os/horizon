@@ -597,6 +597,10 @@ namespace horizon
         if (m_enabled != enabled)
         {
             m_enabled = enabled;
+            for (auto &child : m_children)
+            {
+                child->set_enabled(enabled);
+            }
             invalidate();
         }
     }

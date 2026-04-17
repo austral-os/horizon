@@ -56,6 +56,7 @@ namespace horizon::disks
             auto device = std::make_unique<DiskDevice>();
             device->name = name;
             device->device_path = "/dev/" + name;
+            device->udisks_path = "/org/freedesktop/UDisks2/block_devices/" + name;
             
             std::string sys_path = entry.path().string();
             
@@ -199,10 +200,36 @@ namespace horizon::disks
 
     OperationResult DiskManager::unmount_partition(const std::string& device_path)
     {
-        std::string cmd = "umount " + device_path;
-        int res = std::system(cmd.c_str());
-        if (res == 0) return {true, "Successfully unmounted"};
-        return {false, "Failed to unmount partition"};
+        std::string udisks_path;
+        for (const auto& device : m_devices)
+        {
+            for (const auto& partition : device->partitions)
+            {
+                if (partition->device_path == device_path)
+                {
+                    udisks_path = partition->udisks_path;
+                    break;
+                }
+            }
+            if (!udisks_path.empty()) break;
+        }
+
+        if (udisks_path.empty() || !m_dbus_helper)
+        {
+            return {false, "Could not find partition or D-Bus not available"};
+        }
+
+        try {
+            m_dbus_helper->call_void_method_with_empty_dict(
+                "org.freedesktop.UDisks2",
+                udisks_path,
+                "org.freedesktop.UDisks2.Filesystem",
+                "Unmount"
+            );
+            return {true, "Unmount signal sent via UDisks2"};
+        } catch (const std::exception& e) {
+            return {false, std::string("D-Bus error: ") + e.what()};
+        }
     }
 
     OperationResult DiskManager::format_partition(const std::string& device_path, const std::string& fs_type, const std::string& label)
@@ -222,10 +249,52 @@ namespace horizon::disks
 
     OperationResult DiskManager::eject_device(const std::string& device_path)
     {
-        std::string cmd = "eject " + device_path;
-        int res = std::system(cmd.c_str());
-        if (res == 0) return {true, "Successfully ejected"};
-        return {false, "Failed to eject device"};
+        std::string udisks_path;
+        for (const auto& device : m_devices)
+        {
+            if (device->device_path == device_path)
+            {
+                udisks_path = device->udisks_path;
+                break;
+            }
+        }
+
+        if (udisks_path.empty() || !m_dbus_helper)
+        {
+            return {false, "Could not find device or D-Bus not available"};
+        }
+
+        try {
+            // 1. Get the 'Drive' property from the block device
+            auto drive_variant = m_dbus_helper->get_property(
+                "org.freedesktop.UDisks2",
+                udisks_path,
+                "org.freedesktop.UDisks2.Block",
+                "Drive"
+            );
+
+            std::string drive_path;
+            if (std::holds_alternative<std::string>(drive_variant))
+            {
+                drive_path = std::get<std::string>(drive_variant);
+            }
+
+            if (drive_path.empty() || drive_path == "/")
+            {
+                return {false, "Device is not an ejectable drive (no Drive property)"};
+            }
+
+            // 2. Call Eject on the Drive object
+            m_dbus_helper->call_void_method_with_empty_dict(
+                "org.freedesktop.UDisks2",
+                drive_path,
+                "org.freedesktop.UDisks2.Drive",
+                "Eject"
+            );
+            return {true, "Eject signal sent to drive " + drive_path};
+        } catch (const std::exception& e) {
+            return {false, std::string("D-Bus error: ") + e.what()};
+        }
     }
 
 } // namespace horizon::disks

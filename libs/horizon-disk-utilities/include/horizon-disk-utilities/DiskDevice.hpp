@@ -23,6 +23,9 @@ namespace horizon::disks
         bool is_removable{false};
         bool is_ssd{false};
         
+        std::string udisks_path;       // Block device path
+        std::string udisks_drive_path; // Drive object path
+        
         std::vector<std::unique_ptr<DiskPartition>> partitions;
 
         std::string full_model_name() const;

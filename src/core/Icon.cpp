@@ -161,7 +161,8 @@ namespace horizon
             icon_y += (m_available_draw_height - draw_size);
         }
 
-        ctx.drawImage(m_resolved_path, icon_x, icon_y, draw_size, draw_size);
+        float alpha = is_enabled() ? 1.0f : 0.4f;
+        ctx.drawImage(m_resolved_path, icon_x, icon_y, draw_size, draw_size, alpha);
     }
 
 } // namespace horizon

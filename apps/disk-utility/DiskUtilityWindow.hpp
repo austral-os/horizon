@@ -31,6 +31,8 @@ namespace horizon::disks
         void on_item_selected(TreeViewItem* item);
         void check_for_hardware_changes();
         void on_mount_requested();
+        void on_eject_requested();
+        void update_toolbar_state();
         
         DiskManager m_disk_manager;
         std::unique_ptr<dbusutils::DbusHelper> m_dbus_helper;
@@ -42,5 +44,7 @@ namespace horizon::disks
         Notebook* m_notebook{nullptr};
         EraseTab* m_erase_tab{nullptr};
         DiskInfoWidget* m_info_panel{nullptr};
+        ToolbarButton* m_mount_btn{nullptr};
+        ToolbarButton* m_eject_btn{nullptr};
     };
 } // namespace horizon::disks

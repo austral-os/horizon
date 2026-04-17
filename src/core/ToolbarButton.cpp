@@ -39,7 +39,7 @@ namespace horizon
     {
         auto *tm = application()->theme_manager.get();
 
-        if (m_active || m_is_hovered)
+        if (is_enabled() && (m_active || m_is_hovered))
         {
             Color highlight = tm->get_color("titlebar_bg2");
             if (m_active) {

@@ -289,13 +289,14 @@ namespace horizon
         cairo_show_text(cr, text);
     }
 
-    void CairoGraphicContext::drawImage(const std::string &path, int x, int y, int w, int h)
+    void CairoGraphicContext::drawImage(const std::string &path, int x, int y, int w, int h, float alpha)
     {
         if (path.empty() || w <= 0 || h <= 0 || !cr)
             return;
 
         cairo_save(cr);
-        // ... (rest of the function remains the same, but using cr safely)
+        
+        // ... (rest of the logic remains similar but using cairo_paint_with_alpha)
         
         // Determine file type by extension
         bool is_svg = false;
@@ -342,7 +343,10 @@ namespace horizon
             if (img)
             {
                 cairo_set_source_surface(cr, img, x, y);
-                cairo_paint(cr);
+                if (alpha < 1.0f)
+                    cairo_paint_with_alpha(cr, alpha);
+                else
+                    cairo_paint(cr);
             }
 
             if (!m_app && img)
@@ -384,12 +388,12 @@ namespace horizon
                 cairo_translate(cr, x, y);
                 cairo_scale(cr, sx, sy);
                 cairo_set_source_surface(cr, img, 0, 0);
-                cairo_paint(cr);
+                if (alpha < 1.0f)
+                    cairo_paint_with_alpha(cr, alpha);
+                else
+                    cairo_paint(cr);
             }
 
-            // Note: We don't destroy the surface here because it's cached in m_app
-            // If m_app is null (shouldn't happen), we'd need to destroy it, but
-            // the cache persists for the life of the app.
             if (!m_app && img)
             {
                 cairo_surface_destroy(img);

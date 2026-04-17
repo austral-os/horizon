@@ -93,6 +93,11 @@ namespace horizon
         }
 
         gc.setDrawFont(family.c_str(), size, m_font_slant, m_font_weight);
+        
+        if (!is_enabled())
+        {
+            text_color.a *= 0.4f;
+        }
         gc.setColor(text_color);
 
         int line_height = size + 4;

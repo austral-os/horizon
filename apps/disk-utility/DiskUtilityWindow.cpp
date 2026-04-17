@@ -23,7 +23,6 @@ namespace horizon::disks
         try {
             m_dbus_helper = std::make_unique<dbusutils::DbusHelper>(DBUS_BUS_SYSTEM);
             m_dbus_helper->add_match_rule("type='signal',interface='org.freedesktop.DBus.ObjectManager',path='/org/freedesktop/UDisks2'");
-            
             // Add a timer to poll for DBus messages once the application is loaded
             when_application_load.connect([this](EventContext&) {
                 if (application()) {
@@ -38,6 +37,11 @@ namespace horizon::disks
         signals.connect("disk.mount", [this](SignalContext&) {
             this->on_mount_requested();
         });
+        signals.connect("disk.eject", [this](SignalContext&) {
+            this->on_eject_requested();
+        });
+
+        update_toolbar_state();
     }
 
     void DiskUtilityWindow::setup_toolbar()
@@ -53,11 +57,17 @@ namespace horizon::disks
         tb->add_toolbar_widget(std::move(info_btn));
         
         auto mount_ptr = mount_btn.get();
+        m_mount_btn = mount_ptr;
         mount_ptr->when_click.connect([this](EventContext&) {
             this->signals.emit("disk.mount");
         });
         tb->add_toolbar_widget(std::move(mount_btn));
 
+        auto eject_ptr = eject_btn.get();
+        m_eject_btn = eject_ptr;
+        eject_ptr->when_click.connect([this](EventContext&) {
+            this->signals.emit("disk.eject");
+        });
         tb->add_toolbar_widget(std::move(eject_btn));
         tb->add_toolbar_widget(std::move(new_img_btn));
     }
@@ -174,9 +184,34 @@ namespace horizon::disks
                     ctx.disk = disk.get();
                     ctx.partition = m_selected_partition;
                     when_item_selected.run(ctx);
+                    update_toolbar_state();
                     return;
                 }
             }
+        }
+        update_toolbar_state();
+    }
+
+    void DiskUtilityWindow::update_toolbar_state()
+    {
+        if (!m_mount_btn || !m_eject_btn) return;
+
+        if (!m_selected_disk && !m_selected_partition)
+        {
+            m_mount_btn->set_enabled(false);
+            m_eject_btn->set_enabled(false);
+            return;
+        }
+
+        if (m_selected_partition)
+        {
+            m_mount_btn->set_enabled(!m_selected_partition->is_mounted);
+            m_eject_btn->set_enabled(m_selected_partition->is_mounted);
+        }
+        else if (m_selected_disk)
+        {
+            m_mount_btn->set_enabled(false);
+            m_eject_btn->set_enabled(true);
         }
     }
 
@@ -209,14 +244,58 @@ namespace horizon::disks
             if (result.success)
             {
                 application()->alert("Petición de montaje enviada con éxito.", "Montar");
-                // The DBus polling will eventually trigger a scan if UDisks2 emits a signal, 
-                // but we can scan now to be sure.
+                m_disk_manager.scan();
+                populate_devices();
+                update_toolbar_state();
+            }
+            else
+            {
+                application()->alert("Error al montar: " + result.message, "Montar", MessageType::Error);
+            }
+        }
+    }
+
+    void DiskUtilityWindow::on_eject_requested()
+    {
+        if (!m_selected_disk && !m_selected_partition)
+        {
+            application()->alert("Debe seleccionar un disco o partición para expulsar.", "Expulsar");
+            return;
+        }
+
+        if (m_selected_partition)
+        {
+            // If a partition is selected, we perform "Unmount"
+            LOG_INFO << "[DiskUtility] Attempting to unmount " << m_selected_partition->device_path;
+            auto result = m_disk_manager.unmount_partition(m_selected_partition->device_path);
+            if (result.success)
+            {
+                application()->alert("Partición desmontada con éxito.", "Expulsar");
+                m_disk_manager.scan();
+                populate_devices();
+                update_toolbar_state();
+            }
+            else
+            {
+                application()->alert("Error al desmontar: " + result.message, "Expulsar", MessageType::Error);
+            }
+        }
+        else if (m_selected_disk)
+        {
+            // If a disk is selected, we perform "Eject" (hardware-level unmount/detach)
+            LOG_INFO << "[DiskUtility] Attempting to eject device " << m_selected_disk->device_path;
+            
+            // Note: UDisks2 Eject handles unmounting all partitions automatically.
+            auto result = m_disk_manager.eject_device(m_selected_disk->device_path);
+            if (result.success)
+            {
+                application()->alert("Dispositivo expulsado con éxito.", "Expulsar");
                 m_disk_manager.scan();
                 populate_devices();
             }
             else
             {
-                application()->alert("Error al montar: " + result.message, "Montar", MessageType::Error);
+                application()->alert("Error al expulsar: " + result.message, "Expulsar", MessageType::Error);
             }
         }
     }
