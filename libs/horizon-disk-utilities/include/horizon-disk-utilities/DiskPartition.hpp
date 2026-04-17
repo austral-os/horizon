@@ -16,6 +16,7 @@ namespace horizon::disks
         std::string uuid;
         std::string filesystem;    // e.g., "ext4", "ntfs"
         std::string mount_point;
+        std::string udisks_path;   // D-Bus object path
         
         uint64_t capacity{0};      // in bytes
         uint64_t used{0};          // in bytes

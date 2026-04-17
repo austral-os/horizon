@@ -4,6 +4,8 @@
 #include <memory>
 #include <functional>
 
+namespace horizon::dbusutils { class DbusHelper; }
+
 namespace horizon::disks
 {
     /**
@@ -56,6 +58,7 @@ namespace horizon::disks
 
     private:
         std::vector<std::unique_ptr<DiskDevice>> m_devices;
+        std::unique_ptr<dbusutils::DbusHelper> m_dbus_helper;
         
         // Internal helpers
         void scan_sys_block();

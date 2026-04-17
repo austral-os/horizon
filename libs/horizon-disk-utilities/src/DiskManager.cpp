@@ -1,4 +1,5 @@
 #include "horizon-disk-utilities/DiskManager.hpp"
+#include <horizon/dbusutils/DbusHelper.hpp>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -22,8 +23,16 @@ namespace horizon::disks
         return content;
     }
 
-    DiskManager::DiskManager() {}
-    DiskManager::~DiskManager() {}
+    DiskManager::DiskManager()
+    {
+        try {
+            m_dbus_helper = std::make_unique<dbusutils::DbusHelper>(DBUS_BUS_SYSTEM);
+        } catch (...) {
+            std::cerr << "[DiskManager] Warning: Could not initialize DBusHelper" << std::endl;
+        }
+    }
+
+    DiskManager::~DiskManager() = default;
 
     void DiskManager::scan()
     {
@@ -83,6 +92,7 @@ namespace horizon::disks
                     auto partition = std::make_unique<DiskPartition>();
                     partition->name = sub_name;
                     partition->device_path = "/dev/" + sub_name;
+                    partition->udisks_path = "/org/freedesktop/UDisks2/block_devices/" + sub_name;
                     
                     std::string p_size_str = read_file(sub_entry.path().string() + "/size");
                     if (!p_size_str.empty())
@@ -151,13 +161,40 @@ namespace horizon::disks
         mnt_unref_table(tb);
     }
 
-    OperationResult DiskManager::mount_partition(const std::string& device_path, const std::string& mount_point)
+    OperationResult DiskManager::mount_partition(const std::string& device_path, const std::string& /*mount_point*/)
     {
-        // For now, wrapping shell commands as requested "assume root privileges"
-        std::string cmd = "mount " + device_path + " " + mount_point;
-        int res = std::system(cmd.c_str());
-        if (res == 0) return {true, "Successfully mounted"};
-        return {false, "Failed to mount partition"};
+        // Search for the partition object to get its udisks_path
+        std::string udisks_path;
+        for (const auto& device : m_devices)
+        {
+            for (const auto& partition : device->partitions)
+            {
+                if (partition->device_path == device_path)
+                {
+                    udisks_path = partition->udisks_path;
+                    break;
+                }
+            }
+            if (!udisks_path.empty()) break;
+        }
+
+        if (udisks_path.empty() || !m_dbus_helper)
+        {
+            return {false, "Could not find partition or D-Bus not available"};
+        }
+
+        try {
+            // UDisks2 Mount method takes a dict of options (a{sv})
+            m_dbus_helper->call_void_method_with_empty_dict(
+                "org.freedesktop.UDisks2",
+                udisks_path,
+                "org.freedesktop.UDisks2.Filesystem",
+                "Mount"
+            );
+            return {true, "Mount signal sent via UDisks2"};
+        } catch (const std::exception& e) {
+            return {false, std::string("D-Bus error: ") + e.what()};
+        }
     }
 
     OperationResult DiskManager::unmount_partition(const std::string& device_path)

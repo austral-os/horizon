@@ -33,6 +33,11 @@ namespace horizon::disks
         } catch (const std::exception& e) {
             LOG_ERROR << "[DiskUtility] Failed to initialize DBus monitoring: " << e.what();
         }
+
+        // Connect signals
+        signals.connect("disk.mount", [this](SignalContext&) {
+            this->on_mount_requested();
+        });
     }
 
     void DiskUtilityWindow::setup_toolbar()
@@ -46,7 +51,13 @@ namespace horizon::disks
         auto new_img_btn = std::make_unique<ToolbarButton>("Nueva Imagen", "document-new");
 
         tb->add_toolbar_widget(std::move(info_btn));
+        
+        auto mount_ptr = mount_btn.get();
+        mount_ptr->when_click.connect([this](EventContext&) {
+            this->signals.emit("disk.mount");
+        });
         tb->add_toolbar_widget(std::move(mount_btn));
+
         tb->add_toolbar_widget(std::move(eject_btn));
         tb->add_toolbar_widget(std::move(new_img_btn));
     }
@@ -128,14 +139,26 @@ namespace horizon::disks
     void DiskUtilityWindow::on_item_selected(TreeViewItem *item)
     {
         if (!item)
+        {
+            m_selected_disk = nullptr;
+            m_selected_partition = nullptr;
             return;
+        }
+
+        m_selected_disk = nullptr;
+        m_selected_partition = nullptr;
 
         // Simplify: Search in DiskManager
         for (const auto &disk : m_disk_manager.devices())
         {
             if (disk->full_model_name() == item->get_text())
             {
+                m_selected_disk = disk.get();
                 m_info_panel->update_info(*disk);
+                
+                DiskItemSelectedContext ctx;
+                ctx.disk = m_selected_disk;
+                when_item_selected.run(ctx);
                 return;
             }
 
@@ -143,10 +166,57 @@ namespace horizon::disks
             {
                 if ((part->name + " (" + part->human_capacity() + ")") == item->get_text())
                 {
+                    m_selected_partition = part.get();
                     m_info_panel->update_info(*part);
                     m_erase_tab->set_selected_partition(part->device_path);
+                    
+                    DiskItemSelectedContext ctx;
+                    ctx.disk = disk.get();
+                    ctx.partition = m_selected_partition;
+                    when_item_selected.run(ctx);
                     return;
                 }
+            }
+        }
+    }
+
+    void DiskUtilityWindow::on_mount_requested()
+    {
+        if (!m_selected_disk && !m_selected_partition)
+        {
+            application()->alert("Debe seleccionar una partición.", "Montar");
+            return;
+        }
+
+        if (m_selected_disk && !m_selected_partition)
+        {
+            application()->alert("Seleccione la partición del disco.", "Montar");
+            return;
+        }
+
+        if (m_selected_partition)
+        {
+            if (m_selected_partition->is_mounted)
+            {
+                application()->alert("La partición ya está montada en: " + m_selected_partition->mount_point, "Montar");
+                return;
+            }
+
+            // UDisks2 handles mount points and permissions automatically
+            LOG_INFO << "[DiskUtility] Attempting to mount " << m_selected_partition->device_path << " via UDisks2";
+            
+            auto result = m_disk_manager.mount_partition(m_selected_partition->device_path, "");
+            if (result.success)
+            {
+                application()->alert("Petición de montaje enviada con éxito.", "Montar");
+                // The DBus polling will eventually trigger a scan if UDisks2 emits a signal, 
+                // but we can scan now to be sure.
+                m_disk_manager.scan();
+                populate_devices();
+            }
+            else
+            {
+                application()->alert("Error al montar: " + result.message, "Montar", MessageType::Error);
             }
         }
     }
