@@ -188,6 +188,13 @@ namespace horizon::disks
 
         // 3. Launch the worker thread for the disk operation
         std::thread([this, name, fs_type, device_path, is_partition, dialog = progress_dialog]() {
+            // Set progress callback to update dialog
+            this->m_disk_manager.set_progress_callback([dialog](float percent, const std::string& operation) {
+                dialog->post_task([dialog, percent, operation]() {
+                    dialog->set_progress(percent, operation);
+                });
+            });
+
             OperationResult result;
             
             auto update_status = [&](const std::string& status) {
@@ -213,11 +220,11 @@ namespace horizon::disks
                 result = {false, e.what()};
             }
 
-            // Return to main thread via the dialog's task queue (which we are closing anyway)
-            // or directly update UI via application().
-            // IMPORTANT: Window::quit() can be called from any thread if it's thread-safe, 
-            // but usually we post it to the window's own thread.
-            dialog->post_task([this, result, dialog]() mutable {
+            // Clear progress callback
+            this->m_disk_manager.set_progress_callback(nullptr);
+
+            // Return to main thread via the APPLICATION'S task queue to avoid Segfault
+            this->application()->post_task([this, result, dialog]() mutable {
                 dialog->quit(); // This will exit the dialog's run() loop
                 
                 if (result.success) {

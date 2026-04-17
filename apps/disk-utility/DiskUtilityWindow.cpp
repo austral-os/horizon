@@ -26,7 +26,10 @@ namespace horizon::disks
             // Add a timer to poll for DBus messages once the application is loaded
             when_application_load.connect([this](EventContext&) {
                 if (application()) {
-                    application()->add_timer(500, [this]() { check_for_hardware_changes(); }, true);
+                    application()->add_timer(200, [this]() { 
+                        m_disk_manager.process_jobs();
+                        check_for_hardware_changes(); 
+                    }, true);
                 }
             });
         } catch (const std::exception& e) {

@@ -28,6 +28,13 @@ namespace horizon::disks
     {
         try {
             m_dbus_helper = std::make_unique<dbusutils::DbusHelper>(DBUS_BUS_SYSTEM);
+            
+            // Second connection for monitoring ONLY to avoid blocking issues
+            m_monitor_dbus_helper = std::make_unique<dbusutils::DbusHelper>(DBUS_BUS_SYSTEM);
+            m_monitor_dbus_helper->add_match_rule("type='signal',interface='org.freedesktop.DBus.ObjectManager',path='/org/freedesktop/UDisks2'");
+            m_monitor_dbus_helper->add_match_rule("type='signal',interface='org.freedesktop.DBus.Properties',path_namespace='/org/freedesktop/UDisks2/jobs'");
+            // Listen for job removal to clear state
+            m_monitor_dbus_helper->add_match_rule("type='signal',interface='org.freedesktop.DBus.ObjectManager',member='InterfacesRemoved',path='/org/freedesktop/UDisks2'");
         } catch (...) {
             std::cerr << "[DiskManager] Warning: Could not initialize DBusHelper" << std::endl;
         }
@@ -317,7 +324,12 @@ namespace horizon::disks
 
     OperationResult DiskManager::erase_disk(const std::string& device_path, const std::string& fs_type, const std::string& label)
     {
-        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        {
+            std::lock_guard<std::recursive_mutex> lock(m_mutex);
+            m_watching_device_path = device_path;
+            m_active_job_path = "";
+        }
+
         DiskDevice* disk = nullptr;
         for (const auto& d : m_devices)
         {
@@ -379,7 +391,12 @@ namespace horizon::disks
 
     OperationResult DiskManager::recreate_and_format_partition(const std::string& device_path, const std::string& fs_type, const std::string& label)
     {
-        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        {
+            std::lock_guard<std::recursive_mutex> lock(m_mutex);
+            m_watching_device_path = device_path;
+            m_active_job_path = "";
+        }
+
         DiskPartition* part = nullptr;
         DiskDevice* parent_disk = nullptr;
         
@@ -479,6 +496,175 @@ namespace horizon::disks
         }
 
         return supported;
+    }
+
+    void DiskManager::process_jobs()
+    {
+        if (m_watching_device_path.empty() || !m_monitor_dbus_helper) return;
+
+        std::string target_basename = m_watching_device_path;
+        if (target_basename.find_last_of('/') != std::string::npos) {
+            target_basename = target_basename.substr(target_basename.find_last_of('/') + 1);
+        }
+
+        DBusMessage* msg;
+        while ((msg = m_monitor_dbus_helper->pop_message(10)))
+        {
+            const char* path = dbus_message_get_path(msg);
+            const char* interface = dbus_message_get_interface(msg);
+            const char* member = dbus_message_get_member(msg);
+
+            LOG_INFO << "[DiskMonitor] Signal: " << (interface ? interface : "?") 
+                     << "." << (member ? member : "?") << " on " << (path ? path : "?");
+
+            // --- 1. New Jobs (InterfacesAdded) ---
+            if (dbus_message_is_signal(msg, "org.freedesktop.DBus.ObjectManager", "InterfacesAdded"))
+            {
+                DBusMessageIter iter, array_iter;
+                dbus_message_iter_init(msg, &iter);
+                const char* object_path;
+                dbus_message_iter_get_basic(&iter, &object_path);
+                dbus_message_iter_next(&iter);
+                
+                dbus_message_iter_recurse(&iter, &array_iter);
+                while (dbus_message_iter_get_arg_type(&array_iter) != DBUS_TYPE_INVALID)
+                {
+                    DBusMessageIter entry_iter, props_array_iter;
+                    dbus_message_iter_recurse(&array_iter, &entry_iter);
+                    const char* iface;
+                    dbus_message_iter_get_basic(&entry_iter, &iface);
+                    dbus_message_iter_next(&entry_iter);
+                    
+                    if (std::string(iface).find("Job") != std::string::npos)
+                    {
+                        bool is_match = false;
+                        std::string operation = "";
+
+                        dbus_message_iter_recurse(&entry_iter, &props_array_iter);
+                        while (dbus_message_iter_get_arg_type(&props_array_iter) != DBUS_TYPE_INVALID)
+                        {
+                            DBusMessageIter p_entry_iter, variant_iter;
+                            dbus_message_iter_recurse(&props_array_iter, &p_entry_iter);
+                            const char* key;
+                            dbus_message_iter_get_basic(&p_entry_iter, &key);
+                            dbus_message_iter_next(&p_entry_iter);
+                            
+                            if (std::string(key) == "Objects")
+                            {
+                                dbus_message_iter_recurse(&p_entry_iter, &variant_iter);
+                                if (dbus_message_iter_get_arg_type(&variant_iter) == DBUS_TYPE_ARRAY)
+                                {
+                                    DBusMessageIter obj_array_iter;
+                                    dbus_message_iter_recurse(&variant_iter, &obj_array_iter);
+                                    while (dbus_message_iter_get_arg_type(&obj_array_iter) != DBUS_TYPE_INVALID)
+                                    {
+                                        const char* obj_path;
+                                        dbus_message_iter_get_basic(&obj_array_iter, &obj_path);
+                                        if (std::string(obj_path).find(target_basename) != std::string::npos) is_match = true;
+                                        dbus_message_iter_next(&obj_array_iter);
+                                    }
+                                }
+                            }
+                            else if (std::string(key) == "Operation")
+                            {
+                                dbus_message_iter_recurse(&p_entry_iter, &variant_iter);
+                                if (dbus_message_iter_get_arg_type(&variant_iter) == DBUS_TYPE_STRING) {
+                                    const char* op;
+                                    dbus_message_iter_get_basic(&variant_iter, &op);
+                                    operation = op;
+                                }
+                            }
+                            dbus_message_iter_next(&props_array_iter);
+                        }
+                        if (is_match)
+                        {
+                            LOG_INFO << "[DiskMonitor] Linked Job " << object_path << " (" << operation << ") to " << target_basename;
+                            m_active_job_path = object_path;
+                            m_active_job_operation = operation;
+                            // Notify NEW stage started (0%)
+                            if (m_progress_cb) m_progress_cb(0.0f, m_active_job_operation);
+                        }
+                    }
+                    dbus_message_iter_next(&array_iter);
+                }
+            }
+            // --- 2. Job Finished (InterfacesRemoved) ---
+            else if (dbus_message_is_signal(msg, "org.freedesktop.DBus.ObjectManager", "InterfacesRemoved"))
+            {
+                DBusMessageIter iter;
+                dbus_message_iter_init(msg, &iter);
+                const char* object_path;
+                dbus_message_iter_get_basic(&iter, &object_path);
+
+                if (!m_active_job_path.empty() && m_active_job_path == object_path)
+                {
+                    LOG_INFO << "[DiskMonitor] Job " << object_path << " finished. Forcing 100%.";
+                    if (m_progress_cb) m_progress_cb(1.0f, m_active_job_operation);
+                    m_active_job_path = "";
+                    // Keep operation name until next stage starts
+                }
+            }
+            // --- 3. Progress Updates (PropertiesChanged) ---
+            else if (dbus_message_is_signal(msg, "org.freedesktop.DBus.Properties", "PropertiesChanged"))
+            {
+                if (!m_active_job_path.empty() && m_active_job_path == path)
+                {
+                    DBusMessageIter iter;
+                    dbus_message_iter_init(msg, &iter);
+                    const char* iface_name;
+                    dbus_message_iter_get_basic(&iter, &iface_name);
+                    dbus_message_iter_next(&iter);
+                    
+                    DBusMessageIter dict_iter;
+                    dbus_message_iter_recurse(&iter, &dict_iter);
+                    
+                    while (dbus_message_iter_get_arg_type(&dict_iter) != DBUS_TYPE_INVALID)
+                    {
+                        DBusMessageIter entry_iter, variant_iter;
+                        dbus_message_iter_recurse(&dict_iter, &entry_iter);
+                        const char* key;
+                        dbus_message_iter_get_basic(&entry_iter, &key);
+                        dbus_message_iter_next(&entry_iter);
+                        
+                        LOG_INFO << "[DiskMonitor] Changed key on " << iface_name << ": " << key;
+                        
+                        if (std::string(key) == "Progress")
+                        {
+                            dbus_message_iter_recurse(&entry_iter, &variant_iter);
+                            int type = dbus_message_iter_get_arg_type(&variant_iter);
+                            double progress = -1.0;
+
+                            if (type == DBUS_TYPE_DOUBLE)
+                                dbus_message_iter_get_basic(&variant_iter, &progress);
+                            else if (type == DBUS_TYPE_UINT64) {
+                                uint64_t val;
+                                dbus_message_iter_get_basic(&variant_iter, &val);
+                                progress = static_cast<double>(val);
+                            }
+                            else if (type == DBUS_TYPE_UINT32) {
+                                uint32_t val;
+                                dbus_message_iter_get_basic(&variant_iter, &val);
+                                progress = static_cast<double>(val);
+                            }
+                            else if (type == DBUS_TYPE_INT32) {
+                                int32_t val;
+                                dbus_message_iter_get_basic(&variant_iter, &val);
+                                progress = static_cast<double>(val);
+                            }
+
+                            if (progress >= 0.0 && m_progress_cb)
+                            {
+                                float p = static_cast<float>(progress);
+                                if (p > 1.0f) p /= 100.0f;
+                                m_progress_cb(p, m_active_job_operation);
+                            }
+                        }
+                        dbus_message_iter_next(&dict_iter);
+                    }
+                }
+            }
+            dbus_message_unref(msg);
+        }
     }
 
 } // namespace horizon::disks

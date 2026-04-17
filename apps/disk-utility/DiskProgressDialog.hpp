@@ -6,7 +6,7 @@
 namespace horizon
 {
     class Label;
-    class ProgressBar;
+    class LoadingBar;
 
     namespace disks
     {
@@ -24,11 +24,17 @@ namespace horizon
              */
             void set_status(const std::string &status);
 
+            /**
+             * @brief Set the progress percentage (0.0 to 1.0).
+             */
+            void set_progress(float percent, const std::string& operation = "");
+
         private:
             void setup_ui(const std::string &initial_status);
 
+            std::string m_base_status;
             Label *m_status_label{nullptr};
-            ProgressBar *m_progress_bar{nullptr};
+            LoadingBar *m_loading_bar{nullptr};
         };
     }
 }

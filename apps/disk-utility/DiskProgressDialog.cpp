@@ -1,6 +1,6 @@
 #include "DiskProgressDialog.hpp"
 #include <horizon/Label.hpp>
-#include <horizon/ProgressBar.hpp>
+#include <horizon/LoadingBar.hpp>
 #include <horizon/SolidObject.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/Widget.hpp>
@@ -27,16 +27,15 @@ namespace horizon::disks
         container->set_margin(16);
         container->set_spacing(16);
 
-        // --- ProgressBar ---
-        auto progress = std::make_unique<ProgressBar>();
-        progress->set_indeterminate(true);
-        progress->set_fixed_size(24);
-        m_progress_bar = progress.get();
+        // --- LoadingBar ---
+        auto progress = std::make_unique<LoadingBar>();
+        m_loading_bar = progress.get();
 
         // --- Label: Status ---
         auto status_lbl = std::make_unique<Label>(initial_status);
         status_lbl->set_font_size(11);
         m_status_label = status_lbl.get();
+        m_base_status = initial_status; // Store base text
 
         container->add_child(std::move(progress));
         container->add_child(std::move(status_lbl));
@@ -48,9 +47,32 @@ namespace horizon::disks
 
     void DiskProgressDialog::set_status(const std::string &status)
     {
+        m_base_status = status;
         if (m_status_label)
         {
             m_status_label->set_text(status);
+            invalidate();
+        }
+    }
+
+    void DiskProgressDialog::set_progress(float percent, const std::string& operation)
+    {
+        if (!operation.empty())
+        {
+            // Map technical operation names to user-friendly text
+            std::string status = operation;
+            if (operation == "partition-delete") status = "Borrando la partición anterior...";
+            else if (operation == "create-partition") status = "Creando la nueva partición...";
+            else if (operation == "create-filesystem" || operation == "format-mkfs") status = "Creando el sistema de archivos...";
+            else if (operation == "erase-device") status = "Borrando el dispositivo dispositivo...";
+            else if (operation == "ata-secure-erase") status = "Borrando de forma segura (ATA)...";
+            
+            m_base_status = status;
+        }
+
+        if (m_status_label)
+        {
+            m_status_label->set_text(m_base_status);
             invalidate();
         }
     }

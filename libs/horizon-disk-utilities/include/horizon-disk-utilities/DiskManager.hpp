@@ -81,10 +81,27 @@ namespace horizon::disks
          */
         OperationResult recreate_and_format_partition(const std::string& device_path, const std::string& fs_type, const std::string& label);
 
+        /**
+         * @brief Callback for progress updates (0.0 to 1.0).
+         */
+        using ProgressCallback = std::function<void(float, const std::string&)>;
+        void set_progress_callback(ProgressCallback cb) { m_progress_cb = cb; }
+
+        /**
+         * @brief Processes pending D-Bus messages to update job status.
+         */
+        void process_jobs();
+
     private:
         std::vector<std::unique_ptr<DiskDevice>> m_devices;
         std::unique_ptr<dbusutils::DbusHelper> m_dbus_helper;
+        std::unique_ptr<dbusutils::DbusHelper> m_monitor_dbus_helper;
         mutable std::recursive_mutex m_mutex;
+        
+        ProgressCallback m_progress_cb;
+        std::string m_active_job_path;
+        std::string m_active_job_operation;
+        std::string m_watching_device_path;
         
         // Internal helpers
         void scan_sys_block();
