@@ -1,5 +1,5 @@
 #include "AboutWindow.hpp"
-#include "DiskInfo.hpp"
+#include <horizon/DiskInfoWidget.hpp>
 #include "Displays.hpp"
 #include "MemoryInfo.hpp"
 #include <horizon/Overview.hpp>
@@ -47,7 +47,7 @@ namespace horizon
                 else if (ev.button_text == i18n().tr("aboutus.tabs.storage"))
                 {
 
-                    set_content(std::make_unique<DiskInfoWidget>());
+                    set_content(std::make_unique<DiskInfoWidget>(SystemInfo::get_os_disk_info()));
                 }
 
                 else if (ev.button_text == i18n().tr("aboutus.tabs.memory"))

@@ -7,6 +7,7 @@
 #include "horizon/Spacer.hpp"
 #include "horizon/SystemInfo.hpp"
 #include "horizon/Widget.hpp"
+#include "horizon/I18n.hpp"
 #include <memory>
 
 namespace horizon
@@ -14,12 +15,10 @@ namespace horizon
     class DiskInfoWidget : public Widget
     {
     public:
-        DiskInfoWidget()
+        DiskInfoWidget(const DiskInfo& disk_info)
         {
             set_layout_type(WIDGET_LAYOUT_VERTICAL);
             set_margin(40);
-
-            auto disk_info = SystemInfo::get_os_disk_info();
 
             // Header: Icon + Info
             auto header = std::make_unique<Widget>();
@@ -34,13 +33,14 @@ namespace horizon
             auto text_info = std::make_unique<Widget>();
             text_info->set_layout_type(WIDGET_LAYOUT_VERTICAL);
 
-            auto model_label = std::make_unique<Label>(disk_info.brand + " " + disk_info.model);
+            std::string model_text = disk_info.brand + " " + disk_info.model;
+            auto model_label = std::make_unique<Label>(model_text);
             model_label->set_font_size(24);
             model_label->set_font_weight(FONT_WEIGHT_BOLD);
             model_label->set_fixed_size(35);
 
             auto cap_label =
-                std::make_unique<Label>("Total Capacity: " + format_bytes(disk_info.capacity));
+                std::make_unique<Label>(i18n().tr("core.disk_info.total_capacity") + ": " + format_bytes(disk_info.capacity));
             cap_label->set_font_size(16);
             cap_label->set_text_color(Color(0.4f, 0.4f, 0.4f));
             cap_label->set_fixed_size(25);
@@ -74,7 +74,10 @@ namespace horizon
             for (size_t i = 0; i < disk_info.partitions.size(); ++i)
             {
                 const auto &p = disk_info.partitions[i];
-                std::string label = (p.mount_point == "/") ? "System (Root)" : p.mount_point;
+                std::string label = p.mount_point;
+                if (label == "/") label = i18n().tr("core.disk_info.system_root");
+                else if (label.empty()) label = p.name.empty() ? i18n().tr("core.disk_info.partition") + " " + std::to_string(i+1) : p.name;
+                
                 bar->add_category(label, p.capacity, partition_colors[i % partition_colors.size()]);
                 total_assigned += p.capacity;
             }
@@ -82,7 +85,7 @@ namespace horizon
             // Unused space
             if (disk_info.capacity > total_assigned)
             {
-                bar->add_category("Other / Unallocated", disk_info.capacity - total_assigned,
+                bar->add_category(i18n().tr("core.disk_info.unallocated"), disk_info.capacity - total_assigned,
                                   Color("#8E8E93"));
             }
 

@@ -45,6 +45,12 @@
         },
         "search": {
             "placeholder": "Buscar..."
+        },
+        "disk_info": {
+            "total_capacity": "Capacidad Total",
+            "system_root": "Sistema (Raíz)",
+            "partition": "Partición",
+            "unallocated": "Otras / No asignadas"
         }
     }
 }

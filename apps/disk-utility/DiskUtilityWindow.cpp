@@ -1,51 +1,34 @@
 #include "DiskUtilityWindow.hpp"
 #include <horizon/Application.hpp>
 #include <horizon/I18n.hpp>
-#include <horizon/Logger.hpp>
 #include <horizon/Label.hpp>
-#include <horizon/ThemeManager.hpp>
 #include <horizon/Toolbar.hpp>
-#include <horizon/ToolbarButton.hpp>
 #include <horizon/VPanel.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/Window.hpp>
+#include <horizon/EventsManager.hpp>
+#include <horizon/Logger.hpp>
+#include "DiskInfoDialog.hpp"
+#include <thread>
+#include <chrono>
 
 namespace horizon::disks
 {
-    DiskUtilityWindow::DiskUtilityWindow() : ApplicationWindow(horizon::i18n().tr("disk_utility.app_name"))
+    DiskUtilityWindow::DiskUtilityWindow()
+        : ApplicationWindow(horizon::i18n().tr("disk_utility.app_name"))
     {
-        set_size(960, 700);
         setup_toolbar();
         setup_layout();
+        refresh_devices();
 
-        m_disk_manager.scan();
-        populate_devices();
-
-        // Setup hardware monitoring via DBus/UDisks2
-        try {
-            m_dbus_helper = std::make_unique<dbusutils::DbusHelper>(DBUS_BUS_SYSTEM);
-            m_dbus_helper->add_match_rule("type='signal',interface='org.freedesktop.DBus.ObjectManager',path='/org/freedesktop/UDisks2'");
-            // Add a timer to poll for DBus messages once the application is loaded
-            when_application_load.connect([this](EventContext&) {
-                if (application()) {
-                    application()->add_timer(200, [this]() { 
-                        m_disk_manager.process_jobs();
-                        check_for_hardware_changes(); 
-                    }, true);
-                }
-            });
-        } catch (const std::exception& e) {
-            LOG_ERROR << "[DiskUtility] Failed to initialize DBus monitoring: " << e.what();
-        }
-
-        // Connect signals
         signals.connect("disk.mount", [this](SignalContext&) {
             this->on_mount_requested();
         });
         signals.connect("disk.eject", [this](SignalContext&) {
             this->on_eject_requested();
         });
-        signals.connect("disk.refresh", [this](SignalContext&) {
-            this->refresh_devices();
+        signals.connect("disk.info", [this](SignalContext&) {
+            this->on_info_requested();
         });
 
         update_toolbar_state();
@@ -61,6 +44,11 @@ namespace horizon::disks
         auto eject_btn = std::make_unique<ToolbarButton>(horizon::i18n().tr("disk_utility.toolbar.eject"), "media-eject");
         auto new_img_btn = std::make_unique<ToolbarButton>(horizon::i18n().tr("disk_utility.toolbar.new_image"), "document-new");
 
+        auto info_ptr = info_btn.get();
+        m_info_btn = info_ptr;
+        info_ptr->when_click.connect([this](EventContext&) {
+            this->signals.emit("disk.info");
+        });
         tb->add_toolbar_widget(std::move(info_btn));
         
         auto mount_ptr = mount_btn.get();
@@ -90,14 +78,16 @@ namespace horizon::disks
         top_area->set_left_width(240);
         top_area->set_position_type(WidgetPositionTypes::FILL);
 
-        // Sidebar (Left side of VPanel)
-        auto tree = std::make_unique<TreeView>();
-        m_device_tree = tree.get();
-        top_area->add_child(std::move(tree));
+        // TreeView (Left)
+        auto device_tree = std::make_unique<TreeView>();
+        m_device_tree = device_tree.get();
+        device_tree->set_position_type(WidgetPositionTypes::FILL);
+        top_area->add_child(std::move(device_tree)); // VPanel tracks children: 1st=left, 2nd=right
 
-        // Notebook (Right side of VPanel)
+        // Notebook (Right)
         auto notebook = std::make_unique<Notebook>();
         m_notebook = notebook.get();
+        notebook->set_position_type(WidgetPositionTypes::FILL);
 
         // Tab: Borrar
         auto erase_tab = std::make_unique<EraseTab>(m_disk_manager);
@@ -117,7 +107,6 @@ namespace horizon::disks
         // --- Info Panel (Bottom, Full Width) ---
         auto info_panel = std::make_unique<DiskInfoWidget>();
         info_panel->set_fixed_size(120);
-        // info_panel->set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
         info_panel->set_border_width(1);
         info_panel->set_border_color(Color(0.85f, 0.85f, 0.85f, 1.0f));
         m_info_panel = info_panel.get();
@@ -126,6 +115,9 @@ namespace horizon::disks
         main_container->add_child(std::move(info_panel));
 
         set_content(std::move(main_container));
+
+        m_device_tree->when_item_selected.connect([this](TreeViewItem *item)
+                                                  { this->on_item_selected(item); });
     }
 
     void DiskUtilityWindow::populate_devices()
@@ -148,9 +140,6 @@ namespace horizon::disks
 
             m_device_tree->add_root_item(std::move(disk_item));
         }
-
-        m_device_tree->when_item_selected.connect([this](TreeViewItem *item)
-                                                  { this->on_item_selected(item); });
     }
 
     void DiskUtilityWindow::on_item_selected(TreeViewItem *item)
@@ -159,13 +148,13 @@ namespace horizon::disks
         {
             m_selected_disk = nullptr;
             m_selected_partition = nullptr;
+            update_toolbar_state();
             return;
         }
 
         m_selected_disk = nullptr;
         m_selected_partition = nullptr;
 
-        // Simplify: Search in DiskManager
         for (const auto &disk : m_disk_manager.devices())
         {
             if (disk->full_model_name() == item->get_text())
@@ -204,9 +193,12 @@ namespace horizon::disks
 
     void DiskUtilityWindow::update_toolbar_state()
     {
-        if (!m_mount_btn || !m_eject_btn) return;
+        if (!m_mount_btn || !m_eject_btn || !m_info_btn) return;
 
-        if (!m_selected_disk && !m_selected_partition)
+        bool has_selection = (m_selected_disk != nullptr);
+        m_info_btn->set_enabled(has_selection);
+
+        if (!has_selection)
         {
             m_mount_btn->set_enabled(false);
             m_eject_btn->set_enabled(false);
@@ -234,56 +226,38 @@ namespace horizon::disks
 
     void DiskUtilityWindow::on_mount_requested()
     {
-        if (!m_selected_disk && !m_selected_partition)
+        if (!m_selected_partition)
         {
             application()->alert(horizon::i18n().tr("disk_utility.errors.select_partition"), horizon::i18n().tr("disk_utility.toolbar.mount"));
             return;
         }
 
-        if (m_selected_disk && !m_selected_partition)
+        if (m_selected_partition->is_mounted)
         {
-            application()->alert("Seleccione la partición del disco.", "Montar");
+            application()->alert("La partición ya está montada en: " + m_selected_partition->mount_point, "Montar");
             return;
         }
 
-        if (m_selected_partition)
+        auto result = m_disk_manager.mount_partition(m_selected_partition->device_path, "");
+        if (result.success)
         {
-            if (m_selected_partition->is_mounted)
-            {
-                application()->alert("La partición ya está montada en: " + m_selected_partition->mount_point, "Montar");
-                return;
-            }
-
-            // UDisks2 handles mount points and permissions automatically
-            LOG_INFO << "[DiskUtility] Attempting to mount " << m_selected_partition->device_path << " via UDisks2";
-            
-            auto result = m_disk_manager.mount_partition(m_selected_partition->device_path, "");
-            if (result.success)
-            {
-                application()->alert("Petición de montaje enviada con éxito.", "Montar");
-                m_disk_manager.scan();
-                populate_devices();
-                update_toolbar_state();
-            }
-            else
-            {
-                application()->alert("Error al montar: " + result.message, "Montar", MessageType::Error);
-            }
+            application()->alert("Petición de montaje enviada con éxito.", "Montar");
+            m_disk_manager.scan();
+            populate_devices();
+            update_toolbar_state();
+        }
+        else
+        {
+            application()->alert("Error al montar: " + result.message, "Montar", MessageType::Error);
         }
     }
 
     void DiskUtilityWindow::on_eject_requested()
     {
-        if (!m_selected_disk && !m_selected_partition)
-        {
-            application()->alert("Debe seleccionar un disco o partición para expulsar.", "Expulsar");
-            return;
-        }
+        if (!m_selected_disk) return;
 
         if (m_selected_partition)
         {
-            // If a partition is selected, we perform "Unmount"
-            LOG_INFO << "[DiskUtility] Attempting to unmount " << m_selected_partition->device_path;
             auto result = m_disk_manager.unmount_partition(m_selected_partition->device_path);
             if (result.success)
             {
@@ -297,48 +271,32 @@ namespace horizon::disks
                 application()->alert("Error al desmontar: " + result.message, "Expulsar", MessageType::Error);
             }
         }
-        else if (m_selected_disk)
-        {
-            // If a disk is selected, we perform "Eject" (hardware-level unmount/detach)
-            LOG_INFO << "[DiskUtility] Attempting to eject device " << m_selected_disk->device_path;
-            
-            // Note: UDisks2 Eject handles unmounting all partitions automatically.
-            auto result = m_disk_manager.eject_device(m_selected_disk->device_path);
-            if (result.success)
-            {
-                application()->alert("Dispositivo expulsado con éxito.", "Expulsar");
-                m_disk_manager.scan();
-                populate_devices();
-            }
-            else
-            {
-                application()->alert("Error al expulsar: " + result.message, "Expulsar", MessageType::Error);
-            }
-        }
     }
 
-    void DiskUtilityWindow::check_for_hardware_changes()
+    void DiskUtilityWindow::on_info_requested()
     {
-        if (!m_dbus_helper) return;
+        if (!m_selected_disk) return;
 
-        bool changed = false;
-        DBusMessage* msg;
-        while ((msg = m_dbus_helper->pop_message()))
+        DiskInfo info;
+        info.brand = m_selected_disk->vendor;
+        info.model = m_selected_disk->model;
+        info.capacity = m_selected_disk->capacity;
+
+        for (const auto& part : m_selected_disk->partitions)
         {
-            if (dbus_message_is_signal(msg, "org.freedesktop.DBus.ObjectManager", "InterfacesAdded") ||
-                dbus_message_is_signal(msg, "org.freedesktop.DBus.ObjectManager", "InterfacesRemoved"))
-            {
-                changed = true;
-            }
-            dbus_message_unref(msg);
+            PartitionInfo p;
+            p.name = part->name;
+            p.mount_point = part->mount_point;
+            p.capacity = part->capacity;
+            p.used = part->used;
+            info.partitions.push_back(p);
         }
 
-        if (changed)
-        {
-            LOG_INFO << "[DiskUtility] Hardware change detected, refreshing device list.";
-            m_disk_manager.scan();
-            populate_devices();
-        }
+        auto dialog = std::make_shared<DiskInfoDialog>(info);
+        std::thread([dialog]() {
+            dialog->initialize();
+            dialog->run();
+        }).detach();
     }
 
 } // namespace horizon::disks

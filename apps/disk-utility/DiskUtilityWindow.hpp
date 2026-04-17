@@ -32,6 +32,7 @@ namespace horizon::disks
         void check_for_hardware_changes();
         void on_mount_requested();
         void on_eject_requested();
+        void on_info_requested();
         void update_toolbar_state();
         void refresh_devices();
         
@@ -47,5 +48,6 @@ namespace horizon::disks
         DiskInfoWidget* m_info_panel{nullptr};
         ToolbarButton* m_mount_btn{nullptr};
         ToolbarButton* m_eject_btn{nullptr};
+        ToolbarButton* m_info_btn{nullptr};
     };
 } // namespace horizon::disks
