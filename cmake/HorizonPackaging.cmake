@@ -1,4 +1,5 @@
 include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
 
 # Function to install an app with its locales and desktop file
 macro(horizon_install_app TARGET_NAME)

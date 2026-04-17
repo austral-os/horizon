@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Horizon
+Comment=Horizon Desktop Environment on Wayfire
+Exec=@CMAKE_INSTALL_FULL_BINDIR@/start-horizon-session-wayfire.sh
+Icon=wayfire
+Type=Application
+DesktopNames=Wayfire;wlroots

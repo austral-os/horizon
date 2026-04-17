@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Horizon (fallback)
+Comment=Horizon Desktop Environment on Labwc
+Exec=@CMAKE_INSTALL_FULL_BINDIR@/start-horizon-session-labwc.sh
+Icon=labwc
+Type=Application
+DesktopNames=Labwc;wlroots
