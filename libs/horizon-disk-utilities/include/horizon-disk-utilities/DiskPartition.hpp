@@ -27,5 +27,6 @@ namespace horizon::disks
         // Helper to get human readable size
         std::string human_capacity() const;
         std::string human_used() const;
+        std::string human_available() const;
     };
 } // namespace horizon::disks

@@ -52,9 +52,8 @@ namespace horizon::disks
         m_mount_point_lbl->set_text(partition.is_mounted ? partition.mount_point : "No montado");
         m_format_lbl->set_text(partition.filesystem);
         m_capacity_lbl->set_text(partition.human_capacity());
-        m_used_lbl->set_text(partition.human_used());
-        
-        m_available_lbl->set_text("(calculando...)"); 
+        m_used_lbl->set_text(partition.is_mounted ? partition.human_used() : "-");
+        m_available_lbl->set_text(partition.is_mounted ? partition.human_available() : "No disponible");
     }
 
     void DiskInfoWidget::update_info(const DiskDevice& device)

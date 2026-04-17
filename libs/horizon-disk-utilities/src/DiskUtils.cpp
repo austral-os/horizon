@@ -24,6 +24,7 @@ namespace horizon::disks
 
     std::string DiskPartition::human_capacity() const { return to_human_size(capacity); }
     std::string DiskPartition::human_used() const { return to_human_size(used); }
+    std::string DiskPartition::human_available() const { return to_human_size(capacity > used ? capacity - used : 0); }
 
     std::string DiskDevice::full_model_name() const
     {
