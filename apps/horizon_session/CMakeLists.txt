@@ -54,3 +54,12 @@ foreach(script IN LISTS SESSION_SCRIPTS)
         COMPONENT session
     )
 endforeach()
+
+# --- Fonts ---
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/fonts")
+    install(DIRECTORY data/fonts/
+        DESTINATION share/fonts/horizon
+        COMPONENT session
+    )
+endif()
