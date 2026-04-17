@@ -1,5 +1,6 @@
 #include "DiskUtilityWindow.hpp"
 #include <horizon/Application.hpp>
+#include <horizon/I18n.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/ThemeManager.hpp>
@@ -10,7 +11,7 @@
 
 namespace horizon::disks
 {
-    DiskUtilityWindow::DiskUtilityWindow() : ApplicationWindow("Utilidad de Discos")
+    DiskUtilityWindow::DiskUtilityWindow() : ApplicationWindow(horizon::i18n().tr("disk_utility.app_name"))
     {
         set_size(960, 700);
         setup_toolbar();
@@ -55,10 +56,10 @@ namespace horizon::disks
         auto tb = toolbar();
         tb->set_bottom_height(58);
 
-        auto info_btn = std::make_unique<ToolbarButton>("Información", "info");
-        auto mount_btn = std::make_unique<ToolbarButton>("Montar", "media-mount");
-        auto eject_btn = std::make_unique<ToolbarButton>("Expulsar", "media-eject");
-        auto new_img_btn = std::make_unique<ToolbarButton>("Nueva Imagen", "document-new");
+        auto info_btn = std::make_unique<ToolbarButton>(horizon::i18n().tr("disk_utility.toolbar.info"), "info");
+        auto mount_btn = std::make_unique<ToolbarButton>(horizon::i18n().tr("disk_utility.toolbar.mount"), "media-mount");
+        auto eject_btn = std::make_unique<ToolbarButton>(horizon::i18n().tr("disk_utility.toolbar.eject"), "media-eject");
+        auto new_img_btn = std::make_unique<ToolbarButton>(horizon::i18n().tr("disk_utility.toolbar.new_image"), "document-new");
 
         tb->add_toolbar_widget(std::move(info_btn));
         
@@ -101,15 +102,15 @@ namespace horizon::disks
         // Tab: Borrar
         auto erase_tab = std::make_unique<EraseTab>(m_disk_manager);
         m_erase_tab = erase_tab.get();
-        m_notebook->add_tab({"Borrar", std::move(erase_tab)});
+        m_notebook->add_tab({horizon::i18n().tr("disk_utility.tabs.erase"), std::move(erase_tab)});
 
         auto partition_body = std::make_unique<Widget>();
-        partition_body->add_child(std::make_unique<Label>("Contenido de la pestaña Particiones"));
-        m_notebook->add_tab({"Particiones", std::move(partition_body)});
+        partition_body->add_child(std::make_unique<Label>(horizon::i18n().tr("disk_utility.placeholders.partitions")));
+        m_notebook->add_tab({horizon::i18n().tr("disk_utility.tabs.partitions"), std::move(partition_body)});
 
         auto restore_body = std::make_unique<Widget>();
-        restore_body->add_child(std::make_unique<Label>("Contenido de la pestaña Restaurar"));
-        m_notebook->add_tab({"Restaurar", std::move(restore_body)});
+        restore_body->add_child(std::make_unique<Label>(horizon::i18n().tr("disk_utility.placeholders.restore")));
+        m_notebook->add_tab({horizon::i18n().tr("disk_utility.tabs.restore"), std::move(restore_body)});
 
         top_area->add_child(std::move(notebook));
 
@@ -235,7 +236,7 @@ namespace horizon::disks
     {
         if (!m_selected_disk && !m_selected_partition)
         {
-            application()->alert("Debe seleccionar una partición.", "Montar");
+            application()->alert(horizon::i18n().tr("disk_utility.errors.select_partition"), horizon::i18n().tr("disk_utility.toolbar.mount"));
             return;
         }
 

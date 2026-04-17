@@ -1,0 +1,68 @@
+{
+    "disk_utility": {
+        "app_name": "Disk Utility",
+        "toolbar": {
+            "info": "Information",
+            "mount": "Mount",
+            "eject": "Eject",
+            "new_image": "New Image"
+        },
+        "tabs": {
+            "erase": "Erase",
+            "partitions": "Partitions",
+            "restore": "Restore"
+        },
+        "info": {
+            "mount_point": "Mount point:",
+            "format": "Format:",
+            "capacity": "Capacity:",
+            "available": "Available:",
+            "used_space": "Used space:",
+            "not_mounted": "Not mounted",
+            "not_available": "Not available",
+            "partitions_suffix": " partitions",
+            "connected": "Connected"
+        },
+        "operations": {
+            "preparing": "Preparing operation...",
+            "partition_delete": "Deleting previous partition...",
+            "create_partition": "Creating new partition...",
+            "create_filesystem": "Creating file system...",
+            "erase_device": "Erasing device...",
+            "ata_secure_erase": "Securely erasing (ATA)...",
+            "preparing_gpt": "Preparing GPT table...",
+            "success": "The erase operation completed successfully.",
+            "error_prefix": "Error erasing: "
+        },
+        "erase": {
+            "title": "To erase all information from a disk or volume:",
+            "selection_hint": "Select an item from the left.",
+            "instructions": "1. Select the disk or volume in the list on the left.\n2. Specify format and name.\n3. Click Erase.",
+            "label_name": "Name:",
+            "label_format": "Format:",
+            "placeholder_name": "Untitled",
+            "btn_erase": "Erase...",
+            "status_selected_partition": "Selected: Partition ",
+            "status_selected_disk": "Selected: Disk ",
+            "warning_title": "Warning",
+            "warning_msg": "This operation will permanently erase all data on the partition. Do you want to continue?",
+            "confirm_title": "Confirm Erase",
+            "confirm_device": "Are you sure you want to erase {device}?",
+            "confirm_loss": " All data will be permanently lost.",
+            "confirm_internal": "WARNING! This is an INTERNAL DISK. ",
+            "confirm_sudo": "\n\nAdministrator permissions will be required.",
+            "btn_continue": "Continue"
+        },
+        "placeholders": {
+            "partitions": "Partitions tab content",
+            "restore": "Restore tab content"
+        },
+        "errors": {
+            "select_partition": "You must select a partition.",
+            "select_for_erase": "Please select a disk or partition to erase.",
+            "invalid_format": "Select a valid format.",
+            "mounted_partition": "The partition is mounted. Please unmount it first to perform the operation.",
+            "mounted_disk": "The disk has mounted partitions. Please unmount them first to perform the operation."
+        }
+    }
+}

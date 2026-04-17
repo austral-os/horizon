@@ -1,4 +1,5 @@
 #include "EraseTab.hpp"
+#include <horizon/I18n.hpp>
 #include "horizon/AirObject.hpp"
 #include "horizon/Spacer.hpp"
 #include <horizon/Application.hpp>
@@ -25,21 +26,18 @@ namespace horizon::disks
         add_child(Spacer());
 
         auto title =
-            std::make_unique<Label>("Para borrar toda la información de un disco o volumen:");
+            std::make_unique<Label>(horizon::i18n().tr("disk_utility.erase.title"));
         title->set_font_weight(FontWeight::FONT_WEIGHT_BOLD);
         title->set_fixed_size(20);
         add_child(std::move(title));
 
-        auto status = std::make_unique<Label>("Seleccione un ítem de la izquierda.");
+        auto status = std::make_unique<Label>(horizon::i18n().tr("disk_utility.erase.selection_hint"));
         status->set_text_color({0.7f, 0.7f, 0.7f, 1.0f});
         status->set_fixed_size(20);
         m_status_label = status.get();
         add_child(std::move(status));
 
-        auto instructions = std::make_unique<Label>(
-            "1. Seleccione el disco o volumen en la lista de la izquierda.\n"
-            "2. Especifique formato y nombre.\n"
-            "3. Haga clic en Borrar.");
+        auto instructions = std::make_unique<Label>(horizon::i18n().tr("disk_utility.erase.instructions"));
         instructions->set_fixed_size(100);
         add_child(std::move(instructions));
 
@@ -49,7 +47,7 @@ namespace horizon::disks
         form_container->set_spacing(5);
         form_container->set_fixed_size(30);
 
-        auto format_label = std::make_unique<Label>("Formato:");
+        auto format_label = std::make_unique<Label>(horizon::i18n().tr("disk_utility.erase.label_format"));
         format_label->set_fixed_size(120);
 
         auto combo = std::make_unique<Combo>();
@@ -74,11 +72,11 @@ namespace horizon::disks
         name_container->set_spacing(5);
         name_container->set_fixed_size(30);
 
-        auto name_label = std::make_unique<Label>("Nombre:");
+        auto name_label = std::make_unique<Label>(horizon::i18n().tr("disk_utility.erase.label_name"));
         name_label->set_fixed_size(120);
 
         auto entry = std::make_unique<TextBox<horizon::TextPolicy>>();
-        entry->set_placeholder("Sin título");
+        entry->set_placeholder(horizon::i18n().tr("disk_utility.erase.placeholder_name"));
         entry->set_fixed_size(-1);
         m_name_entry = entry.get();
 
@@ -93,7 +91,7 @@ namespace horizon::disks
         button_container->set_fixed_size(30);
 
         auto erase_btn = std::make_unique<Button<AirObject>>();
-        erase_btn->set_text("Borrar...");
+        erase_btn->set_text(horizon::i18n().tr("disk_utility.erase.btn_erase"));
         erase_btn->set_fixed_size(150);
         erase_btn->set_accent_color(WidgetAccentColor::Default);
         erase_btn->when_click.connect([this](MouseButtonEventContext &)
@@ -112,33 +110,33 @@ namespace horizon::disks
         m_selected_partition = partition;
 
         if (m_selected_partition) {
-            m_status_label->set_text("Seleccionado: Partición " + m_selected_partition->device_path + " (" + m_selected_partition->human_capacity() + ")");
+            m_status_label->set_text(horizon::i18n().tr("disk_utility.erase.status_selected_partition") + m_selected_partition->device_path + " (" + m_selected_partition->human_capacity() + ")");
             m_name_entry->set_text(m_selected_partition->label);
         } else if (m_selected_disk) {
-            m_status_label->set_text("Seleccionado: Disco " + m_selected_disk->device_path + " (" + m_selected_disk->human_capacity() + ")");
+            m_status_label->set_text(horizon::i18n().tr("disk_utility.erase.status_selected_disk") + m_selected_disk->device_path + " (" + m_selected_disk->human_capacity() + ")");
             m_name_entry->set_text("");
         } else {
-            m_status_label->set_text("Seleccione un ítem de la izquierda.");
+            m_status_label->set_text(horizon::i18n().tr("disk_utility.erase.selection_hint"));
         }
     }
 
     void EraseTab::on_erase_clicked()
     {
         if (!m_selected_disk && !m_selected_partition) {
-            application()->alert("Por favor, seleccione un disco o partición para borrar.", "Borrar");
+            application()->alert(horizon::i18n().tr("disk_utility.errors.select_for_erase"), horizon::i18n().tr("disk_utility.tabs.erase"));
             return;
         }
 
         auto selected_format = m_format_combo->selected_item();
         if (!selected_format) {
-            application()->alert("Seleccione un formato válido.", "Borrar");
+            application()->alert(horizon::i18n().tr("disk_utility.errors.invalid_format"), horizon::i18n().tr("disk_utility.tabs.erase"));
             return;
         }
 
         // --- Mount Validation ---
         if (m_selected_partition) {
             if (m_selected_partition->is_mounted) {
-                application()->alert("La partición está montada. Por favor, desmóntela primero para poder realizar la operación.", "Borrar");
+                application()->alert(horizon::i18n().tr("disk_utility.errors.mounted_partition"), horizon::i18n().tr("disk_utility.tabs.erase"));
                 return;
             }
         } else if (m_selected_disk) {
@@ -150,7 +148,7 @@ namespace horizon::disks
                 }
             }
             if (disk_mounted) {
-                application()->alert("El disco tiene particiones montadas. Por favor, desmóntelas primero para poder realizar la operación.", "Borrar");
+                application()->alert(horizon::i18n().tr("disk_utility.errors.mounted_disk"), horizon::i18n().tr("disk_utility.tabs.erase"));
                 return;
             }
         }
@@ -158,12 +156,14 @@ namespace horizon::disks
         std::string target_name = m_selected_partition ? m_selected_partition->device_path : m_selected_disk->device_path;
         bool is_internal = m_selected_disk ? !m_selected_disk->is_removable : true;
 
-        std::string confirm_msg = "¿Está seguro de que desea borrar " + target_name + "? Todos los datos se perderán permanentemente.";
+        horizon::Params params;
+        params["device"] = target_name;
+        std::string confirm_msg = horizon::i18n().tr("disk_utility.erase.confirm_device", params) + horizon::i18n().tr("disk_utility.erase.confirm_loss");
         if (is_internal) {
-            confirm_msg = "¡ADVERTENCIA! Este es un DISCO INTERNO. " + confirm_msg + "\n\nSe requerirán permisos de administrador.";
+            confirm_msg = horizon::i18n().tr("disk_utility.erase.confirm_internal") + confirm_msg + horizon::i18n().tr("disk_utility.erase.confirm_sudo");
         }
 
-        if (!application()->confirm(confirm_msg, "Confirmar Borrado")) {
+        if (!application()->confirm(confirm_msg, horizon::i18n().tr("disk_utility.erase.confirm_title"))) {
             return;
         }
 
@@ -178,7 +178,7 @@ namespace horizon::disks
         // --- Start Async Erase ---
         
         // 1. Create the dialog
-        auto progress_dialog = std::make_shared<DiskProgressDialog>("Borrando...", "Preparando operación...");
+        auto progress_dialog = std::make_shared<DiskProgressDialog>(horizon::i18n().tr("disk_utility.erase.btn_erase"), horizon::i18n().tr("disk_utility.operations.preparing"));
         
         // 2. Launch the dialog event loop in its own thread
         std::thread([dialog = progress_dialog]() {
@@ -208,11 +208,11 @@ namespace horizon::disks
 
             try {
                 if (is_partition) {
-                    update_status("Borrando partición anterior...");
+                    update_status(horizon::i18n().tr("disk_utility.operations.partition_delete"));
                     result = this->m_disk_manager.recreate_and_format_partition(
                         device_path, fs_type, name);
                 } else {
-                    update_status("Preparando tabla GPT...");
+                    update_status(horizon::i18n().tr("disk_utility.operations.preparing_gpt"));
                     result = this->m_disk_manager.erase_disk(
                         device_path, fs_type, name);
                 }
@@ -228,7 +228,7 @@ namespace horizon::disks
                 dialog->quit(); // This will exit the dialog's run() loop
                 
                 if (result.success) {
-                    this->application()->alert("La operación de borrado se completó con éxito.", "Borrar");
+                    this->application()->alert(horizon::i18n().tr("disk_utility.operations.success"), horizon::i18n().tr("disk_utility.tabs.erase"));
                     
                     // Trigger refresh in main window
                     Widget* p = this->parent();
@@ -240,7 +240,7 @@ namespace horizon::disks
                     }
                 } else {
                     LOG_ERROR << "[DiskUtility] Erase failed: " << result.message;
-                    this->application()->alert("Error al borrar: " + result.message, "Borrar", MessageType::Error);
+                    this->application()->alert(horizon::i18n().tr("disk_utility.operations.error_prefix") + result.message, horizon::i18n().tr("disk_utility.tabs.erase"), MessageType::Error);
                 }
             });
         }).detach();

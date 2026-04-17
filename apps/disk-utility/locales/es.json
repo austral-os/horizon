@@ -1,0 +1,68 @@
+{
+    "disk_utility": {
+        "app_name": "Utilidad de Discos",
+        "toolbar": {
+            "info": "Información",
+            "mount": "Montar",
+            "eject": "Expulsar",
+            "new_image": "Nueva Imagen"
+        },
+        "tabs": {
+            "erase": "Borrar",
+            "partitions": "Particiones",
+            "restore": "Restaurar"
+        },
+        "info": {
+            "mount_point": "Punto de montaje:",
+            "format": "Formato:",
+            "capacity": "Capacidad:",
+            "available": "Disponible:",
+            "used_space": "Espacio utilizado:",
+            "not_mounted": "No montado",
+            "not_available": "No disponible",
+            "partitions_suffix": " particiones",
+            "connected": "Conectado"
+        },
+        "operations": {
+            "preparing": "Preparando operación...",
+            "partition_delete": "Borrando la partición anterior...",
+            "create_partition": "Creando la nueva partición...",
+            "create_filesystem": "Creando el sistema de archivos...",
+            "erase_device": "Borrando el dispositivo...",
+            "ata_secure_erase": "Borrando de forma segura (ATA)...",
+            "preparing_gpt": "Preparando tabla GPT...",
+            "success": "La operación de borrado se completó con éxito.",
+            "error_prefix": "Error al borrar: "
+        },
+        "erase": {
+            "title": "Para borrar toda la información de un disco o volumen:",
+            "selection_hint": "Seleccione un ítem de la izquierda.",
+            "instructions": "1. Seleccione el disco o volumen en la lista de la izquierda.\n2. Especifique formato y nombre.\n3. Haga clic en Borrar.",
+            "label_name": "Nombre:",
+            "label_format": "Formato:",
+            "placeholder_name": "Sin título",
+            "btn_erase": "Borrar...",
+            "status_selected_partition": "Seleccionado: Partición ",
+            "status_selected_disk": "Seleccionado: Disco ",
+            "warning_title": "Advertencia",
+            "warning_msg": "Esta operación borrará permanentemente todos los datos en la partición. ¿Desea continuar?",
+            "confirm_title": "Confirmar Borrado",
+            "confirm_device": "¿Está seguro de que desea borrar {device}?",
+            "confirm_loss": " Todos los datos se perderán permanentemente.",
+            "confirm_internal": "¡ADVERTENCIA! Este es un DISCO INTERNO. ",
+            "confirm_sudo": "\n\nSe requerirán permisos de administrador.",
+            "btn_continue": "Continuar"
+        },
+        "placeholders": {
+            "partitions": "Contenido de la pestaña Particiones",
+            "restore": "Contenido de la pestaña Restaurar"
+        },
+        "errors": {
+            "select_partition": "Debe seleccionar una partición.",
+            "select_for_erase": "Por favor, seleccione un disco o partición para borrar.",
+            "invalid_format": "Seleccione un formato válido.",
+            "mounted_partition": "La partición está montada. Por favor, desmóntela primero para poder realizar la operación.",
+            "mounted_disk": "El disco tiene particiones montadas. Por favor, desmóntelas primero para poder realizar la operación."
+        }
+    }
+}

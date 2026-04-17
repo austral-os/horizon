@@ -1,4 +1,6 @@
 #include "DiskInfoWidget.hpp"
+#include <horizon/Application.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::disks
 {
@@ -12,16 +14,16 @@ namespace horizon::disks
         left_col->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         left_col->set_spacing(5);
         
-        m_mount_point_lbl = create_info_row(left_col.get(), "Punto de montaje:");
-        m_format_lbl = create_info_row(left_col.get(), "Formato:");
+        m_mount_point_lbl = create_info_row(left_col.get(), horizon::i18n().tr("disk_utility.info.mount_point"));
+        m_format_lbl = create_info_row(left_col.get(), horizon::i18n().tr("disk_utility.info.format"));
         
         auto right_col = std::make_unique<Widget>();
         right_col->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         right_col->set_spacing(5);
         
-        m_capacity_lbl = create_info_row(right_col.get(), "Capacidad:");
-        m_available_lbl = create_info_row(right_col.get(), "Disponible:");
-        m_used_lbl = create_info_row(right_col.get(), "Espacio utilizado:");
+        m_capacity_lbl = create_info_row(right_col.get(), horizon::i18n().tr("disk_utility.info.capacity"));
+        m_available_lbl = create_info_row(right_col.get(), horizon::i18n().tr("disk_utility.info.available"));
+        m_used_lbl = create_info_row(right_col.get(), horizon::i18n().tr("disk_utility.info.used_space"));
 
         add_child(std::move(left_col));
         add_child(std::move(right_col));
@@ -49,11 +51,11 @@ namespace horizon::disks
 
     void DiskInfoWidget::update_info(const DiskPartition& partition)
     {
-        m_mount_point_lbl->set_text(partition.is_mounted ? partition.mount_point : "No montado");
+        m_mount_point_lbl->set_text(partition.is_mounted ? partition.mount_point : horizon::i18n().tr("disk_utility.info.not_mounted"));
         m_format_lbl->set_text(partition.filesystem);
         m_capacity_lbl->set_text(partition.human_capacity());
         m_used_lbl->set_text(partition.is_mounted ? partition.human_used() : "-");
-        m_available_lbl->set_text(partition.is_mounted ? partition.human_available() : "No disponible");
+        m_available_lbl->set_text(partition.is_mounted ? partition.human_available() : horizon::i18n().tr("disk_utility.info.not_available"));
     }
 
     void DiskInfoWidget::update_info(const DiskDevice& device)
@@ -61,8 +63,8 @@ namespace horizon::disks
         m_mount_point_lbl->set_text(device.device_path);
         m_format_lbl->set_text(device.model);
         m_capacity_lbl->set_text(device.human_capacity());
-        m_available_lbl->set_text(std::to_string(device.partitions.size()) + " particiones");
-        m_used_lbl->set_text("Conectado");
+        m_available_lbl->set_text(std::to_string(device.partitions.size()) + horizon::i18n().tr("disk_utility.info.partitions_suffix"));
+        m_used_lbl->set_text(horizon::i18n().tr("disk_utility.info.connected"));
     }
 
 } // namespace horizon::disks

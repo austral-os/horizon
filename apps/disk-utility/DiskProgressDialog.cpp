@@ -1,4 +1,6 @@
 #include "DiskProgressDialog.hpp"
+#include <horizon/Application.hpp>
+#include <horizon/I18n.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/LoadingBar.hpp>
 #include <horizon/SolidObject.hpp>
@@ -61,15 +63,15 @@ namespace horizon::disks
             // Map technical operation names to user-friendly text
             std::string status = operation;
             if (operation == "partition-delete")
-                status = "Borrando la partición anterior...";
+                status = horizon::i18n().tr("disk_utility.operations.partition_delete");
             else if (operation == "create-partition")
-                status = "Creando la nueva partición...";
+                status = horizon::i18n().tr("disk_utility.operations.create_partition");
             else if (operation == "create-filesystem" || operation == "format-mkfs")
-                status = "Creando el sistema de archivos...";
+                status = horizon::i18n().tr("disk_utility.operations.create_filesystem");
             else if (operation == "erase-device")
-                status = "Borrando el dispositivo dispositivo...";
+                status = horizon::i18n().tr("disk_utility.operations.erase_device");
             else if (operation == "ata-secure-erase")
-                status = "Borrando de forma segura (ATA)...";
+                status = horizon::i18n().tr("disk_utility.operations.ata_secure_erase");
 
             m_base_status = status;
         }
