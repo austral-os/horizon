@@ -15,16 +15,17 @@ namespace horizon::disks
         EraseTab(DiskManager& dm);
         ~EraseTab() = default;
 
-        void set_selected_partition(const std::string& path);
+        void update_selection(DiskDevice* disk, DiskPartition* partition);
 
     private:
         void setup_ui();
         void on_erase_clicked();
 
         DiskManager& m_disk_manager;
-        std::string m_selected_path;
+        DiskDevice* m_selected_disk{nullptr};
+        DiskPartition* m_selected_partition{nullptr};
         
-        Label* m_target_label{nullptr};
+        Label* m_status_label{nullptr};
         Combo* m_format_combo{nullptr};
         TextBox<horizon::TextPolicy>* m_name_entry{nullptr};
     };

@@ -48,7 +48,8 @@ namespace horizon::dbusutils
         DBusMessage* call_method(const std::string& destination,
                                  const std::string& path,
                                  const std::string& interface,
-                                 const std::string& method);
+                                 const std::string& method,
+                                 int timeout_ms = -1);
         
         /**
          * @brief Calls a D-Bus method that takes no arguments and returns nothing (or result is ignored).
@@ -56,7 +57,8 @@ namespace horizon::dbusutils
         void call_method_void(const std::string& destination,
                              const std::string& path,
                              const std::string& interface,
-                             const std::string& method);
+                             const std::string& method,
+                             int timeout_ms = -1);
 
         /**
          * @brief Tries to call a method that takes an empty (a{sv}) dict as its only argument.
@@ -64,7 +66,33 @@ namespace horizon::dbusutils
         void call_void_method_with_empty_dict(const std::string& destination,
                                               const std::string& path,
                                               const std::string& interface,
-                                              const std::string& method);
+                                              const std::string& method,
+                                              int timeout_ms = -1);
+
+        /**
+         * @brief Calls a method with (s, a{sv}) signature. Used for UDisks2 Block.Format.
+         */
+        void call_method_s_asv(const std::string& destination,
+                               const std::string& path,
+                               const std::string& interface,
+                               const std::string& method,
+                               const std::string& arg_s,
+                               const std::map<std::string, DbusVariant>& options,
+                               int timeout_ms = -1);
+
+        /**
+         * @brief Calls a method with (ttss, a{sv}, s, a{sv}) signature. Used for UDisks2 PartitionTable.CreatePartitionAndFormat.
+         */
+        void call_method_ttss_asv_s_asv(const std::string& destination,
+                                       const std::string& path,
+                                       const std::string& interface,
+                                       const std::string& method,
+                                       uint64_t offset, uint64_t size,
+                                       const std::string& type, const std::string& name,
+                                       const std::map<std::string, DbusVariant>& options,
+                                       const std::string& format_type,
+                                       const std::map<std::string, DbusVariant>& format_options,
+                                       int timeout_ms = -1);
 
         /**
          * @brief Generic method to get a single property value.
@@ -72,7 +100,8 @@ namespace horizon::dbusutils
         DbusVariant get_property(const std::string& destination,
                                  const std::string& path,
                                  const std::string& interface,
-                                 const std::string& property);
+                                 const std::string& property,
+                                 int timeout_ms = -1);
 
         /**
          * @brief Helper to extract a string list from an array message.

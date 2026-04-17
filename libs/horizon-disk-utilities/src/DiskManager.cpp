@@ -1,5 +1,6 @@
 #include "horizon-disk-utilities/DiskManager.hpp"
 #include <horizon/dbusutils/DbusHelper.hpp>
+#include <horizon/Logger.hpp>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -36,6 +37,7 @@ namespace horizon::disks
 
     void DiskManager::scan()
     {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
         m_devices.clear();
         scan_sys_block();
         scan_mounts();
@@ -104,6 +106,16 @@ namespace horizon::disks
                             partition->capacity = 0;
                         }
                     }
+
+                    std::string p_start_str = read_file(sub_entry.path().string() + "/start");
+                    if (!p_start_str.empty())
+                    {
+                        try {
+                            partition->offset = std::stoull(p_start_str) * 512;
+                        } catch (...) {
+                            partition->offset = 0;
+                        }
+                    }
                     
                     device->partitions.push_back(std::move(partition));
                 }
@@ -164,6 +176,7 @@ namespace horizon::disks
 
     OperationResult DiskManager::mount_partition(const std::string& device_path, const std::string& /*mount_point*/)
     {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
         // Search for the partition object to get its udisks_path
         std::string udisks_path;
         for (const auto& device : m_devices)
@@ -185,7 +198,6 @@ namespace horizon::disks
         }
 
         try {
-            // UDisks2 Mount method takes a dict of options (a{sv})
             m_dbus_helper->call_void_method_with_empty_dict(
                 "org.freedesktop.UDisks2",
                 udisks_path,
@@ -194,12 +206,14 @@ namespace horizon::disks
             );
             return {true, "Mount signal sent via UDisks2"};
         } catch (const std::exception& e) {
+            LOG_ERROR << "[DiskManager] Mount error: " << e.what();
             return {false, std::string("D-Bus error: ") + e.what()};
         }
     }
 
     OperationResult DiskManager::unmount_partition(const std::string& device_path)
     {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
         std::string udisks_path;
         for (const auto& device : m_devices)
         {
@@ -228,12 +242,14 @@ namespace horizon::disks
             );
             return {true, "Unmount signal sent via UDisks2"};
         } catch (const std::exception& e) {
+            LOG_ERROR << "[DiskManager] Unmount error: " << e.what();
             return {false, std::string("D-Bus error: ") + e.what()};
         }
     }
 
     OperationResult DiskManager::format_partition(const std::string& device_path, const std::string& fs_type, const std::string& label)
     {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
         std::string mkfs_tool = "mkfs." + fs_type;
         std::string label_flag = "-L";
         if (fs_type == "vfat" || fs_type == "fat16" || fs_type == "fat32") label_flag = "-n";
@@ -249,6 +265,7 @@ namespace horizon::disks
 
     OperationResult DiskManager::eject_device(const std::string& device_path)
     {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
         std::string udisks_path;
         for (const auto& device : m_devices)
         {
@@ -293,7 +310,133 @@ namespace horizon::disks
             );
             return {true, "Eject signal sent to drive " + drive_path};
         } catch (const std::exception& e) {
+            LOG_ERROR << "[DiskManager] Eject error: " << e.what();
             return {false, std::string("D-Bus error: ") + e.what()};
+        }
+    }
+
+    OperationResult DiskManager::erase_disk(const std::string& device_path, const std::string& fs_type, const std::string& label)
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        DiskDevice* disk = nullptr;
+        for (const auto& d : m_devices)
+        {
+            if (d->device_path == device_path) {
+                disk = d.get();
+                break;
+            }
+        }
+
+        if (!disk || !m_dbus_helper) return {false, "Device not found or D-Bus error"};
+
+        try {
+            // 1. Format disk as GPT
+            m_dbus_helper->call_method_s_asv(
+                "org.freedesktop.UDisks2",
+                disk->udisks_path,
+                "org.freedesktop.UDisks2.Block",
+                "Format",
+                "gpt",
+                {},
+                120000 // 120s timeout
+            );
+
+            // 2. Create and format a single partition using the whole capacity
+            // ALIGNMENT: Start at 1MiB (2048 sectors) to avoid GPT header conflict.
+            uint64_t offset = 1048576; // 1MiB
+            uint64_t size = (disk->capacity > offset * 2) ? (disk->capacity - offset * 2) : 0;
+
+            if (size == 0) return {false, "Disk too small for partition"};
+
+            std::map<std::string, dbusutils::DbusVariant> options;
+            std::map<std::string, dbusutils::DbusVariant> format_options;
+            format_options["label"] = label;
+
+            std::string final_fs = fs_type;
+            if (fs_type == "fat32" || fs_type == "fat16") final_fs = "vfat";
+
+            m_dbus_helper->call_method_ttss_asv_s_asv(
+                "org.freedesktop.UDisks2",
+                disk->udisks_path,
+                "org.freedesktop.UDisks2.PartitionTable",
+                "CreatePartitionAndFormat",
+                offset,
+                size,
+                "0FC63130-3568-4127-822E-C3DC2671822F", // Linux Filesystem Data GUID for GPT
+                "",     // partition name (unused here)
+                options,
+                final_fs,
+                format_options,
+                120000 // 120s timeout
+            );
+
+            return {true, "Successfully erased disk and created new partition"};
+        } catch (const std::exception& e) {
+            LOG_ERROR << "[DiskManager] Erase disk error: " << e.what();
+            return {false, std::string("D-Bus error during erase: ") + e.what()};
+        }
+    }
+
+    OperationResult DiskManager::recreate_and_format_partition(const std::string& device_path, const std::string& fs_type, const std::string& label)
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        DiskPartition* part = nullptr;
+        DiskDevice* parent_disk = nullptr;
+        
+        for (const auto& d : m_devices)
+        {
+            for (const auto& p : d->partitions)
+            {
+                if (p->device_path == device_path) {
+                    part = p.get();
+                    parent_disk = d.get();
+                    break;
+                }
+            }
+            if (part) break;
+        }
+
+        if (!part || !parent_disk || !m_dbus_helper) return {false, "Partition not found"};
+
+        try {
+            uint64_t offset = part->offset;
+            uint64_t size = part->capacity;
+
+            // 1. Delete existing partition
+            m_dbus_helper->call_void_method_with_empty_dict(
+                "org.freedesktop.UDisks2",
+                part->udisks_path,
+                "org.freedesktop.UDisks2.Partition",
+                "Delete"
+            );
+
+            // 2. Recreate and format in the same place
+            std::map<std::string, dbusutils::DbusVariant> options;
+            std::map<std::string, dbusutils::DbusVariant> format_options;
+            format_options["label"] = label;
+
+            std::string final_fs = fs_type;
+            if (fs_type == "fat32" || fs_type == "fat16") final_fs = "vfat";
+
+            m_dbus_helper->call_method_ttss_asv_s_asv(
+                "org.freedesktop.UDisks2",
+                parent_disk->udisks_path,
+                "org.freedesktop.UDisks2.PartitionTable",
+                "CreatePartitionAndFormat",
+                offset,
+                size,
+                "", // Let UDisks2 decide (auto-detects MBR 0x83 or GPT GUID)
+                "",
+                options,
+                final_fs,
+                format_options,
+                120000 // 120s timeout
+            );
+
+            return {true, "Successfully recreated and formatted partition"};
+        } catch (const std::exception& e) {
+            LOG_ERROR << "[DiskManager] Recreate partition error: " << e.what();
+            return {false, std::string("D-Bus error during recreation: ") + e.what()};
         }
     }
 

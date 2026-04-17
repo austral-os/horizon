@@ -40,6 +40,9 @@ namespace horizon::disks
         signals.connect("disk.eject", [this](SignalContext&) {
             this->on_eject_requested();
         });
+        signals.connect("disk.refresh", [this](SignalContext&) {
+            this->refresh_devices();
+        });
 
         update_toolbar_state();
     }
@@ -165,10 +168,12 @@ namespace horizon::disks
             {
                 m_selected_disk = disk.get();
                 m_info_panel->update_info(*disk);
+                m_erase_tab->update_selection(m_selected_disk, nullptr);
                 
                 DiskItemSelectedContext ctx;
                 ctx.disk = m_selected_disk;
                 when_item_selected.run(ctx);
+                update_toolbar_state();
                 return;
             }
 
@@ -177,8 +182,9 @@ namespace horizon::disks
                 if ((part->name + " (" + part->human_capacity() + ")") == item->get_text())
                 {
                     m_selected_partition = part.get();
+                    m_selected_disk = disk.get();
                     m_info_panel->update_info(*part);
-                    m_erase_tab->set_selected_partition(part->device_path);
+                    m_erase_tab->update_selection(m_selected_disk, m_selected_partition);
                     
                     DiskItemSelectedContext ctx;
                     ctx.disk = disk.get();
@@ -213,6 +219,13 @@ namespace horizon::disks
             m_mount_btn->set_enabled(false);
             m_eject_btn->set_enabled(true);
         }
+    }
+
+    void DiskUtilityWindow::refresh_devices()
+    {
+        m_disk_manager.scan();
+        populate_devices();
+        update_toolbar_state();
     }
 
     void DiskUtilityWindow::on_mount_requested()

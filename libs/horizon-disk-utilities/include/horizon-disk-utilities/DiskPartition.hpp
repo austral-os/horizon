@@ -20,6 +20,7 @@ namespace horizon::disks
         
         uint64_t capacity{0};      // in bytes
         uint64_t used{0};          // in bytes
+        uint64_t offset{0};        // offset in bytes from disk start
         bool is_mounted{false};
         bool is_read_only{false};
         

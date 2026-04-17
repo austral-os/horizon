@@ -33,6 +33,7 @@ namespace horizon::disks
         void on_mount_requested();
         void on_eject_requested();
         void update_toolbar_state();
+        void refresh_devices();
         
         DiskManager m_disk_manager;
         std::unique_ptr<dbusutils::DbusHelper> m_dbus_helper;

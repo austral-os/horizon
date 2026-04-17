@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <mutex>
 
 namespace horizon::dbusutils { class DbusHelper; }
 
@@ -56,9 +57,20 @@ namespace horizon::disks
          */
         OperationResult eject_device(const std::string& device_path);
 
+        /**
+         * @brief Erases a whole disk, creating a new partition table and a single partition.
+         */
+        OperationResult erase_disk(const std::string& device_path, const std::string& fs_type, const std::string& label);
+
+        /**
+         * @brief Deletes and recreates a partition with a new format.
+         */
+        OperationResult recreate_and_format_partition(const std::string& device_path, const std::string& fs_type, const std::string& label);
+
     private:
         std::vector<std::unique_ptr<DiskDevice>> m_devices;
         std::unique_ptr<dbusutils::DbusHelper> m_dbus_helper;
+        mutable std::recursive_mutex m_mutex;
         
         // Internal helpers
         void scan_sys_block();
