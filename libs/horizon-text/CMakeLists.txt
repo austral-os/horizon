@@ -30,4 +30,4 @@ target_link_libraries(horizon-text
 
 set_target_properties(horizon-text PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-install(TARGETS horizon-text DESTINATION lib COMPONENT libhorizon)
+install(TARGETS horizon-text DESTINATION lib COMPONENT core)

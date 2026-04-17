@@ -14,7 +14,7 @@ target_link_libraries(horizon_wall PRIVATE
 )
 
 horizon_install_app(horizon_wall
-    APP_ID "horizon-wall"
+    APP_ID "wall"
     NAME "Horizon Wallpaper"
     COMMENT "System Wallpaper Manager"
     ICON "image-viewer"

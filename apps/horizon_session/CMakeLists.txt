@@ -11,7 +11,7 @@ target_link_libraries(horizon_session
 )
 
 horizon_install_app(horizon_session
-    APP_ID "horizon-session"
+    APP_ID "session"
     NAME "Horizon Session"
     COMMENT "System Session Manager"
     ICON "applications-system"

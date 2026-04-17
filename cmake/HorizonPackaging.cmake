@@ -32,6 +32,16 @@ macro(horizon_install_app TARGET_NAME)
         COMPONENT ${APP_APP_ID}
     )
 
+    # Normalize APP_ID to use hyphens for the package name
+    string(REPLACE "_" "-" APP_ID_NORM "${APP_APP_ID}")
+    
+    # Set Debian package name for this component
+    if(APP_ID_NORM MATCHES "^horizon-")
+        set(CPACK_DEBIAN_${APP_APP_ID}_PACKAGE_NAME "${APP_ID_NORM}")
+    else()
+        set(CPACK_DEBIAN_${APP_APP_ID}_PACKAGE_NAME "horizon-${APP_ID_NORM}")
+    endif()
+
     # Install Locales
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/locales")
         install(DIRECTORY locales/
@@ -94,11 +104,14 @@ set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_BINARY_DIR}/postinst;${CMAKE_BIN
 option(HORIZON_PACKAGING_COMPONENTS "Generate separate .deb for each component" OFF)
 
 if(HORIZON_PACKAGING_COMPONENTS)
+    set(CPACK_DEB_COMPONENT_INSTALL ON)
     set(CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE OFF)
     set(CPACK_COMPONENTS_GROUPING "IGNORE")
+    set(CPACK_PACKAGE_FILE_NAME "horizon")
 else()
     set(CPACK_DEB_COMPONENT_INSTALL OFF)
     set(CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE ON)
+    set(CPACK_PACKAGE_FILE_NAME "horizon-desktop")
 endif()
 
 include(CPack)

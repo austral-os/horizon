@@ -20,4 +20,4 @@ add_custom_command(TARGET horizon-overview POST_BUILD
     $<TARGET_FILE_DIR:horizon-overview>/locales
 )
 
-install(TARGETS horizon-overview DESTINATION lib COMPONENT libhorizon)
+install(TARGETS horizon-overview DESTINATION lib COMPONENT core)

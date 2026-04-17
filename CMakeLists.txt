@@ -41,13 +41,13 @@ set_target_properties(horizon PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # Install Core Library
 install(TARGETS horizon
     DESTINATION lib
-    COMPONENT libhorizon
+    COMPONENT core
 )
 
 # Install Core Locales
 install(DIRECTORY share/locales/
     DESTINATION share/horizon/locales
-    COMPONENT libhorizon
+    COMPONENT core
 )
 
 
