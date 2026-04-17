@@ -299,4 +299,46 @@ namespace horizon::disks
         }).detach();
     }
 
+    void DiskUtilityWindow::initialize_monitoring()
+    {
+        // --- Hardware Monitoring ---
+        try {
+            m_monitor_helper = std::make_unique<dbusutils::DbusHelper>(DBUS_BUS_SYSTEM);
+            m_monitor_helper->add_match_rule("type='signal',interface='org.freedesktop.DBus.ObjectManager',path='/org/freedesktop/UDisks2'");
+        } catch (...) {
+            LOG_ERROR << "[DiskUtility] Could not initialize hardware monitor";
+        }
+
+        // Safe start timer (application() must be valid here)
+        if (application())
+        {
+            application()->add_timer(2000, [this]() {
+                this->check_for_hardware_changes();
+            }, true);
+        }
+    }
+
+    void DiskUtilityWindow::check_for_hardware_changes()
+    {
+        if (!m_monitor_helper) return;
+
+        bool changed = false;
+        DBusMessage* msg;
+        while ((msg = m_monitor_helper->pop_message(0)))
+        {
+            if (dbus_message_is_signal(msg, "org.freedesktop.DBus.ObjectManager", "InterfacesAdded") ||
+                dbus_message_is_signal(msg, "org.freedesktop.DBus.ObjectManager", "InterfacesRemoved"))
+            {
+                changed = true;
+            }
+            dbus_message_unref(msg);
+        }
+
+        if (changed)
+        {
+            LOG_INFO << "[DiskUtility] Hardware change detected via D-Bus, refreshing...";
+            refresh_devices();
+        }
+    }
+
 } // namespace horizon::disks

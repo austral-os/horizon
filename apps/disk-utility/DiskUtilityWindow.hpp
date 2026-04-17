@@ -23,6 +23,7 @@ namespace horizon::disks
         ~DiskUtilityWindow() = default;
 
         EventsManager<DiskItemSelectedContext> when_item_selected;
+        void initialize_monitoring();
 
     private:
         void setup_toolbar();
@@ -49,5 +50,7 @@ namespace horizon::disks
         ToolbarButton* m_mount_btn{nullptr};
         ToolbarButton* m_eject_btn{nullptr};
         ToolbarButton* m_info_btn{nullptr};
+
+        std::unique_ptr<dbusutils::DbusHelper> m_monitor_helper;
     };
 } // namespace horizon::disks
