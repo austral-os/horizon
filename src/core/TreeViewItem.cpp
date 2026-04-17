@@ -157,19 +157,26 @@ namespace horizon
         if (m_spacer) m_spacer->set_fixed_size(m_indentation_level * 16);
 
         bool has_subitems = false;
+        int current_total_height = 24;
+
         for (const auto &child_ptr : children())
         {
             auto *item = dynamic_cast<TreeViewItem*>(child_ptr.get());
             if (item)
             {
                 has_subitems = true;
-                if (m_expanded && item->is_visible()) {
+                item->set_visible(m_expanded);
+                if (m_expanded) {
                     item->set_fixed_size(item->total_height());
+                    current_total_height += item->total_height();
                 }
             }
         }
 
         if (m_disclosure_icon) m_disclosure_icon->set_visible(has_subitems);
+        
+        // Ensure this widget's height reflects its expanded state
+        set_height(current_total_height);
 
         Widget::calculate_layout();
     }

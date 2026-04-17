@@ -135,7 +135,7 @@ namespace horizon::disks
             {
                 auto part_item = std::make_unique<TreeViewItem>(
                     "partition", part->name + " (" + part->human_capacity() + ")");
-                disk_item->add_child(std::move(part_item));
+                disk_item->add_item(std::move(part_item));
             }
 
             m_device_tree->add_root_item(std::move(disk_item));
