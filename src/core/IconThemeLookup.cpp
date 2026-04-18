@@ -116,6 +116,17 @@ namespace horizon
             dirs.push_back("/usr/share/icons");
         }
 
+#ifdef HORIZON_BUILD_DIR
+        // Development mode: check extracted icons in build directory
+        std::string dev_icons = std::string(HORIZON_BUILD_DIR) + "/apps/horizon_session/icons_extracted/austral-icon-theme/Light";
+        if (fs::exists(dev_icons))
+        {
+            // We give it a high priority by adding it near the beginning or as its own entry
+            // but we need to ensure the parent directory is treat as a "theme base dir"
+            dirs.push_back(std::string(HORIZON_BUILD_DIR) + "/apps/horizon_session/icons_extracted/austral-icon-theme");
+        }
+#endif
+
         return dirs;
     }
 

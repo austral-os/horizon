@@ -1,0 +1,42 @@
+{
+    "desktop": {
+        "backgrounds": {
+            "current": {
+                "change-time": 0,
+                "fit": "fill",
+                "name": "Wave.png",
+                "order": "none",
+                "path": "/usr/share/horizon/backgrounds/pictures/Wave.png",
+                "source": "pictures",
+                "type": "image"
+            },
+            "sources": [
+                {
+                    "name": "austral",
+                    "routes": [
+                        {
+                            "name": "abstract",
+                            "path": "/usr/share/horizon/backgrounds/abstract"
+                        },
+                        {
+                            "name": "nature",
+                            "path": "/usr/share/horizon/backgrounds/nature"
+                        },
+                        {
+                            "name": "pictures",
+                            "path": "/usr/share/horizon/backgrounds/pictures"
+                        },
+                        {
+                            "name": "plants",
+                            "path": "/usr/share/horizon/backgrounds/plants"
+                        },
+                        {
+                            "name": "colors",
+                            "path": "/usr/share/horizon/backgrounds/colors"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

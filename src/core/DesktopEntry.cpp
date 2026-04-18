@@ -185,8 +185,6 @@ namespace horizon
             dirs.push_back(std::string(home) + "/.local/share/applications");
         }
 
-        // Project local config
-        dirs.push_back("/home/horacio/Desarrollo/austral-os/horizon/examples/config/apps");
 
         const char *xdg_data = std::getenv("XDG_DATA_DIRS");
         if (xdg_data && xdg_data[0] != '\0')

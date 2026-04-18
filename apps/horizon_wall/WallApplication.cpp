@@ -24,7 +24,7 @@ namespace horizon
         const char* home = std::getenv("HOME");
         if (home)
         {
-            m_config_path = std::string(home) + "/.config/horizon/horizon.json";
+            m_config_path = std::string(home) + "/.config/horizon/desktop.json";
         }
 
         // Create the first window
@@ -89,7 +89,7 @@ namespace horizon
 
         if (final_path.empty())
         {
-            // Try to load from horizon.json
+            // Try to load from desktop.json
             if (!m_config_path.empty() && std::filesystem::exists(m_config_path))
             {
                 try
@@ -113,7 +113,7 @@ namespace horizon
                         else if (fit == "stretch") mode = ImageMode::Stretch;
                         else if (fit == "center") mode = ImageMode::Normal;
                         
-                        LOG_INFO << "[HORIZON WALL] Loaded from config: " << final_path << " (fit: " << fit << ", type: " << type << ", order: " << order << ")";
+                        LOG_INFO << "[HORIZON WALL] Loaded from config (desktop.json): " << final_path << " (fit: " << fit << ", type: " << type << ", order: " << order << ")";
                     }
                 }
                 catch (const std::exception& e)

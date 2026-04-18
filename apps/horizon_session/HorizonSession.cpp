@@ -64,6 +64,78 @@ bool HorizonSession::is_dev_mode()
 
 void HorizonSession::init(const std::string &compositor)
 {
+    // Ensure GTK icon theme is set to austral
+    const char *home = std::getenv("HOME");
+    if (home)
+    {
+        std::vector<std::string> versions = {"3.0", "4.0"};
+        for (const auto &v : versions)
+        {
+            std::string config_dir = std::string(home) + "/.config/gtk-" + v;
+            std::string settings_path = config_dir + "/settings.ini";
+
+            try
+            {
+                if (!fs::exists(config_dir))
+                {
+                    fs::create_directories(config_dir);
+                }
+
+                bool has_settings_section = false;
+                bool has_theme_entry = false;
+                std::vector<std::string> lines;
+
+                if (fs::exists(settings_path))
+                {
+                    std::ifstream in(settings_path);
+                    std::string line;
+                    while (std::getline(in, line))
+                    {
+                        std::string trimmed = line;
+                        // Manual trim for simplicity
+                        trimmed.erase(0, trimmed.find_first_not_of(" \t\r\n"));
+                        trimmed.erase(trimmed.find_last_not_of(" \t\r\n") + 1);
+
+                        if (trimmed == "[Settings]")
+                        {
+                            has_settings_section = true;
+                        }
+                        
+                        if (trimmed.rfind("gtk-icon-theme-name", 0) == 0)
+                        {
+                            lines.push_back("gtk-icon-theme-name=austral");
+                            has_theme_entry = true;
+                        }
+                        else
+                        {
+                            lines.push_back(line);
+                        }
+                    }
+                }
+
+                if (!has_theme_entry)
+                {
+                    if (!has_settings_section)
+                    {
+                        lines.push_back("[Settings]");
+                    }
+                    lines.push_back("gtk-icon-theme-name=austral");
+                }
+
+                // Write back the whole file
+                LOG_INFO << "[HorizonSession] Updating GTK " << v << " settings in: " << settings_path;
+                std::ofstream out(settings_path);
+                for (const auto& l : lines) {
+                    out << l << "\n";
+                }
+            }
+            catch (const std::exception &e)
+            {
+                LOG_ERROR << "[HorizonSession] Error updating GTK settings: " << e.what();
+            }
+        }
+    }
+
     // Logger is now automatically initialized by the base class Application
     // if this class inherits from it, or manually here if it doesn't.
     // HorizonSession doesn't seem to inherit from Application based on its ctor.
@@ -118,6 +190,49 @@ void HorizonSession::init(const std::string &compositor)
         m_startup_services.push_back("horizon_wall");
         m_startup_services.push_back("top_panel");
         m_startup_services.push_back("dock");
+    }
+
+    // Migrate desktop configuration from system to user home if not present
+    if (home)
+    {
+        std::string user_path = std::string(home) + "/.config/horizon/desktop.json";
+        std::string system_path = "/usr/share/horizon/desktop.json";
+
+        if (is_dev_mode())
+        {
+            system_path = std::string(HORIZON_SOURCE_DIR) + "/apps/horizon_session/data/desktop.json";
+        }
+
+        try
+        {
+            // If it exists but is a symlink, remove it to ensure we create a real file
+            if (fs::exists(user_path) && fs::is_symlink(user_path))
+            {
+                LOG_INFO << "[HorizonSession] Removing existing symlink at: " << user_path;
+                fs::remove(user_path);
+            }
+
+            if (!fs::exists(user_path))
+            {
+                LOG_INFO << "[HorizonSession] Desktop config not found, checking for source at: "
+                         << system_path;
+                if (fs::exists(system_path))
+                {
+                    fs::create_directories(fs::path(user_path).parent_path());
+                    fs::copy_file(system_path, user_path, fs::copy_options::overwrite_existing);
+                    LOG_INFO << "[HorizonSession] Successfully migrated desktop config to: "
+                             << user_path;
+                }
+                else
+                {
+                    LOG_ERROR << "[HorizonSession] Default desktop config NOT found at: " << system_path;
+                }
+            }
+        }
+        catch (const std::exception &e)
+        {
+            LOG_ERROR << "[HorizonSession] Error during desktop config migration: " << e.what();
+        }
     }
 }
 

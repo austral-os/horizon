@@ -70,6 +70,11 @@ target_include_directories(horizon
         ${FONTCONFIG_INCLUDE_DIRS}
 )
 
+target_compile_definitions(horizon PRIVATE
+    HORIZON_BUILD_DIR="${CMAKE_BINARY_DIR}"
+    HORIZON_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
 target_link_libraries(horizon
     PUBLIC
         ${DBUS_LIBRARIES}

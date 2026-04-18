@@ -28,7 +28,7 @@ bool I18n::load_core_locales() {
     for (const auto& locale : locales) {
         bool loaded = false;
         for (const auto& base_path : s_search_paths) {
-            std::string path = base_path + "/share/locales/core_" + locale + ".json";
+            std::string path = base_path + "/locales/core_" + locale + ".json";
             if (load_locale(locale, path)) {
                 loaded = true;
                 any_loaded = true;
@@ -116,7 +116,9 @@ I18n& i18n() {
 
         // Default search paths
         I18n::add_search_path(".");
-        I18n::add_search_path("/home/horacio/Desarrollo/austral-os/horizon");
+#ifdef HORIZON_SOURCE_DIR
+        I18n::add_search_path(HORIZON_SOURCE_DIR);
+#endif
         I18n::add_search_path("/usr/share/horizon");
         
         // Automatic locale detection from environment

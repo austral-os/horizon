@@ -10,6 +10,10 @@ target_include_directories(dock
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+target_compile_definitions(dock PRIVATE
+    HORIZON_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
 target_link_libraries(dock
     PRIVATE
         horizon

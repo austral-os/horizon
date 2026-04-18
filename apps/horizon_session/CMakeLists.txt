@@ -89,9 +89,9 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${ICON_TARBALL}")
     add_custom_target(extract_icons ALL DEPENDS "${EXTRACT_DIR}/.extracted")
 
     # Install the contents (the 'Light' theme folder among others)
-    # We exclude .git and other non-essential files
-    install(DIRECTORY "${EXTRACT_DIR}/austral-icon-theme/"
-        DESTINATION share/icons
+    # We install it specifically as "austral" so it can be looked up by that name
+    install(DIRECTORY "${EXTRACT_DIR}/austral-icon-theme/Light/"
+        DESTINATION share/icons/austral
         COMPONENT session
         PATTERN ".git" EXCLUDE
         PATTERN "README.md" EXCLUDE
@@ -102,6 +102,30 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/color-scheme.json")
     install(FILES data/color-scheme.json
         DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
+
+# --- Dock Config ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/dock.json")
+    install(FILES data/dock.json
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
+
+# --- Desktop Config ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/desktop.json")
+    install(FILES data/desktop.json
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
+
+# --- Backgrounds ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/backgrounds")
+    install(DIRECTORY data/backgrounds/
+        DESTINATION share/horizon/backgrounds
         COMPONENT session
     )
 endif()

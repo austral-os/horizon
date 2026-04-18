@@ -42,9 +42,16 @@ namespace horizon
         // Enable background blur
         m_window->set_blur(true);
 
-        // Add custom search path for .desktop files
-        DesktopEntry::add_search_path(
-            "/home/horacio/Desarrollo/austral-os/horizon/examples/config/apps/");
+        // Add custom search path for .desktop files if in development mode
+        bool is_dev = false;
+        try {
+            auto exe_path = std::filesystem::read_symlink("/proc/self/exe");
+            is_dev = exe_path.string().find("/build/") != std::string::npos;
+        } catch (...) {}
+
+        if (is_dev) {
+            DesktopEntry::add_search_path(std::string(HORIZON_SOURCE_DIR) + "/examples/config/apps/");
+        }
 
         detect_environment();
         setup_ui();
@@ -52,7 +59,7 @@ namespace horizon
         const char* home = std::getenv("HOME");
         if (home)
         {
-            m_config_path = std::string(home) + "/.config/horizon/horizon.json";
+            m_config_path = std::string(home) + "/.config/horizon/dock.json";
         }
 
         load_config();
@@ -343,9 +350,25 @@ namespace horizon
 
     void DockApplication::load_config()
     {
-        if (m_config_path.empty() || !std::filesystem::exists(m_config_path))
-        {
-            LOG_ERROR << "[DOCK] Config file not found: " << m_config_path;
+        if (m_config_path.empty()) return;
+
+        std::string system_path = "/usr/share/horizon/dock.json";
+
+        try {
+            if (!std::filesystem::exists(m_config_path)) {
+                LOG_INFO << "[DOCK] User config not found, checking for system default at: " << system_path;
+                if (std::filesystem::exists(system_path)) {
+                    std::filesystem::create_directories(std::filesystem::path(m_config_path).parent_path());
+                    std::filesystem::copy_file(system_path, m_config_path);
+                    LOG_INFO << "[DOCK] Successfully copied system default config to: " << m_config_path;
+                } else {
+                    LOG_ERROR << "[DOCK] System default config NOT found at: " << system_path;
+                    // If no user and no system config, we'll just return and stay with empty pinned apps
+                    return;
+                }
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR << "[DOCK] Error during config migration: " << e.what();
             return;
         }
 
