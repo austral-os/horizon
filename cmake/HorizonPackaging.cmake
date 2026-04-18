@@ -1,10 +1,5 @@
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
-
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Default install prefix" FORCE)
-endif()
-
 # Function to install an app with its locales and desktop file
 macro(horizon_install_app TARGET_NAME)
     set(options)
