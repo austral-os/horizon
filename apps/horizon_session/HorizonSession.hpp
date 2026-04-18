@@ -80,6 +80,7 @@ public:
     std::vector<AppInfo> get_subscribers(HznSessionEvent event);
 
     void send_to_subscribers(HznSessionEvent event, const HznSessionMessage &message);
+    static bool is_dev_mode();
 
 private:
     void cleanup_lingering_compositors();

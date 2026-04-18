@@ -1,0 +1,73 @@
+{
+    "colors": {
+        "light": {
+            "titlebar_bg1": "#d8d8d8",
+            "titlebar_bg2" : "#fafafa",
+            "titlebar_fg" : "#212121",
+            "titlebar_border" : "#787878",
+            "window_bg" : "#f3f3f3",
+            "window_fg" : "#212121",
+            "window_border" : "#787878",
+            "default1" : "#616161",
+            "default2" : "#dddddd",
+            "primary1" : "#1e4ce1",
+            "primary2" : "#61aff5",
+            "secondary1" : "#61aff5",
+            "secondary2" : "#1e4ce1",
+            "success1" : "#1ee176",
+            "success2" : "#61f5a3",
+            "warning1" : "#e16b1e",
+            "warning2" : "#f59f61",
+            "error1" : "#e11e41",
+            "error2" : "#f5617f",
+            "info1" : "#e1d31e",
+            "info2" : "#f5de61",
+            "table_row_fg" : "#212121",
+            "table_row" : "#ffffff",
+            "table_row_alternate" : "#f3f8ff",
+            "table_row_selected" : "#1e4ce1",
+            "table_row_selected_fg" : "#ffffff"
+        },
+        "dark": {
+            "titlebar_bg1": "#1e1e1e",
+            "titlebar_bg2" : "#252526",
+            "titlebar_fg" : "#ffffff",
+            "titlebar_border" : "#585858",
+            "window_bg" : "#1e1e1e",
+            "window_fg" : "#d3d3d3",
+            "window_border" : "#585858",
+            "default1" : "#313131",
+            "default2" : "#515151",
+            "primary1" : "#1c44c5",
+            "primary2" : "#3685cc",
+            "secondary1" : "#61aff5",
+            "secondary2" : "#1e4ce1",
+            "success1" : "#1ee176",
+            "success2" : "#61f5a3",
+            "warning1" : "#e16b1e",
+            "warning2" : "#f59f61",
+            "error1" : "#e11e41",
+            "error2" : "#f5617f",
+            "info1" : "#e1d31e",
+            "info2" : "#f5de61",
+            "table_row_fg" : "#d3d3d3",
+            "table_row" : "#ffffff",
+            "table_row_alternate" : "#f3f8ff",
+            "table_row_selected" : "#1e4ce1",
+            "table_row_selected_fg" : "#ffffff"
+        }
+    },
+    "variant": "light",
+    "fonts": {  
+        "titlebar": {
+            "family": "Lucida Grande",
+            "size": 16,
+            "weight": "bold"
+        },
+        "window": {
+            "family": "Lucida Grande",
+            "size": 20,
+            "weight": "bold"
+        }
+    }
+}

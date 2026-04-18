@@ -5,6 +5,11 @@ add_executable(horizon_session
     IpcServer.cpp
 )
 
+target_compile_definitions(horizon_session PRIVATE 
+    HORIZON_BUILD_BIN_DIR="${CMAKE_BINARY_DIR}"
+    HORIZON_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
 target_link_libraries(horizon_session
     PRIVATE
         horizon
@@ -90,5 +95,13 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${ICON_TARBALL}")
         COMPONENT session
         PATTERN ".git" EXCLUDE
         PATTERN "README.md" EXCLUDE
+    )
+endif()
+
+# --- Color Scheme ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/color-scheme.json")
+    install(FILES data/color-scheme.json
+        DESTINATION share/horizon
+        COMPONENT session
     )
 endif()

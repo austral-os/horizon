@@ -1,12 +1,20 @@
 #include "DesktopParser.hpp"
+#include "HorizonSession.hpp"
 #include <fstream>
 #include <horizon/Logger.hpp>
 #include <iostream>
 
 std::optional<DesktopEntry> DesktopParser::parse(const std::string &app_name)
 {
-    std::string path =
-        "/home/horacio/Desarrollo/austral-os/horizon/examples/config/apps/" + app_name + ".desktop";
+    std::string path;
+    if (HorizonSession::is_dev_mode())
+    {
+        path = std::string(HORIZON_SOURCE_DIR) + "/examples/config/apps/" + app_name + ".desktop";
+    }
+    else
+    {
+        path = "/usr/share/applications/" + app_name + ".desktop";
+    }
     std::ifstream file(path);
     if (!file.is_open())
     {

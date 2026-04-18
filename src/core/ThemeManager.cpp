@@ -8,23 +8,40 @@
 #include <poll.h>
 #include <sys/inotify.h>
 #include <unistd.h>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 using json = nlohmann::json;
 
 namespace horizon
 {
-    static std::string get_config_path()
+    static std::string get_user_config_path()
     {
         const char *home = std::getenv("HOME");
         if (!home)
-            return "./config.json";
+            return "./color-scheme.json";
 
-        return std::string(home) + "/.config/horizon/config.json";
+        return std::string(home) + "/.config/horizon/color-scheme.json";
+    }
+
+    static std::string get_system_config_path()
+    {
+        return "/usr/share/horizon/color-scheme.json";
+    }
+
+    static std::string get_active_config_path()
+    {
+        std::string user_path = get_user_config_path();
+        if (fs::exists(user_path))
+            return user_path;
+
+        return get_system_config_path();
     }
 
     ThemeManager::ThemeManager()
     {
-        config_path = get_config_path();
+        config_path = get_active_config_path();
         load();
         start_watcher();
     }
@@ -57,13 +74,42 @@ namespace horizon
 
     bool ThemeManager::save()
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::string json_data;
+        std::string user_path = get_user_config_path();
 
-        std::ofstream file(config_path);
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            json_data = to_json().dump(4);
+        }
+        
+        // Ensure directory exists
+        fs::path p(user_path);
+        try {
+            if (!fs::exists(p.parent_path())) {
+                fs::create_directories(p.parent_path());
+            }
+        } catch (...) {
+            return false;
+        }
+
+        std::ofstream file(user_path);
         if (!file.is_open())
             return false;
 
-        file << to_json().dump(4);
+        file << json_data;
+        file.close();
+        
+        // If we were using the system path, switch to the user path and restart watcher
+        // Note: we don't strictly need the mutex here for config_path if we assume
+        // only one thread calls save/load, but it's safer to guard it if needed.
+        // However, config_path is used by start_watcher/stop_watcher.
+        
+        if (config_path != user_path) {
+            stop_watcher();
+            config_path = user_path;
+            start_watcher();
+        }
+        
         return true;
     }
 

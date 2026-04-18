@@ -36,6 +36,32 @@ HorizonSession::~HorizonSession()
     stop();
 }
 
+
+bool HorizonSession::is_dev_mode()
+{
+    try
+    {
+        // Detect if we are running from a build directory
+        auto exe_path = fs::read_symlink("/proc/self/exe");
+        if (exe_path.string().find("/build/") != std::string::npos)
+        {
+            return true;
+        }
+    }
+    catch (...)
+    {
+    }
+
+    // Fallback/Force via environment variable
+    const char *dev_env = getenv("HORIZON_DEV");
+    if (dev_env && std::string(dev_env) == "1")
+    {
+        return true;
+    }
+
+    return false;
+}
+
 void HorizonSession::init(const std::string &compositor)
 {
     // Logger is now automatically initialized by the base class Application
@@ -77,12 +103,22 @@ void HorizonSession::init(const std::string &compositor)
     }
 
     // Example of default core services
-    m_startup_services.push_back(
-        "/home/horacio/Desarrollo/austral-os/horizon/build/apps/horizon_wall/horizon_wall");
-    m_startup_services.push_back(
-        "/home/horacio/Desarrollo/austral-os/horizon/build/apps/top_panel/top_panel");
-    m_startup_services.push_back(
-        "/home/horacio/Desarrollo/austral-os/horizon/build/apps/dock/dock");
+    if (is_dev_mode())
+    {
+        LOG_INFO << "[HorizonSession] Development mode detected, using build paths.";
+        m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) +
+                                     "/apps/horizon_wall/horizon_wall");
+        m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) +
+                                     "/apps/top_panel/top_panel");
+        m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) + "/apps/dock/dock");
+    }
+    else
+    {
+        LOG_INFO << "[HorizonSession] Production mode detected, using system paths.";
+        m_startup_services.push_back("horizon_wall");
+        m_startup_services.push_back("top_panel");
+        m_startup_services.push_back("dock");
+    }
 }
 
 void HorizonSession::start()
