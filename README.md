@@ -165,6 +165,32 @@ cpack -G DEB
 
 The generated packages will be located in the `build` directory.
 
+### 3. Runtime Requirements
+
+To install and run the `horizon-desktop.deb` package, the following dependencies must be present on the system:
+
+| | | | |
+|---|---|---|---|
+| `desktop-file-utils` | `libliftoff0` | `libvterm0` | `libwoff1` |
+| `wayfire` | `libneatvnc0` | `libweston-14-0` | `libwpe-1.0-1` |
+| `weston` | `labwc` | `libseat1` | `libwf-config1` |
+| `libwpebackend-fdo-1.0-1` | `wlr-randr` | `libaml0t64` | `libsfdo0` |
+| `libwf-utils0t64` | `libwpewebkit-2.0-1` | `xdg-dbus-proxy` | `libfreerdp-server3-3` |
+| `libturbojpeg0` | `libwinpr3-3` | `libxcb-errors0` | `libfreerdp3-3` |
+| `liburiparser1` | `libwlroots-0.18` | `libxcb-ewmh2` | |
+
+You can install them all at once:
+```bash
+sudo apt install desktop-file-utils libliftoff0 libvterm0 libwoff1 wayfire \
+                 libneatvnc0 libweston-14-0 libwpe-1.0-1 weston labwc \
+                 libseat1 libwf-config1 libwpebackend-fdo-1.0-1 wlr-randr \
+                 libaml0t64 libsfdo0 libwf-utils0t64 libwpewebkit-2.0-1 \
+                 xdg-dbus-proxy libfreerdp-server3-3 libturbojpeg0 libwinpr3-3 \
+                 libxcb-errors0 libfreerdp3-3 liburiparser1 libwlroots-0.18 \
+                 libxcb-ewmh2
+```
+
+
 ---
 
 ## 🌈 Customization (Themes)
