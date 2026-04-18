@@ -25,7 +25,7 @@ add_custom_command(TARGET top_panel POST_BUILD
 )
 
 horizon_install_app(top_panel
-    APP_ID "top-panel"
+    APP_ID "top_panel"
     NAME "Top Panel"
     COMMENT "System Top Panel"
     ICON "slingscold"
