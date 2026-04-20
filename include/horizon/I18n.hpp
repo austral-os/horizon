@@ -68,6 +68,11 @@ public:
     static void set_search_paths(const std::vector<std::string>& paths);
 
     /**
+     * @brief Returns the current locale search paths.
+     */
+    static const std::vector<std::string>& get_search_paths() { return s_search_paths; }
+
+    /**
      * @brief Automatically discovers and loads core localization files (share/locales/core_*.json).
      * @return true if at least one core locale was loaded.
      */

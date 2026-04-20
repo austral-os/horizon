@@ -1,0 +1,39 @@
+{
+    "language": {
+        "name": "English"
+    },
+    "installer": {
+        "language": {
+            "title": "Language"
+        },
+        "welcome": {
+            "title": "Austral OS",
+            "desc": "To set up the installation of Austral OS, click Continue."
+        },
+        "license": {
+            "title": "License Agreement",
+            "desc": "To continue installing the software, you must agree to the terms of the software license agreement."
+        },
+        "disk": {
+            "title": "Select Disk",
+            "desc": "Austral OS will be installed on the disk selected below."
+        },
+        "install": {
+            "title": "Installing Austral OS",
+            "desc": "Preparing to install. Your computer will restart automatically."
+        },
+        "success": {
+            "title": "Installation Finished",
+            "desc": "Austral OS has been successfully installed."
+        },
+        "buttons": {
+            "continue": "Continue",
+            "back": "Back",
+            "install": "Install",
+            "agree": "Agree",
+            "disagree": "Disagree",
+            "cancel": "Cancel",
+            "restart": "Restart"
+        }
+    }
+}
