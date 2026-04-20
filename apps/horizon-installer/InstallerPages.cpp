@@ -8,7 +8,9 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <sstream>
 #include <nlohmann/json.hpp>
+#include <horizon/Textarea.hpp>
 
 namespace horizon::installer
 {
@@ -172,15 +174,33 @@ namespace horizon::installer
         desc->set_alignment(TextAlignment::Center);
         add_child(std::move(desc));
 
-        add_child(Spacer(20));
+        add_child(Spacer(10));
+
+        std::string license_content = "License file not found.";
+        auto search_paths = I18n::get_search_paths();
+        for (const auto& base_path : search_paths) {
+            std::string path = base_path + "/locales/license_lgplv3.txt";
+            if (std::filesystem::exists(path)) {
+                std::ifstream file(path);
+                if (file.is_open()) {
+                    std::stringstream ss;
+                    ss << file.rdbuf();
+                    license_content = ss.str();
+                    std::cout << "Loaded license text: " << license_content.length() << " bytes from " << path << std::endl;
+                    break;
+                }
+            }
+        }
 
         auto license_text = std::make_unique<Textarea>();
-        license_text->set_text("GNU LESSER GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007\n\nCopyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>\nEveryone is permitted to copy and distribute verbatim copies of this license document, but changing it is not allowed.\n\nThis version of the GNU Lesser General Public License incorporates the terms and conditions of version 3 of the GNU General Public License, supplemented by the additional permissions listed below...");
+        license_text->set_text(license_content);
         license_text->set_enabled(false); // Read-only
+        license_text->set_size(850, 5000); // Increased width to fill the scroll area
         
         auto scroll = std::make_unique<ScrollArea>();
         scroll->set_content(std::move(license_text));
-        scroll->set_size(600, 300);
+        scroll->set_fixed_size(400); // In vertical layout, this is the HEIGHT
+        
         add_child(std::move(scroll));
 
         add_child(Spacer());
