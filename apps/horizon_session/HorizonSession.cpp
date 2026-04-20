@@ -192,46 +192,50 @@ void HorizonSession::init(const std::string &compositor)
         m_startup_services.push_back("dock");
     }
 
-    // Migrate desktop configuration from system to user home if not present
+    // Migrate configuration files from system to user home if not present
     if (home)
     {
-        std::string user_path = std::string(home) + "/.config/horizon/desktop.json";
-        std::string system_path = "/usr/share/horizon/desktop.json";
+        std::vector<std::string> config_files = {"desktop.json", "terminal.json", "text-editor.json"};
 
-        if (is_dev_mode())
-        {
-            system_path = std::string(HORIZON_SOURCE_DIR) + "/apps/horizon_session/data/desktop.json";
-        }
+        for (const auto& config_file : config_files) {
+            std::string user_path = std::string(home) + "/.config/horizon/" + config_file;
+            std::string system_path = "/usr/share/horizon/" + config_file;
 
-        try
-        {
-            // If it exists but is a symlink, remove it to ensure we create a real file
-            if (fs::exists(user_path) && fs::is_symlink(user_path))
+            if (is_dev_mode())
             {
-                LOG_INFO << "[HorizonSession] Removing existing symlink at: " << user_path;
-                fs::remove(user_path);
+                system_path = std::string(HORIZON_SOURCE_DIR) + "/apps/horizon_session/data/" + config_file;
             }
 
-            if (!fs::exists(user_path))
+            try
             {
-                LOG_INFO << "[HorizonSession] Desktop config not found, checking for source at: "
-                         << system_path;
-                if (fs::exists(system_path))
+                // If it exists but is a symlink, remove it to ensure we create a real file
+                if (fs::exists(user_path) && fs::is_symlink(user_path))
                 {
-                    fs::create_directories(fs::path(user_path).parent_path());
-                    fs::copy_file(system_path, user_path, fs::copy_options::overwrite_existing);
-                    LOG_INFO << "[HorizonSession] Successfully migrated desktop config to: "
-                             << user_path;
+                    LOG_INFO << "[HorizonSession] Removing existing symlink at: " << user_path;
+                    fs::remove(user_path);
                 }
-                else
+
+                if (!fs::exists(user_path))
                 {
-                    LOG_ERROR << "[HorizonSession] Default desktop config NOT found at: " << system_path;
+                    LOG_INFO << "[HorizonSession] Config " << config_file << " not found, checking for source at: "
+                             << system_path;
+                    if (fs::exists(system_path))
+                    {
+                        fs::create_directories(fs::path(user_path).parent_path());
+                        fs::copy_file(system_path, user_path, fs::copy_options::overwrite_existing);
+                        LOG_INFO << "[HorizonSession] Successfully migrated " << config_file << " to: "
+                                 << user_path;
+                    }
+                    else
+                    {
+                        LOG_ERROR << "[HorizonSession] Default config " << config_file << " NOT found at: " << system_path;
+                    }
                 }
             }
-        }
-        catch (const std::exception &e)
-        {
-            LOG_ERROR << "[HorizonSession] Error during desktop config migration: " << e.what();
+            catch (const std::exception &e)
+            {
+                LOG_ERROR << "[HorizonSession] Error during " << config_file << " migration: " << e.what();
+            }
         }
     }
 }

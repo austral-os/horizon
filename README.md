@@ -92,7 +92,7 @@ sudo apt install build-essential g++ pkg-config \
                  libwpe-1.0-dev libwpebackend-fdo-1.0-dev \
                  libwpewebkit-2.0-dev libpoppler-glib-dev \
                  libpango1.0-dev libmount-dev \
-                 nlohmann-json3-dev weston wayland-utils \
+                 nlohmann-json3-dev wayland-utils \
                  wlr-randr xdg-utils shared-mime-info \
                  desktop-file-utils
 ```
@@ -124,7 +124,7 @@ To test the installation, you can run the `minimal` demo:
 ./minimal
 ```
 
-_Note: Ensure you are in a Wayland session or running a compositor like Weston._
+_Note: Ensure you are in a Wayland session or running a compositor like Wayfire or labwc._
 
 ---
 
@@ -172,8 +172,7 @@ To install and run the `horizon-desktop.deb` package, the following dependencies
 | | | | |
 |---|---|---|---|
 | `desktop-file-utils` | `libliftoff0` | `libvterm0` | `libwoff1` |
-| `wayfire` | `libneatvnc0` | `libweston-14-0` | `libwpe-1.0-1` |
-| `weston` | `labwc` | `libseat1` | `libwf-config1` |
+| `wayfire` | `labwc` | `libseat1` | `libwf-config1` |
 | `libwpebackend-fdo-1.0-1` | `wlr-randr` | `libaml0t64` | `libsfdo0` |
 | `libwf-utils0t64` | `libwpewebkit-2.0-1` | `xdg-dbus-proxy` | `libfreerdp-server3-3` |
 | `libturbojpeg0` | `libwinpr3-3` | `libxcb-errors0` | `libfreerdp3-3` |
@@ -182,7 +181,7 @@ To install and run the `horizon-desktop.deb` package, the following dependencies
 You can install them all at once:
 ```bash
 sudo apt install desktop-file-utils libliftoff0 libvterm0 libwoff1 wayfire \
-                 libneatvnc0 libweston-14-0 libwpe-1.0-1 weston labwc \
+                 libneatvnc0 libwpe-1.0-1 labwc \
                  libseat1 libwf-config1 libwpebackend-fdo-1.0-1 wlr-randr \
                  libaml0t64 libsfdo0 libwf-utils0t64 libwpewebkit-2.0-1 \
                  xdg-dbus-proxy libfreerdp-server3-3 libturbojpeg0 libwinpr3-3 \

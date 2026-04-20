@@ -122,6 +122,22 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/desktop.json")
     )
 endif()
 
+# --- Terminal Config ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/terminal.json")
+    install(FILES data/terminal.json
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
+
+# --- Text Editor Config ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/text-editor.json")
+    install(FILES data/text-editor.json
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
+
 # --- Backgrounds ---
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/backgrounds")
     install(DIRECTORY data/backgrounds/

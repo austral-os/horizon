@@ -84,7 +84,7 @@ endmacro()
 
 # --- Runtime Dependencies (External Debian packages) ---
 set(HORIZON_RUNTIME_DEPENDS
-    "wayfire (>= 0.9.0), labwc (>= 0.8.3), weston (>= 14.0.2), wayland-utils (>= 1.2.0), wlr-randr (>= 0.4.1), xdg-utils (>= 1.2.1), shared-mime-info (>= 2.4), fontconfig (>= 2.15.0), librsvg2-common (>= 2.60.0), gstreamer1.0-plugins-bad (>= 1.26.2), gstreamer1.0-libav (>= 1.26.2), desktop-file-utils"
+    "wayfire (>= 0.9.0), labwc (>= 0.8.3), wayland-utils (>= 1.2.0), wlr-randr (>= 0.4.1), xdg-utils (>= 1.2.1), shared-mime-info (>= 2.4), fontconfig (>= 2.15.0), librsvg2-common (>= 2.60.0), gstreamer1.0-plugins-bad (>= 1.26.2), gstreamer1.0-libav (>= 1.26.2), desktop-file-utils"
 )
 
 # CPack Configuration
