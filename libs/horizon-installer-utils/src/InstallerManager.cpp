@@ -246,6 +246,19 @@ namespace horizon::installer
         if (res.success) {
             // 2. Refresh System Branding (Initramfs, Plymouth and Alternatives)
             report_progress(0.85, "Enforcing Austral OS visual identity...");
+
+            // 2.a Migrate themes and splash (Final Surgical Migration)
+            LOG_INFO << "Surgically migrating branding assets from Live medium...";
+            execute_privileged_command("/usr/bin/mkdir -p " + target_root + "/usr/share/grub/themes/austral");
+            
+            // Mirror the theme folder
+            execute_privileged_command("/usr/bin/rsync -va /run/live/medium/boot/grub/live-theme/ " + target_root + "/usr/share/grub/themes/austral/");
+            
+            // Mirror the splash image (Explicitly needed as it sits outside the theme folder on the ISO)
+            execute_privileged_command("/usr/bin/rsync -va /run/live/medium/boot/grub/splash.png " + target_root + "/usr/share/grub/themes/splash.png");
+            
+            // Sync to ensure files are physically on disk
+            execute_privileged_command("/usr/bin/sync");
             
             // Branding Deployment Script:
             // 1. Detect themes in filesystem
@@ -253,28 +266,39 @@ namespace horizon::installer
             // 3. Set update-alternatives for desktop-base
             // 4. Inject GRUB branding into /etc/default/grub
             std::string branding_script = "/usr/sbin/chroot " + target_root + " bash -c '"
-                "echo \"Searching for Austral OS assets...\"; "
+                "echo \"[Diagnostics] Verifying branding assets on target disk...\"; "
+                "ls -l /usr/share/grub/themes/splash.png 2>/dev/null; "
+                "ls -R /usr/share/grub/themes/austral/ 2>/dev/null; "
+                
+                "echo \"[Identity] Activating Austral OS visual themes...\"; "
                 "P_THEME=$(ls /usr/share/plymouth/themes | grep -E \"austral|horizon|os\" | head -n 1); "
                 "D_THEME=$(ls /usr/share/desktop-base | grep -E \"austral|horizon|os\" | head -n 1); "
-                "if [ ! -z \"$P_THEME\" ]; then echo \"Applying Plymouth theme: $P_THEME\"; plymouth-set-default-theme $P_THEME; fi; "
+                "if [ ! -z \"$P_THEME\" ]; then echo \"[Plymouth] Setting theme: $P_THEME\"; plymouth-set-default-theme $P_THEME; fi; "
                 "if [ ! -z \"$D_THEME\" ]; then "
-                    "echo \"Applying Desktop theme: $D_THEME\"; "
+                    "echo \"[Desktop] Setting theme alternatives: $D_THEME\"; "
                     "update-alternatives --set desktop-theme /usr/share/desktop-base/$D_THEME 2>/dev/null; "
                 "fi; "
                 
-                "echo \"Surgically fixing /etc/default/grub...\"; "
-                "sed -i \"s/GRUB_CMDLINE_LINUX_DEFAULT=\\\"/GRUB_CMDLINE_LINUX_DEFAULT=\\\"quiet splash /\" /etc/default/grub; "
+                "echo \"[GRUB] Injecting hardened configuration parameters...\"; "
+                "if ! grep -q \"GRUB_CMDLINE_LINUX_DEFAULT.*splash\" /etc/default/grub; then "
+                    "sed -i \"s/GRUB_CMDLINE_LINUX_DEFAULT=\\\"/GRUB_CMDLINE_LINUX_DEFAULT=\\\"quiet splash /\" /etc/default/grub; "
+                "fi; "
                 "sed -i \"s/quiet quiet/quiet/g; s/splash splash/splash/g\" /etc/default/grub; "
                 "sed -i \"s/^#GRUB_GFXMODE=.*/GRUB_GFXMODE=auto/\" /etc/default/grub; "
                 "sed -i \"s/^GRUB_TERMINAL=console/#GRUB_TERMINAL=console/\" /etc/default/grub; "
 
-                "sed -i \"s|^#GRUB_THEME=.*|GRUB_THEME=\\\"/usr/share/desktop-base/active-theme/grub/theme.txt\\\"|\" /etc/default/grub; "
-                "sed -i \"s|^GRUB_THEME=.*|GRUB_THEME=\\\"/usr/share/desktop-base/active-theme/grub/theme.txt\\\"|\" /etc/default/grub; "
-                "if [ ! -f /usr/share/desktop-base/active-theme/grub/theme.txt ]; then "
-                    "sed -i \"s|^GRUB_THEME=.*|#GRUB_THEME=|\" /etc/default/grub; "
-                    "sed -i \"s|^#GRUB_BACKGROUND=.*|GRUB_BACKGROUND=\\\"/usr/share/desktop-base/active-theme/grub/grub-4x3.png\\\"|\" /etc/default/grub; "
-                    "sed -i \"s|^GRUB_BACKGROUND=.*|GRUB_BACKGROUND=\\\"/usr/share/desktop-base/active-theme/grub/grub-4x3.png\\\"|\" /etc/default/grub; "
-                "fi'";
+                "G_THEME=\\\"/usr/share/grub/themes/austral/theme.txt\\\"; "
+                "G_BACK=\\\"/usr/share/grub/themes/splash.png\\\"; "
+                
+                "echo \"[GRUB] Forcing GRUB_THEME and GRUB_BACKGROUND...\"; "
+                "grep -q \"^GRUB_THEME=\" /etc/default/grub && sed -i \"s|^GRUB_THEME=.*|GRUB_THEME=$G_THEME|\" /etc/default/grub || "
+                "(grep -q \"^#GRUB_THEME=\" /etc/default/grub && sed -i \"s|^#GRUB_THEME=.*|GRUB_THEME=$G_THEME|\" /etc/default/grub || echo \"GRUB_THEME=$G_THEME\" >> /etc/default/grub); "
+                
+                "grep -q \"^GRUB_BACKGROUND=\" /etc/default/grub && sed -i \"s|^GRUB_BACKGROUND=.*|GRUB_BACKGROUND=$G_BACK|\" /etc/default/grub || "
+                "(grep -q \"^#GRUB_BACKGROUND=\" /etc/default/grub && sed -i \"s|^#GRUB_BACKGROUND=.*|GRUB_BACKGROUND=$G_BACK|\" /etc/default/grub || echo \"GRUB_BACKGROUND=$G_BACK\" >> /etc/default/grub); "
+                
+                "echo \"[Diagnostics] Final /etc/default/grub branding state:\"; "
+                "cat /etc/default/grub | grep -E \"GRUB_THEME|GRUB_BACKGROUND|GRUB_CMDLINE|GRUB_GFXMODE\"'";
             
             execute_privileged_command(branding_script);
 
