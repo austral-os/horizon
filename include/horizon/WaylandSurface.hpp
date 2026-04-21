@@ -81,6 +81,9 @@ namespace horizon
         friend void output_handle_name(void *, struct wl_output *, const char *);
         friend void output_handle_description(void *, struct wl_output *, const char *);
 
+        friend void surface_handle_enter(void *data, struct wl_surface *, struct wl_output *output);
+        friend void surface_handle_leave(void *, struct wl_surface *, struct wl_output *);
+
     public:
         enum class Role
         {

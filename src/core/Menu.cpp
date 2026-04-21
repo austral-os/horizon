@@ -17,12 +17,7 @@ namespace horizon
         // Stop propagation of mouse events to prevent background clicks
         when_mouse_press.connect([](MouseButtonEventContext &ev) { ev.stop_propagation = true; });
 
-        auto monitors = SystemInfo::get_monitors();
-        if (!monitors.empty()) {
-            m_max_menu_height = (int)(monitors[0].height * 0.8);
-        } else {
-            m_max_menu_height = 600;
-        }
+        m_max_menu_height = 600; // Default, will be overridden by WaylandWindow on show
 
         when_mouse_wheel.connect([this](MouseWheelEventContext &ctx) {
             double delta = ctx.dy * 20.0; // Smoother scroll

@@ -7,6 +7,7 @@
 #include "horizon/Menu.hpp"
 #include "horizon/WayfireCompositorContext.hpp"
 #include "horizon/Window.hpp"
+#include "horizon/SystemInfo.hpp"
 #include "horizon/dialogs/AboutUsDialog.hpp"
 #include <GLES2/gl2.h>
 #include <algorithm>
@@ -2641,6 +2642,22 @@ namespace horizon
         m_popup_menu->set_application_recursive(this);
         m_popup_menu->set_visible(true);
         m_popup_menu->set_position(0, 0);
+
+        // Determine the height of the monitor the window is currently on
+        int monitor_h = m_surface->monitor_height();
+        if (monitor_h <= 0)
+        {
+            // Fallback: Use the first monitor from SystemInfo if Wayland hasn't reported one yet
+            auto monitors = SystemInfo::get_monitors();
+            if (!monitors.empty())
+                monitor_h = monitors[0].height;
+            else
+                monitor_h = 1080; // Safe default
+        }
+
+        // Cap the menu height to 80% of the active monitor's height
+        m_popup_menu->set_max_menu_height((int)(monitor_h * 0.8));
+
         m_popup_menu->calculate_layout();
 
         int w = m_popup_menu->width();

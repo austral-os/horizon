@@ -27,6 +27,33 @@ namespace horizon
     // --- Static Handlers Forward Declarations ---
     static void seat_handle_capabilities(void *data, wl_seat *seat, uint32_t caps);
     static void seat_handle_name(void *data, wl_seat *seat, const char *name);
+
+    // --- Surface Callbacks ---
+    void surface_handle_enter(void *data, struct wl_surface *, struct wl_output *output)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        for (const auto &detail : ws->m_monitor_details)
+        {
+            if (detail.output == output)
+            {
+                ws->m_monitor_width = detail.width;
+                ws->m_monitor_height = detail.height;
+                LOG_INFO << "[SURFACE] Entered monitor: " << detail.name << " (" << ws->m_monitor_width << "x" << ws->m_monitor_height << ")";
+                break;
+            }
+        }
+    }
+
+    void surface_handle_leave(void *, struct wl_surface *, struct wl_output *)
+    {
+    }
+
+    static const struct wl_surface_listener surface_listener = {
+        .enter = surface_handle_enter,
+        .leave = surface_handle_leave,
+        .preferred_buffer_scale = [](void *, struct wl_surface *, int32_t) {},
+        .preferred_buffer_transform = [](void *, struct wl_surface *, uint32_t) {},
+    };
     
     static void pointer_handle_enter(void *data, wl_pointer *pointer, uint32_t serial, struct wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy);
     static void pointer_handle_leave(void *data, wl_pointer *pointer, uint32_t serial, struct wl_surface *surface);
@@ -207,6 +234,7 @@ namespace horizon
         m_role = Role::XdgToplevel;
         m_surface = wl_compositor_create_surface(m_compositor);
         wl_surface_set_user_data(m_surface, this);
+        wl_surface_add_listener(m_surface, &surface_listener, this);
 
         m_xdg_surface = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
         static const xdg_surface_listener xdg_surf_ptr = {
@@ -270,6 +298,7 @@ namespace horizon
         m_layer_namespace = namespace_id;
         m_surface = wl_compositor_create_surface(m_compositor);
         wl_surface_set_user_data(m_surface, this);
+        wl_surface_add_listener(m_surface, &surface_listener, this);
 
         if (!m_layer_shell) throw std::runtime_error("Compositor does not support wlr-layer-shell");
 
@@ -312,6 +341,7 @@ namespace horizon
 
         m_surface = wl_compositor_create_surface(m_compositor);
         wl_surface_set_user_data(m_surface, this);
+        wl_surface_add_listener(m_surface, &surface_listener, this);
         resize_buffer(w, h);
 
         m_xdg_positioner = xdg_wm_base_create_positioner(m_xdg_wm_base);
@@ -606,7 +636,6 @@ namespace horizon
             }
         }
     }
-
 
     // --- Foreign Toplevel Callbacks ---
     void foreign_toplevel_handle_title(void *data, struct zwlr_foreign_toplevel_handle_v1 *handle, const char *title) { static_cast<WaylandSurface *>(data)->m_foreign_toplevels[handle].title = title ? title : ""; }

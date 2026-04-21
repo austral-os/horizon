@@ -66,6 +66,11 @@ namespace horizon
             return m_max_width;
         }
 
+        void set_max_menu_height(int max_height)
+        {
+            m_max_menu_height = max_height;
+        }
+
         void set_min_width(int min_width)
         {
             m_min_width = min_width;
