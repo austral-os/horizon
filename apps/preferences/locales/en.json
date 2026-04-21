@@ -25,6 +25,9 @@
       "users": "Users",
       "datetime": "Date & Time",
       "region": "Region & Language",
+      "region_language": "Language",
+      "region_formats": "Formats",
+      "region_timezone": "Timezone",
       "applications": "Applications",
       "details": "About"
     },

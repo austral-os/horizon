@@ -52,6 +52,7 @@ namespace horizon
                            const std::string &item_id = "");
 
         void calculate_layout() override;
+        Widget *hit_test(int x, int y) override;
 
         void close_submenus();
         void set_active_submenu(Menu *menu);
@@ -91,6 +92,9 @@ namespace horizon
         int m_item_height = 24;
         int m_min_width = 240;
         int m_max_width = -1;       // -1 means no maximum
+        double m_scroll_y = 0;
+        int m_max_menu_height = 500;
+        double m_total_content_height = 0;
         bool m_was_visible = false; // Track visibility transitions for clearing
         std::string m_title;
         std::string m_id;

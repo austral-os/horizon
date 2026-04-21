@@ -52,6 +52,7 @@ target_link_libraries(preferences
         horizon
         horizon-overview
         PkgConfig::PIPEWIRE
+        nlohmann_json::nlohmann_json
 )
 
 add_custom_command(TARGET preferences POST_BUILD

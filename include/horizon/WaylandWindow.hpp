@@ -608,6 +608,8 @@ namespace horizon
         int m_min_height = -1;
 
         std::unique_ptr<WaylandSurface> m_popup_surface;
+        int m_popup_x{0};
+        int m_popup_y{0};
         Menu *m_popup_menu = nullptr;
         std::unique_ptr<PopupEventListener> m_popup_listener;
 

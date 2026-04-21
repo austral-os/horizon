@@ -3,6 +3,8 @@
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
+#include <horizon/SystemInfo.hpp>
+#include <cmath>
 
 namespace horizon
 {
@@ -14,6 +16,27 @@ namespace horizon
 
         // Stop propagation of mouse events to prevent background clicks
         when_mouse_press.connect([](MouseButtonEventContext &ev) { ev.stop_propagation = true; });
+
+        auto monitors = SystemInfo::get_monitors();
+        if (!monitors.empty()) {
+            m_max_menu_height = (int)(monitors[0].height * 0.8);
+        } else {
+            m_max_menu_height = 600;
+        }
+
+        when_mouse_wheel.connect([this](MouseWheelEventContext &ctx) {
+            double delta = ctx.dy * 20.0; // Smoother scroll
+            double old_scroll = m_scroll_y;
+            m_scroll_y += delta;
+            
+            double max_scroll = std::max(0.0, m_total_content_height - (double)m_height + 10.0);
+            if (m_scroll_y < 0.0) m_scroll_y = 0.0;
+            if (m_scroll_y > max_scroll) m_scroll_y = max_scroll;
+            
+            if (std::abs(m_scroll_y - old_scroll) > 0.001) {
+                invalidate();
+            }
+        });
     }
 
     void Menu::add_item(std::unique_ptr<MenuItem> item)
@@ -105,10 +128,34 @@ namespace horizon
             current_y += child->height();
         }
 
+        m_total_content_height = current_y + padding_bottom;
+        int final_h = (int)m_total_content_height;
+        if (m_max_menu_height > 0 && final_h > m_max_menu_height) {
+            final_h = m_max_menu_height;
+        }
+
         // Update size through set_size to trigger invalidation if changed
-        set_size(max_w, current_y + padding_bottom);
+        set_size(max_w, final_h);
         // Base coordinate refresh is handled within set_size -> invalidate or explicitly
         Widget::calculate_layout();
+    }
+
+    Widget *Menu::hit_test(int x, int y)
+    {
+        if (x < m_x || y < m_y || x > m_x + m_width || y > m_y + m_height)
+            return nullptr;
+
+        int local_y = y + (int)m_scroll_y;
+
+        for (auto &child : m_children)
+        {
+            // We want the direct child (the MenuItem) to be returned, 
+            // not its internal sub-widgets (like Labels), because the 
+            // selection handlers are connected to the MenuItem itself.
+            if (child->hit_test(x, local_y))
+                return child.get();
+        }
+        return this;
     }
 
     void Menu::close_submenus()
@@ -199,20 +246,25 @@ namespace horizon
             draw(ctx);
         }
 
-        // 3. Draw children with clipping
+        // 3. Draw children with clipping and scroll translation
         CornerRadius radius(0, 0, 10, 10);
         ctx.save();
         ctx.clipRoundedRect(m_start_draw_x, m_start_draw_y, m_width, m_height, radius);
+        
+        ctx.save();
+        ctx.translate(0, -m_scroll_y);
 
         for (const auto &child : m_children)
         {
             if (child->is_visible())
             {
-                child->render(ctx, cx, cy, cw, ch, should_draw);
+                // Translate the dirty region check for children to account for scroll
+                child->render(ctx, cx, cy + (int)m_scroll_y, cw, ch, should_draw);
             }
         }
 
-        ctx.restore();
+        ctx.restore(); // Restore translation
+        ctx.restore(); // Restore clipping
 
         m_dirty = false;
         m_child_dirty = false;

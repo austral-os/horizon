@@ -1235,6 +1235,12 @@ namespace horizon
         m_pointer_x = event.x;
         m_pointer_y = event.y;
 
+        if (m_popup_listener)
+        {
+            m_popup_listener->on_pointer_event(event);
+            return;
+        }
+
         switch (event.type)
         {
         case PointerEvent::Type::Move:
@@ -1504,8 +1510,35 @@ namespace horizon
             }
         }
 
-        // 2. Event Dispatching with Propagation
-        if (under)
+        // 2. Scroll Dispatching (Independent of 'under' hit-test for robustness)
+        if (event.type == PointerEvent::Type::Scroll)
+        {
+            MouseWheelEventContext ev;
+            ev.dx = event.dx;
+            ev.dy = event.dy;
+            ev.x = (double)x;
+            ev.y = (double)y;
+            ev.modifiers = m_window->m_modifiers;
+            
+            std::vector<Widget *> chain;
+            Widget *temp = under ? under : m_window->m_popup_menu;
+            while (temp)
+            {
+                chain.push_back(temp);
+                temp = temp->parent();
+            }
+
+            for (Widget *w : chain)
+            {
+                ev.sender = w;
+                w->when_mouse_wheel.run(ev);
+                if (ev.stop_propagation) {
+                    break;
+                }
+            }
+            m_window->invalidate();
+        }
+        else if (under)
         {
             std::vector<Widget *> chain;
             Widget *temp = under;
@@ -1566,6 +1599,35 @@ namespace horizon
                 under->when_click.run(ev);
                 m_window->close_context_menu();
             }
+        }
+        else if (event.type == PointerEvent::Type::Scroll)
+        {
+            // Robust Scroll Dispatch: Always try to scroll the menu if we are over the popup surface,
+            // even if we are not directly over a specific sub-widget (e.g. over border or padding).
+            MouseWheelEventContext ev;
+            ev.dx = event.dx;
+            ev.dy = event.dy;
+            ev.x = (double)x;
+            ev.y = (double)y;
+            ev.modifiers = m_window->m_modifiers;
+            
+            std::vector<Widget *> chain;
+            Widget *temp = under ? under : m_window->m_popup_menu;
+            while (temp)
+            {
+                chain.push_back(temp);
+                temp = temp->parent();
+            }
+
+            for (Widget *w : chain)
+            {
+                ev.sender = w;
+                w->when_mouse_wheel.run(ev);
+                if (ev.stop_propagation) {
+                    break;
+                }
+            }
+            m_window->invalidate();
         }
     }
 

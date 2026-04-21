@@ -166,6 +166,8 @@ namespace horizon
         int height() const { return m_height; }
         int monitor_width() const { return m_monitor_width; }
         int monitor_height() const { return m_monitor_height; }
+        
+        static WaylandSurface *pointer_focus();
         uint32_t anchor() const { return m_anchor; }
 
         void set_screen_position(int x, int y) { m_screen_x = x; m_screen_y = y; }

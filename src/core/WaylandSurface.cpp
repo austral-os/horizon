@@ -649,6 +649,7 @@ namespace horizon
     static void pointer_handle_enter(void *data, wl_pointer *, uint32_t serial, struct wl_surface *surface, wl_fixed_t sx, wl_fixed_t sy) {
         if (!surface) return;
         auto *entered_ws = static_cast<WaylandSurface *>(wl_surface_get_user_data(surface));
+        
         if (entered_ws) {
             g_pointer_focus = entered_ws;
             entered_ws->set_pointer_x(wl_fixed_to_double(sx));

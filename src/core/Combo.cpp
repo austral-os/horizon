@@ -27,7 +27,6 @@ namespace horizon
             m_selected_index = 0;
             invalidate();
         }
-        update_menu();
     }
 
     void Combo::clear_items()
@@ -86,6 +85,12 @@ namespace horizon
         {
             m_selected_index = index;
             invalidate();
+            
+            // Force a full application repaint to ensure the combo reflects the new selection
+            // immediately after the popup closes.
+            if (application()) {
+                application()->invalidate(nullptr);
+            }
 
             ComboItemSelectedContext ctx;
             ctx.sender = this;
@@ -96,7 +101,14 @@ namespace horizon
 
     void Combo::on_click()
     {
-        if (!m_menu || m_items.empty()) return;
+        if (m_items.empty()) return;
+        
+        // Lazy-create or update menu only when needed
+        if (!m_menu) {
+            update_menu();
+        }
+
+        if (!m_menu) return;
 
         if (auto *win = dynamic_cast<WaylandWindow *>(application()))
         {
