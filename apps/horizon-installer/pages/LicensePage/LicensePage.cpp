@@ -1,12 +1,12 @@
 #include "LicensePage.hpp"
-#include <horizon/I18n.hpp>
-#include <horizon/Spacer.hpp>
-#include <horizon/Label.hpp>
-#include <horizon/Textarea.hpp>
-#include <horizon/ScrollArea.hpp>
-#include <horizon/ToolbarButton.hpp>
 #include <filesystem>
 #include <fstream>
+#include <horizon/I18n.hpp>
+#include <horizon/Label.hpp>
+#include <horizon/ScrollArea.hpp>
+#include <horizon/Spacer.hpp>
+#include <horizon/Textarea.hpp>
+#include <horizon/ToolbarButton.hpp>
 #include <iostream>
 #include <sstream>
 
@@ -20,21 +20,26 @@ namespace horizon::installer
         auto title = std::make_unique<Label>(i18n().tr("installer.license.title"));
         title->set_font_size(32);
         title->set_alignment(TextAlignment::Center);
+        title->set_fixed_size(80);
         add_child(std::move(title));
 
         auto desc = std::make_unique<Label>(i18n().tr("installer.license.desc"));
         desc->set_alignment(TextAlignment::Center);
+        desc->set_fixed_size(80);
         add_child(std::move(desc));
 
         add_child(Spacer(10));
 
         std::string license_content = "License file not found.";
         auto search_paths = I18n::get_search_paths();
-        for (const auto& base_path : search_paths) {
+        for (const auto &base_path : search_paths)
+        {
             std::string path = base_path + "/locales/license_lgplv3.txt";
-            if (std::filesystem::exists(path)) {
+            if (std::filesystem::exists(path))
+            {
                 std::ifstream file(path);
-                if (file.is_open()) {
+                if (file.is_open())
+                {
                     std::stringstream ss;
                     ss << file.rdbuf();
                     license_content = ss.str();
@@ -45,28 +50,32 @@ namespace horizon::installer
 
         auto license_text = std::make_unique<Textarea>();
         license_text->set_text(license_content);
-        license_text->set_enabled(false);
-        license_text->set_size(850, 5000);
-        
-        auto scroll = std::make_unique<ScrollArea>();
-        scroll->set_content(std::move(license_text));
-        scroll->set_fixed_size(400);
-        
-        add_child(std::move(scroll));
+        license_text->set_fixed_size(-1);
 
-        add_child(Spacer());
+        // license_text->set_enabled(false);
+        //  license_text->set_size_size(850, 5000);
 
-        auto btn_disagree = std::make_unique<ToolbarButton>(i18n().tr("installer.buttons.disagree"), "edit-undo");
-        btn_disagree->when_click.connect([this](auto&) { 
-            EventContext ctx;
-            when_disagree.run(ctx); 
-        });
+        add_child(std::move(license_text));
 
-        auto btn_agree = std::make_unique<ToolbarButton>(i18n().tr("installer.buttons.agree"), "go-next");
-        btn_agree->when_click.connect([this](auto&) { 
-            EventContext ctx;
-            when_agree.run(ctx); 
-        });
+        add_child(Spacer(20));
+
+        auto btn_disagree =
+            std::make_unique<ToolbarButton>(i18n().tr("installer.buttons.disagree"), "edit-undo");
+        btn_disagree->when_click.connect(
+            [this](auto &)
+            {
+                EventContext ctx;
+                when_disagree.run(ctx);
+            });
+
+        auto btn_agree =
+            std::make_unique<ToolbarButton>(i18n().tr("installer.buttons.agree"), "go-next");
+        btn_agree->when_click.connect(
+            [this](auto &)
+            {
+                EventContext ctx;
+                when_agree.run(ctx);
+            });
 
         auto btn_container = std::make_unique<Widget>();
         btn_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
@@ -75,6 +84,7 @@ namespace horizon::installer
         btn_container->add_child(Spacer(20));
         btn_container->add_child(std::move(btn_agree));
         btn_container->add_child(Spacer());
+        btn_container->set_fixed_size(70);
         add_child(std::move(btn_container));
     }
 } // namespace horizon::installer
