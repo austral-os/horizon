@@ -29,6 +29,7 @@ namespace horizon::installer
          * @brief Shows the previous page.
          */
         void back();
+        void show_page(size_t index);
 
         /**
          * @brief Returns the index of the current page.

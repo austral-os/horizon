@@ -26,6 +26,17 @@
             "title": "Installation Finished",
             "desc": "Austral OS has been successfully installed."
         },
+        "region": {
+            "title": "Region & Timezone",
+            "formats": "Region"
+        },
+        "user": {
+            "title": "User Account",
+            "fullname": "Full Name",
+            "username": "Username",
+            "password": "Password",
+            "verify": "Verify Password"
+        },
         "buttons": {
             "continue": "Continue",
             "back": "Back",

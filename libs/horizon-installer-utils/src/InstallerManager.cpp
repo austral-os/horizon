@@ -2,6 +2,7 @@
 #include <horizon/Logger.hpp>
 #include <filesystem>
 #include <fstream>
+#include <nlohmann/json.hpp>
 #include <iostream>
 #include <sstream>
 #include <thread>
@@ -65,12 +66,37 @@ namespace horizon::installer
         LOG_INFO << "Starting Stage 2 (OOBE) for user " << config.username;
         
         report_progress(0.1, "Creating user account...");
-        auto res = create_user(config.username, config.password);
+        auto res = create_user(config.username, config.password, config.fullname);
         if (!res.success) return res;
 
         report_progress(0.5, "Setting system configuration...");
         res = set_system_config(config.hostname, config.timezone);
         if (!res.success) return res;
+
+        // Write region.json to user home
+        report_progress(0.7, "Configuring user environment...");
+        std::string user_home = "/home/" + config.username;
+        std::string config_dir = user_home + "/.config/horizon";
+        std::string region_file = config_dir + "/region.json";
+
+        execute_privileged_command("mkdir -p " + config_dir);
+        
+        nlohmann::json region_j = {
+            {"region", {
+                {"language", config.locale},
+                {"country", config.country},
+                {"timezone", config.timezone}
+            }}
+        };
+
+        std::string temp_file = "/tmp/region.json";
+        std::ofstream f(temp_file);
+        if (f.is_open()) {
+            f << region_j.dump(4);
+            f.close();
+            execute_privileged_command("cp " + temp_file + " " + region_file);
+            execute_privileged_command("chown -R " + config.username + ":" + config.username + " " + user_home + "/.config");
+        }
 
         finalize_oobe();
         report_progress(1.0, "OOBE Complete!");
@@ -391,32 +417,56 @@ namespace horizon::installer
         return execute_privileged_command("/usr/bin/touch " + target_root + "/etc/horizon-setup-pending");
     }
 
-    StepResult InstallerManager::create_user(const std::string& username, const std::string& password)
+    StepResult InstallerManager::create_user(const std::string& username, const std::string& password, const std::string& fullname)
     {
-        LOG_INFO << "Creating user " << username << "...";
+        LOG_INFO << "Creating user " << username << " (" << fullname << ")...";
         
         // Use execute_privileged_command for user management
-        auto res = execute_privileged_command("/usr/sbin/useradd -m -G sudo,video,audio,input -s /bin/bash " + username);
+        std::string cmd = "/usr/sbin/useradd -m -G sudo,video,audio,input -s /bin/bash ";
+        if (!fullname.empty()) {
+            cmd += "-c \"" + fullname + "\" ";
+        }
+        cmd += username;
+
+        auto res = execute_privileged_command(cmd);
         if (!res.success) return res;
 
-        std::string cmd = "echo \"" + username + ":" + password + "\" | /usr/sbin/chpasswd";
-        return execute_privileged_command(cmd);
+        std::string pass_cmd = "echo \"" + username + ":" + password + "\" | /usr/sbin/chpasswd";
+        return execute_privileged_command(pass_cmd);
     }
 
     StepResult InstallerManager::set_system_config(const std::string& hostname, const std::string& timezone)
     {
         LOG_INFO << "Setting hostname to " << hostname << " and timezone to " << timezone;
         
-        auto res = execute_privileged_command("/usr/bin/hostnamectl set-hostname " + hostname);
-        if (!res.success) return res;
+        // Hostname may be empty in OOBE if we don't want to change it
+        if (!hostname.empty()) {
+            auto res = execute_privileged_command("/usr/bin/hostnamectl set-hostname " + hostname);
+            if (!res.success) return res;
+        }
 
         return execute_privileged_command("/usr/bin/timedatectl set-timezone " + timezone);
     }
 
     void InstallerManager::finalize_oobe()
     {
-        LOG_INFO << "Finalizing OOBE, removing trigger file...";
+        LOG_INFO << "Finalizing OOBE: Switching services and removing trigger...";
+        
+        // Disable auto-login root session
+        execute_privileged_command("systemctl disable horizon.service");
+        
+        // Enable real display manager
+        execute_privileged_command("systemctl enable sddm.service");
+
+        // Remove live user (usually 'user')
+        LOG_INFO << "Removing live user...";
+        execute_privileged_command("/usr/sbin/userdel -r user");
+
+        // Remove trigger flag
         std::filesystem::remove("/etc/horizon-setup-pending");
+        
+        // Flag done
+        execute_privileged_command("touch /etc/horizon-setup-done");
     }
 
     void InstallerManager::report_progress(float progress, const std::string& message)

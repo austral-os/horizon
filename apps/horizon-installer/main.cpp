@@ -13,6 +13,7 @@
 #include <thread>
 #include <unistd.h>
 #include <linux/limits.h>
+#include <horizon/Logger.hpp>
 
 using namespace horizon;
 using namespace horizon::installer;
@@ -20,7 +21,8 @@ using namespace horizon::installer;
 class InstallerWindow : public Window
 {
 public:
-    InstallerWindow(bool oobe_mode) : Window("Horizon Installer"), m_oobe_mode(oobe_mode)
+    InstallerWindow(bool oobe_mode, const std::string& initial_view = "", bool working_mode = false) 
+        : Window("Horizon Installer"), m_oobe_mode(oobe_mode), m_initial_view(initial_view), m_working_mode(working_mode)
     {
         set_size(1000, 800);
         
@@ -35,6 +37,12 @@ public:
 
         // Start stage 1: Only Language Page
         setup_language_page();
+
+        if (!m_initial_view.empty()) {
+            // If a specific view is requested, we skip language selection and jump
+            setup_remaining_pages();
+            jump_to_view(m_initial_view);
+        }
 
         add_child(std::move(root));
     }
@@ -60,29 +68,64 @@ private:
 
     void setup_remaining_pages()
     {
-        // 2. Welcome Page
-        auto welcome_page = std::make_unique<WelcomePage>();
-        welcome_page->when_continue.connect([this](auto&) { m_wizard->next(); });
-        m_wizard->add_page(std::move(welcome_page));
+        if (m_oobe_mode)
+        {
+            // OOBE Mode: Language -> Region -> User -> Progress -> Success
+            
+            // 2. Region Page
+            auto region_page = std::make_unique<RegionPage>();
+            auto* region_ptr = region_page.get();
+            region_page->when_back.connect([this](auto&) { m_wizard->back(); });
+            region_page->when_continue.connect([this, region_ptr](auto&) {
+                m_config.country = region_ptr->selected_country();
+                m_config.timezone = region_ptr->selected_timezone();
+                m_wizard->next();
+            });
+            m_wizard->add_page(std::move(region_page));
 
-        // 3. License Page
-        auto license_page = std::make_unique<LicensePage>();
-        license_page->when_agree.connect([this](auto&) { m_wizard->next(); });
-        license_page->when_disagree.connect([this](auto&) { 
-            // Handle disagreement: for now just exit or go back
-        });
-        m_wizard->add_page(std::move(license_page));
+            // 3. User Page
+            auto user_page = std::make_unique<UserPage>();
+            auto* user_ptr = user_page.get();
+            user_page->when_back.connect([this](auto&) { m_wizard->back(); });
+            user_page->when_continue.connect([this, user_ptr](auto&) {
+                m_config.fullname = user_ptr->fullname();
+                m_config.username = user_ptr->username();
+                m_config.password = user_ptr->password();
+                m_config.hostname = "austral-pc"; // Default or prompt
+                m_config.is_oobe = true;
+                
+                m_wizard->next();
+                start_installation();
+            });
+            m_wizard->add_page(std::move(user_page));
+        }
+        else
+        {
+            // 2. Welcome Page
+            auto welcome_page = std::make_unique<WelcomePage>();
+            welcome_page->when_continue.connect([this](auto&) { m_wizard->next(); });
+            m_wizard->add_page(std::move(welcome_page));
 
-        // 4. Disk Selection Page
-        auto disk_page = std::make_unique<DiskPage>();
-        auto* disk_page_ptr = disk_page.get();
-        disk_page->when_back.connect([this](auto&) { m_wizard->back(); });
-        disk_page->when_install.connect([this, disk_page_ptr](auto&) {
-            m_config.target_device = disk_page_ptr->selected_device_str;
-            m_wizard->next();
-            start_installation();
-        });
-        m_wizard->add_page(std::move(disk_page));
+            // 3. License Page
+            auto license_page = std::make_unique<LicensePage>();
+            license_page->when_agree.connect([this](auto&) { m_wizard->next(); });
+            license_page->when_disagree.connect([this](auto&) { 
+                // Handle disagreement: for now just exit or go back
+            });
+            m_wizard->add_page(std::move(license_page));
+
+            // 4. Disk Selection Page
+            auto disk_page = std::make_unique<DiskPage>();
+            auto* disk_page_ptr = disk_page.get();
+            disk_page->when_back.connect([this](auto&) { m_wizard->back(); });
+            disk_page->when_install.connect([this, disk_page_ptr](auto&) {
+                m_config.target_device = disk_page_ptr->selected_device_str;
+                m_config.is_oobe = false;
+                m_wizard->next();
+                start_installation();
+            });
+            m_wizard->add_page(std::move(disk_page));
+        }
 
         // 5. Progress Page
         auto install_page = std::make_unique<InstallPage>();
@@ -108,9 +151,32 @@ private:
                 m_install_page_ptr->update_progress(progress, msg);
         });
 
-        // Run installation in a separate thread to keep UI responsive
+        if (m_working_mode) {
+            LOG_INFO << "[DEV] DRY-RUN MODE: Skipping real installation actions.";
+            LOG_INFO << "[DEV] Target: " << m_config.target_device << ", OOBE: " << (m_oobe_mode ? "YES" : "NO");
+            
+            // Just simulate success after a short delay
+            std::thread([this]() {
+                for (int i = 0; i <= 100; i += 10) {
+                    usleep(200000);
+                    if (auto* app = application()) {
+                        app->post_task([this, i]() {
+                            if (m_install_page_ptr) 
+                                m_install_page_ptr->update_progress(i / 100.0f, "Simulating installation... " + std::to_string(i) + "%");
+                        });
+                    }
+                }
+                if (auto* app = application()) {
+                    app->post_task([this]() {
+                        m_wizard->next();
+                    });
+                }
+            }).detach();
+            return;
+        }
         std::thread([this]() {
-            auto res = m_manager->run_stage1(m_config);
+            StepResult res = m_oobe_mode ? m_manager->run_stage2(m_config) : m_manager->run_stage1(m_config);
+            
             if (res.success) {
                 // Post to UI thread to transition to success page
                 if (auto* app = application()) {
@@ -119,12 +185,35 @@ private:
                     });
                 }
             } else {
-                // Handle error
+                std::cerr << "Installation error: " << res.message << std::endl;
             }
         }).detach();
     }
 
+    void jump_to_view(const std::string& view_name)
+    {
+        size_t index = 0;
+        if (m_oobe_mode) {
+            if (view_name == "region") index = 1;
+            else if (view_name == "new-user") index = 2;
+            else if (view_name == "progress") index = 3;
+            else if (view_name == "success") index = 4;
+        } else {
+            if (view_name == "welcome") index = 1;
+            else if (view_name == "license") index = 2;
+            else if (view_name == "disk") index = 3;
+            else if (view_name == "progress") index = 4;
+            else if (view_name == "success") index = 5;
+        }
+
+        if (index > 0) {
+            m_wizard->show_page(index);
+        }
+    }
+
     bool m_oobe_mode;
+    std::string m_initial_view;
+    bool m_working_mode;
     Wizard* m_wizard;
     std::unique_ptr<InstallerManager> m_manager;
     InstallationConfig m_config;
@@ -151,11 +240,19 @@ int main(int argc, char** argv)
     app.set_name(horizon::i18n().tr("installer.welcome.title"));
     
     bool oobe = false;
+    bool working = false;
+    std::string view = "";
+
     for (int i = 1; i < argc; ++i) {
-        if (std::string(argv[i]) == "--oobe") oobe = true;
+        std::string arg = argv[i];
+        if (arg == "--oobe") oobe = true;
+        else if (arg == "--working") working = true;
+        else if (arg.find("--view-") == 0) {
+            view = arg.substr(7);
+        }
     }
 
-    auto win = std::make_unique<InstallerWindow>(oobe);
+    auto win = std::make_unique<InstallerWindow>(oobe, view, working);
     app.set_root(std::move(win));
     
     app.run();

@@ -26,6 +26,17 @@
             "title": "Instalación Terminada",
             "desc": "Austral OS se ha instalado correctamente."
         },
+        "region": {
+            "title": "Región y Zona Horaria",
+            "formats": "Región"
+        },
+        "user": {
+            "title": "Cuenta de Usuario",
+            "fullname": "Nombre Completo",
+            "username": "Nombre de Usuario",
+            "password": "Contraseña",
+            "verify": "Repetir Contraseña"
+        },
         "buttons": {
             "continue": "Continuar",
             "back": "Atrás",

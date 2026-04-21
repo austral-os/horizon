@@ -9,7 +9,14 @@ find_package(nlohmann_json CONFIG REQUIRED)
 add_executable(horizon-installer
     main.cpp
     Wizard.cpp
-    InstallerPages.cpp
+    pages/LanguagePage/LanguagePage.cpp
+    pages/WelcomePage/WelcomePage.cpp
+    pages/LicensePage/LicensePage.cpp
+    pages/DiskPage/DiskPage.cpp
+    pages/InstallPage/InstallPage.cpp
+    pages/RegionPage/RegionPage.cpp
+    pages/UserPage/UserPage.cpp
+    pages/SuccessPage/SuccessPage.cpp
 )
 
 target_link_libraries(horizon-installer

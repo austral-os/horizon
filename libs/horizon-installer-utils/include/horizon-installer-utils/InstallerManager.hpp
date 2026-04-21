@@ -23,9 +23,11 @@ namespace horizon::installer
     struct InstallationConfig
     {
         std::string target_device; // e.g., "/dev/sda"
+        std::string fullname;      // Stage 2 (OOBE)
         std::string username;      // Stage 2 (OOBE)
         std::string password;      // Stage 2 (OOBE)
         std::string hostname;      // Stage 2 (OOBE)
+        std::string country;       // Stage 2 (OOBE)
         std::string timezone;      // Stage 2 (OOBE)
         std::string locale;        // Stage 1 & 2
         bool is_oobe = false;      // True if running in Stage 2
@@ -77,7 +79,7 @@ namespace horizon::installer
         StepResult configure_fstab(const std::string& target_root, const std::string& device_path);
         StepResult create_oobe_trigger(const std::string& target_root);
         
-        StepResult create_user(const std::string& username, const std::string& password);
+        StepResult create_user(const std::string& username, const std::string& password, const std::string& fullname = "");
         StepResult set_system_config(const std::string& hostname, const std::string& timezone);
         void finalize_oobe();
 

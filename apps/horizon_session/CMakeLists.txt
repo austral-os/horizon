@@ -13,6 +13,7 @@ target_compile_definitions(horizon_session PRIVATE
 target_link_libraries(horizon_session
     PRIVATE
         horizon
+        horizon-installer-utils
 )
 
 horizon_install_app(horizon_session

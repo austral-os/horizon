@@ -37,6 +37,16 @@ namespace horizon::installer
         }
     }
 
+    void Wizard::show_page(size_t index)
+    {
+        if (index < m_pages.size())
+        {
+            m_pages[m_current_index]->set_visible(false);
+            m_current_index = index;
+            m_pages[m_current_index]->set_visible(true);
+        }
+    }
+
     void Wizard::update_visible_page()
     {
         for (size_t i = 0; i < m_pages.size(); ++i)

@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <filesystem>
 #include <fstream>
+#include <horizon-installer-utils/InstallerManager.hpp>
 #include <horizon/DisplayConfig.hpp>
 #include <horizon/Logger.hpp>
 #include <iostream>
@@ -24,6 +25,14 @@
 
 namespace fs = std::filesystem;
 
+namespace
+{
+    bool is_setup_pending()
+    {
+        return horizon::installer::InstallerManager::is_oobe_pending();
+    }
+} // namespace
+
 HorizonSession::HorizonSession() : m_server_socket_path("/tmp/horizon_session.sock")
 {
     m_server = std::make_unique<horizon::IpcServer>(m_server_socket_path,
@@ -35,7 +44,6 @@ HorizonSession::~HorizonSession()
 {
     stop();
 }
-
 
 bool HorizonSession::is_dev_mode()
 {
@@ -100,7 +108,7 @@ void HorizonSession::init(const std::string &compositor)
                         {
                             has_settings_section = true;
                         }
-                        
+
                         if (trimmed.rfind("gtk-icon-theme-name", 0) == 0)
                         {
                             lines.push_back("gtk-icon-theme-name=austral");
@@ -123,9 +131,11 @@ void HorizonSession::init(const std::string &compositor)
                 }
 
                 // Write back the whole file
-                LOG_INFO << "[HorizonSession] Updating GTK " << v << " settings in: " << settings_path;
+                LOG_INFO << "[HorizonSession] Updating GTK " << v
+                         << " settings in: " << settings_path;
                 std::ofstream out(settings_path);
-                for (const auto& l : lines) {
+                for (const auto &l : lines)
+                {
                     out << l << "\n";
                 }
             }
@@ -195,15 +205,18 @@ void HorizonSession::init(const std::string &compositor)
     // Migrate configuration files from system to user home if not present
     if (home)
     {
-        std::vector<std::string> config_files = {"desktop.json", "terminal.json", "text-editor.json"};
+        std::vector<std::string> config_files = {"desktop.json", "terminal.json",
+                                                 "text-editor.json"};
 
-        for (const auto& config_file : config_files) {
+        for (const auto &config_file : config_files)
+        {
             std::string user_path = std::string(home) + "/.config/horizon/" + config_file;
             std::string system_path = "/usr/share/horizon/" + config_file;
 
             if (is_dev_mode())
             {
-                system_path = std::string(HORIZON_SOURCE_DIR) + "/apps/horizon_session/data/" + config_file;
+                system_path =
+                    std::string(HORIZON_SOURCE_DIR) + "/apps/horizon_session/data/" + config_file;
             }
 
             try
@@ -217,24 +230,26 @@ void HorizonSession::init(const std::string &compositor)
 
                 if (!fs::exists(user_path))
                 {
-                    LOG_INFO << "[HorizonSession] Config " << config_file << " not found, checking for source at: "
-                             << system_path;
+                    LOG_INFO << "[HorizonSession] Config " << config_file
+                             << " not found, checking for source at: " << system_path;
                     if (fs::exists(system_path))
                     {
                         fs::create_directories(fs::path(user_path).parent_path());
                         fs::copy_file(system_path, user_path, fs::copy_options::overwrite_existing);
-                        LOG_INFO << "[HorizonSession] Successfully migrated " << config_file << " to: "
-                                 << user_path;
+                        LOG_INFO << "[HorizonSession] Successfully migrated " << config_file
+                                 << " to: " << user_path;
                     }
                     else
                     {
-                        LOG_ERROR << "[HorizonSession] Default config " << config_file << " NOT found at: " << system_path;
+                        LOG_ERROR << "[HorizonSession] Default config " << config_file
+                                  << " NOT found at: " << system_path;
                     }
                 }
             }
             catch (const std::exception &e)
             {
-                LOG_ERROR << "[HorizonSession] Error during " << config_file << " migration: " << e.what();
+                LOG_ERROR << "[HorizonSession] Error during " << config_file
+                          << " migration: " << e.what();
             }
         }
 
@@ -251,21 +266,41 @@ void HorizonSession::init(const std::string &compositor)
                 if (region_data.contains("region") && region_data["region"].contains("language"))
                 {
                     lang_to_set = region_data["region"]["language"].get<std::string>();
-                    LOG_INFO << "[HorizonSession] Detected system language from region.json: " << lang_to_set;
+                    LOG_INFO << "[HorizonSession] Detected system language from region.json: "
+                             << lang_to_set;
                 }
             }
             else
             {
-                LOG_INFO << "[HorizonSession] region.json not found, using default language: " << lang_to_set;
+                LOG_INFO << "[HorizonSession] region.json not found, using default language: "
+                         << lang_to_set;
             }
         }
         catch (const std::exception &e)
         {
-            LOG_ERROR << "[HorizonSession] Error reading region.json: " << e.what() << ". Falling back to: " << lang_to_set;
+            LOG_ERROR << "[HorizonSession] Error reading region.json: " << e.what()
+                      << ". Falling back to: " << lang_to_set;
         }
 
         setenv("LANG", lang_to_set.c_str(), 1);
         LOG_INFO << "[HorizonSession] Set session $LANG to: " << lang_to_set;
+    }
+
+    // --- OOBE Orchestration ---
+    if (is_setup_pending())
+    {
+        LOG_INFO << "[HorizonSession] Detected pending setup. Entering OOBE mode.";
+
+        // In OOBE mode, we only launch the installer in OOBE mode
+        if (is_dev_mode())
+        {
+            m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) +
+                                         "/apps/horizon-installer/horizon-installer --oobe");
+        }
+        else
+        {
+            m_startup_services.push_back("horizon-installer --oobe");
+        }
     }
 }
 
