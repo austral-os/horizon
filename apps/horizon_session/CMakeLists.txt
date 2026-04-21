@@ -106,6 +106,14 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/color-scheme.json")
     )
 endif()
 
+# --- Country Data ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/countries.json")
+    install(FILES data/countries.json
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
+
 # --- Dock Config ---
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/dock.json")
     install(FILES data/dock.json

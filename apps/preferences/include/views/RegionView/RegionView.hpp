@@ -2,6 +2,8 @@
 #include <horizon/Widget.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Combo.hpp>
+#include <horizon/ConfigManager.hpp>
+#include <memory>
 
 namespace horizon::preferences
 {
@@ -15,9 +17,15 @@ namespace horizon::preferences
         void load_formats();
         void load_timezones();
 
+        void from_json(const nlohmann::json& j);
+        nlohmann::json to_json() const;
+        void save_config();
+
         Label* m_title_label{nullptr};
         Combo* m_lang_combo{nullptr};
         Combo* m_formats_combo{nullptr};
         Combo* m_timezone_combo{nullptr};
+
+        std::unique_ptr<horizon::ConfigManager> m_config;
     };
 }

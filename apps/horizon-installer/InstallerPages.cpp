@@ -91,21 +91,8 @@ namespace horizon::installer
                             if (lang_code.find("core_") == 0) continue;
                             if (seen_codes.count(lang_code)) continue;
 
-                            std::string lang_display = lang_code;
-
-                            // Try to parse the file to find a human-readable name
-                            try {
-                                std::ifstream file(entry.path());
-                                if (file.is_open()) {
-                                    nlohmann::json data;
-                                    file >> data;
-                                    if (data.contains("language") && data["language"].contains("name")) {
-                                        lang_display = data["language"]["name"].get<std::string>();
-                                    }
-                                }
-                            } catch (...) {
-                                // Fallback to code if parsing fails
-                            }
+                            // Use core I18n to get the human-readable name
+                            std::string lang_display = horizon::i18n().get_language_name(lang_code);
 
                             m_name_to_code[lang_display] = lang_code;
                             auto item = std::make_unique<TreeViewItem>("locale", lang_display);

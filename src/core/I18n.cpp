@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <limits.h>
 #include <horizon/Logger.hpp>
+#include <fstream>
+#include <nlohmann/json.hpp>
 
 namespace horizon {
 
@@ -102,6 +104,32 @@ std::vector<std::string> I18n::resolve_locale_chain(const std::string& locale) {
     
     // Potential for more logic here (e.g. "es-419" -> ["es-419", "es"])
     return chain;
+}
+
+std::string I18n::get_language_name(const std::string& code) const {
+    for (const auto& base_path : s_search_paths) {
+        std::vector<std::string> candidates = {
+            base_path + "/apps/horizon-installer/locales/" + code + ".json",
+            base_path + "/locales/" + code + ".json"
+        };
+
+        for (const auto& path : candidates) {
+            if (access(path.c_str(), F_OK) == 0) {
+                try {
+                    std::ifstream f(path);
+                    if (!f.is_open()) continue;
+                    nlohmann::json data;
+                    f >> data;
+                    if (data.contains("language") && data["language"].contains("name")) {
+                        return data["language"]["name"].get<std::string>();
+                    }
+                } catch (...) {
+                    continue;
+                }
+            }
+        }
+    }
+    return code;
 }
 
 I18n& i18n() {

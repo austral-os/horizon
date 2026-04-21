@@ -89,6 +89,12 @@ public:
      */
     static std::vector<std::string> resolve_locale_chain(const std::string& locale);
 
+    /**
+     * @brief Returns the human-readable name of a language code (e.g. "es" -> "Español").
+     * Searches through available locale files for metadata.
+     */
+    std::string get_language_name(const std::string& code) const;
+
 private:
     static std::vector<std::string> s_search_paths;
     std::unique_ptr<I18nBackend> m_backend;

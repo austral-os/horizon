@@ -5,11 +5,15 @@
 #include <fstream>
 #include <cstdio>
 #include <set>
+#include <utils/ConfigUtils.hpp>
 
 namespace horizon::preferences
 {
     RegionView::RegionView() : Widget()
     {
+        m_config = std::make_unique<ConfigManager>(get_config_path("region.json"));
+        m_config->load();
+
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_position_type(WidgetPositionTypes::FILL);
         set_margin(20);
@@ -36,13 +40,22 @@ namespace horizon::preferences
             this->add_child(std::move(row));
         };
 
-        create_row("preferences.region_language", m_lang_combo);
-        create_row("preferences.region_formats", m_formats_combo);
-        create_row("preferences.region_timezone", m_timezone_combo);
+        create_row("preferences.sections.region_language", m_lang_combo);
+        create_row("preferences.sections.region_formats", m_formats_combo);
+        create_row("preferences.sections.region_timezone", m_timezone_combo);
 
         load_languages();
         load_formats();
         load_timezones();
+
+        // Restore saved settings
+        from_json(m_config->get_section("region"));
+
+        // Connect events after initial load to avoid redundant saves
+        auto on_change = [this](const ComboItemSelectedContext&) { save_config(); };
+        m_lang_combo->when_item_selected.connect(on_change);
+        m_formats_combo->when_item_selected.connect(on_change);
+        m_timezone_combo->when_item_selected.connect(on_change);
     }
 
     void RegionView::load_languages()
@@ -54,25 +67,27 @@ namespace horizon::preferences
         auto search_paths = I18n::get_search_paths();
 
         for (const auto& base_path : search_paths) {
-            std::filesystem::path locales_path = std::filesystem::path(base_path) / "locales";
-            if (std::filesystem::exists(locales_path) && std::filesystem::is_directory(locales_path)) {
-                for (const auto& entry : std::filesystem::directory_iterator(locales_path)) {
-                    if (entry.path().extension() == ".json") {
-                        std::string lang_code = entry.path().stem().string();
-                        if (lang_code.find("core_") == 0) continue;
-                        if (seen_codes.count(lang_code)) continue;
+            // Find locale files in standard app locations + root
+            std::vector<std::string> locales_paths = {
+                base_path + "/apps/preferences/locales/",
+                base_path + "/locales/"
+            };
 
-                        std::string display_name = lang_code;
-                        try {
-                            std::ifstream f(entry.path());
-                            auto data = nlohmann::json::parse(f);
-                            if (data.contains("language") && data["language"].contains("name")) {
-                                display_name = data["language"]["name"].get<std::string>();
-                            }
-                        } catch (...) {}
+            for (const auto& path_str : locales_paths) {
+                std::filesystem::path locales_path(path_str);
+                if (std::filesystem::exists(locales_path) && std::filesystem::is_directory(locales_path)) {
+                    for (const auto& entry : std::filesystem::directory_iterator(locales_path)) {
+                        if (entry.path().extension() == ".json") {
+                            std::string lang_code = entry.path().stem().string();
+                            if (lang_code.find("core_") == 0) continue;
+                            if (seen_codes.count(lang_code)) continue;
 
-                        m_lang_combo->add_item(lang_code, display_name);
-                        seen_codes.insert(lang_code);
+                            // Use core I18n to get the human-readable name
+                            std::string display_name = horizon::i18n().get_language_name(lang_code);
+                            
+                            m_lang_combo->add_item(lang_code, display_name);
+                            seen_codes.insert(lang_code);
+                        }
                     }
                 }
             }
@@ -131,5 +146,45 @@ namespace horizon::preferences
             }
         }
         pclose(pipe);
+    }
+
+    void RegionView::from_json(const nlohmann::json& j)
+    {
+        if (j.is_null()) return;
+
+        if (j.contains("language") && m_lang_combo) {
+            m_lang_combo->set_selected_item_by_id(j["language"].get<std::string>());
+        }
+
+        if (j.contains("country") && m_formats_combo) {
+            m_formats_combo->set_selected_item_by_id(j["country"].get<std::string>());
+        }
+
+        if (j.contains("timezone") && m_timezone_combo) {
+            m_timezone_combo->set_selected_item_by_id(j["timezone"].get<std::string>());
+        }
+    }
+
+    nlohmann::json RegionView::to_json() const
+    {
+        nlohmann::json j;
+        if (m_lang_combo && m_lang_combo->selected_item()) {
+            j["language"] = m_lang_combo->selected_item()->id;
+        }
+        if (m_formats_combo && m_formats_combo->selected_item()) {
+            j["country"] = m_formats_combo->selected_item()->id;
+        }
+        if (m_timezone_combo && m_timezone_combo->selected_item()) {
+            j["timezone"] = m_timezone_combo->selected_item()->id;
+        }
+        return j;
+    }
+
+    void RegionView::save_config()
+    {
+        if (m_config) {
+            m_config->set_section("region", to_json());
+            m_config->save();
+        }
     }
 }
