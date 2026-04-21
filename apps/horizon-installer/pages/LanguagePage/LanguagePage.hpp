@@ -1,12 +1,18 @@
 #pragma once
 #include <horizon/Widget.hpp>
 #include <horizon/EventsManager.hpp>
-#include <horizon/TreeView.hpp>
+#include <horizon/TableView.hpp>
 #include <string>
-#include <map>
+#include <vector>
 
 namespace horizon::installer
 {
+    struct LanguageItem
+    {
+        std::string code;
+        std::string name;
+    };
+
     /**
      * @brief Page 0: Language Selection
      */
@@ -23,9 +29,9 @@ namespace horizon::installer
         EventsManager<EventContext> when_continue;
 
     private:
-        TreeView *m_tree{nullptr};
+        TableView<LanguageItem> *m_table{nullptr};
         std::string selected_code;
         std::string selected_name;
-        std::map<std::string, std::string> m_name_to_code;
+        std::vector<LanguageItem> m_languages;
     };
 } // namespace horizon::installer
