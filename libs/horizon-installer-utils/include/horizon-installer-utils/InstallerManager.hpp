@@ -1,7 +1,8 @@
 #pragma once
 
-#include <string>
+#include <horizon-disk-utilities/DiskManager.hpp>
 #include <vector>
+#include <string>
 #include <functional>
 #include <memory>
 
@@ -65,6 +66,9 @@ namespace horizon::installer
 
     private:
         ProgressCallback m_progress_cb;
+        horizon::disks::DiskManager m_disk_manager;
+        std::string m_target_mount_point;
+        std::string m_efi_mount_point;
 
         // Internal steps
         StepResult partition_disk(const std::string& device_path);
@@ -78,5 +82,10 @@ namespace horizon::installer
         void finalize_oobe();
 
         void report_progress(float progress, const std::string& message);
+        
+        // System execution helper
+        StepResult execute_command(const std::string& command);
+        StepResult execute_privileged_command(const std::string& command);
+        std::string sanitize_device_path(const std::string& path);
     };
 } // namespace horizon::installer

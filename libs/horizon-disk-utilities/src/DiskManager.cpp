@@ -8,6 +8,8 @@
 #include <sys/statvfs.h>
 #include <libmount/libmount.h>
 #include <iostream>
+#include <thread>
+#include <chrono>
 
 namespace horizon::disks
 {
@@ -241,13 +243,18 @@ namespace horizon::disks
         }
 
         try {
-            m_dbus_helper->call_void_method_with_empty_dict(
+            std::map<std::string, dbusutils::DbusVariant> options;
+            options["force"] = true;
+
+            m_dbus_helper->call_method_s_asv(
                 "org.freedesktop.UDisks2",
                 udisks_path,
                 "org.freedesktop.UDisks2.Filesystem",
-                "Unmount"
+                "Unmount",
+                "",
+                options
             );
-            return {true, "Unmount signal sent via UDisks2"};
+            return {true, "Unmounted (forced) successfully via UDisks2"};
         } catch (const std::exception& e) {
             LOG_ERROR << "[DiskManager] Unmount error: " << e.what();
             return {false, std::string("D-Bus error: ") + e.what()};
@@ -257,17 +264,42 @@ namespace horizon::disks
     OperationResult DiskManager::format_partition(const std::string& device_path, const std::string& fs_type, const std::string& label)
     {
         std::lock_guard<std::recursive_mutex> lock(m_mutex);
-        std::string mkfs_tool = "mkfs." + fs_type;
-        std::string label_flag = "-L";
-        if (fs_type == "vfat" || fs_type == "fat16" || fs_type == "fat32") label_flag = "-n";
         
-        std::string final_fs = fs_type;
-        if (fs_type == "fat32" || fs_type == "fat16") final_fs = "vfat";
+        // Find the udisks path for the partition
+        std::string udisks_path;
+        for (const auto& dev : m_devices) {
+            for (const auto& part : dev->partitions) {
+                if (part->device_path == device_path) {
+                    udisks_path = part->udisks_path;
+                    break;
+                }
+            }
+            if (!udisks_path.empty()) break;
+        }
 
-        std::string cmd = "mkfs." + final_fs + " " + label_flag + " \"" + label + "\" " + device_path;
-        int res = std::system(cmd.c_str());
-        if (res == 0) return {true, "Successfully formatted"};
-        return {false, "Failed to format partition"};
+        if (udisks_path.empty() || !m_dbus_helper) return {false, "Partition not found or D-Bus error"};
+
+        try {
+            std::map<std::string, dbusutils::DbusVariant> options;
+            options["label"] = label;
+            
+            std::string final_fs = fs_type;
+            if (fs_type == "fat32" || fs_type == "fat16") final_fs = "vfat";
+
+            m_dbus_helper->call_method_s_asv(
+                "org.freedesktop.UDisks2",
+                udisks_path,
+                "org.freedesktop.UDisks2.Block",
+                "Format",
+                final_fs,
+                options,
+                60000 // 60s timeout
+            );
+            return {true, "Successfully formatted partition via UDisks2"};
+        } catch (const std::exception& e) {
+            LOG_ERROR << "[DiskManager] Format error: " << e.what();
+            return {false, std::string("D-Bus format error: ") + e.what()};
+        }
     }
 
     OperationResult DiskManager::eject_device(const std::string& device_path)
@@ -664,6 +696,110 @@ namespace horizon::disks
                 }
             }
             dbus_message_unref(msg);
+        }
+    }
+
+    OperationResult DiskManager::unmount_all_partitions(const std::string& device_path)
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        LOG_INFO << "[DiskManager] Ensuring all partitions on " << device_path << " are unmounted";
+        
+        // Find the device and its partitions
+        DiskDevice* target_dev = nullptr;
+        for (const auto& dev : m_devices) {
+            if (dev->device_path == device_path) {
+                target_dev = dev.get();
+                break;
+            }
+        }
+
+        if (!target_dev) return {false, "Device not found"};
+
+        for (const auto& part : target_dev->partitions) {
+            if (part->is_mounted) {
+                LOG_INFO << "[DiskManager] Unmounting " << part->device_path << " (Forced)";
+                unmount_partition(part->device_path);
+            }
+        }
+
+        // Give the kernel and udev some time to settle
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+        return {true, "Partitions unmounted (forced)"};
+    }
+
+    OperationResult DiskManager::create_partition_table(const std::string& device_path, const std::string& type)
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        LOG_INFO << "[DiskManager] Creating partition table " << type << " on " << device_path;
+        
+        std::string udisks_path;
+        for (const auto& dev : m_devices) {
+            if (dev->device_path == device_path) {
+                udisks_path = dev->udisks_path;
+                break;
+            }
+        }
+
+        if (udisks_path.empty() || !m_dbus_helper) return {false, "Device not found"};
+
+        try {
+            std::map<std::string, dbusutils::DbusVariant> options;
+            m_dbus_helper->call_method_s_asv(
+                "org.freedesktop.UDisks2",
+                udisks_path,
+                "org.freedesktop.UDisks2.Block", // Correct interface for Format
+                "Format",
+                type,
+                options,
+                30000 // 30s timeout
+            );
+            LOG_INFO << "[DiskManager] Partition table created successfully";
+            return {true, "Partition table created"};
+        } catch (const std::exception& e) {
+            LOG_ERROR << "[DiskManager] Create partition table error: " << e.what();
+            return {false, std::string("D-Bus error: ") + e.what()};
+        }
+    }
+
+    OperationResult DiskManager::create_partition(const std::string& device_path, uint64_t offset, uint64_t size, const std::string& type, const std::string& name, uint64_t flags)
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        LOG_INFO << "[DiskManager] Creating partition at " << offset << " (" << size << " bytes) on " << device_path;
+        
+        std::string udisks_path;
+        for (const auto& dev : m_devices) {
+            if (dev->device_path == device_path) {
+                udisks_path = dev->udisks_path;
+                break;
+            }
+        }
+
+        if (udisks_path.empty() || !m_dbus_helper) return {false, "Device not found"};
+
+        try {
+            std::map<std::string, dbusutils::DbusVariant> options;
+            if (flags != 0) {
+                options["flags"] = flags;
+            }
+
+            m_dbus_helper->call_method_ttss_asv(
+                "org.freedesktop.UDisks2",
+                udisks_path,
+                "org.freedesktop.UDisks2.PartitionTable",
+                "CreatePartition",
+                offset,
+                size,
+                type,
+                name,
+                options,
+                30000 // 30s timeout
+            );
+            LOG_INFO << "[DiskManager] Partition created successfully";
+            return {true, "Partition created"};
+        } catch (const std::exception& e) {
+            LOG_ERROR << "[DiskManager] Create partition error: " << e.what();
+            return {false, std::string("D-Bus error: ") + e.what()};
         }
     }
 

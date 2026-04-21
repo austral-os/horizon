@@ -250,6 +250,53 @@ namespace horizon::dbusutils
         if (reply) dbus_message_unref(reply);
     }
 
+    void DbusHelper::call_method_ttss_asv(const std::string& destination,
+                                         const std::string& path,
+                                         const std::string& interface,
+                                         const std::string& method,
+                                         uint64_t offset, uint64_t size,
+                                         const std::string& type, const std::string& name,
+                                         const std::map<std::string, DbusVariant>& options,
+                                         int timeout_ms)
+    {
+        if (path.empty())
+        {
+            throw std::runtime_error("D-Bus method call failed: path is empty");
+        }
+
+        DBusMessage* msg = dbus_message_new_method_call(destination.c_str(),
+                                                        path.c_str(),
+                                                        interface.c_str(),
+                                                        method.c_str());
+        if (msg == nullptr) return;
+
+        DBusMessageIter iter;
+        dbus_message_iter_init_append(msg, &iter);
+        
+        dbus_message_iter_append_basic(&iter, DBUS_TYPE_UINT64, &offset);
+        dbus_message_iter_append_basic(&iter, DBUS_TYPE_UINT64, &size);
+        const char* c_type = type.c_str();
+        const char* c_name = name.c_str();
+        dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING, &c_type);
+        dbus_message_iter_append_basic(&iter, DBUS_TYPE_STRING, &c_name);
+        
+        append_dict(&iter, options);
+
+        DBusError error;
+        dbus_error_init(&error);
+        DBusMessage* reply = dbus_connection_send_with_reply_and_block(m_connection, msg, timeout_ms, &error);
+        dbus_message_unref(msg);
+
+        if (dbus_error_is_set(&error)) {
+            std::string err_msg = "D-Bus error in call_method_ttss_asv: ";
+            err_msg += error.message;
+            dbus_error_free(&error);
+            if (reply) dbus_message_unref(reply);
+            throw std::runtime_error(err_msg);
+        }
+        if (reply) dbus_message_unref(reply);
+    }
+
     DbusVariant DbusHelper::get_property(const std::string& destination,
                                          const std::string& path,
                                          const std::string& interface,

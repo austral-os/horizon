@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <set>
 #include <sstream>
 #include <nlohmann/json.hpp>
 #include <horizon/Textarea.hpp>
@@ -70,45 +71,54 @@ namespace horizon::installer
         m_name_to_code.clear();
         
         auto search_paths = I18n::get_search_paths();
+        std::set<std::string> seen_codes;
 
-        bool found = false;
+        bool at_least_one_source_found = false;
         for (const auto& base_path : search_paths) {
-            std::string path = base_path + "/locales/";
-            if (std::filesystem::exists(path) && std::filesystem::is_directory(path)) {
-                for (const auto& entry : std::filesystem::directory_iterator(path)) {
-                    if (entry.path().extension() == ".json") {
-                        std::string lang_code = entry.path().stem().string();
-                        // Ignore core_ files if any
-                        if (lang_code.find("core_") == 0) continue;
+            std::vector<std::string> candidates = {
+                base_path + "/apps/horizon-installer/locales/",
+                base_path + "/locales/"
+            };
 
-                        std::string lang_display = lang_code;
+            for (const auto& path : candidates) {
+                if (std::filesystem::exists(path) && std::filesystem::is_directory(path)) {
+                    at_least_one_source_found = true;
+                    for (const auto& entry : std::filesystem::directory_iterator(path)) {
+                        if (entry.path().extension() == ".json") {
+                            std::string lang_code = entry.path().stem().string();
+                            
+                            // Ignore core_ files and duplicates
+                            if (lang_code.find("core_") == 0) continue;
+                            if (seen_codes.count(lang_code)) continue;
 
-                        // Try to parse the file to find a human-readable name
-                        try {
-                            std::ifstream file(entry.path());
-                            if (file.is_open()) {
-                                nlohmann::json data;
-                                file >> data;
-                                if (data.contains("language") && data["language"].contains("name")) {
-                                    lang_display = data["language"]["name"].get<std::string>();
+                            std::string lang_display = lang_code;
+
+                            // Try to parse the file to find a human-readable name
+                            try {
+                                std::ifstream file(entry.path());
+                                if (file.is_open()) {
+                                    nlohmann::json data;
+                                    file >> data;
+                                    if (data.contains("language") && data["language"].contains("name")) {
+                                        lang_display = data["language"]["name"].get<std::string>();
+                                    }
                                 }
+                            } catch (...) {
+                                // Fallback to code if parsing fails
                             }
-                        } catch (...) {
-                            // Fallback to code if parsing fails
-                        }
 
-                        m_name_to_code[lang_display] = lang_code;
-                        auto item = std::make_unique<TreeViewItem>("locale", lang_display);
-                        m_tree->add_root_item(std::move(item));
-                        found = true;
+                            m_name_to_code[lang_display] = lang_code;
+                            auto item = std::make_unique<TreeViewItem>("locale", lang_display);
+                            m_tree->add_root_item(std::move(item));
+                            seen_codes.insert(lang_code);
+                        }
                     }
                 }
-                if (found) break;
             }
         }
         
-        if (!found) {
-            std::cout << "Warning: No locales found in any of the searched paths." << std::endl;
+        if (seen_codes.empty()) {
+            std::cout << "Warning: No locales found in any of the searched paths. Source found: " << at_least_one_source_found << std::endl;
         }
     }
 

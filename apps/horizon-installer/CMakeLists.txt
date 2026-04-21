@@ -26,10 +26,10 @@ add_custom_command(TARGET horizon-installer POST_BUILD
     $<TARGET_FILE_DIR:horizon-installer>/locales
 )
 
-install(TARGETS horizon-installer
-    DESTINATION bin
-)
-
-install(DIRECTORY locales/
-    DESTINATION share/horizon/apps/horizon-installer/locales
+horizon_install_app(horizon-installer
+    APP_ID "horizon-installer"
+    NAME "OS Installer"
+    COMMENT "Install Austral OS to your computer"
+    ICON "system-os-installer"
+    CATEGORIES "System;Settings;Utility;"
 )

@@ -58,12 +58,12 @@ Detailed guides on implementing core framework features:
 - [**Window Management**](docs/window_management_mechanisms.md): Deep dive into Wayland surface and window lifecycle.
 - [**Localization (i18n)**](docs/localization.md): Native multi-language support with JSON backends.
 - **Dialog System**: Unified interface for user interaction via modal dialogs.
-  - [**MessageDialog System**](docs/message_dialogs.md): Standardized alert and confirmation dialogs.
-  - [**FileDialog System**](docs/file_dialog.md): Usage and invocation of the standard file selection dialog.
-  - [**Preferences Dialog System**](docs/preferences_dialog.md): Integration and architecture of the settings management system.
-  - [**Font Selection System**](docs/font_dialog.md): Usage and integration of system font selection tools.
-  - [**Color Selection System**](docs/color_selector.md): Usage and integration of system color selection tools.
-  - [**AboutUs Dialog System**](docs/aboutus_dialog.md): Integration and architecture of the application about details dialog.
+    - [**MessageDialog System**](docs/message_dialogs.md): Standardized alert and confirmation dialogs.
+    - [**FileDialog System**](docs/file_dialog.md): Usage and invocation of the standard file selection dialog.
+    - [**Preferences Dialog System**](docs/preferences_dialog.md): Integration and architecture of the settings management system.
+    - [**Font Selection System**](docs/font_dialog.md): Usage and integration of system font selection tools.
+    - [**Color Selection System**](docs/color_selector.md): Usage and integration of system color selection tools.
+    - [**AboutUs Dialog System**](docs/aboutus_dialog.md): Integration and architecture of the application about details dialog.
 - [**Configuration Management**](docs/configuration_management.md): Robust system for managing application preferences and JSON-based configurations.
 - [**File Watcher System**](docs/file_watcher.md): Real-time monitoring of filesystem changes for automated reloading.
 
@@ -95,6 +95,11 @@ sudo apt install build-essential g++ pkg-config \
                  nlohmann-json3-dev wayland-utils \
                  wlr-randr xdg-utils shared-mime-info \
                  desktop-file-utils
+
+
+                 sudo apt update
+sudo apt install parted rsync dosfstools e2fsprogs udisks2 util-linux grub-efi-amd64 grub-common
+
 ```
 
 Multimedia dependecies for Nova:
@@ -137,17 +142,17 @@ Horizon supports generating `.deb` packages for Debian-based systems. You can ge
 Three targets are available for easy packaging from the `build` directory:
 
 - **Monolithic Package** (All applications + libraries in one `.deb`):
-  ```bash
-  ninja package-monolithic
-  ```
+    ```bash
+    ninja package-monolithic
+    ```
 - **Individual Packages** (One `.deb` per application + library):
-  ```bash
-  ninja package-components
-  ```
+    ```bash
+    ninja package-components
+    ```
 - **Standard Package** (Default configuration):
-  ```bash
-  ninja package
-  ```
+    ```bash
+    ninja package
+    ```
 
 ### 2. Using CPack directly
 
@@ -169,16 +174,17 @@ The generated packages will be located in the `build` directory.
 
 To install and run the `horizon-desktop.deb` package, the following dependencies must be present on the system:
 
-| | | | |
-|---|---|---|---|
-| `desktop-file-utils` | `libliftoff0` | `libvterm0` | `libwoff1` |
-| `wayfire` | `labwc` | `libseat1` | `libwf-config1` |
-| `libwpebackend-fdo-1.0-1` | `wlr-randr` | `libaml0t64` | `libsfdo0` |
-| `libwf-utils0t64` | `libwpewebkit-2.0-1` | `xdg-dbus-proxy` | `libfreerdp-server3-3` |
-| `libturbojpeg0` | `libwinpr3-3` | `libxcb-errors0` | `libfreerdp3-3` |
-| `liburiparser1` | `libwlroots-0.18` | `libxcb-ewmh2` | |
+|                           |                      |                  |                        |
+| ------------------------- | -------------------- | ---------------- | ---------------------- |
+| `desktop-file-utils`      | `libliftoff0`        | `libvterm0`      | `libwoff1`             |
+| `wayfire`                 | `labwc`              | `libseat1`       | `libwf-config1`        |
+| `libwpebackend-fdo-1.0-1` | `wlr-randr`          | `libaml0t64`     | `libsfdo0`             |
+| `libwf-utils0t64`         | `libwpewebkit-2.0-1` | `xdg-dbus-proxy` | `libfreerdp-server3-3` |
+| `libturbojpeg0`           | `libwinpr3-3`        | `libxcb-errors0` | `libfreerdp3-3`        |
+| `liburiparser1`           | `libwlroots-0.18`    | `libxcb-ewmh2`   |                        |
 
 You can install them all at once:
+
 ```bash
 sudo apt install desktop-file-utils libliftoff0 libvterm0 libwoff1 wayfire \
                  libneatvnc0 libwpe-1.0-1 labwc \
@@ -188,7 +194,6 @@ sudo apt install desktop-file-utils libliftoff0 libvterm0 libwoff1 wayfire \
                  libxcb-errors0 libfreerdp3-3 liburiparser1 libwlroots-0.18 \
                  libxcb-ewmh2
 ```
-
 
 ---
 

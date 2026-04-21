@@ -95,6 +95,18 @@ namespace horizon::dbusutils
                                        int timeout_ms = -1);
 
         /**
+         * @brief Calls a method with (ttss, a{sv}) signature. Used for UDisks2 PartitionTable.CreatePartition.
+         */
+        void call_method_ttss_asv(const std::string& destination,
+                                 const std::string& path,
+                                 const std::string& interface,
+                                 const std::string& method,
+                                 uint64_t offset, uint64_t size,
+                                 const std::string& type, const std::string& name,
+                                 const std::map<std::string, DbusVariant>& options,
+                                 int timeout_ms = -1);
+
+        /**
          * @brief Generic method to get a single property value.
          */
         DbusVariant get_property(const std::string& destination,

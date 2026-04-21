@@ -82,6 +82,24 @@ namespace horizon::disks
         OperationResult recreate_and_format_partition(const std::string& device_path, const std::string& fs_type, const std::string& label);
 
         /**
+         * @brief Creates a new partition table on a disk.
+         * @param type Table type (e.g., "gpt", "dos")
+         */
+        OperationResult create_partition_table(const std::string& device_path, const std::string& type);
+
+        /**
+         * @brief Creates a new partition on a disk.
+         * @param type Partition type (GUID for GPT, e.g., "0FC63130-3568-4127-822E-C3DC2671822F")
+         * @param flags Attributes for the partition (gpt flags)
+         */
+        OperationResult create_partition(const std::string& device_path, uint64_t offset, uint64_t size, const std::string& type, const std::string& name, uint64_t flags = 0);
+
+        /**
+         * @brief Unmounts all partitions of a disk.
+         */
+        OperationResult unmount_all_partitions(const std::string& device_path);
+
+        /**
          * @brief Callback for progress updates (0.0 to 1.0).
          */
         using ProgressCallback = std::function<void(float, const std::string&)>;
