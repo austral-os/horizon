@@ -632,4 +632,19 @@ namespace horizon
         return m_placeholder;
     }
 
+    void Textarea::move_cursor_to_start()
+    {
+        m_cursor_pos = 0;
+        m_selection_anchor = -1;
+        m_scroll_offset_y = 0;
+        invalidate();
+    }
+
+    void Textarea::move_cursor_to_end()
+    {
+        m_cursor_pos = (int)m_text.length();
+        m_selection_anchor = -1;
+        invalidate();
+    }
+
 } // namespace horizon

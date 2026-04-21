@@ -51,6 +51,7 @@ namespace horizon::installer
         auto license_text = std::make_unique<Textarea>();
         license_text->set_text(license_content);
         license_text->set_fixed_size(-1);
+        license_text->move_cursor_to_start();
 
         // license_text->set_enabled(false);
         //  license_text->set_size_size(850, 5000);

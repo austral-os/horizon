@@ -21,6 +21,16 @@ namespace horizon
         void set_placeholder(const std::string &placeholder);
         const std::string &placeholder() const;
 
+        /**
+         * @brief Moves the cursor to the beginning of the text.
+         */
+        void move_cursor_to_start();
+ 
+        /**
+         * @brief Moves the cursor to the end of the text.
+         */
+        void move_cursor_to_end();
+ 
         EventsManager<KeyEventContext> when_text_changed;
 
     protected:
