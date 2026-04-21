@@ -15,33 +15,40 @@ namespace horizon::installer
         title->set_alignment(TextAlignment::Center);
         add_child(std::move(title));
 
+        add_child(Spacer());
+
         auto progress = std::make_unique<ProgressBar>();
         m_progress = progress.get();
         add_child(std::move(progress));
-        m_progress->set_size(600, 20);
-        
+        m_progress->set_fixed_size(30);
+
         auto status = std::make_unique<Label>(i18n().tr("installer.install.desc"));
         m_status = status.get();
+        m_status->set_fixed_size(40);
         add_child(std::move(status));
         m_status->set_alignment(TextAlignment::Center);
 
-        add_child(Spacer());
+        add_child(Spacer(50));
 
-        auto btn_cancel = std::make_unique<ToolbarButton>(i18n().tr("installer.buttons.cancel"), "process-stop");
-        btn_cancel->when_click.connect([this](auto&) { 
-            EventContext ctx;
-            when_cancel.run(ctx); 
-        });
+        auto btn_cancel =
+            std::make_unique<ToolbarButton>(i18n().tr("installer.buttons.cancel"), "process-stop");
+        btn_cancel->when_click.connect(
+            [this](auto &)
+            {
+                EventContext ctx;
+                when_cancel.run(ctx);
+            });
 
         auto btn_container = std::make_unique<Widget>();
         btn_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         btn_container->add_child(Spacer());
         btn_container->add_child(std::move(btn_cancel));
         btn_container->add_child(Spacer());
+        btn_container->set_fixed_size(70);
         add_child(std::move(btn_container));
     }
 
-    void InstallPage::update_progress(float progress, const std::string& message)
+    void InstallPage::update_progress(float progress, const std::string &message)
     {
         m_progress->set_progress(progress);
         m_status->set_text(message);
