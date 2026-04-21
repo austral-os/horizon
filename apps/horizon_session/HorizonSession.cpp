@@ -237,6 +237,35 @@ void HorizonSession::init(const std::string &compositor)
                 LOG_ERROR << "[HorizonSession] Error during " << config_file << " migration: " << e.what();
             }
         }
+
+        // --- Language Initialization ---
+        std::string region_path = std::string(home) + "/.config/horizon/region.json";
+        std::string lang_to_set = "en";
+
+        try
+        {
+            if (fs::exists(region_path))
+            {
+                std::ifstream f(region_path);
+                nlohmann::json region_data = nlohmann::json::parse(f);
+                if (region_data.contains("region") && region_data["region"].contains("language"))
+                {
+                    lang_to_set = region_data["region"]["language"].get<std::string>();
+                    LOG_INFO << "[HorizonSession] Detected system language from region.json: " << lang_to_set;
+                }
+            }
+            else
+            {
+                LOG_INFO << "[HorizonSession] region.json not found, using default language: " << lang_to_set;
+            }
+        }
+        catch (const std::exception &e)
+        {
+            LOG_ERROR << "[HorizonSession] Error reading region.json: " << e.what() << ". Falling back to: " << lang_to_set;
+        }
+
+        setenv("LANG", lang_to_set.c_str(), 1);
+        LOG_INFO << "[HorizonSession] Set session $LANG to: " << lang_to_set;
     }
 }
 

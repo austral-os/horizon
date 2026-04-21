@@ -1,180 +1,180 @@
 {
-  "preferences": {
-    "title": "System Preferences",
-    "home": "Home",
-    "groups": {
-      "personal": "Personal",
-      "hardware": "Hardware",
-      "network": "Internet & Network",
-      "system": "System"
-    },
-    "sections": {
-      "appearance": "Appearance",
-      "desktop": "Desktop",
-      "screensaver": "Screensaver",
-      "notifications": "Notifications",
-      "display": "Displays",
-      "sound": "Sound",
-      "mouse": "Mouse & Touchpad",
-      "keyboard": "Keyboard",
-      "printers": "Printers",
-      "power": "Power",
-      "wifi": "Wi-Fi",
-      "bluetooth": "Bluetooth",
-      "network": "Network",
-      "users": "Users",
-      "datetime": "Date & Time",
-      "region": "Region & Language",
-      "region_language": "Language",
-      "region_formats": "Formats",
-      "region_timezone": "Timezone",
-      "applications": "Applications",
-      "details": "About"
-    },
-    "toolbar": {
-        "show_all": "Show All",
-        "search_placeholder": "Search in settings"
-    },
-    "applications": {
-        "tabs": {
-            "startup": "Startup",
-            "default": "Default Apps",
-            "mime_types": "MIME Types"
+    "preferences": {
+        "title": "System Preferences",
+        "home": "Home",
+        "groups": {
+            "personal": "Personal",
+            "hardware": "Hardware",
+            "network": "Internet & Network",
+            "system": "System"
         },
-        "labels": {
-            "name": "Name",
-            "command": "Command",
-            "web_browser": "Web Browser:",
-            "email_client": "Email Client:",
-            "image_viewer": "Image Viewer:",
-            "music_player": "Music Player:",
-            "video_player": "Video Player:",
-            "text_editor": "Text Editor:",
-            "pdf_viewer": "PDF Viewer:",
-            "file_manager": "File Manager:",
-            "terminal": "Terminal Emulator:",
-            "archiver": "Archive Manager:"
+        "sections": {
+            "appearance": "Appearance",
+            "desktop": "Desktop",
+            "screensaver": "Screensaver",
+            "notifications": "Notifications",
+            "display": "Displays",
+            "sound": "Sound",
+            "mouse": "Mouse & Touchpad",
+            "keyboard": "Keyboard",
+            "printers": "Printers",
+            "power": "Power",
+            "wifi": "Wi-Fi",
+            "bluetooth": "Bluetooth",
+            "network": "Network",
+            "users": "Users",
+            "datetime": "Date & Time",
+            "region": "Region & Language",
+            "region_language": "Language",
+            "region_formats": "Country",
+            "region_timezone": "Timezone",
+            "applications": "Applications",
+            "details": "About"
         },
-        "buttons": {
+        "toolbar": {
+            "show_all": "Show All",
+            "search_placeholder": "Search in settings"
+        },
+        "applications": {
+            "tabs": {
+                "startup": "Startup",
+                "default": "Default Apps",
+                "mime_types": "MIME Types"
+            },
+            "labels": {
+                "name": "Name",
+                "command": "Command",
+                "web_browser": "Web Browser:",
+                "email_client": "Email Client:",
+                "image_viewer": "Image Viewer:",
+                "music_player": "Music Player:",
+                "video_player": "Video Player:",
+                "text_editor": "Text Editor:",
+                "pdf_viewer": "PDF Viewer:",
+                "file_manager": "File Manager:",
+                "terminal": "Terminal Emulator:",
+                "archiver": "Archive Manager:"
+            },
+            "buttons": {
+                "add": "Add",
+                "edit": "Edit",
+                "remove": "Remove"
+            },
+            "categories": {
+                "internet": "Internet",
+                "multimedia": "Multimedia",
+                "documents": "Documents",
+                "utilities": "Utilities"
+            },
+            "mime_types": {
+                "search_placeholder": "Search MIME types...",
+                "select_mime": "Select a MIME type",
+                "associated_extensions": "Associated extensions",
+                "applications_priority": "Applications (Priority order)",
+                "add_extension_title": "Add Extension",
+                "add_extension_label": "Enter extension (e.g.: .txt):",
+                "error_remove_system_ext": "This extension cannot be removed because it belongs to the system configuration.",
+                "no_app_available": "No applications available"
+            }
+        },
+        "bluetooth": {
+            "paired_devices": "Paired Devices",
+            "device_name": "Device name",
+            "status": "Status",
+            "connected": "Connected",
+            "disconnected": "Disconnected",
+            "sync_new": "Sync new",
+            "connect": "Connect",
+            "disconnect": "Disconnect",
+            "refresh": "Refresh",
+            "select_device": "Select a device",
+            "search": "Search...",
+            "scanning": "Scanning...",
+            "pin_manual": "Manual PIN:",
+            "pairing": "Pairing...",
+            "paired_success": "Paired successfully",
+            "next": "Next"
+        },
+        "desktop": {
+            "wallpaper": "Desktop",
+            "dock": "Dock",
+            "select_image": "Select an image",
+            "fill": "Fill screen",
+            "fit": "Fit to screen",
+            "stretch": "Stretch to fill",
+            "center": "Center",
+            "change_image": "Change image:",
+            "every_5_sec": "Every 5 seconds",
+            "every_30_min": "Every 30 minutes",
+            "every_hour": "Every hour",
+            "random_order": "Random order",
+            "translucent_bar": "Translucent menu bar",
+            "icon_size": "Icon Size",
+            "use_magnification": "Use Magnification"
+        },
+        "display": {
+            "resolution": "Resolution",
+            "use_native": "Use native resolution",
+            "refresh_rate": "Refresh rate",
+            "rotation": "Rotation",
+            "normal": "Normal",
+            "90_right": "90° Right",
+            "180_inverted": "180° (Inverted)",
+            "90_left": "90° Left",
+            "refresh_speed": "Refresh Speed",
+            "apply_changes": "Apply Changes",
+            "confirm_title": "Confirm Display",
+            "keep_changes": "Keep",
+            "revert": "Revert",
+            "confirm_msg": "Do you want to keep these display settings?\nReverting in {0} seconds...",
+            "monitor": "Monitor",
+            "generic_monitor": "Generic Monitor"
+        },
+        "keyboard": {
+            "hardware": "Hardware",
+            "language": "Language",
+            "shortcuts": "Shortcuts",
+            "keyboard_model": "Keyboard Model",
+            "delay": "Delay",
+            "rate": "Rate",
+            "numlock_on": "Start with Num Lock enabled",
             "add": "Add",
-            "edit": "Edit",
-            "remove": "Remove"
+            "remove": "Remove",
+            "default": "Default"
         },
-        "categories": {
-            "internet": "Internet",
-            "multimedia": "Multimedia",
-            "documents": "Documents",
-            "utilities": "Utilities"
+        "sound": {
+            "output": "Output",
+            "input": "Input",
+            "apps": "Applications",
+            "output_devices": "Available audio output devices:",
+            "input_devices": "Available audio input devices:",
+            "output_volume": "Output volume:",
+            "input_volume": "Input volume:",
+            "balance": "Balance:",
+            "left": "Left",
+            "center": "Center",
+            "right": "Right",
+            "test_speakers": "Test speakers...",
+            "individual_volume": "Applications (Individual Volume)"
         },
-        "mime_types": {
-            "search_placeholder": "Search MIME types...",
-            "select_mime": "Select a MIME type",
-            "associated_extensions": "Associated extensions",
-            "applications_priority": "Applications (Priority order)",
-            "add_extension_title": "Add Extension",
-            "add_extension_label": "Enter extension (e.g.: .txt):",
-            "error_remove_system_ext": "This extension cannot be removed because it belongs to the system configuration.",
-            "no_app_available": "No applications available"
+        "wifi": {
+            "preferred_networks": "Preferred Networks",
+            "network_name": "Network Name",
+            "security_type": "Security Type",
+            "signal": "Signal",
+            "connection": "Connection",
+            "connected": "Connected",
+            "no_connection": "No connection",
+            "connect": "Connect",
+            "disconnect": "Disconnect",
+            "refresh": "Refresh",
+            "connected_to": "Connected to {0}",
+            "hidden_network": "<Hidden Network>",
+            "tcp_ip_config": "TCP/IP Configuration (Coming Soon)"
+        },
+        "common": {
+            "error": "Error",
+            "warning": "Warning"
         }
-    },
-    "bluetooth": {
-        "paired_devices": "Paired Devices",
-        "device_name": "Device name",
-        "status": "Status",
-        "connected": "Connected",
-        "disconnected": "Disconnected",
-        "sync_new": "Sync new",
-        "connect": "Connect",
-        "disconnect": "Disconnect",
-        "refresh": "Refresh",
-        "select_device": "Select a device",
-        "search": "Search...",
-        "scanning": "Scanning...",
-        "pin_manual": "Manual PIN:",
-        "pairing": "Pairing...",
-        "paired_success": "Paired successfully",
-        "next": "Next"
-    },
-    "desktop": {
-        "wallpaper": "Desktop",
-        "dock": "Dock",
-        "select_image": "Select an image",
-        "fill": "Fill screen",
-        "fit": "Fit to screen",
-        "stretch": "Stretch to fill",
-        "center": "Center",
-        "change_image": "Change image:",
-        "every_5_sec": "Every 5 seconds",
-        "every_30_min": "Every 30 minutes",
-        "every_hour": "Every hour",
-        "random_order": "Random order",
-        "translucent_bar": "Translucent menu bar",
-        "icon_size": "Icon Size",
-        "use_magnification": "Use Magnification"
-    },
-    "display": {
-        "resolution": "Resolution",
-        "use_native": "Use native resolution",
-        "refresh_rate": "Refresh rate",
-        "rotation": "Rotation",
-        "normal": "Normal",
-        "90_right": "90° Right",
-        "180_inverted": "180° (Inverted)",
-        "90_left": "90° Left",
-        "refresh_speed": "Refresh Speed",
-        "apply_changes": "Apply Changes",
-        "confirm_title": "Confirm Display",
-        "keep_changes": "Keep",
-        "revert": "Revert",
-        "confirm_msg": "Do you want to keep these display settings?\nReverting in {0} seconds...",
-        "monitor": "Monitor",
-        "generic_monitor": "Generic Monitor"
-    },
-    "keyboard": {
-        "hardware": "Hardware",
-        "language": "Language",
-        "shortcuts": "Shortcuts",
-        "keyboard_model": "Keyboard Model",
-        "delay": "Delay",
-        "rate": "Rate",
-        "numlock_on": "Start with Num Lock enabled",
-        "add": "Add",
-        "remove": "Remove",
-        "default": "Default"
-    },
-    "sound": {
-        "output": "Output",
-        "input": "Input",
-        "apps": "Applications",
-        "output_devices": "Available audio output devices:",
-        "input_devices": "Available audio input devices:",
-        "output_volume": "Output volume:",
-        "input_volume": "Input volume:",
-        "balance": "Balance:",
-        "left": "Left",
-        "center": "Center",
-        "right": "Right",
-        "test_speakers": "Test speakers...",
-        "individual_volume": "Applications (Individual Volume)"
-    },
-    "wifi": {
-        "preferred_networks": "Preferred Networks",
-        "network_name": "Network Name",
-        "security_type": "Security Type",
-        "signal": "Signal",
-        "connection": "Connection",
-        "connected": "Connected",
-        "no_connection": "No connection",
-        "connect": "Connect",
-        "disconnect": "Disconnect",
-        "refresh": "Refresh",
-        "connected_to": "Connected to {0}",
-        "hidden_network": "<Hidden Network>",
-        "tcp_ip_config": "TCP/IP Configuration (Coming Soon)"
-    },
-    "common": {
-        "error": "Error",
-        "warning": "Warning"
     }
-  }
 }

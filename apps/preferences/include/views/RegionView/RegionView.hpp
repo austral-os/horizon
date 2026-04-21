@@ -4,6 +4,7 @@
 #include <horizon/Combo.hpp>
 #include <horizon/ConfigManager.hpp>
 #include <memory>
+#include <map>
 
 namespace horizon::preferences
 {
@@ -20,6 +21,7 @@ namespace horizon::preferences
         void from_json(const nlohmann::json& j);
         nlohmann::json to_json() const;
         void save_config();
+        void refresh_ui_texts();
 
         Label* m_title_label{nullptr};
         Combo* m_lang_combo{nullptr};
@@ -27,5 +29,6 @@ namespace horizon::preferences
         Combo* m_timezone_combo{nullptr};
 
         std::unique_ptr<horizon::ConfigManager> m_config;
+        std::map<std::string, Label*> m_labels;
     };
 }

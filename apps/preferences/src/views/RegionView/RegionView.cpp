@@ -32,6 +32,7 @@ namespace horizon::preferences
 
             auto label = std::make_unique<Label>(i18n().tr(label_key));
             label->set_width(150);
+            m_labels[label_key] = label.get();
             row->add_child(std::move(label));
 
             auto combo = std::make_unique<Combo>();
@@ -185,6 +186,32 @@ namespace horizon::preferences
         if (m_config) {
             m_config->set_section("region", to_json());
             m_config->save();
+
+            // Apply selected locale to environment and current process
+            if (m_lang_combo && m_lang_combo->selected_item()) {
+                std::string lang_code = m_lang_combo->selected_item()->id;
+                setenv("LANG", lang_code.c_str(), 1);
+                horizon::i18n().set_locale(lang_code);
+                
+                // Refresh UI immediately
+                refresh_ui_texts();
+            }
+        }
+    }
+
+    void RegionView::refresh_ui_texts()
+    {
+        // Reload application strings with new locale
+        i18n().load_app_locales("preferences");
+
+        if (m_title_label) {
+            m_title_label->set_text(i18n().tr("preferences.sections.region"));
+        }
+
+        for (auto const& [key, label] : m_labels) {
+            if (label) {
+                label->set_text(i18n().tr(key));
+            }
         }
     }
 }
