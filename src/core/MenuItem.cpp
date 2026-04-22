@@ -46,11 +46,7 @@ namespace horizon
                 {
                     ev.stop_propagation = true;
                 }
-                /*});
 
-            when_click.connect(
-                [this](MouseButtonEventContext &)
-                {*/
                 if (!is_enabled())
                     return;
 

@@ -1582,6 +1582,15 @@ namespace horizon
                 for (Widget *w : chain)
                 {
                     ev.sender = w;
+                    // Adjust Y for scrolled menus so bounds checks pass in Widget.cpp
+                    if (auto *m = dynamic_cast<Menu *>(w->parent()))
+                    {
+                        ev.y = (double)y + m->scroll_y();
+                    }
+                    else
+                    {
+                        ev.y = (double)y;
+                    }
                     w->when_mouse_press.run(ev);
                     if (ev.stop_propagation)
                         break;
@@ -1607,13 +1616,19 @@ namespace horizon
                 for (Widget *w : chain)
                 {
                     ev.sender = w;
+                    // Adjust Y for scrolled menus so bounds checks pass in Widget.cpp
+                    if (auto *m = dynamic_cast<Menu *>(w->parent()))
+                    {
+                        ev.y = (double)y + m->scroll_y();
+                    }
+                    else
+                    {
+                        ev.y = (double)y;
+                    }
                     w->when_mouse_release.run(ev);
                 }
                 m_window->invalidate();
-
-                // Run click on the direct hit widget synchronously.
-                // Running it before closing the menu ensures the widget is still valid.
-                under->when_click.run(ev);
+                
                 m_window->close_context_menu();
             }
         }

@@ -71,6 +71,11 @@ namespace horizon
             m_max_menu_height = max_height;
         }
 
+        double scroll_y() const
+        {
+            return m_scroll_y;
+        }
+
         void set_min_width(int min_width)
         {
             m_min_width = min_width;
