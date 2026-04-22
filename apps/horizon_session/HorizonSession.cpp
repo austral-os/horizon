@@ -163,7 +163,7 @@ void HorizonSession::init(const std::string &compositor)
         {
             LOG_INFO << "[HorizonSession] WAYLAND_DISPLAY is NULL, adding " << compositor
                      << " to startup services.";
-            m_startup_services.push_back(compositor);
+            // m_startup_services.push_back(compositor);
         }
         else
         {
@@ -435,8 +435,8 @@ void HorizonSession::cleanup_lingering_compositors()
                  << std::endl;
         // pkill -u $USER will only kill our own processes.
         // We use SIGKILL (-9) here to ensure they release hardware resources immediately.
-        std::system("pkill -9 -u $USER -x wayfire || true");
-        std::system("pkill -9 -u $USER -x labwc || true");
+        // std::system("pkill -9 -u $USER -x wayfire || true");
+        // std::system("pkill -9 -u $USER -x labwc || true");
         std::system("pkill -9 -u $USER -x Xwayland || true");
         // Give logind and the kernel a full second to release the seat and DRM master
         std::this_thread::sleep_for(std::chrono::seconds(1));
