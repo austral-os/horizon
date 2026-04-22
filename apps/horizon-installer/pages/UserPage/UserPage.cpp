@@ -68,8 +68,9 @@ namespace horizon::installer
         m_error_label->set_fixed_size(30);
         content->add_child(std::move(error_label));
 
+        content->add_child(Spacer());
+
         add_child(std::move(content));
-        add_child(Spacer());
 
         auto footer = std::make_unique<Widget>();
         footer->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
