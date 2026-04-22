@@ -239,7 +239,7 @@ int main(int argc, char** argv)
     
     app.set_name(horizon::i18n().tr("installer.welcome.title"));
     
-    bool oobe = false;
+    bool oobe = InstallerManager::is_oobe_pending();
     bool working = false;
     std::string view = "";
 

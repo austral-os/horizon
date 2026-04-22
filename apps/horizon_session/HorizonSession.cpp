@@ -31,6 +31,11 @@ namespace
     {
         return horizon::installer::InstallerManager::is_oobe_pending();
     }
+
+    bool is_setup_done()
+    {
+        return horizon::installer::InstallerManager::is_setup_done();
+    }
 } // namespace
 
 HorizonSession::HorizonSession() : m_server_socket_path("/tmp/horizon_session.sock")
@@ -286,20 +291,26 @@ void HorizonSession::init(const std::string &compositor)
         LOG_INFO << "[HorizonSession] Set session $LANG to: " << lang_to_set;
     }
 
-    // --- OOBE Orchestration ---
-    if (is_setup_pending())
+    // --- OOBE / Installation Orchestration ---
+    if (!is_setup_done())
     {
-        LOG_INFO << "[HorizonSession] Detected pending setup. Entering OOBE mode.";
-
-        // In OOBE mode, we only launch the installer in OOBE mode
-        if (is_dev_mode())
+        if (is_setup_pending())
         {
-            m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) +
-                                         "/apps/horizon-installer/horizon-installer --oobe");
+            LOG_INFO << "[HorizonSession] Detected pending setup. Entering OOBE mode.";
         }
         else
         {
-            m_startup_services.push_back("horizon-installer --oobe");
+            LOG_INFO << "[HorizonSession] Detected unconfigured system. Entering scratch installation mode.";
+        }
+
+        if (is_dev_mode())
+        {
+            m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) +
+                                         "/apps/horizon-installer/horizon-installer");
+        }
+        else
+        {
+            m_startup_services.push_back("horizon-installer");
         }
     }
 }

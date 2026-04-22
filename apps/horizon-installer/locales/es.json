@@ -28,7 +28,8 @@
         },
         "region": {
             "title": "Región y Zona Horaria",
-            "formats": "Región"
+            "formats": "País",
+            "timezone": "Zona Horaria"
         },
         "user": {
             "title": "Cuenta de Usuario",

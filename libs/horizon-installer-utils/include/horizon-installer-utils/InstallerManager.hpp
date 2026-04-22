@@ -66,6 +66,16 @@ namespace horizon::installer
          */
         static bool is_oobe_pending();
 
+        /**
+         * @brief Checks if the system setup is already complete.
+         */
+        static bool is_setup_done();
+
+        /**
+         * @brief Marks the system setup as complete.
+         */
+        void mark_setup_done();
+
     private:
         ProgressCallback m_progress_cb;
         horizon::disks::DiskManager m_disk_manager;

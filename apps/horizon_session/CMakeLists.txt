@@ -147,6 +147,14 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/text-editor.json")
     )
 endif()
 
+# --- License ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/license_lgplv3.txt")
+    install(FILES data/license_lgplv3.txt
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
+
 # --- Backgrounds ---
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/backgrounds")
     install(DIRECTORY data/backgrounds/

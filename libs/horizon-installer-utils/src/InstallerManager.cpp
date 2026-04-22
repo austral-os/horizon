@@ -58,6 +58,7 @@ namespace horizon::installer
         }
 
         report_progress(1.0, "Stage 1 complete!");
+        mark_setup_done();
         return {true, "Installation finished successfully. Please reboot."};
     }
 
@@ -106,6 +107,17 @@ namespace horizon::installer
     bool InstallerManager::is_oobe_pending()
     {
         return std::filesystem::exists("/etc/horizon-setup-pending");
+    }
+
+    bool InstallerManager::is_setup_done()
+    {
+        return std::filesystem::exists("/etc/horizon-setup-done");
+    }
+
+    void InstallerManager::mark_setup_done()
+    {
+        LOG_INFO << "Marking system setup as complete (/etc/horizon-setup-done)";
+        execute_privileged_command("/usr/bin/touch /etc/horizon-setup-done");
     }
 
     StepResult InstallerManager::partition_disk(const std::string& device_path)
@@ -466,7 +478,7 @@ namespace horizon::installer
         std::filesystem::remove("/etc/horizon-setup-pending");
         
         // Flag done
-        execute_privileged_command("touch /etc/horizon-setup-done");
+        mark_setup_done();
     }
 
     void InstallerManager::report_progress(float progress, const std::string& message)
