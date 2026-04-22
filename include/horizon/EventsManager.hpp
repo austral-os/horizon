@@ -84,11 +84,13 @@ namespace horizon
         class Menu *menu;
         int x;
         int y;
+        uint32_t serial{0};
     };
 
     class PopupDismissedContext : public EventContext
     {
     public:
+        uint32_t serial{0};
     };
 
     class ToggleEventContext : public EventContext

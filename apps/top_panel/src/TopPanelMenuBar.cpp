@@ -22,7 +22,7 @@ TopPanelMenuBar::TopPanelMenuBar(TopPanelApplication *app) : m_app(app)
         [this](MenuBarClickContext &ctx)
         {
             LOG_INFO << "[TOP PANEL] MenuBar click: " << ctx.menu->title() << " at x=" << ctx.x;
-            m_app->window()->show_context_menu(ctx.menu, ctx.x, 32);
+            m_app->window()->show_context_menu(ctx.menu, ctx.x, 32, ctx.serial);
         });
 }
 

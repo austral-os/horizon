@@ -19,8 +19,21 @@ namespace horizon
                     win->when_popup_dismissed.disconnect(m_dismiss_subscription);
                 }
                 
-                m_dismiss_subscription = win->when_popup_dismissed.connect([this](PopupDismissedContext &) { 
-                    LOG_INFO << "[MenuBar] Popup dismissed signal received. Closing menu state.";
+                m_dismiss_subscription = win->when_popup_dismissed.connect([this](PopupDismissedContext &ctx) { 
+                    LOG_INFO << "[MenuBar] Popup dismissed signal received (serial=" << ctx.serial << "). Closing menu state.";
+                    m_last_dismiss_serial = ctx.serial;
+
+                    m_last_selected_item_before_dismiss = nullptr;
+                    for (const auto &child : children())
+                    {
+                        auto *item = dynamic_cast<MenuBarItem *>(child.get());
+                        if (item && item->is_selected())
+                        {
+                            m_last_selected_item_before_dismiss = item;
+                            break;
+                        }
+                    }
+
                     set_menu_open(false); 
                 });
             }
@@ -39,7 +52,8 @@ namespace horizon
             {
                 if (ctx.button == 0x110) // Left click
                 {
-                    update_selection(item_ptr);
+                    ctx.stop_propagation = true;
+                    update_selection(item_ptr, true, ctx.serial);
                 }
             });
         item->when_mouse_enter.connect(
@@ -47,7 +61,7 @@ namespace horizon
             {
                 if (m_menu_open)
                 {
-                    update_selection(item_ptr);
+                    update_selection(item_ptr, false);
                 }
             });
 
@@ -68,7 +82,7 @@ namespace horizon
             {
                 if (ctx.button == 0x110) // Left click
                 {
-                    update_selection(item_ptr);
+                    update_selection(item_ptr, true, ctx.serial);
                 }
             });
         item->when_mouse_enter.connect(
@@ -76,7 +90,7 @@ namespace horizon
             {
                 if (m_menu_open)
                 {
-                    update_selection(item_ptr);
+                    update_selection(item_ptr, false);
                 }
             });
 
@@ -142,12 +156,8 @@ namespace horizon
         }
     }
 
-    void MenuBar::update_selection(MenuBarItem *selected_item)
+    void MenuBar::update_selection(MenuBarItem *selected_item, bool is_explicit_click, uint32_t serial)
     {
-        LOG_INFO << "[MenuBar] Updating selection. Selected item: " 
-                 << (selected_item ? selected_item->text() : "NULL")
-                 << ", Current menu open state: " << m_menu_open;
-
         MenuBarItem* current_selected = nullptr;
         for (const auto &child : children())
         {
@@ -159,13 +169,33 @@ namespace horizon
             }
         }
 
-        // Toggle logic: If clicking the already selected item, close it
-        if (selected_item && selected_item == current_selected && m_menu_open)
+        // --- THE FIX ---
+        // If we just dismissed a menu with the SAME serial as this press, it means 
+        // the press was ALREADY used to dismiss the previous menu by WaylandWindow.
+        // In that case, we should NOT open a new one IF it was the same item.
+        if (is_explicit_click && serial > 0 && serial == m_last_dismiss_serial && selected_item == m_last_selected_item_before_dismiss)
         {
+            LOG_INFO << "[MenuBar] update_selection: Ignoring press because it was already used to dismiss (serial=" << serial << ", item=" << selected_item->text() << ")";
+            return;
+        }
+
+        // Reset the tracker after we've used it (or bypassed it)
+        m_last_selected_item_before_dismiss = nullptr;
+
+        // Toggle logic: If clicking the already selected item, close it
+        if (is_explicit_click && selected_item && selected_item == current_selected && m_menu_open)
+        {
+            LOG_INFO << "[MenuBar] update_selection: Toggling off " << selected_item->text();
             if (auto *win = dynamic_cast<WaylandWindow *>(application()))
             {
                 win->close_context_menu();
             }
+            return;
+        }
+
+        // If it's a mouse enter and the item is already selected, do nothing
+        if (!is_explicit_click && selected_item && selected_item == current_selected && m_menu_open)
+        {
             return;
         }
 
@@ -187,6 +217,7 @@ namespace horizon
             ctx.menu = selected_item->menu();
             ctx.x = selected_item->x();
             ctx.y = selected_item->y() + selected_item->height();
+            ctx.serial = serial;
             when_menu_click.run(ctx);
         }
     }

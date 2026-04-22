@@ -33,11 +33,13 @@ namespace horizon
         }
 
     private:
-        void update_selection(MenuBarItem *selected_item);
+        void update_selection(MenuBarItem *selected_item, bool is_explicit_click = true, uint32_t serial = 0);
 
         std::vector<std::unique_ptr<Menu>> m_menus;
         bool m_menu_open = false;
         size_t m_dismiss_subscription = 0;
+        uint32_t m_last_dismiss_serial = 0;
+        MenuBarItem *m_last_selected_item_before_dismiss = nullptr;
     };
 
     class MenuBarItem : public Label

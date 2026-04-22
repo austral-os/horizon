@@ -12,6 +12,7 @@
 #include <atomic>
 #include <deque>
 #include <functional>
+#include <set>
 #include <horizon/DialogTypes.hpp>
 #include <mutex>
 
@@ -31,9 +32,14 @@ namespace horizon
         {
             WaylandWindow *m_window;
             Widget *m_hovered = nullptr;
+            uint32_t m_opening_serial = 0;
+            std::set<uint32_t> m_pressed_buttons;
 
         public:
-            PopupEventListener(WaylandWindow *window) : m_window(window) {}
+            PopupEventListener(WaylandWindow *window, uint32_t opening_serial = 0)
+                : m_window(window), m_opening_serial(opening_serial)
+            {
+            }
 
             void on_pointer_event(const PointerEvent &event) override;
             void on_key_event(const KeyEvent &event) override {}
@@ -158,7 +164,7 @@ namespace horizon
         std::vector<std::string> get_clipboard_mime_types() const;
         void show_context_menu(Menu *menu, int x = -1, int y = -1, uint32_t serial = 0,
                                Widget *owner = nullptr);
-        void close_context_menu(bool emit_signal = true);
+        void close_context_menu(bool emit_signal = true, uint32_t serial = 0);
         void show_tooltip(Widget *owner, Notification *tooltip);
         void hide_tooltip();
         Widget *tooltip_owner() const

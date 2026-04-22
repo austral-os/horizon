@@ -1455,6 +1455,12 @@ namespace horizon
 
     void WaylandWindow::PopupEventListener::on_pointer_event(const PointerEvent &event)
     {
+        if (event.serial == m_opening_serial && (event.type == PointerEvent::Type::Press || event.type == PointerEvent::Type::Release))
+        {
+            LOG_INFO << "[POPUP] Discarding event with opening serial: " << event.serial;
+            return;
+        }
+
         if (!m_window->m_popup_menu)
             return;
 
@@ -1565,6 +1571,8 @@ namespace horizon
             }
             else if (event.type == PointerEvent::Type::Press)
             {
+                m_pressed_buttons.insert(event.button);
+
                 MouseButtonEventContext ev;
                 ev.button = event.button;
                 ev.x = (double)x;
@@ -1581,6 +1589,14 @@ namespace horizon
             }
             else if (event.type == PointerEvent::Type::Release)
             {
+                auto it = m_pressed_buttons.find(event.button);
+                if (it == m_pressed_buttons.end())
+                {
+                    LOG_INFO << "[POPUP] Ignoring leaked release for button: " << event.button;
+                    return;
+                }
+                m_pressed_buttons.erase(it);
+
                 MouseButtonEventContext ev;
                 ev.button = event.button;
                 ev.x = (double)x;
@@ -2537,6 +2553,8 @@ namespace horizon
 
     void WaylandWindow::show_context_menu(Menu *menu, int x, int y, uint32_t serial, Widget *owner)
     {
+        close_context_menu(false);
+
         if (!m_surface || !menu)
         {
             LOG_ERROR << "[WINDOW] show_context_menu: surface or menu is NULL";
@@ -2665,7 +2683,7 @@ namespace horizon
 
         m_popup_surface = std::make_unique<WaylandSurface>(w, h);
 
-        m_popup_listener = std::make_unique<PopupEventListener>(this);
+        m_popup_listener = std::make_unique<PopupEventListener>(this, serial);
         m_popup_surface->set_event_listener(m_popup_listener.get());
 
         if (serial > 0)
@@ -2678,7 +2696,7 @@ namespace horizon
         invalidate();
     }
 
-    void WaylandWindow::close_context_menu(bool emit_signal)
+    void WaylandWindow::close_context_menu(bool emit_signal, uint32_t serial)
     {
         if (m_popup_menu)
         {
@@ -2695,6 +2713,7 @@ namespace horizon
         if (emit_signal)
         {
             PopupDismissedContext ctx;
+            ctx.serial = serial;
             when_popup_dismissed.run(ctx);
         }
     }
