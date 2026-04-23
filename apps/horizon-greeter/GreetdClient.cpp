@@ -119,7 +119,16 @@ namespace horizon::greeter
         std::string s = j.dump();
         uint32_t len = (uint32_t)s.size();
         
-        LOG_INFO << "GreetdClient: Sending: " << s;
+        if (j.value("type", "") == "post_auth_message_response")
+        {
+            auto j_log = j;
+            j_log["response"] = "********";
+            LOG_INFO << "GreetdClient: Sending: " << j_log.dump();
+        }
+        else
+        {
+            LOG_INFO << "GreetdClient: Sending: " << s;
+        }
         
         if (write(m_fd, &len, 4) != 4)
         {

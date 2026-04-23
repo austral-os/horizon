@@ -22,7 +22,7 @@ namespace horizon::greeter
     class GreeterWindow : public WaylandLayerWindow
     {
     public:
-        GreeterWindow(GreetdClient &client, Application &app);
+        GreeterWindow(GreetdClient &client, Application &app, bool debug = false);
         ~GreeterWindow() override = default;
 
         void initialize() override;
@@ -34,6 +34,7 @@ namespace horizon::greeter
         void on_user_selected(int index);
         void on_login_pressed();
         void update_background(const std::string &path);
+        void ensure_gtk_icon_theme();
 
         GreetdClient &m_client;
         Application &m_app;
@@ -50,5 +51,7 @@ namespace horizon::greeter
         Widget *m_login_container{nullptr};
 
         bool m_is_authenticating{false};
+        bool m_debug{false};
+        std::string m_current_username;
     };
 } // namespace horizon::greeter

@@ -12,7 +12,7 @@ namespace horizon::greeter
     class GreeterApplication : public Application
     {
     public:
-        GreeterApplication() : Application("horizon-greeter", 0, 0, false, true)
+        GreeterApplication(bool debug_mode) : Application("horizon-greeter", 0, 0, false, true), m_debug_mode(debug_mode)
         {
             set_name("Horizon Greeter");
 
@@ -22,7 +22,7 @@ namespace horizon::greeter
                 LOG_WARNING << "Could not connect to greetd. Running in demo/test mode.";
             }
 
-            auto window = std::make_unique<GreeterWindow>(*m_greetd_client, *this);
+            auto window = std::make_unique<GreeterWindow>(*m_greetd_client, *this, m_debug_mode);
             // In initialize(), GreeterWindow will setup its Layer Shell properties.
             
             // Add it as the primary window
@@ -36,12 +36,22 @@ namespace horizon::greeter
 
     private:
         std::unique_ptr<GreetdClient> m_greetd_client;
+        bool m_debug_mode{false};
     };
 } // namespace horizon::greeter
 
 int main(int argc, char **argv)
 {
-    horizon::greeter::GreeterApplication app;
+    bool debug_mode = false;
+    for (int i = 1; i < argc; ++i)
+    {
+        if (std::string(argv[i]) == "--debug" || std::string(argv[i]) == "--console")
+        {
+            debug_mode = true;
+        }
+    }
+
+    horizon::greeter::GreeterApplication app(debug_mode);
     app.run_greeter();
     return 0;
 }

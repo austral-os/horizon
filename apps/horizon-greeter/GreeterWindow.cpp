@@ -11,6 +11,9 @@
 #include <filesystem>
 #include <xkbcommon/xkbcommon-keysyms.h>
 #include <xkbcommon/xkbcommon.h>
+#include <fstream>
+
+namespace fs = std::filesystem;
 
 namespace horizon::greeter
 {
@@ -40,8 +43,8 @@ namespace horizon::greeter
         }
     };
 
-    GreeterWindow::GreeterWindow(GreetdClient &client, Application &app)
-        : WaylandLayerWindow("horizon-greeter", 3, true), m_client(client), m_app(app)
+    GreeterWindow::GreeterWindow(GreetdClient &client, Application &app, bool debug)
+        : WaylandLayerWindow("horizon-greeter", 3, true), m_client(client), m_app(app), m_debug(debug)
     {
     }
 
@@ -52,6 +55,7 @@ namespace horizon::greeter
         set_keyboard_interactivity(1); // On
 
         setup_ui();
+        ensure_gtk_icon_theme();
         load_data();
 
         // Connect greetd signals
@@ -253,6 +257,7 @@ namespace horizon::greeter
         auto combo = std::make_unique<Combo>();
         m_session_combo = combo.get();
         m_session_combo->set_fixed_size(200);
+        m_session_combo->set_visible(m_debug); // Only visible in debug mode
         footer->add_child(std::move(combo));
 
         main_container->add_child(std::move(footer));
@@ -262,6 +267,7 @@ namespace horizon::greeter
         m_log_view = log_area.get();
         m_log_view->set_height(150); 
         m_log_view->set_background_color(Color(0.0f, 0.0f, 0.0f, 0.6f));
+        m_log_view->set_visible(m_debug); // Only visible in debug mode
         main_container->add_child(std::move(log_area));
 
         root->add_child(std::move(main_container));
@@ -280,12 +286,22 @@ namespace horizon::greeter
         }
         if (!m_sessions.empty())
         {
-            m_session_combo->set_selected_item_index(0);
+            int selected_idx = 0;
+            for (int i = 0; i < (int)m_sessions.size(); ++i)
+            {
+                if (m_sessions[i].name == "Horizon")
+                {
+                    selected_idx = i;
+                    break;
+                }
+            }
+            m_session_combo->set_selected_item_index(selected_idx);
         }
 
         if (!m_users.empty())
         {
             on_user_selected(0);
+            m_user_cover_flow->set_selected_index(0);
         }
     }
 
@@ -295,6 +311,12 @@ namespace horizon::greeter
             return;
 
         const auto &user = m_users[index];
+        
+        // Prevent redundant calls to create_session
+        if (user.username == m_current_username)
+            return;
+            
+        m_current_username = user.username;
         update_background(user.wallpaper_path);
 
         // Initiate auth session with greetd
@@ -345,6 +367,78 @@ namespace horizon::greeter
         else
         {
             LOG_ERROR << "GreeterWindow: Default background not found either: " << default_bg;
+        }
+    }
+
+    void GreeterWindow::ensure_gtk_icon_theme()
+    {
+        const char *home = std::getenv("HOME");
+        if (!home) return;
+
+        std::vector<std::string> versions = {"3.0", "4.0"};
+        for (const auto &v : versions)
+        {
+            std::string config_dir = std::string(home) + "/.config/gtk-" + v;
+            std::string settings_path = config_dir + "/settings.ini";
+
+            try
+            {
+                if (!fs::exists(config_dir))
+                {
+                    fs::create_directories(config_dir);
+                }
+
+                bool has_settings_section = false;
+                bool has_theme_entry = false;
+                std::vector<std::string> lines;
+
+                if (fs::exists(settings_path))
+                {
+                    std::ifstream in(settings_path);
+                    std::string line;
+                    while (std::getline(in, line))
+                    {
+                        std::string trimmed = line;
+                        trimmed.erase(0, trimmed.find_first_not_of(" \t\r\n"));
+                        trimmed.erase(trimmed.find_last_not_of(" \t\r\n") + 1);
+
+                        if (trimmed == "[Settings]")
+                        {
+                            has_settings_section = true;
+                        }
+
+                        if (trimmed.rfind("gtk-icon-theme-name", 0) == 0)
+                        {
+                            lines.push_back("gtk-icon-theme-name=austral");
+                            has_theme_entry = true;
+                        }
+                        else
+                        {
+                            lines.push_back(line);
+                        }
+                    }
+                }
+
+                if (!has_theme_entry)
+                {
+                    if (!has_settings_section)
+                    {
+                        lines.push_back("[Settings]");
+                    }
+                    lines.push_back("gtk-icon-theme-name=austral");
+                }
+
+                LOG_INFO << "GreeterWindow: Updating GTK " << v << " settings in: " << settings_path;
+                std::ofstream out(settings_path);
+                for (const auto &l : lines)
+                {
+                    out << l << "\n";
+                }
+            }
+            catch (const std::exception &e)
+            {
+                LOG_ERROR << "GreeterWindow: Error updating GTK settings: " << e.what();
+            }
         }
     }
 } // namespace horizon::greeter
