@@ -206,6 +206,8 @@ namespace horizon::installer
         // Remove installer and zutty from menus
         execute_privileged_command("/usr/bin/rm -f /usr/share/applications/horizon-installer.desktop");
         execute_privileged_command("/usr/bin/rm -f /usr/share/applications/zutty.desktop");
+        execute_privileged_command("/usr/bin/rm -f /usr/share/applications/vim.desktop");
+        execute_privileged_command("/usr/bin/rm -f /usr/share/applications/htop.desktop");
     }
 
     StepResult InstallerManager::partition_disk(const std::string& device_path)
