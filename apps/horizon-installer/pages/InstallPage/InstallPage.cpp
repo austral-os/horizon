@@ -1,4 +1,5 @@
 #include "InstallPage.hpp"
+#include "horizon/Icon.hpp"
 #include <horizon/I18n.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/ToolbarButton.hpp>
@@ -10,12 +11,24 @@ namespace horizon::installer
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_margin(40);
 
+        auto logo = std::make_unique<Icon>();
+        logo->set_icon_name("emblem-austral");
+        logo->set_icon_size(256);
+        logo->set_size(256, 256);
+
+        auto logo_container = std::make_unique<Widget>();
+        logo_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        logo_container->add_child(Spacer());
+        logo_container->add_child(std::move(logo));
+        logo_container->add_child(Spacer());
+
+        add_child(Spacer());
+        add_child(std::move(logo_container));
+
         auto title = std::make_unique<Label>(i18n().tr("installer.install.title"));
         title->set_font_size(32);
         title->set_alignment(TextAlignment::Center);
         add_child(std::move(title));
-
-        add_child(Spacer());
 
         auto progress = std::make_unique<ProgressBar>();
         m_progress = progress.get();

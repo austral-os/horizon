@@ -1,11 +1,11 @@
-#include <horizon/Overview.hpp>
 #include <horizon/Button.hpp>
-#include <horizon/SolidObject.hpp>
+#include <horizon/I18n.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/Overview.hpp>
+#include <horizon/SolidObject.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/SystemInfo.hpp>
-#include <horizon/I18n.hpp>
 
 namespace horizon
 {
@@ -19,7 +19,7 @@ namespace horizon
         set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
 
         auto icon = std::make_unique<Icon>();
-        icon->set_icon_name("emblem-debian");
+        icon->set_icon_name("emblem-austral");
         icon->set_icon_size(256);
 
         auto icon_container = Spacer();
@@ -91,4 +91,4 @@ namespace horizon
 
         add_child(std::move(content));
     }
-}
+} // namespace horizon

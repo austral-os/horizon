@@ -15,7 +15,7 @@ namespace horizon::installer
         add_child(Spacer());
 
         auto logo = std::make_unique<Icon>();
-        logo->set_icon_name("software-installed-symbolic");
+        logo->set_icon_name("emblem-austral");
         logo->set_icon_size(128);
         logo->set_size(128, 128);
 
