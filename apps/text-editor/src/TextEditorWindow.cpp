@@ -202,6 +202,7 @@ void TextEditorWindow::update_status_bar() {
     auto* scroll = dynamic_cast<ScrollArea*>(m_tabs->current_tab_body());
     if (!scroll) return;
 
+    if (scroll->children().empty()) return;
     auto* editor = dynamic_cast<horizon::text::TextEditorWidget*>(scroll->children()[0].get());
     if (!editor || !editor->get_document()) return;
 

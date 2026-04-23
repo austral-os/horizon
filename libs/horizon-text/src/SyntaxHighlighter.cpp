@@ -37,26 +37,49 @@ void SyntaxHighlighter::load_default_cpp_rules() {
 std::vector<SyntaxHighlighter::HighlightedToken> SyntaxHighlighter::highlight_line(const std::u32string& line) {
     std::vector<HighlightedToken> tokens;
     
-    // Convert u32string to utf8 for regex matching
-    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
-    std::string utf8_line = converter.to_bytes(line);
+    // Manual UTF-8 conversion for regex matching
+    std::string utf8_line;
+    utf8_line.reserve(line.length());
+    std::vector<size_t> char_to_byte;
+    char_to_byte.reserve(line.length() + 1);
     
-    // This is a simplified approach: find matches for each rule
-    // In a real high-quality highlighter, we'd use a more sophisticated lexer
+    for (char32_t c : line) {
+        char_to_byte.push_back(utf8_line.length());
+        if (c <= 0x7F) utf8_line.push_back((char)c);
+        else if (c <= 0x7FF) {
+            utf8_line.push_back((char)(0xC0 | (c >> 6)));
+            utf8_line.push_back((char)(0x80 | (c & 0x3F)));
+        } else if (c <= 0xFFFF) {
+            utf8_line.push_back((char)(0xE0 | (c >> 12)));
+            utf8_line.push_back((char)(0x80 | ((c >> 6) & 0x3F)));
+            utf8_line.push_back((char)(0x80 | (c & 0x3F)));
+        } else if (c <= 0x10FFFF) {
+            utf8_line.push_back((char)(0xF0 | (c >> 18)));
+            utf8_line.push_back((char)(0x80 | ((c >> 12) & 0x3F)));
+            utf8_line.push_back((char)(0x80 | ((c >> 6) & 0x3F)));
+            utf8_line.push_back((char)(0x80 | (c & 0x3F)));
+        }
+    }
+    char_to_byte.push_back(utf8_line.length());
+    
     for (const auto& rule : m_rules) {
         auto words_begin = std::sregex_iterator(utf8_line.begin(), utf8_line.end(), rule.pattern);
         auto words_end = std::sregex_iterator();
         
         for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
             std::smatch match = *i;
-            // Map byte indices back to character indices
             size_t start_byte = match.position();
             size_t len_byte = match.length();
+            size_t end_byte = start_byte + len_byte;
             
-            size_t start_char = converter.from_bytes(utf8_line.substr(0, start_byte)).length();
-            size_t len_char = converter.from_bytes(match.str()).length();
+            // Map byte indices back to character indices using our table
+            size_t start_char = 0;
+            while (start_char < char_to_byte.size() && char_to_byte[start_char] < start_byte) start_char++;
             
-            tokens.push_back({start_char, start_char + len_char, rule.type});
+            size_t end_char = start_char;
+            while (end_char < char_to_byte.size() && char_to_byte[end_char] < end_byte) end_char++;
+            
+            tokens.push_back({start_char, end_char, rule.type});
         }
     }
     

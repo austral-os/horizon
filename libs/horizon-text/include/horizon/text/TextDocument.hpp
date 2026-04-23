@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <mutex>
 
 // Forward declaration of stb_textedit state
 struct STB_TexteditState;
@@ -53,6 +54,8 @@ public:
     void handle_key(int key);
     void handle_click(double x, double y);
     void handle_drag(double x, double y);
+    void set_cursor_at_index(int index, bool select);
+    void set_selection(int start, int end);
 
     int get_cursor_pos() const;
     int get_selection_start() const;
@@ -96,9 +99,24 @@ public:
     // Signal for changes
     std::function<void()> on_changed;
 
-private:
+    const std::u32string& get_data() const { return m_data; }
+
+    struct LineMetric {
+        float y_offset;
+        float height;
+        size_t start_byte;
+        size_t end_byte;
+    };
+    void set_line_metrics(const std::vector<LineMetric>& metrics) { m_line_metrics = metrics; }
+    const std::vector<LineMetric>& get_line_metrics() const { return m_line_metrics; }
+
+    uint64_t get_version() const { return m_version; }
+    
+    mutable std::recursive_mutex m_mutex;
     std::u32string m_data; // UTF-32 internal storage for easy indexing
+    std::vector<LineMetric> m_line_metrics;
     std::unique_ptr<STB_TexteditState> m_state;
+    uint64_t m_version = 0;
     std::string m_path;
     bool m_is_dirty = false;
 };

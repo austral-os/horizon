@@ -56,7 +56,7 @@ public:
     void handle_mouse_drag(MouseMoveEventContext& ev);
 
 protected:
-    void update_pango_layout(cairo_t* cr);
+    bool update_pango_layout(cairo_t* cr);
     void ensure_metrics();
     int get_char_index_at(double x, double y);
     void ensure_cursor_visible();
@@ -82,6 +82,7 @@ private:
     bool m_cursor_visible = true;
     bool m_needs_ensure_visible = false;
     std::string m_clipboard_buffer;
+    uint64_t m_last_layout_version = 0xFFFFFFFFFFFFFFFF;
 };
 
 } // namespace text

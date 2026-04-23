@@ -65,240 +65,181 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
     cairo_t* cr = (cairo_t*)gc.getNativeContext();
     if (!cr) return;
 
+    if (!application()) return;
     auto* tm = application()->theme_manager.get();
-    auto font = tm->get_font("window");
 
-    // 1. Draw Background
+    // 1. Snapshot: Acquire lock and copy all necessary data for consistent drawing
+    std::u32string u32_text;
+    int cursor_pos = 0;
+    int sel_start = 0;
+    int sel_end = 0;
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_doc->m_mutex);
+        u32_text = m_doc->get_data();
+        cursor_pos = m_doc->get_cursor_pos();
+        sel_start = m_doc->get_selection_start();
+        sel_end = m_doc->get_selection_end();
+    }
+
+    // 2. Draw Background
     gc.setColor(1.0, 1.0, 1.0, 1.0);
     gc.fillRect(m_x, m_y, m_width, m_height);
 
-    // 2. Setup Pango
-    if (!m_layout) {
-        m_layout = pango_cairo_create_layout(cr);
+    // 3. Setup Pango Layout via unified helper
+    ensure_metrics(); // This calls update_pango_layout and syncs line metrics
+    if (!m_layout) return;
+    pango_cairo_update_layout(cr, m_layout);
+
+    // Generate byte offsets from snapshot (needed for cursor/selection)
+    std::vector<size_t> byte_offsets;
+    byte_offsets.reserve(u32_text.length() + 1);
+    size_t current_byte = 0;
+    for (char32_t c : u32_text) {
+        byte_offsets.push_back(current_byte);
+        if (c <= 0x7F) current_byte += 1;
+        else if (c <= 0x7FF) current_byte += 2;
+        else if (c <= 0xFFFF) current_byte += 3;
+        else current_byte += 4;
     }
-    
-    PangoFontDescription* desc = pango_font_description_new();
-    pango_font_description_set_family(desc, m_font_family.c_str());
-    pango_font_description_set_absolute_size(desc, m_font_size * PANGO_SCALE);
-    if (m_font_weight == 1) {
-        pango_font_description_set_weight(desc, PANGO_WEIGHT_BOLD);
-    } else {
-        pango_font_description_set_weight(desc, PANGO_WEIGHT_NORMAL);
-    }
-    pango_layout_set_font_description(m_layout, desc);
-    pango_font_description_free(desc);
+    byte_offsets.push_back(current_byte);
 
-    ensure_metrics();
+    // Calculate metrics for drawing
+    int margin_x = (m_show_line_numbers ? m_line_number_margin + 5 : 5);
+    int margin_y = 5;
+    int tx = m_x + margin_x;
+    int ty = m_y + margin_y;
 
-    // 3. Draw Line Numbers Margin
-    if (m_show_line_numbers) {
-        gc.setColor(0.95, 0.95, 0.95, 1.0);
-        gc.fillRect(m_x, m_y, m_line_number_margin, m_height);
-        gc.setColor(0.8, 0.8, 0.8, 1.0);
-        gc.drawLine(m_x + m_line_number_margin, m_y, m_x + m_line_number_margin, m_y + m_height);
-    }
+    // Get cursor position in pixels
+    int cursor_byte = (cursor_pos < (int)byte_offsets.size()) ? (int)byte_offsets[cursor_pos] : (int)byte_offsets.back();
+    PangoRectangle cursor_rect;
+    pango_layout_get_cursor_pos(m_layout, cursor_byte, &cursor_rect, nullptr);
+    int cursor_pixel_x = PANGO_PIXELS(cursor_rect.x);
+    int cursor_pixel_y = PANGO_PIXELS(cursor_rect.y);
+    int cursor_pixel_h = PANGO_PIXELS(cursor_rect.height);
 
-    // 4. Draw Text with Highlighting
-    std::string utf8_text = m_doc->get_text();
-    pango_layout_set_text(m_layout, utf8_text.c_str(), -1);
+    // 5. Draw Selection Highlight (Behind text)
+    if (sel_start != sel_end) {
+        int s_idx = std::max(0, std::min((int)u32_text.length(), std::min(sel_start, sel_end)));
+        int e_idx = std::max(0, std::min((int)u32_text.length(), std::max(sel_start, sel_end)));
+        int start_byte = (int)byte_offsets[s_idx];
+        int end_byte = (int)byte_offsets[e_idx];
 
-    // Apply Highlighting
-    PangoAttrList* attrs = pango_attr_list_new();
-    
-    // We'll highlight line by line or the whole text?
-    // Let's do it for the whole text for now as it's simpler to implement.
-    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
-    std::u32string u32_text = converter.from_bytes(utf8_text);
-    
-    // Split into lines and highlight each
-    size_t start_of_line = 0;
-    size_t char_idx = 0;
-    while (char_idx <= u32_text.length()) {
-        if (char_idx == u32_text.length() || u32_text[char_idx] == '\n') {
-            std::u32string line = u32_text.substr(start_of_line, char_idx - start_of_line);
-            auto tokens = m_highlighter->highlight_line(line);
-            
-            for (const auto& token : tokens) {
-                // Map char indices to byte indices for Pango
-                size_t start_in_text = start_of_line + token.start;
-                size_t end_in_text = start_of_line + token.end;
+        cairo_set_source_rgba(cr, 0.7, 0.8, 1.0, 0.3);
+        const auto& metrics = m_doc->get_line_metrics();
+        int n_lines = pango_layout_get_line_count(m_layout);
+
+        for (int i = 0; i < (int)metrics.size(); ++i) {
+            const auto& line_metric = metrics[i];
+            size_t line_start = line_metric.start_byte;
+            size_t line_end = line_metric.end_byte;
+
+            if (line_end > (size_t)start_byte && line_start < (size_t)end_byte) {
+                int r_start = std::max((int)line_start, start_byte);
+                int r_end = std::min((int)line_end, end_byte);
                 
-                size_t start_byte = converter.to_bytes(u32_text.substr(0, start_in_text)).length();
-                size_t end_byte = converter.to_bytes(u32_text.substr(0, end_in_text)).length();
+                PangoRectangle start_rect, end_rect;
+                pango_layout_get_cursor_pos(m_layout, r_start, &start_rect, nullptr);
+                pango_layout_get_cursor_pos(m_layout, r_end, &end_rect, nullptr);
                 
-                Color c = SyntaxHighlighter::get_token_color(token.type);
-                PangoAttribute* attr = pango_attr_foreground_new(c.r * 65535, c.g * 65535, c.b * 65535);
-                attr->start_index = start_byte;
-                attr->end_index = end_byte;
-                pango_attr_list_insert(attrs, attr);
+                int ly = ty + (int)line_metric.y_offset;
+                int lh = (int)line_metric.height;
+                
+                int x1 = PANGO_PIXELS(start_rect.x);
+                int x2 = PANGO_PIXELS(end_rect.x);
+                
+                // Handle full line selection
+                if (r_start == (int)line_start && r_end >= (int)line_end) {
+                    PangoLayoutLine* line = pango_layout_get_line_readonly(m_layout, i);
+                    if (line) {
+                        PangoRectangle line_ext;
+                        pango_layout_line_get_pixel_extents(line, nullptr, &line_ext);
+                        x1 = line_ext.x;
+                        x2 = line_ext.x + line_ext.width;
+                    }
+                }
+
+                int rx = tx + std::min(x1, x2);
+                int rw = std::abs(x1 - x2);
+                if (rw < 5 && r_end >= (int)line_end) rw = 10;
+
+                cairo_rectangle(cr, rx, ly, rw, lh);
+                cairo_fill(cr);
             }
-            start_of_line = char_idx + 1;
         }
-        char_idx++;
-    }
-    
-    pango_layout_set_attributes(m_layout, attrs);
-    pango_attr_list_unref(attrs);
-
-    int text_x = m_x + (m_show_line_numbers ? m_line_number_margin + 5 : 5);
-    int text_y = m_y;
-
-    // Calculate cursor position in pixels for highlighting and cursor drawing
-    int byte_pos = 0;
-    {
-        const char* start = utf8_text.c_str();
-        const char* p = start;
-        int cursor_pos = m_doc->get_cursor_pos();
-        for (int i = 0; i < cursor_pos && *p; ++i) {
-            p = g_utf8_next_char(p);
-        }
-        byte_pos = p - start;
     }
 
-    PangoRectangle cursor_strong_pos;
-    pango_layout_get_cursor_pos(m_layout, byte_pos, &cursor_strong_pos, nullptr);
-    int cursor_pixel_y = text_y + PANGO_PIXELS(cursor_strong_pos.y);
-    int cursor_pixel_h = PANGO_PIXELS(cursor_strong_pos.height);
+    // 6. Draw the actual text
+    cairo_set_source_rgb(cr, 0.1, 0.1, 0.1);
+    cairo_move_to(cr, tx, ty);
+    pango_cairo_show_layout(cr, m_layout);
 
-    // 4.5. Draw Margin Background
+    // 6. Draw Margin Background & Line Numbers
     if (m_show_line_numbers) {
-        cairo_save(cr);
         cairo_set_source_rgb(cr, 0.96, 0.96, 0.96);
         cairo_rectangle(cr, m_x, m_y, m_line_number_margin, m_height);
         cairo_fill(cr);
-        
-        cairo_set_source_rgb(cr, 0.85, 0.85, 0.85);
+        cairo_set_source_rgb(cr, 0.8, 0.8, 0.8);
         cairo_move_to(cr, m_x + m_line_number_margin, m_y);
         cairo_line_to(cr, m_x + m_line_number_margin, m_y + m_height);
         cairo_stroke(cr);
-        
-        // Find logical line starts
-        std::vector<int> logical_line_starts;
-        logical_line_starts.push_back(0);
-        const char* start_ptr = utf8_text.c_str();
-        const char* p_ptr = start_ptr;
-        while (*p_ptr) {
-            if (*p_ptr == '\n') {
-                logical_line_starts.push_back((p_ptr - start_ptr) + 1);
-            }
-            p_ptr++;
-        }
 
-        // Draw line numbers
-        cairo_set_source_rgb(cr, 0.6, 0.6, 0.6);
+        // Draw Line Numbers
         PangoLayout* num_layout = pango_cairo_create_layout(cr);
-        PangoFontDescription* num_font = pango_font_description_new();
-        pango_font_description_set_family(num_font, m_font_family.c_str());
-        pango_font_description_set_absolute_size(num_font, m_font_size * 0.9 * PANGO_SCALE);
-        pango_layout_set_font_description(num_layout, num_font);
-        pango_font_description_free(num_font);
+        PangoFontDescription* num_desc = pango_font_description_from_string("sans 8");
+        pango_layout_set_font_description(num_layout, num_desc);
+        pango_font_description_free(num_desc);
 
         PangoLayoutIter* num_iter = pango_layout_get_iter(m_layout);
-        size_t current_log_idx = 0;
+        std::vector<int> logical_line_starts;
+        logical_line_starts.push_back(0);
+        for (size_t i = 0; i < u32_text.length(); ++i) {
+            if (u32_text[i] == '\n') {
+                // Find byte offset of next char
+                int next_byte = 0;
+                for (size_t j = 0; j <= i; ++j) {
+                    char32_t c = u32_text[j];
+                    if (c <= 0x7F) next_byte += 1;
+                    else if (c <= 0x7FF) next_byte += 2;
+                    else if (c <= 0xFFFF) next_byte += 3;
+                    else next_byte += 4;
+                }
+                logical_line_starts.push_back(next_byte);
+            }
+        }
+
+        int current_log_idx = 0;
         do {
-            PangoLayoutLine* line = pango_layout_iter_get_line_readonly(num_iter);
-            int line_start_byte = line->start_index;
+            int line_start_byte = pango_layout_iter_get_index(num_iter);
+            while (current_log_idx + 1 < (int)logical_line_starts.size() && line_start_byte >= logical_line_starts[current_log_idx + 1]) {
+                current_log_idx++;
+            }
             
-            if (current_log_idx < logical_line_starts.size() && line_start_byte == logical_line_starts[current_log_idx]) {
+            if (current_log_idx < (int)logical_line_starts.size() && line_start_byte == logical_line_starts[current_log_idx]) {
                 PangoRectangle line_rect;
                 pango_layout_iter_get_line_extents(num_iter, nullptr, &line_rect);
-                int ly = text_y + PANGO_PIXELS(line_rect.y);
+                int ly = ty + PANGO_PIXELS(line_rect.y);
                 
                 std::string num_str = std::to_string(current_log_idx + 1);
                 pango_layout_set_text(num_layout, num_str.c_str(), -1);
-                
                 int nw, nh;
                 pango_layout_get_pixel_size(num_layout, &nw, &nh);
-                
-                cairo_move_to(cr, m_x + m_line_number_margin - nw - 5, ly);
+                cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
+                cairo_move_to(cr, m_x + m_line_number_margin - nw - 5, ly + (PANGO_PIXELS(line_rect.height) - nh) / 2);
                 pango_cairo_show_layout(cr, num_layout);
-                
-                current_log_idx++;
             }
         } while (pango_layout_iter_next_line(num_iter));
+
         pango_layout_iter_free(num_iter);
         g_object_unref(num_layout);
-        cairo_restore(cr);
     }
 
-    cairo_save(cr);
-    cairo_rectangle(cr, text_x, m_y, m_width - (text_x - m_x), m_height);
-    cairo_clip(cr);
-
-    // 5. Highlight Current Line & Selection
-    if (has_focus()) {
-        if (m_highlight_current_line) {
-            gc.setColor(0.9, 0.95, 1.0, 1.0); // Subtle light blue
-            gc.fillRect(m_x + (m_show_line_numbers ? m_line_number_margin : 0), 
-                        cursor_pixel_y, 
-                        m_width, 
-                        cursor_pixel_h);
-        }
-
-        if (m_doc->get_selection_start() != m_doc->get_selection_end()) {
-            int sel_start_char = m_doc->get_selection_start();
-            int sel_end_char = m_doc->get_selection_end();
-
-            // Convert character indices to byte indices
-            int sel_start_byte = 0;
-            int sel_end_byte = 0;
-            {
-                const char* start = utf8_text.c_str();
-                const char* p = start;
-                for (int i = 0; i < sel_start_char && *p; ++i) p = g_utf8_next_char(p);
-                sel_start_byte = p - start;
-                
-                p = start;
-                for (int i = 0; i < sel_end_char && *p; ++i) p = g_utf8_next_char(p);
-                sel_end_byte = p - start;
-            }
-
-            // Draw selection background for each line
-            gc.setColor(0.3, 0.6, 1.0, 0.4); // Semi-transparent selection blue
-            
-            PangoLayoutIter* iter = pango_layout_get_iter(m_layout);
-            do {
-                PangoLayoutLine* line = pango_layout_iter_get_line_readonly(iter);
-                int line_start_byte = line->start_index;
-                int line_end_byte = line_start_byte + line->length;
-
-                int intersect_start = std::max(sel_start_byte, line_start_byte);
-                int intersect_end = std::min(sel_end_byte, line_end_byte);
-
-                if (intersect_start < intersect_end) {
-                    int* ranges = nullptr;
-                    int n_ranges = 0;
-                    pango_layout_line_get_x_ranges(line, intersect_start, intersect_end, &ranges, &n_ranges);
-
-                    PangoRectangle line_rect;
-                    pango_layout_iter_get_line_extents(iter, nullptr, &line_rect);
-                    int ly = text_y + PANGO_PIXELS(line_rect.y);
-                    int lh = PANGO_PIXELS(line_rect.height);
-
-                    for (int i = 0; i < n_ranges; ++i) {
-                        int rx = text_x + PANGO_PIXELS(ranges[2*i]);
-                        int rw = PANGO_PIXELS(ranges[2*i+1] - ranges[2*i]);
-                        gc.fillRect(rx, ly, rw, lh);
-                    }
-                    g_free(ranges);
-                }
-            } while (pango_layout_iter_next_line(iter));
-            pango_layout_iter_free(iter);
-        }
-    }
-
-    gc.setColor(0.1, 0.1, 0.1, 1.0); // Default color
-    cairo_move_to(cr, text_x, text_y);
-    pango_cairo_show_layout(cr, m_layout);
 
     // 6. Draw Cursor
     if (has_focus() && m_cursor_visible) {
-        int cx = text_x + PANGO_PIXELS(cursor_strong_pos.x);
-        gc.setColor(0.1, 0.1, 0.1, 1.0);
-        gc.fillRect(cx, cursor_pixel_y, 2, cursor_pixel_h);
+        cairo_set_source_rgb(cr, 0.1, 0.1, 0.1);
+        cairo_rectangle(cr, tx + cursor_pixel_x, ty + cursor_pixel_y, 2, cursor_pixel_h);
+        cairo_fill(cr);
     }
-
-    cairo_restore(cr);
     
     if (m_needs_ensure_visible && has_focus()) {
         ensure_cursor_visible();
@@ -343,20 +284,11 @@ void TextEditorWidget::handle_key_event(KeyEventContext& ev) {
         invalidate();
         ev.stop_propagation = true;
     } else if (!ev.text.empty()) {
-        // Regular text input (includes symbols and characters with Shift already applied)
-        std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
-        try {
-            std::u32string u32 = converter.from_bytes(ev.text);
-            for (char32_t c : u32) {
-                m_doc->handle_key((int)c);
-            }
-            m_cursor_visible = true;
-            m_last_blink = std::chrono::steady_clock::now();
-            invalidate();
-            ev.stop_propagation = true;
-        } catch (...) {
-            // Decoding error
-        }
+        m_doc->insert_text(ev.text);
+        m_cursor_visible = true;
+        m_last_blink = std::chrono::steady_clock::now();
+        invalidate();
+        ev.stop_propagation = true;
     }
     
     m_needs_ensure_visible = true;
@@ -372,16 +304,15 @@ void TextEditorWidget::calculate_layout() {
     if (m_layout) {
         pango_layout_get_pixel_size(m_layout, &text_w, &text_h);
     } else {
-        // Fallback or initial estimate if layout not created yet
         text_w = 800;
         text_h = 600;
     }
 
-    int margin_x = (m_show_line_numbers ? m_line_number_margin + 20 : 20);
-    int margin_y = 20;
+    int margin_x = (m_show_line_numbers ? m_line_number_margin + 5 : 5);
+    int margin_y = 5;
 
-    int target_w = text_w + margin_x;
-    int target_h = text_h + margin_y;
+    int target_w = text_w + margin_x + 5;
+    int target_h = text_h + margin_y + 5;
 
     if (m_parent) {
         target_w = std::max(target_w, m_parent->width());
@@ -393,62 +324,190 @@ void TextEditorWidget::calculate_layout() {
     }
 }
 
-void TextEditorWidget::ensure_metrics() {
-    if (!m_layout || !m_doc) return;
+bool TextEditorWidget::update_pango_layout(cairo_t* cr) {
+    if (!m_layout) {
+        if (cr) {
+            m_layout = pango_cairo_create_layout(cr);
+        } else {
+            // Create a dummy context if we need a layout but don't have a surface yet
+            cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
+            cairo_t* dummy_cr = cairo_create(surface);
+            m_layout = pango_cairo_create_layout(dummy_cr);
+            cairo_destroy(dummy_cr);
+            cairo_surface_destroy(surface);
+        }
+    }
+    if (!m_layout || !m_doc) return false;
 
-    PangoLayoutIter* iter = pango_layout_get_iter(m_layout);
-    PangoRectangle line_extents;
-    pango_layout_iter_get_line_extents(iter, nullptr, &line_extents);
-    float line_h = (float)line_extents.height / PANGO_SCALE;
-    float ascent = (float)pango_layout_iter_get_baseline(iter) / PANGO_SCALE;
-    pango_layout_iter_free(iter);
+    // Caching: Only update if document version changed
+    uint64_t current_version = m_doc->get_version();
+    if (current_version == m_last_layout_version) return false;
 
-    PangoContext* context = pango_layout_get_context(m_layout);
-    PangoFontMetrics* pmetrics = pango_context_get_metrics(context, pango_layout_get_font_description(m_layout), nullptr);
-    float char_w = (float)pango_font_metrics_get_approximate_char_width(pmetrics) / PANGO_SCALE;
-    pango_font_metrics_unref(pmetrics);
+    // 1. Font and Geometry
+    PangoFontDescription* desc = pango_font_description_new();
+    pango_font_description_set_family(desc, m_font_family.c_str());
+    pango_font_description_set_absolute_size(desc, m_font_size * PANGO_SCALE);
+    pango_font_description_set_weight(desc, m_font_weight == 1 ? PANGO_WEIGHT_BOLD : PANGO_WEIGHT_NORMAL);
+    pango_layout_set_font_description(m_layout, desc);
+    pango_font_description_free(desc);
     
-    m_doc->set_metrics(line_h, ascent, char_w);
+    pango_layout_set_width(m_layout, -1);
+    pango_layout_set_wrap(m_layout, PANGO_WRAP_WORD);
+
+    // 2. Text and Attributes from safe snapshot
+    std::u32string u32_text;
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_doc->m_mutex);
+        u32_text = m_doc->get_data();
+    }
+
+    std::string utf8_text;
+    std::vector<size_t> byte_offsets;
+    utf8_text.reserve(u32_text.length() * 2);
+    byte_offsets.reserve(u32_text.length() + 1);
+    
+    size_t current_byte = 0;
+    for (char32_t c : u32_text) {
+        byte_offsets.push_back(current_byte);
+        if (c <= 0x7F) { utf8_text.push_back((char)c); current_byte += 1; }
+        else if (c <= 0x7FF) { utf8_text.push_back((char)(0xC0 | (c >> 6))); utf8_text.push_back((char)(0x80 | (c & 0x3F))); current_byte += 2; }
+        else if (c <= 0xFFFF) { utf8_text.push_back((char)(0xE0 | (c >> 12))); utf8_text.push_back((char)(0x80 | ((c >> 6) & 0x3F))); utf8_text.push_back((char)(0x80 | (c & 0x3F))); current_byte += 3; }
+        else { utf8_text.push_back((char)(0xF0 | (c >> 18))); utf8_text.push_back((char)(0x80 | ((c >> 12) & 0x3F))); utf8_text.push_back((char)(0x80 | ((c >> 6) & 0x3F))); utf8_text.push_back((char)(0x80 | (c & 0x3F))); current_byte += 4; }
+    }
+    byte_offsets.push_back(current_byte);
+    pango_layout_set_text(m_layout, utf8_text.c_str(), -1);
+
+    PangoAttrList* attrs = pango_attr_list_new();
+    size_t line_start_char = 0;
+    for (size_t i = 0; i <= u32_text.length(); ++i) {
+        if (i == u32_text.length() || u32_text[i] == '\n') {
+            std::u32string line = u32_text.substr(line_start_char, i - line_start_char);
+            auto tokens = m_highlighter->highlight_line(line);
+            for (const auto& token : tokens) {
+                size_t s = line_start_char + token.start;
+                size_t e = line_start_char + token.end;
+                if (s < byte_offsets.size() && e < byte_offsets.size()) {
+                    PangoAttribute* attr = pango_attr_foreground_new(
+                        SyntaxHighlighter::get_token_color(token.type).r * 65535,
+                        SyntaxHighlighter::get_token_color(token.type).g * 65535,
+                        SyntaxHighlighter::get_token_color(token.type).b * 65535);
+                    attr->start_index = (int)byte_offsets[s];
+                    attr->end_index = (int)byte_offsets[e];
+                    pango_attr_list_insert(attrs, attr);
+                }
+            }
+            line_start_char = i + 1;
+        }
+    }
+    pango_layout_set_attributes(m_layout, attrs);
+    pango_attr_list_unref(attrs);
+    
+    return true;
+}
+
+void TextEditorWidget::ensure_metrics() {
+    if (!m_doc) return;
+    
+    uint64_t current_version = m_doc->get_version();
+    bool updated = update_pango_layout(nullptr);
+    
+    // Only re-calculate line metrics if they are empty OR document version changed
+    if (updated || m_doc->get_line_metrics().empty() || current_version != m_last_layout_version) {
+        if (!m_layout) return;
+        PangoLayoutIter* iter = pango_layout_get_iter(m_layout);
+        if (iter) {
+            std::vector<TextDocument::LineMetric> metrics;
+            PangoRectangle line_extents;
+            do {
+                pango_layout_iter_get_line_extents(iter, nullptr, &line_extents);
+                PangoLayoutLine* line = pango_layout_iter_get_line_readonly(iter);
+                float ly = (float)line_extents.y / PANGO_SCALE;
+                float lh = (float)line_extents.height / PANGO_SCALE;
+                if (lh < 1.0f) lh = m_font_size; 
+                metrics.push_back({ly, lh, (size_t)line->start_index, (size_t)(line->start_index + line->length)});
+            } while (pango_layout_iter_next_line(iter));
+            m_doc->set_line_metrics(metrics);
+            
+            // Update general metrics for fallback
+            if (!metrics.empty()) {
+                pango_layout_iter_free(iter);
+                iter = pango_layout_get_iter(m_layout);
+                float line_h = metrics[0].height;
+                float ascent = (float)pango_layout_iter_get_baseline(iter) / PANGO_SCALE;
+                PangoContext* context = pango_layout_get_context(m_layout);
+                const PangoFontDescription* desc = pango_layout_get_font_description(m_layout);
+                PangoFontMetrics* pmetrics = pango_context_get_metrics(context, desc, nullptr);
+                if (pmetrics) {
+                    float char_w = (float)pango_font_metrics_get_approximate_char_width(pmetrics) / PANGO_SCALE;
+                    if (char_w < 1.0f) char_w = m_font_size * 0.6f;
+                    pango_font_metrics_unref(pmetrics);
+                    m_doc->set_metrics(line_h, ascent, char_w);
+                }
+            }
+            pango_layout_iter_free(iter);
+        }
+        m_last_layout_version = current_version;
+    }
 }
 
 int TextEditorWidget::get_char_index_at(double x, double y) {
-    if (!m_layout || !m_doc) return -1;
+    if (!m_layout || !m_doc) return 0;
+    
+    // We must ensure metrics are up to date for accurate hit-testing
     ensure_metrics();
 
+    int margin_x = (m_show_line_numbers ? m_line_number_margin + 5 : 5);
+    int margin_y = 5;
+
+    double lx = x - m_x - margin_x;
+    double ly = y - m_y - margin_y;
+
     int index, trailing;
-    int text_x = m_x + (m_show_line_numbers ? m_line_number_margin + 5 : 5);
-    int text_y = m_y;
+    pango_layout_xy_to_index(m_layout, (int)(lx * PANGO_SCALE), (int)(ly * PANGO_SCALE), &index, &trailing);
 
-    pango_layout_xy_to_index(m_layout, (x - text_x) * PANGO_SCALE, (y - text_y) * PANGO_SCALE, &index, &trailing);
-
-    std::string text = m_doc->get_text();
     if (index < 0) return 0;
-    if (index >= (int)text.length()) return m_doc->get_length();
 
-    return g_utf8_pointer_to_offset(text.c_str(), text.c_str() + index);
+    // Convert Pango byte index back to UTF-32 index using a safe snapshot
+    std::u32string u32_text;
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_doc->m_mutex);
+        u32_text = m_doc->get_data();
+    }
+
+    int char_idx = 0;
+    int current_byte = 0;
+    for (char32_t c : u32_text) {
+        if (current_byte >= index) break;
+        char_idx++;
+        if (c <= 0x7F) current_byte += 1;
+        else if (c <= 0x7FF) current_byte += 2;
+        else if (c <= 0xFFFF) current_byte += 3;
+        else current_byte += 4;
+    }
+
+    return char_idx;
 }
 
 void TextEditorWidget::handle_mouse_event(MouseButtonEventContext& ev) {
     if (!m_doc) return;
     ensure_metrics();
 
-    int text_x = m_x + (m_show_line_numbers ? m_line_number_margin + 5 : 5);
-    int text_y = m_y;
+    int clicked_idx = get_char_index_at(ev.x, ev.y);
 
     bool should_click = true;
     if (ev.button == BTN_RIGHT) {
-        int clicked_idx = get_char_index_at(ev.x, ev.y);
         int sel_start = m_doc->get_selection_start();
         int sel_end = m_doc->get_selection_end();
-
-        // If right-click is inside current selection, don't move cursor/clear selection
-        if (sel_start != sel_end && clicked_idx >= sel_start && clicked_idx <= sel_end) {
+        // If right-click is inside current selection, don't move cursor
+        if (sel_start != sel_end && clicked_idx >= std::min(sel_start, sel_end) && clicked_idx <= std::max(sel_start, sel_end)) {
             should_click = false;
         }
     }
 
     if (should_click) {
-        m_doc->handle_click(ev.x - text_x, ev.y - text_y);
+        if (ev.button == BTN_LEFT || ev.button == BTN_RIGHT) {
+            m_doc->set_cursor_at_index(clicked_idx, false);
+        }
     }
 
     set_focus(true);
@@ -462,9 +521,8 @@ void TextEditorWidget::handle_mouse_event(MouseButtonEventContext& ev) {
 void TextEditorWidget::handle_mouse_drag(MouseMoveEventContext& ev) {
     if (!m_doc) return;
     ensure_metrics();
-    int text_x = m_x + (m_show_line_numbers ? m_line_number_margin + 5 : 5);
-    int text_y = m_y;
-    m_doc->handle_drag(ev.x - text_x, ev.y - text_y);
+    int clicked_idx = get_char_index_at(ev.x, ev.y);
+    m_doc->set_cursor_at_index(clicked_idx, true);
     m_needs_ensure_visible = true;
     EventContext cursor_ctx;
     cursor_ctx.sender = this;
@@ -530,7 +588,7 @@ void TextEditorWidget::provide_clipboard_data(const std::string& mime, DataSink&
 }
 
 void TextEditorWidget::on_clipboard_data_received(const std::string& mime, const std::vector<uint8_t>& data) {
-    if (mime == "text/plain") {
+    if (mime == "text/plain" || mime == "text/plain;charset=utf-8") {
         std::string text(data.begin(), data.end());
         m_doc->insert_text(text);
         invalidate();
@@ -541,15 +599,16 @@ void TextEditorWidget::ensure_cursor_visible() {
     if (!m_doc || !m_layout) return;
 
     // 1. Calculate cursor position
-    std::string utf8_text = m_doc->get_text();
-    int byte_pos = 0;
-    const char* start = utf8_text.c_str();
-    const char* p = start;
+    const std::u32string& data = m_doc->get_data();
     int cursor_pos = m_doc->get_cursor_pos();
-    for (int i = 0; i < cursor_pos && *p; ++i) {
-        p = g_utf8_next_char(p);
+    int byte_pos = 0;
+    for (int i = 0; i < cursor_pos && i < (int)data.length(); ++i) {
+        char32_t c = data[i];
+        if (c <= 0x7F) byte_pos += 1;
+        else if (c <= 0x7FF) byte_pos += 2;
+        else if (c <= 0xFFFF) byte_pos += 3;
+        else byte_pos += 4;
     }
-    byte_pos = p - start;
 
     PangoRectangle strong_pos, weak_pos;
     pango_layout_get_cursor_pos(m_layout, byte_pos, &strong_pos, &weak_pos);

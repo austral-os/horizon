@@ -4,6 +4,7 @@
 #include <codecvt>
 #include <locale>
 #include <algorithm>
+#include <mutex>
 
 // 1. Define basic types needs for stb_textedit header mode
 #define STB_TEXTEDIT_CHARTYPE char32_t
@@ -24,18 +25,39 @@ static void layout_func(StbTexteditRow* row, TextDocument* str, int start_i) {
     int len = str->get_length();
     int i = start_i;
     int count = 0;
+    
+    // Calculate which line we are on
+    int line_index = 0;
+    for (int j = 0; j < start_i && j < len; ++j) {
+        if (str->get_char(j) == '\n') line_index++;
+    }
+    
     while (i < len && str->get_char(i) != '\n') {
         i++;
         count++;
     }
     if (i < len && str->get_char(i) == '\n') count++;
 
+    float y_offset = 0;
+    float height = str->m_line_height;
+    
+    const auto& metrics = str->get_line_metrics();
+    if (line_index < (int)metrics.size()) {
+        y_offset = metrics[line_index].y_offset;
+        height = metrics[line_index].height;
+    } else if (!metrics.empty()) {
+        // Fallback for lines beyond current metrics (should not happen if synchronized)
+        y_offset = metrics.back().y_offset + metrics.back().height + (line_index - (int)metrics.size() + 1) * str->m_line_height;
+    } else {
+        y_offset = (float)line_index * str->m_line_height;
+    }
+
     row->num_chars = count;
     row->x0 = 0;
     row->x1 = (float)count * str->m_char_width;
-    row->baseline_y_delta = str->m_line_height;
-    row->ymin = 0;
-    row->ymax = str->m_line_height;
+    row->baseline_y_delta = str->m_line_height * 0.8f; // Reasonable estimate
+    row->ymin = y_offset;
+    row->ymax = y_offset + height;
 }
 
 } // namespace text
@@ -88,22 +110,62 @@ TextDocument::TextDocument() {
 
 TextDocument::~TextDocument() {}
 
-void TextDocument::set_text(const std::string& utf8_text) {
-    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
-    try {
-        m_data = converter.from_bytes(utf8_text);
-    } catch (...) {
-        LOG_ERROR << "Failed to convert UTF-8 to UTF-32";
-        m_data = U"Error decoding file";
+void TextDocument::set_text(const std::string& text) {
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        m_data.clear();
+        const unsigned char* p = (const unsigned char*)text.c_str();
+        while (*p) {
+            if ((*p & 0x80) == 0) {
+                m_data.push_back(*p++);
+            } else if ((*p & 0xE0) == 0xC0) {
+                char32_t c = (*p++ & 0x1F) << 6;
+                if (*p && (*p & 0xC0) == 0x80) c |= (*p++ & 0x3F);
+                m_data.push_back(c);
+            } else if ((*p & 0xF0) == 0xE0) {
+                char32_t c = (*p++ & 0x0F) << 12;
+                if (*p && (*p & 0xC0) == 0x80) c |= (*p++ & 0x3F) << 6;
+                if (*p && (*p & 0xC0) == 0x80) c |= (*p++ & 0x3F);
+                m_data.push_back(c);
+            } else if ((*p & 0xF8) == 0xF0) {
+                char32_t c = (*p++ & 0x07) << 18;
+                if (*p && (*p & 0xC0) == 0x80) c |= (*p++ & 0x3F) << 12;
+                if (*p && (*p & 0xC0) == 0x80) c |= (*p++ & 0x3F) << 6;
+                if (*p && (*p & 0xC0) == 0x80) c |= (*p++ & 0x3F);
+                m_data.push_back(c);
+            } else {
+                p++; 
+            }
+        }
+        stb_textedit_initialize_state(m_state.get(), 0);
+        m_is_dirty = false;
+        m_version++;
     }
-    stb_textedit_initialize_state(m_state.get(), 0);
-    m_is_dirty = false;
     if (on_changed) on_changed();
 }
 
 std::string TextDocument::get_text() const {
-    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
-    return converter.to_bytes(m_data);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    std::string result;
+    result.reserve(m_data.length() * 2); // Better estimate
+    for (char32_t c : m_data) {
+        if (c <= 0x7F) {
+            result.push_back((char)c);
+        } else if (c <= 0x7FF) {
+            result.push_back((char)(0xC0 | (c >> 6)));
+            result.push_back((char)(0x80 | (c & 0x3F)));
+        } else if (c <= 0xFFFF) {
+            result.push_back((char)(0xE0 | (c >> 12)));
+            result.push_back((char)(0x80 | ((c >> 6) & 0x3F)));
+            result.push_back((char)(0x80 | (c & 0x3F)));
+        } else if (c <= 0x10FFFF) {
+            result.push_back((char)(0xF0 | (c >> 18)));
+            result.push_back((char)(0x80 | ((c >> 12) & 0x3F)));
+            result.push_back((char)(0x80 | ((c >> 6) & 0x3F)));
+            result.push_back((char)(0x80 | (c & 0x3F)));
+        }
+    }
+    return result;
 }
 
 bool TextDocument::load_from_file(const std::string& path) {
@@ -119,6 +181,7 @@ bool TextDocument::load_from_file(const std::string& path) {
 }
 
 bool TextDocument::save_to_file(const std::string& path) {
+    if (path.empty()) return false;
     std::ofstream file(path);
     if (!file.is_open()) return false;
     
@@ -129,30 +192,43 @@ bool TextDocument::save_to_file(const std::string& path) {
 }
 
 void TextDocument::delete_chars(int index, int n) {
-    if (index >= 0 && index + n <= (int)m_data.size()) {
-        m_data.erase(index, n);
-        m_is_dirty = true;
-        if (on_changed) on_changed();
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        if (index >= 0 && index + n <= (int)m_data.size()) {
+            m_data.erase(index, n);
+            m_is_dirty = true; m_version++;
+        }
     }
+    if (on_changed) on_changed();
 }
 
 bool TextDocument::insert_chars(int index, const char32_t* chars, int n) {
-    if (index >= 0 && index <= (int)m_data.size()) {
-        m_data.insert(index, chars, n);
-        m_is_dirty = true;
-        if (on_changed) on_changed();
-        return true;
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        if (index >= 0 && index <= (int)m_data.size()) {
+            m_data.insert(index, chars, n);
+            m_is_dirty = true; m_version++;
+        } else {
+            return false;
+        }
     }
-    return false;
+    if (on_changed) on_changed();
+    return true;
 }
 
 void TextDocument::undo() {
-    stb_text_undo(this, m_state.get());
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        stb_text_undo(this, m_state.get());
+    }
     if (on_changed) on_changed();
 }
 
 void TextDocument::redo() {
-    stb_text_redo(this, m_state.get());
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        stb_text_redo(this, m_state.get());
+    }
     if (on_changed) on_changed();
 }
 
@@ -170,43 +246,105 @@ void TextDocument::handle_key(int key) {
     else if (key == (int)EditorKey::Undo) stb_key = STB_TEXTEDIT_K_UNDO;
     else if (key == (int)EditorKey::Redo) stb_key = STB_TEXTEDIT_K_REDO;
 
-    stb_textedit_key(this, m_state.get(), stb_key);
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        stb_textedit_key(this, m_state.get(), stb_key);
+    }
     if (on_changed) on_changed();
 }
 
 void TextDocument::handle_click(double x, double y) {
-    stb_textedit_click(this, m_state.get(), (float)x, (float)y);
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        stb_textedit_click(this, m_state.get(), (float)x, (float)y);
+    }
     if (on_changed) on_changed();
 }
 
 void TextDocument::handle_drag(double x, double y) {
-    stb_textedit_drag(this, m_state.get(), (float)x, (float)y);
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        stb_textedit_drag(this, m_state.get(), (float)x, (float)y);
+    }
     if (on_changed) on_changed();
 }
 
+void TextDocument::set_cursor_at_index(int index, bool select) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    if (index < 0) index = 0;
+    if (index > (int)m_data.length()) index = (int)m_data.length();
+    
+    m_state->cursor = index;
+    if (!select) {
+        m_state->select_start = index;
+        m_state->select_end = index;
+    } else {
+        m_state->select_end = index;
+    }
+}
+
+void TextDocument::set_selection(int start, int end) {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    if (start < 0) start = 0;
+    if (start > (int)m_data.length()) start = (int)m_data.length();
+    if (end < 0) end = 0;
+    if (end > (int)m_data.length()) end = (int)m_data.length();
+    
+    m_state->select_start = start;
+    m_state->select_end = end;
+}
+
 int TextDocument::get_cursor_pos() const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_state->cursor;
 }
 
 int TextDocument::get_selection_start() const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return std::min(m_state->select_start, m_state->select_end);
 }
 
 int TextDocument::get_selection_end() const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return std::max(m_state->select_start, m_state->select_end);
 }
 
 std::string TextDocument::get_selected_text() const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     int start = get_selection_start();
     int end = get_selection_end();
-    if (start == end) return "";
+    int s = std::min(start, end);
+    int e = std::max(start, end);
+    if (s < 0) s = 0;
+    if (e > (int)m_data.size()) e = (int)m_data.size();
+    if (s >= e) return "";
 
-    std::u32string sub = m_data.substr(start, end - start);
-    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
-    return converter.to_bytes(sub);
+    std::u32string sub = m_data.substr(s, e - s);
+    
+    std::string result;
+    result.reserve(sub.length());
+    for (char32_t c : sub) {
+        if (c <= 0x7F) {
+            result.push_back((char)c);
+        } else if (c <= 0x7FF) {
+            result.push_back((char)(0xC0 | (c >> 6)));
+            result.push_back((char)(0x80 | (c & 0x3F)));
+        } else if (c <= 0xFFFF) {
+            result.push_back((char)(0xE0 | (c >> 12)));
+            result.push_back((char)(0x80 | ((c >> 6) & 0x3F)));
+            result.push_back((char)(0x80 | (c & 0x3F)));
+        } else if (c <= 0x10FFFF) {
+            result.push_back((char)(0xF0 | (c >> 18)));
+            result.push_back((char)(0x80 | ((c >> 12) & 0x3F)));
+            result.push_back((char)(0x80 | ((c >> 6) & 0x3F)));
+            result.push_back((char)(0x80 | (c & 0x3F)));
+        }
+    }
+    return result;
 }
 
 void TextDocument::get_cursor_row_col(int& row, int& col) const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     row = 1;
     col = 1;
     int cursor = m_state->cursor;
@@ -221,6 +359,7 @@ void TextDocument::get_cursor_row_col(int& row, int& col) const {
 }
 
 int TextDocument::get_line_count() const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     int count = 1;
     for (char32_t c : m_data) {
         if (c == '\n') count++;
@@ -229,12 +368,20 @@ int TextDocument::get_line_count() const {
 }
 
 void TextDocument::insert_text(const std::string& utf8_text) {
-    std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t> converter;
-    std::u32string u32_text = converter.from_bytes(utf8_text);
-    
-    // We use stb_textedit_paste to handle insertion, as it handles selection replacement and undo.
-    stb_textedit_paste(this, m_state.get(), u32_text.c_str(), u32_text.length());
-    
+    {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        std::u32string u32_text;
+        const unsigned char* p = (const unsigned char*)utf8_text.c_str();
+        while (*p) {
+            if ((*p & 0x80) == 0) u32_text.push_back(*p++);
+            else if ((*p & 0xE0) == 0xC0) { char32_t c = (*p++ & 0x1F) << 6; if (*p) c |= (*p++ & 0x3F); u32_text.push_back(c); }
+            else if ((*p & 0xF0) == 0xE0) { char32_t c = (*p++ & 0x0F) << 12; if (*p) c |= (*p++ & 0x3F) << 6; if (*p) c |= (*p++ & 0x3F); u32_text.push_back(c); }
+            else if ((*p & 0xF8) == 0xF0) { char32_t c = (*p++ & 0x07) << 18; if (*p) c |= (*p++ & 0x3F) << 12; if (*p) c |= (*p++ & 0x3F) << 6; if (*p) c |= (*p++ & 0x3F); u32_text.push_back(c); }
+            else p++;
+        }
+        
+        stb_textedit_paste(this, m_state.get(), u32_text.c_str(), (int)u32_text.length());
+    }
     if (on_changed) on_changed();
 }
 
