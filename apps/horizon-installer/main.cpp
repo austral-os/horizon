@@ -71,20 +71,9 @@ private:
     {
         if (m_oobe_mode)
         {
-            // OOBE Mode: Language -> Region -> User -> Progress -> Success
+            // OOBE Mode: Language -> User -> Progress -> Success
             
-            // 2. Region Page
-            auto region_page = std::make_unique<RegionPage>();
-            auto* region_ptr = region_page.get();
-            region_page->when_back.connect([this](auto&) { m_wizard->back(); });
-            region_page->when_continue.connect([this, region_ptr](auto&) {
-                m_config.country = region_ptr->selected_country();
-                m_config.timezone = region_ptr->selected_timezone();
-                m_wizard->next();
-            });
-            m_wizard->add_page(std::move(region_page));
-
-            // 3. User Page
+            // 2. User Page
             auto user_page = std::make_unique<UserPage>();
             auto* user_ptr = user_page.get();
             user_page->when_back.connect([this](auto&) { m_wizard->back(); });
@@ -115,7 +104,18 @@ private:
             });
             m_wizard->add_page(std::move(license_page));
 
-            // 4. Disk Selection Page
+            // 4. Region Page
+            auto region_page = std::make_unique<RegionPage>();
+            auto* region_ptr = region_page.get();
+            region_page->when_back.connect([this](auto&) { m_wizard->back(); });
+            region_page->when_continue.connect([this, region_ptr](auto&) {
+                m_config.country = region_ptr->selected_country();
+                m_config.timezone = region_ptr->selected_timezone();
+                m_wizard->next();
+            });
+            m_wizard->add_page(std::move(region_page));
+
+            // 5. Disk Selection Page
             auto disk_page = std::make_unique<DiskPage>();
             auto* disk_page_ptr = disk_page.get();
             disk_page->when_back.connect([this](auto&) { m_wizard->back(); });
@@ -195,16 +195,16 @@ private:
     {
         size_t index = 0;
         if (m_oobe_mode) {
-            if (view_name == "region") index = 1;
-            else if (view_name == "new-user") index = 2;
-            else if (view_name == "progress") index = 3;
-            else if (view_name == "success") index = 4;
+            if (view_name == "new-user") index = 1;
+            else if (view_name == "progress") index = 2;
+            else if (view_name == "success") index = 3;
         } else {
             if (view_name == "welcome") index = 1;
             else if (view_name == "license") index = 2;
-            else if (view_name == "disk") index = 3;
-            else if (view_name == "progress") index = 4;
-            else if (view_name == "success") index = 5;
+            else if (view_name == "region") index = 3;
+            else if (view_name == "disk") index = 4;
+            else if (view_name == "progress") index = 5;
+            else if (view_name == "success") index = 6;
         }
 
         if (index > 0) {

@@ -49,6 +49,29 @@ namespace horizon::installer
         res = create_oobe_trigger(m_target_mount_point);
         if (!res.success) return res;
 
+        // Save regional settings to target disk as backup/default
+        LOG_INFO << "Saving regional settings to target disk...";
+        std::string target_region_dir = m_target_mount_point + "/usr/share/horizon";
+        std::string target_region_file = target_region_dir + "/region.json";
+        
+        execute_privileged_command("mkdir -p " + target_region_dir);
+        
+        nlohmann::json region_j = {
+            {"region", {
+                {"language", config.locale},
+                {"country", config.country},
+                {"timezone", config.timezone}
+            }}
+        };
+
+        std::string temp_file = "/tmp/region_stage1.json";
+        std::ofstream f(temp_file);
+        if (f.is_open()) {
+            f << region_j.dump(4);
+            f.close();
+            execute_privileged_command("cp " + temp_file + " " + target_region_file);
+        }
+
         // 10. Final Validation
         report_progress(0.95, "Verifying installation...");
         if (!std::filesystem::exists(m_target_mount_point + "/boot/vmlinuz") && 
@@ -66,37 +89,66 @@ namespace horizon::installer
     {
         LOG_INFO << "Starting Stage 2 (OOBE) for user " << config.username;
         
+        InstallationConfig final_config = config;
+        
+        // If regional settings are missing (because they were chosen in Stage 1 and skipped in OOBE),
+        // try to load them from the system backup created in Stage 1.
+        if (final_config.country.empty() || final_config.timezone.empty()) {
+            std::string region_path = "/usr/share/horizon/region.json";
+            if (std::filesystem::exists(region_path)) {
+                LOG_INFO << "Loading existing regional settings from " << region_path;
+                try {
+                    std::ifstream f(region_path);
+                    nlohmann::json j = nlohmann::json::parse(f);
+                    if (j.contains("region")) {
+                        auto r = j["region"];
+                        if (final_config.locale.empty() && r.contains("language")) 
+                            final_config.locale = r["language"].get<std::string>();
+                        if (final_config.country.empty() && r.contains("country")) 
+                            final_config.country = r["country"].get<std::string>();
+                        if (final_config.timezone.empty() && r.contains("timezone")) 
+                            final_config.timezone = r["timezone"].get<std::string>();
+                    }
+                } catch (const std::exception& e) {
+                    LOG_ERROR << "Failed to parse existing region.json: " << e.what();
+                }
+            }
+        }
+
         report_progress(0.1, "Creating user account...");
-        auto res = create_user(config.username, config.password, config.fullname);
+        auto res = create_user(final_config.username, final_config.password, final_config.fullname);
         if (!res.success) return res;
 
         // Create localized user directories (Documents, Downloads, etc.)
         report_progress(0.3, "Creating localized user directories...");
-        std::string lang = config.locale;
+        std::string lang = final_config.locale;
         if (lang.empty()) lang = "en_US";
         if (lang.find(".") == std::string::npos) lang += ".UTF-8";
 
         // Use sudo -u to run as the new user so directories have correct ownership
-        std::string xdg_cmd = "sudo -u " + config.username + " LANG=" + lang + " xdg-user-dirs-update --force";
+        std::string xdg_cmd = "sudo -u " + final_config.username + " LANG=" + lang + " xdg-user-dirs-update --force";
         execute_privileged_command(xdg_cmd);
 
         report_progress(0.5, "Setting system configuration...");
-        res = set_system_config(config.hostname, config.timezone);
+        res = set_system_config(final_config.hostname, final_config.timezone);
         if (!res.success) return res;
 
-        // Write region.json to user home
+        // Write region.json to user home and system backup
         report_progress(0.7, "Configuring user environment...");
-        std::string user_home = "/home/" + config.username;
+        std::string user_home = "/home/" + final_config.username;
         std::string config_dir = user_home + "/.config/horizon";
         std::string region_file = config_dir + "/region.json";
+        std::string system_region_dir = "/usr/share/horizon";
+        std::string system_region_file = system_region_dir + "/region.json";
 
         execute_privileged_command("mkdir -p " + config_dir);
+        execute_privileged_command("mkdir -p " + system_region_dir);
         
         nlohmann::json region_j = {
             {"region", {
-                {"language", config.locale},
-                {"country", config.country},
-                {"timezone", config.timezone}
+                {"language", final_config.locale},
+                {"country", final_config.country},
+                {"timezone", final_config.timezone}
             }}
         };
 
@@ -105,8 +157,13 @@ namespace horizon::installer
         if (f.is_open()) {
             f << region_j.dump(4);
             f.close();
+            
+            // Copy to user home
             execute_privileged_command("cp " + temp_file + " " + region_file);
-            execute_privileged_command("chown -R " + config.username + ":" + config.username + " " + user_home + "/.config");
+            execute_privileged_command("chown -R " + final_config.username + ":" + final_config.username + " " + user_home + "/.config");
+            
+            // Copy to system (backup)
+            execute_privileged_command("cp " + temp_file + " " + system_region_file);
         }
 
         finalize_oobe();
