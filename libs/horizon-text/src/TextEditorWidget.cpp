@@ -468,10 +468,11 @@ int TextEditorWidget::get_char_index_at(double x, double y) {
     double lx = x - m_x - margin_x;
     double ly = y - m_y - margin_y;
 
-    int index, trailing;
-    pango_layout_xy_to_index(m_layout, (int)(lx * PANGO_SCALE), (int)(ly * PANGO_SCALE), &index, &trailing);
+    int byte_index, trailing;
+    pango_layout_xy_to_index(m_layout, (int)(lx * PANGO_SCALE), (int)(ly * PANGO_SCALE), &byte_index, &trailing);
 
-    if (index < 0) return 0;
+    // target_byte is where the user actually clicked (accounting for trailing edge)
+    int target_byte = byte_index + trailing;
 
     // Convert Pango byte index back to UTF-32 index using a safe snapshot
     std::u32string u32_text;
@@ -483,7 +484,12 @@ int TextEditorWidget::get_char_index_at(double x, double y) {
     int char_idx = 0;
     int current_byte = 0;
     for (char32_t c : u32_text) {
-        if (current_byte >= index) break;
+        if (current_byte >= target_byte) break;
+        
+        // Special case: if we are at a newline and the user clicked beyond it, 
+        // we stop BEFORE the newline to keep the cursor on the same line.
+        if (c == '\n' && current_byte + 1 > byte_index) break;
+
         char_idx++;
         if (c <= 0x7F) current_byte += 1;
         else if (c <= 0x7FF) current_byte += 2;
