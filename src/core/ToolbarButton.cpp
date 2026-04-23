@@ -6,8 +6,8 @@
 
 namespace horizon
 {
-    ToolbarButton::ToolbarButton(std::string title, std::string icon_name)
-        : m_title(std::move(title)), m_icon_name(std::move(icon_name))
+    ToolbarButton::ToolbarButton(const std::string &title, const std::string &icon_name)
+        : m_title(title), m_icon_name(icon_name)
     {
         set_fixed_size(64);
         set_layout_type(WIDGET_LAYOUT_VERTICAL);

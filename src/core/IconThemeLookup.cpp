@@ -118,8 +118,9 @@ namespace horizon
 
 #ifdef HORIZON_BUILD_DIR
         // Development mode: check extracted icons in build directory
+        std::error_code ec;
         std::string dev_icons = std::string(HORIZON_BUILD_DIR) + "/apps/horizon_session/icons_extracted/austral-icon-theme/Light";
-        if (fs::exists(dev_icons))
+        if (fs::exists(dev_icons, ec))
         {
             // We give it a high priority by adding it near the beginning or as its own entry
             // but we need to ensure the parent directory is treat as a "theme base dir"

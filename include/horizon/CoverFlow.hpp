@@ -43,6 +43,16 @@ namespace horizon
         {
             return m_dark_mode;
         }
+        
+        void set_draw_background(bool draw)
+        {
+            m_draw_background = draw;
+            invalidate();
+        }
+        bool draw_background() const
+        {
+            return m_draw_background;
+        }
 
         void calculate_layout() override;
         void render(GraphicsContext &gc, int cx, int cy, int cw, int ch,
@@ -65,6 +75,7 @@ namespace horizon
 
         bool m_draw_reflection{true};
         bool m_dark_mode{true};
+        bool m_draw_background{true};
 
         // Interaction state
         bool m_is_dragging{false};

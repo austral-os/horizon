@@ -11,7 +11,7 @@ namespace horizon
     class ToolbarButton : public Widget
     {
     public:
-        ToolbarButton(std::string title, std::string icon_name);
+        ToolbarButton(const std::string &title, const std::string &icon_name);
         ~ToolbarButton() override = default;
 
         void set_active(bool active);

@@ -53,6 +53,18 @@ namespace horizon
         }
     }
 
+    void Combo::set_selected_item_index(int index)
+    {
+        if (index >= 0 && index < (int)m_items.size())
+        {
+            if (m_selected_index != index)
+            {
+                m_selected_index = index;
+                invalidate();
+            }
+        }
+    }
+
     const ComboItem* Combo::selected_item() const
     {
         if (m_selected_index >= 0 && m_selected_index < (int)m_items.size())

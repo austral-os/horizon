@@ -35,7 +35,9 @@ namespace horizon
         void clear_items();
 
         void set_selected_item_by_id(const std::string &id);
+        void set_selected_item_index(int index);
         const ComboItem* selected_item() const;
+        int selected_item_index() const { return m_selected_index; }
 
         EventsManager<ComboItemSelectedContext> when_item_selected;
 

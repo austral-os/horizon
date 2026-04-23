@@ -10,8 +10,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# RPATH configuration for installation
-set(CMAKE_SKIP_INSTALL_RPATH TRUE)
+# RPATH configuration
+set(CMAKE_SKIP_BUILD_RPATH FALSE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 find_package(PkgConfig REQUIRED)
 find_package(nlohmann_json REQUIRED)
@@ -189,6 +192,8 @@ add_subdirectory(apps/image-viewer)
 add_subdirectory(apps/text-editor)
 add_subdirectory(apps/disk-utility)
 add_subdirectory(apps/horizon-installer)
+add_subdirectory(apps/horizon-greeter)
+
 
 
 add_executable(combo_demo

@@ -296,7 +296,7 @@ namespace horizon
         bool should_draw = m_dirty || force || m_child_dirty;
 
         // --- 1. Draw Background ---
-        if (should_draw)
+        if (should_draw && m_draw_background)
         {
             gc.setColor(m_dark_mode ? Color(0.01f, 0.01f, 0.01f) : Color(0.99f, 0.99f, 0.99f));
             gc.fillRect(m_x, m_y, m_width, m_height);

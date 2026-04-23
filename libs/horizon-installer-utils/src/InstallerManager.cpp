@@ -464,11 +464,15 @@ namespace horizon::installer
     {
         LOG_INFO << "Finalizing OOBE: Switching services and removing trigger...";
         
+        // Remove root autologin from TTY1 (from ISO config)
+        execute_privileged_command("rm -f /etc/systemd/system/getty@tty1.service.d/override.conf");
+        execute_privileged_command("rmdir /etc/systemd/system/getty@tty1.service.d 2>/dev/null");
+
         // Disable auto-login root session
         execute_privileged_command("systemctl disable horizon.service");
         
         // Enable real display manager
-        execute_privileged_command("systemctl enable sddm.service");
+        execute_privileged_command("systemctl enable greetd.service");
 
         // Remove live user (usually 'user')
         LOG_INFO << "Removing live user...";
