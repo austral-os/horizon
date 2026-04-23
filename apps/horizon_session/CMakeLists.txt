@@ -84,7 +84,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${ICON_TARBALL}")
         COMMAND ${CMAKE_COMMAND} -E touch "${EXTRACT_DIR}/.extracted"
         WORKING_DIRECTORY "${EXTRACT_DIR}"
         DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${ICON_TARBALL}"
-        COMMENT "Extracting Australian Icon Theme..."
+        COMMENT "Extracting Austral Icon Theme..."
     )
     
     add_custom_target(extract_icons ALL DEPENDS "${EXTRACT_DIR}/.extracted")
