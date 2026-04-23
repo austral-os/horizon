@@ -2374,6 +2374,9 @@ namespace horizon
 
         if (m_popup_menu == (Menu *)widget)
             close_context_menu();
+
+        if (m_clipboard_backend)
+            m_clipboard_backend->on_widget_destroyed(widget);
     }
 
     void WaylandWindow::set_root(std::unique_ptr<Widget> root)

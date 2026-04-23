@@ -46,9 +46,15 @@ TextEditorWidget::TextEditorWidget() : Widget() {
 
 TextEditorWidget::~TextEditorWidget() {
     if (m_layout) g_object_unref(m_layout);
+    if (m_doc && m_doc->on_changed) {
+        m_doc->on_changed = nullptr;
+    }
 }
 
 void TextEditorWidget::set_document(std::shared_ptr<TextDocument> doc) {
+    if (m_doc && m_doc->on_changed) {
+        m_doc->on_changed = nullptr;
+    }
     m_doc = doc;
     if (m_doc) {
         m_doc->on_changed = [this]() {
