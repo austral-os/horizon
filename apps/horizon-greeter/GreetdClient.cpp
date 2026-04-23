@@ -6,6 +6,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <cstring>
+#include <cstdint>
 
 namespace horizon::greeter
 {
@@ -115,11 +116,10 @@ namespace horizon::greeter
     {
         if (m_fd == -1)
             return;
-        std::string s = j.dump();
-        uint32_t len = static_cast<uint32_t>(s.size());
+        std::string s = j.dump() + "\n";
         
-        // Greetd protocol: 4-byte little-endian length prefix
-        write(m_fd, &len, 4);
+        LOG_INFO << "GreetdClient: Sending: " << s;
+        
         write(m_fd, s.c_str(), s.size());
     }
 
@@ -128,48 +128,63 @@ namespace horizon::greeter
         while (m_running)
         {
             uint32_t len = 0;
-            // 1. Read the 4-byte length prefix
-            ssize_t n = read(m_fd, &len, 4);
-            if (n <= 0) 
+            uint8_t first_byte;
+            ssize_t n = read(m_fd, &first_byte, 1);
+
+            if (n <= 0)
             {
-                if (m_running)
-                {
-                    LOG_ERROR << "GreetdClient: Lost connection to greetd while reading length.";
-                }
+                LOG_ERROR << "GreetdClient: Lost connection to greetd.";
+                m_running = false;
                 break;
-            }
-            if (n != 4) 
-            {
-                LOG_ERROR << "GreetdClient: Incomplete length read: " << n << " bytes.";
-                continue;
             }
 
-            // 2. Read the JSON message of 'len' bytes
-            std::vector<char> buffer(len + 1);
-            ssize_t total_read = 0;
-            while (total_read < (ssize_t)len) 
+            std::string raw_message;
+            if (first_byte == '{')
             {
-                n = read(m_fd, buffer.data() + total_read, len - total_read);
-                if (n <= 0) break;
-                total_read += n;
+                // Protocol A: Line-delimited JSON
+                raw_message += (char)first_byte;
+                char c;
+                while (read(m_fd, &c, 1) > 0 && c != '\n')
+                {
+                    raw_message += c;
+                }
             }
-            
-            if (total_read < (ssize_t)len) 
+            else
             {
-                LOG_ERROR << "GreetdClient: Incomplete message read: " << total_read << "/" << len;
-                break;
+                // Protocol B: 4-byte length prefix
+                uint32_t len = 0;
+                uint8_t remaining[3];
+                memcpy(&len, &first_byte, 1);
+                if (read(m_fd, remaining, 3) != 3) break;
+                memcpy(((uint8_t *)&len) + 1, remaining, 3);
+
+                if (len > 1024 * 1024)
+                {
+                    LOG_ERROR << "GreetdClient: Protocol error (invalid length: " << len << ")";
+                    break;
+                }
+
+                std::vector<char> buffer(len + 1, 0);
+                ssize_t total_read = 0;
+                while (total_read < (ssize_t)len)
+                {
+                    n = read(m_fd, buffer.data() + total_read, len - total_read);
+                    if (n <= 0)
+                        break;
+                    total_read += n;
+                }
+                raw_message = buffer.data();
             }
-            
-            buffer[len] = '\0';
 
             try
             {
-                auto j_obj = nlohmann::json::parse(buffer.data());
+                LOG_INFO << "GreetdClient: Received: " << raw_message;
+                auto j_obj = nlohmann::json::parse(raw_message);
                 handle_message(j_obj);
             }
             catch (const std::exception& e)
             {
-                LOG_ERROR << "GreetdClient: JSON parse error: " << e.what() << " content: " << buffer.data();
+                LOG_ERROR << "GreetdClient: JSON parse error: " << e.what() << " content: " << raw_message;
             }
         }
         

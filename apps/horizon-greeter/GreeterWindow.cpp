@@ -6,6 +6,7 @@
 #include <horizon/Spacer.hpp>
 #include <horizon/ToolbarButton.hpp>
 #include <horizon/VPanel.hpp>
+#include <horizon/Textarea.hpp>
 #include <string>
 #include <filesystem>
 #include <xkbcommon/xkbcommon-keysyms.h>
@@ -104,6 +105,21 @@ namespace horizon::greeter
             m_password_box->set_text("");
             m_message_label->set_text("");
         };
+
+        // Redirect logs to UI (Only Greetd related logs)
+        horizon::Logger::instance().set_callback([this](horizon::LogLevel level, const std::string &msg) {
+            std::string lower_msg = msg;
+            for (auto &c : lower_msg) c = (char)std::tolower(c);
+
+            if (m_log_view && lower_msg.find("greetd") != std::string::npos)
+            {
+                std::string prefix = "[INFO] ";
+                if (level == horizon::LogLevel::WARNING) prefix = "[WARN] ";
+                if (level == horizon::LogLevel::ERROR) prefix = "[ERR ] ";
+                m_log_view->set_text(m_log_view->text() + prefix + msg + "\n");
+                m_log_view->move_cursor_to_end();
+            }
+        });
     }
 
     void GreeterWindow::on_key_event(const KeyEvent &event)
@@ -240,6 +256,13 @@ namespace horizon::greeter
         footer->add_child(std::move(combo));
 
         main_container->add_child(std::move(footer));
+
+        // 3. Log View (at the bottom)
+        auto log_area = std::make_unique<horizon::Textarea>();
+        m_log_view = log_area.get();
+        m_log_view->set_height(150); 
+        m_log_view->set_background_color(Color(0.0f, 0.0f, 0.0f, 0.6f));
+        main_container->add_child(std::move(log_area));
 
         root->add_child(std::move(main_container));
         set_root(std::move(root));

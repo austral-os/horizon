@@ -1,5 +1,6 @@
 #pragma once
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <mutex>
 #include <sstream>
@@ -17,10 +18,12 @@ namespace horizon
     class Logger
     {
     public:
+        using LogCallback = std::function<void(LogLevel, const std::string &)>;
         static Logger &instance();
 
         void init(const std::string &app_id);
         void log(LogLevel level, const std::string &message);
+        void set_callback(LogCallback cb) { m_callback = cb; }
 
     private:
         Logger() = default;
@@ -28,6 +31,7 @@ namespace horizon
         Logger(const Logger &) = delete;
         Logger &operator=(const Logger &) = delete;
 
+        LogCallback m_callback;
         std::ofstream m_log_file;
         std::mutex m_mutex;
         bool m_initialized = false;

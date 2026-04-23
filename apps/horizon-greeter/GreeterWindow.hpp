@@ -11,6 +11,8 @@
 #include <horizon/Application.hpp>
 #include <horizon/WaylandLayerWindow.hpp>
 
+namespace horizon { class Textarea; }
+
 namespace horizon::greeter
 {
     /**
@@ -44,6 +46,7 @@ namespace horizon::greeter
         TextBoxBase *m_password_box{nullptr};
         Combo *m_session_combo{nullptr};
         Label *m_message_label{nullptr};
+        horizon::Textarea *m_log_view{nullptr};
         Widget *m_login_container{nullptr};
 
         bool m_is_authenticating{false};

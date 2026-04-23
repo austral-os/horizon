@@ -63,6 +63,11 @@ namespace horizon
 
         // Also print to stderr for debugging
         std::cerr << level_str << " " << message << std::endl;
+
+        if (m_callback)
+        {
+            m_callback(level, message);
+        }
     }
 
 } // namespace horizon
