@@ -298,7 +298,6 @@ namespace horizon::greeter
         update_background(user.wallpaper_path);
 
         // Initiate auth session with greetd
-        m_client.cancel();
         m_client.create_session(user.username);
 
         m_password_box->set_text("");
@@ -314,17 +313,13 @@ namespace horizon::greeter
 
         if (!m_client.is_connected())
         {
-            LOG_WARNING << "GreeterWindow: Not connected to greetd, showing alert.";
-            m_app.alert("No se detectó una conexión real con greetd. La sesión no se puede iniciar en este modo.", 
-                        "Modo de Desarrollo", MessageType::Warning);
-            
-            // Fallback: also show it on the UI itself
+            LOG_WARNING << "GreeterWindow: Not connected to greetd.";
             m_message_label->set_text("ERROR: Sin conexión a greetd");
-            m_message_label->set_text_color(Color(1.0f, 0.5f, 0.0f));
             return;
         }
 
         m_is_authenticating = true;
+        m_message_label->set_text("Verificando...");
         m_password_box->set_enabled(false);
         m_client.post_auth_message_response(m_password_box->text());
     }

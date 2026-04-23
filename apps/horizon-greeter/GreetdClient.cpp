@@ -116,10 +116,16 @@ namespace horizon::greeter
     {
         if (m_fd == -1)
             return;
-        std::string s = j.dump() + "\n";
+        std::string s = j.dump();
+        uint32_t len = (uint32_t)s.size();
         
         LOG_INFO << "GreetdClient: Sending: " << s;
         
+        if (write(m_fd, &len, 4) != 4)
+        {
+            LOG_ERROR << "GreetdClient: Failed to write length prefix.";
+            return;
+        }
         write(m_fd, s.c_str(), s.size());
     }
 
@@ -128,53 +134,46 @@ namespace horizon::greeter
         while (m_running)
         {
             uint32_t len = 0;
-            uint8_t first_byte;
-            ssize_t n = read(m_fd, &first_byte, 1);
-
-            if (n <= 0)
+            uint8_t *len_ptr = reinterpret_cast<uint8_t *>(&len);
+            ssize_t len_read = 0;
+            
+            while (len_read < 4 && m_running)
             {
-                LOG_ERROR << "GreetdClient: Lost connection to greetd.";
-                m_running = false;
+                ssize_t n = read(m_fd, len_ptr + len_read, 4 - len_read);
+                if (n <= 0)
+                {
+                    if (m_running) LOG_ERROR << "GreetdClient: Lost connection to greetd.";
+                    m_running = false;
+                    break;
+                }
+                len_read += n;
+            }
+
+            if (!m_running) break;
+
+            if (len > 1024 * 1024)
+            {
+                LOG_ERROR << "GreetdClient: Protocol error (invalid length: " << len << ")";
                 break;
             }
 
-            std::string raw_message;
-            if (first_byte == '{')
+            std::vector<char> buffer(len);
+            ssize_t total_read = 0;
+            while (total_read < (ssize_t)len)
             {
-                // Protocol A: Line-delimited JSON
-                raw_message += (char)first_byte;
-                char c;
-                while (read(m_fd, &c, 1) > 0 && c != '\n')
-                {
-                    raw_message += c;
-                }
-            }
-            else
-            {
-                // Protocol B: 4-byte length prefix
-                uint32_t len = 0;
-                uint8_t remaining[3];
-                memcpy(&len, &first_byte, 1);
-                if (read(m_fd, remaining, 3) != 3) break;
-                memcpy(((uint8_t *)&len) + 1, remaining, 3);
-
-                if (len > 1024 * 1024)
-                {
-                    LOG_ERROR << "GreetdClient: Protocol error (invalid length: " << len << ")";
+                ssize_t n = read(m_fd, buffer.data() + total_read, len - total_read);
+                if (n <= 0)
                     break;
-                }
-
-                std::vector<char> buffer(len + 1, 0);
-                ssize_t total_read = 0;
-                while (total_read < (ssize_t)len)
-                {
-                    n = read(m_fd, buffer.data() + total_read, len - total_read);
-                    if (n <= 0)
-                        break;
-                    total_read += n;
-                }
-                raw_message = buffer.data();
+                total_read += n;
             }
+
+            if (total_read != (ssize_t)len)
+            {
+                LOG_ERROR << "GreetdClient: Protocol error (failed to read full payload)";
+                break;
+            }
+
+            std::string raw_message(buffer.begin(), buffer.end());
 
             try
             {
