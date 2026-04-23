@@ -56,6 +56,7 @@ private:
             // Apply selected locale
             std::string code = ptr->selected_language_code();
             std::cout << "Setting locale to: " << code << std::endl;
+            m_config.locale = code;
             horizon::i18n().set_locale(code);
             horizon::i18n().load_app_locales("horizon-installer");
             

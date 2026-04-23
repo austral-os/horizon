@@ -70,6 +70,16 @@ namespace horizon::installer
         auto res = create_user(config.username, config.password, config.fullname);
         if (!res.success) return res;
 
+        // Create localized user directories (Documents, Downloads, etc.)
+        report_progress(0.3, "Creating localized user directories...");
+        std::string lang = config.locale;
+        if (lang.empty()) lang = "en_US";
+        if (lang.find(".") == std::string::npos) lang += ".UTF-8";
+
+        // Use sudo -u to run as the new user so directories have correct ownership
+        std::string xdg_cmd = "sudo -u " + config.username + " LANG=" + lang + " xdg-user-dirs-update --force";
+        execute_privileged_command(xdg_cmd);
+
         report_progress(0.5, "Setting system configuration...");
         res = set_system_config(config.hostname, config.timezone);
         if (!res.success) return res;
@@ -100,6 +110,9 @@ namespace horizon::installer
         }
 
         finalize_oobe();
+        
+        // Ensure /etc/horizon-setup-done is created (Requirement 1)
+        mark_setup_done();
         report_progress(1.0, "OOBE Complete!");
         return {true, "System ready."};
     }
@@ -118,6 +131,11 @@ namespace horizon::installer
     {
         LOG_INFO << "Marking system setup as complete (/etc/horizon-setup-done)";
         execute_privileged_command("/usr/bin/touch /etc/horizon-setup-done");
+        execute_privileged_command("/usr/bin/rm -f /etc/horizon-setup-pending");
+        
+        // Remove installer and zutty from menus
+        execute_privileged_command("/usr/bin/rm -f /usr/share/applications/horizon-installer.desktop");
+        execute_privileged_command("/usr/bin/rm -f /usr/share/applications/zutty.desktop");
     }
 
     StepResult InstallerManager::partition_disk(const std::string& device_path)
@@ -478,10 +496,7 @@ namespace horizon::installer
         LOG_INFO << "Removing live user...";
         execute_privileged_command("/usr/sbin/userdel -r user");
 
-        // Remove trigger flag
-        std::filesystem::remove("/etc/horizon-setup-pending");
-        
-        // Flag done
+        // Remove trigger flag and mark setup as done
         mark_setup_done();
     }
 
