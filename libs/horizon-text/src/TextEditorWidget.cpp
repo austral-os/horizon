@@ -4,6 +4,7 @@
 #include <horizon/ThemeManager.hpp>
 #include <horizon/ScrollArea.hpp>
 #include <horizon/Logger.hpp>
+#include <linux/input-event-codes.h>
 #include <algorithm>
 #include <codecvt>
 #include <locale>
@@ -390,16 +391,44 @@ void TextEditorWidget::calculate_layout() {
     }
 }
 
+int TextEditorWidget::get_char_index_at(double x, double y) {
+    if (!m_layout || !m_doc) return -1;
+
+    int index, trailing;
+    int text_x = m_x + (m_show_line_numbers ? m_line_number_margin + 5 : 5);
+    int text_y = m_y + 5;
+
+    pango_layout_xy_to_index(m_layout, (x - text_x) * PANGO_SCALE, (y - text_y) * PANGO_SCALE, &index, &trailing);
+
+    std::string text = m_doc->get_text();
+    if (index < 0) return 0;
+    if (index >= (int)text.length()) return m_doc->get_length();
+
+    return g_utf8_pointer_to_offset(text.c_str(), text.c_str() + index);
+}
+
 void TextEditorWidget::handle_mouse_event(MouseButtonEventContext& ev) {
     if (!m_doc) return;
 
     int text_x = m_x + (m_show_line_numbers ? m_line_number_margin + 5 : 5);
     int text_y = m_y + 5;
 
-    // Map click to char index
-    // This requires pango_layout_xy_to_index
-    // Simplified for now
-    m_doc->handle_click(ev.x - text_x, ev.y - text_y);
+    bool should_click = true;
+    if (ev.button == BTN_RIGHT) {
+        int clicked_idx = get_char_index_at(ev.x, ev.y);
+        int sel_start = m_doc->get_selection_start();
+        int sel_end = m_doc->get_selection_end();
+
+        // If right-click is inside current selection, don't move cursor/clear selection
+        if (sel_start != sel_end && clicked_idx >= sel_start && clicked_idx <= sel_end) {
+            should_click = false;
+        }
+    }
+
+    if (should_click) {
+        m_doc->handle_click(ev.x - text_x, ev.y - text_y);
+    }
+
     set_focus(true);
     m_needs_ensure_visible = true;
     EventContext cursor_ctx;
@@ -446,11 +475,17 @@ void TextEditorWidget::perform(ClipboardAction action) {
     if (!m_doc) return;
     switch (action) {
         case ClipboardAction::Copy:
-            application()->set_clipboard_owner(this);
+            m_clipboard_buffer = m_doc->get_selected_text();
+            if (!m_clipboard_buffer.empty()) {
+                application()->set_clipboard_owner(this);
+            }
             break;
         case ClipboardAction::Cut:
-            application()->set_clipboard_owner(this);
-            m_doc->handle_key((int)EditorKey::Delete);
+            m_clipboard_buffer = m_doc->get_selected_text();
+            if (!m_clipboard_buffer.empty()) {
+                application()->set_clipboard_owner(this);
+                m_doc->handle_key((int)EditorKey::Delete);
+            }
             break;
         case ClipboardAction::Paste:
             application()->request_clipboard_data(this);
@@ -459,10 +494,13 @@ void TextEditorWidget::perform(ClipboardAction action) {
 }
 
 void TextEditorWidget::provide_clipboard_data(const std::string& mime, DataSink& sink) {
-    if (mime == "text/plain") {
-        std::string selected = m_doc->get_selected_text();
-        sink.write(std::vector<uint8_t>(selected.begin(), selected.end()));
-        sink.done();
+    if (mime == "text/plain" || mime == "text/plain;charset=utf-8") {
+        if (!m_clipboard_buffer.empty()) {
+            sink.write(std::vector<uint8_t>(m_clipboard_buffer.begin(), m_clipboard_buffer.end()));
+            sink.done();
+        } else {
+            sink.error();
+        }
     } else {
         sink.error();
     }

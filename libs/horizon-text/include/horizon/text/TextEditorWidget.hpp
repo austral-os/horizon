@@ -47,8 +47,8 @@ public:
     // Clipboard data management
     void provide_clipboard_data(const std::string& mime, DataSink& sink) override;
     void on_clipboard_data_received(const std::string& mime, const std::vector<uint8_t>& data) override;
-    std::vector<std::string> provided_mime_types() const override { return {"text/plain"}; }
-    std::vector<std::string> accepted_mime_types() const override { return {"text/plain"}; }
+    std::vector<std::string> provided_mime_types() const override { return {"text/plain", "text/plain;charset=utf-8"}; }
+    std::vector<std::string> accepted_mime_types() const override { return {"text/plain", "text/plain;charset=utf-8"}; }
 
     // Event overrides
     void handle_key_event(KeyEventContext& ev);
@@ -80,6 +80,7 @@ private:
     std::chrono::steady_clock::time_point m_last_blink;
     bool m_cursor_visible = true;
     bool m_needs_ensure_visible = false;
+    std::string m_clipboard_buffer;
 };
 
 } // namespace text
