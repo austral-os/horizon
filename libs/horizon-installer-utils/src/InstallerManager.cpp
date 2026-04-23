@@ -121,12 +121,25 @@ namespace horizon::installer
 
         // Create localized user directories (Documents, Downloads, etc.)
         report_progress(0.3, "Creating localized user directories...");
-        std::string lang = final_config.locale;
-        if (lang.empty()) lang = "en_US";
-        if (lang.find(".") == std::string::npos) lang += ".UTF-8";
+        
+        std::string lang_code = final_config.locale;
+        if (lang_code.empty()) lang_code = "en";
+        
+        std::string country_code = final_config.country;
+        if (country_code.empty() || country_code == "other") {
+            country_code = (lang_code == "es") ? "ES" : "US";
+        }
+        
+        // Convert country to uppercase for the locale string (e.g., es_AR)
+        std::string upper_country = country_code;
+        for (auto & c: upper_country) c = toupper(c);
+        
+        std::string full_locale = lang_code + "_" + upper_country + ".UTF-8";
+        LOG_INFO << "Using locale " << full_locale << " for XDG directories creation";
 
         // Use sudo -u to run as the new user so directories have correct ownership
-        std::string xdg_cmd = "sudo -u " + final_config.username + " LANG=" + lang + " xdg-user-dirs-update --force";
+        // We use LC_ALL to ensure the language is forced even if LANG is overridden
+        std::string xdg_cmd = "sudo -u " + final_config.username + " bash -c \"export LC_ALL=" + full_locale + "; xdg-user-dirs-update --force\"";
         execute_privileged_command(xdg_cmd);
 
         report_progress(0.5, "Setting system configuration...");
