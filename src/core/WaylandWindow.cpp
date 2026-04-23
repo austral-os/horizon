@@ -2765,6 +2765,7 @@ namespace horizon
         m_tooltip_widget->calculate_layout();
 
         m_tooltip_surface = std::make_unique<WaylandSurface>(w, h);
+        m_tooltip_surface->share_connection_from(m_surface.get());
 
         // Tooltip position: 20px below the mouse cursor
         int x = (int)m_pointer_x;
