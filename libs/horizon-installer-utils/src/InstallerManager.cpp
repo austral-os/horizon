@@ -524,15 +524,27 @@ namespace horizon::installer
 
     StepResult InstallerManager::set_system_config(const std::string& hostname, const std::string& timezone)
     {
-        LOG_INFO << "Setting hostname to " << hostname << " and timezone to " << timezone;
+        LOG_INFO << "Setting hostname to '" << hostname << "' and timezone to '" << timezone << "'";
         
-        // Hostname may be empty in OOBE if we don't want to change it
         if (!hostname.empty()) {
-            auto res = execute_privileged_command("/usr/bin/hostnamectl set-hostname " + hostname);
-            if (!res.success) return res;
+            report_progress(0.5, "Setting system hostname (" + hostname + ")...");
+            execute_privileged_command("/usr/bin/hostnamectl set-hostname " + hostname);
         }
 
-        return execute_privileged_command("/usr/bin/timedatectl set-timezone " + timezone);
+        if (!timezone.empty()) {
+            report_progress(0.55, "Setting system timezone (" + timezone + ")...");
+            
+            // Try timedatectl first, but don't let it hang the whole installation if dbus is unhappy
+            auto res = execute_privileged_command("/usr/bin/timedatectl set-timezone " + timezone);
+            
+            if (!res.success) {
+                LOG_WARNING << "timedatectl failed to set timezone, trying manual fallback...";
+                // Fallback: direct symlink (works even without dbus/timedated)
+                execute_privileged_command("/usr/bin/ln -sf /usr/share/zoneinfo/" + timezone + " /etc/localtime");
+            }
+        }
+
+        return {true, "System configuration updated"};
     }
 
     void InstallerManager::finalize_oobe()

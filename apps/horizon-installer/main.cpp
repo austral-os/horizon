@@ -137,9 +137,14 @@ private:
         m_wizard->add_page(std::move(install_page));
 
         // 6. Success Page
-        auto success_page = std::make_unique<SuccessPage>();
+        auto success_page = std::make_unique<SuccessPage>(m_oobe_mode);
         success_page->when_finish.connect([this](auto&) {
             std::cout << "Rebooting system..." << std::endl;
+            // Use system() for a direct, fast reboot trigger
+            if (system("/usr/bin/systemctl reboot") != 0) {
+                // Fallback if systemctl fails
+                system("/usr/sbin/reboot");
+            }
             if (auto* app = application()) app->quit();
         });
         m_wizard->add_page(std::move(success_page));

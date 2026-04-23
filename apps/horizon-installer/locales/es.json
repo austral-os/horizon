@@ -24,7 +24,8 @@
         },
         "success": {
             "title": "Instalación Terminada",
-            "desc": "Austral OS se ha instalado correctamente."
+            "desc": "Austral OS se ha instalado correctamente.",
+            "remove_medium": "Remover el medio de instalación antes de reiniciar"
         },
         "region": {
             "title": "Región y Zona Horaria",

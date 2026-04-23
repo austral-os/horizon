@@ -10,7 +10,7 @@ namespace horizon::installer
     class SuccessPage : public Widget
     {
     public:
-        SuccessPage();
+        SuccessPage(bool is_oobe = false);
         ~SuccessPage() override = default;
 
         EventsManager<EventContext> when_finish;

@@ -7,7 +7,7 @@
 
 namespace horizon::installer
 {
-    SuccessPage::SuccessPage()
+    SuccessPage::SuccessPage(bool is_oobe)
     {
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_margin(40);
@@ -36,6 +36,17 @@ namespace horizon::installer
         desc->set_text_color(Color(0.4f, 0.4f, 0.4f));
         desc->set_alignment(TextAlignment::Center);
         add_child(std::move(desc));
+
+        if (!is_oobe)
+        {
+            add_child(Spacer(20));
+
+            auto warning = std::make_unique<Label>(i18n().tr("installer.success.remove_medium"));
+            warning->set_font_size(22);
+            warning->set_text_color(Color(1.0f, 0.3f, 0.3f)); // High contrast red
+            warning->set_alignment(TextAlignment::Center);
+            add_child(std::move(warning));
+        }
 
         add_child(Spacer());
 
