@@ -436,9 +436,21 @@ namespace horizon
         LOG_INFO << "[SURFACE] Buffer mapped at " << m_data;
 
         if (!m_egl_window) {
+            if (!m_surface || m_egl_display == EGL_NO_DISPLAY) {
+                LOG_ERROR << "[SURFACE] Cannot create EGL window: surface or display is null";
+                return;
+            }
             LOG_INFO << "[SURFACE] Creating EGL window/surface...";
             m_egl_window = wl_egl_window_create(m_surface, width, height);
+            if (!m_egl_window) {
+                LOG_ERROR << "[SURFACE] wl_egl_window_create failed";
+                return;
+            }
             m_egl_surface = eglCreateWindowSurface(m_egl_display, m_egl_config, (EGLNativeWindowType)m_egl_window, nullptr);
+            if (m_egl_surface == EGL_NO_SURFACE) {
+                LOG_ERROR << "[SURFACE] eglCreateWindowSurface failed";
+                return;
+            }
         } else {
             wl_egl_window_resize(m_egl_window, width, height, 0, 0);
         }

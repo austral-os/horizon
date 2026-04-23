@@ -2743,7 +2743,7 @@ namespace horizon
 
     void WaylandWindow::show_tooltip(Widget *owner, Notification *tooltip)
     {
-        if (!m_surface || !tooltip)
+        if (!owner || !tooltip || m_tooltip_owner == owner)
             return;
 
         hide_tooltip();
