@@ -88,6 +88,8 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
     pango_layout_set_font_description(m_layout, desc);
     pango_font_description_free(desc);
 
+    ensure_metrics();
+
     // 3. Draw Line Numbers Margin
     if (m_show_line_numbers) {
         gc.setColor(0.95, 0.95, 0.95, 1.0);
@@ -139,7 +141,7 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
     pango_attr_list_unref(attrs);
 
     int text_x = m_x + (m_show_line_numbers ? m_line_number_margin + 5 : 5);
-    int text_y = m_y + 5;
+    int text_y = m_y;
 
     // Calculate cursor position in pixels for highlighting and cursor drawing
     int byte_pos = 0;
@@ -391,12 +393,31 @@ void TextEditorWidget::calculate_layout() {
     }
 }
 
+void TextEditorWidget::ensure_metrics() {
+    if (!m_layout || !m_doc) return;
+
+    PangoLayoutIter* iter = pango_layout_get_iter(m_layout);
+    PangoRectangle line_extents;
+    pango_layout_iter_get_line_extents(iter, nullptr, &line_extents);
+    float line_h = (float)line_extents.height / PANGO_SCALE;
+    float ascent = (float)pango_layout_iter_get_baseline(iter) / PANGO_SCALE;
+    pango_layout_iter_free(iter);
+
+    PangoContext* context = pango_layout_get_context(m_layout);
+    PangoFontMetrics* pmetrics = pango_context_get_metrics(context, pango_layout_get_font_description(m_layout), nullptr);
+    float char_w = (float)pango_font_metrics_get_approximate_char_width(pmetrics) / PANGO_SCALE;
+    pango_font_metrics_unref(pmetrics);
+    
+    m_doc->set_metrics(line_h, ascent, char_w);
+}
+
 int TextEditorWidget::get_char_index_at(double x, double y) {
     if (!m_layout || !m_doc) return -1;
+    ensure_metrics();
 
     int index, trailing;
     int text_x = m_x + (m_show_line_numbers ? m_line_number_margin + 5 : 5);
-    int text_y = m_y + 5;
+    int text_y = m_y;
 
     pango_layout_xy_to_index(m_layout, (x - text_x) * PANGO_SCALE, (y - text_y) * PANGO_SCALE, &index, &trailing);
 
@@ -409,9 +430,10 @@ int TextEditorWidget::get_char_index_at(double x, double y) {
 
 void TextEditorWidget::handle_mouse_event(MouseButtonEventContext& ev) {
     if (!m_doc) return;
+    ensure_metrics();
 
     int text_x = m_x + (m_show_line_numbers ? m_line_number_margin + 5 : 5);
-    int text_y = m_y + 5;
+    int text_y = m_y;
 
     bool should_click = true;
     if (ev.button == BTN_RIGHT) {
@@ -439,8 +461,9 @@ void TextEditorWidget::handle_mouse_event(MouseButtonEventContext& ev) {
 
 void TextEditorWidget::handle_mouse_drag(MouseMoveEventContext& ev) {
     if (!m_doc) return;
+    ensure_metrics();
     int text_x = m_x + (m_show_line_numbers ? m_line_number_margin + 5 : 5);
-    int text_y = m_y + 5;
+    int text_y = m_y;
     m_doc->handle_drag(ev.x - text_x, ev.y - text_y);
     m_needs_ensure_visible = true;
     EventContext cursor_ctx;
@@ -532,7 +555,7 @@ void TextEditorWidget::ensure_cursor_visible() {
     pango_layout_get_cursor_pos(m_layout, byte_pos, &strong_pos, &weak_pos);
 
     int text_x_offset = (m_show_line_numbers ? m_line_number_margin + 5 : 5);
-    int text_y_offset = 5;
+    int text_y_offset = 0;
 
     int cx = text_x_offset + PANGO_PIXELS(strong_pos.x);
     int cy = text_y_offset + PANGO_PIXELS(strong_pos.y);

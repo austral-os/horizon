@@ -81,6 +81,17 @@ public:
     // Path
     void set_path(const std::string& path) { m_path = path; }
     const std::string& get_path() const { return m_path; }
+    
+    // Layout metrics for stb_textedit (public so the bridge can see them)
+    float m_line_height = 20.0f;
+    float m_ascent = 15.0f;
+    float m_char_width = 10.0f;
+
+    void set_metrics(float line_height, float ascent, float char_width) {
+        m_line_height = line_height;
+        m_ascent = ascent;
+        m_char_width = char_width;
+    }
 
     // Signal for changes
     std::function<void()> on_changed;

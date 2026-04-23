@@ -57,6 +57,7 @@ public:
 
 protected:
     void update_pango_layout(cairo_t* cr);
+    void ensure_metrics();
     int get_char_index_at(double x, double y);
     void ensure_cursor_visible();
 

@@ -17,7 +17,7 @@ namespace text {
 
 // Implementations for width/layout - These work now as StbTexteditRow is defined
 static float get_width_func(TextDocument* str, int n, int i) {
-    return 10.0f; // Placeholder
+    return str->m_char_width;
 }
 
 static void layout_func(StbTexteditRow* row, TextDocument* str, int start_i) {
@@ -32,10 +32,10 @@ static void layout_func(StbTexteditRow* row, TextDocument* str, int start_i) {
 
     row->num_chars = count;
     row->x0 = 0;
-    row->x1 = (float)count * 10.0f;
-    row->baseline_y_delta = 20.0f;
-    row->ymin = -15.0f;
-    row->ymax = 5.0f;
+    row->x1 = (float)count * str->m_char_width;
+    row->baseline_y_delta = str->m_line_height;
+    row->ymin = 0;
+    row->ymax = str->m_line_height;
 }
 
 } // namespace text
