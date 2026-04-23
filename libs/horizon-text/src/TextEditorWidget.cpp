@@ -27,14 +27,8 @@ TextEditorWidget::TextEditorWidget() : Widget() {
     when_mouse_drag.connect([this](MouseMoveEventContext& ev) { this->handle_mouse_drag(ev); });
     
     when_application_load.connect([this](EventContext&) {
-        if (application()) {
-            application()->add_timer(500, [this]() {
-                if (this->has_focus()) {
-                    this->m_cursor_visible = !this->m_cursor_visible;
-                    this->invalidate();
-                }
-            }, true);
-        }
+        // No manual timer needed, WaylandWindow handles cursor blink 
+        // by invalidating the focused widget every 500ms.
     });
 
     when_focus.connect([this](EventContext&) {
@@ -87,7 +81,15 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
         sel_end = m_doc->get_selection_end();
     }
 
-    // 2. Draw Background
+    // 1. Calculate cursor visibility based on time (blink)
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_blink).count();
+    if (elapsed >= 500) {
+        m_cursor_visible = !m_cursor_visible;
+        m_last_blink = now;
+    }
+    
+    // 2. Clear background
     gc.setColor(1.0, 1.0, 1.0, 1.0);
     gc.fillRect(m_x, m_y, m_width, m_height);
 
@@ -298,9 +300,13 @@ void TextEditorWidget::handle_key_event(KeyEventContext& ev) {
     }
     
     m_needs_ensure_visible = true;
+    m_cursor_visible = true;
+    m_last_blink = std::chrono::steady_clock::now();
+    
     EventContext cursor_ctx;
     cursor_ctx.sender = this;
     when_cursor_moved.run(cursor_ctx);
+    invalidate();
 }
 
 void TextEditorWidget::calculate_layout() {
@@ -524,6 +530,9 @@ void TextEditorWidget::handle_mouse_event(MouseButtonEventContext& ev) {
 
     set_focus(true);
     m_needs_ensure_visible = true;
+    m_cursor_visible = true;
+    m_last_blink = std::chrono::steady_clock::now();
+
     EventContext cursor_ctx;
     cursor_ctx.sender = this;
     when_cursor_moved.run(cursor_ctx);

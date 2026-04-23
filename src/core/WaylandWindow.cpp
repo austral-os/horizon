@@ -461,19 +461,21 @@ namespace horizon
                                    LOG_INFO << "WaylandWindow: Received 'file.open' signal";
                                    if (Window *win = find_window_target(m_root.get()))
                                    {
-                                       auto dialog = std::make_unique<FileDialog>(
-                                           FileDialogMode::Open, i18n().tr("core.global_menu.file_open"));
+                                       std::thread([this, win]() {
+                                           auto dialog = std::make_unique<FileDialog>(
+                                               FileDialogMode::Open, i18n().tr("core.global_menu.file_open"));
 
-                                       dialog->when_accepted.connect(
-                                           [win](FileDialogAcceptedContext &ctx)
-                                           {
-                                               Window::FileOpenedContext fctx;
-                                               fctx.path = ctx.selected_path;
-                                               win->when_file_opened.run(fctx);
-                                               win->signals.emit("file.opened", &fctx);
-                                           });
+                                           dialog->when_accepted.connect(
+                                               [win](FileDialogAcceptedContext &ctx)
+                                               {
+                                                   Window::FileOpenedContext fctx;
+                                                   fctx.path = ctx.selected_path;
+                                                   win->when_file_opened.run(fctx);
+                                                   win->signals.emit("file.opened", &fctx);
+                                               });
 
-                                       dialog->run();
+                                           dialog->run();
+                                       }).detach();
                                    }
                                });
 
@@ -483,20 +485,22 @@ namespace horizon
                                    LOG_INFO << "WaylandWindow: Received 'file.open_folder' signal";
                                    if (Window *win = find_window_target(m_root.get()))
                                    {
-                                       auto dialog = std::make_unique<FileDialog>(
-                                           FileDialogMode::SelectFolder,
-                                           i18n().tr("core.global_menu.file_open_folder"));
+                                       std::thread([this, win]() {
+                                           auto dialog = std::make_unique<FileDialog>(
+                                               FileDialogMode::SelectFolder,
+                                               i18n().tr("core.global_menu.file_open_folder"));
 
-                                       dialog->when_accepted.connect(
-                                           [win](FileDialogAcceptedContext &ctx)
-                                           {
-                                               Window::FileOpenedContext fctx;
-                                               fctx.path = ctx.selected_path;
-                                               win->when_folder_opened.run(fctx);
-                                               win->signals.emit("folder.opened", &fctx);
-                                           });
+                                           dialog->when_accepted.connect(
+                                               [win](FileDialogAcceptedContext &ctx)
+                                               {
+                                                   Window::FileOpenedContext fctx;
+                                                   fctx.path = ctx.selected_path;
+                                                   win->when_folder_opened.run(fctx);
+                                                   win->signals.emit("folder.opened", &fctx);
+                                               });
 
-                                       dialog->run();
+                                           dialog->run();
+                                       }).detach();
                                    }
                                });
 
@@ -529,26 +533,28 @@ namespace horizon
                                    LOG_INFO << "WaylandWindow: Received 'file.save_as' signal";
                                    if (Window *win = find_window_target(m_root.get()))
                                    {
-                                       auto dialog = std::make_unique<FileDialog>(
-                                           FileDialogMode::SaveAs, i18n().tr("core.global_menu.file_save_as"));
+                                       std::thread([this, win]() {
+                                           auto dialog = std::make_unique<FileDialog>(
+                                               FileDialogMode::SaveAs, i18n().tr("core.global_menu.file_save_as"));
 
-                                       // Pre-fill path if available
-                                       std::string current_path = win->current_file_path();
-                                       if (!current_path.empty())
-                                       {
-                                           dialog->set_current_path(current_path);
-                                       }
-
-                                       dialog->when_accepted.connect(
-                                           [win](FileDialogAcceptedContext &ctx)
+                                           // Pre-fill path if available
+                                           std::string current_path = win->current_file_path();
+                                           if (!current_path.empty())
                                            {
-                                               Window::FileSaveContext sctx;
-                                               sctx.path = ctx.selected_path;
-                                               win->when_save_as.run(sctx);
-                                               win->signals.emit("file.saved_as", &sctx);
-                                           });
+                                               dialog->set_current_path(current_path);
+                                           }
 
-                                       dialog->run();
+                                           dialog->when_accepted.connect(
+                                               [win](FileDialogAcceptedContext &ctx)
+                                               {
+                                                   Window::FileSaveContext sctx;
+                                                   sctx.path = ctx.selected_path;
+                                                   win->when_save_as.run(sctx);
+                                                   win->signals.emit("file.saved_as", &sctx);
+                                               });
+
+                                           dialog->run();
+                                       }).detach();
                                    }
                                });
 
