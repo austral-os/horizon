@@ -13,6 +13,8 @@
 #include <deque>
 #include <functional>
 #include <set>
+#include <unordered_set>
+#include <string>
 #include <horizon/DialogTypes.hpp>
 #include <mutex>
 
@@ -136,6 +138,8 @@ namespace horizon
          * Called when a widget is destroyed.
          */
         void unregister_widget(Widget *widget);
+        void register_widget(Widget *widget);
+        bool is_widget_alive(Widget *widget) const;
 
         /**
          * @brief Sets the root widget of the application's widget tree.
@@ -638,6 +642,7 @@ namespace horizon
         AboutUsFactory m_aboutus_factory;
 
         bool m_use_global_menu{true};
+        std::unordered_set<Widget *> m_all_widgets;
     };
 
 }; // namespace horizon

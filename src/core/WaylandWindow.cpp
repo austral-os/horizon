@@ -1904,11 +1904,9 @@ namespace horizon
 
             for (Widget *w : chain)
             {
-                // Verify widget is still registered (optional but safer)
-                // If it was destroyed, it should have cleared m_pressed if it was m_pressed.
-                // However, intermediate parents might not be easily verifiable here without
-                // more complex tracking. The pre-collection already solves the invalid 'parent()'
-                // call.
+                if (!is_widget_alive(w))
+                    continue;
+
                 new_ev.sender = w;
                 w->when_mouse_press.run(new_ev);
                 if (new_ev.stop_propagation)
@@ -1945,6 +1943,9 @@ namespace horizon
 
         for (Widget *w : chain)
         {
+            if (!is_widget_alive(w))
+                continue;
+
             new_ev.sender = w;
             w->when_mouse_release.run(new_ev);
             if (new_ev.stop_propagation)
@@ -2366,6 +2367,8 @@ namespace horizon
         if (!widget)
             return;
 
+        m_all_widgets.erase(widget);
+
         // Remove from dirty list
         m_dirty_widgets.erase(std::remove(m_dirty_widgets.begin(), m_dirty_widgets.end(), widget),
                               m_dirty_widgets.end());
@@ -2383,6 +2386,17 @@ namespace horizon
 
         if (m_clipboard_backend)
             m_clipboard_backend->on_widget_destroyed(widget);
+    }
+
+    void WaylandWindow::register_widget(Widget *widget)
+    {
+        if (widget)
+            m_all_widgets.insert(widget);
+    }
+
+    bool WaylandWindow::is_widget_alive(Widget *widget) const
+    {
+        return m_all_widgets.find(widget) != m_all_widgets.end();
     }
 
     void WaylandWindow::set_root(std::unique_ptr<Widget> root)

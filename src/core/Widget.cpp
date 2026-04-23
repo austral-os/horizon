@@ -710,6 +710,8 @@ namespace horizon
         m_app = app;
         if (m_app)
         {
+            m_app->register_widget(this);
+
             if (m_has_focus)
             {
                 m_app->set_focused_widget(this);
