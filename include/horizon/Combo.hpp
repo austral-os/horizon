@@ -45,7 +45,7 @@ namespace horizon
         void calculate_layout() override;
 
     protected:
-        void on_click();
+        void on_click(uint32_t serial);
 
     private:
         std::vector<ComboItem> m_items;
@@ -54,5 +54,8 @@ namespace horizon
         
         void update_menu();
         void handle_selection(int index);
+
+        size_t m_dismiss_subscription = 0;
+        uint32_t m_last_dismiss_serial = 0;
     };
 } // namespace horizon

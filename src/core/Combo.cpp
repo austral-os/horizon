@@ -12,8 +12,21 @@ namespace horizon
     {
         set_size(150, 30);
         
-        when_click.connect([this](MouseButtonEventContext &) {
-            on_click();
+        when_click.connect([this](MouseButtonEventContext &ev) {
+            on_click(ev.serial);
+        });
+
+        when_application_load.connect([this](EventContext&) {
+            if (auto *win = dynamic_cast<WaylandWindow *>(application()))
+            {
+                if (m_dismiss_subscription != 0) {
+                    win->when_popup_dismissed.disconnect(m_dismiss_subscription);
+                }
+                
+                m_dismiss_subscription = win->when_popup_dismissed.connect([this](PopupDismissedContext &ctx) { 
+                    m_last_dismiss_serial = ctx.serial;
+                });
+            }
         });
     }
 
@@ -111,10 +124,17 @@ namespace horizon
         }
     }
 
-    void Combo::on_click()
+    void Combo::on_click(uint32_t serial)
     {
         if (m_items.empty()) return;
         
+        // If we just dismissed a menu with the SAME serial as this press, it means 
+        // the press was ALREADY used to dismiss the previous menu by WaylandWindow.
+        if (serial > 0 && serial == m_last_dismiss_serial)
+        {
+            return;
+        }
+
         // Lazy-create or update menu only when needed
         if (!m_menu) {
             update_menu();

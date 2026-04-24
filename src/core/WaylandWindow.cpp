@@ -1475,6 +1475,25 @@ namespace horizon
 
         Widget *under = m_window->m_popup_menu->hit_test(x, y);
 
+        // 0. Click-outside logic: If we are clicking on the main window (not the popup)
+        // while a popup is active, we should close the popup and let the main window
+        // handle the click normally.
+        if (!under && event.type == PointerEvent::Type::Press)
+        {
+            LOG_INFO << "[POPUP] Click outside popup detected on main window. Closing menu.";
+            
+            // We must clear the listener from the window BEFORE calling close_context_menu
+            // or re-dispatching, to avoid recursion and ensure normal event flow.
+            auto listener = std::move(m_window->m_popup_listener);
+            m_window->m_popup_listener = nullptr;
+            
+            m_window->close_context_menu();
+            
+            // Re-dispatch to main window's normal handler
+            m_window->on_pointer_event(event);
+            return;
+        }
+
         // 1. Hover tracking (Enter/Leave)
         if (event.type == PointerEvent::Type::Move || event.type == PointerEvent::Type::Enter)
         {
