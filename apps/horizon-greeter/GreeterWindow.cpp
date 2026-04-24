@@ -1,17 +1,17 @@
 #include "GreeterWindow.hpp"
+#include <filesystem>
+#include <fstream>
 #include <horizon/Button.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/MenuItem.hpp>
 #include <horizon/Spacer.hpp>
+#include <horizon/Textarea.hpp>
 #include <horizon/ToolbarButton.hpp>
 #include <horizon/VPanel.hpp>
-#include <horizon/Textarea.hpp>
 #include <string>
-#include <filesystem>
 #include <xkbcommon/xkbcommon-keysyms.h>
 #include <xkbcommon/xkbcommon.h>
-#include <fstream>
 
 namespace fs = std::filesystem;
 
@@ -44,7 +44,8 @@ namespace horizon::greeter
     };
 
     GreeterWindow::GreeterWindow(GreetdClient &client, Application &app, bool debug)
-        : WaylandLayerWindow("horizon-greeter", 3, true), m_client(client), m_app(app), m_debug(debug)
+        : WaylandLayerWindow("horizon-greeter", 3, true), m_client(client), m_app(app),
+          m_debug(debug)
     {
     }
 
@@ -78,7 +79,7 @@ namespace horizon::greeter
                 m_message_label->set_text_color(Color(0.4f, 1.0f, 0.4f));
                 return;
             }
-            
+
             m_app.alert(desc, "Login Error", MessageType::Error);
             m_message_label->set_text("Error: " + desc);
             m_message_label->set_text_color(Color(1.0f, 0.4f, 0.4f));
@@ -96,7 +97,8 @@ namespace horizon::greeter
             if (m_session_combo && m_session_combo->selected_item_index() != -1)
             {
                 const auto &session = m_sessions[m_session_combo->selected_item_index()];
-                LOG_INFO << "GreeterWindow: Starting session: " << session.name << " (" << session.exec << ")";
+                LOG_INFO << "GreeterWindow: Starting session: " << session.name << " ("
+                         << session.exec << ")";
                 std::vector<std::string> cmd = {"/bin/sh", "-c", session.exec};
                 m_client.start_session(cmd);
 
@@ -119,19 +121,24 @@ namespace horizon::greeter
         };
 
         // Redirect logs to UI (Only Greetd related logs)
-        horizon::Logger::instance().set_callback([this](horizon::LogLevel level, const std::string &msg) {
-            std::string lower_msg = msg;
-            for (auto &c : lower_msg) c = (char)std::tolower(c);
-
-            if (m_log_view && lower_msg.find("greetd") != std::string::npos)
+        horizon::Logger::instance().set_callback(
+            [this](horizon::LogLevel level, const std::string &msg)
             {
-                std::string prefix = "[INFO] ";
-                if (level == horizon::LogLevel::WARNING) prefix = "[WARN] ";
-                if (level == horizon::LogLevel::ERROR) prefix = "[ERR ] ";
-                m_log_view->set_text(m_log_view->text() + prefix + msg + "\n");
-                m_log_view->move_cursor_to_end();
-            }
-        });
+                std::string lower_msg = msg;
+                for (auto &c : lower_msg)
+                    c = (char)std::tolower(c);
+
+                if (m_log_view && lower_msg.find("greetd") != std::string::npos)
+                {
+                    std::string prefix = "[INFO] ";
+                    if (level == horizon::LogLevel::WARNING)
+                        prefix = "[WARN] ";
+                    if (level == horizon::LogLevel::ERROR)
+                        prefix = "[ERR ] ";
+                    m_log_view->set_text(m_log_view->text() + prefix + msg + "\n");
+                    m_log_view->move_cursor_to_end();
+                }
+            });
     }
 
     void GreeterWindow::on_key_event(const KeyEvent &event)
@@ -255,7 +262,7 @@ namespace horizon::greeter
         footer->add_child(std::move(shutdown_btn));
         footer->add_child(Spacer(10));
 
-        auto reboot_btn = std::make_unique<horizon::ToolbarButton>("Reboot", "system-reboot");
+        auto reboot_btn = std::make_unique<horizon::ToolbarButton>("Reboot", "system-restart");
         reboot_btn->set_fixed_size(80);
         reboot_btn->set_text_color(Color(1.0f, 1.0f, 1.0f));
         reboot_btn->when_click.connect([](auto &) { system("systemctl reboot"); });
@@ -275,7 +282,7 @@ namespace horizon::greeter
         // 3. Log View (at the bottom)
         auto log_area = std::make_unique<horizon::Textarea>();
         m_log_view = log_area.get();
-        m_log_view->set_height(150); 
+        m_log_view->set_height(150);
         m_log_view->set_background_color(Color(0.0f, 0.0f, 0.0f, 0.6f));
         m_log_view->set_visible(m_debug); // Only visible in debug mode
         main_container->add_child(std::move(log_area));
@@ -321,11 +328,11 @@ namespace horizon::greeter
             return;
 
         const auto &user = m_users[index];
-        
+
         // Prevent redundant calls to create_session
         if (user.username == m_current_username)
             return;
-            
+
         m_current_username = user.username;
         update_background(user.wallpaper_path);
 
@@ -366,7 +373,8 @@ namespace horizon::greeter
 
         if (final_path.empty() || !std::filesystem::exists(final_path))
         {
-            LOG_INFO << "GreeterWindow: Background not found or empty, using default: " << default_bg;
+            LOG_INFO << "GreeterWindow: Background not found or empty, using default: "
+                     << default_bg;
             final_path = default_bg;
         }
 
@@ -383,7 +391,8 @@ namespace horizon::greeter
     void GreeterWindow::ensure_gtk_icon_theme()
     {
         const char *home = std::getenv("HOME");
-        if (!home) return;
+        if (!home)
+            return;
 
         std::vector<std::string> versions = {"3.0", "4.0"};
         for (const auto &v : versions)
@@ -438,7 +447,8 @@ namespace horizon::greeter
                     lines.push_back("gtk-icon-theme-name=austral");
                 }
 
-                LOG_INFO << "GreeterWindow: Updating GTK " << v << " settings in: " << settings_path;
+                LOG_INFO << "GreeterWindow: Updating GTK " << v
+                         << " settings in: " << settings_path;
                 std::ofstream out(settings_path);
                 for (const auto &l : lines)
                 {
