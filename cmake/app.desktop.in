@@ -6,4 +6,5 @@ Exec=@APP_EXEC@
 Icon=@APP_ICON@
 Terminal=@APP_TERMINAL@
 Categories=@APP_CATEGORIES@
+@APP_MIME@
 @APP_EXTRA@

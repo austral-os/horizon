@@ -29,5 +29,6 @@ horizon_install_app(arkfm
     NAME "Ark"
     COMMENT "Ark file manager"
     ICON "arkfm"
-    CATEGORIES "System;"
+    CATEGORIES "System;FileVideo;"
+    MIMETYPE "inode/directory;"
 )

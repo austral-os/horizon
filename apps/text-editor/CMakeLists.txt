@@ -34,4 +34,6 @@ horizon_install_app(text-editor
     COMMENT "Standard text editor"
     ICON "text-editor"
     CATEGORIES "Utility;TextEditor;"
+    MIMETYPE "text/plain;text/markdown;application/x-zerosize;"
+    EXEC_ARGS "%F"
 )

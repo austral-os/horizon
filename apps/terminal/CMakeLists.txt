@@ -32,6 +32,7 @@ horizon_install_app(terminal
     COMMENT "Horizon Terminal Emulator"
     ICON "horizon-terminal"
     CATEGORIES "System;TerminalEmulator;"
+    MIMETYPE "x-scheme-handler/ssh;"
 )
 
 install(DIRECTORY assets/color-schemes/

@@ -30,4 +30,6 @@ horizon_install_app(nova
     COMMENT "Nova Web Browser"
     ICON "nova-browser"
     CATEGORIES "Internet;"
+    MIMETYPE "text/html;text/xml;application/xhtml+xml;application/xml;application/rss+xml;application/rdf+xml;x-scheme-handler/http;x-scheme-handler/https;"
+    EXEC_ARGS "%U"
 )
