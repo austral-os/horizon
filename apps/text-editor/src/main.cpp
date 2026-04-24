@@ -15,6 +15,13 @@ int main(int argc, char** argv) {
     app.set_name(i18n().tr("text_editor.title"));
     app.set_icon_name("accessories-text-editor");
 
+    // Setup About info
+    auto &about = app.about_manager();
+    about.set_app_title("Text Editor");
+    about.set_app_description("A modern text editor for Horizon with syntax highlighting support.");
+    about.set_app_version("0.1.0");
+    about.set_app_icon("accessories-text-editor");
+
     // Setup preferences factory
     char *home = std::getenv("HOME");
     std::string config_path =

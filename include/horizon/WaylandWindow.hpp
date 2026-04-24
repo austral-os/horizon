@@ -25,7 +25,7 @@ namespace horizon
     class ClientMenu;
     class IpcClient;
     class PreferencesContent;
-    class AboutDialogContent;
+    class AboutManager;
 
     class WaylandWindow : public WaylandEventListener
     {
@@ -331,17 +331,19 @@ namespace horizon
         void show_preferences();
 
         /**
-         * @brief Sets the application preferences content factory.
-         * If set, a "Preferences" item will be automatically added to the global menu.
-         * The factory will be invoked each time a preferences dialog is opened.
-         */
-        using AboutUsFactory = std::function<std::unique_ptr<AboutDialogContent>()>;
-        void set_aboutus_content(AboutUsFactory factory);
-
-        /**
-         * @brief Shows the preferences dialog.
+         * @brief Shows the aboutus dialog.
          */
         void show_aboutus();
+
+        /**
+         * @brief Sets the about manager for this window.
+         */
+        void set_about_manager(AboutManager *manager);
+
+        /**
+         * @brief Shows the aboutus dialog using the about manager.
+         */
+        void show_about_dialog(AboutManager &manager);
 
         // --- Application Metadata ---
         const std::string &app_id() const
@@ -639,7 +641,7 @@ namespace horizon
         int m_preferences_width{500};
         int m_preferences_height{400};
 
-        AboutUsFactory m_aboutus_factory;
+        AboutManager *m_about_manager{nullptr};
 
         bool m_use_global_menu{true};
         std::unordered_set<Widget *> m_all_widgets;

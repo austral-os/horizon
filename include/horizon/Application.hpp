@@ -10,6 +10,7 @@
 #pragma once // Solo se incluye una vez.
 
 #include <horizon/dialogs/MessageDialog.hpp>
+#include <horizon/About.hpp>
 
 namespace horizon
 {
@@ -57,6 +58,16 @@ namespace horizon
         void set_root(std::unique_ptr<Widget> root);
 
         /**
+         * @brief Adds a menu to the main application window.
+         */
+        void add_menu(std::unique_ptr<Menu> menu);
+
+        /**
+         * @brief Sets the app menu of the main application window.
+         */
+        void set_app_menu(std::unique_ptr<Menu> menu);
+
+        /**
          * @brief Creates a new window.
          */
         WaylandWindow *create_window(int w, int h);
@@ -96,9 +107,10 @@ namespace horizon
         void show_preferences();
 
         /**
-         * @brief Sets the application aboutus content factory.
+         * @brief Gets the application about manager.
          */
-        void set_aboutus_content(WaylandWindow::AboutUsFactory factory);
+        AboutManager &about_manager();
+
 
         /**
          * @brief Shows the preferences dialog.
@@ -135,5 +147,6 @@ namespace horizon
 
         std::atomic<bool> m_is_running{false};
         std::mutex m_windows_mutex;
+        AboutManager m_about_manager;
     };
 } // namespace horizon

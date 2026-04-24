@@ -10,6 +10,13 @@ int main(int argc, char **argv)
     horizon::I18n::set_search_paths({"/home/horacio/Desarrollo/austral-os/horizon", ".", ".."});
     horizon::i18n().load_app_locales("document-viewer");
 
+    // Setup About info
+    auto &about = app.about_manager();
+    about.set_app_title("Document Viewer");
+    about.set_app_description("A simple and powerful document viewer for Horizon.");
+    about.set_app_version("0.1.0");
+    about.set_app_icon("document-viewer");
+
     auto window = std::make_unique<horizon::pdf::DocumentWindow>();
 
     // Soporte para abrir archivo desde argumentos o por defecto (hardcoded)

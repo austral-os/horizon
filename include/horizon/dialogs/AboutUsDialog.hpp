@@ -2,28 +2,16 @@
 
 #include "horizon/Notebook.hpp"
 #include "horizon/WaylandWindow.hpp"
+#include "horizon/About.hpp"
 #include <memory>
 #include <string>
 
 namespace horizon
 {
-
-    struct AboutDialogContent
-    {
-        std::string title;
-        std::string version;
-        std::string icon;
-        std::unique_ptr<Widget> about;
-        std::unique_ptr<Widget> components;
-        std::unique_ptr<Widget> auths;
-        std::unique_ptr<Widget> thanks;
-        std::unique_ptr<Widget> translate;
-    };
-
     class AboutUsDialog : public WaylandWindow
     {
     public:
-        AboutUsDialog() = default;
+        AboutUsDialog(AboutManager &manager);
         ~AboutUsDialog() = default;
 
         void show()
@@ -33,21 +21,12 @@ namespace horizon
             WaylandWindow::run();
         }
 
-        void build_tabs();
-
-        void set_content(std::unique_ptr<AboutDialogContent> content)
-        {
-            m_content = std::move(content);
-        }
-        AboutDialogContent *get_content()
-        {
-            return m_content.get();
-        }
-
     private:
         void setup_ui();
+        void build_tabs();
+        std::unique_ptr<Widget> create_info_page(const About &data);
 
         Notebook *m_notebook;
-        std::unique_ptr<AboutDialogContent> m_content = nullptr;
+        AboutManager &m_manager;
     };
 } // namespace horizon

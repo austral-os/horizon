@@ -1,11 +1,11 @@
 #pragma once
 
-#include <horizon/WaylandWindow.hpp>
+#include <horizon/Application.hpp>
 
 namespace horizon::arkfm
 {
 
-    class ArkfmApplication : public WaylandWindow
+    class ArkfmApplication : public Application
     {
     public:
         ArkfmApplication();

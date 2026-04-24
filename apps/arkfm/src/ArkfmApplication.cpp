@@ -11,14 +11,22 @@ namespace horizon::arkfm
     const int ARK_APP_DEFAULT_HEIGHT = 700;
 
     ArkfmApplication::ArkfmApplication()
-        : WaylandWindow("org.horizon.arkfm", ARK_APP_DEFAULT_WIDTH, ARK_APP_DEFAULT_HEIGHT, false)
+        : Application("org.horizon.arkfm", ARK_APP_DEFAULT_WIDTH, ARK_APP_DEFAULT_HEIGHT)
     {
         // Load translations
         i18n().load_app_locales("arkfm");
 
         set_name(i18n().tr("arkfm.title"));
-        auto window = std::make_unique<ArkfmWindow>(ARK_APP_DEFAULT_WIDTH, ARK_APP_DEFAULT_HEIGHT);
+        set_icon_name("system-file-manager");
 
+        // Setup About info
+        auto &about = about_manager();
+        about.set_app_title("ArkFM");
+        about.set_app_description("ArkFM is the default file manager for Horizon.");
+        about.set_app_version("0.1.0");
+        about.set_app_icon("system-file-manager");
+
+        auto window = std::make_unique<ArkfmWindow>(ARK_APP_DEFAULT_WIDTH, ARK_APP_DEFAULT_HEIGHT);
         set_root(std::move(window));
 
         auto m_mnu_file = std::make_unique<horizon::Menu>();
@@ -34,13 +42,11 @@ namespace horizon::arkfm
         auto m_mnu_edit = std::make_unique<horizon::Menu>();
         m_mnu_edit->set_title(i18n().tr("arkfm.menu.edit"));
         m_mnu_edit->set_id("edit");
-        // We can add app-specific edit items here later (e.g. Select All)
-        // Standard clipboard items will be added automatically by the core
 
         auto mnu_help = std::make_unique<horizon::Menu>();
         mnu_help->set_title(i18n().tr("arkfm.menu.help"));
         mnu_help->set_id("help");
-        mnu_help->add_item(i18n().tr("arkfm.menu.about"), "F1", "about");
+        mnu_help->add_item(i18n().tr("arkfm.menu.about"), "F1", "aboutus"); // changed to aboutus for core signal
 
         add_menu(std::move(m_mnu_file));
         add_menu(std::move(m_mnu_edit));

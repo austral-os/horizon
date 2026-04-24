@@ -100,6 +100,24 @@ namespace horizon
         }
     }
 
+    void Application::add_menu(std::unique_ptr<Menu> menu)
+    {
+        std::lock_guard<std::mutex> lock(m_windows_mutex);
+        if (!m_managed_windows.empty())
+        {
+            m_managed_windows[0].window->add_menu(std::move(menu));
+        }
+    }
+
+    void Application::set_app_menu(std::unique_ptr<Menu> menu)
+    {
+        std::lock_guard<std::mutex> lock(m_windows_mutex);
+        if (!m_managed_windows.empty())
+        {
+            m_managed_windows[0].window->set_app_menu(std::move(menu));
+        }
+    }
+
     void Application::remove_window(WaylandWindow *ptr)
     {
         // Must be called from the main thread to avoid deadlocks and ensure safety
@@ -133,6 +151,7 @@ namespace horizon
         auto window = std::make_unique<WaylandWindow>(m_app_id, w, h, true);
         window->set_name(m_name);
         window->set_icon_name(m_icon_name);
+        window->set_about_manager(&m_about_manager);
         WaylandWindow *ptr = window.get();
 
         {
@@ -168,6 +187,7 @@ namespace horizon
         auto window = std::make_unique<WaylandWindow>(m_app_id, w, h, true);
         window->set_name(m_name);
         window->set_icon_name(m_icon_name);
+        window->set_about_manager(&m_about_manager);
         WaylandWindow *ptr = window.get();
 
         {
@@ -201,6 +221,7 @@ namespace horizon
     {
         auto window =
             std::make_unique<WaylandLayerWindow>(namespace_id, layer, true, monitor_index);
+        window->set_about_manager(&m_about_manager);
         WaylandLayerWindow *ptr = window.get();
 
         {
@@ -231,6 +252,16 @@ namespace horizon
 
     void Application::run()
     {
+        // Validation: Every application must have name, description, version and icon.
+        const auto &app_info = m_about_manager.app_data();
+        if (app_info.title.empty() || app_info.description.empty() ||
+            app_info.version.empty() || app_info.icon.empty())
+        {
+            LOG_ERROR << "[APP] Application failed to start: Missing mandatory about information.";
+            LOG_ERROR << "[APP] Required: Title, Description, Version, and Icon.";
+            return;
+        }
+
         if (m_managed_windows.empty())
             return;
 
@@ -379,22 +410,19 @@ namespace horizon
         }
     }
 
-    void Application::set_aboutus_content(WaylandWindow::AboutUsFactory factory)
-    {
-        std::lock_guard<std::mutex> lock(m_windows_mutex);
-        if (!m_managed_windows.empty())
-        {
-            m_managed_windows[0].window->set_aboutus_content(std::move(factory));
-        }
-    }
 
     void Application::show_aboutus()
     {
         std::lock_guard<std::mutex> lock(m_windows_mutex);
         if (!m_managed_windows.empty())
         {
-            m_managed_windows[0].window->show_aboutus();
+            m_managed_windows[0].window->show_about_dialog(m_about_manager);
         }
+    }
+
+    AboutManager &Application::about_manager()
+    {
+        return m_about_manager;
     }
 
 } // namespace horizon

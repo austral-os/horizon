@@ -93,6 +93,20 @@ namespace horizon
     void ScrollArea::calculate_layout()
     {
         Widget::calculate_layout();
+        
+        if (!m_children.empty())
+        {
+            Widget *child = m_children[0].get();
+            if (child->position_type() == FILL)
+            {
+                int clip_w = m_width - (m_show_v_scroll ? SCROLLBAR_SIZE + 2 : 0);
+                if (child->width() != clip_w)
+                {
+                    child->set_size(clip_w, child->height());
+                }
+            }
+        }
+
         update_scrollbars();
     }
 

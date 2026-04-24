@@ -16,6 +16,14 @@ namespace horizon
         
         m_window->set_name("Launchpad");
 
+        // Setup About info
+        auto &about = about_manager();
+        about.set_app_title("Launchpad");
+        about.set_app_description("Horizon Launchpad allows you to find and open your applications easily.");
+        about.set_app_version("0.1.0");
+        about.set_app_icon("launchpad");
+        about.set_app_git(ABOUT_HORIZON.git);
+
         // Full screen anchor
         m_window->set_anchor(ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |
                         ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);

@@ -5,11 +5,16 @@
             "cancel": "Cancel",
             "aboutus": {
                 "title": "About",
+                "application": "Application",
                 "about": "About",
                 "components": "Components",
                 "auths": "Authors",
+                "authors": "Authors",
                 "thanks": "Thanks To",
-                "translate": "Translation"
+                "translate": "Translation",
+                "translators": "Translators",
+                "links": "Links",
+                "version": "Version"
             },
             "font": {
                 "family": "Family",

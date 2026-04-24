@@ -14,6 +14,13 @@ int main(int argc, char** argv) {
 
     app.set_name(horizon::i18n().tr("nova.title"));
     app.set_icon_name("web-browser");
+
+    // Setup About info
+    auto &about = app.about_manager();
+    about.set_app_title("Nova");
+    about.set_app_description("Nova is a fast and lightweight web browser for Horizon.");
+    about.set_app_version("0.1.0");
+    about.set_app_icon("web-browser");
     
     auto browser_window = std::make_unique<BrowserWindow>();
     

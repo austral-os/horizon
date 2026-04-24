@@ -20,6 +20,14 @@ TopPanelApplication::TopPanelApplication()
     m_window->set_name("Top Panel");
     m_window->set_show_in_dock(false);
 
+    // Setup About info
+    auto &about = about_manager();
+    about.set_app_title("Top Panel");
+    about.set_app_description("Horizon Top Panel provides system indicators and application menus.");
+    about.set_app_version("0.1.0");
+    about.set_app_icon("preferences-system");
+    about.set_app_git(ABOUT_HORIZON.git);
+
     DesktopEntry::add_search_path(
         "/home/horacio/Desarrollo/austral-os/horizon/examples/config/apps/");
 

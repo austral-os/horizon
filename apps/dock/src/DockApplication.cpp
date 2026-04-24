@@ -36,6 +36,14 @@ namespace horizon
         m_window->set_exclusive_zone(100);
         m_window->set_show_in_dock(false);
         m_window->set_show_in_system_tray(false);
+
+        // Setup About info
+        auto &about = about_manager();
+        about.set_app_title("Horizon Dock");
+        about.set_app_description("Horizon Dock provides a quick way to launch and switch between applications.");
+        about.set_app_version("0.1.0");
+        about.set_app_icon("org.horizon.dock");
+        about.set_app_git(ABOUT_HORIZON.git);
         m_window->set_visible(true);
         m_window->set_keyboard_interactivity(0);
 

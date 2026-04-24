@@ -1004,11 +1004,8 @@ namespace horizon
             pref_item->set_id("preferences");
         }
 
-        if (m_aboutus_factory)
-        {
-            auto *ab_item = m_app_menu->add_item(i18n().tr("core.global_menu.aboutus"), "Ctrl+H");
-            ab_item->set_id("aboutus");
-        }
+        auto *ab_item = m_app_menu->add_item(i18n().tr("core.global_menu.aboutus"), "Ctrl+H");
+        ab_item->set_id("aboutus");
 
         m_app_menu->add_separator();
         auto *global_quit = m_app_menu->add_item(i18n().tr("core.global_menu.quit"), "Ctrl+Q");
@@ -3083,38 +3080,30 @@ namespace horizon
             .detach();
     }
 
-    void WaylandWindow::set_aboutus_content(AboutUsFactory factory)
-    {
-        m_aboutus_factory = std::move(factory);
-        if (m_is_running)
-        {
-            init_global_menu(); // Refresh menu if already running
-        }
-    }
 
     void WaylandWindow::show_aboutus()
     {
-        if (!m_aboutus_factory)
+        if (m_about_manager)
         {
-            LOG_ERROR << "[WINDOW] show_aboutus: no AboutUsFactory set";
-            return;
+            show_about_dialog(*m_about_manager);
         }
-
-        // Invoking the factory to create a fresh PreferencesContent for this dialog
-        auto content = m_aboutus_factory();
-
-        if (!content)
+        else
         {
-            LOG_ERROR << "[WINDOW] show_aboutus: factory returned null content";
-            return;
+            LOG_WARNING << "[WINDOW] show_aboutus(legacy) called. Please migrate to show_about_dialog(AboutManager).";
         }
+    }
 
-        // We run the dialog in a separate thread.
+    void WaylandWindow::set_about_manager(AboutManager *manager)
+    {
+        m_about_manager = manager;
+    }
+
+    void WaylandWindow::show_about_dialog(AboutManager &manager)
+    {
         std::thread(
-            [this, content = std::move(content)]() mutable
+            [&manager]()
             {
-                auto dialog = std::make_unique<AboutUsDialog>();
-                dialog->set_content(std::move(content));
+                auto dialog = std::make_unique<AboutUsDialog>(manager);
                 dialog->show();
             })
             .detach();

@@ -67,47 +67,14 @@ int main(int argc, char **argv)
         },
         800, 650);
 
-    app.set_aboutus_content(
-        []()
-        {
-            auto content_about = std::make_unique<Widget>();
-            content_about->set_margin(15);
-            content_about->set_spacing(15);
-
-            auto lbl_about = std::make_unique<Label>();
-            lbl_about->set_text(horizon::i18n().tr("terminal.aboutus.about"));
-            lbl_about->set_vertical_alignment(VerticalAlignment::Top);
-            lbl_about->set_fixed_size(25);
-
-            auto link_horizon = std::make_unique<Link>();
-            link_horizon->set_text(ABOUT_HORIZON.git);
-            link_horizon->set_url(ABOUT_HORIZON.git);
-            link_horizon->set_fixed_size(25);
-
-            content_about->add_child(std::move(lbl_about));
-            content_about->add_child(std::move(link_horizon));
-            content_about->add_child(Spacer());
-
-            auto content_translate = std::make_unique<Widget>();
-            content_translate->set_spacing(15);
-            content_translate->set_margin(15);
-
-            auto lbl_translate = std::make_unique<Label>();
-            lbl_translate->set_text(horizon::i18n().tr("terminal.aboutus.translate"));
-            lbl_translate->set_vertical_alignment(VerticalAlignment::Top);
-
-            content_translate->add_child(std::move(lbl_translate));
-            content_translate->add_child(Spacer());
-
-            auto abus_content = std::make_unique<AboutDialogContent>();
-            abus_content->title = "Horizon Terminal";
-            abus_content->version = "0.1.0";
-            abus_content->icon = "horizon-terminal";
-            abus_content->about = std::move(content_about);
-            abus_content->translate = std::move(content_translate);
-
-            return abus_content;
-        });
+    // Setup About info
+    auto &about = app.about_manager();
+    about.set_app_title("Horizon Terminal");
+    about.set_app_description(horizon::i18n().tr("terminal.aboutus.about"));
+    about.set_app_version("0.1.0");
+    about.set_app_icon("horizon-terminal");
+    about.set_app_git(ABOUT_HORIZON.git);
+    about.add_app_translator("Horacio", "https://github.com/austral-os/horizon", "horaciodrs@gmail.com");
 
     // Create the terminal window (properly decorated with Horizon window frame)
     auto terminal_window = std::make_unique<TerminalWindow>();

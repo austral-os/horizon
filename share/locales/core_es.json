@@ -6,11 +6,16 @@
             "cancel": "Cancelar",
             "aboutus": {
                 "title": "Acerca de",
+                "application": "Aplicación",
                 "about": "Acerca de",
                 "components": "Componentes",
                 "auths": "Autores",
+                "authors": "Autores",
                 "thanks": "Gracias a",
-                "translate": "Traducción"
+                "translate": "Traducción",
+                "translators": "Traductores",
+                "links": "Enlaces",
+                "version": "Versión"
             },
             "font": {
                 "family": "Familia",

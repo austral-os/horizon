@@ -34,6 +34,14 @@ namespace horizon
         first->set_name("Horizon Wallpaper");
         first->set_icon_name("preferences-desktop-wallpaper");
         first->set_show_in_dock(false);
+
+        // Setup About info
+        auto &about = about_manager();
+        about.set_app_title("Horizon Wallpaper");
+        about.set_app_description("Horizon Wallpaper manages and displays your desktop backgrounds.");
+        about.set_app_version("0.1.0");
+        about.set_app_icon("preferences-desktop-wallpaper");
+        about.set_app_git(ABOUT_HORIZON.git);
         setup_window(first);
 
         // When the first window is ready, check for more monitors
