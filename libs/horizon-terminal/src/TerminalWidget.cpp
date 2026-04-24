@@ -478,8 +478,14 @@ void TerminalWidget::handle_key_press(KeyEventContext &ctx) {
             case KEY_ESC: m_pty->write("\x1b", 1); break;
             case KEY_UP: m_pty->write("\x1b[A", 3); break;
             case KEY_DOWN: m_pty->write("\x1b[B", 3); break;
-            case KEY_LEFT: m_pty->write("\x1b[D", 3); break;
-            case KEY_RIGHT: m_pty->write("\x1b[C", 3); break;
+            case KEY_LEFT: 
+                if (ctx.modifiers & horizon::WaylandWindow::Modifier::CTRL) m_pty->write("\x1b[1;5D", 6);
+                else m_pty->write("\x1b[D", 3); 
+                break;
+            case KEY_RIGHT: 
+                if (ctx.modifiers & horizon::WaylandWindow::Modifier::CTRL) m_pty->write("\x1b[1;5C", 6);
+                else m_pty->write("\x1b[C", 3); 
+                break;
             case KEY_HOME: m_pty->write("\x1b[H", 3); break;
             case KEY_END: m_pty->write("\x1b[F", 3); break;
             case KEY_DELETE: m_pty->write("\x1b[3~", 4); break;
