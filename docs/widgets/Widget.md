@@ -1,74 +1,130 @@
-# Widget Class
+# 🧩 The Widget Class: Horizon's Core
 
-The `Widget` class is the foundational building block of the Horizon Desktop Environment UI. Every interactive element, from simple buttons to complex windows, inherits from this class. It provides the core mechanisms for layout, event handling, rendering, and lifecycle management.
+The `Widget` class is the heart of the Horizon toolkit. Every UI element you see—buttons, labels, windows, and even the desktop itself—is a `Widget`. This guide will teach you how to build modern, responsive layouts from scratch using the Horizon philosophy.
 
-## Core Concepts
+---
 
-### 1. Geometry and Layout
-Horizon uses a hierarchical layout system. A widget can either have a fixed size or be part of a flexible layout.
+## 🏗️ 1. Understanding Layouts
 
-*   **`set_position(x, y)`**: Sets the local coordinates relative to the parent.
-*   **`set_size(width, height)`**: Sets the explicit dimensions.
-*   **`set_fixed_size(size)`**: Sets a fixed dimension for the widget in its parent's primary layout axis (height in vertical, width in horizontal).
-*   **`set_margin(margin)`**: Internal space between the widget border and its content.
-*   **`set_spacing(spacing)`**: Space between children in a layout.
+In Horizon, you don't usually set absolute pixel positions. Instead, you "nest" widgets inside each other to create a flow.
 
-### 2. Layout Types (`WidgetLayoutTypes`)
-*   **`WIDGET_LAYOUT_HORIZONTAL`**: Arranges children side-by-side.
-*   **`WIDGET_LAYOUT_VERTICAL`**: stacks children top-to-bottom.
+### Layout Types
+A widget's **Layout Type** determines how it arranges its children.
 
-### 3. Position Types (`WidgetPositionTypes`)
-*   **`FILL`**: The widget expands to take up available space in the parent's layout. If multiple siblings are `FILL`, they share the space.
-*   **`FREE`**: The widget is positioned at its absolute `x, y` coordinates, ignoring the parent's layout flow.
+| Layout Type | Behavior | Diagram |
+| :--- | :--- | :--- |
+| `WIDGET_LAYOUT_HORIZONTAL` | Children are placed side-by-side (Left to Right). | `[ A ][ B ][ C ]` |
+| `WIDGET_LAYOUT_VERTICAL` | Children are stacked (Top to Bottom). | `[ A ]`<br>`[ B ]`<br>`[ C ]` |
 
-## Styling
-Widgets support several visual properties that can be customized:
+### Position Types
+How a widget behaves *inside* its parent's layout.
 
-*   **`set_background_color(Color)`**: Sets the fill color.
-*   **`set_border_radius(radius)`**: Rounds the corners.
-*   **`set_border_width(width)`** and **`set_border_color(Color)`**: Configures the widget outline.
-*   **`set_accent_color(WidgetAccentColor)`**: Uses theme-predefined colors (Primary, Success, Warning, Error, etc.).
+*   **`FILL` (The Default for beginners)**: The widget acts like a balloon—it expands to take up all available space. If two `FILL` widgets are siblings, they split the space 50/50.
+*   **`FREE`**: The widget ignores the parent's flow and stays at its specific `x, y` coordinates.
 
-## Event Handling
-The `Widget` class uses an `EventsManager` system. You can connect lambdas or member functions to various user interactions:
+### Sizing Strategy
+Use `set_fixed_size(px)` to give a widget a specific dimension on the **primary axis** of the parent's layout:
+*   In a **Horizontal** parent: `set_fixed_size` sets the **Width**.
+*   In a **Vertical** parent: `set_fixed_size` sets the **Height**.
 
-```cpp
-widget->when_click.connect([](MouseButtonEventContext &ev) {
-    // Handle click
-});
+---
 
-widget->when_mouse_enter.connect([](EventContext &ev) {
-    // Handle hover start
-});
+## 🎨 2. Styling Properties
+
+Every widget has a set of visual properties that can be adjusted to create the "Premium" Horizon look.
+
+| Method | Description | Example |
+| :--- | :--- | :--- |
+| `set_background_color(Color)` | Fills the widget background. | `Color(1.0, 1.0, 1.0, 0.5)` |
+| `set_border_radius(int)` | Rounds the corners (pixels). | `set_border_radius(12);` |
+| `set_border_width(int)` | Sets the thickness of the border. | `set_border_width(1);` |
+| `set_accent_color(Accent)` | Uses theme-defined colors. | `WidgetAccentColor::Primary` |
+| `set_margin(int)` | Inner padding of the widget. | `set_margin(16);` |
+| `set_spacing(int)` | Gap between children. | `set_spacing(8);` |
+
+---
+
+## ⚡ 3. Handling Events
+
+Horizon uses an **Event Manager** system. To make a widget "do" something, you connect a function (lambda) to one of its event members.
+
+### Interaction Events
+| Event Name | Type | Description |
+| :--- | :--- | :--- |
+| `when_click` | `MouseButtonEventContext` | Triggered on a full Mouse Press + Release. |
+| `when_dbl_click` | `MouseButtonEventContext` | Triggered on a quick double-click. |
+| `when_right_click` | `MouseButtonEventContext` | Triggered on a right mouse button click. |
+| `when_mouse_enter` | `EventContext` | Triggered when the mouse cursor enters the widget area. |
+| `when_mouse_leave` | `EventContext` | Triggered when the mouse cursor leaves the widget area. |
+
+### Movement & Mouse State
+| Event Name | Type | Description |
+| :--- | :--- | :--- |
+| `when_mouse_press` | `MouseButtonEventContext` | Mouse button went down. |
+| `when_mouse_release`| `MouseButtonEventContext` | Mouse button went up. |
+| `when_mouse_move` | `MouseMoveEventContext` | Mouse moved inside the widget. |
+| `when_mouse_drag` | `MouseMoveEventContext` | Mouse moved while holding a button. |
+| `when_mouse_wheel` | `MouseWheelEventContext` | Mouse wheel was scrolled. |
+
+### Keyboard & System
+| Event Name | Type | Description |
+| :--- | :--- | :--- |
+| `when_key_press` | `KeyEventContext` | A key was pressed while the widget had focus. |
+| `when_key_release` | `KeyEventContext` | A key was released. |
+| `when_focus` | `EventContext` | Widget became the active input target. |
+| `when_blur` | `EventContext` | Widget lost focus. |
+| `when_application_load` | `EventContext` | Dispatched once the widget is fully attached and ready. |
+
+---
+
+## 🚀 4. Layout Example: Building a Sidebar
+
+Let's combine everything to create a modern Sidebar layout.
+
+```mermaid
+graph TD
+    Root[Root Widget: Vertical] --> Header[Header: Horizontal, Fixed Height]
+    Root --> Content[Body: Horizontal, FILL]
+    Content --> Sidebar[Sidebar: Vertical, Fixed Width]
+    Content --> MainView[Main View: Vertical, FILL]
 ```
 
-**Common Events:**
-*   `when_mouse_press` / `when_mouse_release` / `when_click`
-*   `when_mouse_enter` / `when_mouse_leave`
-*   `when_key_press` / `when_key_release`
-*   `when_focus` / `when_blur`
-
-## Lifecycle and Hierarchy
-*   **`add_child(unique_ptr<Widget>)`**: Transfers ownership of a widget to become a child.
-*   **`parent()`**: Returns the parent widget.
-*   **`application()`**: Returns the `WaylandWindow` that owns this widget tree.
-*   **`invalidate()`**: Requests a redraw of the widget and its parents.
-
-## Building Layouts (The "Horizon Way")
-To build complex, responsive layouts, avoid hardcoded sizes. Instead, nest vertical and horizontal widgets using `FILL` position types.
-
-**Example: A Centered Header**
 ```cpp
+// 1. Create the root container
+auto root = std::make_unique<Widget>();
+root->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+
+// 2. Add a Header (Fixed Height)
 auto header = std::make_unique<Widget>();
-header->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-header->set_fixed_size(60); // Fixed height
+header->set_fixed_size(60); 
+header->set_background_color({0, 0, 0, 0.2}); // Translucent black
+root->add_child(std::move(header));
 
-auto icon = std::make_unique<Icon>("app-icon");
-icon->set_fixed_size(48); // Fixed width
+// 3. Add the Body container (Expands to take the rest of the height)
+auto body = std::make_unique<Widget>();
+body->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+body->set_position_type(FILL); 
 
-auto title = std::make_unique<Label>("My App");
-// Title is FILL by default, so it takes the remaining width
+// 4. Create a Sidebar (Fixed Width)
+auto sidebar = std::make_unique<Widget>();
+sidebar->set_fixed_size(200); 
+sidebar->set_background_color({1, 1, 1, 0.1}); // Subtle glass effect
+body->add_child(std::move(sidebar));
 
-header->add_child(std::move(icon));
-header->add_child(std::move(title));
+// 5. Create a Main View (Fills the remaining width)
+auto main_view = std::make_unique<Widget>();
+main_view->set_position_type(FILL);
+body->add_child(std::move(main_view));
+
+// Finally, add the body to the root
+root->add_child(std::move(body));
 ```
+
+---
+
+## 💡 Best Practices
+
+1.  **Favor `FILL` over fixed sizes**: This ensures your application looks good on both small laptops and large 4K monitors.
+2.  **Use Spacers**: Use `Spacer()` to push widgets to the corners or center them without calculating pixels.
+3.  **Invalidate when needed**: If you change a widget's property dynamically (like changing its color on the fly), call `invalidate()` to notify the renderer.
+4.  **Ownership**: Remember that `add_child` takes a `unique_ptr`. Once you add a child, the parent owns it. Use raw pointers if you need to keep a reference to a child for later.
