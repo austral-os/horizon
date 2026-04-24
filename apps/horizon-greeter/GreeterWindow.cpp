@@ -258,14 +258,30 @@ namespace horizon::greeter
         auto shutdown_btn = std::make_unique<horizon::ToolbarButton>("Shutdown", "system-shutdown");
         shutdown_btn->set_fixed_size(80);
         shutdown_btn->set_text_color(Color(1.0f, 1.0f, 1.0f));
-        shutdown_btn->when_click.connect([](auto &) { system("systemctl poweroff"); });
+        shutdown_btn->when_click.connect(
+            [](auto &)
+            {
+                LOG_INFO << "GreeterWindow: Powering off system...";
+                int res = system("/usr/bin/systemctl poweroff -i");
+                if (res != 0) {
+                    LOG_ERROR << "GreeterWindow: poweroff failed with code: " << res;
+                }
+            });
         footer->add_child(std::move(shutdown_btn));
         footer->add_child(Spacer(10));
 
-        auto reboot_btn = std::make_unique<horizon::ToolbarButton>("Reboot", "system-restart");
+        auto reboot_btn = std::make_unique<horizon::ToolbarButton>("Reboot", "system-reboot");
         reboot_btn->set_fixed_size(80);
         reboot_btn->set_text_color(Color(1.0f, 1.0f, 1.0f));
-        reboot_btn->when_click.connect([](auto &) { system("systemctl reboot"); });
+        reboot_btn->when_click.connect(
+            [](auto &)
+            {
+                LOG_INFO << "GreeterWindow: Rebooting system...";
+                int res = system("/usr/bin/systemctl reboot -i");
+                if (res != 0) {
+                    LOG_ERROR << "GreeterWindow: reboot failed with code: " << res;
+                }
+            });
         footer->add_child(std::move(reboot_btn));
 
         footer->add_child(Spacer());

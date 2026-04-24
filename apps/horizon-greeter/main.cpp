@@ -52,6 +52,9 @@ namespace horizon::greeter
 
 int main(int argc, char **argv)
 {
+    // Initialize logging
+    horizon::Logger::instance().init("horizon-greeter");
+
     bool debug_mode = false;
     for (int i = 1; i < argc; ++i)
     {
