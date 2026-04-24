@@ -19,13 +19,49 @@ A widget's **Layout Type** determines how it arranges its children.
 ### Position Types
 How a widget behaves *inside* its parent's layout.
 
-*   **`FILL` (The Default for beginners)**: The widget acts like a balloon—it expands to take up all available space. If two `FILL` widgets are siblings, they split the space 50/50.
-*   **`FREE`**: The widget ignores the parent's flow and stays at its specific `x, y` coordinates.
+*   **`FILL` (Default)**: The widget expands to occupy available space.
+*   **`FREE`**: The widget uses absolute coordinates (`set_position`).
 
-### Sizing Strategy
-Use `set_fixed_size(px)` to give a widget a specific dimension on the **primary axis** of the parent's layout:
-*   In a **Horizontal** parent: `set_fixed_size` sets the **Width**.
-*   In a **Vertical** parent: `set_fixed_size` sets the **Height**.
+---
+
+## 📐 2. The Logic of Space Distribution
+
+This is the most critical concept in Horizon. The engine calculates sizes based on "Remaining Space".
+
+### The Golden Rule
+1.  **Fixed First**: Horizon first subtracts the space taken by children with `set_fixed_size()`.
+2.  **Divide the Rest**: The leftover space is divided **equally** among all `FILL` siblings.
+3.  **Cross-Axis (Automatic Filling)**: 
+    *   In a **Vertical** parent: All children automatically take the **full width**.
+    *   In a **Horizontal** parent: All children automatically take the **full height**.
+
+### Visual Example: Vertical Layout
+Imagine a parent container that is **500px high**.
+
+| Child | Configuration | Resulting Height | Resulting Width | Why? |
+| :--- | :--- | :--- | :--- | :--- |
+| **A** | `set_fixed_size(100)` | **100px** | 100% | It requested a fixed height. |
+| **B** | `position_type(FILL)` | **200px** | 100% | Shares the remaining 400px with C. |
+| **C** | `position_type(FILL)` | **200px** | 100% | Shares the remaining 400px with B. |
+
+### Visual Example: Horizontal Layout
+Imagine a parent container that is **600px wide**.
+
+```mermaid
+graph LR
+    subgraph Parent_600px_Wide
+        A[Fixed: 200px]
+        B[FILL: 200px]
+        C[FILL: 200px]
+    end
+```
+
+*   **Total Width**: 600px
+*   **Minus Fixed (A)**: 600 - 200 = 400px remaining.
+*   **B and C (FILL)**: 400 / 2 = 200px cada uno.
+
+> [!TIP]
+> Si quieres que un widget "desaparezca" o ocupe 0 espacio pero siga en el árbol, puedes usar `fixed_size(0)` o `set_visible(false)`.
 
 ---
 
