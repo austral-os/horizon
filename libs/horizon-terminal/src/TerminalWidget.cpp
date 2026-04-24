@@ -145,7 +145,13 @@ void TerminalWidget::calculate_layout() {
     Widget::calculate_layout();
 
     if (m_ft_face) {
-        m_char_width = m_ft_face->size->metrics.max_advance / 64.0;
+        // Use a standard character to determine monospaced width
+        // and avoid max_advance which can be larger than the actual cell width
+        if (FT_Load_Char(m_ft_face, 'M', FT_LOAD_DEFAULT) == 0) {
+            m_char_width = m_ft_face->glyph->advance.x / 64.0;
+        } else {
+            m_char_width = m_ft_face->size->metrics.max_advance / 64.0;
+        }
         m_char_height = m_ft_face->size->metrics.height / 64.0;
     } else {
         m_char_width = 8;
@@ -325,7 +331,8 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
                     cairo_glyphs[i].index = glyph_info[i].codepoint;
                     cairo_glyphs[i].x = current_x + (glyph_pos[i].x_offset / 64.0);
                     cairo_glyphs[i].y = current_y - (glyph_pos[i].y_offset / 64.0);
-                    current_x += (glyph_pos[i].x_advance / 64.0);
+                    // Force the grid: advance exactly m_char_width per character cell
+                    current_x += m_char_width;
                 }
 
                 // Set text color using converted RGB
@@ -449,6 +456,10 @@ void TerminalWidget::handle_key_press(KeyEventContext &ctx) {
             case KEY_UP: m_pty->write("\x1b[A", 3); break;
             case KEY_DOWN: m_pty->write("\x1b[B", 3); break;
             case KEY_LEFT: m_pty->write("\x1b[D", 3); break;
+            case KEY_RIGHT: m_pty->write("\x1b[C", 3); break;
+            case KEY_HOME: m_pty->write("\x1b[H", 3); break;
+            case KEY_END: m_pty->write("\x1b[F", 3); break;
+            case KEY_DELETE: m_pty->write("\x1b[3~", 4); break;
         }
     }
 }
