@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     about.set_app_description("A simple and powerful document viewer for Horizon.");
     about.set_app_version("0.1.0");
     about.set_app_icon("document-viewer");
-    about.set_app_git(ABOUT_HORIZON.git);
+    about.set_app_git(horizon::ABOUT_HORIZON.git);
     about.add_app_author("Horacio Daniel Ros", "https://github.com/austral-os/horizon", "horaciodrs@gmail.com");
     about.add_app_translator("Horacio Daniel Ros", "https://github.com/austral-os/horizon", "horaciodrs@gmail.com");
 

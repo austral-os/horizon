@@ -35,6 +35,19 @@ namespace horizon
         }
     }
 
+    void ToolbarButton::set_text_color(Color color)
+    {
+        m_text_color = color;
+        for (auto &child : children())
+        {
+            if (auto label = dynamic_cast<Label *>(child.get()))
+            {
+                label->set_text_color(color);
+                break;
+            }
+        }
+    }
+
     void ToolbarButton::draw(GraphicsContext &gc)
     {
         auto *tm = application()->theme_manager.get();

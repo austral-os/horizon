@@ -71,6 +71,14 @@ namespace horizon::greeter
 
         m_client.on_error = [this](const std::string &type, const std::string &desc)
         {
+            if (desc == "no session active")
+            {
+                LOG_INFO << "GreeterWindow: Filtering 'no session active' error.";
+                m_message_label->set_text("Starting session...");
+                m_message_label->set_text_color(Color(0.4f, 1.0f, 0.4f));
+                return;
+            }
+            
             m_app.alert(desc, "Login Error", MessageType::Error);
             m_message_label->set_text("Error: " + desc);
             m_message_label->set_text_color(Color(1.0f, 0.4f, 0.4f));
@@ -242,12 +250,14 @@ namespace horizon::greeter
         // Power buttons
         auto shutdown_btn = std::make_unique<horizon::ToolbarButton>("Shutdown", "system-shutdown");
         shutdown_btn->set_fixed_size(80);
+        shutdown_btn->set_text_color(Color(1.0f, 1.0f, 1.0f));
         shutdown_btn->when_click.connect([](auto &) { system("systemctl poweroff"); });
         footer->add_child(std::move(shutdown_btn));
         footer->add_child(Spacer(10));
 
         auto reboot_btn = std::make_unique<horizon::ToolbarButton>("Reboot", "system-reboot");
         reboot_btn->set_fixed_size(80);
+        reboot_btn->set_text_color(Color(1.0f, 1.0f, 1.0f));
         reboot_btn->when_click.connect([](auto &) { system("systemctl reboot"); });
         footer->add_child(std::move(reboot_btn));
 
