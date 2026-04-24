@@ -1,4 +1,5 @@
 #include "TopPanelMenuBar.hpp"
+#include <cstdlib>
 #include "GlobalMenuMessage.hpp"
 #include "TopPanelApplication.hpp"
 #include <horizon/ApplicationLauncher.hpp>
@@ -138,6 +139,10 @@ std::unique_ptr<Menu> TopPanelMenuBar::create_system_menu()
                     ApplicationLauncher::launch("preferences");
                 else if (item_id == "run_logout")
                     m_app->send_remote_signal(-1, "logout");
+                else if (item_id == "run_reboot")
+                    std::system("systemctl reboot");
+                else if (item_id == "run_poweroff")
+                    std::system("systemctl poweroff");
                 else if (item_id == "force_quit" && m_current_owner_pid != -1)
                     m_app->send_remote_signal(m_current_owner_pid, "kill");
             });
@@ -151,6 +156,8 @@ std::unique_ptr<Menu> TopPanelMenuBar::create_system_menu()
     add_sys_item(i18n().tr("top_panel.system_menu.force_quit"), "force_quit");
     menu->add_separator();
     add_sys_item(i18n().tr("top_panel.system_menu.logout"), "run_logout");
+    add_sys_item(i18n().tr("top_panel.system_menu.reboot"), "run_reboot");
+    add_sys_item(i18n().tr("top_panel.system_menu.poweroff"), "run_poweroff");
 
     return menu;
 }

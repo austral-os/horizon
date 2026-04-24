@@ -5,7 +5,9 @@
       "terminal": "Terminal",
       "settings": "Configuración del sistema...",
       "force_quit": "Forzar salida...",
-      "logout": "Cerrar sesión..."
+      "logout": "Cerrar sesión...",
+      "reboot": "Reiniciar...",
+      "poweroff": "Apagar..."
     }
   }
 }

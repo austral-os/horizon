@@ -5,7 +5,9 @@
       "terminal": "Terminal",
       "settings": "System Settings...",
       "force_quit": "Force Quit...",
-      "logout": "Log Out..."
+      "logout": "Log Out...",
+      "reboot": "Restart...",
+      "poweroff": "Shut Down..."
     }
   }
 }
