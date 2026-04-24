@@ -46,6 +46,24 @@ Horizon follows a layered design to ensure modularity and ease of maintenance:
 
 ---
 
+## 🧩 UI Components (Widgets)
+
+Horizon provides a rich set of built-in widgets for building modern interfaces. Every widget inherits from the base [**`Widget`**](docs/widgets/Widget.md) class and follows the Horizon layout philosophy.
+
+- [**`Advanced Views`**](docs/widgets/AdvancedViews.md): TableView, TreeView, IconView, and CoverFlow.
+- [**`Button`**](docs/widgets/Button.md): Generic interactive button with glassmorphism support.
+- [**`Controls`**](docs/widgets/Controls.md): Checkbox, RadioButton, Slider, ProgressBar, and Text inputs.
+- [**`Icon`**](docs/widgets/Icon.md): Themed vector and raster icon rendering.
+- [**`Label`**](docs/widgets/Label.md): Multi-line text display with automatic wrapping.
+- [**`Menu System`**](docs/widgets/MenuSystem.md): Menu, MenuBar, and standard context menus.
+- [**`Notebook`**](docs/widgets/Notebook.md): Tabbed container for organizing content.
+- [**`ScrollArea`**](docs/widgets/ScrollArea.md): Viewport for scrolling large content areas.
+- [**`Spacer`**](docs/widgets/Spacer.md): Layout helper for alignment and spacing.
+- [**`Structure & Navigation`**](docs/widgets/StructureAndNavigation.md): Toolbar, Sidebar, Panels, and Statusbars.
+- [**`Window`**](docs/widgets/Window.md): Standard application window frame and decorations.
+
+---
+
 ## 📚 Documentation
 
 Detailed guides on implementing core framework features:
