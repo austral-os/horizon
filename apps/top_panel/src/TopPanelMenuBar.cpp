@@ -132,7 +132,7 @@ std::unique_ptr<Menu> TopPanelMenuBar::create_system_menu()
             {
                 std::string item_id = id.empty() ? text : id;
                 if (item_id == "run_terminal")
-                    m_app->send_remote_signal(-1, "run_app", "konsole");
+                    ApplicationLauncher::launch("terminal");
                 else if (item_id == "run_aboutus")
                     ApplicationLauncher::launch("aboutus");
                 else if (item_id == "run_settings")
