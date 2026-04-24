@@ -35,6 +35,7 @@ TerminalController::TerminalController(int rows, int cols) {
     vterm_set_utf8(m_vt, 1);
     m_screen = vterm_obtain_screen(m_vt);
     vterm_screen_enable_altscreen(m_screen, 1);
+    vterm_screen_set_reflow(m_screen, 1);
     
     // Set default colors (matches TerminalWidget theme)
     VTermState* state = vterm_obtain_state(m_vt);
@@ -165,7 +166,18 @@ int TerminalController::screen_sb_popline(int cols, VTermScreenCell *cells, void
     
     auto& line = self->m_scrollback_buffer.front();
     int copy_cols = std::min(cols, (int)line.cells.size());
+    
+    // Copy existing cells
     std::copy(line.cells.begin(), line.cells.begin() + copy_cols, cells);
+    
+    // Clear remaining cells if the new terminal is wider
+    for (int i = copy_cols; i < cols; ++i) {
+        memset(&cells[i], 0, sizeof(VTermScreenCell));
+        cells[i].chars[0] = 0;
+        cells[i].width = 1;
+        cells[i].bg.type = VTERM_COLOR_DEFAULT_BG;
+        cells[i].fg.type = VTERM_COLOR_DEFAULT_FG;
+    }
     
     self->m_scrollback_buffer.pop_front();
     return 1;
