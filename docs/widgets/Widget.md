@@ -44,21 +44,30 @@ Imagine a parent container that is **500px high**.
 | **B** | `position_type(FILL)` | **200px** | 100% | Shares the remaining 400px with C. |
 | **C** | `position_type(FILL)` | **200px** | 100% | Shares the remaining 400px with B. |
 
+```mermaid
+graph TD
+    subgraph Parent_500px_High
+        A[Fixed: 100px]
+        B[FILL: 200px]
+        C[FILL: 200px]
+    end
+```
+
 ### Visual Example: Horizontal Layout
 Imagine a parent container that is **600px wide**.
 
 ```mermaid
 graph LR
     subgraph Parent_600px_Wide
-        A[Fixed: 200px]
-        B[FILL: 200px]
-        C[FILL: 200px]
+        A[Fixed: 100px]
+        B[FILL: 250px]
+        C[FILL: 250px]
     end
 ```
 
 *   **Total Width**: 600px
-*   **Minus Fixed (A)**: 600 - 200 = 400px remaining.
-*   **B and C (FILL)**: 400 / 2 = 200px cada uno.
+*   **Minus Fixed (A)**: 600 - 100 = 500px remaining.
+*   **B and C (FILL)**: 500 / 2 = 250px cada uno.
 
 > [!TIP]
 > Si quieres que un widget "desaparezca" o ocupe 0 espacio pero siga en el árbol, puedes usar `fixed_size(0)` o `set_visible(false)`.
