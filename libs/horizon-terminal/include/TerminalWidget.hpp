@@ -98,6 +98,7 @@ private:
     // Cursor state
     bool m_cursor_visible = true;
     size_t m_cursor_timer = 0;
+    size_t m_resize_timer = 0;
     VTermPos m_cursor_pos = {0, 0};
     
     // Scrollback

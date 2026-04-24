@@ -83,6 +83,10 @@ TerminalWidget::TerminalWidget() {
 }
 
 TerminalWidget::~TerminalWidget() {
+    if (m_app) {
+        if (m_cursor_timer != 0) m_app->stop_timer(m_cursor_timer);
+        if (m_resize_timer != 0) m_app->stop_timer(m_resize_timer);
+    }
     if (m_pty) {
         m_pty->close();
     }
@@ -167,10 +171,29 @@ void TerminalWidget::calculate_layout() {
     if (new_cols <= 0 || new_rows <= 0) return;
 
     if (new_cols != m_cols || new_rows != m_rows) {
+        int old_cols = m_cols;
+        int old_rows = m_rows;
         m_cols = new_cols;
         m_rows = new_rows;
-        m_controller->resize(m_rows, m_cols);
-        m_pty->resize(m_cols, m_rows);
+        
+        // Debounce the actual terminal resize to avoid prompt duplication storms
+        // We notify the PTY and the controller after a short delay
+        if (m_resize_timer != 0 && m_app) {
+            m_app->stop_timer(m_resize_timer);
+        }
+        
+        if (m_app && m_initialized) {
+            m_resize_timer = m_app->add_timer(150, [this]() {
+                this->m_pty->resize(this->m_cols, this->m_rows);
+                this->m_controller->resize(this->m_rows, this->m_cols);
+                this->m_resize_timer = 0;
+                this->invalidate();
+            }, false); // one-shot
+        } else {
+            // Initial size or no app yet
+            m_pty->resize(m_cols, m_rows);
+            m_controller->resize(m_rows, m_cols);
+        }
         
         // Invalida la selección al redimensionar para evitar inconsistencias
         m_sel_start = m_sel_end = m_normalized_start = m_normalized_end = {-1, -1};

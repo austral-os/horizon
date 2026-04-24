@@ -66,6 +66,7 @@ private:
     VTerm* m_vt;
     VTermScreen* m_screen;
     bool m_is_altscreen{false};
+    bool m_is_resizing{false};
     std::mutex m_mutex;
 
     std::function<void(VTermRect)> m_damage_cb;

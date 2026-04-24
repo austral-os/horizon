@@ -80,7 +80,9 @@ void TerminalController::write_to_pty(const char* data, size_t len) {
 
 void TerminalController::resize(int rows, int cols) {
     std::lock_guard<std::mutex> lock(m_mutex);
+    m_is_resizing = true;
     vterm_set_size(m_vt, rows, cols);
+    m_is_resizing = false;
 }
 
 // Callbacks
@@ -160,6 +162,15 @@ int TerminalController::screen_sb_pushline(int cols, const VTermScreenCell *cell
 int TerminalController::screen_sb_popline(int cols, VTermScreenCell *cells, void *user) {
     auto self = static_cast<TerminalController*>(user);
     
+    // Initialize the buffer to avoid artifacts from uninitialized memory
+    for (int i = 0; i < cols; ++i) {
+        memset(&cells[i], 0, sizeof(VTermScreenCell));
+        cells[i].chars[0] = 0;
+        cells[i].width = 1;
+        cells[i].bg.type = VTERM_COLOR_DEFAULT_BG;
+        cells[i].fg.type = VTERM_COLOR_DEFAULT_FG;
+    }
+
     if (self->m_scrollback_buffer.empty()) {
         return 0;
     }
@@ -167,17 +178,8 @@ int TerminalController::screen_sb_popline(int cols, VTermScreenCell *cells, void
     auto& line = self->m_scrollback_buffer.front();
     int copy_cols = std::min(cols, (int)line.cells.size());
     
-    // Copy existing cells
+    // Copy existing cells over the clean buffer
     std::copy(line.cells.begin(), line.cells.begin() + copy_cols, cells);
-    
-    // Clear remaining cells if the new terminal is wider
-    for (int i = copy_cols; i < cols; ++i) {
-        memset(&cells[i], 0, sizeof(VTermScreenCell));
-        cells[i].chars[0] = 0;
-        cells[i].width = 1;
-        cells[i].bg.type = VTERM_COLOR_DEFAULT_BG;
-        cells[i].fg.type = VTERM_COLOR_DEFAULT_FG;
-    }
     
     self->m_scrollback_buffer.pop_front();
     return 1;
