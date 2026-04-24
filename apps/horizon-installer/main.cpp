@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <linux/limits.h>
 #include <horizon/Logger.hpp>
+#include <horizon/About.hpp>
 
 using namespace horizon;
 using namespace horizon::installer;
@@ -244,7 +245,17 @@ int main(int argc, char** argv)
     horizon::i18n().load_app_locales("horizon-installer");
     
     app.set_name(horizon::i18n().tr("installer.welcome.title"));
-    
+
+    // Setup About info
+    auto &about = app.about_manager();
+    about.set_app_title("Horizon Installer");
+    about.set_app_description("System installation utility for Austral OS.");
+    about.set_app_version("0.1.0");
+    about.set_app_icon("system-installer");
+    about.set_app_git(horizon::ABOUT_HORIZON.git);
+    about.add_app_author("Horacio Daniel Ros", "https://github.com/austral-os/horizon",
+                         "horaciodrs@gmail.com");
+
     bool oobe = InstallerManager::is_oobe_pending();
     bool working = false;
     std::string view = "";
