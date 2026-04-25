@@ -45,8 +45,15 @@ namespace horizon
 
             if (m_is_selected)
             {
-                bg = tm->get_color("table_row_selected");
+                // Blue gradient selection (macOS Aqua style)
+                Color c1(0.32f, 0.61f, 0.90f, 1.0f); // Top
+                Color c2(0.11f, 0.45f, 0.81f, 1.0f); // Bottom
+                gc.fillLinearGradientRect(m_x, m_y, m_width, m_height, c1, c2, true);
+                
                 fg = tm->get_color("table_row_selected_fg");
+                apply_text_color_recursive(this, fg);
+                Widget::draw(gc);
+                return;
             }
             else if (m_is_alternate)
             {

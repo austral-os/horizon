@@ -185,12 +185,10 @@ namespace horizon
     {
         if (m_selected)
         {
-            if (auto *app = application()) {
-                auto *tm = app->theme_manager.get();
-                Color bg = tm->get_color("table_row_selected");
-                gc.setColor(bg);
-                gc.fillRect(m_start_draw_x, m_start_draw_y, m_available_draw_width, 24);
-            }
+            // Blue gradient selection (macOS Aqua style)
+            Color c1(0.32f, 0.61f, 0.90f, 1.0f); // Top
+            Color c2(0.11f, 0.45f, 0.81f, 1.0f); // Bottom
+            gc.fillLinearGradientRect(m_start_draw_x, m_start_draw_y, m_available_draw_width, 24, c1, c2, true);
         }
     }
 
