@@ -100,6 +100,7 @@ private:
     size_t m_cursor_timer = 0;
     size_t m_resize_timer = 0;
     VTermPos m_cursor_pos = {0, 0};
+    uint32_t m_last_modifiers = 0;
     
     // Scrollback
     int m_scroll_offset = 0;

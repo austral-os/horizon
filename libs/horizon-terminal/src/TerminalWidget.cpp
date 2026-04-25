@@ -43,6 +43,15 @@ TerminalWidget::TerminalWidget() {
 
     m_controller->set_move_cursor_callback([this](VTermPos pos) {
         this->m_cursor_pos = pos;
+        
+        // Update selection if we are in keyboard selection mode
+        if (this->m_last_modifiers & horizon::WaylandWindow::Modifier::SHIFT) {
+            if (m_sel_start.row != -1) {
+                int sb_size = (int)m_controller->get_scrollback_size();
+                this->update_selection({ sb_size + pos.row, pos.col });
+            }
+        }
+
         this->invalidate();
     });
 
@@ -468,6 +477,44 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
 }
 
 void TerminalWidget::handle_key_press(KeyEventContext &ctx) {
+    m_last_modifiers = ctx.modifiers;
+    
+    // 1. Prioritize Terminal Shortcuts (Ctrl+Shift+C/V)
+    // We check this BEFORE sending text to PTY to avoid Ctrl+C cancellation
+    if ((ctx.modifiers & horizon::WaylandWindow::Modifier::CTRL) && 
+        (ctx.modifiers & horizon::WaylandWindow::Modifier::SHIFT)) {
+        
+        if (ctx.key == KEY_C) {
+            copy_selection();
+            return;
+        }
+        if (ctx.key == KEY_V) {
+            perform(horizon::ClipboardAction::Paste);
+            return;
+        }
+    }
+
+    // 2. Keyboard Selection with Shift
+    if (ctx.modifiers & horizon::WaylandWindow::Modifier::SHIFT) {
+        if (ctx.key == KEY_LEFT || ctx.key == KEY_RIGHT || ctx.key == KEY_UP || ctx.key == KEY_DOWN ||
+            ctx.key == KEY_HOME || ctx.key == KEY_END) {
+            if (m_sel_start.row == -1) {
+                int sb_size = (int)m_controller->get_scrollback_size();
+                m_sel_start = { sb_size + m_cursor_pos.row, m_cursor_pos.col };
+                m_sel_end = m_sel_start;
+            }
+        }
+    } else {
+        // Clear selection if moving without shift (unless it's a non-nav key)
+        if (ctx.key == KEY_LEFT || ctx.key == KEY_RIGHT || ctx.key == KEY_UP || ctx.key == KEY_DOWN ||
+            ctx.key == KEY_HOME || ctx.key == KEY_END) {
+            if (m_sel_start.row != -1 && !m_is_selecting) {
+                m_sel_start = m_sel_end = m_normalized_start = m_normalized_end = {-1, -1};
+                invalidate();
+            }
+        }
+    }
+
     if (ctx.text.length() > 0) {
         m_pty->write(ctx.text.c_str(), ctx.text.length());
     } else {
