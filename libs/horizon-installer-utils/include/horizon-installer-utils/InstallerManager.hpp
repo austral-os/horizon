@@ -73,8 +73,9 @@ namespace horizon::installer
 
         /**
          * @brief Marks the system setup as complete.
+         * @param root Optional root path (e.g., a mount point).
          */
-        void mark_setup_done();
+        void mark_setup_done(const std::string& root = "");
 
     private:
         ProgressCallback m_progress_cb;

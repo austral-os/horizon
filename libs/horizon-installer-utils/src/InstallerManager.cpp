@@ -49,6 +49,12 @@ namespace horizon::installer
         res = create_oobe_trigger(m_target_mount_point);
         if (!res.success) return res;
 
+        // 10. Replace xdg-open with our custom version in the target system
+        // We do this here to ensure it's present on the first boot
+        LOG_INFO << "Replacing /usr/bin/xdg-open with custom version on target system...";
+        execute_privileged_command("/usr/bin/cp " + m_target_mount_point + "/usr/share/horizon/xdg-open " + m_target_mount_point + "/usr/bin/xdg-open");
+        execute_privileged_command("/usr/bin/chmod +x " + m_target_mount_point + "/usr/bin/xdg-open");
+
         // Save regional settings to target disk as backup/default
         LOG_INFO << "Saving regional settings to target disk...";
         std::string target_region_dir = m_target_mount_point + "/usr/share/horizon";
@@ -197,17 +203,28 @@ namespace horizon::installer
         return std::filesystem::exists("/etc/horizon-setup-done");
     }
 
-    void InstallerManager::mark_setup_done()
+    void InstallerManager::mark_setup_done(const std::string& root)
     {
-        LOG_INFO << "Marking system setup as complete (/etc/horizon-setup-done)";
-        execute_privileged_command("/usr/bin/touch /etc/horizon-setup-done");
-        execute_privileged_command("/usr/bin/rm -f /etc/horizon-setup-pending");
+        std::string prefix = root;
+        if (!prefix.empty() && prefix.back() != '/') prefix += "/";
+
+        LOG_INFO << "Marking system setup as complete (" << prefix << "etc/horizon-setup-done)";
+        execute_privileged_command("/usr/bin/touch " + prefix + "etc/horizon-setup-done");
+        execute_privileged_command("/usr/bin/rm -f " + prefix + "etc/horizon-setup-pending");
         
         // Remove installer and zutty from menus
-        execute_privileged_command("/usr/bin/rm -f /usr/share/applications/horizon-installer.desktop");
-        execute_privileged_command("/usr/bin/rm -f /usr/share/applications/zutty.desktop");
-        execute_privileged_command("/usr/bin/rm -f /usr/share/applications/vim.desktop");
-        execute_privileged_command("/usr/bin/rm -f /usr/share/applications/htop.desktop");
+        execute_privileged_command("/usr/bin/rm -f " + prefix + "usr/share/applications/horizon-installer.desktop");
+        execute_privileged_command("/usr/bin/rm -f " + prefix + "usr/share/applications/zutty.desktop");
+        execute_privileged_command("/usr/bin/rm -f " + prefix + "usr/share/applications/vim.desktop");
+        execute_privileged_command("/usr/bin/rm -f " + prefix + "usr/share/applications/htop.desktop");
+
+        // Ensure xdg-open is replaced with our custom version (Requirement 2)
+        // This is also done in Stage 1, but we do it here as a safety measure for OOBE-only flows
+        if (std::filesystem::exists(prefix + "usr/share/horizon/xdg-open")) {
+            LOG_INFO << "Enforcing custom xdg-open in " << prefix << "usr/bin/xdg-open";
+            execute_privileged_command("/usr/bin/cp " + prefix + "usr/share/horizon/xdg-open " + prefix + "usr/bin/xdg-open");
+            execute_privileged_command("/usr/bin/chmod +x " + prefix + "usr/bin/xdg-open");
+        }
     }
 
     StepResult InstallerManager::partition_disk(const std::string& device_path)

@@ -162,3 +162,11 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/backgrounds")
         COMPONENT session
     )
 endif()
+
+# --- Custom xdg-open ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/xdg-open")
+    install(PROGRAMS data/xdg-open
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
