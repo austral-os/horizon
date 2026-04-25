@@ -7,7 +7,6 @@ int main(int argc, char **argv)
     horizon::Application app("org.horizon.document-viewer", 1024, 768);
 
     // Configurar i18n
-    horizon::I18n::set_search_paths({"/home/horacio/Desarrollo/austral-os/horizon", ".", ".."});
     horizon::i18n().load_app_locales("document-viewer");
 
     app.set_name(horizon::i18n().tr("app.title"));

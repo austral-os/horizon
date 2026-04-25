@@ -3,6 +3,7 @@
 #include "IndicatorsContainer.hpp"
 #include "DateAndTimeIndicator.hpp"
 #include "NetworkIndicator.hpp"
+#include "BatteryIndicator.hpp"
 #include <horizon/DesktopEntry.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Widget.hpp>
@@ -44,6 +45,7 @@ TopPanelApplication::TopPanelApplication()
     m_root_widget = panel_widget.get();
 
     // Add initial indicators
+    m_root_widget->indicators()->add_indicator(std::make_unique<BatteryIndicator>());
     m_root_widget->indicators()->add_indicator(std::make_unique<NetworkIndicator>());
     m_root_widget->indicators()->add_indicator(std::make_unique<DateAndTimeIndicator>());
 
