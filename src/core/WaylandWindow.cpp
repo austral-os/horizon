@@ -1640,6 +1640,12 @@ namespace horizon
                 ev.serial = event.serial;
                 ev.stop_propagation = true; // IMPORTANT: Prevent propagation to main window
 
+                // IMPORTANT: Close the menu BEFORE running the handlers.
+                // If the handler blocks (e.g. opening a modal dialog), the menu
+                // must already be dismissed in the compositor's eyes.
+                WaylandWindow *win = m_window;
+                win->close_context_menu();
+
                 for (Widget *w : chain)
                 {
                     ev.sender = w;
@@ -1654,8 +1660,6 @@ namespace horizon
                     }
                     w->when_mouse_release.run(ev);
                 }
-                
-                m_window->close_context_menu();
             }
         }
         else if (event.type == PointerEvent::Type::Scroll)
@@ -2775,6 +2779,11 @@ namespace horizon
         if (m_popup_surface || m_popup_listener)
         {
             m_popup_surface = nullptr;
+        
+        // Force the compositor to process the destruction immediately
+        if (m_surface && m_surface->display()) {
+            wl_display_roundtrip(m_surface->display());
+        }
             if (m_popup_listener)
             {
                 m_popup_listener->deactivate();

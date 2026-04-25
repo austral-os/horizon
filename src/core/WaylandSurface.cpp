@@ -130,6 +130,7 @@ namespace horizon
 
     WaylandSurface::~WaylandSurface()
     {
+        LOG_INFO << "[SURFACE] Destroying WaylandSurface: " << this << " (Role: " << (int)m_role << ")";
         if (g_pointer_focus == this) g_pointer_focus = nullptr;
         free();
         if (m_xkb_state) xkb_state_unref(m_xkb_state);
