@@ -14,13 +14,14 @@ namespace nova {
 
 class BrowserWindow : public ApplicationWindow {
 public:
-    BrowserWindow();
+    BrowserWindow(const std::string& initial_url = "");
     virtual ~BrowserWindow() = default;
-
+    static std::string normalize_url(const std::string& input_url);
+    
 private:
-    void setup_ui();
+    void setup_ui(const std::string& initial_url = "");
     void navigate_to_url(const std::string& url);
-    void create_new_tab(const std::string& url = "https://www.google.com");
+    void create_new_tab(const std::string& url = "about:blank");
 
     TabCollection* m_tabs = nullptr;
     NovaToolbar* m_toolbar = nullptr;

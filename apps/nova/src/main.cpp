@@ -22,7 +22,12 @@ int main(int argc, char** argv) {
     about.set_app_version("0.1.0");
     about.set_app_icon("web-browser");
     
-    auto browser_window = std::make_unique<BrowserWindow>();
+    std::string initial_url = "";
+    if (argc > 1) {
+        initial_url = argv[1];
+    }
+    
+    auto browser_window = std::make_unique<BrowserWindow>(initial_url);
     
     app.set_root(std::move(browser_window));
     

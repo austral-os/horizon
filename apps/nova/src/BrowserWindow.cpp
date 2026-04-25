@@ -10,15 +10,15 @@ namespace horizon
     namespace nova
     {
 
-        const std::string DEFAULT_URL = "https://clasesllavallol.com.ar";
+        const std::string DEFAULT_URL = "about:blank";
 
-        BrowserWindow::BrowserWindow() : ApplicationWindow("Nova Web Browser")
+        BrowserWindow::BrowserWindow(const std::string& initial_url) : ApplicationWindow("Nova Web Browser")
         {
             set_size(1024, 768);
-            setup_ui();
+            setup_ui(initial_url);
         }
 
-        void BrowserWindow::setup_ui()
+        void BrowserWindow::setup_ui(const std::string& initial_url)
         {
             // 1. Nova Toolbar
             auto nova_toolbar = std::make_unique<NovaToolbar>();
@@ -112,7 +112,7 @@ namespace horizon
                                                     { LOG_INFO << "[NOVA] Options clicked"; });
 
             // Initial tab
-            create_new_tab(DEFAULT_URL);
+            create_new_tab(initial_url.empty() ? DEFAULT_URL : initial_url);
 
             set_content(std::move(tabs));
         }
@@ -168,7 +168,28 @@ namespace horizon
             ptr->when_leave_fullscreen.connect([this](FullscreenEventContext &)
                                                { this->set_immersive_mode(false); });
 
-            ptr->load_url(url);
+            ptr->load_url(normalize_url(url));
+        }
+
+        std::string BrowserWindow::normalize_url(const std::string &input_url)
+        {
+            std::string url = input_url;
+            if (url.empty())
+                return "about:blank";
+
+            // Basic URL normalization
+            if (url.find("://") == std::string::npos && url.find("about:") != 0)
+            {
+                if (url.find(".") != std::string::npos && url.find(" ") == std::string::npos)
+                {
+                    url = "https://" + url;
+                }
+                else
+                {
+                    url = "https://www.google.com/search?q=" + url;
+                }
+            }
+            return url;
         }
 
         void BrowserWindow::navigate_to_url(const std::string &input_url)
@@ -176,32 +197,9 @@ namespace horizon
             auto *web_view = dynamic_cast<web::WebView *>(m_tabs->current_tab_body());
             if (web_view)
             {
-                std::string url = input_url;
-                if (url.empty())
-                    return;
-
-                // Basic URL normalization
-                if (url.find("://") == std::string::npos)
-                {
-                    if (url.find(".") != std::string::npos && url.find(" ") == std::string::npos)
-                    {
-                        url = "https://" + url;
-                    }
-                    else
-                    {
-                        url = "https://www.google.com/search?q=" + url;
-                    }
-                }
-
+                std::string url = normalize_url(input_url);
                 LOG_INFO << "[NOVA] Navigating in current tab to: " << url;
-                if (web_view)
-                {
-                    web_view->load_url(url);
-                }
-                else
-                {
-                    LOG_ERROR << "[NOVA] Cannot navigate: current_tab_body is NULL";
-                }
+                web_view->load_url(url);
             }
         }
 
