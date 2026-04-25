@@ -526,6 +526,11 @@ namespace horizon
                     g_object_set(settings, "enable-back-forward-navigation-gestures", FALSE, NULL);
                 }
                 
+                // SAFETY: Disable accelerated canvas in SHM mode
+                if (g_object_class_find_property(G_OBJECT_GET_CLASS(settings), "enable-accelerated-2d-canvas")) {
+                    g_object_set(settings, "enable-accelerated-2d-canvas", FALSE, NULL);
+                }
+                
                 self->m_web_view = webkit_web_view_new(webkit_backend);
                 webkit_web_view_set_settings(self->m_web_view, settings);
                 
@@ -633,18 +638,17 @@ namespace horizon
                 webkit_user_script_unref(script);
 
 
-                // REGISTER CHANNEL BRIDGE: Dedicated signals for zero-copy communication
                 webkit_user_content_manager_register_script_message_handler(manager, "nova_enter", NULL);
                 webkit_user_content_manager_register_script_message_handler(manager, "nova_exit", NULL);
                 
-                g_signal_connect(manager, "script-message-received::nova_enter", G_CALLBACK(+[](WebKitUserContentManager*, WebKitJavascriptResult*, WebView* self) {
+                g_signal_connect(manager, "script-message-received::nova_enter", G_CALLBACK((+[](WebKitUserContentManager*, JSCValue*, WebView* self) {
                     LOG_INFO << "[WEB-BRIDGE] Direct trigger: ENTER FS";
                     self->on_enter_fullscreen(NULL, self);
-                }), self);
+                })), self);
 
-                g_signal_connect(manager, "script-message-received::nova_exit", G_CALLBACK(+[](WebKitUserContentManager*, WebKitJavascriptResult*, WebView* self) {
+                g_signal_connect(manager, "script-message-received::nova_exit", G_CALLBACK((+[](WebKitUserContentManager*, JSCValue*, WebView* self) {
                     self->on_leave_fullscreen(NULL, self);
-                }), self);
+                })), self);
 
                 
 
@@ -734,14 +738,12 @@ namespace horizon
                 webkit_user_content_manager_add_style_sheet(manager, fs_style);
                 webkit_user_style_sheet_unref(fs_style);
                 
-                // --- SCROLL BEACON SYSTEM ---
-                // Syncs web content dimensions with Horizon OS scrollbars
+                // --- SCROLL BEACON SYSTEM (RECOVERY) ---
                 const char* scroll_beacon_source = 
                     "const scrollBeacon = () => {"
                     "  const y = window.scrollY; const x = window.scrollX;"
                     "  const h = document.documentElement.scrollHeight; const w = document.documentElement.scrollWidth;"
-                    "  const beacon = 'HORIZON_SCROLL:' + y + ' ' + x + ' ' + h + ' ' + w;"
-                    "  document.title = beacon;"
+                    "  document.title = 'HORIZON_SCROLL:' + y + ' ' + x + ' ' + h + ' ' + w;"
                     "};"
                     "window.addEventListener('scroll', () => requestAnimationFrame(scrollBeacon));"
                     "window.addEventListener('resize', () => requestAnimationFrame(scrollBeacon));"
@@ -867,25 +869,17 @@ namespace horizon
             if (title.find("HORIZON_SCROLL:") == 0) {
                 double sy, sx, ch, cw;
                 if (sscanf(title.c_str() + 15, "%lf %lf %lf %lf", &sy, &sx, &ch, &cw) == 4) {
-                    bool changed = false;
-                    {
-                        std::lock_guard<std::mutex> lock{self->m_scroll_mutex};
-                        if (std::abs(self->m_target_scroll_y - sy) >= 1.0 || 
-                            std::abs(self->m_target_content_h - ch) >= 1.0) {
-                            self->m_target_scroll_y = sy;
-                            self->m_target_scroll_x = sx;
-                            self->m_target_content_h = ch;
-                            self->m_target_content_w = cw;
-                            changed = true;
-                        }
-                    }
-                    if (changed) {
-                        self->m_scroll_dirty = true;
-                    }
+                    std::lock_guard<std::mutex> lock{self->m_scroll_mutex};
+                    self->m_target_scroll_y = sy;
+                    self->m_target_scroll_x = sx;
+                    self->m_target_content_h = ch;
+                    self->m_target_content_w = cw;
+                    self->m_scroll_dirty = true;
                     return;
                 }
             }
-
+            
+            // BEACON HANDLING: Intercept clipboard updates masked as title changes
             if (title.find("HORIZON_CLIPBOARD:") == 0) {
                 std::string content = title.substr(18);
                 if (!content.empty()) {
