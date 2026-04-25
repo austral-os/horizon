@@ -523,6 +523,10 @@ namespace horizon
                 
                 self->m_web_view = webkit_web_view_new(webkit_backend);
                 webkit_web_view_set_settings(self->m_web_view, settings);
+
+                // --- CACHE & PERFORMANCE ---
+                WebKitWebContext* context = webkit_web_view_get_context(self->m_web_view);
+                webkit_web_context_set_cache_model(context, WEBKIT_CACHE_MODEL_WEB_BROWSER);
                 
                 // FORCE RESIZE on the actual WebKitWebView GtkWidget-like object
                 int force_w = self->width() > 0 ? self->width() : 1022;
@@ -824,16 +828,15 @@ namespace horizon
                 LOG_ERROR << "CRITICAL: Could not find libWPEBackend-fdo-1.0.so.1 in common paths!";
             }
 
-            // --- WAYFIRE "ZERO ISOLATION" MODE ---
-            // Total sandbox disable to ensure sub-processes see the Wayland socket.
+            // --- BALANCED PERFORMANCE PATH ---
+            // We allow the GPU process and compositing if available, which offloads 
+            // heavy lifting from the CPU.
             g_setenv("WEBKIT_FORCE_SANDBOX", "0", TRUE);
             g_setenv("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1", TRUE);
             
-            // PURE SOFTWARE PATH (No GPU Process, No Compositing)
-            g_setenv("WEBKIT_DISABLE_GPU_PROCESS", "1", TRUE);
-            g_setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", TRUE);
-            g_setenv("WEBKIT_SKIA_ENABLE_CPU_RENDERING", "1", TRUE);
-            g_setenv("WEBKIT_DISABLE_ACCELERATED_2D_CANVAS", "1", TRUE);
+            // We only force SHM for the FDO export, but internal rendering can be accelerated.
+            g_setenv("WPE_FDO_FORCE_SHM", "1", TRUE);
+            g_setenv("WEBKIT_DISABLE_WAYLAND_DISPLAY_CHECK", "1", TRUE);
             
             // DEBUGGING & STABILITY
             g_setenv("WPE_DEBUG", "1", TRUE);
@@ -1148,9 +1151,13 @@ namespace horizon
         {
             auto *self = static_cast<WebView *>(data);
             if (!self || !self->m_exportable) return;
-
-            static int frame_count = 0;
-            if (++frame_count % 30 == 0) {
+            
+            // VISIBILITY OPTIMIZATION: If the widget is not visible (e.g. background tab), 
+            // don't waste CPU cycles copying or rendering.
+            if (!self->is_effectively_visible()) {
+                wpe_view_backend_exportable_fdo_dispatch_release_shm_exported_buffer(self->m_exportable, buffer);
+                wpe_view_backend_exportable_fdo_dispatch_frame_complete(self->m_exportable);
+                return;
             }
 
             struct wl_shm_buffer *shm_buffer = wpe_fdo_shm_exported_buffer_get_shm_buffer(buffer);
