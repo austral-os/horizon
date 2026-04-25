@@ -400,8 +400,14 @@ namespace horizon
                 return FALSE;
             }, cd);
 
-            // Wait for worker thread to finish cleanup
+            // Wait for worker thread to finish cleanup with a safety timeout
+            // to prevent hanging the whole UI if the worker thread is stuck.
+            auto start_wait = std::chrono::steady_clock::now();
             while (!cleanup_done.load()) {
+                if (std::chrono::steady_clock::now() - start_wait > std::chrono::milliseconds(200)) {
+                    LOG_ERROR << "[WEB-STABILITY] Worker thread cleanup timeout! Releasing UI thread to prevent hang.";
+                    break;
+                }
                 std::this_thread::yield();
             }
 
@@ -548,9 +554,16 @@ namespace horizon
                 unsigned long id_dp = g_signal_connect(self->m_web_view, "decide-policy", G_CALLBACK(WebView::on_decide_policy), self);
                 g_signal_connect(self->m_web_view, "context-menu", G_CALLBACK(WebView::on_context_menu), self);
                 
-                g_signal_connect(self->m_web_view, "web-process-terminated", G_CALLBACK(+[](WebKitWebView*, WebKitWebProcessTerminationReason reason, void*) {
+                g_signal_connect(self->m_web_view, "web-process-terminated", G_CALLBACK(+[](WebKitWebView* web_view, WebKitWebProcessTerminationReason reason, WebView* self) {
                     LOG_ERROR << "[WEB-CRITICAL] Web process terminated! Reason: " << reason;
-                }), NULL);
+                    
+                    // AUTO-RECOVERY: If the content process crashes, try to reload it automatically
+                    // to avoid showing a dead/blank tab to the user.
+                    if (reason != WEBKIT_WEB_PROCESS_TERMINATED_BY_API) {
+                        LOG_INFO << "[WEB-STABILITY] Attempting automatic crash recovery (reload)...";
+                        webkit_web_view_reload(web_view);
+                    }
+                }), self);
 
                 LOG_INFO << "[WEB] Signal registration IDs: enter_fs=" << id_fs << ", leave_fs=" << id_ls << ", perm_req=" << id_pr << ", decide_policy=" << id_dp;
 
