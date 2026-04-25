@@ -15,9 +15,6 @@ namespace horizon::files
         item_home->set_path(home);
         add_item("Favorites", std::move(item_home));
 
-        add_item("Favorites",
-                 std::make_unique<horizon::SidebarItem>("folder-remote", "iCloud Drive"));
-
         auto item_apps = std::make_unique<horizon::SidebarItem>("system-run", "Aplicaciones");
         item_apps->set_path("/usr/share/applications");
         add_item("Favorites", std::move(item_apps));
