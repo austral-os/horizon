@@ -132,6 +132,17 @@ namespace horizon
             m_resolved_path = IconThemeLookup::find_icon("system-run", m_icon_size);
         }
     }
+    
+    void Icon::set_opacity(float opacity)
+    {
+        m_opacity = opacity;
+        invalidate();
+    }
+    
+    float Icon::opacity() const
+    {
+        return m_opacity;
+    }
 
     void Icon::draw(GraphicsContext &ctx)
     {
@@ -161,7 +172,7 @@ namespace horizon
             icon_y += (m_available_draw_height - draw_size);
         }
 
-        float alpha = is_enabled() ? 1.0f : 0.4f;
+        float alpha = m_opacity * (is_enabled() ? 1.0f : 0.4f);
         ctx.drawImage(m_resolved_path, icon_x, icon_y, draw_size, draw_size, alpha);
     }
 

@@ -61,6 +61,12 @@ namespace horizon
         int preferred_height() const override;
         int preferred_height(int width) const override;
 
+        /**
+         * @brief Set the icon opacity (0.0 to 1.0).
+         */
+        void set_opacity(float opacity);
+        float opacity() const;
+
     protected:
         void draw(GraphicsContext &ctx) override;
 
@@ -70,6 +76,7 @@ namespace horizon
         VerticalAlignment m_vertical_alignment{VerticalAlignment::Middle};
         TextAlignment m_horizontal_alignment{TextAlignment::Center};
         std::string m_resolved_path;
+        float m_opacity{1.0f};
 
         void resolve_icon();
     };
