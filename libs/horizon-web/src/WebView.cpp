@@ -76,6 +76,7 @@ namespace horizon
             m_is_dragging_v = false;
             m_is_dragging_h = false;
             m_active_button = 0;
+            m_alive_flag = std::make_shared<bool>(true);
 
             // Initialization is now managed by a shared static method called from the worker thread
 
@@ -352,6 +353,7 @@ namespace horizon
 
         WebView::~WebView()
         {
+            *m_alive_flag = false;
             // Disconnect all signals immediately to prevent any worker callbacks to dead UI objects
             when_title_changed.disconnect_all();
             when_url_changed.disconnect_all();
@@ -451,8 +453,10 @@ namespace horizon
                 static auto fs_callback = [](void* data, bool fullscreen) {
                     auto* self = static_cast<WebView*>(data);
                     LOG_INFO << "[WEB] Backend requested fullscreen via reserved0: " << (fullscreen ? "ON" : "OFF");
+                    auto alive = self->m_alive_flag;
                     if (self->application()) {
-                        self->application()->post_task([self, fullscreen]() {
+                        self->application()->post_task([self, alive, fullscreen]() {
+                            if (!*alive) return;
                             bool fs = fullscreen;
                             self->when_fullscreen_changed.run(fs);
                         });
@@ -505,37 +509,29 @@ namespace horizon
                 g_object_get(settings, "enable-fullscreen", &fs_enabled, NULL);
                 LOG_INFO << "[WEB] WebKitSettings enable-fullscreen verified: " << (fs_enabled ? "TRUE" : "FALSE");
 
-                webkit_settings_set_enable_write_console_messages_to_stdout(settings, TRUE);
-                webkit_settings_set_enable_developer_extras(settings, TRUE);
-                webkit_settings_set_enable_media_stream(settings, TRUE);
-                webkit_settings_set_enable_webgl(settings, TRUE);
-                webkit_settings_set_enable_caret_browsing(settings, FALSE);
-                webkit_settings_set_user_agent(settings, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                webkit_settings_set_enable_javascript_markup(settings, TRUE);
+                webkit_settings_set_enable_developer_extras(settings, FALSE);
+                webkit_settings_set_enable_media_stream(settings, FALSE);
+                webkit_settings_set_enable_webgl(settings, FALSE);
+                webkit_settings_set_enable_smooth_scrolling(settings, FALSE);
+                webkit_settings_set_enable_page_cache(settings, TRUE);
                 webkit_settings_set_allow_modal_dialogs(settings, TRUE);
                 webkit_settings_set_javascript_can_access_clipboard(settings, TRUE);
                 webkit_settings_set_media_playback_requires_user_gesture(settings, FALSE);
                 webkit_settings_set_media_playback_allows_inline(settings, TRUE);
+                webkit_settings_set_user_agent(settings, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
                 
-                // Explicitly DISABLE gestures as they might hijack selection dragging
+                // PERFORMANCE: Disable non-essential expensive features
                 if (g_object_class_find_property(G_OBJECT_GET_CLASS(settings), "enable-back-forward-navigation-gestures")) {
                     g_object_set(settings, "enable-back-forward-navigation-gestures", FALSE, NULL);
                 }
                 
                 self->m_web_view = webkit_web_view_new(webkit_backend);
                 webkit_web_view_set_settings(self->m_web_view, settings);
-
+                
                 // --- CACHE & PERFORMANCE ---
                 WebKitWebContext* context = webkit_web_view_get_context(self->m_web_view);
                 webkit_web_context_set_cache_model(context, WEBKIT_CACHE_MODEL_WEB_BROWSER);
-                
-                // FORCE RESIZE on the actual WebKitWebView GtkWidget-like object
-                int force_w = self->width() > 0 ? self->width() : 1022;
-                int force_h = self->height() > 0 ? self->height() : 620;
-                // wpe_view_backend_dispatch_set_size(self->m_backend, force_w, force_h); // Already tried, maybe redundant
-                
-                g_object_unref(settings);
-
-                LOG_INFO << "WebView created with performance optimizations for WebView: " << self;
 
                 g_signal_connect(self->m_web_view, "mouse-target-changed", G_CALLBACK(+[](WebKitWebView*, WebKitHitTestResult*, guint, void*) {
                 }), NULL);
@@ -828,13 +824,13 @@ namespace horizon
                 LOG_ERROR << "CRITICAL: Could not find libWPEBackend-fdo-1.0.so.1 in common paths!";
             }
 
-            // --- BALANCED PERFORMANCE PATH ---
-            // We allow the GPU process and compositing if available, which offloads 
-            // heavy lifting from the CPU.
+            // --- ACCELERATED PERFORMANCE PATH ---
+            // Now that we have frame throttling, we can safely enable the GPU process 
+            // and compositing to offload work from the CPU.
             g_setenv("WEBKIT_FORCE_SANDBOX", "0", TRUE);
             g_setenv("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1", TRUE);
             
-            // We only force SHM for the FDO export, but internal rendering can be accelerated.
+            // We only force SHM for the FDO export to remain compatible with Cairo.
             g_setenv("WPE_FDO_FORCE_SHM", "1", TRUE);
             g_setenv("WEBKIT_DISABLE_WAYLAND_DISPLAY_CHECK", "1", TRUE);
             
@@ -1151,14 +1147,10 @@ namespace horizon
         {
             auto *self = static_cast<WebView *>(data);
             if (!self || !self->m_exportable) return;
-            
-            // VISIBILITY OPTIMIZATION: If the widget is not visible (e.g. background tab), 
-            // don't waste CPU cycles copying or rendering.
-            if (!self->is_effectively_visible()) {
-                wpe_view_backend_exportable_fdo_dispatch_release_shm_exported_buffer(self->m_exportable, buffer);
-                wpe_view_backend_exportable_fdo_dispatch_frame_complete(self->m_exportable);
-                return;
-            }
+
+            // VSYNC SYNC: We handle the buffer release but DELAY the frame_complete
+            // until the UI thread has actually drawn this frame.
+            // This forces WPEWebProcess to throttle its rendering to our refresh rate.
 
             struct wl_shm_buffer *shm_buffer = wpe_fdo_shm_exported_buffer_get_shm_buffer(buffer);
             if (!shm_buffer)
@@ -1187,6 +1179,8 @@ namespace horizon
                     cairo_surface_flush(self->m_cairo_surface);
                     std::memcpy(dest, buffer_data, stride * height);
                     cairo_surface_mark_dirty(self->m_cairo_surface);
+                    self->m_waiting_for_draw.store(true);
+                    self->m_pending_ack.store(true);
                 }
             }
 
@@ -1218,16 +1212,19 @@ namespace horizon
                                 wpe_view_backend_dispatch_did_exit_fullscreen(self->m_backend);
                             }
                             
+                            
+                            auto alive = self->m_alive_flag;
                             if (self->application()) {
-                                self->application()->post_task([self]() {
-                                // Reinforce FS geometry in JS
-                                char fs_js[512];
-                                snprintf(fs_js, sizeof(fs_js), 
-                                    "window.dispatchEvent(new Event('resize'));"
-                                    "if(window.screen) { try { Object.defineProperty(screen, 'width', { value: %d, configurable: true }); Object.defineProperty(screen, 'height', { value: %d, configurable: true }); } catch(e) {} }",
-                                    self->application() ? self->application()->width() : 1920, 
-                                    self->application() ? self->application()->height() : 1080);
-                                webkit_web_view_evaluate_javascript(self->m_web_view, fs_js, -1, NULL, NULL, NULL, NULL, NULL);
+                                self->application()->post_task([self, alive]() {
+                                    if (!*alive) return;
+                                    // Reinforce FS geometry in JS
+                                    char fs_js[512];
+                                    snprintf(fs_js, sizeof(fs_js), 
+                                        "window.dispatchEvent(new Event('resize'));"
+                                        "if(window.screen) { try { Object.defineProperty(screen, 'width', { value: %d, configurable: true }); Object.defineProperty(screen, 'height', { value: %d, configurable: true }); } catch(e) {} }",
+                                        self->application() ? self->application()->width() : 1920, 
+                                        self->application() ? self->application()->height() : 1080);
+                                    webkit_web_view_evaluate_javascript(self->m_web_view, fs_js, -1, NULL, NULL, NULL, NULL, NULL);
                                 });
                             }
                         }
@@ -1235,12 +1232,14 @@ namespace horizon
                     }, self);
                 }
             }
-
+            
             wpe_view_backend_exportable_fdo_dispatch_release_shm_exported_buffer(self->m_exportable, buffer);
-            wpe_view_backend_exportable_fdo_dispatch_frame_complete(self->m_exportable);
+            // WE DO NOT CALL frame_complete here. It will be called from draw() via a task.
             
             if (self->application()) {
-                self->application()->post_task([self]() {
+                auto alive = self->m_alive_flag;
+                self->application()->post_task([self, alive]() {
+                    if (!*alive) return;
                     // Frame-Synced Invalidation:
                     // We only invalidate if WebKit sent a new frame OR the scrollbar state is dirty.
                     // This couples the OS scrollbars to the browser engine's vsync.
@@ -1363,6 +1362,18 @@ namespace horizon
                 cairo_t *cr = (cairo_t *)ctx.getNativeContext();
                 cairo_set_source_surface(cr, m_cairo_surface, x(), y());
                 cairo_paint(cr);
+                m_waiting_for_draw.store(false);
+                
+                if (m_pending_ack.exchange(false)) {
+                    // Now that we've drawn the frame, tell WPE it can send the next one.
+                    g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+                        WebView* self = static_cast<WebView*>(data);
+                        if (self->m_exportable) {
+                            wpe_view_backend_exportable_fdo_dispatch_frame_complete(self->m_exportable);
+                        }
+                        return FALSE;
+                    }, this);
+                }
             }
 
             // Draw Horizon-style scrollbars (Aqua feel) - IMPROVED GLASS TUBE
@@ -1456,6 +1467,7 @@ namespace horizon
             }
 
             Widget::calculate_layout();
+            m_is_visible_cached.store(is_effectively_visible());
 
             if (m_initialized && m_backend && width() > 0 && height() > 0 && s_worker_context)
             {

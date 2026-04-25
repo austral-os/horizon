@@ -141,6 +141,10 @@ private:
 
     // Production-grade stability members
     std::atomic<bool> m_scroll_dirty{false};
+    std::atomic<bool> m_is_visible_cached{true};
+    std::atomic<bool> m_waiting_for_draw{false};
+    std::atomic<bool> m_pending_ack{false};
+    std::shared_ptr<bool> m_alive_flag;
     double m_target_scroll_x = 0, m_target_scroll_y = 0;
     double m_target_content_w = 0, m_target_content_h = 0;
     
