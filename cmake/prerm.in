@@ -7,6 +7,11 @@ case "$1" in
         if [ -x /usr/bin/update-desktop-database ]; then
             update-desktop-database -q
         fi
+
+        # Update MIME database
+        if [ -x /usr/bin/update-mime-database ]; then
+            update-mime-database /usr/share/mime
+        fi
     ;;
 
     failed-upgrade)
