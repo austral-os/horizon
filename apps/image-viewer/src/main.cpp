@@ -23,8 +23,6 @@ int main(int argc, char** argv) {
         for (int i = 1; i < argc; ++i) {
             window->open_file(argv[i]);
         }
-    } else {
-        window->open_file("/home/horacio/Desarrollo/austral-os/horizon/examples/img-stock/1.png");
     }
     
     app.set_root(std::move(window));
