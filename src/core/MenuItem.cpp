@@ -6,6 +6,7 @@
 #include <horizon/Menu.hpp>
 #include <horizon/MenuItem.hpp>
 #include <horizon/ThemeManager.hpp>
+#include <linux/input-event-codes.h>
 
 namespace horizon
 {
@@ -38,25 +39,28 @@ namespace horizon
             });
 
         when_mouse_leave.connect([this](EventContext &) { set_selected(false); });
+        
+        when_mouse_press.connect([this](MouseButtonEventContext &ev) {
+            if (m_has_submenu) {
+                ev.stop_propagation = true;
+            }
+        });
 
-        when_mouse_press.connect(
+        when_mouse_release.connect(
             [this](MouseButtonEventContext &ev)
             {
-                if (m_has_submenu)
-                {
-                    ev.stop_propagation = true;
-                }
-
-                if (!is_enabled())
+                if (!is_enabled() || ev.button != BTN_LEFT)
                     return;
+
+                LOG_INFO << "[MENUITEM] Triggering action for: " << text();
+
+                // Trigger click signal for external listeners (like ArkFM)
+                when_click.run(ev);
 
                 auto app = application();
                 if (app && m_emit_signal_manager)
                 {
-                    // Capture necessary state before potential destruction
                     std::string signal_name = m_id.empty() ? text() : m_id;
-
-                    // Emit signal - THIS WIDGET MAY BE DESTROYED AFTER THIS
                     app->signal_manager.emit(signal_name, this);
                 }
             });

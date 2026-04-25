@@ -305,9 +305,17 @@ namespace horizon
             // Context Menu (Horizon Style)
             when_right_click.connect([this](MouseButtonEventContext &ctx) {
                 if (application()) {
-                    auto menu = std::make_unique<horizon::Menu>();
-                    application()->show_context_menu(menu.release(), -1, -1, ctx.serial, this);
+                    m_active_context_menu = std::make_unique<horizon::Menu>();
+                    application()->show_context_menu(m_active_context_menu.get(), -1, -1, ctx.serial, this);
                     ctx.stop_propagation = true;
+                }
+            });
+
+            when_application_load.connect([this](EventContext&) {
+                if (application()) {
+                    application()->when_popup_dismissed.connect([this](PopupDismissedContext &) {
+                        m_active_context_menu.reset();
+                    });
                 }
             });
 

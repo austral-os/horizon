@@ -49,6 +49,9 @@ namespace horizon
             void on_resize(int width, int height) override {}
             void on_activated(bool active) override {}
             void on_close() override;
+            
+            bool is_active() const { return m_window != nullptr; }
+            void deactivate() { m_window = nullptr; }
         };
 
     public:
@@ -168,6 +171,7 @@ namespace horizon
         std::vector<std::string> get_clipboard_mime_types() const;
         void show_context_menu(Menu *menu, int x = -1, int y = -1, uint32_t serial = 0,
                                Widget *owner = nullptr);
+        void hide_context_menu();
         void close_context_menu(bool emit_signal = true, uint32_t serial = 0);
         void show_tooltip(Widget *owner, Notification *tooltip);
         void hide_tooltip();

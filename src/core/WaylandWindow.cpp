@@ -398,7 +398,7 @@ namespace horizon
 
     void WaylandWindow::run()
     {
-
+        LOG_INFO << "[WINDOW] Starting event loop for app_id: " << m_app_id;
         m_is_running = true;
         if (m_use_global_menu)
         {
@@ -1241,7 +1241,18 @@ namespace horizon
 
         if (m_popup_listener)
         {
-            m_popup_listener->on_pointer_event(event);
+            // Keep listener alive during processing even if it gets cleared from m_window
+            auto keep_alive = std::move(m_popup_listener);
+            m_popup_listener = nullptr; 
+            
+            keep_alive->on_pointer_event(event);
+            
+            // If the listener didn't close the menu, restore it.
+            // We check m_popup_menu because a hidden menu (via hide_context_menu)
+            // still has m_popup_menu != nullptr and needs its listener for the release event.
+            if (m_popup_menu != nullptr && !m_popup_listener) {
+                m_popup_listener = std::move(keep_alive);
+            }
             return;
         }
 
@@ -1458,14 +1469,12 @@ namespace horizon
 
     void WaylandWindow::PopupEventListener::on_pointer_event(const PointerEvent &event)
     {
-        if (event.serial == m_opening_serial && (event.type == PointerEvent::Type::Press || event.type == PointerEvent::Type::Release))
+        if (!m_window || !m_window->m_popup_menu)
         {
-            LOG_INFO << "[POPUP] Discarding event with opening serial: " << event.serial;
             return;
         }
 
-        if (!m_window->m_popup_menu)
-            return;
+        LOG_INFO << "[POPUP_EV] Type: " << (int)event.type << " at (" << event.x << ", " << event.y << ") serial: " << event.serial;
 
         int x = (int)event.x;
         int y = (int)event.y;
@@ -1478,11 +1487,6 @@ namespace horizon
         if (!under && event.type == PointerEvent::Type::Press)
         {
             LOG_INFO << "[POPUP] Click outside popup detected on main window. Closing menu.";
-            
-            // We must clear the listener from the window BEFORE calling close_context_menu
-            // or re-dispatching, to avoid recursion and ensure normal event flow.
-            auto listener = std::move(m_window->m_popup_listener);
-            m_window->m_popup_listener = nullptr;
             
             m_window->close_context_menu();
             
@@ -1635,6 +1639,7 @@ namespace horizon
                 ev.modifiers = m_window->m_modifiers;
                 ev.serial = event.serial;
                 ev.stop_propagation = true; // IMPORTANT: Prevent propagation to main window
+
                 for (Widget *w : chain)
                 {
                     ev.sender = w;
@@ -1649,7 +1654,6 @@ namespace horizon
                     }
                     w->when_mouse_release.run(ev);
                 }
-                m_window->invalidate();
                 
                 m_window->close_context_menu();
             }
@@ -1688,6 +1692,7 @@ namespace horizon
     void WaylandWindow::PopupEventListener::on_close()
     {
         m_window->close_context_menu();
+        m_window = nullptr;
     }
 
     void WaylandWindow::handle_move(const PointerEvent &event)
@@ -2750,6 +2755,15 @@ namespace horizon
         invalidate();
     }
 
+    void WaylandWindow::hide_context_menu()
+    {
+        if (m_popup_menu)
+        {
+            m_popup_menu->set_visible(false);
+        }
+        invalidate();
+    }
+
     void WaylandWindow::close_context_menu(bool emit_signal, uint32_t serial)
     {
         if (m_popup_menu)
@@ -2761,14 +2775,21 @@ namespace horizon
         if (m_popup_surface || m_popup_listener)
         {
             m_popup_surface = nullptr;
+            if (m_popup_listener)
+            {
+                m_popup_listener->deactivate();
+            }
             m_popup_listener = nullptr;
         }
         invalidate();
+
         if (emit_signal)
         {
-            PopupDismissedContext ctx;
-            ctx.serial = serial;
-            when_popup_dismissed.run(ctx);
+            post_task([this, serial]() {
+                PopupDismissedContext ctx;
+                ctx.serial = serial;
+                when_popup_dismissed.run(ctx);
+            });
         }
     }
 

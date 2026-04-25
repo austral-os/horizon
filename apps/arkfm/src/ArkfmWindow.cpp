@@ -172,22 +172,26 @@ namespace horizon::arkfm
                         {
                             if (!ctx.stop_propagation)
                             {
-                                auto menu = std::make_unique<horizon::Menu>();
-                                auto item_new = menu->add_item("Nueva carpeta");
+                                m_active_context_menu = std::make_unique<horizon::Menu>();
+                                auto item_new = m_active_context_menu->add_item("Nueva carpeta");
                                 item_new->when_click.connect([this](auto &)
                                                              { this->handle_new_folder(); });
 
-                                menu->add_separator();
+                                m_active_context_menu->add_separator();
 
-                                auto item_props = menu->add_item("Propiedades");
+                                auto item_props = m_active_context_menu->add_item("Propiedades");
                                 item_props->when_click.connect([this](auto &)
                                                                { this->handle_properties(); });
 
-                                application()->show_context_menu(menu.release(), -1, -1, ctx.serial,
+                                application()->show_context_menu(m_active_context_menu.get(), -1, -1, ctx.serial,
                                                                  this->m_view_ptr);
                                 ctx.stop_propagation = true;
                             }
                         });
+
+                    application()->when_popup_dismissed.connect([this](PopupDismissedContext &) {
+                        m_active_context_menu.reset();
+                    });
                 }
             });
     }
@@ -198,8 +202,9 @@ namespace horizon::arkfm
         if (!m_view_ptr)
             return;
 
-        auto dialog = std::make_unique<NewFolderDialog>();
-        dialog->when_accepted.connect(
+        application()->post_task([this]() {
+            auto dialog = std::make_unique<NewFolderDialog>();
+            dialog->when_accepted.connect(
             [this](NewFolderEvent &ctx)
             {
                 std::string full_path = m_view_ptr->current_path() + "/" + ctx.folder_name;
@@ -225,7 +230,8 @@ namespace horizon::arkfm
                     }
                 }).detach();
             });
-        dialog->run();
+            dialog->run();
+        });
     }
 
     void ArkfmWindow::handle_rename(const std::string &path)
@@ -318,8 +324,10 @@ namespace horizon::arkfm
             f = sel[0];
         }
 
-        auto dialog = std::make_unique<PropertiesDialog>(f);
-        dialog->run();
+        application()->post_task([this, f]() {
+            auto dialog = std::make_unique<PropertiesDialog>(f);
+            dialog->run();
+        });
     }
 
 

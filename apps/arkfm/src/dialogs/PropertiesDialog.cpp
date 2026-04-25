@@ -10,6 +10,7 @@
 #include "horizon/Spacer.hpp"
 #include "horizon/Window.hpp"
 #include "horizon/I18n.hpp"
+#include "horizon/Logger.hpp"
 #include <chrono>
 #include <iomanip>
 #include <sstream>
@@ -25,6 +26,7 @@ namespace horizon::arkfm
 
     void PropertiesDialog::setup_ui()
     {
+        LOG_INFO << "[DIALOG] Setting up PropertiesDialog UI...";
         auto window_widget = std::make_unique<horizon::Window>(i18n().tr("arkfm.dialog.properties"));
 
         auto root_panel = std::make_unique<horizon::Widget>();

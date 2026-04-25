@@ -35,6 +35,7 @@ namespace horizon::arkfm
         files::FileView *m_view_ptr{nullptr};
         horizon::Label *m_status_label{nullptr};
         horizon::ProgressBar *m_progress_bar{nullptr};
+        std::unique_ptr<horizon::Menu> m_active_context_menu;
 
     };
 
