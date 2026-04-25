@@ -116,17 +116,6 @@ namespace horizon::arkfm
             
             menu->add_separator();
             
-            auto item_copy = menu->add_item("Copiar");
-            item_copy->when_click.connect([this](auto&) { this->m_view_ptr->perform(ClipboardAction::Copy); });
-            
-            auto item_cut = menu->add_item("Cortar");
-            item_cut->when_click.connect([this](auto&) { this->m_view_ptr->perform(ClipboardAction::Cut); });
-            
-            auto item_paste = menu->add_item("Pegar");
-            item_paste->when_click.connect([this](auto&) { this->m_view_ptr->perform(ClipboardAction::Paste); });
-            
-            menu->add_separator();
-            
             auto item_rename = menu->add_item("Renombrar");
             item_rename->when_click.connect([this, f](auto&) { this->handle_rename(f.path); });
             
@@ -154,20 +143,8 @@ namespace horizon::arkfm
                 if (application())
                 {
                     application()->signal_manager.connect(
-                        "new-folder",
-                        [this, view_ptr](SignalContext &)
-                        {
-                            auto dialog = std::make_unique<NewFolderDialog>();
-                            dialog->when_accepted.connect(
-                                [this, view_ptr](NewFolderEvent &ctx)
-                                {
-                                    std::string full_path =
-                                        view_ptr->current_path() + "/" + ctx.folder_name;
-                                    arkutils::FileOperations::create_directory(full_path);
-                                    view_ptr->navigate_to(view_ptr->current_path());
-                                });
-                            dialog->run();
-                        });
+                        "new-folder", [this](SignalContext &)
+                        { this->handle_new_folder(); });
 
                     application()->signal_manager.connect(
                         "delete", [this](SignalContext &)
@@ -179,10 +156,67 @@ namespace horizon::arkfm
                     application()->signal_manager.connect(
                         "properties", [this](SignalContext &)
                         { handle_properties(); });
+
+                    m_view_ptr->when_right_click.connect(
+                        [this](MouseButtonEventContext &ctx)
+                        {
+                            if (!ctx.stop_propagation)
+                            {
+                                auto menu = std::make_unique<horizon::Menu>();
+                                auto item_new = menu->add_item("Nueva carpeta");
+                                item_new->when_click.connect([this](auto &)
+                                                             { this->handle_new_folder(); });
+
+                                menu->add_separator();
+
+                                auto item_props = menu->add_item("Propiedades");
+                                item_props->when_click.connect([this](auto &)
+                                                               { this->handle_properties(); });
+
+                                application()->show_context_menu(menu.release(), -1, -1, ctx.serial,
+                                                                 this->m_view_ptr);
+                                ctx.stop_propagation = true;
+                            }
+                        });
                 }
             });
     }
 
+
+    void ArkfmWindow::handle_new_folder()
+    {
+        if (!m_view_ptr)
+            return;
+
+        auto dialog = std::make_unique<NewFolderDialog>();
+        dialog->when_accepted.connect(
+            [this](NewFolderEvent &ctx)
+            {
+                std::string full_path = m_view_ptr->current_path() + "/" + ctx.folder_name;
+                show_status_message("Creando carpeta...");
+                auto future = arkutils::FileOperations::create_directory(full_path);
+                std::thread([this, f = std::move(future)]() mutable {
+                    auto result = f.get();
+                    if (application())
+                    {
+                        application()->post_task([this, result]() {
+                            if (result == arkutils::FileOperations::Result::Success)
+                            {
+                                show_status_message("Carpeta creada");
+                                if (m_view_ptr)
+                                    m_view_ptr->navigate_to(m_view_ptr->current_path());
+                            }
+                            else
+                            {
+                                application()->alert("No se pudo crear la carpeta.", "Error",
+                                                   MessageType::Error);
+                            }
+                        });
+                    }
+                }).detach();
+            });
+        dialog->run();
+    }
 
     void ArkfmWindow::handle_rename(const std::string &path)
     {

@@ -26,6 +26,7 @@ namespace horizon::arkfm
         void handle_delete(const std::string &path);
         void handle_open();
         void handle_properties();
+        void handle_new_folder();
 
 
         void show_status_message(const std::string &msg, int timeout_ms = 3000);

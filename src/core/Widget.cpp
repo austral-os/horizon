@@ -96,12 +96,14 @@ namespace horizon
                                     {
                                         application()->show_context_menu(m_context_menu.get(), -1, -1,
                                                                          ev.serial, this);
+                                        ev.stop_propagation = true;
                                     }
                                     else if (supports_fullscreen())
                                     {
                                         auto temp_menu = std::make_unique<Menu>();
                                         application()->show_context_menu(temp_menu.release(), -1, -1,
                                                                          ev.serial, this);
+                                        ev.stop_propagation = true;
                                     }
                                 }
                             }
