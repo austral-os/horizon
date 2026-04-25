@@ -14,6 +14,7 @@
 #include "horizon/VPanel.hpp"
 #include "horizon/Widget.hpp"
 #include "horizon/arkutils/FileOperations.hpp"
+#include "horizon/ApplicationLauncher.hpp"
 #include "horizon/Menu.hpp"
 #include <filesystem>
 #include <memory>
@@ -106,6 +107,15 @@ namespace horizon::arkfm
             [view_ptr](files::SearchChangedEvent &ctx)
             {
                 view_ptr->set_search_query(ctx.query);
+            });
+
+        m_view_ptr->when_item_opened.connect(
+            [](const arkutils::FileInfo &f)
+            {
+                if (f.type == arkutils::FileType::Regular)
+                {
+                    ApplicationLauncher::open_file(f.path);
+                }
             });
 
         m_view_ptr->set_context_menu_factory([this](const arkutils::FileInfo &f) {
