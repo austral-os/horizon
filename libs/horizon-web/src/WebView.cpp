@@ -66,6 +66,7 @@ namespace horizon
             } while (!s_last_time.compare_exchange_weak(last, next));
             return next;
         }
+        bool WebView::s_gpu_enabled = false;
 
         WebView::WebView()
         {
@@ -512,7 +513,7 @@ namespace horizon
                 webkit_settings_set_enable_javascript_markup(settings, TRUE);
                 webkit_settings_set_enable_developer_extras(settings, FALSE);
                 webkit_settings_set_enable_media_stream(settings, FALSE);
-                webkit_settings_set_enable_webgl(settings, FALSE);
+                webkit_settings_set_enable_webgl(settings, s_gpu_enabled);
                 webkit_settings_set_enable_smooth_scrolling(settings, FALSE);
                 webkit_settings_set_enable_page_cache(settings, TRUE);
                 webkit_settings_set_allow_modal_dialogs(settings, TRUE);
@@ -526,9 +527,9 @@ namespace horizon
                     g_object_set(settings, "enable-back-forward-navigation-gestures", FALSE, NULL);
                 }
                 
-                // SAFETY: Disable accelerated canvas in SHM mode
+                // PERFORMANCE: Toggle accelerated canvas based on preference
                 if (g_object_class_find_property(G_OBJECT_GET_CLASS(settings), "enable-accelerated-2d-canvas")) {
-                    g_object_set(settings, "enable-accelerated-2d-canvas", FALSE, NULL);
+                    g_object_set(settings, "enable-accelerated-2d-canvas", s_gpu_enabled, NULL);
                 }
                 
                 self->m_web_view = webkit_web_view_new(webkit_backend);

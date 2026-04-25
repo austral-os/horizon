@@ -1,9 +1,14 @@
 #include "BrowserWindow.hpp"
+#include "horizon/GroupButton.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/Spacer.hpp"
-#include "horizon/GroupButton.hpp"
+#include <fstream>
 #include <memory>
+#include <nlohmann/json.hpp>
+#include <pwd.h>
 #include <string>
+#include <sys/types.h>
+#include <unistd.h>
 
 namespace horizon
 {
@@ -12,13 +17,28 @@ namespace horizon
 
         const std::string DEFAULT_URL = "about:blank";
 
-        BrowserWindow::BrowserWindow(const std::string& initial_url) : ApplicationWindow("Nova Web Browser")
+        BrowserWindow::BrowserWindow(const std::string &initial_url)
+            : ApplicationWindow("Nova Web Browser")
         {
             set_size(1024, 768);
+
+            // 1. Determine config path
+            const char *home = getenv("HOME");
+            if (home)
+            {
+                m_config_path = std::string(home) + "/.config/horizon/nova.json";
+            }
+            else
+            {
+                m_config_path = "nova.json";
+            }
+
+            load_preferences();
+
             setup_ui(initial_url);
         }
 
-        void BrowserWindow::setup_ui(const std::string& initial_url)
+        void BrowserWindow::setup_ui(const std::string &initial_url)
         {
             // 1. Nova Toolbar
             auto nova_toolbar = std::make_unique<NovaToolbar>();
@@ -60,19 +80,15 @@ namespace horizon
             m_tabs->when_add_tab_clicked.connect([this](EventContext &)
                                                  { this->create_new_tab(DEFAULT_URL); });
 
-            m_tabs->when_tab_close_requested.connect([this](int index) {
-                application()->post_task([this, index]() {
-                    m_tabs->remove_tab(index);
-                });
-            });
+            m_tabs->when_tab_close_requested.connect(
+                [this](int index)
+                { application()->post_task([this, index]() { m_tabs->remove_tab(index); }); });
 
-            m_tabs->when_items_changed.connect([this](int count) {
-                m_toolbar->show_add_tab_button(count == 1);
-            });
+            m_tabs->when_items_changed.connect([this](int count)
+                                               { m_toolbar->show_add_tab_button(count == 1); });
 
-            m_toolbar->add_tab_button()->when_button_clicked.connect([this](horizon::GroupButtonClickEvent &) {
-                this->create_new_tab(DEFAULT_URL);
-            });
+            m_toolbar->add_tab_button()->when_button_clicked.connect(
+                [this](horizon::GroupButtonClickEvent &) { this->create_new_tab(DEFAULT_URL); });
 
             m_tabs->when_tab_selected.connect(
                 [this](int index)
@@ -108,11 +124,20 @@ namespace horizon
             m_toolbar->when_bookmark_clicked.connect([this](BookmarkButtonClickEvent &)
                                                      { LOG_INFO << "[NOVA] Bookmarks clicked"; });
 
-            m_toolbar->when_options_clicked.connect([this](OptionsButtonClickEvent &)
-                                                    { LOG_INFO << "[NOVA] Options clicked"; });
+            m_toolbar->when_options_clicked.connect(
+                [this](OptionsButtonClickEvent &)
+                {
+                    if (this->application())
+                        this->application()->show_preferences();
+                });
 
             // Initial tab
-            create_new_tab(initial_url.empty() ? DEFAULT_URL : initial_url);
+            std::string start_url = initial_url;
+            if (start_url.empty())
+            {
+                start_url = m_homepage.empty() ? DEFAULT_URL : m_homepage;
+            }
+            create_new_tab(start_url);
 
             set_content(std::move(tabs));
         }
@@ -200,6 +225,37 @@ namespace horizon
                 std::string url = normalize_url(input_url);
                 LOG_INFO << "[NOVA] Navigating in current tab to: " << url;
                 web_view->load_url(url);
+            }
+        }
+
+        void BrowserWindow::load_preferences()
+        {
+            std::ifstream f(m_config_path);
+            if (!f.is_open())
+                return;
+
+            try
+            {
+                nlohmann::json j;
+                f >> j;
+
+                if (j.contains("general"))
+                {
+                    auto general = j["general"];
+                    if (general.contains("homepage"))
+                    {
+                        m_homepage = general["homepage"].get<std::string>();
+                    }
+                    if (general.contains("use_gpu"))
+                    {
+                        bool use_gpu = general["use_gpu"].get<bool>();
+                        web::WebView::set_gpu_enabled(use_gpu);
+                    }
+                }
+            }
+            catch (const std::exception &e)
+            {
+                LOG_ERROR << "[NOVA] Error loading preferences: " << e.what();
             }
         }
 

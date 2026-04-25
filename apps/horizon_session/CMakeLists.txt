@@ -147,6 +147,14 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/text-editor.json")
     )
 endif()
 
+# --- Nova Config ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/nova.json")
+    install(FILES data/nova.json
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
+
 # --- License ---
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/license_lgplv3.txt")
     install(FILES data/license_lgplv3.txt

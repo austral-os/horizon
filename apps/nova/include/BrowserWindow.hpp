@@ -22,11 +22,15 @@ private:
     void setup_ui(const std::string& initial_url = "");
     void navigate_to_url(const std::string& url);
     void create_new_tab(const std::string& url = "about:blank");
+    void load_preferences();
 
     TabCollection* m_tabs = nullptr;
     NovaToolbar* m_toolbar = nullptr;
     Label* m_status_label = nullptr;
     ProgressBar* m_progress_bar = nullptr;
+
+    std::string m_config_path;
+    std::string m_homepage;
 };
 
 } // namespace nova

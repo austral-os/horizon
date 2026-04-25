@@ -167,6 +167,13 @@ private:
 
     // Clipboard Content Cache
     std::string m_clipboard_content;
+
+public:
+    static void set_gpu_enabled(bool enabled) { s_gpu_enabled = enabled; }
+    static bool is_gpu_enabled() { return s_gpu_enabled; }
+
+private:
+    static bool s_gpu_enabled;
 };
 
 } // namespace web
