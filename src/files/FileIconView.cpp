@@ -109,6 +109,7 @@ namespace horizon::files
     {
         set_position_type(FILL);
         set_zoom(1.5f);
+        set_focusable(true);
         m_current_path = std::move(path);
         m_fs_model = std::make_unique<arkutils::FileSystemModel>();
 

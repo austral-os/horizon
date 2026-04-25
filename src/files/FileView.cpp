@@ -20,6 +20,7 @@ namespace horizon::files
           m_history(std::make_unique<FileHistory>())
     {
         m_history->push(m_current_path);
+        set_focusable(true);
         set_view_mode(ViewMode::List);
     }
 

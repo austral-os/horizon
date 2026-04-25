@@ -2667,6 +2667,17 @@ namespace horizon
                 copy->set_id("copy");
                 paste->set_id("paste");
 
+                cut->set_emit_signal_manager(false);
+                copy->set_emit_signal_manager(false);
+                paste->set_emit_signal_manager(false);
+
+                cut->when_click.connect([clipboard_target](auto &)
+                                        { clipboard_target->perform(ClipboardAction::Cut); });
+                copy->when_click.connect([clipboard_target](auto &)
+                                         { clipboard_target->perform(ClipboardAction::Copy); });
+                paste->when_click.connect([clipboard_target](auto &)
+                                          { clipboard_target->perform(ClipboardAction::Paste); });
+
                 cut->set_enabled(clipboard_target->can_perform(ClipboardAction::Cut));
                 copy->set_enabled(clipboard_target->can_perform(ClipboardAction::Copy));
                 paste->set_enabled(clipboard_target->can_perform(ClipboardAction::Paste));

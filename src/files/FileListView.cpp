@@ -16,6 +16,7 @@ namespace horizon::files
         m_fs_model = std::make_unique<arkutils::FileSystemModel>();
 
         set_width_mode(horizon::TableViewWidthMode::Fill);
+        set_focusable(true);
 
         TableColumn<arkutils::FileInfo> col_icon;
         col_icon.id = "icon";

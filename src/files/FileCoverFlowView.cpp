@@ -40,6 +40,7 @@ namespace horizon::files
     {
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_position_type(FILL);
+        set_focusable(true);
 
         m_fs_model = std::make_unique<arkutils::FileSystemModel>();
 
