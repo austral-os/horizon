@@ -15,6 +15,7 @@
       "storage": "Storage",
       "memory": "Memory"
     },
-    "status": "System Information"
+    "status": "System Information",
+    "about": "View system information and hardware specifications."
   }
 }

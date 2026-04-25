@@ -15,6 +15,7 @@
       "storage": "Almacenamiento",
       "memory": "Memoria"
     },
-    "status": "Información del Sistema"
+    "status": "Información del Sistema",
+    "about": "Ver información del sistema y especificaciones de hardware."
   }
 }

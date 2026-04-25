@@ -119,63 +119,7 @@ target_link_libraries(main_window
 # --- Packaging ---
 include(cmake/HorizonPackaging.cmake)
 
-add_subdirectory(apps/top_panel)
-add_subdirectory(apps/dock)
-add_subdirectory(apps/horizon_wall)
-
-
-
-add_subdirectory(apps/horizon_session)
-
-
-
-add_subdirectory(apps/aboutus)
-
-
-
-add_executable(files_demo
-    examples/files-demo/FilesDemo.cpp
-)
-
-target_link_libraries(files_demo
-    PRIVATE
-        horizon
-)
-
-add_subdirectory(apps/arkfm)
-
-
-add_executable(mouse_wheel_test
-    tests/mouse_wheel_test.cpp
-)
-
-target_link_libraries(mouse_wheel_test
-    PRIVATE
-        horizon
-)
-
-add_executable(absolute_position_test
-    tests/absolute_position_test.cpp
-)
-
-target_link_libraries(absolute_position_test
-    PRIVATE
-        horizon
-)
-
-add_executable(multiwindow
-    examples/multiwindow/main.cpp
-)
-
-target_link_libraries(multiwindow
-    PRIVATE
-        horizon
-)
-
-add_subdirectory(apps/launchpad)
-
-add_subdirectory(apps/preferences)
-
+# --- Libraries ---
 add_subdirectory(libs/horizon-overview)
 add_subdirectory(libs/horizon-terminal)
 add_subdirectory(libs/horizon-web)
@@ -185,6 +129,15 @@ add_subdirectory(libs/horizon-text)
 add_subdirectory(libs/horizon-disk-utilities)
 add_subdirectory(libs/horizon-installer-utils)
 
+# --- Core Applications ---
+add_subdirectory(apps/top_panel)
+add_subdirectory(apps/dock)
+add_subdirectory(apps/horizon_wall)
+add_subdirectory(apps/horizon_session)
+add_subdirectory(apps/aboutus)
+add_subdirectory(apps/arkfm)
+add_subdirectory(apps/launchpad)
+add_subdirectory(apps/preferences)
 add_subdirectory(apps/terminal)
 add_subdirectory(apps/nova)
 add_subdirectory(apps/document-viewer)
@@ -193,6 +146,27 @@ add_subdirectory(apps/text-editor)
 add_subdirectory(apps/disk-utility)
 add_subdirectory(apps/horizon-installer)
 add_subdirectory(apps/horizon-greeter)
+
+# --- Demos and Tests ---
+add_executable(files_demo
+    examples/files-demo/FilesDemo.cpp
+)
+target_link_libraries(files_demo PRIVATE horizon)
+
+add_executable(mouse_wheel_test
+    tests/mouse_wheel_test.cpp
+)
+target_link_libraries(mouse_wheel_test PRIVATE horizon)
+
+add_executable(absolute_position_test
+    tests/absolute_position_test.cpp
+)
+target_link_libraries(absolute_position_test PRIVATE horizon)
+
+add_executable(multiwindow
+    examples/multiwindow/main.cpp
+)
+target_link_libraries(multiwindow PRIVATE horizon)
 
 
 

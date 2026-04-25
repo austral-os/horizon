@@ -1,11 +1,11 @@
 
 #include "AboutWindow.hpp"
+#include <horizon/About.hpp>
 #include <horizon/Application.hpp>
 #include <horizon/I18n.hpp>
 #include <memory>
 
-using horizon::AboutWindow;
-using horizon::Application;
+using namespace horizon;
 
 int main(int argc, char *argv[])
 {
@@ -16,6 +16,15 @@ int main(int argc, char *argv[])
 
     app->set_name(horizon::i18n().tr("aboutus.title"));
     app->set_icon_name("computer");
+    
+    // Setup About info
+    auto &about = app->about_manager();
+    about.set_app_title(horizon::i18n().tr("aboutus.title"));
+    about.set_app_description(horizon::i18n().tr("aboutus.about"));
+    about.set_app_version("0.1.0");
+    about.set_app_icon("computer");
+    about.set_app_git(horizon::ABOUT_HORIZON.git);
+    about.add_app_translator("Horacio", "https://github.com/austral-os/horizon", "horaciodrs@gmail.com");
 
     auto window = std::make_unique<AboutWindow>();
 
