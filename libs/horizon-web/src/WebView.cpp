@@ -528,7 +528,7 @@ namespace horizon
                 webkit_settings_set_javascript_can_access_clipboard(settings, TRUE);
                 webkit_settings_set_media_playback_requires_user_gesture(settings, FALSE);
                 webkit_settings_set_media_playback_allows_inline(settings, TRUE);
-                webkit_settings_set_user_agent(settings, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                webkit_settings_set_user_agent(settings, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36");
                 
                 // PERFORMANCE: Disable non-essential expensive features
                 if (g_object_class_find_property(G_OBJECT_GET_CLASS(settings), "enable-back-forward-navigation-gestures")) {
@@ -540,8 +540,31 @@ namespace horizon
                     g_object_set(settings, "enable-accelerated-2d-canvas", s_gpu_enabled, NULL);
                 }
                 
-                self->m_web_view = webkit_web_view_new(webkit_backend);
-                webkit_web_view_set_settings(self->m_web_view, settings);
+                // --- PERSISTENT STORAGE ---
+                const char* home = getenv("HOME");
+                std::string data_path = std::string(home ? home : "/tmp") + "/.local/share/horizon/nova/webdata";
+                std::string cache_path = std::string(home ? home : "/tmp") + "/.cache/horizon/nova/webdata";
+
+                // Ensure directories exist
+                g_mkdir_with_parents(data_path.c_str(), 0700);
+                g_mkdir_with_parents(cache_path.c_str(), 0700);
+
+                WebKitNetworkSession* session = webkit_network_session_new(data_path.c_str(), cache_path.c_str());
+                
+                // Explicitly configure cookie persistence
+                WebKitCookieManager* cookie_manager = webkit_network_session_get_cookie_manager(session);
+                std::string cookie_file = data_path + "/cookies.sqlite";
+                webkit_cookie_manager_set_persistent_storage(cookie_manager, cookie_file.c_str(), WEBKIT_COOKIE_PERSISTENT_STORAGE_SQLITE);
+                webkit_network_session_set_persistent_credential_storage_enabled(session, TRUE);
+
+                self->m_web_view = WEBKIT_WEB_VIEW(g_object_new(WEBKIT_TYPE_WEB_VIEW,
+                    "backend", webkit_backend,
+                    "network-session", session,
+                    "settings", settings,
+                    NULL));
+                
+                g_object_unref(session);
+                g_object_unref(settings);
                 
                 // --- CACHE & PERFORMANCE ---
                 WebKitWebContext* context = webkit_web_view_get_context(self->m_web_view);
