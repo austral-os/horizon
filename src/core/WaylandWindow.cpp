@@ -652,109 +652,111 @@ namespace horizon
                     });
             }
 
+            // 1. Execute posted tasks FIRST so their invalidations are caught this frame
+            {
+                std::deque<std::function<void()>> tasks;
+                {
+                    std::lock_guard<std::mutex> lock(m_task_mutex);
+                    std::swap(tasks, m_task_queue);
+                }
+                for (auto &task : tasks)
+                {
+                    if (task) task();
+                }
+            }
+
             wl_display_dispatch_pending(m_surface->display());
 
-            // Frame rate limiter: compute current time and skip rendering if
-            // less than 16ms (~60fps) has elapsed since the last Wayland commit.
-            // Without this, rapid drag events generate 100+ commits/sec which
-            // causes the compositor to see the buffer being written while it's
-            // still reading it → flicker.
+            // 2. Determine if we need to render
+            uint64_t frame_now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                     std::chrono::steady_clock::now().time_since_epoch())
+                                     .count();
+            static constexpr uint64_t FRAME_MS = 16;
+            
+            bool root_dirty = (m_root && (m_root->is_dirty() || m_root->is_child_dirty()));
+            bool has_pending = m_full_repaint || !m_dirty_widgets.empty() || root_dirty;
+
+            if (has_pending && !m_is_minimized && (m_surface->is_configured() || m_first_frame))
             {
-                uint64_t frame_now = std::chrono::duration_cast<std::chrono::milliseconds>(
-                                         std::chrono::steady_clock::now().time_since_epoch())
-                                         .count();
-                static constexpr uint64_t FRAME_MS = 16; // ~60fps cap
-                bool has_pending = m_full_repaint || !m_dirty_widgets.empty();
-
-                if (has_pending && !m_is_minimized)
+                if (m_surface->width() > 0 && m_surface->height() > 0 && 
+                    (frame_now - m_last_commit_time) >= FRAME_MS)
                 {
-                    // Only render if not minimized to avoid hanging in
-                    // eglSwapBuffers/wl_display_dispatch when the compositor might not be giving us
-                    // frame callbacks.
-
-                    if ((m_surface->is_configured() || m_first_frame) && m_surface->width() > 0 &&
-                        m_surface->height() > 0 && (frame_now - m_last_commit_time) >= FRAME_MS)
+                    bool should_render = true; // We already checked has_pending
+                    
+                    if (should_render && m_root)
                     {
-                        // Ensure correct context is bound for this window
-                        if (m_surface && m_surface->display())
-                        {
+                        static int frame_count = 0;
+                        if (++frame_count % 60 == 0) LOG_INFO << "[APP-DEBUG] Window rendering frame " << frame_count;
+                        
+                        m_dirty_widgets.clear();
+                        bool full = m_full_repaint || m_first_frame;
+                        m_full_repaint = false;
 
-                            wl_display_dispatch_pending(m_surface->display());
+                        if (m_surface)
+                        {
+                            eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(),
+                                           m_surface->egl_surface(), m_surface->egl_context());
                         }
 
-                        bool should_render = m_full_repaint || m_first_frame || !m_dirty_widgets.empty() || (m_root && (m_root->is_dirty() || m_root->is_child_dirty()));
+                        if (is_transparent_surface())
+                            glClearColor(0, 0, 0, 0);
+                        else
+                            glClearColor(0, 0, 0, 1);
+                        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                        m_gl_queue.clear();
 
-                        if (should_render && m_root)
+                        if (m_surface->data())
                         {
-                            m_dirty_widgets.clear();
-                            m_full_repaint = false;
-
-                            if (m_surface)
-                            {
-                                eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(),
-                                               m_surface->egl_surface(), m_surface->egl_context());
-                            }
+                            CairoGraphicContext ctx(this, m_surface->data(), m_surface->width(),
+                                                    m_surface->height());
 
                             if (is_transparent_surface())
-                                glClearColor(0, 0, 0, 0);
-                            else
-                                glClearColor(0, 0, 0, 1);
-                            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                            m_gl_queue.clear();
-
-                            if (m_surface->data())
                             {
-                                CairoGraphicContext ctx(this, m_surface->data(), m_surface->width(),
-                                                        m_surface->height());
-
-                                if (is_transparent_surface())
-                                {
-                                    ctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
-                                    ctx.clearRect(0, 0, m_surface->width(), m_surface->height());
-                                }
-
-                                m_root->render(ctx, 0, 0, m_surface->width(), m_surface->height(),
-                                               true);
-                                ctx.flush();
+                                ctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+                                ctx.clearRect(0, 0, m_surface->width(), m_surface->height());
                             }
 
-                            if (m_popup_menu && m_popup_surface && m_popup_surface->data())
-                            {
-
-                                CairoGraphicContext pctx(this, m_popup_surface->data(),
-                                                         m_popup_surface->width(),
-                                                         m_popup_surface->height());
-                                pctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
-                                pctx.clearRect(0, 0, m_popup_surface->width(),
-                                               m_popup_surface->height());
-
-                                m_popup_menu->render(pctx, 0, 0, m_popup_surface->width(),
-                                                     m_popup_surface->height(), true);
-                                pctx.flush();
-                                render_gl_popup();
-                            }
-
-                            if (m_tooltip_widget && m_tooltip_surface && m_tooltip_surface->data())
-                            {
-                                CairoGraphicContext tctx(this, m_tooltip_surface->data(),
-                                                         m_tooltip_surface->width(),
-                                                         m_tooltip_surface->height());
-                                tctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
-                                tctx.clearRect(0, 0, m_tooltip_surface->width(),
-                                               m_tooltip_surface->height());
-
-                                m_tooltip_widget->render(tctx, 0, 0, m_tooltip_surface->width(),
-                                                         m_tooltip_surface->height(), true);
-                                tctx.flush();
-                                render_gl_tooltip();
-                            }
-
-                            render_gl_ui();
-                            m_last_commit_time = frame_now;
-                            m_first_frame = false;
+                            m_root->render(ctx, 0, 0, m_surface->width(), m_surface->height(),
+                                           full || true); // Force full for now to stabilize
+                            ctx.flush();
                         }
+
+                        if (m_popup_menu && m_popup_surface && m_popup_surface->data())
+                        {
+                            CairoGraphicContext pctx(this, m_popup_surface->data(),
+                                                     m_popup_surface->width(),
+                                                     m_popup_surface->height());
+                            pctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+                            pctx.clearRect(0, 0, m_popup_surface->width(),
+                                           m_popup_surface->height());
+
+                            m_popup_menu->render(pctx, 0, 0, m_popup_surface->width(),
+                                                 m_popup_surface->height(), true);
+                            pctx.flush();
+                            render_gl_popup();
+                        }
+
+                        if (m_tooltip_widget && m_tooltip_surface && m_tooltip_surface->data())
+                        {
+                            CairoGraphicContext tctx(this, m_tooltip_surface->data(),
+                                                     m_tooltip_surface->width(),
+                                                     m_tooltip_surface->height());
+                            tctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+                            tctx.clearRect(0, 0, m_tooltip_surface->width(),
+                                           m_tooltip_surface->height());
+
+                            m_tooltip_widget->render(tctx, 0, 0, m_tooltip_surface->width(),
+                                                     m_tooltip_surface->height(), true);
+                            tctx.flush();
+                            render_gl_tooltip();
+                        }
+
+                        render_gl_ui();
+                        m_last_commit_time = frame_now;
+                        m_first_frame = false;
                     }
                 }
+            }
 
                 // IMPORTANT: Wayland thread-safety requires prepare_read BEFORE poll.
                 // We do this AFTER render_gl_ui so we don't hold the read lock during
@@ -901,24 +903,7 @@ namespace horizon
                     }
                 }
 
-                // Execute posted tasks
-                {
-                    std::deque<std::function<void()>> tasks;
-                    {
-                        std::lock_guard<std::mutex> lock(m_task_mutex);
-                        std::swap(tasks, m_task_queue);
-                    }
-                    size_t task_count = tasks.size();
-                    if (task_count > 10) LOG_INFO << "[APP] Processing " << task_count << " tasks";
-                    for (auto &task : tasks)
-                    {
-                        if (task)
-                        {
-                            task();
-                        }
-                    }
-                    if (task_count > 10) LOG_INFO << "[APP] Tasks processed";
-                }
+
 
                 // Key repeat check — runs on every loop iteration when a key is held
                 if (m_is_repeating)
@@ -938,7 +923,6 @@ namespace horizon
                         }
                     }
                 }
-            }
         }
     }
 

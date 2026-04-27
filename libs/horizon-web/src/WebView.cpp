@@ -900,26 +900,22 @@ namespace horizon
             int stride = wl_shm_buffer_get_stride(shm_buffer);
 
             {
-                std::unique_lock<std::mutex> lock(self->m_surface_mutex, std::try_to_lock);
-                if (!lock.owns_lock()) {
-                    // Contention detected: UI thread is likely drawing or another copy is in progress.
-                    // Drop this frame to ensure the UI thread remains responsive.
-                    wpe_view_backend_exportable_fdo_dispatch_release_shm_exported_buffer(self->m_exportable, buffer);
-                    return;
-                }
-
-                if (!self->m_cairo_surface ||
-                    cairo_image_surface_get_width(self->m_cairo_surface) != width ||
-                    cairo_image_surface_get_height(self->m_cairo_surface) != height)
+                std::lock_guard<std::mutex> lock(self->m_surface_mutex);
+                
+                // 1. Ensure BACK buffer is ready
+                if (!self->m_cairo_surface_back ||
+                    cairo_image_surface_get_width(self->m_cairo_surface_back) != width ||
+                    cairo_image_surface_get_height(self->m_cairo_surface_back) != height)
                 {
-                    if (self->m_cairo_surface) cairo_surface_destroy(self->m_cairo_surface);
-                    self->m_cairo_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                    if (self->m_cairo_surface_back) cairo_surface_destroy(self->m_cairo_surface_back);
+                    self->m_cairo_surface_back = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
                 }
 
-                unsigned char *dest = cairo_image_surface_get_data(self->m_cairo_surface);
-                int dest_stride = cairo_image_surface_get_stride(self->m_cairo_surface);
+                // 2. Copy to BACK buffer
+                unsigned char *dest = cairo_image_surface_get_data(self->m_cairo_surface_back);
+                int dest_stride = cairo_image_surface_get_stride(self->m_cairo_surface_back);
                 if (dest && buffer_data) {
-                    cairo_surface_flush(self->m_cairo_surface);
+                    cairo_surface_flush(self->m_cairo_surface_back);
                     if (dest_stride == stride) {
                         std::memcpy(dest, buffer_data, stride * height);
                     } else {
@@ -927,9 +923,31 @@ namespace horizon
                             std::memcpy(dest + i * dest_stride, (unsigned char*)buffer_data + i * stride, std::min(stride, dest_stride));
                         }
                     }
-                    cairo_surface_mark_dirty(self->m_cairo_surface);
-                    self->m_waiting_for_draw.store(true);
-                    self->m_pending_ack.store(true);
+                    cairo_surface_mark_dirty(self->m_cairo_surface_back);
+                }
+
+                // 3. SWAP buffers
+                std::swap(self->m_cairo_surface_front, self->m_cairo_surface_back);
+                self->m_has_front_buffer.store(true);
+            }
+
+            // 4. ACK immediately to keep WebKit flowing (Double Buffering allows this!)
+            g_main_context_invoke(self->s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+                WebView* self = static_cast<WebView*>(data);
+                if (self && self->m_exportable) {
+                    wpe_view_backend_exportable_fdo_dispatch_frame_complete(self->m_exportable);
+                }
+                return FALSE;
+            }, self);
+
+            // 5. Invalidate UI if visible
+            if (self->application() && self->is_effectively_visible()) {
+                if (!self->m_waiting_for_draw.exchange(true)) {
+                    auto alive = self->m_alive_flag;
+                    self->application()->post_task([self, alive]() {
+                        if (!*alive) return;
+                        self->invalidate();
+                    });
                 }
             }
 
@@ -1100,45 +1118,28 @@ namespace horizon
 
             {
                 std::lock_guard<std::mutex> lock(m_surface_mutex);
-                if (m_cairo_surface)
+                m_waiting_for_draw.store(false);
+                
+                if (m_has_front_buffer.load() && m_cairo_surface_front)
                 {
                     cairo_t *cr = (cairo_t *)ctx.getNativeContext();
                     if (cr && cairo_status(cr) == CAIRO_STATUS_SUCCESS) {
                         cairo_save(cr);
-                        
-                        // 1. Clip to our own widget bounds
                         cairo_rectangle(cr, x(), y(), width(), height());
                         cairo_clip(cr);
                         
-                        // 2. Setup scaling if the surface doesn't match widget size
-                        int sw = cairo_image_surface_get_width(m_cairo_surface);
-                        int sh = cairo_image_surface_get_height(m_cairo_surface);
+                        int sw = cairo_image_surface_get_width(m_cairo_surface_front);
+                        int sh = cairo_image_surface_get_height(m_cairo_surface_front);
                         if (sw > 0 && sh > 0) {
                             double scale_x = (double)width() / sw;
                             double scale_y = (double)height() / sh;
-                            
                             cairo_translate(cr, x(), y());
                             cairo_scale(cr, scale_x, scale_y);
-                            
-                            cairo_set_source_surface(cr, m_cairo_surface, 0, 0);
-                            cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+                            cairo_set_source_surface(cr, m_cairo_surface_front, 0, 0);
                             cairo_paint(cr);
                         }
-                        
                         cairo_restore(cr);
                     }
-                }
-                
-                m_waiting_for_draw.store(false);
-
-                if (m_pending_ack.exchange(false)) {
-                    g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
-                        WebView* self = static_cast<WebView*>(data);
-                        if (self->m_exportable) {
-                            wpe_view_backend_exportable_fdo_dispatch_frame_complete(self->m_exportable);
-                        }
-                        return FALSE;
-                    }, this);
                 }
             }
 
