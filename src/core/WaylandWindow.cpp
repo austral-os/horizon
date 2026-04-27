@@ -680,22 +680,27 @@ namespace horizon
                         {
 
                             wl_display_dispatch_pending(m_surface->display());
-
-                            eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(),
-                                           m_surface->egl_surface(), m_surface->egl_context());
                         }
 
-                        if (is_transparent_surface())
-                            glClearColor(0, 0, 0, 0);
-                        else
-                            glClearColor(0, 0, 0, 1);
-                        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                        m_gl_queue.clear();
+                        bool should_render = m_full_repaint || m_first_frame || !m_dirty_widgets.empty() || (m_root && (m_root->is_dirty() || m_root->is_child_dirty()));
 
-                        if (m_root)
+                        if (should_render && m_root)
                         {
-                            m_full_repaint = false;
                             m_dirty_widgets.clear();
+                            m_full_repaint = false;
+
+                            if (m_surface)
+                            {
+                                eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(),
+                                               m_surface->egl_surface(), m_surface->egl_context());
+                            }
+
+                            if (is_transparent_surface())
+                                glClearColor(0, 0, 0, 0);
+                            else
+                                glClearColor(0, 0, 0, 1);
+                            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                            m_gl_queue.clear();
 
                             if (m_surface->data())
                             {
@@ -708,10 +713,8 @@ namespace horizon
                                     ctx.clearRect(0, 0, m_surface->width(), m_surface->height());
                                 }
 
-                                ctx.pushGroup();
                                 m_root->render(ctx, 0, 0, m_surface->width(), m_surface->height(),
                                                true);
-                                ctx.popGroup();
                                 ctx.flush();
                             }
 
@@ -905,6 +908,8 @@ namespace horizon
                         std::lock_guard<std::mutex> lock(m_task_mutex);
                         std::swap(tasks, m_task_queue);
                     }
+                    size_t task_count = tasks.size();
+                    if (task_count > 10) LOG_INFO << "[APP] Processing " << task_count << " tasks";
                     for (auto &task : tasks)
                     {
                         if (task)
@@ -912,6 +917,7 @@ namespace horizon
                             task();
                         }
                     }
+                    if (task_count > 10) LOG_INFO << "[APP] Tasks processed";
                 }
 
                 // Key repeat check — runs on every loop iteration when a key is held

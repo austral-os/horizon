@@ -631,12 +631,16 @@ namespace horizon
 
             {
                 std::lock_guard<std::mutex> lock(self->m_metadata_mutex);
-                self->m_cached_title = title;
+                self->m_cached_title = title.empty() ? "Untitled" : title;
             }
 
             if (self->application()) {
-                self->application()->post_task([self, title]() {
-                    std::string t = title;
+                self->application()->post_task([self]() {
+                    std::string t;
+                    {
+                        std::lock_guard<std::mutex> lock(self->m_metadata_mutex);
+                        t = self->m_cached_title;
+                    }
                     self->when_title_changed.run(t);
                 });
             }
@@ -871,6 +875,14 @@ namespace horizon
             auto *self = static_cast<WebView *>(data);
             if (!self || !self->m_exportable) return;
 
+            // PREVENT FLOODING: If we are still waiting for the UI thread to draw 
+            // the last frame, drop this one. This prevents background tabs from 
+            // hogging the mutex and the worker context.
+            if (self->m_pending_ack.load()) {
+                wpe_view_backend_exportable_fdo_dispatch_release_shm_exported_buffer(self->m_exportable, buffer);
+                return;
+            }
+
             // VSYNC SYNC: We handle the buffer release but DELAY the frame_complete
             // until the UI thread has actually drawn this frame.
             // This forces WPEWebProcess to throttle its rendering to our refresh rate.
@@ -888,7 +900,14 @@ namespace horizon
             int stride = wl_shm_buffer_get_stride(shm_buffer);
 
             {
-                std::lock_guard<std::mutex> lock(self->m_surface_mutex);
+                std::unique_lock<std::mutex> lock(self->m_surface_mutex, std::try_to_lock);
+                if (!lock.owns_lock()) {
+                    // Contention detected: UI thread is likely drawing or another copy is in progress.
+                    // Drop this frame to ensure the UI thread remains responsive.
+                    wpe_view_backend_exportable_fdo_dispatch_release_shm_exported_buffer(self->m_exportable, buffer);
+                    return;
+                }
+
                 if (!self->m_cairo_surface ||
                     cairo_image_surface_get_width(self->m_cairo_surface) != width ||
                     cairo_image_surface_get_height(self->m_cairo_surface) != height)
@@ -898,9 +917,16 @@ namespace horizon
                 }
 
                 unsigned char *dest = cairo_image_surface_get_data(self->m_cairo_surface);
+                int dest_stride = cairo_image_surface_get_stride(self->m_cairo_surface);
                 if (dest && buffer_data) {
                     cairo_surface_flush(self->m_cairo_surface);
-                    std::memcpy(dest, buffer_data, stride * height);
+                    if (dest_stride == stride) {
+                        std::memcpy(dest, buffer_data, stride * height);
+                    } else {
+                        for (int i = 0; i < height; i++) {
+                            std::memcpy(dest + i * dest_stride, (unsigned char*)buffer_data + i * stride, std::min(stride, dest_stride));
+                        }
+                    }
                     cairo_surface_mark_dirty(self->m_cairo_surface);
                     self->m_waiting_for_draw.store(true);
                     self->m_pending_ack.store(true);
@@ -953,16 +979,18 @@ namespace horizon
             wpe_view_backend_exportable_fdo_dispatch_release_shm_exported_buffer(self->m_exportable, buffer);
             // WE DO NOT CALL frame_complete here. It will be called from draw() via a task.
             
-            if (self->application()) {
-                auto alive = self->m_alive_flag;
-                self->application()->post_task([self, alive]() {
-                    if (!*alive) return;
-                    // Frame-Synced Invalidation:
-                    // We only invalidate if WebKit sent a new frame OR the scrollbar state is dirty.
-                    // This couples the OS scrollbars to the browser engine's vsync.
-                    bool scroll_expected = self->m_scroll_dirty.exchange(false);
-                    self->invalidate();
-                });
+            bool visible = self->is_effectively_visible();
+            if (self->application() && visible) {
+                if (!self->m_waiting_for_draw.exchange(true)) {
+                    auto alive = self->m_alive_flag;
+                    self->application()->post_task([self, alive]() {
+                        if (!*alive) return;
+                        self->invalidate();
+                    });
+                }
+            } else if (!visible) {
+                // For invisible tabs, we don't invalidate. We'll wait for a manual invalidate 
+                // when they become visible (handled by TabCollection).
             }
         }
 
@@ -1070,14 +1098,39 @@ namespace horizon
             ctx.setColor(background_color());
             ctx.fillRect(x(), y(), width(), height());
 
-            std::lock_guard<std::mutex> lock(m_surface_mutex);
-            if (m_cairo_surface)
             {
-                cairo_t *cr = (cairo_t *)ctx.getNativeContext();
-                cairo_set_source_surface(cr, m_cairo_surface, x(), y());
-                cairo_paint(cr);
-                m_waiting_for_draw.store(false);
+                std::lock_guard<std::mutex> lock(m_surface_mutex);
+                if (m_cairo_surface)
+                {
+                    cairo_t *cr = (cairo_t *)ctx.getNativeContext();
+                    if (cr && cairo_status(cr) == CAIRO_STATUS_SUCCESS) {
+                        cairo_save(cr);
+                        
+                        // 1. Clip to our own widget bounds
+                        cairo_rectangle(cr, x(), y(), width(), height());
+                        cairo_clip(cr);
+                        
+                        // 2. Setup scaling if the surface doesn't match widget size
+                        int sw = cairo_image_surface_get_width(m_cairo_surface);
+                        int sh = cairo_image_surface_get_height(m_cairo_surface);
+                        if (sw > 0 && sh > 0) {
+                            double scale_x = (double)width() / sw;
+                            double scale_y = (double)height() / sh;
+                            
+                            cairo_translate(cr, x(), y());
+                            cairo_scale(cr, scale_x, scale_y);
+                            
+                            cairo_set_source_surface(cr, m_cairo_surface, 0, 0);
+                            cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+                            cairo_paint(cr);
+                        }
+                        
+                        cairo_restore(cr);
+                    }
+                }
                 
+                m_waiting_for_draw.store(false);
+
                 if (m_pending_ack.exchange(false)) {
                     g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
                         WebView* self = static_cast<WebView*>(data);

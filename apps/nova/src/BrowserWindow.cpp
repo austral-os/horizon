@@ -162,8 +162,15 @@ namespace horizon
                 m_tabs->add_tab("New Tab", std::unique_ptr<horizon::Widget>(web_view.release()));
             ptr->set_focus(true);
 
-            ptr->when_title_changed.connect([this, ptr, index](const std::string &title)
-                                            { m_tabs->set_tab_title(index, title); });
+            ptr->when_title_changed.connect([this, ptr](const std::string &title) {
+                // Find the current index of this tab as it might have changed
+                for (size_t i = 0; i < m_tabs->tab_count(); ++i) {
+                    if (m_tabs->tab_body(i) == (horizon::Widget*)ptr) {
+                        m_tabs->set_tab_title(i, title);
+                        break;
+                    }
+                }
+            });
 
             ptr->when_loading_changed.connect(
                 [this, ptr](bool loading)
