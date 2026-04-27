@@ -7,18 +7,18 @@
 #include <mutex>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 
 
 typedef struct _GMainContext GMainContext;
 typedef struct _GMainLoop GMainLoop;
 typedef struct _WebKitWebView WebKitWebView;
+typedef struct _WebKitWebContext WebKitWebContext;
 typedef struct _WebKitUserContentManager WebKitUserContentManager;
 typedef struct _WebKitJavascriptResult WebKitJavascriptResult;
 typedef struct _GParamSpec GParamSpec;
 typedef struct _WebKitPolicyDecision WebKitPolicyDecision;
-struct wpe_view_backend;
-struct wpe_view_backend_exportable_fdo;
-struct wpe_fdo_shm_exported_buffer;
+#include <wpe/fdo.h>
 
 #include "horizon/ClipboardProvider.hpp"
 #include "horizon/ClipboardActions.hpp"
@@ -102,14 +102,27 @@ private:
     
     bool m_initialized = false;
     
-    // Threading (Shared across all instances)
+    // Threading (Per-instance for isolation)
+    // Shared Worker Thread (Static)
     static void ensure_worker_thread();
-    static std::thread s_worker_thread;
-    static GMainContext* s_worker_context;
-    static GMainLoop* s_worker_loop;
-    static bool s_running;
-    static std::mutex s_worker_mutex;
     static void worker_thread_func();
+    static std::thread s_worker_thread;
+    static std::atomic<GMainContext*> s_worker_context;
+    static std::atomic<GMainLoop*> s_worker_loop;
+    static std::atomic<bool> s_worker_running;
+    static std::mutex s_worker_mutex;
+    static std::condition_variable s_worker_cond;
+    
+    // Shared WebKit Context
+    static WebKitWebContext* s_default_context;
+    static void init_global_webkit();
+    
+    // WPE Client persistence
+    struct wpe_view_backend_exportable_fdo_client m_client;
+    static void on_fs_callback(void* data, bool fullscreen);
+    
+    // WebKit Context (Per-instance for process isolation)
+    void* m_web_context = nullptr; 
     
     std::string m_cached_title;
     std::string m_cached_url;
