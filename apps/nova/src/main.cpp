@@ -31,6 +31,12 @@ int main(int argc, char** argv) {
     const char* home = getenv("HOME");
     if (home) {
         config_path = std::string(home) + "/.config/horizon/nova.json";
+        
+        // Enable persistent storage for the web engine
+        std::string data_dir = std::string(home) + "/.local/share/horizon/nova";
+        std::string cache_dir = std::string(home) + "/.cache/horizon/nova";
+        horizon::web::WebView::set_data_directory(data_dir);
+        horizon::web::WebView::set_cache_directory(cache_dir);
     } else {
         config_path = "nova.json";
     }

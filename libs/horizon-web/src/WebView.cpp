@@ -55,6 +55,9 @@ namespace horizon
         std::mutex WebView::s_worker_mutex;
         std::condition_variable WebView::s_worker_cond;
         WebKitWebContext* WebView::s_default_context = nullptr;
+        WebKitNetworkSession* WebView::s_default_session = nullptr;
+        std::string WebView::s_data_directory;
+        std::string WebView::s_cache_directory;
 
         static bool s_wpe_initialized = false;
         static std::mutex s_wpe_init_mutex;
@@ -467,6 +470,7 @@ namespace horizon
                 self->m_web_view = WEBKIT_WEB_VIEW(g_object_new(WEBKIT_TYPE_WEB_VIEW,
                     "backend", webkit_backend,
                     "web-context", s_default_context,
+                    "network-session", s_default_session,
                     "settings", settings,
                     NULL));
                 
@@ -556,8 +560,26 @@ namespace horizon
                 }
             }
 
-            // Global WebKit Context
-            s_default_context = webkit_web_context_new();
+            // Global WebKit Context & Session
+            if (!s_data_directory.empty()) {
+                g_mkdir_with_parents(s_data_directory.c_str(), 0755);
+                
+                std::string cache_dir = s_cache_directory;
+                if (cache_dir.empty()) cache_dir = s_data_directory + "/cache";
+                g_mkdir_with_parents(cache_dir.c_str(), 0755);
+
+                LOG_INFO << "[WEB] Enabling persistent storage:";
+                LOG_INFO << "  - Data: " << s_data_directory;
+                LOG_INFO << "  - Cache: " << cache_dir;
+
+                s_default_session = webkit_network_session_new(s_data_directory.c_str(), cache_dir.c_str());
+                s_default_context = webkit_web_context_new();
+            } else {
+                LOG_INFO << "[WEB] No persistence directory set. Using ephemeral session.";
+                s_default_session = webkit_network_session_new_ephemeral();
+                s_default_context = webkit_web_context_new();
+            }
+
             webkit_web_context_set_cache_model(s_default_context, WEBKIT_CACHE_MODEL_WEB_BROWSER);
 
             {

@@ -14,6 +14,7 @@ typedef struct _GMainContext GMainContext;
 typedef struct _GMainLoop GMainLoop;
 typedef struct _WebKitWebView WebKitWebView;
 typedef struct _WebKitWebContext WebKitWebContext;
+typedef struct _WebKitNetworkSession WebKitNetworkSession;
 typedef struct _WebKitUserContentManager WebKitUserContentManager;
 typedef struct _WebKitJavascriptResult WebKitJavascriptResult;
 typedef struct _GParamSpec GParamSpec;
@@ -113,8 +114,11 @@ private:
     static std::mutex s_worker_mutex;
     static std::condition_variable s_worker_cond;
     
-    // Shared WebKit Context
+    // Shared WebKit Context & Session
     static WebKitWebContext* s_default_context;
+    static WebKitNetworkSession* s_default_session;
+    static std::string s_data_directory;
+    static std::string s_cache_directory;
     static void init_global_webkit();
     
     // WPE Client persistence
@@ -188,6 +192,9 @@ private:
 public:
     static void set_gpu_enabled(bool enabled) { s_gpu_enabled = enabled; }
     static bool is_gpu_enabled() { return s_gpu_enabled; }
+
+    static void set_data_directory(const std::string& path) { s_data_directory = path; }
+    static void set_cache_directory(const std::string& path) { s_cache_directory = path; }
 
 private:
     static bool s_gpu_enabled;
