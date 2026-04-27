@@ -631,7 +631,14 @@ namespace horizon
 
             {
                 std::lock_guard<std::mutex> lock(self->m_metadata_mutex);
-                self->m_cached_title = title.empty() ? "Untitled" : title;
+                std::string clean_title;
+                for (unsigned char c : title) {
+                    if (c >= 32 && c < 127) clean_title += c;
+                    if (clean_title.length() >= 256) break;
+                }
+                if (clean_title.empty()) clean_title = "Untitled";
+
+                self->m_cached_title = clean_title;
             }
 
             if (self->application()) {
@@ -898,6 +905,19 @@ namespace horizon
             int height = wl_shm_buffer_get_height(shm_buffer);
             void *buffer_data = wl_shm_buffer_get_data(shm_buffer);
             int stride = wl_shm_buffer_get_stride(shm_buffer);
+
+            // 0. If NOT visible, just ACK and bail. No expensive copy/swap needed!
+            if (!self->is_effectively_visible()) {
+                g_main_context_invoke(self->s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+                    WebView* self = static_cast<WebView*>(data);
+                    if (self && self->m_exportable) {
+                        wpe_view_backend_exportable_fdo_dispatch_frame_complete(self->m_exportable);
+                    }
+                    return FALSE;
+                }, self);
+                wpe_view_backend_exportable_fdo_dispatch_release_shm_exported_buffer(self->m_exportable, buffer);
+                return;
+            }
 
             {
                 std::lock_guard<std::mutex> lock(self->m_surface_mutex);

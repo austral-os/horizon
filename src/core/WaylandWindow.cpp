@@ -685,9 +685,6 @@ namespace horizon
                     
                     if (should_render && m_root)
                     {
-                        static int frame_count = 0;
-                        if (++frame_count % 60 == 0) LOG_INFO << "[APP-DEBUG] Window rendering frame " << frame_count;
-                        
                         m_dirty_widgets.clear();
                         bool full = m_full_repaint || m_first_frame;
                         m_full_repaint = false;
@@ -709,6 +706,7 @@ namespace horizon
                         {
                             CairoGraphicContext ctx(this, m_surface->data(), m_surface->width(),
                                                     m_surface->height());
+
 
                             if (is_transparent_surface())
                             {
