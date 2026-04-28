@@ -1,5 +1,7 @@
 #include "WelcomeWindow.hpp"
 #include "horizon/AirObject.hpp"
+#include <cstdlib>
+#include <filesystem>
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Checkbox.hpp>
@@ -9,8 +11,6 @@
 #include <horizon/Label.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/Widget.hpp>
-#include <cstdlib>
-#include <filesystem>
 #include <memory>
 
 namespace horizon
@@ -31,7 +31,7 @@ namespace horizon
     {
         m_config = std::make_unique<ConfigManager>(get_config_path("austral-welcome.json"));
         m_config->load();
-        
+
         setup_ui();
         load_config();
     }
@@ -54,8 +54,8 @@ namespace horizon
 
         auto icon = std::make_unique<Icon>();
         icon->set_icon_name("emblem-austral");
-        icon->set_icon_size(160);
-        icon->set_size(160, 160);
+        icon->set_icon_size(192);
+        icon->set_size(192, 192);
 
         icon_container->add_child(Spacer());
         icon_container->add_child(std::move(icon));
