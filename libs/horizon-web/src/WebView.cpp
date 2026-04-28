@@ -572,6 +572,7 @@ namespace horizon
                 g_signal_connect(self->m_web_view, "permission-request", G_CALLBACK(WebView::on_permission_request), self);
                 g_signal_connect(self->m_web_view, "decide-policy", G_CALLBACK(WebView::on_decide_policy), self);
                 g_signal_connect(self->m_web_view, "context-menu", G_CALLBACK(WebView::on_context_menu), self);
+                g_signal_connect(self->m_web_view, "mouse-target-changed", G_CALLBACK(WebView::on_mouse_target_changed), self);
                 
                 g_signal_connect(self->m_web_view, "web-process-terminated", G_CALLBACK(+[](WebKitWebView* web_view, WebKitWebProcessTerminationReason reason, WebView* self) {
                     LOG_ERROR << "[WEB-CRITICAL] Web process terminated! Reason: " << reason;
@@ -971,7 +972,31 @@ namespace horizon
             });
         }
 
-        void WebView::on_mouse_target_changed(void*, void*, uint32_t, void*) {}
+        void WebView::on_mouse_target_changed(void*, void* hit_test_result, uint32_t, void* p_self) {
+            WebView* self = static_cast<WebView*>(p_self);
+            if (!self) return;
+
+            WebKitHitTestResult* result = WEBKIT_HIT_TEST_RESULT(hit_test_result);
+            uint32_t context = webkit_hit_test_result_get_context(result);
+
+            CursorType cursor = CursorType::Default;
+
+            if (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK) {
+                cursor = CursorType::Pointer;
+            } else if (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE) {
+                cursor = CursorType::Text;
+            } else if (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_SELECTION) {
+                cursor = CursorType::Text;
+            }
+
+            if (self->application()) {
+                self->application()->post_task([self, cursor]() {
+                    if (self->cursor_type() != cursor) {
+                        self->set_cursor_type(cursor);
+                    }
+                });
+            }
+        }
         
         int WebView::on_enter_fullscreen(void* view, void* p_self) {
             WebView* self = static_cast<WebView*>(p_self);
