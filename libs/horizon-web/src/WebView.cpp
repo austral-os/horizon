@@ -619,6 +619,19 @@ namespace horizon
                 LOG_INFO << "  - Cache: " << cache_dir;
 
                 s_default_session = webkit_network_session_new(s_data_directory.c_str(), cache_dir.c_str());
+                
+                // Get the website data manager from the session
+                WebKitWebsiteDataManager* data_manager = webkit_network_session_get_website_data_manager(s_default_session);
+                
+                // Explicitly configure cookie manager for persistence
+                WebKitCookieManager* cookie_manager = webkit_network_session_get_cookie_manager(s_default_session);
+                std::string cookie_db_path = s_data_directory + "/cookies.db";
+                webkit_cookie_manager_set_persistent_storage(cookie_manager, 
+                                                            cookie_db_path.c_str(), 
+                                                            WEBKIT_COOKIE_PERSISTENT_STORAGE_SQLITE);
+                webkit_cookie_manager_set_accept_policy(cookie_manager, WEBKIT_COOKIE_POLICY_ACCEPT_ALWAYS);
+
+                // Create the web context
                 s_default_context = webkit_web_context_new();
             } else {
                 LOG_INFO << "[WEB] No persistence directory set. Using ephemeral session.";
