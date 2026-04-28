@@ -504,11 +504,18 @@ void TerminalWidget::handle_key_press(KeyEventContext &ctx) {
 
     if (ctx.text.length() > 0) {
         m_pty->write(ctx.text.c_str(), ctx.text.length());
+        ctx.stop_propagation = true;
     } else {
+        bool handled = true;
         switch (ctx.key) {
             case KEY_ENTER: m_pty->write("\r", 1); break;
             case KEY_BACKSPACE: m_pty->write("\x7f", 1); break;
-            case KEY_TAB: m_pty->write("\t", 1); break;
+            case KEY_TAB: 
+                if (ctx.modifiers & horizon::WaylandWindow::Modifier::SHIFT)
+                    m_pty->write("\x1b[Z", 3);
+                else
+                    m_pty->write("\t", 1); 
+                break;
             case KEY_ESC: m_pty->write("\x1b", 1); break;
             case KEY_UP: m_pty->write("\x1b[A", 3); break;
             case KEY_DOWN: m_pty->write("\x1b[B", 3); break;
@@ -523,7 +530,9 @@ void TerminalWidget::handle_key_press(KeyEventContext &ctx) {
             case KEY_HOME: m_pty->write("\x1b[H", 3); break;
             case KEY_END: m_pty->write("\x1b[F", 3); break;
             case KEY_DELETE: m_pty->write("\x1b[3~", 4); break;
+            default: handled = false; break;
         }
+        if (handled) ctx.stop_propagation = true;
     }
 }
 
