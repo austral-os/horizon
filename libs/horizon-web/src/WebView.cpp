@@ -307,9 +307,9 @@ namespace horizon
 
                     // Scale factor: dy/dx in Wayland are typically ~10 units per notch.
                     // WebKit often expects these to be roughly pixel-equivalent or at least significant.
-                    // Positive multiplier because WebKit expects positive value for scrolling DOWN.
-                    dispatch_axis(0, (int)(ctx.dy * 8)); // Vertical
-                    dispatch_axis(1, (int)(ctx.dx * 8)); // Horizontal
+                    // We invert the sign (-8) to match the expected direction (Natural scrolling).
+                    dispatch_axis(0, (int)(ctx.dy * -8)); // Vertical
+                    dispatch_axis(1, (int)(ctx.dx * -8)); // Horizontal
                 });
 
             // Context Menu (Horizon Style)
@@ -495,7 +495,20 @@ namespace horizon
                 }), self);
 
                 WebKitUserContentManager* manager = webkit_web_view_get_user_content_manager(self->m_web_view);
-                const char* isolation_script = "window.addEventListener('resize', () => { document.title = 'HORIZON_SCROLL:' + window.scrollY + ' ' + window.scrollX + ' ' + document.documentElement.scrollHeight + ' ' + document.documentElement.scrollWidth; });";
+                const char* isolation_script = 
+                    "const sendScroll = () => { "
+                    "  const el = document.scrollingElement || document.documentElement; "
+                    "  const sy = Math.round(window.scrollY || window.pageYOffset); "
+                    "  const sx = Math.round(window.scrollX || window.pageXOffset); "
+                    "  const sh = el.scrollHeight; "
+                    "  const sw = el.scrollWidth; "
+                    "  const wh = window.innerHeight; "
+                    "  const ww = window.innerWidth; "
+                    "  document.title = 'HORIZON_SCROLL:' + sy + ' ' + sx + ' ' + sh + ' ' + sw + ' ' + wh + ' ' + ww; "
+                    "}; "
+                    "window.addEventListener('resize', sendScroll); "
+                    "window.addEventListener('scroll', sendScroll); "
+                    "setInterval(sendScroll, 1000); "; 
                 WebKitUserScript* script = webkit_user_script_new(isolation_script, WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES, WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START, NULL, NULL);
                 webkit_user_content_manager_add_script(manager, script);
                 webkit_user_script_unref(script);
@@ -618,14 +631,23 @@ namespace horizon
 
             // BEACON HANDLING: Intercept scroll updates masked as title changes
             if (title.find("HORIZON_SCROLL:") == 0) {
-                double sy, sx, ch, cw;
-                if (sscanf(title.c_str() + 15, "%lf %lf %lf %lf", &sy, &sx, &ch, &cw) == 4) {
+                double sy, sx, ch, cw, vh, vw;
+                if (sscanf(title.c_str() + 15, "%lf %lf %lf %lf %lf %lf", &sy, &sx, &ch, &cw, &vh, &vw) == 6) {
+                    LOG_INFO << "[WEB-SCROLL] SY=" << sy << " CH=" << ch << " ViewH=" << vh << " (WidgetH=" << self->height() << ")";
                     std::lock_guard<std::mutex> lock{self->m_scroll_mutex};
                     self->m_target_scroll_y = sy;
                     self->m_target_scroll_x = sx;
                     self->m_target_content_h = ch;
                     self->m_target_content_w = cw;
+                    self->m_target_view_h = vh;
+                    self->m_target_view_w = vw;
                     self->m_scroll_dirty = true;
+                    if (self->application()) {
+                        auto alive = self->m_alive_flag;
+                        self->application()->post_task([self, alive]() {
+                            if (*alive) self->invalidate();
+                        });
+                    }
                     return;
                 }
             }
@@ -1068,11 +1090,14 @@ namespace horizon
             m_content_height = (m_target_content_h > 0) ? m_target_content_h : height();
             m_content_width = (m_target_content_w > 0) ? m_target_content_w : width();
 
-            if (height() <= 0 || width() <= 0) return;
+            double effective_view_h = (m_target_view_h > 0) ? m_target_view_h : height();
+            double effective_view_w = (m_target_view_w > 0) ? m_target_view_w : width();
+
+            if (effective_view_h <= 0 || effective_view_w <= 0) return;
 
             // PERSISTENT VISIBILITY: Always show the gutter for responsiveness
             m_show_v_scroll = true; 
-            m_show_h_scroll = m_content_width > width() + 1;
+            m_show_h_scroll = m_content_width > effective_view_w + 1;
 
             if (m_show_v_scroll) {
                 m_v_track_x = x() + width() - SCROLLBAR_SIZE - 2;
@@ -1080,11 +1105,11 @@ namespace horizon
                 m_v_track_w = SCROLLBAR_SIZE;
                 m_v_track_h = height() - 4 - (m_show_h_scroll ? SCROLLBAR_SIZE : 0);
 
-                double visible_ratio = (double)height() / m_content_height;
-                if (!std::isfinite(visible_ratio)) visible_ratio = 1.0;
+                double visible_ratio = effective_view_h / m_content_height;
+                if (!std::isfinite(visible_ratio) || visible_ratio > 1.0) visible_ratio = 1.0;
                 m_v_thumb_h = std::max(20, (int)(m_v_track_h * visible_ratio));
                 
-                double scrollable_height = m_content_height - height();
+                double scrollable_height = m_content_height - effective_view_h;
                 double scroll_ratio = (scrollable_height > 0) ? (m_scroll_y / scrollable_height) : 0;
                 scroll_ratio = std::max(0.0, std::min(1.0, scroll_ratio));
                 
@@ -1096,12 +1121,12 @@ namespace horizon
                 m_h_track_y = y() + height() - SCROLLBAR_SIZE - 2;
                 m_h_track_w = width() - 4 - (m_show_v_scroll ? SCROLLBAR_SIZE : 0);
                 m_h_track_h = SCROLLBAR_SIZE;
-
-                double visible_ratio = (double)width() / m_content_width;
-                if (!std::isfinite(visible_ratio)) visible_ratio = 1.0;
+ 
+                double visible_ratio = effective_view_w / m_content_width;
+                if (!std::isfinite(visible_ratio) || visible_ratio > 1.0) visible_ratio = 1.0;
                 m_h_thumb_w = std::max(20, (int)(m_h_track_w * visible_ratio));
                 
-                double scrollable_width = m_content_width - width();
+                double scrollable_width = m_content_width - effective_view_w;
                 double scroll_ratio = (scrollable_width > 0) ? (m_scroll_x / scrollable_width) : 0;
                 scroll_ratio = std::max(0.0, std::min(1.0, scroll_ratio));
                 

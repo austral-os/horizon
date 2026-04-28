@@ -167,6 +167,7 @@ private:
     std::shared_ptr<bool> m_alive_flag;
     double m_target_scroll_x = 0, m_target_scroll_y = 0;
     double m_target_content_w = 0, m_target_content_h = 0;
+    double m_target_view_w = 0, m_target_view_h = 0;
     
     std::chrono::steady_clock::time_point m_last_v_show_time;
     std::chrono::steady_clock::time_point m_last_h_show_time;
