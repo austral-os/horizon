@@ -496,6 +496,15 @@ namespace horizon
 
                 WebKitUserContentManager* manager = webkit_web_view_get_user_content_manager(self->m_web_view);
                 const char* isolation_script = 
+                    "const curT = document.title; "
+                    "window._horizon_real_title = (curT && curT.indexOf('HORIZON_') !== 0 && curT.indexOf('FS_') !== 0) ? curT : ''; "
+                    "const observer = new MutationObserver(() => { "
+                    "  const t = document.title; "
+                    "  if (t && t.indexOf('HORIZON_') !== 0 && t.indexOf('FS_LOG:') !== 0 && t.indexOf('FS_ERROR:') !== 0) { "
+                    "    window._horizon_real_title = t; "
+                    "  } "
+                    "}); "
+                    "observer.observe(document.documentElement, { subtree: true, childList: true, characterData: true }); "
                     "const sendScroll = () => { "
                     "  const el = document.scrollingElement || document.documentElement; "
                     "  const sy = Math.round(window.scrollY || window.pageYOffset); "
@@ -504,7 +513,12 @@ namespace horizon
                     "  const sw = el.scrollWidth; "
                     "  const wh = window.innerHeight; "
                     "  const ww = window.innerWidth; "
-                    "  document.title = 'HORIZON_SCROLL:' + sy + ' ' + sx + ' ' + sh + ' ' + sw + ' ' + wh + ' ' + ww; "
+                    "  const realTitle = window._horizon_real_title || document.title || ''; "
+                    "  if (realTitle.indexOf('HORIZON_SCROLL:') === 0) { "
+                    "    document.title = 'HORIZON_SCROLL:' + sy + ' ' + sx + ' ' + sh + ' ' + sw + ' ' + wh + ' ' + ww + ' TITLE:'; "
+                    "  } else { "
+                    "    document.title = 'HORIZON_SCROLL:' + sy + ' ' + sx + ' ' + sh + ' ' + sw + ' ' + wh + ' ' + ww + ' TITLE:' + realTitle; "
+                    "  } "
                     "}; "
                     "window.addEventListener('resize', sendScroll); "
                     "window.addEventListener('scroll', sendScroll); "
@@ -637,6 +651,18 @@ namespace horizon
         }
 
 
+        static std::string sanitize_title(const std::string& title) {
+            std::string clean;
+            for (unsigned char c : title) {
+                // Keep only printable ASCII (32-126)
+                if (c >= 32 && c <= 126) {
+                    clean += c;
+                }
+                if (clean.length() >= 256) break;
+            }
+            return clean.empty() ? "Untitled" : clean;
+        }
+
         void WebView::on_fs_callback(void* data, bool fullscreen) {
             auto* self = static_cast<WebView*>(data);
             if (!self) return;
@@ -661,15 +687,42 @@ namespace horizon
             if (title.find("HORIZON_SCROLL:") == 0) {
                 double sy, sx, ch, cw, vh, vw;
                 if (sscanf(title.c_str() + 15, "%lf %lf %lf %lf %lf %lf", &sy, &sx, &ch, &cw, &vh, &vw) == 6) {
-                    LOG_INFO << "[WEB-SCROLL] SY=" << sy << " CH=" << ch << " ViewH=" << vh << " (WidgetH=" << self->height() << ")";
-                    std::lock_guard<std::mutex> lock{self->m_scroll_mutex};
-                    self->m_target_scroll_y = sy;
-                    self->m_target_scroll_x = sx;
-                    self->m_target_content_h = ch;
-                    self->m_target_content_w = cw;
-                    self->m_target_view_h = vh;
-                    self->m_target_view_w = vw;
-                    self->m_scroll_dirty = true;
+                    {
+                        std::lock_guard<std::mutex> lock{self->m_scroll_mutex};
+                        self->m_target_scroll_y = sy;
+                        self->m_target_scroll_x = sx;
+                        self->m_target_content_h = ch;
+                        self->m_target_content_w = cw;
+                        self->m_target_view_h = vh;
+                        self->m_target_view_w = vw;
+                        self->m_scroll_dirty = true;
+                    }
+
+                    // Extract embedded real title if present
+                    size_t title_pos = title.find(" TITLE:");
+                    if (title_pos != std::string::npos) {
+                        std::string extracted_title = title.substr(title_pos + 7);
+                        // Filter out other beacon types that might have been caught as "real" titles
+                        bool is_beacon = (extracted_title.find("HORIZON_") == 0 || 
+                                          extracted_title.find("FS_LOG:") == 0 || 
+                                          extracted_title.find("FS_ERROR:") == 0);
+
+                        if (!extracted_title.empty() && !is_beacon) {
+                            std::string real_title = sanitize_title(extracted_title);
+                            std::lock_guard<std::mutex> mlock(self->m_metadata_mutex);
+                            if (self->m_cached_title != real_title) {
+                                LOG_INFO << "[WEB-TITLE] Syncing real title from beacon: " << real_title;
+                                self->m_cached_title = real_title;
+                                if (self->application()) {
+                                    self->application()->post_task([self, real_title]() {
+                                        auto t = real_title;
+                                        self->when_title_changed.run(t);
+                                    });
+                                }
+                            }
+                        }
+                    }
+
                     if (self->application()) {
                         auto alive = self->m_alive_flag;
                         self->application()->post_task([self, alive]() {
@@ -679,6 +732,8 @@ namespace horizon
                     return;
                 }
             }
+            
+            LOG_INFO << "[WEB-TITLE] Raw title update: " << title;
             
             // BEACON HANDLING: Intercept clipboard updates masked as title changes
             if (title.find("HORIZON_CLIPBOARD:") == 0) {
@@ -703,14 +758,7 @@ namespace horizon
 
             {
                 std::lock_guard<std::mutex> lock(self->m_metadata_mutex);
-                std::string clean_title;
-                for (unsigned char c : title) {
-                    if (c >= 32 && c < 127) clean_title += c;
-                    if (clean_title.length() >= 256) break;
-                }
-                if (clean_title.empty()) clean_title = "Untitled";
-
-                self->m_cached_title = clean_title;
+                self->m_cached_title = sanitize_title(title);
             }
 
             if (self->application()) {
