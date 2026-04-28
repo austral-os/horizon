@@ -549,6 +549,7 @@ namespace horizon
                 webkit_settings_set_javascript_can_open_windows_automatically(settings, TRUE);
                 webkit_settings_set_enable_javascript_markup(settings, TRUE);
                 webkit_settings_set_enable_webgl(settings, s_gpu_enabled);
+                webkit_settings_set_enable_2d_canvas_acceleration(settings, s_gpu_enabled);
                 webkit_settings_set_enable_developer_extras(settings, TRUE);
                 webkit_settings_set_user_agent(settings, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36");
                 
