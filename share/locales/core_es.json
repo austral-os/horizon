@@ -62,7 +62,8 @@
             "auth_title": "Privilegios de administrador",
             "password_for": "Contraseña para",
             "enter_password": "Escribe tu contraseña",
-            "authenticate": "Autenticar"
+            "authenticate": "Autenticar",
+            "auth_failed": "La autenticación falló. Reintente."
         }
     }
 }

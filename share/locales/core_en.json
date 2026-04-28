@@ -61,7 +61,8 @@
             "auth_title": "Administrator Privileges",
             "password_for": "Password for",
             "enter_password": "Enter your password",
-            "authenticate": "Authenticate"
+            "authenticate": "Authenticate",
+            "auth_failed": "Authentication failed. Please try again."
         }
     }
 }

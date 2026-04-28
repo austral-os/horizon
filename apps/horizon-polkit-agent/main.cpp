@@ -41,21 +41,12 @@ public:
         dbus_message_ref(pending_msg);
 
         std::thread([conn, pending_msg, user, uid, cookie]() {
-            bool authenticated = false;
-            std::string password;
-            
-            {
-                auto dialog = std::make_unique<AuthDialog>("", "", user);
-                dialog->when_authenticated.connect([&](AuthSuccessEvent& ev) { 
-                    authenticated = true; 
-                    password = ev.password;
-                });
-                dialog->initialize();
-                dialog->run(); 
-            }
+            auto dialog = std::make_unique<AuthDialog>("", "", user);
+            bool success_achieved = false;
 
-            if (authenticated) {
-                std::cout << "[Horizon Polkit Agent] Validando clave con polkit-agent-helper-1..." << std::endl;
+            dialog->when_authenticated.connect([&](AuthSuccessEvent& ev) { 
+                std::cout << "[Horizon Polkit Agent] Validando clave para " << user << "..." << std::endl;
+                
                 int pipe_fd[2];
                 if (pipe(pipe_fd) == 0) {
                     pid_t pid = fork();
@@ -68,13 +59,15 @@ public:
                         exit(1);
                     } else if (pid > 0) {
                         close(pipe_fd[0]);
-                        write(pipe_fd[1], password.c_str(), password.length());
+                        write(pipe_fd[1], ev.password.c_str(), ev.password.length());
                         write(pipe_fd[1], "\n", 1);
                         close(pipe_fd[1]);
+                        
                         int status; waitpid(pid, &status, 0);
                         if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-                            std::cout << "[Horizon Polkit Agent] ¡Clave correcta! Avisando a Polkit..." << std::endl;
+                            std::cout << "[Horizon Polkit Agent] ¡Clave correcta!" << std::endl;
                             
+                            // Avisar a la Autoridad
                             DBusMessage* call = dbus_message_new_method_call("org.freedesktop.PolicyKit1", "/org/freedesktop/PolicyKit1/Authority", "org.freedesktop.PolicyKit1.Authority", "AuthenticationAgentResponse");
                             if (call) {
                                 DBusMessageIter iter, sub_iter, dict_iter, entry_iter, var_iter;
@@ -96,11 +89,20 @@ public:
                                 dbus_connection_send(conn, call, nullptr);
                                 dbus_message_unref(call);
                             }
+                            success_achieved = true;
+                            dialog->quit(); // Cerrar ventana solo si hay exito
+                        } else {
+                            std::cerr << "[Horizon Polkit Agent] Clave incorrecta." << std::endl;
+                            dialog->show_error(i18n().tr("core.polkit.auth_failed"));
                         }
                     }
                 }
-            }
+            });
 
+            dialog->initialize();
+            dialog->run(); // Se bloquea aqui hasta que success_achieved sea true o cierren la ventana
+
+            // Siempre respondemos al mensaje original de D-Bus al final
             DBusMessage* reply = dbus_message_new_method_return(pending_msg);
             if (reply) {
                 dbus_connection_send(conn, reply, nullptr);
@@ -216,7 +218,6 @@ int main(int argc, char** argv)
         if (reply) { std::cout << "[Horizon Polkit Agent] ¡REGISTRO EXITOSO!" << std::endl; dbus_message_unref(reply); }
         dbus_message_unref(msg);
         
-        // Timeout de 100ms para revisar la cola de salida continuamente
         while (dbus_connection_read_write_dispatch(conn, 100)) {}
     });
     dbus_thread.join();

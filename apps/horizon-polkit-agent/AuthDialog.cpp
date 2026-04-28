@@ -1,11 +1,11 @@
 #include "AuthDialog.hpp"
+#include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
-#include <horizon/Icon.hpp>
 #include <horizon/I18n.hpp>
+#include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/Window.hpp>
-#include <horizon/AquaObject.hpp>
 #include <xkbcommon/xkbcommon-keysyms.h>
 
 namespace horizon::polkit
@@ -38,10 +38,12 @@ namespace horizon::polkit
         auto text_container = std::make_unique<Widget>();
         text_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         text_container->set_spacing(8);
+        text_container->set_fixed_size(40);
 
         auto title_label = std::make_unique<Label>(i18n().tr("core.polkit.auth_title"));
         title_label->set_font_weight(FONT_WEIGHT_BOLD);
         title_label->set_alignment(TextAlignment::Center);
+        title_label->set_fixed_size(35);
 
         auto msg_label = std::make_unique<Label>(message);
         msg_label->set_alignment(TextAlignment::Center);
@@ -49,9 +51,11 @@ namespace horizon::polkit
         text_container->add_child(std::move(title_label));
         text_container->add_child(std::move(msg_label));
 
-        auto user_label = std::make_unique<Label>(i18n().tr("core.polkit.password_for") + ": " + user);
+        auto user_label =
+            std::make_unique<Label>(i18n().tr("core.polkit.password_for") + ": " + user);
         user_label->set_alignment(TextAlignment::Left);
         user_label->set_margin(0);
+        user_label->set_fixed_size(35);
 
         auto password_box = std::make_unique<TextBox<PasswordPolicy>>();
         password_box->set_placeholder(i18n().tr("core.polkit.enter_password"));
@@ -59,52 +63,73 @@ namespace horizon::polkit
         password_box->set_focusable(true);
         m_password_entry = password_box.get();
 
-        // Al presionar Enter en el teclado, disparamos la autenticación
-        m_password_entry->when_key_press.connect([this](KeyEventContext& ev) {
-            if (ev.keysym == XKB_KEY_Return || ev.keysym == XKB_KEY_KP_Enter) {
-                on_authenticate();
-            }
-        });
+        m_password_entry->when_key_press.connect(
+            [this](KeyEventContext &ev)
+            {
+                if (ev.keysym == XKB_KEY_Return || ev.keysym == XKB_KEY_KP_Enter)
+                {
+                    on_authenticate();
+                }
+            });
+
+        // Label de error (inicialmente vacío y oculto)
+        auto error_label = std::make_unique<Label>("");
+        error_label->set_text_color(Color(1.0f, 0.2f, 0.2f, 1.0f)); // Rojo
+        error_label->set_alignment(TextAlignment::Center);
+        m_error_label = error_label.get();
 
         auto buttons_container = std::make_unique<Widget>();
         buttons_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        buttons_container->set_spacing(10);
+        buttons_container->set_fixed_size(35);
 
         auto cancel_btn = std::make_unique<Button<AquaObject>>();
         cancel_btn->set_text(i18n().tr("core.dialog.cancel"));
-        cancel_btn->when_click.connect([this](MouseButtonEventContext&) {
-            quit();
-        });
+        cancel_btn->when_click.connect([this](MouseButtonEventContext &) { quit(); });
 
         auto auth_btn = std::make_unique<Button<AquaObject>>();
         auth_btn->set_text(i18n().tr("core.polkit.authenticate"));
         auth_btn->set_accent_color(WidgetAccentColor::Primary);
-        auth_btn->when_click.connect([this](MouseButtonEventContext&) {
-            on_authenticate();
-        });
+        auth_btn->when_click.connect([this](MouseButtonEventContext &) { on_authenticate(); });
 
-        buttons_container->add_child(Spacer()); // Spacer es una funcion
+        buttons_container->add_child(Spacer());
         buttons_container->add_child(std::move(cancel_btn));
+        buttons_container->add_child(Spacer(20));
         buttons_container->add_child(std::move(auth_btn));
 
         container->add_child(std::move(icon));
         container->add_child(std::move(text_container));
         container->add_child(std::move(user_label));
         container->add_child(std::move(password_box));
+        container->add_child(std::move(error_label));
         container->add_child(std::move(buttons_container));
 
         root_wnd->add_child(std::move(container));
         set_root(std::move(root_wnd));
-        
-        // Foco automático
+
         m_password_entry->set_focus(true);
     }
 
     void AuthDialog::on_authenticate()
     {
+        // Limpiamos error anterior al reintentar
+        m_error_label->set_text("");
+
         AuthSuccessEvent ev;
         ev.password = m_password_entry->text();
-        when_authenticated.run(ev); // EventsManager usa .run()
-        quit();
+        when_authenticated.run(ev);
+
+        // NO cerramos aquí. Esperamos respuesta de main.cpp
     }
-}
+
+    void AuthDialog::show_error(const std::string &error)
+    {
+        m_error_label->set_text(error);
+        reset_password();
+    }
+
+    void AuthDialog::reset_password()
+    {
+        m_password_entry->set_text("");
+        m_password_entry->set_focus(true);
+    }
+} // namespace horizon::polkit

@@ -27,6 +27,12 @@ namespace horizon::polkit
 
         void setup_ui(const std::string& message, const std::string& user);
         void on_authenticate();
+        
+        // Muestra un mensaje de error en la UI
+        void show_error(const std::string& error);
+        
+        // Limpia el campo de contraseña y le devuelve el foco
+        void reset_password();
 
         EventsManager<AuthSuccessEvent> when_authenticated;
         EventsManager<AuthCancelEvent> when_canceled;
@@ -34,5 +40,6 @@ namespace horizon::polkit
     private:
         TextBox<PasswordPolicy>* m_password_entry{nullptr};
         Label* m_message_label{nullptr};
+        Label* m_error_label{nullptr};
     };
 }
