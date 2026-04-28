@@ -519,8 +519,27 @@ namespace horizon
         }
 
         void WebView::shutdown() {
-            // Global shutdown no longer manages per-instance threads.
-            // Cleanup is handled in the destructor.
+            std::unique_lock<std::mutex> lock(s_worker_mutex);
+            if (!s_worker_running) return;
+
+            LOG_INFO << "[WEB-DEBUG] Shutting down shared worker thread...";
+            s_worker_running = false;
+
+            GMainLoop* loop = s_worker_loop.load();
+            if (loop) {
+                g_main_loop_quit(loop);
+            }
+
+            if (s_worker_thread.joinable()) {
+                // Unlock during join to avoid deadlocks if the thread is waiting for this mutex
+                lock.unlock();
+                s_worker_thread.join();
+                lock.lock();
+            }
+
+            s_worker_context.store(nullptr);
+            s_worker_loop.store(nullptr);
+            LOG_INFO << "[WEB-DEBUG] Shared worker thread stopped.";
         }
 
         void WebView::ensure_worker_thread()
@@ -603,6 +622,15 @@ namespace horizon
             LOG_INFO << "[WEB-DEBUG] Entering shared worker loop";
             g_main_loop_run(loop);
             
+            if (s_default_context) {
+                g_object_unref(s_default_context);
+                s_default_context = nullptr;
+            }
+            if (s_default_session) {
+                g_object_unref(s_default_session);
+                s_default_session = nullptr;
+            }
+
             g_main_context_pop_thread_default(ctx);
             g_main_loop_unref(loop);
             g_main_context_unref(ctx);
