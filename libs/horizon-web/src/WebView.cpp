@@ -631,7 +631,17 @@ namespace horizon
                     "}; "
                     "window.addEventListener('resize', sendScroll); "
                     "window.addEventListener('scroll', sendScroll); "
-                    "setInterval(sendScroll, 1000); "; 
+                    "setInterval(sendScroll, 1000); "
+                    "let lastC = ''; "
+                    "window.addEventListener('mousemove', (e) => { "
+                    "  try { "
+                    "    const c = window.getComputedStyle(e.target).cursor; "
+                    "    if (c !== lastC) { "
+                    "      lastC = c; "
+                    "      document.title = 'HORIZON_CURSOR:' + c; "
+                    "    } "
+                    "  } catch(e) {} "
+                    "}, {passive: true}); "; 
                 WebKitUserScript* script = webkit_user_script_new(isolation_script, WEBKIT_USER_CONTENT_INJECT_ALL_FRAMES, WEBKIT_USER_SCRIPT_INJECT_AT_DOCUMENT_START, NULL, NULL);
                 webkit_user_content_manager_add_script(manager, script);
                 webkit_user_script_unref(script);
@@ -869,6 +879,30 @@ namespace horizon
                     if (self->application()) {
                         self->application()->set_clipboard_owner(self);
                     }
+                }
+                return;
+            }
+
+            if (title.find("HORIZON_CURSOR:") == 0) {
+                std::string c = title.substr(15);
+                CursorType type = CursorType::Default;
+                if (c == "pointer") type = CursorType::Pointer;
+                else if (c == "text" || c == "vertical-text") type = CursorType::Text;
+                else if (c == "ns-resize" || c == "n-resize" || c == "s-resize" || c == "row-resize") type = CursorType::ResizeNS;
+                else if (c == "ew-resize" || c == "e-resize" || c == "w-resize" || c == "col-resize") type = CursorType::ResizeEW;
+                else if (c == "nesw-resize") type = CursorType::ResizeNESW;
+                else if (c == "nwse-resize") type = CursorType::ResizeNWSE;
+                else if (c == "move") type = CursorType::Move;
+                else if (c == "wait" || c == "progress") type = CursorType::Wait;
+                else if (c == "help") type = CursorType::Help;
+                else if (c == "crosshair") type = CursorType::Text; // Fallback
+                
+                if (self->application()) {
+                    self->application()->post_task([self, type]() {
+                        if (self->cursor_type() != type) {
+                            self->set_cursor_type(type);
+                        }
+                    });
                 }
                 return;
             }

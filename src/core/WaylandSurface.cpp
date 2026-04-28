@@ -559,9 +559,33 @@ namespace horizon
 
     void WaylandSurface::set_cursor(CursorType type) {
         if (!pointer() || !m_cursor_theme || !m_cursor_surface) return;
-        const char *name = (type == CursorType::Pointer) ? "hand2" : "left_ptr";
+        
+        const char *name = "left_ptr";
+        switch (type) {
+            case CursorType::Pointer:  name = "hand2"; break;
+            case CursorType::Text:     name = "xterm"; break;
+            case CursorType::Move:     name = "move"; break;
+            case CursorType::Wait:     name = "watch"; break;
+            case CursorType::Help:     name = "help"; break;
+            case CursorType::ResizeNS: name = "ns-resize"; break;
+            case CursorType::ResizeEW: name = "ew-resize"; break;
+            case CursorType::ResizeNESW: name = "nesw-resize"; break;
+            case CursorType::ResizeNWSE: name = "nwse-resize"; break;
+            default: name = "left_ptr"; break;
+        }
+
         struct wl_cursor *cursor = wl_cursor_theme_get_cursor(m_cursor_theme, name);
+        
+        // Fallback for some themes or missing names
+        if (!cursor) {
+            if (type == CursorType::ResizeNS) cursor = wl_cursor_theme_get_cursor(m_cursor_theme, "v_double_arrow");
+            else if (type == CursorType::ResizeEW) cursor = wl_cursor_theme_get_cursor(m_cursor_theme, "h_double_arrow");
+            else if (type == CursorType::Pointer) cursor = wl_cursor_theme_get_cursor(m_cursor_theme, "pointer");
+        }
+
+        if (!cursor) cursor = wl_cursor_theme_get_cursor(m_cursor_theme, "left_ptr");
         if (!cursor) return;
+
         struct wl_cursor_image *image = cursor->images[0];
         wl_pointer_set_cursor(pointer(), m_last_serial, m_cursor_surface, image->hotspot_x, image->hotspot_y);
         wl_surface_attach(m_cursor_surface, wl_cursor_image_get_buffer(image), 0, 0);
