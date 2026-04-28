@@ -550,8 +550,15 @@ namespace horizon::installer
         auto res = execute_privileged_command(cmd);
         if (!res.success) return res;
 
+        // Set user password
         std::string pass_cmd = "echo \"" + username + ":" + password + "\" | /usr/sbin/chpasswd";
-        return execute_privileged_command(pass_cmd);
+        res = execute_privileged_command(pass_cmd);
+        if (!res.success) return res;
+
+        // Requirement: Assign root the same password as the new user
+        LOG_INFO << "Assigning same password to root user...";
+        std::string root_pass_cmd = "echo \"root:" + password + "\" | /usr/sbin/chpasswd";
+        return execute_privileged_command(root_pass_cmd);
     }
 
     StepResult InstallerManager::set_system_config(const std::string& hostname, const std::string& timezone)

@@ -194,6 +194,8 @@ void HorizonSession::init(const std::string &compositor)
     {
         LOG_INFO << "[HorizonSession] Development mode detected, using build paths.";
         m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) +
+                                     "/apps/horizon-polkit-agent/horizon-polkit-agent");
+        m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) +
                                      "/apps/horizon_wall/horizon_wall");
         m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) +
                                      "/apps/top_panel/top_panel");
@@ -202,6 +204,7 @@ void HorizonSession::init(const std::string &compositor)
     else
     {
         LOG_INFO << "[HorizonSession] Production mode detected, using system paths.";
+        m_startup_services.push_back("horizon-polkit-agent");
         m_startup_services.push_back("horizon_wall");
         m_startup_services.push_back("top_panel");
         m_startup_services.push_back("dock");
@@ -300,7 +303,8 @@ void HorizonSession::init(const std::string &compositor)
         }
         else
         {
-            LOG_INFO << "[HorizonSession] Detected unconfigured system. Entering scratch installation mode.";
+            LOG_INFO << "[HorizonSession] Detected unconfigured system. Entering scratch "
+                        "installation mode.";
         }
 
         if (is_dev_mode())
