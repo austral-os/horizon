@@ -22,10 +22,11 @@ BatteryIndicator::BatteryIndicator() : ITopPanelWidget()
     // Label for percentage
     auto label = std::make_unique<Label>("");
     m_label = label.get();
+    m_label->set_font_size(12);
     m_label->set_vertical_alignment(VerticalAlignment::Middle);
     add_child(std::move(label));
 
-    set_spacing(4); // Space between icon and label
+    set_spacing(6); // Space between icon and label
 
     // Initial state (hidden or generic until first check)
     set_visible(false);
@@ -224,6 +225,6 @@ void BatteryIndicator::update_ui(const std::string &icon_name, double percentage
 int BatteryIndicator::preferred_width() const
 {
     if (!is_visible()) return 0;
-    // Icon (24) + Margin (4) + Label width
-    return 24 + 4 + m_label->preferred_width();
+    // Icon (24) + Spacing (6) + Label width + Safety margin (6)
+    return 24 + 6 + m_label->preferred_width() + 6;
 }
