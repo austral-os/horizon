@@ -6,6 +6,7 @@
 #include <horizon/dbusutils/DbusHelper.hpp>
 #include <cmath>
 #include <sstream>
+#include <iomanip>
 
 using namespace horizon;
 using namespace horizon::dbusutils;
@@ -130,20 +131,59 @@ BatteryIndicator::BatteryStatus BatteryIndicator::calculate_current_info()
     BatteryStatus info;
     
     // Try to get info from DisplayDevice (composite)
-    const std::string path = "/org/freedesktop/UPower/devices/DisplayDevice";
+    const std::string display_path = "/org/freedesktop/UPower/devices/DisplayDevice";
     const std::string iface = "org.freedesktop.UPower.Device";
 
-    auto is_present_var = local_dbus->get_property("org.freedesktop.UPower", path, iface, "IsPresent");
+    auto is_present_var = local_dbus->get_property("org.freedesktop.UPower", display_path, iface, "IsPresent");
     info.is_present = std::holds_alternative<bool>(is_present_var) ? std::get<bool>(is_present_var) : false;
 
-    if (info.is_present) {
-        auto percentage_var = local_dbus->get_property("org.freedesktop.UPower", path, iface, "Percentage");
-        info.percentage = std::holds_alternative<double>(percentage_var) ? std::get<double>(percentage_var) : 0.0;
+    std::string final_path = display_path;
 
-        auto icon_var = local_dbus->get_property("org.freedesktop.UPower", path, iface, "IconName");
+    if (!info.is_present) {
+        // Fallback: search for any battery device
+        try {
+            DBusMessage* reply = local_dbus->call_method("org.freedesktop.UPower", "/org/freedesktop/UPower", "org.freedesktop.UPower", "EnumerateDevices");
+            if (reply) {
+                std::vector<std::string> devices = local_dbus->get_object_path_list(reply);
+                dbus_message_unref(reply);
+
+                for (const auto& dev_path : devices) {
+                    auto type_var = local_dbus->get_property("org.freedesktop.UPower", dev_path, iface, "Type");
+                    // Type 2 is Battery
+                    uint32_t type = 0;
+                    if (std::holds_alternative<uint32_t>(type_var)) type = std::get<uint32_t>(type_var);
+                    else if (std::holds_alternative<uint64_t>(type_var)) type = static_cast<uint32_t>(std::get<uint64_t>(type_var));
+
+                    if (type == 2) {
+                        auto pres_var = local_dbus->get_property("org.freedesktop.UPower", dev_path, iface, "IsPresent");
+                        if (std::holds_alternative<bool>(pres_var) && std::get<bool>(pres_var)) {
+                            final_path = dev_path;
+                            info.is_present = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (...) {
+            // Ignore errors in fallback
+        }
+    }
+
+    if (info.is_present) {
+        auto percentage_var = local_dbus->get_property("org.freedesktop.UPower", final_path, iface, "Percentage");
+        if (std::holds_alternative<double>(percentage_var)) {
+            info.percentage = std::get<double>(percentage_var);
+        } else if (std::holds_alternative<uint32_t>(percentage_var)) {
+            info.percentage = static_cast<double>(std::get<uint32_t>(percentage_var));
+        } else if (std::holds_alternative<uint64_t>(percentage_var)) {
+            info.percentage = static_cast<double>(std::get<uint64_t>(percentage_var));
+        } else {
+            info.percentage = 0.0;
+        }
+
+        auto icon_var = local_dbus->get_property("org.freedesktop.UPower", final_path, iface, "IconName");
         info.icon_name = std::holds_alternative<std::string>(icon_var) ? std::get<std::string>(icon_var) : "battery-missing-symbolic";
     } else {
-        // Fallback or check if it's really missing
         info.icon_name = "battery-missing-symbolic";
         info.percentage = 0.0;
     }
@@ -155,6 +195,8 @@ void BatteryIndicator::update_ui(const std::string &icon_name, double percentage
 {
     std::lock_guard<std::mutex> lock(m_state_mutex);
     
+    LOG_INFO << "BatteryIndicator: Updating UI - Icon: " << icon_name << ", Percentage: " << percentage << "%, Present: " << (is_present ? "Yes" : "No");
+
     m_current_icon_name = icon_name;
     m_current_percentage = percentage;
     m_current_is_present = is_present;

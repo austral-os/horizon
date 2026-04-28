@@ -372,6 +372,41 @@ namespace horizon::dbusutils
             val = i;
             break;
         }
+        case DBUS_TYPE_UINT16:
+        {
+            uint16_t u;
+            dbus_message_iter_get_basic(&sub_iter, &u);
+            val = static_cast<uint32_t>(u);
+            break;
+        }
+        case DBUS_TYPE_INT16:
+        {
+            int16_t i;
+            dbus_message_iter_get_basic(&sub_iter, &i);
+            val = static_cast<int32_t>(i);
+            break;
+        }
+        case DBUS_TYPE_UINT64:
+        {
+            uint64_t u;
+            dbus_message_iter_get_basic(&sub_iter, &u);
+            val = u;
+            break;
+        }
+        case DBUS_TYPE_INT64:
+        {
+            int64_t i;
+            dbus_message_iter_get_basic(&sub_iter, &i);
+            val = i;
+            break;
+        }
+        case DBUS_TYPE_DOUBLE:
+        {
+            double d;
+            dbus_message_iter_get_basic(&sub_iter, &d);
+            val = d;
+            break;
+        }
         case DBUS_TYPE_BOOLEAN:
         {
             dbus_bool_t b;
