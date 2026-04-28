@@ -51,6 +51,7 @@ namespace horizon::nova
         std::string get_url() const;
 
         void show_add_tab_button(bool show);
+        void focus_address_bar();
         horizon::GroupButton* add_tab_button() const { return m_add_tab_group; }
 
     private:

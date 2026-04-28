@@ -2,6 +2,7 @@
 #include "horizon/GroupButton.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/Spacer.hpp"
+#include "horizon/WaylandWindow.hpp"
 #include <fstream>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -129,6 +130,21 @@ namespace horizon
                 {
                     if (this->application())
                         this->application()->show_preferences();
+                });
+
+            // Shortcuts
+            when_key_press.connect(
+                [this](KeyEventContext &ctx)
+                {
+                    if ((ctx.modifiers & WaylandWindow::Modifier::CTRL) &&
+                        (ctx.keysym == 0x6c || ctx.keysym == 0x4c)) // 'l' or 'L'
+                    {
+                        if (m_toolbar)
+                        {
+                            m_toolbar->focus_address_bar();
+                            ctx.stop_propagation = true;
+                        }
+                    }
                 });
 
             // Initial tab

@@ -1392,11 +1392,16 @@ namespace horizon
         new_ev.keysym = event.keysym;
         new_ev.text = event.text;
 
-        // We no longer update m_modifiers here; on_modifiers_event is the sole source of truth
-        target->when_key_press.run(new_ev);
+        // Dispatch key event with bubbling
+        Widget *current = target;
+        while (current)
+        {
+            current->when_key_press.run(new_ev);
+            if (new_ev.stop_propagation)
+                return;
+            current = current->parent();
+        }
 
-        if (new_ev.stop_propagation)
-            return;
 
         // Focus navigation
         if (event.key == KEY_TAB)

@@ -155,5 +155,14 @@ namespace horizon::nova
             invalidate();
         }
     }
+    
+    void NovaToolbar::focus_address_bar()
+    {
+        if (m_search_box)
+        {
+            m_search_box->set_focus(true);
+            m_search_box->select_all();
+        }
+    }
 
 } // namespace horizon::nova
