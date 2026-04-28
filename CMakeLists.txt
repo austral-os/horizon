@@ -131,6 +131,7 @@ add_subdirectory(libs/horizon-installer-utils)
 
 # --- Core Applications ---
 add_subdirectory(apps/top_panel)
+add_subdirectory(apps/horizon-polkit-agent)
 add_subdirectory(apps/dock)
 add_subdirectory(apps/horizon_wall)
 add_subdirectory(apps/horizon_session)

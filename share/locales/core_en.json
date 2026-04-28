@@ -55,6 +55,13 @@
             "system_root": "System (Root)",
             "partition": "Partition",
             "unallocated": "Other / Unallocated"
+        },
+        "polkit": {
+            "auth_required": "Authentication Required",
+            "auth_title": "Administrator Privileges",
+            "password_for": "Password for",
+            "enter_password": "Enter your password",
+            "authenticate": "Authenticate"
         }
     }
 }

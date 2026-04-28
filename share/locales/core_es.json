@@ -56,6 +56,13 @@
             "system_root": "Sistema (Raíz)",
             "partition": "Partición",
             "unallocated": "Otras / No asignadas"
+        },
+        "polkit": {
+            "auth_required": "Autenticación requerida",
+            "auth_title": "Privilegios de administrador",
+            "password_for": "Contraseña para",
+            "enter_password": "Escribe tu contraseña",
+            "authenticate": "Autenticar"
         }
     }
 }
