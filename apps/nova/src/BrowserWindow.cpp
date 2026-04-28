@@ -160,6 +160,7 @@ namespace horizon
 
             int index =
                 m_tabs->add_tab("New Tab", std::unique_ptr<horizon::Widget>(web_view.release()));
+            m_tabs->set_current_tab(index);
             ptr->set_focus(true);
 
             ptr->when_title_changed.connect([this, ptr](const std::string &title) {
