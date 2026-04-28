@@ -2,6 +2,7 @@ set(SOURCES
     src/main.cpp
     src/BrowserWindow.cpp
     src/NovaToolbar.cpp
+    src/DownloadsPage.cpp
 )
 
 add_executable(nova ${SOURCES})
@@ -16,6 +17,7 @@ target_link_libraries(nova
     PRIVATE
         horizon
         horizon-web
+        horizon-download
 )
 
 add_custom_command(TARGET nova POST_BUILD

@@ -28,11 +28,10 @@ namespace horizon
     void Panel::draw(GraphicsContext &gc)
     {
         // Dibujamos un fondo con degradado y un borde inferior
-        gc.fillLinearGradientRect(m_start_draw_x + 1, m_start_draw_y + 1,
-                                  m_available_draw_width - 2, m_available_draw_height, m_bg2, m_bg1,
-                                  true, m_corner_radius);
+        gc.fillLinearGradientRect(m_start_draw_x, m_start_draw_y, m_available_draw_width,
+                                  m_available_draw_height, m_bg2, m_bg1, true, m_corner_radius);
 
         gc.setColor(m_border_color);
-        gc.drawRect(0, m_height - 1, m_width, 0, 0, 0.8f);
+        gc.drawRect(0, m_height, m_width, 0, 0, 0.8f);
     }
 } // namespace horizon

@@ -3,6 +3,9 @@
 #include "horizon/Logger.hpp"
 #include "horizon/Spacer.hpp"
 #include "horizon/WaylandWindow.hpp"
+#include "horizon/download/DownloadManager.hpp"
+#include "horizon/download/DownloadPopover.hpp"
+#include "DownloadsPage.hpp"
 #include <fstream>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -94,10 +97,19 @@ namespace horizon
             m_tabs->when_tab_selected.connect(
                 [this](int index)
                 {
-                    auto *web_view = dynamic_cast<web::WebView *>(m_tabs->current_tab_body());
+                    auto *body = m_tabs->current_tab_body();
+                    auto *web_view = dynamic_cast<web::WebView *>(body);
                     if (web_view)
                     {
                         m_toolbar->set_url(web_view->get_url());
+                    }
+                    else
+                    {
+                        auto *downloads = dynamic_cast<DownloadsPage *>(body);
+                        if (downloads)
+                        {
+                            m_toolbar->set_url(downloads->get_url());
+                        }
                     }
                 });
 
@@ -132,6 +144,14 @@ namespace horizon
                         this->application()->show_preferences();
                 });
 
+            m_toolbar->when_downloads_clicked.connect(
+                [this](DownloadsButtonClickEvent &)
+                {
+                    auto popover = std::make_unique<download::DownloadPopover>(m_toolbar);
+                    popover->show_relative_to(m_toolbar);
+                    this->add_child(std::move(popover));
+                });
+
             // Shortcuts
             when_key_press.connect(
                 [this](KeyEventContext &ctx)
@@ -161,6 +181,17 @@ namespace horizon
         void BrowserWindow::create_new_tab(const std::string &url)
         {
             LOG_INFO << "[NOVA] Creating new tab for URL: " << url;
+
+            if (url == "nova://downloads")
+            {
+                auto page = std::make_unique<DownloadsPage>();
+                auto *ptr = page.get();
+                int index = m_tabs->add_tab(ptr->get_title(), std::move(page));
+                m_tabs->set_current_tab(index);
+                m_toolbar->set_url(url);
+                return;
+            }
+
             auto web_view = std::make_unique<web::WebView>();
             auto *ptr = web_view.get();
 
@@ -211,6 +242,28 @@ namespace horizon
                     }
                 });
 
+            ptr->when_download_requested.connect(
+                [this](const std::string &url)
+                {
+                    LOG_INFO << "[NOVA] Download requested for: " << url;
+                    download::DownloadManager::instance().add_download(url);
+                    
+                    // Check if downloads tab is already open
+                    bool found = false;
+                    for (size_t i = 0; i < m_tabs->tab_count(); ++i) {
+                        auto* body = m_tabs->tab_body(i);
+                        if (dynamic_cast<DownloadsPage*>(body)) {
+                            m_tabs->set_current_tab(i);
+                            found = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!found) {
+                        create_new_tab("nova://downloads");
+                    }
+                });
+
             ptr->when_enter_fullscreen.connect([this](FullscreenEventContext &)
                                                { this->set_immersive_mode(true); });
 
@@ -243,10 +296,16 @@ namespace horizon
 
         void BrowserWindow::navigate_to_url(const std::string &input_url)
         {
+            std::string url = normalize_url(input_url);
+            if (url == "nova://downloads")
+            {
+                create_new_tab(url);
+                return;
+            }
+
             auto *web_view = dynamic_cast<web::WebView *>(m_tabs->current_tab_body());
             if (web_view)
             {
-                std::string url = normalize_url(input_url);
                 LOG_INFO << "[NOVA] Navigating in current tab to: " << url;
                 web_view->load_url(url);
             }

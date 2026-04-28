@@ -30,6 +30,10 @@ namespace horizon::nova
     {
     };
 
+    struct DownloadsButtonClickEvent : public EventContext
+    {
+    };
+
     struct SearchChangedEvent : public EventContext
     {
         std::string query;
@@ -45,6 +49,7 @@ namespace horizon::nova
         EventsManager<HomeButtonClickEvent> when_home_clicked;
         EventsManager<SearchChangedEvent> when_search_submitted;
         EventsManager<BookmarkButtonClickEvent> when_bookmark_clicked;
+        EventsManager<DownloadsButtonClickEvent> when_downloads_clicked;
         EventsManager<OptionsButtonClickEvent> when_options_clicked;
 
         void set_url(const std::string& url);

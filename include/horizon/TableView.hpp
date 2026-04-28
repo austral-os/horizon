@@ -160,6 +160,12 @@ namespace horizon
             m_row_menu_factory = factory;
         }
 
+        void set_row_height(int height)
+        {
+            m_row_height = height;
+            rebuild_content();
+        }
+
         const std::vector<T>& data() const { return m_data; }
         int selected_index() const { return m_selected_rows.empty() ? -1 : *m_selected_rows.begin(); }
 

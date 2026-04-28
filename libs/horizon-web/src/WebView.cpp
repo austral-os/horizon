@@ -560,6 +560,7 @@ namespace horizon
                     "settings", settings,
                     NULL));
                 
+                g_object_set_data(G_OBJECT(self->m_web_view), "horizon-wrapper", self);
                 g_object_unref(settings);
 
                 g_signal_connect(self->m_web_view, "notify::title", G_CALLBACK(on_title_notify), self);
@@ -1119,6 +1120,49 @@ namespace horizon
             return 1; // TRUE
         }
 
+        void WebView::on_download_started(void* session, void* download, void* p_self) {
+            WebKitWebView* web_view = webkit_download_get_web_view(WEBKIT_DOWNLOAD(download));
+            if (!web_view) return;
+            
+            WebView* self = static_cast<WebView*>(g_object_get_data(G_OBJECT(web_view), "horizon-wrapper"));
+            if (!self) return;
+
+            WebKitURIRequest* request = webkit_download_get_request(WEBKIT_DOWNLOAD(download));
+            const char* uri = webkit_uri_request_get_uri(request);
+            
+            LOG_INFO << "[WEB] Download started for URI: " << (uri ? uri : "unknown");
+            
+            if (uri) {
+                // Cancel WebKit's internal download, we will handle it with our libhorizon-download
+                webkit_download_cancel(WEBKIT_DOWNLOAD(download));
+                
+                // Emit signal so the application (Nova) can pick it up
+                std::string s_uri = uri;
+                self->when_download_requested.run(s_uri);
+            }
+        }
+
+        static bool is_uri_binary(const char* uri) {
+            if (!uri) return false;
+            std::string s_uri = uri;
+            // Remove fragments
+            size_t frag_pos = s_uri.find('#');
+            if (frag_pos != std::string::npos) s_uri = s_uri.substr(0, frag_pos);
+            // Remove query
+            size_t query_pos = s_uri.find('?');
+            if (query_pos != std::string::npos) s_uri = s_uri.substr(0, query_pos);
+            
+            const char* binary_exts[] = {
+                ".deb", ".zip", ".tar.gz", ".tar.xz", ".iso", ".bin", 
+                ".exe", ".msi", ".7z", ".rar", ".gz", ".bz2", ".xz", ".pkg", ".rpm", ".appimage"
+            };
+            
+            for (const char* ext : binary_exts) {
+                if (g_str_has_suffix(s_uri.c_str(), ext)) return true;
+            }
+            return false;
+        }
+
         int WebView::on_decide_policy(void* view, void* decision, int type, void* p_self) {
             WebView* self = static_cast<WebView*>(p_self);
             if (!self) return 0;
@@ -1141,6 +1185,15 @@ namespace horizon
                 WebKitURIRequest* request = webkit_navigation_action_get_request(action);
                 const char* uri = webkit_uri_request_get_uri(request);
                 
+                // EARLY INTERCEPTION: Check if URI looks like a download
+                if (is_uri_binary(uri)) {
+                    LOG_INFO << "[WEB-NAV-INTERCEPT] Binary extension in URI: " << uri;
+                    std::string s_uri = uri;
+                    self->when_download_requested.run(s_uri);
+                    webkit_policy_decision_ignore(WEBKIT_POLICY_DECISION(decision));
+                    return 1;
+                }
+
                 // NOVA URI BRIDGE: Intercept exit signal
                 if (uri && g_str_has_prefix(uri, "nova://exit_fullscreen")) {
                     LOG_INFO << "[WEB-BRIDGE] Exit signal detected via URI. Triggering Leave FS.";
@@ -1150,6 +1203,44 @@ namespace horizon
                 }
 
             }
+            
+            // Type 1 is WEBKIT_POLICY_DECISION_TYPE_RESPONSE
+            if (type == 1) {
+                WebKitResponsePolicyDecision* resp_decision = WEBKIT_RESPONSE_POLICY_DECISION(decision);
+                WebKitURIResponse* response = webkit_response_policy_decision_get_response(resp_decision);
+                const char* uri = webkit_uri_response_get_uri(response);
+                const char* mime = webkit_uri_response_get_mime_type(response);
+                const char* suggested = webkit_uri_response_get_suggested_filename(response);
+                
+                bool is_binary = is_uri_binary(uri);
+                
+                // If WebKit doesn't support the MIME type, or it's an attachment, or common binary MIME
+                if (!is_binary) {
+                    if (suggested != nullptr) is_binary = true;
+                    else if (mime != nullptr) {
+                        if (g_str_has_prefix(mime, "application/octet-stream") ||
+                            g_str_has_prefix(mime, "application/x-debian-package") ||
+                            g_str_has_prefix(mime, "application/zip") ||
+                            g_str_has_prefix(mime, "application/x-iso9660-image")) {
+                            is_binary = true;
+                        }
+                    }
+                }
+
+                if (is_binary || !webkit_response_policy_decision_is_mime_type_supported(resp_decision)) {
+                    LOG_INFO << "[WEB-RESP-INTERCEPT] Download triggered. URI: " << (uri ? uri : "unknown") 
+                             << " MIME: " << (mime ? mime : "unknown")
+                             << " Suggested: " << (suggested ? suggested : "none");
+                    
+                    if (uri && self) {
+                        std::string s_uri = uri;
+                        self->when_download_requested.run(s_uri);
+                        webkit_policy_decision_ignore(WEBKIT_POLICY_DECISION(decision));
+                        return 1;
+                    }
+                }
+            }
+
             if (self && self->m_backend) {
                 // Using 7 = VISIBLE | FOCUSED | IN_WINDOW
                 wpe_view_backend_add_activity_state(self->m_backend, 7);

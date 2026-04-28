@@ -98,10 +98,17 @@ namespace horizon::nova
         bookmark_icon->set_icon_size(16);
         m_actions_group->add_item(std::move(bookmark_icon));
 
+        auto downloads_icon = std::make_unique<horizon::Icon>();
+        downloads_icon->set_icon_name("folder-download");
+        downloads_icon->set_icon_size(16);
+        m_actions_group->add_item(std::move(downloads_icon));
+
         auto options_icon = std::make_unique<horizon::Icon>();
         options_icon->set_icon_name("emblem-system");
         options_icon->set_icon_size(16);
         m_actions_group->add_item(std::move(options_icon));
+
+        m_actions_group->set_fixed_size(120); // Increased from 80 to 120
 
         m_actions_group->when_button_clicked.connect(
             [this](horizon::GroupButtonClickEvent &ctx)
@@ -110,6 +117,11 @@ namespace horizon::nova
                 {
                     BookmarkButtonClickEvent ev;
                     this->when_bookmark_clicked.run(ev);
+                }
+                else if (ctx.button_index == 1)
+                {
+                    DownloadsButtonClickEvent ev;
+                    this->when_downloads_clicked.run(ev);
                 }
                 else
                 {

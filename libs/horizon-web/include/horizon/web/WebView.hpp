@@ -69,6 +69,7 @@ public:
     EventsManager<bool> when_loading_changed;
     EventsManager<double> when_progress_changed;
     EventsManager<bool> when_fullscreen_changed;
+    EventsManager<std::string> when_download_requested;
 
 protected:
     void draw(GraphicsContext& ctx) override;
@@ -89,6 +90,7 @@ private:
     static int on_permission_request(void* web_view, void* request, void* self);
     static int on_decide_policy(void* web_view, void* decision, int type, void* self);
     static int on_context_menu(void* web_view, void* context_menu, void* event, void* hit_test_result, void* self);
+    static void on_download_started(void* web_view, void* download, void* self);
 
     void update_scrollbars();
     void handle_ui_scroll(int x, int y);
