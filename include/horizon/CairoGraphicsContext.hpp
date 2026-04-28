@@ -43,6 +43,7 @@ namespace horizon
         void drawText(int x, int y, const char *text) override;
 
         void drawImage(const std::string &path, int x, int y, int w, int h, float alpha = 1.0f) override;
+        void drawImage(const std::string &path, int x, int y, int w, int h, Color tint, float alpha = 1.0f) override;
 
         void drawCircle(int x, int y, int radius, float lineWidth = 1.0f) override;
         void fillCircle(int x, int y, int radius) override;

@@ -291,6 +291,11 @@ namespace horizon
 
     void CairoGraphicContext::drawImage(const std::string &path, int x, int y, int w, int h, float alpha)
     {
+        drawImage(path, x, y, w, h, Color(0.0f, 0.0f, 0.0f, 0.0f), alpha);
+    }
+
+    void CairoGraphicContext::drawImage(const std::string &path, int x, int y, int w, int h, Color tint, float alpha)
+    {
         if (path.empty() || w <= 0 || h <= 0 || !cr)
             return;
 
@@ -342,11 +347,20 @@ namespace horizon
 
             if (img)
             {
-                cairo_set_source_surface(cr, img, x, y);
-                if (alpha < 1.0f)
-                    cairo_paint_with_alpha(cr, alpha);
+                if (tint.a > 0.001f)
+                {
+                    // Tinted SVG: use as mask for the color
+                    cairo_set_source_rgba(cr, tint.r, tint.g, tint.b, tint.a * alpha);
+                    cairo_mask_surface(cr, img, x, y);
+                }
                 else
-                    cairo_paint(cr);
+                {
+                    cairo_set_source_surface(cr, img, x, y);
+                    if (alpha < 1.0f)
+                        cairo_paint_with_alpha(cr, alpha);
+                    else
+                        cairo_paint(cr);
+                }
             }
 
             if (!m_app && img)
@@ -387,11 +401,22 @@ namespace horizon
 
                 cairo_translate(cr, x, y);
                 cairo_scale(cr, sx, sy);
-                cairo_set_source_surface(cr, img, 0, 0);
-                if (alpha < 1.0f)
-                    cairo_paint_with_alpha(cr, alpha);
+
+                if (tint.a > 0.001f)
+                {
+                    // Tinted PNG: use as mask for the color
+                    cairo_set_source_rgba(cr, tint.r, tint.g, tint.b, tint.a * alpha);
+                    // Since we translated and scaled, the surface is at 0,0
+                    cairo_mask_surface(cr, img, 0, 0);
+                }
                 else
-                    cairo_paint(cr);
+                {
+                    cairo_set_source_surface(cr, img, 0, 0);
+                    if (alpha < 1.0f)
+                        cairo_paint_with_alpha(cr, alpha);
+                    else
+                        cairo_paint(cr);
+                }
             }
 
             if (!m_app && img)

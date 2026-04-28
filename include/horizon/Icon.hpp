@@ -67,6 +67,12 @@ namespace horizon
         void set_opacity(float opacity);
         float opacity() const;
 
+        /**
+         * @brief Set a color to tint the icon. If alpha is 0 (default), the icon is drawn normally.
+         */
+        void set_icon_color(Color color);
+        Color icon_color() const;
+
     protected:
         void draw(GraphicsContext &ctx) override;
 
@@ -77,6 +83,7 @@ namespace horizon
         TextAlignment m_horizontal_alignment{TextAlignment::Center};
         std::string m_resolved_path;
         float m_opacity{1.0f};
+        Color m_icon_color{0.0f, 0.0f, 0.0f, 0.0f};
 
         void resolve_icon();
     };

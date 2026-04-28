@@ -144,6 +144,17 @@ namespace horizon
         return m_opacity;
     }
 
+    void Icon::set_icon_color(Color color)
+    {
+        m_icon_color = color;
+        invalidate();
+    }
+
+    Color Icon::icon_color() const
+    {
+        return m_icon_color;
+    }
+
     void Icon::draw(GraphicsContext &ctx)
     {
         if (m_resolved_path.empty())
@@ -173,7 +184,14 @@ namespace horizon
         }
 
         float alpha = m_opacity * (is_enabled() ? 1.0f : 0.4f);
-        ctx.drawImage(m_resolved_path, icon_x, icon_y, draw_size, draw_size, alpha);
+        if (m_icon_color.a > 0.001f)
+        {
+            ctx.drawImage(m_resolved_path, icon_x, icon_y, draw_size, draw_size, m_icon_color, alpha);
+        }
+        else
+        {
+            ctx.drawImage(m_resolved_path, icon_x, icon_y, draw_size, draw_size, alpha);
+        }
     }
 
 } // namespace horizon
