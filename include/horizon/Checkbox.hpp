@@ -18,6 +18,7 @@ namespace horizon
     public:
         Checkbox() : T()
         {
+            this->set_focusable(true);
             m_label = std::make_unique<Label>();
 
             this->when_mouse_enter.connect([this](EventContext &) { this->invalidate(); });

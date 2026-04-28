@@ -10,6 +10,7 @@ namespace horizon
 {
     Combo::Combo() : AirObject()
     {
+        set_focusable(true);
         set_size(150, 30);
         
         when_click.connect([this](MouseButtonEventContext &ev) {

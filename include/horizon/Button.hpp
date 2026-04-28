@@ -17,6 +17,7 @@ namespace horizon
     public:
         Button() : T()
         {
+            this->set_focusable(true);
             // this->when_mouse_enter.connect([this](EventContext &) { this->invalidate(); });
             // this->when_mouse_leave.connect([this](EventContext &) { this->invalidate(); });
 

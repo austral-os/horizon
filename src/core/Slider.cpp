@@ -23,6 +23,7 @@ namespace horizon
 
     Slider::Slider() : Widget()
     {
+        set_focusable(true);
         m_height = 40; // default fixed height for horizontal
 
         m_thumb_poly = std::make_unique<AquaPolygon>();

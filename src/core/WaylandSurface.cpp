@@ -774,7 +774,17 @@ namespace horizon
         if (m_xkb_state) xkb_state_unref(m_xkb_state); if (m_xkb_keymap) xkb_keymap_unref(m_xkb_keymap);
         m_xkb_keymap = km; m_xkb_state = st;
     }
-    void WaylandSurface::update_xkb_modifiers(uint32_t d, uint32_t la, uint32_t lo, uint32_t g) { if (m_xkb_state) xkb_state_update_mask(m_xkb_state, d, la, lo, 0, 0, g); }
+    void WaylandSurface::update_xkb_modifiers(uint32_t d, uint32_t la, uint32_t lo, uint32_t g) { 
+        if (m_xkb_state) xkb_state_update_mask(m_xkb_state, d, la, lo, 0, 0, g); 
+        
+        if (m_listener && m_xkb_state) {
+            uint32_t mods = 0;
+            if (xkb_state_mod_name_is_active(m_xkb_state, XKB_MOD_NAME_SHIFT, XKB_STATE_MODS_EFFECTIVE)) mods |= 0x1;
+            if (xkb_state_mod_name_is_active(m_xkb_state, XKB_MOD_NAME_CTRL, XKB_STATE_MODS_EFFECTIVE)) mods |= 0x2;
+            if (xkb_state_mod_name_is_active(m_xkb_state, XKB_MOD_NAME_ALT, XKB_STATE_MODS_EFFECTIVE)) mods |= 0x4;
+            m_listener->on_modifiers_event(mods);
+        }
+    }
     void WaylandSurface::process_key(uint32_t key, uint32_t state, KeyEvent &ev) {
         if (!m_xkb_state) return;
         xkb_keycode_t kc = key + 8; ev.keysym = xkb_state_key_get_one_sym(m_xkb_state, kc);

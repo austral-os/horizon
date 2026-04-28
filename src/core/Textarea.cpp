@@ -243,7 +243,9 @@ namespace horizon
                         delete_selection();
                         m_text.insert(m_cursor_pos, ev.text);
                         m_cursor_pos += ev.text.length();
-                        m_selection_anchor = -1;
+                        if (ev.text[0] == '\t')
+                            ev.stop_propagation = true;
+
                         invalidate();
                         KeyEventContext ctx = ev;
                         when_text_changed.run(ctx);

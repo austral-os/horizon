@@ -162,6 +162,16 @@ namespace horizon
         void set_focused_widget(Widget *widget);
 
         /**
+         * @brief Moves focus to the next focusable widget.
+         */
+        void focus_next();
+
+        /**
+         * @brief Moves focus to the previous focusable widget.
+         */
+        void focus_previous();
+
+        /**
          * @brief Invalidates the entire application or a specific widget.
          * @param widget The widget to invalidate. If nullptr, the entire window is repainted.
          */
@@ -640,6 +650,8 @@ namespace horizon
         std::vector<Widget *> m_hidden_by_fullscreen;
 
         Widget *find_clipboard_target();
+
+        void collect_focusable_widgets(Widget *root, std::vector<Widget *> &list);
 
         PreferencesFactory m_preferences_factory;
         int m_preferences_width{500};

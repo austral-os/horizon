@@ -1395,6 +1395,23 @@ namespace horizon
         // We no longer update m_modifiers here; on_modifiers_event is the sole source of truth
         target->when_key_press.run(new_ev);
 
+        if (new_ev.stop_propagation)
+            return;
+
+        // Focus navigation
+        if (event.key == KEY_TAB)
+        {
+            if (event.modifiers & SHIFT)
+            {
+                focus_previous();
+            }
+            else
+            {
+                focus_next();
+            }
+            return;
+        }
+
         // Standard shortcuts for clipboard: automatically dispatch if widget hierarchy supports it
         if ((m_modifiers & CTRL))
         {
@@ -3142,4 +3159,63 @@ namespace horizon
     {
         m_use_global_menu = use;
     }
+    void WaylandWindow::focus_next()
+    {
+        std::vector<Widget *> focusables;
+        collect_focusable_widgets(m_root.get(), focusables);
+
+        if (focusables.empty())
+            return;
+
+        int next_index = 0;
+        if (m_focused)
+        {
+            auto it = std::find(focusables.begin(), focusables.end(), m_focused);
+            if (it != focusables.end())
+            {
+                next_index = (std::distance(focusables.begin(), it) + 1) % focusables.size();
+            }
+        }
+
+        set_focused_widget(focusables[next_index]);
+    }
+
+    void WaylandWindow::focus_previous()
+    {
+        std::vector<Widget *> focusables;
+        collect_focusable_widgets(m_root.get(), focusables);
+
+        if (focusables.empty())
+            return;
+
+        int prev_index = (int)focusables.size() - 1;
+        if (m_focused)
+        {
+            auto it = std::find(focusables.begin(), focusables.end(), m_focused);
+            if (it != focusables.end())
+            {
+                int current_index = (int)std::distance(focusables.begin(), it);
+                prev_index = (current_index - 1 + (int)focusables.size()) % (int)focusables.size();
+            }
+        }
+
+        set_focused_widget(focusables[prev_index]);
+    }
+
+    void WaylandWindow::collect_focusable_widgets(Widget *root, std::vector<Widget *> &list)
+    {
+        if (!root || !root->is_visible() || !root->is_enabled())
+            return;
+
+        if (root->is_focusable())
+        {
+            list.push_back(root);
+        }
+
+        for (auto const &child : root->children())
+        {
+            collect_focusable_widgets(child.get(), list);
+        }
+    }
+
 } // namespace horizon

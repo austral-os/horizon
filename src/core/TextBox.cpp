@@ -153,7 +153,7 @@ namespace horizon
                 }
                 else if (!ev.text.empty())
                 {
-                    if (ev.text[0] >= 32 || ev.text[0] == '\t')
+                    if (ev.text[0] >= 32)
                     {
                         delete_selection();
                         m_text.insert(m_cursor_pos, ev.text);
