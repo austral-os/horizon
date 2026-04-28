@@ -185,6 +185,7 @@ private:
     // Wayfire Stabilization
     bool m_window_activated = false;
     std::string m_pending_url;
+    bool m_inspector_visible = false;
 
     // Clipboard Content Cache
     std::string m_clipboard_content;

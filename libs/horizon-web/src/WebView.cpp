@@ -247,13 +247,13 @@ namespace horizon
                                 snprintf(buf, sizeof(buf), 
                                     "{ const sel = window.getSelection();"
                                     "  if (sel && sel.anchorNode) {"
-                                    "    const range = document.caretRangeFromPoint(%f, %f) || document.caretPositionFromPoint(%f, %f);"
+                                    "    const range = document.caretRangeFromPoint(%f, %f);"
                                     "    if (range) {"
-                                    "      const node = range.startContainer || range.offsetNode;"
-                                    "      const offset = range.startOffset || range.offset;"
+                                    "      const node = range.startContainer;"
+                                    "      const offset = range.startOffset;"
                                     "      if (node) sel.extend(node, offset);"
                                     "    }"
-                                    "  } }", d->lx, d->ly, d->lx, d->ly);
+                                    "  } }", d->lx, d->ly);
                                 webkit_web_view_evaluate_javascript(self->m_web_view, buf, -1, NULL, NULL, NULL, NULL, NULL);
                             }
                             delete d->event;
@@ -316,6 +316,89 @@ namespace horizon
             when_right_click.connect([this](MouseButtonEventContext &ctx) {
                 if (application()) {
                     m_active_context_menu = std::make_unique<horizon::Menu>();
+                    
+                    auto* back = m_active_context_menu->add_item("Atrás", "Alt+Izquierda", "back");
+                    back->set_icon("go-previous-symbolic");
+                    back->set_enabled(can_go_back());
+                    back->when_click.connect([this](MouseButtonEventContext&) {
+                        go_back();
+                        if (application()) application()->hide_context_menu();
+                    });
+
+                    auto* forward = m_active_context_menu->add_item("Adelante", "Alt+Derecha", "forward");
+                    forward->set_icon("go-next-symbolic");
+                    forward->set_enabled(can_go_forward());
+                    forward->when_click.connect([this](MouseButtonEventContext&) {
+                        go_forward();
+                        if (application()) application()->hide_context_menu();
+                    });
+
+                    auto* reload = m_active_context_menu->add_item("Recargar", "Ctrl+R", "reload");
+                    reload->set_icon("view-refresh-symbolic");
+                    reload->when_click.connect([this](MouseButtonEventContext&) {
+                        this->reload();
+                        if (application()) application()->hide_context_menu();
+                    });
+                    m_active_context_menu->add_separator();
+                    
+                    if (!m_inspector_visible) {
+                        auto* inspect = m_active_context_menu->add_item("Inspeccionar elemento", "Ctrl+Shift+I", "inspect");
+                        inspect->set_icon("edit-find-symbolic");
+                        inspect->when_click.connect([this](MouseButtonEventContext&) {
+                            this->m_inspector_visible = true;
+                            this->invalidate();
+                            if (s_worker_context) {
+                                const char* eruda_js = 
+                                    "(function () { "
+                                    "  if (window.eruda) { "
+                                    "    eruda.show(); "
+                                    "  } else { "
+                                    "    var script = document.createElement('script'); "
+                                    "    script.src = 'https://cdn.jsdelivr.net/npm/eruda'; "
+                                    "    document.body.appendChild(script); "
+                                    "    script.onload = function () { "
+                                    "       eruda.init(); "
+                                    "       try { eruda._entryBtn.hide(); } catch(e) {} "
+                                    "       var style = document.createElement('style'); "
+                                    "       style.innerHTML = '.eruda-entry-btn { display: none !important; }'; "
+                                    "       document.head.appendChild(style); "
+                                    "       eruda.show(); "
+                                    "       setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 500); "
+                                    "    }; "
+                                    "  } "
+                                    "})();";
+                                
+                                struct JSData { WebKitWebView* v; std::string s; };
+                                g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+                                    auto* d = (JSData*)data;
+                                    if (d->v) webkit_web_view_evaluate_javascript(d->v, d->s.c_str(), -1, NULL, NULL, NULL, NULL, NULL);
+                                    delete d;
+                                    return FALSE;
+                                }, new JSData{m_web_view, eruda_js});
+                            }
+                            if (application()) application()->hide_context_menu();
+                        });
+                    } else {
+                        auto* hide_inspect = m_active_context_menu->add_item("Ocultar inspector", "Ctrl+Shift+I", "hide_inspect");
+                        hide_inspect->set_icon("edit-find-symbolic");
+                        hide_inspect->when_click.connect([this](MouseButtonEventContext&) {
+                            this->m_inspector_visible = false;
+                            this->invalidate();
+                            if (s_worker_context) {
+                                const char* eruda_hide_js = "if (window.eruda) eruda.hide();";
+                                struct JSData { WebKitWebView* v; std::string s; };
+                                g_main_context_invoke(s_worker_context, (GSourceFunc)+[](void* data) -> gboolean {
+                                    auto* d = (JSData*)data;
+                                    if (d->v) webkit_web_view_evaluate_javascript(d->v, d->s.c_str(), -1, NULL, NULL, NULL, NULL, NULL);
+                                    delete d;
+                                    return FALSE;
+                                }, new JSData{m_web_view, eruda_hide_js});
+                            }
+                            if (application()) application()->hide_context_menu();
+                        });
+                    }
+
+
                     application()->show_context_menu(m_active_context_menu.get(), -1, -1, ctx.serial, this);
                     ctx.stop_propagation = true;
                 }
@@ -460,11 +543,13 @@ namespace horizon
 
                 auto *webkit_backend = webkit_web_view_backend_new(self->m_backend, nullptr, nullptr);
 
+                printf("\n[WEB] WebView System Starting (v0.1.2-inspt)\n");
                 WebKitSettings* settings = webkit_settings_new();
                 webkit_settings_set_enable_fullscreen(settings, TRUE);
                 webkit_settings_set_javascript_can_open_windows_automatically(settings, TRUE);
                 webkit_settings_set_enable_javascript_markup(settings, TRUE);
                 webkit_settings_set_enable_webgl(settings, s_gpu_enabled);
+                webkit_settings_set_enable_developer_extras(settings, TRUE);
                 webkit_settings_set_user_agent(settings, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36");
                 
                 self->m_web_view = WEBKIT_WEB_VIEW(g_object_new(WEBKIT_TYPE_WEB_VIEW,
@@ -511,13 +596,35 @@ namespace horizon
                     "  const sx = Math.round(window.scrollX || window.pageXOffset); "
                     "  const sh = el.scrollHeight; "
                     "  const sw = el.scrollWidth; "
-                    "  const wh = window.innerHeight; "
+                    "  let wh = window.innerHeight; "
                     "  const ww = window.innerWidth; "
+                    "  try { "
+                    "    const eruda = document.getElementById('eruda'); "
+                    "    if (eruda) { "
+                    "      const devTools = eruda.querySelector('.eruda-dev-tools'); "
+                    "      if (devTools) { "
+                    "        const rect = devTools.getBoundingClientRect(); "
+                    "        if (rect.height > 10 && window.getComputedStyle(devTools).display !== 'none') { "
+                    "          wh -= rect.height; "
+                    "        } "
+                    "      } "
+                    "    } "
+                    "  } catch(e) {} "
                     "  const realTitle = window._horizon_real_title || document.title || ''; "
+                    "  let iv = 0; "
+                    "  try { "
+                    "    const eruda = document.getElementById('eruda'); "
+                    "    if (eruda) { "
+                    "      const devTools = eruda.querySelector('.eruda-dev-tools'); "
+                    "      if (devTools && window.getComputedStyle(devTools).display !== 'none') { "
+                    "        iv = 1; "
+                    "      } "
+                    "    } "
+                    "  } catch(e) {} "
                     "  if (realTitle.indexOf('HORIZON_SCROLL:') === 0) { "
-                    "    document.title = 'HORIZON_SCROLL:' + sy + ' ' + sx + ' ' + sh + ' ' + sw + ' ' + wh + ' ' + ww + ' TITLE:'; "
+                    "    document.title = 'HORIZON_SCROLL:' + sy + ' ' + sx + ' ' + sh + ' ' + sw + ' ' + wh + ' ' + ww + ' ' + iv + ' TITLE:'; "
                     "  } else { "
-                    "    document.title = 'HORIZON_SCROLL:' + sy + ' ' + sx + ' ' + sh + ' ' + sw + ' ' + wh + ' ' + ww + ' TITLE:' + realTitle; "
+                    "    document.title = 'HORIZON_SCROLL:' + sy + ' ' + sx + ' ' + sh + ' ' + sw + ' ' + wh + ' ' + ww + ' ' + iv + ' TITLE:' + realTitle; "
                     "  } "
                     "}; "
                     "window.addEventListener('resize', sendScroll); "
@@ -586,6 +693,7 @@ namespace horizon
             g_setenv("WEBKIT_DISABLE_WAYLAND_DISPLAY_CHECK", "1", TRUE);
             g_setenv("WEBKIT_FORCE_SANDBOX", "0", TRUE);
             g_setenv("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1", TRUE);
+            g_setenv("WEBKIT_INSPECTOR_HTTP_SERVER_PORT", "8080", FALSE);
 
             {
                 std::lock_guard<std::mutex> lock(s_wpe_init_mutex);
@@ -699,7 +807,8 @@ namespace horizon
             // BEACON HANDLING: Intercept scroll updates masked as title changes
             if (title.find("HORIZON_SCROLL:") == 0) {
                 double sy, sx, ch, cw, vh, vw;
-                if (sscanf(title.c_str() + 15, "%lf %lf %lf %lf %lf %lf", &sy, &sx, &ch, &cw, &vh, &vw) == 6) {
+                int iv = 0;
+                if (sscanf(title.c_str() + 15, "%lf %lf %lf %lf %lf %lf %d", &sy, &sx, &ch, &cw, &vh, &vw, &iv) == 7) {
                     {
                         std::lock_guard<std::mutex> lock{self->m_scroll_mutex};
                         self->m_target_scroll_y = sy;
@@ -708,7 +817,9 @@ namespace horizon
                         self->m_target_content_w = cw;
                         self->m_target_view_h = vh;
                         self->m_target_view_w = vw;
+                        self->m_inspector_visible = (iv != 0);
                         self->m_scroll_dirty = true;
+                        LOG_INFO << "[WEB-DEBUG] Viewport Update - VH: " << vh << " Inspector: " << (iv ? "YES" : "NO");
                     }
 
                     // Extract embedded real title if present
@@ -1184,15 +1295,15 @@ namespace horizon
 
             if (effective_view_h <= 0 || effective_view_w <= 0) return;
 
-            // PERSISTENT VISIBILITY: Always show the gutter for responsiveness
-            m_show_v_scroll = true; 
-            m_show_h_scroll = m_content_width > effective_view_w + 1;
+            // PERSISTENT VISIBILITY: Always show the gutter for responsiveness, unless inspector is open
+            m_show_v_scroll = !m_inspector_visible; 
+            m_show_h_scroll = (m_content_width > effective_view_w + 1) && !m_inspector_visible;
 
             if (m_show_v_scroll) {
                 m_v_track_x = x() + width() - SCROLLBAR_SIZE - 2;
                 m_v_track_y = y() + 2;
                 m_v_track_w = SCROLLBAR_SIZE;
-                m_v_track_h = height() - 4 - (m_show_h_scroll ? SCROLLBAR_SIZE : 0);
+                m_v_track_h = (int)effective_view_h - 4 - (m_show_h_scroll ? SCROLLBAR_SIZE : 0);
 
                 double visible_ratio = effective_view_h / m_content_height;
                 if (!std::isfinite(visible_ratio) || visible_ratio > 1.0) visible_ratio = 1.0;
