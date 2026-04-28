@@ -317,6 +317,45 @@ void HorizonSession::init(const std::string &compositor)
             m_startup_services.push_back("horizon-installer");
         }
     }
+    else
+    {
+        // System is installed, check if we should show the welcome app
+        bool show_welcome = true;
+        if (home)
+        {
+            std::string welcome_path = std::string(home) + "/.config/horizon/austral-welcome.json";
+            if (fs::exists(welcome_path))
+            {
+                try
+                {
+                    std::ifstream f(welcome_path);
+                    nlohmann::json data = nlohmann::json::parse(f);
+                    if (data.contains("welcome") && data["welcome"].contains("show_welcome"))
+                    {
+                        show_welcome = data["welcome"]["show_welcome"].get<bool>();
+                    }
+                }
+                catch (...)
+                {
+                    // Ignore malformed config
+                }
+            }
+        }
+
+        if (show_welcome)
+        {
+            LOG_INFO << "[HorizonSession] Launching austral-welcome...";
+            if (is_dev_mode())
+            {
+                m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) +
+                                             "/apps/austral-welcome/austral-welcome");
+            }
+            else
+            {
+                m_startup_services.push_back("austral-welcome");
+            }
+        }
+    }
 }
 
 void HorizonSession::start()

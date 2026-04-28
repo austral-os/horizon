@@ -1,0 +1,8 @@
+{
+    "welcome.title": "Bienvenido",
+    "welcome.title_long": "Bienvenido a Austral OS",
+    "welcome.description": "Austral OS se encuentra actualmente en desarrollo activo (Alpha). Algunas funciones pueden estar incompletas, aún no implementadas o pueden contener errores.\n\nEl sistema evoluciona continuamente y sus comentarios son muy apreciados para ayudar a mejorarlo.",
+    "welcome.start_on_boot": "Iniciar al arrancar",
+    "welcome.buttons.back": "Atrás",
+    "welcome.buttons.next": "Siguiente"
+}

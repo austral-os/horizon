@@ -147,6 +147,7 @@ add_subdirectory(apps/text-editor)
 add_subdirectory(apps/disk-utility)
 add_subdirectory(apps/horizon-installer)
 add_subdirectory(apps/horizon-greeter)
+add_subdirectory(apps/austral-welcome)
 
 # --- Demos and Tests ---
 add_executable(files_demo
