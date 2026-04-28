@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
     about.set_app_description(horizon::i18n().tr("welcome.description"));
     about.set_app_version("0.1.0");
     about.set_app_icon("emblem-austral");
-    
+
     auto window = std::make_unique<WelcomeWindow>();
 
     app->set_root(std::move(window));

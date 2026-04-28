@@ -1,8 +1,12 @@
 {
-    "welcome.title": "Welcome",
-    "welcome.title_long": "Welcome to Austral OS",
-    "welcome.description": "Austral OS is currently in active development (Alpha). Some features may be incomplete, not yet implemented, or may contain bugs.\n\nThe system is continuously evolving, and your feedback is highly appreciated to help improve it.",
-    "welcome.start_on_boot": "Start on boot",
-    "welcome.buttons.back": "Back",
-    "welcome.buttons.next": "Next"
+    "welcome": {
+        "title": "Welcome",
+        "title_long": "Welcome to Austral OS",
+        "description": "Austral OS is currently in active development (Alpha). Some features may be incomplete, not yet implemented, or may contain bugs.\n\nThe system is continuously evolving, and your feedback is highly appreciated to help improve it.",
+        "start_on_boot": "Start on boot",
+        "buttons": {
+            "back": "Back",
+            "next": "Next"
+        }
+    }
 }
