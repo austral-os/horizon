@@ -128,15 +128,18 @@ namespace horizon::greeter
                 for (auto &c : lower_msg)
                     c = (char)std::tolower(c);
 
-                if (m_log_view && lower_msg.find("greetd") != std::string::npos)
+                if (lower_msg.find("greetd") != std::string::npos)
                 {
-                    std::string prefix = "[INFO] ";
-                    if (level == horizon::LogLevel::WARNING)
-                        prefix = "[WARN] ";
-                    if (level == horizon::LogLevel::ERROR)
-                        prefix = "[ERR ] ";
-                    m_log_view->set_text(m_log_view->text() + prefix + msg + "\n");
-                    m_log_view->move_cursor_to_end();
+                    this->post_task([this, level, msg]() {
+                        if (!m_log_view) return;
+                        std::string prefix = "[INFO] ";
+                        if (level == horizon::LogLevel::WARNING)
+                            prefix = "[WARN] ";
+                        if (level == horizon::LogLevel::ERROR)
+                            prefix = "[ERR ] ";
+                        m_log_view->set_text(m_log_view->text() + prefix + msg + "\n");
+                        m_log_view->move_cursor_to_end();
+                    });
                 }
             });
     }
