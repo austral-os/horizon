@@ -923,12 +923,8 @@ namespace horizon
             }
 
             if (self->application()) {
-                self->application()->post_task([self]() {
-                    std::string t;
-                    {
-                        std::lock_guard<std::mutex> lock(self->m_metadata_mutex);
-                        t = self->m_cached_title;
-                    }
+                std::string t = self->m_cached_title;
+                self->application()->post_task([self, t]() mutable {
                     self->when_title_changed.run(t);
                 });
             }
@@ -946,9 +942,8 @@ namespace horizon
             }
 
             if (self->application()) {
-                self->application()->post_task([self, url]() {
-                    std::string u = url;
-                    self->when_url_changed.run(u);
+                self->application()->post_task([self, url]() mutable {
+                    self->when_url_changed.run(url);
                 });
             }
         }
@@ -1178,22 +1173,13 @@ namespace horizon
                 webkit_policy_decision_ignore(WEBKIT_POLICY_DECISION(decision));
                 return 1; // Handled
             }
-
+            // WEBKIT_POLICY_DECISION_TYPE_NAVIGATION = 0
             if (type == 0) {
                 WebKitNavigationPolicyDecision* nav_decision = WEBKIT_NAVIGATION_POLICY_DECISION(decision);
                 WebKitNavigationAction* action = webkit_navigation_policy_decision_get_navigation_action(nav_decision);
                 WebKitURIRequest* request = webkit_navigation_action_get_request(action);
                 const char* uri = webkit_uri_request_get_uri(request);
                 
-                // EARLY INTERCEPTION: Check if URI looks like a download
-                if (is_uri_binary(uri)) {
-                    LOG_INFO << "[WEB-NAV-INTERCEPT] Binary extension in URI: " << uri;
-                    std::string s_uri = uri;
-                    self->when_download_requested.run(s_uri);
-                    webkit_policy_decision_ignore(WEBKIT_POLICY_DECISION(decision));
-                    return 1;
-                }
-
                 // NOVA URI BRIDGE: Intercept exit signal
                 if (uri && g_str_has_prefix(uri, "nova://exit_fullscreen")) {
                     LOG_INFO << "[WEB-BRIDGE] Exit signal detected via URI. Triggering Leave FS.";
@@ -1201,45 +1187,68 @@ namespace horizon
                     webkit_policy_decision_ignore(WEBKIT_POLICY_DECISION(decision));
                     return 1;
                 }
-
             }
             
-            // Type 1 is WEBKIT_POLICY_DECISION_TYPE_RESPONSE
-            if (type == 1) {
+            // WEBKIT_POLICY_DECISION_TYPE_RESPONSE = 2
+            if (type == 2) {
                 WebKitResponsePolicyDecision* resp_decision = WEBKIT_RESPONSE_POLICY_DECISION(decision);
                 WebKitURIResponse* response = webkit_response_policy_decision_get_response(resp_decision);
                 const char* uri = webkit_uri_response_get_uri(response);
                 const char* mime = webkit_uri_response_get_mime_type(response);
-                const char* suggested = webkit_uri_response_get_suggested_filename(response);
                 
-                bool is_binary = is_uri_binary(uri);
-                
-                // If WebKit doesn't support the MIME type, or it's an attachment, or common binary MIME
-                if (!is_binary) {
-                    if (suggested != nullptr) is_binary = true;
-                    else if (mime != nullptr) {
-                        if (g_str_has_prefix(mime, "application/octet-stream") ||
-                            g_str_has_prefix(mime, "application/x-debian-package") ||
-                            g_str_has_prefix(mime, "application/zip") ||
-                            g_str_has_prefix(mime, "application/x-iso9660-image")) {
-                            is_binary = true;
-                        }
+                bool should_download = true;
+
+                // Rule 0: Default to DESCARGAR on ambiguity
+                bool download = true; 
+
+                if (mime) {
+                    std::string smime = mime;
+                    
+                    // Rule 2: SHOW (MOSTRAR)
+                    if (smime == "text/html" || smime == "text/plain" || smime == "text/css" ||
+                        smime == "application/javascript" || smime == "application/json" ||
+                        smime == "application/pdf" ||
+                        g_str_has_prefix(mime, "image/") ||
+                        g_str_has_prefix(mime, "audio/") ||
+                        g_str_has_prefix(mime, "video/")) {
+                        
+                        download = false;
+                    }
+                    
+                    // Rule 2: Explicit DOWNLOAD (DESCARGAR) - Overrides previous SHOW check for safety
+                    if (strstr(mime, "application/octet-stream") ||
+                        strstr(mime, "zip") || strstr(mime, "rar") || strstr(mime, "7z") ||
+                        strstr(mime, "compressed") || strstr(mime, "archive") ||
+                        strstr(mime, "tar") || strstr(mime, "binary")) {
+                        
+                        download = true;
                     }
                 }
 
-                if (is_binary || !webkit_response_policy_decision_is_mime_type_supported(resp_decision)) {
-                    LOG_INFO << "[WEB-RESP-INTERCEPT] Download triggered. URI: " << (uri ? uri : "unknown") 
-                             << " MIME: " << (mime ? mime : "unknown")
-                             << " Suggested: " << (suggested ? suggested : "none");
-                    
-                    if (uri && self) {
+                // Rule: If WebKit doesn't support it, we MUST download
+                if (!webkit_response_policy_decision_is_mime_type_supported(resp_decision)) {
+                    download = true;
+                }
+
+                if (download) {
+                    LOG_INFO << "[HTTP-DECISION] DESCARGAR: " << (uri ? uri : "unknown") << " [" << (mime ? mime : "unknown") << "]";
+                    if (uri && self && self->application()) {
                         std::string s_uri = uri;
-                        self->when_download_requested.run(s_uri);
+                        self->application()->post_task([self, s_uri]() mutable {
+                            self->when_download_requested.run(s_uri);
+                        });
                         webkit_policy_decision_ignore(WEBKIT_POLICY_DECISION(decision));
-                        return 1;
+                    } else {
+                        webkit_policy_decision_download(WEBKIT_POLICY_DECISION(decision));
                     }
+                    return 1;
+                } else {
+                    LOG_INFO << "[HTTP-DECISION] MOSTRAR: " << (mime ? mime : "unknown");
+                    webkit_policy_decision_use(WEBKIT_POLICY_DECISION(decision));
+                    return 1;
                 }
             }
+
 
             if (self && self->m_backend) {
                 // Using 7 = VISIBLE | FOCUSED | IN_WINDOW

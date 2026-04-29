@@ -45,9 +45,10 @@ public:
         add_child(std::move(pb));
         
         m_conn_id = m_task->when_progress_changed.connect([this](DownloadProgress& p) {
-            if (application()) {
-                application()->post_task([this, p]() {
-                    if (application() && application()->is_widget_alive(this)) {
+            auto* app = application();
+            if (app) {
+                app->post_task([this, app, p]() {
+                    if (app->is_widget_alive(this)) {
                         m_pb->set_progress((float)p.progress);
                     }
                 });
@@ -86,9 +87,10 @@ public:
         add_child(std::move(lbl));
         
         auto update_fn = [this]() {
-            if (application()) {
-                application()->post_task([this]() {
-                    if (!application() || !application()->is_widget_alive(this)) return;
+            auto* app = application();
+            if (app) {
+                app->post_task([this, app]() {
+                    if (!app->is_widget_alive(this)) return;
                     
                     auto p = m_task->progress();
                     std::string text;
@@ -319,9 +321,12 @@ void DownloadView::setup_ui() {
     add_child(std::move(table));
 
     auto refresh_fn = [this](DownloadState) {
-        if (application()) {
-            application()->post_task([this]() {
-                this->refresh();
+        auto* app = application();
+        if (app) {
+            app->post_task([this, app]() {
+                if (app->is_widget_alive(this)) {
+                    this->refresh();
+                }
             });
         }
     };
@@ -334,17 +339,23 @@ void DownloadView::setup_ui() {
     // Connect to future tasks
     DownloadManager::instance().when_task_added.connect([this, refresh_fn](std::shared_ptr<DownloadTask> task) {
         task->when_state_changed.connect(refresh_fn);
-        if (application()) {
-            application()->post_task([this]() {
-                this->refresh();
+        auto* app = application();
+        if (app) {
+            app->post_task([this, app]() {
+                if (app->is_widget_alive(this)) {
+                    this->refresh();
+                }
             });
         }
     });
 
     DownloadManager::instance().when_task_removed.connect([this](std::shared_ptr<DownloadTask>) {
-        if (application()) {
-            application()->post_task([this]() {
-                this->refresh();
+        auto* app = application();
+        if (app) {
+            app->post_task([this, app]() {
+                if (app->is_widget_alive(this)) {
+                    this->refresh();
+                }
             });
         }
     });
