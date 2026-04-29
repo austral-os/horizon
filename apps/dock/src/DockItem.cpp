@@ -24,6 +24,8 @@ namespace horizon
         _instances.push_back(info);
         if (_app_id.empty())
             _app_id = info.app_id;
+        if (_name.empty())
+            _name = info.title;
 
         if (!info.icon.empty())
             set_icon_name(info.icon);

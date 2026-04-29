@@ -187,6 +187,21 @@ namespace horizon
                 std::string pin_icon = item->icon_name();
                 if (pin_icon.empty()) pin_icon = pin_id;
 
+                // Attempt to resolve better metadata from desktop entry
+                std::string desktop_path = DesktopEntry::find_desktop_file(pin_id);
+                if (!desktop_path.empty()) {
+                    std::string d_name = DesktopEntry::get_value_from_desktop_file(desktop_path, "Name");
+                    if (!d_name.empty()) pin_name = d_name;
+                    
+                    std::string d_icon = DesktopEntry::get_value_from_desktop_file(desktop_path, "Icon");
+                    if (!d_icon.empty()) pin_icon = d_icon;
+
+                    // If it's a desktop file, the run_id should be its ID (filename without .desktop)
+                    std::filesystem::path p(desktop_path);
+                    std::string stem = p.stem().string();
+                    if (!stem.empty()) pin_run_id = stem;
+                }
+
                 pin_item->when_click.connect(
                     [this, pin_id, pin_name, pin_icon, pin_run_id](auto &)
                     {
@@ -270,6 +285,7 @@ namespace horizon
             auto item = std::make_unique<DockItem>(m_window, _compositor_apps.get(), pinned.icon, _is_wayfire);
             item->set_run_id(pinned.run_id);
             item->set_app_id(pinned.app_id);
+            item->set_name(pinned.name);
 
             // Check if any running app matches this pinned app_id
             bool is_running = false;
@@ -494,9 +510,9 @@ namespace horizon
 
         PinnedApp app;
         app.app_id = app_id;
-        app.name = name;
-        app.icon = icon;
-        app.run_id = run_id;
+        app.name = name.empty() ? app_id : name;
+        app.icon = icon.empty() ? app_id : icon;
+        app.run_id = run_id.empty() ? app_id : run_id;
         m_pinned_apps.push_back(app);
 
         save_config();
@@ -518,9 +534,9 @@ namespace horizon
 
         PinnedApp app;
         app.app_id = app_id;
-        app.name = name;
-        app.icon = icon;
-        app.run_id = run_id;
+        app.name = name.empty() ? app_id : name;
+        app.icon = icon.empty() ? app_id : icon;
+        app.run_id = run_id.empty() ? app_id : run_id;
 
         if (index < 0 || index >= (int)m_pinned_apps.size()) {
             m_pinned_apps.push_back(app);

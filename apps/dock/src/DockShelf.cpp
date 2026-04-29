@@ -321,7 +321,7 @@ namespace horizon
                     LOG_INFO << "[DRAG] Reordering non-pinned app from index "
                              << m_drag_target_index << std::endl;
                     // Pin unpinned app at target position
-                    app->pin_app_at(m_dragged_item->app_id(), m_dragged_item->icon_name(),
+                    app->pin_app_at(m_dragged_item->app_id(), m_dragged_item->name(),
                                     m_dragged_item->icon_name(), m_dragged_item->run_id(),
                                     m_drag_target_index);
                 }

@@ -38,6 +38,14 @@ namespace horizon
         {
             return _run_id;
         }
+        const std::string &name() const
+        {
+            return _name;
+        }
+        void set_name(const std::string &name)
+        {
+            _name = name;
+        }
         bool is_running() const
         {
             return !_instances.empty();
@@ -64,6 +72,7 @@ namespace horizon
         bool _is_wayfire;
         std::string _app_id;
         std::string _run_id;
+        std::string _name;
         std::vector<ApplicationInfo> _instances;
         bool _dragging = false;
         double _press_x = 0;
