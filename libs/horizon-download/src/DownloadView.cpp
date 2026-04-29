@@ -7,8 +7,11 @@
 #include "horizon/Application.hpp"
 #include "horizon/WaylandWindow.hpp"
 #include "horizon/Logger.hpp"
+#include "horizon/Menu.hpp"
+#include "horizon/MenuItem.hpp"
 #include <iomanip>
 #include <sstream>
+#include <filesystem>
 
 namespace horizon {
 namespace download {
@@ -49,6 +52,10 @@ public:
                     }
                 });
             }
+        });
+
+        when_application_load.connect([this](horizon::EventContext&) {
+            m_pb->set_progress((float)m_task->progress().progress);
         });
     }
 
@@ -120,7 +127,9 @@ public:
         m_conn_state = m_task->when_state_changed.connect([update_fn](DownloadState) { update_fn(); });
         m_conn_prog = m_task->when_progress_changed.connect([update_fn](DownloadProgress&) { update_fn(); });
         
-        update_fn();
+        when_application_load.connect([this, update_fn](horizon::EventContext&) {
+            update_fn();
+        });
     }
 
     ~TaskDetailCell() override {
@@ -227,9 +236,112 @@ void DownloadView::setup_ui() {
     };
     m_table->add_column(std::move(col_eta));
 
+    m_table->set_row_menu_factory([this](const std::shared_ptr<DownloadTask>& task) {
+        auto menu = std::make_unique<horizon::Menu>();
+        
+        auto state = task->state();
+        
+        if (state == DownloadState::DOWNLOADING) {
+            auto item = menu->add_item("Pausar");
+            item->when_click.connect([task](horizon::MouseButtonEventContext&) { task->pause(); });
+        } else if (state == DownloadState::PAUSED) {
+            auto item = menu->add_item("Reanudar");
+            item->when_click.connect([task](horizon::MouseButtonEventContext&) { task->resume(); });
+        } else if (state == DownloadState::PENDING) {
+            auto item = menu->add_item("Iniciar");
+            item->when_click.connect([task](horizon::MouseButtonEventContext&) { task->resume(); });
+        } else if (state == DownloadState::FAILED || state == DownloadState::CANCELLED) {
+            auto item = menu->add_item("Reintentar");
+            item->when_click.connect([task](horizon::MouseButtonEventContext&) { task->resume(); });
+        }
+
+        auto* app = application();
+
+        if (state == DownloadState::DOWNLOADING || state == DownloadState::PAUSED) {
+            auto item = menu->add_item("Cancelar");
+            item->when_click.connect([task, app](horizon::MouseButtonEventContext&) { 
+                if (app && !app->confirm("¿Estás seguro de que deseas cancelar esta descarga? El archivo parcial será eliminado.", "Cancelar descarga")) {
+                    return;
+                }
+
+                task->cancel(); 
+                
+                // Delete file from disk
+                std::string path = task->destination();
+                if (!path.empty() && std::filesystem::exists(path)) {
+                    std::error_code ec;
+                    std::filesystem::remove(path, ec);
+                }
+
+                // Remove from manager (this will trigger grid refresh)
+                DownloadManager::instance().remove_task(task);
+            });
+        }
+
+        menu->add_separator();
+
+        auto open_folder = menu->add_item("Abrir en administrador de archivos");
+        open_folder->when_click.connect([task](horizon::MouseButtonEventContext&) {
+            std::string path = task->destination();
+            if (path.empty()) return;
+            
+            std::filesystem::path p(path);
+            std::string dir = p.parent_path().string();
+            
+            if (dir.empty()) dir = ".";
+            
+            std::string cmd = "xdg-open \"" + dir + "\" &";
+            system(cmd.c_str());
+        });
+
+        if (state == DownloadState::COMPLETED || state == DownloadState::FAILED || state == DownloadState::CANCELLED) {
+            menu->add_separator();
+            auto del_item = menu->add_item("Eliminar del disco");
+            del_item->when_click.connect([task, app](horizon::MouseButtonEventContext&) {
+                if (app && !app->confirm("¿Estás seguro de que deseas eliminar este archivo del disco y quitarlo de la lista?", "Eliminar archivo")) {
+                    return;
+                }
+
+                std::string path = task->destination();
+                if (!path.empty() && std::filesystem::exists(path)) {
+                    std::error_code ec;
+                    std::filesystem::remove(path, ec);
+                }
+                
+                // Also remove from grid
+                DownloadManager::instance().remove_task(task);
+            });
+        }
+        
+        return menu;
+    });
+
     add_child(std::move(table));
 
-    DownloadManager::instance().when_task_added.connect([this](std::shared_ptr<DownloadTask>) {
+    auto refresh_fn = [this](DownloadState) {
+        if (application()) {
+            application()->post_task([this]() {
+                this->refresh();
+            });
+        }
+    };
+
+    // Connect to existing tasks
+    for (auto& task : DownloadManager::instance().tasks()) {
+        task->when_state_changed.connect(refresh_fn);
+    }
+
+    // Connect to future tasks
+    DownloadManager::instance().when_task_added.connect([this, refresh_fn](std::shared_ptr<DownloadTask> task) {
+        task->when_state_changed.connect(refresh_fn);
+        if (application()) {
+            application()->post_task([this]() {
+                this->refresh();
+            });
+        }
+    });
+
+    DownloadManager::instance().when_task_removed.connect([this](std::shared_ptr<DownloadTask>) {
         if (application()) {
             application()->post_task([this]() {
                 this->refresh();

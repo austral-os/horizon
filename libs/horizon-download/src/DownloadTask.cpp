@@ -41,10 +41,12 @@ struct DownloadTask::Impl {
 
         GInputStream* input_stream = soup_session_send(session, message, cancellable, &error);
         if (error) {
-            parent->m_state = DownloadState::FAILED;
-            parent->m_error_message = error->message;
+            if (!g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+                parent->m_state = DownloadState::FAILED;
+                parent->m_error_message = error->message;
+                parent->when_state_changed.run(parent->m_state);
+            }
             g_error_free(error);
-            parent->when_state_changed.run(parent->m_state);
             return;
         }
 
@@ -62,9 +64,14 @@ struct DownloadTask::Impl {
             gssize bytes_read = g_input_stream_read(input_stream, buffer, sizeof(buffer), cancellable, &error);
             
             if (error) {
-                parent->m_state = DownloadState::FAILED;
-                parent->m_error_message = error->message;
-                g_error_free(error);
+                if (g_error_matches(error, G_IO_ERROR, G_IO_ERROR_CANCELLED)) {
+                    g_error_free(error);
+                } else {
+                    parent->m_state = DownloadState::FAILED;
+                    parent->m_error_message = error->message;
+                    g_error_free(error);
+                    parent->when_state_changed.run(parent->m_state);
+                }
                 break;
             }
 
@@ -141,8 +148,8 @@ void DownloadTask::pause() {
 }
 
 void DownloadTask::resume() {
-    if (m_state == DownloadState::PAUSED) {
-        start(); // Should implement Range support here later
+    if (m_state == DownloadState::PAUSED || m_state == DownloadState::FAILED || m_state == DownloadState::CANCELLED) {
+        start();
     }
 }
 
