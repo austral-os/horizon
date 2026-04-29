@@ -40,6 +40,24 @@ std::shared_ptr<DownloadTask> DownloadManager::add_download(const std::string& u
         final_dest = m_default_dir + "/" + filename;
     }
 
+    // Avoid filename collisions
+    std::filesystem::path p(final_dest);
+    if (std::filesystem::exists(p)) {
+        std::string stem = p.stem().string();
+        std::string extension = p.extension().string();
+        std::filesystem::path parent = p.parent_path();
+        
+        int counter = 2;
+        while (true) {
+            std::filesystem::path candidate = parent / (stem + std::to_string(counter) + extension);
+            if (!std::filesystem::exists(candidate)) {
+                final_dest = candidate.string();
+                break;
+            }
+            counter++;
+        }
+    }
+
     auto task = std::make_shared<DownloadTask>(url, final_dest);
     
     {
