@@ -5,23 +5,80 @@
 <h1 align="center">Horizon</h1>
 
 <p align="center">
-  <strong>A graphical toolkit for Linux built entirely from scratch.</strong>
+<strong>A desktop framework for Linux built from scratch.</strong><br>
+No GTK. No Qt. Just full control over your UI.
+</p>
+
+<p align="center">
+  Horizon is a desktop framework built entirely without GTK or Qt, providing full control over the UI stack from rendering to widgets. The core technology behind <strong><a href="https://github.com/austral-os">Austral OS</a></strong>, a fully integrated Linux system built around Horizon.
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-LGPL_v3-blue.svg?style=flat-square" alt="License"></a>
-  <img src="https://img.shields.io/badge/Version-0.1.0--alpha-orange?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/Status-Alpha-orange?style=flat-square" alt="Status">
   <img src="https://img.shields.io/badge/C%2B%2B-17-00599C?style=flat-square&logo=c%2B%2B" alt="C++17">
   <img src="https://img.shields.io/badge/Platform-Wayland-red?style=flat-square" alt="Platform">
 </p>
 
 ---
 
+## ⚠️ Project Status: Alpha
+
+Horizon is currently in **active alpha development**.
+
+- **Expect Breaking Changes**: The API is not yet stable and may change frequently.
+- **Incomplete Features**: Many planned components and features are still under construction.
+- **Bugs & Stability**: As an early-stage project, you will encounter bugs and stability issues.
+
+We are working toward a stable beta, but for now, Horizon is intended for developers, contributors, and those interested in experimental desktop technology.
+
+Feedback and contributions are welcome. If you're interested in contributing, feedback and discussions are highly welcome.
+
+---
+
 ## 🌟 Overview
 
-**Horizon** is a graphical toolkit for Linux built entirely from scratch, with no dependencies on GTK or Qt. Its goal is to provide a modern, lightweight alternative for building user interfaces, offering full control over rendering, widgets, and overall architecture.
+Horizon is a high-performance graphical toolkit for Linux, independent from traditional libraries like GTK or Qt.
 
-Inspired by the aesthetics of classic macOS interfaces, Horizon aims to deliver a clean, elegant, and consistent user experience, reinterpreting those design principles in a modern context. It is designed for developers who want to create applications with their own identity, free from the constraints of traditional toolkits.
+It gives developers full control over the UI stack — from low-level rendering to high-level widgets — enabling consistent and predictable interfaces.
+
+Designed for Wayland-native environments, Horizon focuses on clarity, performance, and visual consistency.
+
+Its visual design draws inspiration from classic macOS releases like Mavericks and Leopard, reimagined for a modern, Wayland-native Linux environment.
+
+---
+
+## 💡 Why Horizon?
+
+Horizon exists because building modern Linux interfaces still depends on large, complex, and legacy-heavy toolkits.
+
+In a landscape dominated by those toolkits, Horizon offers a different path:
+
+- **Total Independence**: No GTK, no Qt. By building our own stack, we eliminate legacy overhead and deep dependency chains.
+- **Full Control**: Every pixel and every event is handled directly, allowing for optimizations and UI patterns that are difficult to achieve in restricted toolkits.
+- **Architectural Clarity**: A modern C++17 codebase that is modular, easy to audit, and free from decades of technical debt.
+- **System Integration**: Deeply integrated with Wayland and the Austral OS ecosystem, providing a consistent identity for the entire desktop experience.
+
+---
+
+## 🖥️ Experience Horizon
+
+Horizon is not just a toolkit — it powers an entire desktop environment.
+
+The best way to experience it today is through **Austral OS**, where Horizon drives the full system UI.
+
+👉 [Explore Austral OS](https://github.com/austral-os)
+
+---
+
+## 👥 Who is this for?
+
+Horizon is designed for:
+
+- Developers who want full control over their UI stack
+- People interested in building desktop environments from scratch
+- Those who prefer simplicity and clarity over large frameworks
+- Experimenters exploring Wayland-native systems
 
 ---
 
@@ -29,15 +86,16 @@ Inspired by the aesthetics of classic macOS interfaces, Horizon aims to deliver 
 
 - **Minimalism & Control**: Prioritizing explicit control over memory and resources over heavy abstraction.
 - **Independence**: No unnecessary dependencies; built for the Austral ecosystem.
-- **Modern Rendering**: Modern, lightweight rendering engine based on Cairo (with GLES support).
-- **Austral Ready**: Native support for the `.app` packaging model of Austral OS.
-- **Developer-Centric**: Clear, extensible architecture that is easy to audit and learn from.
+- **Modern Rendering**: A lightweight rendering engine based on Cairo with GLES support for fluid animations.
+- **Developer-Centric**: A clear, extensible architecture that is easy to audit and learn from.
 
 ---
 
 ## 🏗️ Architecture
 
-Horizon follows a layered design to ensure modularity and ease of maintenance:
+Horizon follows a modular, layered design to ensure maintainability and high performance.
+
+### Core Layers
 
 1.  **Core**: Manages the application lifecycle, main event loop, and Wayland seat/display integration.
 2.  **Renderer**: Surface abstractions and buffer management (currently utilizing Cairo with Rsvg support).
@@ -70,7 +128,7 @@ Detailed guides on implementing core framework features:
 
 - [**Clipboard System**](docs/clipboard.md): Standardized signal-based copy, cut, and paste implementation.
 - [**Fullscreen System**](docs/fullscreen.md): Declarative fullscreen support and visual isolation protocol.
-- [**File Operations Standard**](docs/file_operations_standard.md): Automated file menu injection and standardized signal-based open/save/close operations.
+- [**File Operations Standard**](docs/file_operations_standard.md): Automated file menu injection and standardized operations.
 - [**Application Responsibilities**](docs/application_responsibilities.md): Core requirements for high-level application behavior.
 - [**IPC System**](docs/ipc_system.md): Inter-process communication and remote signal management.
 - [**Window Management**](docs/window_management_mechanisms.md): Deep dive into Wayland surface and window lifecycle.
@@ -78,12 +136,12 @@ Detailed guides on implementing core framework features:
 - **Dialog System**: Unified interface for user interaction via modal dialogs.
     - [**MessageDialog System**](docs/message_dialogs.md): Standardized alert and confirmation dialogs.
     - [**FileDialog System**](docs/file_dialog.md): Usage and invocation of the standard file selection dialog.
-    - [**Preferences Dialog System**](docs/preferences_dialog.md): Integration and architecture of the settings management system.
-    - [**Font Selection System**](docs/font_dialog.md): Usage and integration of system font selection tools.
-    - [**Color Selection System**](docs/color_selector.md): Usage and integration of system color selection tools.
-    - [**AboutUs Dialog System**](docs/aboutus_dialog.md): Integration and architecture of the application about details dialog.
-- [**Configuration Management**](docs/configuration_management.md): Robust system for managing application preferences and JSON-based configurations.
-- [**File Watcher System**](docs/file_watcher.md): Real-time monitoring of filesystem changes for automated reloading.
+    - [**Preferences Dialog System**](docs/preferences_dialog.md): Settings management system architecture.
+    - [**Font Selection System**](docs/font_dialog.md): Integration of system font selection tools.
+    - [**Color Selection System**](docs/color_selector.md): Integration of system color selection tools.
+    - [**AboutUs Dialog System**](docs/aboutus_dialog.md): Application information dialog architecture.
+- [**Configuration Management**](docs/configuration_management.md): Robust system for managing JSON-based configurations.
+- [**File Watcher System**](docs/file_watcher.md): Real-time monitoring of filesystem changes.
 
 ---
 
@@ -113,17 +171,11 @@ sudo apt install build-essential g++ pkg-config \
                  nlohmann-json3-dev wayland-utils \
                  wlr-randr xdg-utils shared-mime-info \
                  desktop-file-utils
-
-
-                 sudo apt update
-sudo apt install parted rsync dosfstools e2fsprogs udisks2 util-linux grub-efi-amd64 grub-common
-
 ```
 
-Multimedia dependecies for Nova:
+_Note: For applications like Nova (web browser), you may also need multimedia plugins:_
 
 ```bash
-sudo apt update
 sudo apt install gstreamer1.0-plugins-bad gstreamer1.0-libav
 ```
 
@@ -132,7 +184,7 @@ sudo apt install gstreamer1.0-plugins-bad gstreamer1.0-libav
 Building is straightforward using CMake and Ninja:
 
 ```bash
-git clone https://github.com/yourusername/horizon.git
+git clone https://github.com/austral-os/horizon.git
 cd horizon
 mkdir build && cd build
 cmake -G Ninja ..
@@ -153,7 +205,7 @@ _Note: Ensure you are in a Wayland session or running a compositor like Wayfire 
 
 ## 📦 Packaging
 
-Horizon supports generating `.deb` packages for Debian-based systems. You can generate a single monolithic package or individual packages for each application.
+Horizon supports generating `.deb` packages for Debian-based systems.
 
 ### 1. Using Ninja (Recommended)
 
@@ -172,25 +224,9 @@ Three targets are available for easy packaging from the `build` directory:
     ninja package
     ```
 
-### 2. Using CPack directly
+### 2. Runtime Requirements
 
-If you prefer using CPack or need to override variables:
-
-```bash
-# For monolithic package
-cmake -DHORIZON_PACKAGING_COMPONENTS=OFF .
-cpack -G DEB
-
-# For component-based packages
-cmake -DHORIZON_PACKAGING_COMPONENTS=ON .
-cpack -G DEB
-```
-
-The generated packages will be located in the `build` directory.
-
-### 3. Runtime Requirements
-
-To install and run the `horizon-desktop.deb` package, the following dependencies must be present on the system:
+To run Horizon-based applications, ensure these core runtime libraries are present:
 
 |                           |                      |                  |                        |
 | ------------------------- | -------------------- | ---------------- | ---------------------- |
@@ -201,23 +237,11 @@ To install and run the `horizon-desktop.deb` package, the following dependencies
 | `libturbojpeg0`           | `libwinpr3-3`        | `libxcb-errors0` | `libfreerdp3-3`        |
 | `liburiparser1`           | `libwlroots-0.18`    | `libxcb-ewmh2`   |                        |
 
-You can install them all at once:
-
-```bash
-sudo apt install desktop-file-utils libliftoff0 libvterm0 libwoff1 wayfire \
-                 libneatvnc0 libwpe-1.0-1 labwc \
-                 libseat1 libwf-config1 libwpebackend-fdo-1.0-1 wlr-randr \
-                 libaml0t64 libsfdo0 libwf-utils0t64 libwpewebkit-2.0-1 \
-                 xdg-dbus-proxy libfreerdp-server3-3 libturbojpeg0 libwinpr3-3 \
-                 libxcb-errors0 libfreerdp3-3 liburiparser1 libwlroots-0.18 \
-                 libxcb-ewmh2
-```
-
 ---
 
 ## 🌈 Customization (Themes)
 
-Horizon supports dynamic theming via JSON configuration. You can find or create your theme at `~/.config/horizon/color-scheme.json`.
+Horizon supports dynamic theming via JSON configuration. You can customize the look and feel by editing your theme at `~/.config/horizon/color-scheme.json`.
 
 ```json
 {
@@ -234,18 +258,6 @@ Horizon supports dynamic theming via JSON configuration. You can find or create 
         "window": { "family": "Inter", "size": 13, "weight": "normal" }
     }
 }
-```
-
----
-
-## 🧪 Development & Debugging
-
-To compile with debug symbols and verbose logging:
-
-```bash
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-DDEBUG" ..
-ninja
-./minimal
 ```
 
 ---
