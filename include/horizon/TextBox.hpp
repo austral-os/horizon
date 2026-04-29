@@ -23,6 +23,14 @@ namespace horizon
         const std::string &text() const;
 
         void select_all();
+        
+        // Clipboard Support
+        bool can_perform(ClipboardAction action) const override;
+        void perform(ClipboardAction action) override;
+        void provide_clipboard_data(const std::string &mime, DataSink &sink) override;
+        std::vector<std::string> provided_mime_types() const override;
+        std::vector<std::string> accepted_mime_types() const override;
+        void on_clipboard_data_received(const std::string &mime, const std::vector<uint8_t> &data) override;
 
         void set_placeholder(const std::string &placeholder);
         const std::string &placeholder() const;

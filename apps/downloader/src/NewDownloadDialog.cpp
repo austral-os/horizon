@@ -1,6 +1,7 @@
 #include "NewDownloadDialog.hpp"
 #include "horizon/AquaObject.hpp"
 #include "horizon/Button.hpp"
+#include "horizon/I18n.hpp"
 #include "horizon/Label.hpp"
 #include "horizon/Spacer.hpp"
 #include "horizon/TextBox.hpp"
@@ -16,22 +17,22 @@ namespace horizon
               m_on_accept(on_accept)
         {
 
-            set_name("Nueva descarga");
+            set_name(i18n().tr("downloader.dialog.new_title"));
 
-            auto win = std::make_unique<horizon::Window>("Nueva descarga");
+            auto win = std::make_unique<horizon::Window>(i18n().tr("downloader.dialog.new_title"));
 
             auto container = std::make_unique<horizon::Widget>();
             container->set_layout_type(WidgetLayoutTypes::WIDGET_LAYOUT_VERTICAL);
             container->set_margin(20);
             container->set_spacing(15);
 
-            auto prompt = std::make_unique<horizon::Label>("Introduce la URL del archivo:");
+            auto prompt =
+                std::make_unique<horizon::Label>(i18n().tr("downloader.dialog.url_placeholder"));
             prompt->set_alignment(horizon::TextAlignment::Left);
             container->add_child(std::move(prompt));
 
             auto textbox = std::make_unique<horizon::TextBox<>>();
-            textbox->set_text(
-                "https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb");
+            textbox->set_text("");
             textbox->set_placeholder("https://ejemplo.com/archivo.zip");
             textbox->set_height(35);
             auto *textbox_ptr = textbox.get();
@@ -43,13 +44,13 @@ namespace horizon
             buttons->set_fixed_size(35);
 
             auto cancel_btn = std::make_unique<horizon::Button<horizon::AquaObject>>();
-            cancel_btn->set_text("Cancelar");
+            cancel_btn->set_text(i18n().tr("downloader.dialog.cancel"));
             cancel_btn->set_size(100, 35);
             cancel_btn->when_click.connect([this](horizon::MouseButtonEventContext &)
                                            { this->quit(); });
 
             auto download_btn = std::make_unique<horizon::Button<horizon::AquaObject>>();
-            download_btn->set_text("Descargar");
+            download_btn->set_text(i18n().tr("downloader.dialog.download"));
             download_btn->set_accent_color(WidgetAccentColor::Primary);
             download_btn->set_size(120, 35);
             download_btn->when_click.connect(

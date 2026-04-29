@@ -1,0 +1,37 @@
+{
+    "language": {
+        "name": "Español",
+        "code": "es"
+    },
+    "downloader": {
+        "title": "Gestor de Descargas",
+        "description": "Administra y supervisa tus descargas de archivos en Horizon.",
+        "toolbar": {
+            "new": "Nueva",
+            "pause_all": "Pausar todo",
+            "resume_all": "Reanudar todo",
+            "clear": "Limpiar"
+        },
+        "dialog": {
+            "new_title": "Nueva Descarga",
+            "url_placeholder": "Ingrese la URL del archivo...",
+            "download": "Descargar",
+            "cancel": "Cancelar"
+        }
+    },
+    "download": {
+        "status": {
+            "starting": "Iniciando...",
+            "paused": "Pausado",
+            "completed": "Completado",
+            "failed": "Error",
+            "speed": "velocidad"
+        },
+        "actions": {
+            "pause": "Pausar",
+            "resume": "Reanudar",
+            "cancel": "Cancelar",
+            "retry": "Reintentar"
+        }
+    }
+}

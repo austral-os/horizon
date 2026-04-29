@@ -2,6 +2,7 @@
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/TextBox.hpp>
+#include <horizon/WaylandWindow.hpp>
 #include <linux/input-event-codes.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 
@@ -372,12 +373,118 @@ namespace horizon
         return m_font_family;
     }
 
-     void TextBoxBase::select_all()
+    void TextBoxBase::select_all()
     {
         m_selection_anchor = 0;
         m_cursor_pos = m_text.length();
         m_has_pending_click = false;
         invalidate();
+    }
+
+    bool TextBoxBase::can_perform(ClipboardAction action) const
+    {
+        if (action == ClipboardAction::Copy || action == ClipboardAction::Cut)
+        {
+            return m_selection_anchor != -1 && m_selection_anchor != m_cursor_pos;
+        }
+        if (action == ClipboardAction::Paste)
+        {
+            if (application())
+            {
+                auto mimes = application()->get_clipboard_mime_types();
+                for (const auto &m : mimes)
+                {
+                    if (m == "text/plain")
+                        return true;
+                }
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    void TextBoxBase::perform(ClipboardAction action)
+    {
+        if (action == ClipboardAction::Copy || action == ClipboardAction::Cut)
+        {
+            if (m_selection_anchor != -1 && m_selection_anchor != m_cursor_pos)
+            {
+                if (application())
+                {
+                    application()->set_clipboard_owner(this);
+                    if (action == ClipboardAction::Cut)
+                    {
+                        int start = std::min(m_selection_anchor, m_cursor_pos);
+                        int end = std::max(m_selection_anchor, m_cursor_pos);
+                        m_text.erase(start, end - start);
+                        m_cursor_pos = start;
+                        m_selection_anchor = -1;
+                        invalidate();
+                        KeyEventContext ev;
+                        when_text_changed.run(ev);
+                    }
+                }
+            }
+        }
+        else if (action == ClipboardAction::Paste)
+        {
+            if (application())
+            {
+                application()->request_clipboard_data(this, "text/plain");
+            }
+        }
+    }
+
+    void TextBoxBase::provide_clipboard_data(const std::string &mime, DataSink &sink)
+    {
+        if (mime == "text/plain")
+        {
+            if (m_selection_anchor != -1 && m_selection_anchor != m_cursor_pos)
+            {
+                int start = std::min(m_selection_anchor, m_cursor_pos);
+                int end = std::max(m_selection_anchor, m_cursor_pos);
+                std::string sel = m_text.substr(start, end - start);
+                std::vector<uint8_t> data(sel.begin(), sel.end());
+                sink.write(data);
+                sink.done();
+            }
+        }
+    }
+
+    std::vector<std::string> TextBoxBase::provided_mime_types() const
+    {
+        return {"text/plain"};
+    }
+
+    std::vector<std::string> TextBoxBase::accepted_mime_types() const
+    {
+        return {"text/plain"};
+    }
+
+    void TextBoxBase::on_clipboard_data_received(const std::string &mime,
+                                                 const std::vector<uint8_t> &data)
+    {
+        if (mime == "text/plain" && !data.empty())
+        {
+            std::string pasted(data.begin(), data.end());
+            
+            // Delete selection if any
+            if (m_selection_anchor != -1 && m_selection_anchor != m_cursor_pos)
+            {
+                int start = std::min(m_selection_anchor, m_cursor_pos);
+                int end = std::max(m_selection_anchor, m_cursor_pos);
+                m_text.erase(start, end - start);
+                m_cursor_pos = start;
+                m_selection_anchor = -1;
+            }
+
+            m_text.insert(m_cursor_pos, pasted);
+            m_cursor_pos += pasted.length();
+            invalidate();
+            KeyEventContext ev;
+            when_text_changed.run(ev);
+        }
     }
 
 } // namespace horizon

@@ -17,4 +17,11 @@ target_link_libraries(downloader
         horizon-download
 )
 
-install(TARGETS downloader DESTINATION bin COMPONENT apps)
+horizon_install_app(downloader
+    APP_ID "downloader"
+    NAME "Gestor de Descargas"
+    COMMENT "Administra y supervisa tus descargas de archivos"
+    ICON "downloader"
+    CATEGORIES "Network;Utility;"
+    EXTRA_DESKTOP "Name[en]=Download Manager\nComment[en]=Manage and monitor your file downloads"
+)

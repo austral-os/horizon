@@ -5,6 +5,7 @@
 #include "horizon/Toolbar.hpp"
 #include "horizon/ToolbarButton.hpp"
 #include "horizon/Application.hpp"
+#include "horizon/I18n.hpp"
 #include <thread>
 
 namespace horizon {
@@ -21,7 +22,7 @@ void DownloaderWindow::setup_ui() {
     auto tb = toolbar();
     tb->set_bottom_height(58);
 
-    auto add_btn = std::make_unique<horizon::ToolbarButton>("Nueva", "list-add-symbolic");
+    auto add_btn = std::make_unique<horizon::ToolbarButton>(i18n().tr("downloader.toolbar.new"), "list-add-symbolic");
     add_btn->when_click.connect([this](horizon::MouseButtonEventContext&) {
         auto dialog = std::make_shared<NewDownloadDialog>([this](std::string url) {
             this->application()->post_task([this, url]() {
@@ -35,19 +36,19 @@ void DownloaderWindow::setup_ui() {
     });
     tb->add_toolbar_widget(std::move(add_btn));
 
-    auto pause_all = std::make_unique<horizon::ToolbarButton>("Pausar todo", "media-playback-pause-symbolic");
+    auto pause_all = std::make_unique<horizon::ToolbarButton>(i18n().tr("downloader.toolbar.pause_all"), "media-playback-pause-symbolic");
     pause_all->when_click.connect([this](horizon::MouseButtonEventContext&) {
         download::DownloadManager::instance().pause_all();
     });
     tb->add_toolbar_widget(std::move(pause_all));
 
-    auto resume_all = std::make_unique<horizon::ToolbarButton>("Reanudar todo", "media-playback-start-symbolic");
+    auto resume_all = std::make_unique<horizon::ToolbarButton>(i18n().tr("downloader.toolbar.resume_all"), "media-playback-start-symbolic");
     resume_all->when_click.connect([this](horizon::MouseButtonEventContext&) {
         download::DownloadManager::instance().resume_all();
     });
     tb->add_toolbar_widget(std::move(resume_all));
 
-    auto clear_btn = std::make_unique<horizon::ToolbarButton>("Limpiar", "edit-clear-symbolic");
+    auto clear_btn = std::make_unique<horizon::ToolbarButton>(i18n().tr("downloader.toolbar.clear"), "edit-clear-symbolic");
     clear_btn->when_click.connect([this](horizon::MouseButtonEventContext&) {
         // Clear logic could be implemented in DownloadManager if needed
     });

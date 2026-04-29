@@ -1,0 +1,37 @@
+{
+    "language": {
+        "name": "English",
+        "code": "en"
+    },
+    "downloader": {
+        "title": "Download Manager",
+        "description": "Manage and monitor your file downloads in Horizon.",
+        "toolbar": {
+            "new": "New",
+            "pause_all": "Pause All",
+            "resume_all": "Resume All",
+            "clear": "Clear"
+        },
+        "dialog": {
+            "new_title": "New Download",
+            "url_placeholder": "Enter file URL...",
+            "download": "Download",
+            "cancel": "Cancel"
+        }
+    },
+    "download": {
+        "status": {
+            "starting": "Starting...",
+            "paused": "Paused",
+            "completed": "Completed",
+            "failed": "Error",
+            "speed": "speed"
+        },
+        "actions": {
+            "pause": "Pause",
+            "resume": "Resume",
+            "cancel": "Cancel",
+            "retry": "Retry"
+        }
+    }
+}

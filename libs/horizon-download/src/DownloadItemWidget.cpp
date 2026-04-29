@@ -2,6 +2,7 @@
 #include "horizon/Spacer.hpp"
 #include <iomanip>
 #include <sstream>
+#include "horizon/I18n.hpp"
 
 namespace horizon {
 namespace download {
@@ -47,7 +48,7 @@ DownloadItemWidget::DownloadItemWidget(std::shared_ptr<DownloadTask> task)
     m_progress_bar->set_height(8);
     middle->add_child(std::move(pb));
 
-    auto status_lbl = std::make_unique<horizon::Label>("Iniciando...");
+    auto status_lbl = std::make_unique<horizon::Label>(i18n().tr("download.status.starting"));
     m_status_label = status_lbl.get();
     m_status_label->set_font_size(11);
     m_status_label->set_text_color(Color(0.4f, 0.4f, 0.4f, 1.0f));
@@ -152,14 +153,14 @@ void DownloadItemWidget::update_ui() {
         m_action_icon->set_icon_name("media-playback-pause-symbolic");
         m_action_button->set_visible(true);
     } else if (m_task->state() == DownloadState::PAUSED) {
-        ss << "Pausado - " << format_size(p.downloaded_bytes);
+        ss << i18n().tr("download.status.paused") << " - " << format_size(p.downloaded_bytes);
         m_action_icon->set_icon_name("media-playback-start-symbolic");
         m_action_button->set_visible(true);
     } else if (m_task->state() == DownloadState::COMPLETED) {
-        ss << "Completado (" << format_size(p.total_bytes) << ")";
+        ss << i18n().tr("download.status.completed") << " (" << format_size(p.total_bytes) << ")";
         m_action_button->set_visible(false);
     } else if (m_task->state() == DownloadState::FAILED) {
-        ss << "Error: " << m_task->error_message();
+        ss << i18n().tr("download.status.failed") << ": " << m_task->error_message();
         m_action_icon->set_icon_name("view-refresh-symbolic");
         m_action_button->set_visible(true);
     }
