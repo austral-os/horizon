@@ -192,6 +192,12 @@ private:
     // Clipboard Content Cache
     std::string m_clipboard_content;
     std::unique_ptr<horizon::Menu> m_active_context_menu;
+    
+    struct {
+        uint32_t context = 0;
+        std::string link_uri;
+        std::string image_uri;
+    } m_hit_test_cache;
 
 public:
     static void set_gpu_enabled(bool enabled) { s_gpu_enabled = enabled; }

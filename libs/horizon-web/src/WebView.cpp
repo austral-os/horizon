@@ -312,57 +312,108 @@ namespace horizon
                     dispatch_axis(1, (int)(ctx.dx * -8)); // Horizontal
                 });
 
-            // Context Menu (Horizon Style)
+            when_application_load.connect([this](EventContext&) {
+                if (application()) {
+                    application()->when_popup_dismissed.connect([this](PopupDismissedContext &) {
+                        m_active_context_menu.reset();
+                    });
+                }
+            });
+
             when_right_click.connect([this](MouseButtonEventContext &ctx) {
                 if (application()) {
+                    // Use the CACHED hit test info since we are in the UI thread 
+                    // and WPE might not have triggered on_context_menu
+                    
+                    uint32_t context = m_hit_test_cache.context;
+                    std::string link_uri = m_hit_test_cache.link_uri;
+                    std::string image_uri = m_hit_test_cache.image_uri;
+                    
+                    bool back = can_go_back();
+                    bool forward = can_go_forward();
+                    std::string current_url = get_url();
+
                     m_active_context_menu = std::make_unique<horizon::Menu>();
-                    
-                    auto* back = m_active_context_menu->add_item("Atrás", "Alt+Izquierda", "back");
-                    back->set_icon("go-previous-symbolic");
-                    back->set_enabled(can_go_back());
-                    back->when_click.connect([this](MouseButtonEventContext&) {
-                        go_back();
-                        if (application()) application()->hide_context_menu();
+                    auto* m = m_active_context_menu.get();
+
+                    // Navigation
+                    auto* b = m->add_item("Atrás", "Alt+Izquierda", "back");
+                    b->set_icon("go-previous-symbolic");
+                    b->set_enabled(back);
+                    b->when_click.connect([this](horizon::MouseButtonEventContext&) { 
+                        this->go_back(); 
+                        if (this->application()) this->application()->hide_context_menu(); 
                     });
 
-                    auto* forward = m_active_context_menu->add_item("Adelante", "Alt+Derecha", "forward");
-                    forward->set_icon("go-next-symbolic");
-                    forward->set_enabled(can_go_forward());
-                    forward->when_click.connect([this](MouseButtonEventContext&) {
-                        go_forward();
-                        if (application()) application()->hide_context_menu();
+                    auto* f = m->add_item("Adelante", "Alt+Derecha", "forward");
+                    f->set_icon("go-next-symbolic");
+                    f->set_enabled(forward);
+                    f->when_click.connect([this](horizon::MouseButtonEventContext&) { 
+                        this->go_forward(); 
+                        if (this->application()) this->application()->hide_context_menu(); 
                     });
 
-                    auto* reload = m_active_context_menu->add_item("Recargar", "Ctrl+R", "reload");
-                    reload->set_icon("view-refresh-symbolic");
-                    reload->when_click.connect([this](MouseButtonEventContext&) {
-                        this->reload();
-                        if (application()) application()->hide_context_menu();
+                    auto* r = m->add_item("Recargar", "Ctrl+R", "reload");
+                    r->set_icon("view-refresh-symbolic");
+                    r->when_click.connect([this](horizon::MouseButtonEventContext&) { 
+                        this->reload(); 
+                        if (this->application()) this->application()->hide_context_menu(); 
                     });
-                    m_active_context_menu->add_separator();
-                    
+
+                    m->add_separator();
+
+                    // Downloads
+                    bool has_download = false;
+                    if (!link_uri.empty()) {
+                        auto* item = m->add_item("Descargar vínculo");
+                        item->set_icon("folder-download-symbolic");
+                        item->when_click.connect([this, link_uri](horizon::MouseButtonEventContext&) mutable {
+                            this->when_download_requested.run(link_uri);
+                            if (this->application()) this->application()->hide_context_menu();
+                        });
+                        has_download = true;
+                    }
+
+                    if (!image_uri.empty()) {
+                        auto* item = m->add_item("Descargar imagen");
+                        item->set_icon("image-x-generic-symbolic");
+                        item->when_click.connect([this, image_uri](horizon::MouseButtonEventContext&) mutable {
+                            this->when_download_requested.run(image_uri);
+                            if (this->application()) this->application()->hide_context_menu();
+                        });
+                        has_download = true;
+                    }
+
+                    if (!has_download) {
+                        auto* item = m->add_item("Descargar esta página");
+                        item->set_icon("document-save-symbolic");
+                        item->when_click.connect([this, current_url](horizon::MouseButtonEventContext&) mutable {
+                            this->when_download_requested.run(const_cast<std::string&>(current_url));
+                            if (this->application()) this->application()->hide_context_menu();
+                        });
+                    }
+
+                    m->add_separator();
+
+                    // Inspector
                     if (!m_inspector_visible) {
-                        auto* inspect = m_active_context_menu->add_item("Inspeccionar elemento", "Ctrl+Shift+I", "inspect");
+                        auto* inspect = m->add_item("Inspeccionar elemento");
                         inspect->set_icon("edit-find-symbolic");
-                        inspect->when_click.connect([this](MouseButtonEventContext&) {
+                        inspect->when_click.connect([this](horizon::MouseButtonEventContext&) {
                             this->m_inspector_visible = true;
                             this->invalidate();
                             if (s_worker_context) {
                                 const char* eruda_js = 
                                     "(function () { "
-                                    "  if (window.eruda) { "
-                                    "    eruda.show(); "
-                                    "  } else { "
+                                    "  if (window.eruda) { eruda.show(); } else { "
                                     "    var script = document.createElement('script'); "
                                     "    script.src = 'https://cdn.jsdelivr.net/npm/eruda'; "
                                     "    document.body.appendChild(script); "
                                     "    script.onload = function () { "
-                                    "       eruda.init(); "
-                                    "       try { eruda._entryBtn.hide(); } catch(e) {} "
+                                    "       eruda.init(); try { eruda._entryBtn.hide(); } catch(e) {} "
                                     "       var style = document.createElement('style'); "
                                     "       style.innerHTML = '.eruda-entry-btn { display: none !important; }'; "
-                                    "       document.head.appendChild(style); "
-                                    "       eruda.show(); "
+                                    "       document.head.appendChild(style); eruda.show(); "
                                     "       setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 500); "
                                     "    }; "
                                     "  } "
@@ -379,9 +430,9 @@ namespace horizon
                             if (application()) application()->hide_context_menu();
                         });
                     } else {
-                        auto* hide_inspect = m_active_context_menu->add_item("Ocultar inspector", "Ctrl+Shift+I", "hide_inspect");
-                        hide_inspect->set_icon("edit-find-symbolic");
-                        hide_inspect->when_click.connect([this](MouseButtonEventContext&) {
+                        auto* hide = m->add_item("Ocultar inspector");
+                        hide->set_icon("edit-find-symbolic");
+                        hide->when_click.connect([this](horizon::MouseButtonEventContext&) {
                             this->m_inspector_visible = false;
                             this->invalidate();
                             if (s_worker_context) {
@@ -398,17 +449,8 @@ namespace horizon
                         });
                     }
 
-
-                    application()->show_context_menu(m_active_context_menu.get(), -1, -1, ctx.serial, this);
+                    application()->show_context_menu(m, -1, -1, ctx.serial, this);
                     ctx.stop_propagation = true;
-                }
-            });
-
-            when_application_load.connect([this](EventContext&) {
-                if (application()) {
-                    application()->when_popup_dismissed.connect([this](PopupDismissedContext &) {
-                        m_active_context_menu.reset();
-                    });
                 }
             });
 
@@ -1009,6 +1051,20 @@ namespace horizon
             WebKitHitTestResult* result = WEBKIT_HIT_TEST_RESULT(hit_test_result);
             uint32_t context = webkit_hit_test_result_get_context(result);
 
+            // Update Cache
+            self->m_hit_test_cache.context = context;
+            self->m_hit_test_cache.link_uri = "";
+            self->m_hit_test_cache.image_uri = "";
+            
+            if (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK) {
+                const char* uri = webkit_hit_test_result_get_link_uri(result);
+                if (uri) self->m_hit_test_cache.link_uri = uri;
+            }
+            if (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_IMAGE) {
+                const char* uri = webkit_hit_test_result_get_image_uri(result);
+                if (uri) self->m_hit_test_cache.image_uri = uri;
+            }
+
             CursorType cursor = CursorType::Default;
 
             if (context & WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK) {
@@ -1265,8 +1321,12 @@ namespace horizon
             return 1; // TRUE
         }
         
-        int WebView::on_context_menu(void* web_view, void* context_menu, void* event, void* hit_test_result, void* self) {
-            return 1; // TRUE = Handled, prevents native menu
+        int WebView::on_context_menu(void* web_view, void* context_menu, void* event, void* hit_test_result, void* p_self) {
+            WebView* self = static_cast<WebView*>(p_self);
+            if (!self) return 0;
+            
+            LOG_INFO << "[WEB-CONTEXT] Signal received (using fallback for UI)";
+            return 1; // Handled
         }
 
     
