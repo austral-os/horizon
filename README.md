@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  Horizon is a desktop framework built entirely without GTK or Qt, providing full control over the UI stack from rendering to widgets. The core technology behind <strong><a href="https://github.com/austral-os">Austral OS</a></strong>, a fully integrated Linux system built around Horizon.
+  Horizon is a desktop framework built entirely without GTK or Qt, providing full control over the UI stack from rendering to widgets. The core technology behind <strong><a href="https://github.com/austral-os/austral-os">Austral OS</a></strong>, a fully integrated Linux system built around Horizon.
 </p>
 
 ---
