@@ -71,7 +71,7 @@ Horizon is not just a toolkit — it powers an entire desktop environment.
 
 The best way to experience it today is through **Austral OS**, where Horizon drives the full system UI.
 
-👉 [Explore Austral OS](https://github.com/austral-os)
+👉 [Explore Austral OS](https://github.com/austral-os/austral-os)
 
 ---
 
