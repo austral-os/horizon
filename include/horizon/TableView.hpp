@@ -313,6 +313,7 @@ namespace horizon
             for (size_t i = 0; i < m_columns.size(); ++i)
             {
                 auto btn = std::make_unique<Button<AquaObject>>();
+                auto *btn_ptr = btn.get();
                 btn->set_text(m_columns[i].title);
                 btn->set_corner_radius({0, 0, 0, 0});
                 btn->set_fixed_size(m_columns[i].width);
@@ -323,11 +324,68 @@ namespace horizon
                     btn->set_accent_color(WidgetAccentColor::Primary);
                 }
 
-                if (m_columns[i].sortable)
-                {
-                    btn->when_mouse_press.connect([this, i](MouseButtonEventContext &)
-                                                  { sort_by_column(i); });
-                }
+                // --- Resize Logic ---
+                btn->when_mouse_move.connect([this, btn_ptr, i](MouseMoveEventContext &ctx) {
+                    if (m_resizing_col != -1) return;
+
+                    int edge_margin = 5;
+                    int btn_x = btn_ptr->x();
+                    int btn_w = btn_ptr->width();
+                    
+                    bool near_right = (ctx.x >= (btn_x + btn_w - edge_margin) && ctx.x <= (btn_x + btn_w));
+                    bool near_left = (i > 0 && ctx.x >= btn_x && ctx.x <= (btn_x + edge_margin));
+
+                    if (near_right || near_left) {
+                        btn_ptr->set_cursor_type(CursorType::ResizeEW);
+                    } else {
+                        btn_ptr->set_cursor_type(CursorType::Default);
+                    }
+                });
+
+                btn->when_mouse_leave.connect([btn_ptr](EventContext &) {
+                    btn_ptr->set_cursor_type(CursorType::Default);
+                });
+
+                btn->when_mouse_press.connect([this, btn_ptr, i](MouseButtonEventContext &ctx) {
+                    int edge_margin = 5;
+                    int btn_x = btn_ptr->x();
+                    int btn_w = btn_ptr->width();
+
+                    if (ctx.x >= (btn_x + btn_w - edge_margin) && ctx.x <= (btn_x + btn_w)) {
+                        m_resizing_col = (int)i;
+                        m_resizing_start_x = application()->pointer_x();
+                        m_resizing_start_width = m_columns[i].width;
+                        ctx.stop_propagation = true;
+                    } else if (i > 0 && ctx.x >= btn_x && ctx.x <= (btn_x + edge_margin)) {
+                        m_resizing_col = (int)i - 1;
+                        m_resizing_start_x = application()->pointer_x();
+                        m_resizing_start_width = m_columns[i - 1].width;
+                        ctx.stop_propagation = true;
+                    } else if (m_columns[i].sortable) {
+                        sort_by_column(i);
+                    }
+                });
+
+                btn->when_mouse_drag.connect([this, btn_ptr, i](MouseMoveEventContext &) {
+                    if (m_resizing_col == (int)i) {
+                        int delta = application()->pointer_x() - m_resizing_start_x;
+                        int new_width = std::max(40, m_resizing_start_width + delta);
+                        m_columns[i].width = new_width;
+                        btn_ptr->set_fixed_size(new_width);
+                        update_column_widths();
+                    }
+                });
+
+                btn->when_mouse_release.connect([this](MouseButtonEventContext &) {
+                    m_resizing_col = -1;
+                });
+
+                btn->when_dbl_click.connect([this, i](MouseButtonEventContext &ctx) {
+                    int edge_margin = 5;
+                    if (ctx.x >= m_columns[i].width - edge_margin) {
+                        auto_fit_column(i);
+                    }
+                });
 
                 header->add_child(std::move(btn));
             }
@@ -502,6 +560,45 @@ namespace horizon
             }
         }
 
+        void update_column_widths()
+        {
+            if (children().size() < 2) return;
+            ScrollArea *scroll = static_cast<ScrollArea *>(children()[1].get());
+            if (scroll->children().empty()) return;
+
+            Widget *content = scroll->children()[0].get();
+            for (auto& row_widget : content->children()) {
+                if (auto *row = dynamic_cast<TableRow *>(row_widget.get())) {
+                    auto& cells = row->children();
+                    for (size_t col_idx = 0; col_idx < m_columns.size(); ++col_idx) {
+                        if (col_idx < cells.size()) {
+                            cells[col_idx]->set_fixed_size(m_columns[col_idx].width);
+                        }
+                    }
+                }
+            }
+            invalidate();
+        }
+
+        void auto_fit_column(size_t col_idx)
+        {
+            if (col_idx >= m_columns.size()) return;
+
+            int max_w = 40; // Minimum
+            
+            // Check each row's cell
+            for (const auto& row_data : m_data) {
+                if (m_columns[col_idx].cell_factory) {
+                    auto cell = m_columns[col_idx].cell_factory(row_data);
+                    max_w = std::max(max_w, cell->preferred_width());
+                }
+            }
+            
+            m_columns[col_idx].width = max_w + 24; // Padding
+            rebuild_header();
+            rebuild_content();
+        }
+
     protected:
         std::vector<TableColumn<T>> m_columns;
         std::vector<T> m_data;
@@ -521,5 +618,9 @@ namespace horizon
 
         std::set<int> m_selected_rows;
         std::function<std::unique_ptr<Menu>(const T &)> m_row_menu_factory;
+
+        int m_resizing_col = -1;
+        int m_resizing_start_x = 0;
+        int m_resizing_start_width = 0;
     };
 } // namespace horizon
