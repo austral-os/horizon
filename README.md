@@ -1,16 +1,12 @@
 <p align="center">
-  <img src="images/screenshot1.png" alt="Horizon Dashboard" width="600" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+  <img src="images/horizon-lib.png" alt="Horizon Logo" width="128">
 </p>
 
 <h1 align="center">Horizon</h1>
 
 <p align="center">
-<strong>A desktop framework for Linux built from scratch.</strong><br>
-No GTK. No Qt. Just full control over your UI.
-</p>
-
-<p align="center">
-  Horizon is a desktop framework built entirely without GTK or Qt, providing full control over the UI stack from rendering to widgets. The core technology behind <strong><a href="https://github.com/austral-os">Austral OS</a></strong>, a fully integrated Linux system built around Horizon.
+  <strong>A desktop framework for Linux built from scratch.</strong><br>
+  No GTK. No Qt. Just full control over your UI.
 </p>
 
 <p align="center">
@@ -18,6 +14,14 @@ No GTK. No Qt. Just full control over your UI.
   <img src="https://img.shields.io/badge/Status-Alpha-orange?style=flat-square" alt="Status">
   <img src="https://img.shields.io/badge/C%2B%2B-17-00599C?style=flat-square&logo=c%2B%2B" alt="C++17">
   <img src="https://img.shields.io/badge/Platform-Wayland-red?style=flat-square" alt="Platform">
+</p>
+
+<p align="center">
+  <img src="images/screenshot1.png" alt="Horizon Dashboard" width="700" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+</p>
+
+<p align="center">
+  Horizon is a desktop framework built entirely without GTK or Qt, providing full control over the UI stack from rendering to widgets. The core technology behind <strong><a href="https://github.com/austral-os">Austral OS</a></strong>, a fully integrated Linux system built around Horizon.
 </p>
 
 ---
