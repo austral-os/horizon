@@ -125,11 +125,15 @@ namespace horizon
         gc.drawLine(m_x + radius.top_left, m_y + m_height, m_x + m_width - radius.top_right,
                     m_y + m_height, 1.0f);
 
-        if (m_progress > 0.0f || m_is_indeterminate)
+        bool effectively_zero = (m_progress <= 0.001f);
+        bool effectively_full = (m_progress >= 0.999f);
+        bool show_indeterminate = m_is_indeterminate || (effectively_zero && m_target_progress <= 0.001f);
+
+        if (m_progress > 0.0f || show_indeterminate)
         {
-            float draw_progress = m_is_indeterminate ? 1.0f : m_progress;
+            float draw_progress = show_indeterminate ? 1.0f : m_progress;
             int progress_width = (int)(m_width * std::clamp(draw_progress, 0.0f, 1.0f));
-            if (progress_width < m_height)
+            if (progress_width < m_height && !show_indeterminate)
                 progress_width = m_height;
 
             gc.save();
@@ -139,12 +143,18 @@ namespace horizon
             gc.fillLinearGradientRect(m_x, m_y, progress_width, m_height, c1, c2, true, 0);
 
             // 2. Diagonal Stripes (Mac OS Tiger style)
-            gc.setColor(Color(1, 1, 1, 0.15f));
-            int stripe_spacing = 25;
-            for (float dx = -m_height + m_animation_offset; dx < progress_width + m_height;
-                 dx += (float)stripe_spacing)
+            if (!effectively_full)
             {
-                gc.drawLine(m_x + (int)dx, m_y + m_height, m_x + (int)dx + m_height, m_y, 8.0f);
+                // Use higher contrast stripes if indeterminate (like LoadingBar)
+                float stripe_alpha = show_indeterminate ? 0.35f : 0.15f;
+                gc.setColor(Color(1, 1, 1, stripe_alpha));
+                
+                int stripe_spacing = 25;
+                for (float dx = -m_height * 2 + m_animation_offset; dx < progress_width + m_height;
+                     dx += (float)stripe_spacing)
+                {
+                    gc.drawLine(m_x + (int)dx, m_y + m_height + 5, m_x + (int)dx + m_height + 5, m_y - 5, 8.0f);
+                }
             }
 
             // 3. Double Gloss / Glassy Effect
