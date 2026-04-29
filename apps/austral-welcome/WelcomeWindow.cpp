@@ -101,18 +101,12 @@ namespace horizon
                 save_config();
             });
 
-        auto btn_back = std::make_unique<Button<AirObject>>();
-        btn_back->set_text(i18n().tr("welcome.buttons.back"));
-        btn_back->set_fixed_size(120);
-
         auto btn_next = std::make_unique<Button<AirObject>>();
-        btn_next->set_text(i18n().tr("welcome.buttons.next"));
+        btn_next->set_text(i18n().tr("welcome.buttons.ok"));
         btn_next->set_fixed_size(120);
 
         footer_area->add_child(std::move(start_on_boot));
         footer_area->add_child(Spacer());
-        footer_area->add_child(std::move(btn_back));
-        footer_area->add_child(Spacer(10));
         footer_area->add_child(std::move(btn_next));
 
         main_container->add_child(std::move(content_area));

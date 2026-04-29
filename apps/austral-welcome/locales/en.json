@@ -5,8 +5,7 @@
         "description": "Austral OS is currently in active development (Alpha). Some features may be incomplete, not yet implemented, or may contain bugs.\n\nThe system is continuously evolving, and your feedback is highly appreciated to help improve it.",
         "start_on_boot": "Start on boot",
         "buttons": {
-            "back": "Back",
-            "next": "Next"
+            "ok": "Ok"
         }
     }
 }

@@ -37,6 +37,6 @@ horizon_install_app(horizon-installer
     APP_ID "horizon-installer"
     NAME "OS Installer"
     COMMENT "Install Austral OS to your computer"
-    ICON "system-os-installer"
+    ICON "emblem-austral"
     CATEGORIES "System;Settings;Utility;"
 )

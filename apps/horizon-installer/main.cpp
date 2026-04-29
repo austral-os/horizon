@@ -301,7 +301,7 @@ int main(int argc, char **argv)
     about.set_app_title("Horizon Installer");
     about.set_app_description("System installation utility for Austral OS.");
     about.set_app_version("0.1.0");
-    about.set_app_icon("system-installer");
+    about.set_app_icon("emblem-austral");
     about.set_app_git(horizon::ABOUT_HORIZON.git);
     about.add_app_author("Horacio Daniel Ros", "https://github.com/austral-os/horizon",
                          "horaciodrs@gmail.com");
