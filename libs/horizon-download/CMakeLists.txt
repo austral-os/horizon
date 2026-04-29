@@ -5,7 +5,7 @@ set(SOURCES
     src/DownloadTask.cpp
     src/DownloadManager.cpp
     src/DownloadItemWidget.cpp
-    src/DownloadPopover.cpp
+    src/DownloadView.cpp
 )
 
 add_library(horizon-download SHARED ${SOURCES})

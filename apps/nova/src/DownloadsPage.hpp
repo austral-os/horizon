@@ -1,10 +1,12 @@
 #pragma once
 #include "horizon/Widget.hpp"
-#include "horizon/TableView.hpp"
-#include "horizon/download/DownloadTask.hpp"
 #include <memory>
 
 namespace horizon {
+namespace download {
+    class DownloadView;
+}
+
 namespace nova {
 
 class DownloadsPage : public horizon::Widget {
@@ -20,9 +22,8 @@ protected:
 
 private:
     void setup_ui();
-    void refresh_list();
-
-    horizon::TableView<std::shared_ptr<download::DownloadTask>>* m_table = nullptr;
+    
+    download::DownloadView* m_view = nullptr;
 };
 
 } // namespace nova

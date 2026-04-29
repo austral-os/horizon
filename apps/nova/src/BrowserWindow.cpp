@@ -4,7 +4,6 @@
 #include "horizon/Spacer.hpp"
 #include "horizon/WaylandWindow.hpp"
 #include "horizon/download/DownloadManager.hpp"
-#include "horizon/download/DownloadPopover.hpp"
 #include "DownloadsPage.hpp"
 #include <fstream>
 #include <memory>
@@ -147,9 +146,7 @@ namespace horizon
             m_toolbar->when_downloads_clicked.connect(
                 [this](DownloadsButtonClickEvent &)
                 {
-                    auto popover = std::make_unique<download::DownloadPopover>(m_toolbar);
-                    popover->show_relative_to(m_toolbar);
-                    this->add_child(std::move(popover));
+                    this->navigate_to_url("nova://downloads");
                 });
 
             // Shortcuts
