@@ -24,7 +24,11 @@ void I18n::set_search_paths(const std::vector<std::string>& paths) {
 
 bool I18n::load_core_locales() {
     LOG_INFO << "I18n: Loading core system locales...";
-    std::vector<std::string> locales = {"en", "es"};
+    auto locales = resolve_locale_chain(m_current_locale);
+    if (std::find(locales.begin(), locales.end(), "en") == locales.end()) {
+        locales.push_back("en");
+    }
+
     bool any_loaded = false;
 
     for (const auto& locale : locales) {
@@ -43,7 +47,11 @@ bool I18n::load_core_locales() {
 
 bool I18n::load_app_locales(const std::string& app_id) {
     LOG_INFO << "I18n: Loading locales for app: " << app_id;
-    std::vector<std::string> locales = {"en", "es"};
+    auto locales = resolve_locale_chain(m_current_locale);
+    if (std::find(locales.begin(), locales.end(), "en") == locales.end()) {
+        locales.push_back("en");
+    }
+
     bool any_loaded = false;
 
     for (const auto& locale : locales) {
@@ -80,7 +88,15 @@ bool I18n::load_locale(const std::string& locale, const std::string& path) {
 
 void I18n::set_locale(const std::string& locale) {
     if (!m_backend) return;
-    m_backend->set_locale(locale);
+    
+    std::string clean_locale = locale;
+    size_t dot = clean_locale.find('.');
+    if (dot != std::string::npos) {
+        clean_locale = clean_locale.substr(0, dot);
+    }
+    
+    m_current_locale = clean_locale;
+    m_backend->set_locale(clean_locale);
 }
 
 std::string I18n::tr(const std::string& key, const Params& vars) const {

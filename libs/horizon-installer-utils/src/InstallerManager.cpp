@@ -141,7 +141,17 @@ namespace horizon::installer
         for (auto & c: upper_country) c = toupper(c);
         
         std::string full_locale = lang_code + "_" + upper_country + ".UTF-8";
-        LOG_INFO << "Using locale " << full_locale << " for XDG directories creation";
+        LOG_INFO << "Using locale " << full_locale << " for system and XDG configuration";
+
+        // 1. Generate system locale
+        report_progress(0.4, "Generating system locale (" + full_locale + ")...");
+        // Ensure it's uncommented in locale.gen (Debian/Ubuntu style)
+        execute_privileged_command("sed -i \"/# " + full_locale + "/s/^# //g\" /etc/locale.gen");
+        // Also try adding it if it wasn't there
+        execute_privileged_command("grep -q \"" + full_locale + "\" /etc/locale.gen || echo \"" + full_locale + " UTF-8\" >> /etc/locale.gen");
+        
+        execute_privileged_command("locale-gen " + full_locale);
+        execute_privileged_command("localectl set-locale LANG=" + full_locale);
 
         // Use sudo -u to run as the new user so directories have correct ownership
         // We use LC_ALL to ensure the language is forced even if LANG is overridden
@@ -165,7 +175,7 @@ namespace horizon::installer
         
         nlohmann::json region_j = {
             {"region", {
-                {"language", final_config.locale},
+                {"language", full_locale},
                 {"country", final_config.country},
                 {"timezone", final_config.timezone}
             }}

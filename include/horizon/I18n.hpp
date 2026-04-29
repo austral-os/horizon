@@ -98,6 +98,7 @@ public:
 private:
     static std::vector<std::string> s_search_paths;
     std::unique_ptr<I18nBackend> m_backend;
+    std::string m_current_locale;
 };
 
 /**

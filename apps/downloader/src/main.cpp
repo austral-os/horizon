@@ -1,13 +1,15 @@
+#include "DownloaderWindow.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/I18n.hpp"
-#include "DownloaderWindow.hpp"
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
     horizon::Application app("org.austral.downloader", 600, 500);
-    
+
     // Load translations
     horizon::i18n().load_app_locales("downloader");
 
+    app.set_name(horizon::i18n().tr("downloader.title"));
     app.set_icon_name("downloader");
 
     // Setup About info
@@ -19,7 +21,7 @@ int main(int argc, char** argv) {
 
     auto window = std::make_unique<horizon::downloader::DownloaderWindow>();
     app.set_root(std::move(window));
-    
+
     app.run();
     return 0;
 }

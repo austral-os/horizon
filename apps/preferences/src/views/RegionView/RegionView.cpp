@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <set>
 #include <utils/ConfigUtils.hpp>
+#include <horizon/Logger.hpp>
 
 namespace horizon::preferences
 {
@@ -154,7 +155,13 @@ namespace horizon::preferences
         if (j.is_null()) return;
 
         if (j.contains("language") && m_lang_combo) {
-            m_lang_combo->set_selected_item_by_id(j["language"].get<std::string>());
+            std::string lang = j["language"].get<std::string>();
+            // Strip suffix (e.g., _AR.UTF-8) to match the short codes in the combo
+            size_t underscore = lang.find('_');
+            if (underscore != std::string::npos) {
+                lang = lang.substr(0, underscore);
+            }
+            m_lang_combo->set_selected_item_by_id(lang);
         }
 
         if (j.contains("country") && m_formats_combo) {
@@ -184,18 +191,49 @@ namespace horizon::preferences
     void RegionView::save_config()
     {
         if (m_config) {
-            m_config->set_section("region", to_json());
+            auto j = to_json();
+            
+            // Reconstruct full locale for the system
+            std::string lang = "en";
+            std::string country = "US";
+            
+            if (j.contains("language")) lang = j["language"].get<std::string>();
+            if (j.contains("country")) country = j["country"].get<std::string>();
+            
+            std::string upper_country = country;
+            for (auto & c: upper_country) c = toupper(c);
+            
+            std::string full_locale = lang + "_" + upper_country + ".UTF-8";
+            
+            // Store the full locale in the config so the session manager sees it
+            j["language"] = full_locale;
+            
+            m_config->set_section("region", j);
             m_config->save();
 
-            // Apply selected locale to environment and current process
-            if (m_lang_combo && m_lang_combo->selected_item()) {
-                std::string lang_code = m_lang_combo->selected_item()->id;
-                setenv("LANG", lang_code.c_str(), 1);
-                horizon::i18n().set_locale(lang_code);
-                
-                // Refresh UI immediately
-                refresh_ui_texts();
+            // 1. Apply to current process environment
+            setenv("LANG", full_locale.c_str(), 1);
+            horizon::i18n().set_locale(full_locale); 
+            
+            // 2. Update system-wide locales (Requires Elevation)
+            std::string locale_cmd = "pkexec bash -c '";
+            locale_cmd += "sed -i \"/# " + full_locale + "/s/^# //g\" /etc/locale.gen; ";
+            locale_cmd += "grep -q \"" + full_locale + "\" /etc/locale.gen || echo \"" + full_locale + " UTF-8\" >> /etc/locale.gen; ";
+            locale_cmd += "locale-gen " + full_locale + "; ";
+            locale_cmd += "localectl set-locale LANG=" + full_locale + "'";
+            
+            LOG_INFO << "Applying system locale: " << full_locale;
+            std::system(locale_cmd.c_str());
+
+            // 3. Update system timezone if changed
+            if (j.contains("timezone")) {
+                std::string tz = j["timezone"].get<std::string>();
+                std::string tz_cmd = "pkexec timedatectl set-timezone " + tz;
+                std::system(tz_cmd.c_str());
             }
+
+            // Refresh UI immediately
+            refresh_ui_texts();
         }
     }
 
