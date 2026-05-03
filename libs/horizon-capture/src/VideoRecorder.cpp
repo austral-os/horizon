@@ -9,6 +9,7 @@ extern "C" {
 #include <libswscale/swscale.h>
 #include <libavutil/audio_fifo.h>
 #include <libswresample/swresample.h>
+#include <libavutil/time.h>
 }
 
 #include <wayland-client.h>
@@ -23,6 +24,7 @@ extern "C" {
 #include <algorithm>
 #include <poll.h>
 #include <cmath>
+#include <chrono>
 
 // PipeWire
 #include <pipewire/pipewire.h>
@@ -35,11 +37,13 @@ struct RawFrame {
     uint8_t* data;
     size_t size;
     uint32_t width, height, stride, format;
+    int64_t timestamp_ms;
 };
 
 struct RawAudio {
     float* data;
     size_t n_samples;
+    int64_t timestamp_ms;
 };
 
 struct VideoRecorder::Impl {
@@ -63,8 +67,8 @@ struct VideoRecorder::Impl {
     struct SwrContext* swr_ctx = nullptr;
     AVAudioFifo* audio_fifo = nullptr;
 
-    std::atomic<int64_t> next_video_pts{0};
-    std::atomic<int64_t> next_audio_pts{0};
+    std::atomic<int64_t> start_time_ms{0};
+    int64_t next_audio_pts = 0;
 
     // Threads
     std::atomic<bool> running{false};
@@ -90,7 +94,6 @@ struct VideoRecorder::Impl {
     // PipeWire
     struct pw_main_loop* pw_loop = nullptr;
     struct pw_stream* pw_stream = nullptr;
-    std::atomic<size_t> total_audio_received{0};
     std::atomic<float> audio_peak{0.0f};
 
     void cleanup() {
@@ -110,7 +113,6 @@ struct VideoRecorder::Impl {
         }
 
         if (fmt_ctx) {
-            LOG_INFO << "[VideoRecorder] Flushing encoders...";
             if (video_codec_ctx) {
                 avcodec_send_frame(video_codec_ctx, nullptr);
                 while (avcodec_receive_packet(video_codec_ctx, video_pkt) >= 0) {
@@ -181,10 +183,10 @@ struct VideoRecorder::Impl {
         if (samples) {
             size_t n_samples = buf->datas[0].chunk->size / sizeof(float);
             if (n_samples > 0) {
-                impl->total_audio_received += n_samples;
                 RawAudio audio; audio.n_samples = n_samples;
                 audio.data = new float[n_samples];
                 memcpy(audio.data, samples, n_samples * sizeof(float));
+                audio.timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
                 
                 float p = impl->audio_peak;
                 for (size_t i=0; i<n_samples; ++i) {
@@ -216,8 +218,10 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
     if (m_impl->running) return false;
 
     m_impl->x = x; m_impl->y = y; m_impl->width = width; m_impl->height = height; m_impl->fps = fps;
-    m_impl->record_audio = record_audio; m_impl->next_video_pts = 0; m_impl->next_audio_pts = 0;
-    m_impl->total_audio_received = 0; m_impl->audio_peak = 0.0f;
+    m_impl->record_audio = record_audio;
+    m_impl->start_time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    m_impl->next_audio_pts = 0;
+    m_impl->audio_peak = 0.0f;
 
     // Wayland
     m_impl->display = wl_display_connect(nullptr);
@@ -243,7 +247,8 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
     m_impl->video_stream = avformat_new_stream(m_impl->fmt_ctx, v_codec);
     m_impl->video_codec_ctx = avcodec_alloc_context3(v_codec);
     m_impl->video_codec_ctx->width = width; m_impl->video_codec_ctx->height = height;
-    m_impl->video_codec_ctx->time_base = {1, fps}; m_impl->video_codec_ctx->framerate = {fps, 1};
+    m_impl->video_codec_ctx->time_base = {1, 1000};
+    m_impl->video_codec_ctx->framerate = {fps, 1};
     m_impl->video_codec_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
     m_impl->video_codec_ctx->gop_size = 30; m_impl->video_codec_ctx->max_b_frames = 0;
     av_opt_set(m_impl->video_codec_ctx->priv_data, "preset", "ultrafast", 0);
@@ -255,33 +260,32 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
 
     // Audio
     if (m_impl->record_audio) {
-        const AVCodec* a_codec = avcodec_find_encoder(AV_CODEC_ID_AAC);
+        const AVCodec* a_codec = avcodec_find_encoder_by_name("libmp3lame");
+        if (!a_codec) a_codec = avcodec_find_encoder(AV_CODEC_ID_MP3);
+        
         m_impl->audio_stream = avformat_new_stream(m_impl->fmt_ctx, a_codec);
         m_impl->audio_codec_ctx = avcodec_alloc_context3(a_codec);
         m_impl->audio_codec_ctx->sample_fmt = AV_SAMPLE_FMT_FLTP;
-        m_impl->audio_codec_ctx->sample_rate = 44100;
+        m_impl->audio_codec_ctx->sample_rate = 48000;
         AVChannelLayout out_layout = AV_CHANNEL_LAYOUT_STEREO;
         av_channel_layout_copy(&m_impl->audio_codec_ctx->ch_layout, &out_layout);
-        m_impl->audio_codec_ctx->time_base = {1, 44100};
-        m_impl->audio_codec_ctx->bit_rate = 128000;
+        m_impl->audio_codec_ctx->time_base = {1, 48000};
+        m_impl->audio_codec_ctx->bit_rate = 192000;
         if (m_impl->fmt_ctx->oformat->flags & AVFMT_GLOBALHEADER) m_impl->audio_codec_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
         avcodec_open2(m_impl->audio_codec_ctx, a_codec, nullptr);
         avcodec_parameters_from_context(m_impl->audio_stream->codecpar, m_impl->audio_codec_ctx);
         m_impl->audio_stream->time_base = m_impl->audio_codec_ctx->time_base;
         
-        m_impl->audio_fifo = av_audio_fifo_alloc(m_impl->audio_codec_ctx->sample_fmt, 2, 44100);
+        m_impl->audio_fifo = av_audio_fifo_alloc(m_impl->audio_codec_ctx->sample_fmt, 2, 48000);
         m_impl->audio_frame = av_frame_alloc();
-        m_impl->audio_frame->nb_samples = m_impl->audio_codec_ctx->frame_size;
         m_impl->audio_frame->format = m_impl->audio_codec_ctx->sample_fmt;
-        m_impl->audio_frame->sample_rate = 44100;
+        m_impl->audio_frame->sample_rate = 48000;
         av_channel_layout_copy(&m_impl->audio_frame->ch_layout, &m_impl->audio_codec_ctx->ch_layout);
-        av_frame_get_buffer(m_impl->audio_frame, 0);
         m_impl->audio_pkt = av_packet_alloc();
 
-        // Swr Setup
         AVChannelLayout in_layout = AV_CHANNEL_LAYOUT_STEREO;
-        swr_alloc_set_opts2(&m_impl->swr_ctx, &out_layout, AV_SAMPLE_FMT_FLTP, 44100,
-                                              &in_layout, AV_SAMPLE_FMT_FLT, 44100, 0, nullptr);
+        swr_alloc_set_opts2(&m_impl->swr_ctx, &out_layout, AV_SAMPLE_FMT_FLTP, 48000,
+                                              &in_layout, AV_SAMPLE_FMT_FLT, 48000, 0, nullptr);
         swr_init(m_impl->swr_ctx);
     }
 
@@ -301,15 +305,12 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
         m_impl->pw_loop = pw_main_loop_new(nullptr);
         static const struct pw_stream_events st_e = { 
             .version = PW_VERSION_STREAM_EVENTS, 
-            .state_changed = [](void*, enum pw_stream_state old, enum pw_stream_state state, const char* err) {
-                LOG_INFO << "[PipeWire] State: " << pw_stream_state_as_string(old) << " -> " << pw_stream_state_as_string(state);
-            },
             .process = Impl::on_pw_stream_process 
         };
         struct pw_properties* props = pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio", PW_KEY_MEDIA_CATEGORY, "Capture", PW_KEY_MEDIA_ROLE, "ScreenRecording", "stream.capture.sink", "true", nullptr);
         m_impl->pw_stream = pw_stream_new_simple(pw_main_loop_get_loop(m_impl->pw_loop), "horizon-capture", props, &st_e, m_impl.get());
         uint8_t buffer[1024]; struct spa_pod_builder b = SPA_POD_BUILDER_INIT(buffer, sizeof(buffer));
-        struct spa_audio_info_raw info = SPA_AUDIO_INFO_RAW_INIT(.format = SPA_AUDIO_FORMAT_F32, .rate = 44100, .channels = 2);
+        struct spa_audio_info_raw info = SPA_AUDIO_INFO_RAW_INIT(.format = SPA_AUDIO_FORMAT_F32, .rate = 48000, .channels = 2);
         const struct spa_pod* params[1] = { spa_format_audio_raw_build(&b, SPA_PARAM_EnumFormat, &info) };
         pw_stream_connect(m_impl->pw_stream, PW_DIRECTION_INPUT, PW_ID_ANY, (pw_stream_flags)(PW_STREAM_FLAG_AUTOCONNECT | PW_STREAM_FLAG_MAP_BUFFERS | PW_STREAM_FLAG_RT_PROCESS), params, 1);
         m_impl->audio_thread = std::thread([this]() { pw_main_loop_run(m_impl->pw_loop); });
@@ -325,7 +326,7 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
                 if (!m_impl->sws_ctx) m_impl->sws_ctx = sws_getContext(rf.width, rf.height, m_impl->get_ffmpeg_format(rf.format), m_impl->width, m_impl->height, AV_PIX_FMT_YUV420P, SWS_BILINEAR, nullptr, nullptr, nullptr);
                 const uint8_t* src_d[4] = {rf.data, 0, 0, 0}; int src_s[4] = {(int)rf.stride, 0, 0, 0};
                 sws_scale(m_impl->sws_ctx, src_d, src_s, 0, rf.height, m_impl->video_frame->data, m_impl->video_frame->linesize);
-                m_impl->video_frame->pts = m_impl->next_video_pts++;
+                m_impl->video_frame->pts = rf.timestamp_ms - m_impl->start_time_ms;
                 if (avcodec_send_frame(m_impl->video_codec_ctx, m_impl->video_frame) >= 0) {
                     while (avcodec_receive_packet(m_impl->video_codec_ctx, m_impl->video_pkt) >= 0) {
                         av_packet_rescale_ts(m_impl->video_pkt, m_impl->video_codec_ctx->time_base, m_impl->video_stream->time_base);
@@ -340,20 +341,25 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
             { std::lock_guard<std::mutex> l(m_impl->queue_mutex); if (!m_impl->audio_queue.empty()) { ra = m_impl->audio_queue.front(); m_impl->audio_queue.pop(); has_a = true; } }
             if (has_a) {
                 int spc = ra.n_samples / 2;
-                // Boost for testing
-                for (size_t i=0; i<ra.n_samples; ++i) ra.data[i] *= 2.0f;
-
                 uint8_t* out[2];
                 int out_samples = swr_get_out_samples(m_impl->swr_ctx, spc);
                 av_samples_alloc(out, nullptr, 2, out_samples, AV_SAMPLE_FMT_FLTP, 0);
                 int converted = swr_convert(m_impl->swr_ctx, out, out_samples, (const uint8_t**)&ra.data, spc);
-                
                 av_audio_fifo_write(m_impl->audio_fifo, (void**)out, converted);
                 av_freep(&out[0]);
                 
-                while (av_audio_fifo_size(m_impl->audio_fifo) >= m_impl->audio_codec_ctx->frame_size) {
-                    av_audio_fifo_read(m_impl->audio_fifo, (void**)m_impl->audio_frame->data, m_impl->audio_codec_ctx->frame_size);
-                    m_impl->audio_frame->pts = m_impl->next_audio_pts; m_impl->next_audio_pts += m_impl->audio_frame->nb_samples;
+                int64_t current_audio_pts = av_rescale_q(ra.timestamp_ms - m_impl->start_time_ms, {1, 1000}, m_impl->audio_codec_ctx->time_base);
+                if (m_impl->next_audio_pts < current_audio_pts) m_impl->next_audio_pts = current_audio_pts;
+
+                int fs = m_impl->audio_codec_ctx->frame_size ? m_impl->audio_codec_ctx->frame_size : 1152;
+                while (av_audio_fifo_size(m_impl->audio_fifo) >= fs) {
+                    if (m_impl->audio_frame->nb_samples != fs) {
+                        m_impl->audio_frame->nb_samples = fs;
+                        av_frame_get_buffer(m_impl->audio_frame, 0);
+                    }
+                    av_audio_fifo_read(m_impl->audio_fifo, (void**)m_impl->audio_frame->data, fs);
+                    m_impl->audio_frame->pts = m_impl->next_audio_pts;
+                    m_impl->next_audio_pts += fs;
                     if (avcodec_send_frame(m_impl->audio_codec_ctx, m_impl->audio_frame) >= 0) {
                         while (avcodec_receive_packet(m_impl->audio_codec_ctx, m_impl->audio_pkt) >= 0) {
                             av_packet_rescale_ts(m_impl->audio_pkt, m_impl->audio_codec_ctx->time_base, m_impl->audio_stream->time_base);
@@ -375,13 +381,20 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
             m_impl->done = false;
             auto* fr = zwlr_screencopy_manager_v1_capture_output_region(m_impl->screencopy_manager, 1, m_impl->target_output, m_impl->x, m_impl->y, m_impl->width, m_impl->height);
             static const struct zwlr_screencopy_frame_v1_listener fl = {
-                .buffer = [](void* d, struct zwlr_screencopy_frame_v1*, uint32_t f, uint32_t w, uint32_t h, uint32_t s) { auto* i=(Impl*)d; i->b_format=f; i->b_width=w; i->b_height=h; i->b_stride=s; },
-                .flags = [](void*, struct zwlr_screencopy_frame_v1*, uint32_t) {},
-                .ready = [](void* d, struct zwlr_screencopy_frame_v1*, uint32_t, uint32_t, uint32_t) { ((Impl*)d)->done=true; },
-                .failed = [](void* d, struct zwlr_screencopy_frame_v1*) { ((Impl*)d)->done=true; },
-                .damage = [](void*, struct zwlr_screencopy_frame_v1*, uint32_t, uint32_t, uint32_t, uint32_t) {},
-                .linux_dmabuf = [](void*, struct zwlr_screencopy_frame_v1*, uint32_t, uint32_t, uint32_t) {},
-                .buffer_done = [](void* d, struct zwlr_screencopy_frame_v1* fr) {
+                // buffer
+                [](void* d, struct zwlr_screencopy_frame_v1*, uint32_t f, uint32_t w, uint32_t h, uint32_t s) { auto* i=(Impl*)d; i->b_format=f; i->b_width=w; i->b_height=h; i->b_stride=s; },
+                // flags
+                [](void*, struct zwlr_screencopy_frame_v1*, uint32_t) {},
+                // ready
+                [](void* d, struct zwlr_screencopy_frame_v1*, uint32_t, uint32_t, uint32_t) { ((Impl*)d)->done=true; },
+                // failed
+                [](void* d, struct zwlr_screencopy_frame_v1*) { ((Impl*)d)->done=true; },
+                // damage
+                [](void*, struct zwlr_screencopy_frame_v1*, uint32_t, uint32_t, uint32_t, uint32_t) {},
+                // linux_dmabuf
+                [](void*, struct zwlr_screencopy_frame_v1*, uint32_t, uint32_t, uint32_t) {},
+                // buffer_done
+                [](void* d, struct zwlr_screencopy_frame_v1* fr) {
                     auto* i=(Impl*)d; i->buffer_size = i->b_stride * i->b_height;
                     int fd = Impl::create_shm_file(i->buffer_size);
                     i->buffer_data = mmap(0, i->buffer_size, PROT_READ, MAP_SHARED, fd, 0);
@@ -400,6 +413,7 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
             if (m_impl->buffer_data) {
                 RawFrame f; f.width=m_impl->b_width; f.height=m_impl->b_height; f.stride=m_impl->b_stride; f.format=m_impl->b_format; f.size=m_impl->buffer_size;
                 f.data = new uint8_t[f.size]; memcpy(f.data, m_impl->buffer_data, f.size);
+                f.timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
                 munmap(m_impl->buffer_data, m_impl->buffer_size); m_impl->buffer_data=nullptr;
                 { std::lock_guard<std::mutex> l(m_impl->queue_mutex); m_impl->video_queue.push(f); }
                 m_impl->queue_cond.notify_one();
