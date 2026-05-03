@@ -16,8 +16,12 @@ using namespace horizon::capture;
 int main(int argc, char** argv) {
     // Standard Horizon application setup
     Application app("org.horizon.capture", 600, 400);
-    app.set_name("Capture");
-    app.set_icon_name("camera-photo");
+    
+    // Load translations
+    horizon::i18n().load_app_locales("capture");
+    
+    app.set_name(horizon::i18n().tr("capture.title"));
+    app.set_icon_name("screenrecorder");
 
     // Setup preferences factory
     char *home = std::getenv("HOME");
@@ -31,11 +35,11 @@ int main(int argc, char** argv) {
             auto *content_ptr = content.get();
             auto on_change = [content_ptr]() { content_ptr->save_config(); };
 
-            content->add_section("General", "preferences-system",
+            content->add_section(horizon::i18n().tr("capture.preferences.general"), "preferences-system",
                                  std::make_unique<CaptureGeneralSection>(on_change), "general");
-            content->add_section("Image", "camera-photo",
+            content->add_section(horizon::i18n().tr("capture.preferences.image"), "camera-photo",
                                  std::make_unique<CaptureImageSection>(on_change), "image");
-            content->add_section("Video", "camera-video",
+            content->add_section(horizon::i18n().tr("capture.preferences.video"), "camera-video",
                                  std::make_unique<CaptureVideoSection>(on_change), "video");
 
             return content;
@@ -44,54 +48,43 @@ int main(int argc, char** argv) {
 
     // Setup About info
     auto &about = app.about_manager();
-    about.set_app_title("Horizon Capture");
-    about.set_app_description("A professional screen capture and recording utility for Austral OS.");
+    about.set_app_title(horizon::i18n().tr("capture.title"));
+    about.set_app_description(horizon::i18n().tr("capture.about.description"));
     about.set_app_version("1.0.0");
-    about.set_app_icon("camera-photo");
+    about.set_app_icon("screenrecorder");
     about.add_app_author("Austral OS Team", "https://github.com/austral-os", "contact@austral-os.org");
     about.set_app_web("https://github.com/austral-os/horizon");
 
     auto window = std::make_unique<CaptureWindow>();
     auto* win_ptr = window.get();
 
-    // App Menu (Global)
-    auto app_menu = std::make_unique<Menu>();
-    app_menu->add_item("Preferences", "Ctrl+P", "preferences")->when_click.connect([&app](const MouseButtonEventContext&) {
-        app.show_preferences();
-    });
-    app_menu->add_item("About", "", "about")->when_click.connect([&app](const MouseButtonEventContext&) {
-        app.show_aboutus();
-    });
-    app_menu->add_separator();
-    app_menu->add_item("Quit", "Ctrl+Q", "quit")->when_click.connect([&app](const MouseButtonEventContext&) {
-        exit(0);
-    });
-    app.set_app_menu(std::move(app_menu));
+    // App Menu (Global) - Horizon automatically adds Preferences, About and Quit
+    app.set_app_menu(std::make_unique<Menu>());
 
     // Image Menu
     auto image_menu = std::make_unique<Menu>();
-    image_menu->set_title("Image");
-    image_menu->add_item("Selection", "Shift+S", "img_selection")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
+    image_menu->set_title(horizon::i18n().tr("capture.menu.image"));
+    image_menu->add_item(horizon::i18n().tr("capture.menu.selection"), "Shift+S", "img_selection")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
         win_ptr->capture_selection_image();
     });
-    image_menu->add_item("Window", "Shift+W", "img_window")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
+    image_menu->add_item(horizon::i18n().tr("capture.menu.window"), "Shift+W", "img_window")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
         win_ptr->capture_window_image();
     });
-    image_menu->add_item("Full Screen", "Print", "img_screen")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
+    image_menu->add_item(horizon::i18n().tr("capture.menu.screen"), "Print", "img_screen")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
         win_ptr->capture_screen_image();
     });
     app.add_menu(std::move(image_menu));
-
+    
     // Video Menu
     auto video_menu = std::make_unique<Menu>();
-    video_menu->set_title("Video");
-    video_menu->add_item("Selection", "Ctrl+Shift+S", "vid_selection")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
+    video_menu->set_title(horizon::i18n().tr("capture.menu.video"));
+    video_menu->add_item(horizon::i18n().tr("capture.menu.selection"), "Ctrl+Shift+S", "vid_selection")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
         win_ptr->start_selection_video();
     });
-    video_menu->add_item("Window", "Ctrl+Shift+W", "vid_window")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
+    video_menu->add_item(horizon::i18n().tr("capture.menu.window"), "Ctrl+Shift+W", "vid_window")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
         win_ptr->start_window_video();
     });
-    video_menu->add_item("Full Screen", "Ctrl+Print", "vid_screen")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
+    video_menu->add_item(horizon::i18n().tr("capture.menu.screen"), "Ctrl+Print", "vid_screen")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
         win_ptr->start_screen_video();
     });
     app.add_menu(std::move(video_menu));

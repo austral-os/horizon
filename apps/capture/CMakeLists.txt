@@ -16,4 +16,17 @@ target_link_libraries(capture_app
         horizon-capture
 )
 
-# No desktop file yet for MVP as it's CLI based
+horizon_install_app(capture_app
+    APP_ID org.horizon.capture
+    NAME "Capture"
+    COMMENT "Screen Capture and Recording"
+    ICON "screenrecorder"
+    CATEGORIES "Utility;AudioVideo;"
+)
+
+add_custom_command(TARGET capture_app POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/locales
+    ${CMAKE_CURRENT_BINARY_DIR}/locales
+    COMMENT "Copying app locales to build directory"
+)

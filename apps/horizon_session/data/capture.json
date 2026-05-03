@@ -1,0 +1,12 @@
+{
+    "general": {
+        "output_directory": "~/Captures"
+    },
+    "image": {
+        "format": "png"
+    },
+    "video": {
+        "container": "mp4",
+        "quality": "low"
+    }
+}

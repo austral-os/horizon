@@ -155,6 +155,14 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/nova.json")
     )
 endif()
 
+# --- Capture Config ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/capture.json")
+    install(FILES data/capture.json
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
+
 # --- License ---
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/license_lgplv3.txt")
     install(FILES data/license_lgplv3.txt

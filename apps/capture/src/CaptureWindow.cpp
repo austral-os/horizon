@@ -43,29 +43,29 @@ void CaptureWindow::setup_ui() {
     content_panel->set_margin(40);
     content_panel->set_layout_type(WIDGET_LAYOUT_VERTICAL);
 
-    auto title = std::make_unique<Label>("Horizon Capture");
+    auto title = std::make_unique<Label>(horizon::i18n().tr("capture.title"));
     title->set_fixed_size(32);
     // title->set_bold(true); // If supported
     content_panel->add_child(std::move(title));
 
-    auto subtitle = std::make_unique<Label>("Capture your screen, windows or specific regions.");
+    auto subtitle = std::make_unique<Label>(horizon::i18n().tr("capture.about.description"));
     content_panel->add_child(std::move(subtitle));
 
-    m_status_label = new Label("Ready");
+    m_status_label = new Label(horizon::i18n().tr("capture.status.ready"));
     auto status_ptr = std::unique_ptr<Label>(m_status_label);
     content_panel->add_child(std::move(status_ptr));
 
     // Toolbar setup
     m_toolbar = toolbar();
     if (m_toolbar) {
-        auto img_btn_ptr = std::make_unique<ToolbarButton>("Screenshot", "camera-photo-symbolic");
+        auto img_btn_ptr = std::make_unique<ToolbarButton>(horizon::i18n().tr("capture.toolbar.screenshot"), "camera-photo-symbolic");
         auto* img_btn = img_btn_ptr.get();
         m_toolbar->add_toolbar_widget(std::move(img_btn_ptr));
         img_btn->when_click.connect([this](const MouseButtonEventContext&) {
             capture_screen_image();
         });
 
-        auto vid_btn_ptr = std::make_unique<ToolbarButton>("Record Video", "camera-video-symbolic");
+        auto vid_btn_ptr = std::make_unique<ToolbarButton>(horizon::i18n().tr("capture.toolbar.record"), "camera-video-symbolic");
         m_record_btn = vid_btn_ptr.get();
         m_toolbar->add_toolbar_widget(std::move(vid_btn_ptr));
         m_record_btn->when_click.connect([this](const MouseButtonEventContext&) {
@@ -73,7 +73,7 @@ void CaptureWindow::setup_ui() {
             else start_screen_video();
         });
 
-        auto pref_btn_ptr = std::make_unique<ToolbarButton>("Preferences", "preferences-system-symbolic");
+        auto pref_btn_ptr = std::make_unique<ToolbarButton>(horizon::i18n().tr("capture.toolbar.preferences"), "preferences-system-symbolic");
         auto* pref_btn = pref_btn_ptr.get();
         m_toolbar->add_toolbar_widget(std::move(pref_btn_ptr));
         pref_btn->when_click.connect([this](const MouseButtonEventContext&) {
@@ -87,14 +87,28 @@ void CaptureWindow::setup_ui() {
     set_size(600, 400);
 }
 
+std::string expand_tilde(std::string path) {
+    if (path.empty() || path[0] != '~') return path;
+    const char *home = std::getenv("HOME");
+    if (!home) return path;
+    if (path.size() == 1) return home;
+    if (path[1] == '/') return std::string(home) + path.substr(1);
+    return path;
+}
+
 void CaptureWindow::capture_screen_image() {
     m_config->load(); // Reload in case preferences changed
     
-    std::string out_dir = m_config->get_value("general", "output_directory", ".");
+    std::string out_dir = expand_tilde(m_config->get_value("general", "output_directory", "."));
     std::string format = m_config->get_value("image", "format", "png");
+
+    // Ensure directory exists
+    if (!out_dir.empty() && !std::filesystem::exists(out_dir)) {
+        std::filesystem::create_directories(out_dir);
+    }
     
     LOG_INFO << "[CaptureApp] Starting screen capture...";
-    m_status_label->set_text("Capturing screen...");
+    m_status_label->set_text(horizon::i18n().tr("capture.status.capturing_screen"));
     
     std::string filename = "screenshot_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count()) + "." + format;
     std::filesystem::path full_path = std::filesystem::path(out_dir) / filename;
@@ -103,10 +117,10 @@ void CaptureWindow::capture_screen_image() {
     
     if (m_engine.capture_screenshot("", full_path.string())) {
         LOG_INFO << "[CaptureApp] Screenshot successful";
-        m_status_label->set_text("Screenshot saved to " + full_path.string());
+        m_status_label->set_text(horizon::i18n().tr("capture.status.saved").replace(horizon::i18n().tr("capture.status.saved").find("{}"), 2, full_path.string()));
     } else {
         LOG_ERROR << "[CaptureApp] Screenshot failed";
-        m_status_label->set_text("Failed to capture screenshot");
+        m_status_label->set_text(horizon::i18n().tr("capture.status.failed"));
     }
 }
 
@@ -127,8 +141,13 @@ void CaptureWindow::capture_selection_image() {
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
         
         m_config->load();
-        std::string out_dir = m_config->get_value("general", "output_directory", ".");
+        std::string out_dir = expand_tilde(m_config->get_value("general", "output_directory", "."));
         std::string format = m_config->get_value("image", "format", "png");
+
+        // Ensure directory exists
+        if (!out_dir.empty() && !std::filesystem::exists(out_dir)) {
+            std::filesystem::create_directories(out_dir);
+        }
         
         std::string filename = "screenshot_selection_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count()) + "." + format;
         std::filesystem::path full_path = std::filesystem::path(out_dir) / filename;
@@ -153,10 +172,15 @@ void CaptureWindow::start_screen_video() {
     if (m_is_recording) return;
     
     m_config->load();
-    std::string out_dir = m_config->get_value("general", "output_directory", ".");
+    std::string out_dir = expand_tilde(m_config->get_value("general", "output_directory", "."));
     std::string container = m_config->get_value("video", "container", "mp4");
     
-    m_status_label->set_text("Recording screen...");
+    // Ensure directory exists
+    if (!out_dir.empty() && !std::filesystem::exists(out_dir)) {
+        std::filesystem::create_directories(out_dir);
+    }
+    
+    m_status_label->set_text(horizon::i18n().tr("capture.status.recording_screen"));
     std::string filename = "recording_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count()) + "." + container;
     std::filesystem::path full_path = std::filesystem::path(out_dir) / filename;
     
@@ -167,13 +191,13 @@ void CaptureWindow::start_screen_video() {
     
     if (m_recorder->start(full_path.string(), 0, 0, w, h, 30, true)) {
         m_is_recording = true;
-        m_status_label->set_text("Recording... (Press Stop to finish)");
+        m_status_label->set_text(horizon::i18n().tr("capture.status.recording_stop_hint"));
         if (m_record_btn) {
-            m_record_btn->set_title("Stop");
+            m_record_btn->set_title(horizon::i18n().tr("capture.toolbar.stop"));
             m_record_btn->set_icon_name("media-playback-stop-symbolic");
         }
     } else {
-        m_status_label->set_text("Failed to start recording");
+        m_status_label->set_text(horizon::i18n().tr("capture.status.failed"));
     }
 }
 
@@ -195,8 +219,13 @@ void CaptureWindow::start_selection_video() {
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
         
         m_config->load();
-        std::string out_dir = m_config->get_value("general", "output_directory", ".");
+        std::string out_dir = expand_tilde(m_config->get_value("general", "output_directory", "."));
         std::string container = m_config->get_value("video", "container", "mp4");
+        
+        // Ensure directory exists
+        if (!out_dir.empty() && !std::filesystem::exists(out_dir)) {
+            std::filesystem::create_directories(out_dir);
+        }
         
         std::string filename = "recording_selection_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count()) + "." + container;
         std::filesystem::path full_path = std::filesystem::path(out_dir) / filename;
@@ -228,9 +257,9 @@ void CaptureWindow::stop_video() {
     if (!m_is_recording) return;
     m_recorder->stop();
     m_is_recording = false;
-    m_status_label->set_text("Recording finished and saved.");
+    m_status_label->set_text(horizon::i18n().tr("capture.status.recording_finished"));
     if (m_record_btn) {
-        m_record_btn->set_title("Record Video");
+        m_record_btn->set_title(horizon::i18n().tr("capture.toolbar.record"));
         m_record_btn->set_icon_name("camera-video-symbolic");
     }
 }
