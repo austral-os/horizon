@@ -129,6 +129,7 @@ add_subdirectory(libs/horizon-text)
 add_subdirectory(libs/horizon-disk-utilities)
 add_subdirectory(libs/horizon-installer-utils)
 add_subdirectory(libs/horizon-download)
+add_subdirectory(libs/horizon-capture)
 
 # --- Core Applications ---
 add_subdirectory(apps/top_panel)
@@ -150,6 +151,7 @@ add_subdirectory(apps/horizon-installer)
 add_subdirectory(apps/horizon-greeter)
 add_subdirectory(apps/austral-welcome)
 add_subdirectory(apps/downloader)
+add_subdirectory(apps/capture)
 
 # --- Demos and Tests ---
 add_executable(files_demo
