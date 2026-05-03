@@ -4,13 +4,14 @@
 namespace horizon::capture {
 
 SelectionWindow::SelectionWindow() 
-    : WaylandLayerWindow("horizon.capture.selection", 3) // 3 = OVERLAY layer
+    : WaylandLayerWindow("horizon.capture.selection", 3) // OVERLAY
 {
-    // Ensure we are above everything and not restricted by panels
-    set_exclusive_zone(-1);
+    // Try to anchor ONLY to Top-Left (1 | 4 = 5) and set a fixed size.
+    // This often bypasses exclusive zone resizing because the window is not 
+    // "stretched" between edges.
+    set_anchor(5); 
     
-    // Set anchor to fill the entire screen
-    set_anchor(15); // TOP | BOTTOM | LEFT | RIGHT
+    set_exclusive_zone(-1);
     
     // Allow keyboard interactivity to catch Esc
     set_keyboard_interactivity(1); // ON-DEMAND

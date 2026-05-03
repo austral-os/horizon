@@ -189,6 +189,7 @@ namespace horizon
         void set_layer_anchor(uint32_t anchor);
         void set_layer_exclusive_zone(int32_t zone);
         void set_layer_keyboard_interactivity(uint32_t interactivity);
+        void set_layer_margin(int32_t top, int32_t right, int32_t bottom, int32_t left);
         void set_layer_size(uint32_t width, uint32_t height);
         void set_input_region(int x, int y, int w, int h);
         void clear_input_region();

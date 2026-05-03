@@ -56,10 +56,6 @@ int main(int argc, char** argv) {
         output_file = record_video ? "recording.mp4" : "screenshot.png";
     }
 
-    // Default behavior: if no selection mode and no monitor specified, 
-    // we could either default to selection OR full screen.
-    // User expects full screen by default if not told otherwise.
-    
     int final_x = 0, final_y = 0, final_w = 0, final_h = 0;
     bool capture_ready = false;
 
@@ -89,45 +85,58 @@ int main(int argc, char** argv) {
         });
 
         selection_win->initialize();
+        
+        // Ensure monitor info is populated
+        for(int i=0; i<5; ++i) wl_display_roundtrip(selection_win->w_surface()->display());
+        
+        int mw = selection_win->w_surface()->monitor_width();
+        int mh = selection_win->w_surface()->monitor_height();
+        if (mw > 0 && mh > 0) {
+            selection_win->set_size(mw, mh);
+        } else if (!selection_win->w_surface()->monitor_details().empty()) {
+            selection_win->set_size(selection_win->w_surface()->monitor_details()[0].width,
+                                    selection_win->w_surface()->monitor_details()[0].height);
+        }
+
         selection_win->run();
         
         if (!selection_done) return 0;
         capture_ready = true;
     } else {
-        // Full screen mode
         LOG_INFO << "[CaptureApp] Initializing full screen capture...";
-        horizon::capture::CaptureEngine engine;
-        if (engine.init()) {
-            // We'll use the CaptureEngine to get dimensions of the target output
-            // (or the first one by default)
-            // For now, let's assume we capture the first output.
-            // In a real app, we'd iterate and sum or choose.
-            // But let's keep it simple for MVP.
-            
-            // To get dimensions, we can't easily query them from CaptureEngine without capturing.
-            // Let's use a small trick: use SelectionWindow's initialization logic 
-            // but without showing it, to get monitor info.
-            // Or just hardcode/query Wayland directly.
-            
-            // Better: use the SelectionWindow which already does the work.
-            auto dummy_win = std::make_shared<horizon::capture::SelectionWindow>();
-            dummy_win->initialize();
-            
-            final_x = 0;
-            final_y = 0;
-            final_w = dummy_win->width();
-            final_h = dummy_win->height();
-            
+        auto dummy_win = std::make_shared<horizon::capture::SelectionWindow>();
+        dummy_win->initialize();
+        
+        // Wait for Wayland to populate monitor info
+        struct wl_display* display = dummy_win->w_surface()->display();
+        for (int i = 0; i < 5; ++i) {
+            wl_display_roundtrip(display);
+        }
+        
+        final_x = 0;
+        final_y = 0;
+        final_w = dummy_win->w_surface()->monitor_width();
+        final_h = dummy_win->w_surface()->monitor_height();
+        
+        // Safety check: if monitor_width is still 0, try to get it from details
+        if (final_w == 0 && !dummy_win->w_surface()->monitor_details().empty()) {
+            final_w = dummy_win->w_surface()->monitor_details()[0].width;
+            final_h = dummy_win->w_surface()->monitor_details()[0].height;
+        }
+
+        LOG_INFO << "[CaptureApp] Full Screen dimensions from monitor: " << final_w << "x" << final_h;
+        
+        if (final_w > 0 && final_h > 0) {
             if (final_w % 2 != 0) final_w--;
             if (final_h % 2 != 0) final_h--;
-            
             capture_ready = true;
+        } else {
+            std::cerr << "Failed to detect monitor dimensions" << std::endl;
         }
     }
 
     if (!capture_ready) return 1;
 
-    // --- Execution Phase ---
     if (record_video) {
         LOG_INFO << "[CaptureApp] Starting video recording: " << final_w << "x" << final_h;
         g_recorder = std::make_shared<horizon::capture::VideoRecorder>();
