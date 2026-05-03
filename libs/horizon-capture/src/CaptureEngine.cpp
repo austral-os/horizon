@@ -39,9 +39,6 @@ struct CaptureEngine::Impl {
     ~Impl() {
         if (screencopy_manager) zwlr_screencopy_manager_v1_destroy(screencopy_manager);
         if (shm) wl_shm_destroy(shm);
-        for (auto& o : outputs) {
-            // wl_output_destroy(o.output); // Often destroyed by registry cleanup or manual
-        }
         if (registry) wl_registry_destroy(registry);
         if (display) wl_display_disconnect(display);
     }
@@ -82,6 +79,16 @@ struct CaptureEngine::Impl {
     }
 
     static void handle_global_remove(void*, struct wl_registry*, uint32_t) {}
+
+    static int create_shm_file(off_t size) {
+        int fd = memfd_create("horizon-capture-shm", MFD_CLOEXEC);
+        if (fd < 0) return -1;
+        if (ftruncate(fd, size) < 0) {
+            close(fd);
+            return -1;
+        }
+        return fd;
+    }
 };
 
 CaptureEngine::CaptureEngine() : m_impl(std::make_unique<Impl>()) {}
@@ -112,17 +119,11 @@ bool CaptureEngine::init() {
     return true;
 }
 
-static int create_shm_file(off_t size) {
-    int fd = memfd_create("horizon-capture-shm", MFD_CLOEXEC);
-    if (fd < 0) return -1;
-    if (ftruncate(fd, size) < 0) {
-        close(fd);
-        return -1;
-    }
-    return fd;
+bool CaptureEngine::capture_screenshot(const std::string& output_name, const std::string& file_path) {
+    return capture_region(output_name, -1, -1, -1, -1, file_path);
 }
 
-bool CaptureEngine::capture_screenshot(const std::string& output_name, const std::string& file_path) {
+bool CaptureEngine::capture_region(const std::string& output_name, int x, int y, int width, int height, const std::string& file_path) {
     struct wl_output* target_output = nullptr;
     if (output_name.empty()) {
         if (!m_impl->outputs.empty()) target_output = m_impl->outputs[0].output;
@@ -140,38 +141,51 @@ bool CaptureEngine::capture_screenshot(const std::string& output_name, const std
         return false;
     }
 
-    struct zwlr_screencopy_frame_v1* frame = zwlr_screencopy_manager_v1_capture_output(m_impl->screencopy_manager, 1, target_output);
+    struct zwlr_screencopy_frame_v1* frame;
+    if (x == -1) {
+        LOG_INFO << "[CaptureEngine] Capturing full output";
+        frame = zwlr_screencopy_manager_v1_capture_output(m_impl->screencopy_manager, 1, target_output);
+    } else {
+        if (width <= 0 || height <= 0) {
+            LOG_ERROR << "[CaptureEngine] Invalid region size: " << width << "x" << height;
+            return false;
+        }
+        LOG_INFO << "[CaptureEngine] Capturing region: " << x << "," << y << " " << width << "x" << height;
+        frame = zwlr_screencopy_manager_v1_capture_output_region(m_impl->screencopy_manager, 1, target_output, x, y, width, height);
+    }
     
     m_impl->done = false;
     m_impl->failed = false;
+    m_impl->buffer_data = nullptr;
 
     static const struct zwlr_screencopy_frame_v1_listener frame_listener = {
         .buffer = [](void* data, struct zwlr_screencopy_frame_v1*, uint32_t format, uint32_t width, uint32_t height, uint32_t stride) {
-            auto* impl = static_cast<Impl*>(data);
+            auto* impl = static_cast<CaptureEngine::Impl*>(data);
             impl->format = format;
             impl->width = width;
             impl->height = height;
             impl->stride = stride;
+            LOG_INFO << "[CaptureEngine] Buffer format: " << format << ", size: " << width << "x" << height << ", stride: " << stride;
         },
         .flags = [](void* data, struct zwlr_screencopy_frame_v1*, uint32_t flags) {
-            auto* impl = static_cast<Impl*>(data);
+            auto* impl = static_cast<CaptureEngine::Impl*>(data);
             impl->y_invert = flags & ZWLR_SCREENCOPY_FRAME_V1_FLAGS_Y_INVERT;
         },
         .ready = [](void* data, struct zwlr_screencopy_frame_v1*, uint32_t, uint32_t, uint32_t) {
-            auto* impl = static_cast<Impl*>(data);
+            auto* impl = static_cast<CaptureEngine::Impl*>(data);
             impl->done = true;
         },
         .failed = [](void* data, struct zwlr_screencopy_frame_v1*) {
-            auto* impl = static_cast<Impl*>(data);
+            auto* impl = static_cast<CaptureEngine::Impl*>(data);
             impl->failed = true;
             impl->done = true;
         },
         .damage = [](void*, struct zwlr_screencopy_frame_v1*, uint32_t, uint32_t, uint32_t, uint32_t) {},
         .linux_dmabuf = [](void*, struct zwlr_screencopy_frame_v1*, uint32_t, uint32_t, uint32_t) {},
         .buffer_done = [](void* data, struct zwlr_screencopy_frame_v1* frame) {
-            auto* impl = static_cast<Impl*>(data);
+            auto* impl = static_cast<CaptureEngine::Impl*>(data);
             impl->buffer_size = impl->stride * impl->height;
-            int fd = create_shm_file(impl->buffer_size);
+            int fd = Impl::create_shm_file(impl->buffer_size);
             if (fd < 0) {
                 impl->failed = true;
                 impl->done = true;
@@ -192,7 +206,6 @@ bool CaptureEngine::capture_screenshot(const std::string& output_name, const std
             close(fd);
 
             zwlr_screencopy_frame_v1_copy(frame, buffer);
-            // wl_buffer_destroy(buffer); // We should destroy it after ready or if we want to keep it
         }
     };
 
@@ -200,29 +213,26 @@ bool CaptureEngine::capture_screenshot(const std::string& output_name, const std
 
     while (!m_impl->done && wl_display_dispatch(m_impl->display) != -1);
 
-    if (m_impl->failed) {
-        LOG_ERROR << "[CaptureEngine] Screen capture failed";
+    if (m_impl->failed || !m_impl->buffer_data) {
+        LOG_ERROR << "[CaptureEngine] Screen capture protocol failed";
         zwlr_screencopy_frame_v1_destroy(frame);
         return false;
     }
 
-    LOG_INFO << "[CaptureEngine] Format: " << m_impl->format << " (" << m_impl->width << "x" << m_impl->height << ")";
-
-    // Wayland WL_SHM_FORMAT_XRGB8888 is 0. 
-    // Cairo CAIRO_FORMAT_ARGB32 is B G R A on little-endian.
-    // Most compositors use XRGB8888 (0) or XBGR8888.
-    // If the format is not 0 (XRGB) or 1 (ARGB), we likely need to swap R and B.
+    // Handle color format conversion
+    // 0 = WL_SHM_FORMAT_XRGB8888, 1 = WL_SHM_FORMAT_ARGB8888
+    // If it's something else like BGRX, we might need a swap.
     if (m_impl->format != 0 && m_impl->format != 1) {
+        LOG_INFO << "[CaptureEngine] Applying channel swap for format " << m_impl->format;
         unsigned char* data = (unsigned char*)m_impl->buffer_data;
-        for (uint32_t y = 0; y < m_impl->height; y++) {
-            for (uint32_t x = 0; x < m_impl->width; x++) {
-                unsigned char* pixel = data + (y * m_impl->stride) + (x * 4);
+        for (uint32_t j = 0; j < m_impl->height; j++) {
+            for (uint32_t i = 0; i < m_impl->width; i++) {
+                unsigned char* pixel = data + (j * m_impl->stride) + (i * 4);
                 std::swap(pixel[0], pixel[2]);
             }
         }
     }
 
-    // Save to file using Cairo
     cairo_surface_t* surface = cairo_image_surface_create_for_data(
         (unsigned char*)m_impl->buffer_data,
         CAIRO_FORMAT_ARGB32,
@@ -230,13 +240,6 @@ bool CaptureEngine::capture_screenshot(const std::string& output_name, const std
         m_impl->height,
         m_impl->stride
     );
-
-    if (cairo_surface_status(surface) != CAIRO_STATUS_SUCCESS) {
-        LOG_ERROR << "[CaptureEngine] Failed to create Cairo surface";
-        munmap(m_impl->buffer_data, m_impl->buffer_size);
-        zwlr_screencopy_frame_v1_destroy(frame);
-        return false;
-    }
 
     cairo_status_t status = cairo_surface_write_to_png(surface, file_path.c_str());
     cairo_surface_destroy(surface);
@@ -248,7 +251,6 @@ bool CaptureEngine::capture_screenshot(const std::string& output_name, const std
         return false;
     }
 
-    LOG_INFO << "[CaptureEngine] Screenshot saved to " << file_path;
     return true;
 }
 

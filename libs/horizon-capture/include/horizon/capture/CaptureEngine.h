@@ -33,6 +33,11 @@ public:
      */
     bool capture_screenshot(const std::string& output_name, const std::string& file_path);
 
+    /**
+     * @brief Capture a specific region of an output.
+     */
+    bool capture_region(const std::string& output_name, int x, int y, int width, int height, const std::string& file_path);
+
 private:
     struct Impl;
     std::unique_ptr<Impl> m_impl;

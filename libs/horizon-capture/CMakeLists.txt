@@ -1,8 +1,10 @@
 set(LIBRARY_NAME horizon-capture)
 
-file(GLOB_RECURSE SOURCES 
-    "src/*.cpp"
-    "../../src/protocols/wlr-screencopy-unstable-v1-protocol.c"
+set(SOURCES 
+    src/CaptureEngine.cpp
+    src/SelectionWidget.cpp
+    src/SelectionWindow.cpp
+    ../../src/protocols/wlr-screencopy-unstable-v1-protocol.c
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCES})
