@@ -25,6 +25,7 @@ int main(int argc, char** argv) {
     bool help = false;
     bool selection_mode = false;
     bool record_video = false;
+    bool record_audio = false;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -38,6 +39,9 @@ int main(int argc, char** argv) {
             selection_mode = true;
         } else if (arg == "--record" || arg == "-r") {
             record_video = true;
+        } else if (arg == "--audio" || arg == "-a") {
+            record_audio = true;
+            record_video = true; // Audio recording implies video recording for now
         }
     }
 
@@ -48,6 +52,7 @@ int main(int argc, char** argv) {
         std::cout << "  -m, --monitor <name>   Monitor name to capture (default: all/primary)" << std::endl;
         std::cout << "  -s, --select           Interactive selection mode" << std::endl;
         std::cout << "  -r, --record           Record video instead of screenshot" << std::endl;
+        std::cout << "  -a, --audio            Record with system audio" << std::endl;
         std::cout << "  -h, --help             Show this help" << std::endl;
         return 0;
     }
@@ -85,19 +90,6 @@ int main(int argc, char** argv) {
         });
 
         selection_win->initialize();
-        
-        // Ensure monitor info is populated
-        for(int i=0; i<5; ++i) wl_display_roundtrip(selection_win->w_surface()->display());
-        
-        int mw = selection_win->w_surface()->monitor_width();
-        int mh = selection_win->w_surface()->monitor_height();
-        if (mw > 0 && mh > 0) {
-            selection_win->set_size(mw, mh);
-        } else if (!selection_win->w_surface()->monitor_details().empty()) {
-            selection_win->set_size(selection_win->w_surface()->monitor_details()[0].width,
-                                    selection_win->w_surface()->monitor_details()[0].height);
-        }
-
         selection_win->run();
         
         if (!selection_done) return 0;
@@ -107,7 +99,6 @@ int main(int argc, char** argv) {
         auto dummy_win = std::make_shared<horizon::capture::SelectionWindow>();
         dummy_win->initialize();
         
-        // Wait for Wayland to populate monitor info
         struct wl_display* display = dummy_win->w_surface()->display();
         for (int i = 0; i < 5; ++i) {
             wl_display_roundtrip(display);
@@ -118,7 +109,6 @@ int main(int argc, char** argv) {
         final_w = dummy_win->w_surface()->monitor_width();
         final_h = dummy_win->w_surface()->monitor_height();
         
-        // Safety check: if monitor_width is still 0, try to get it from details
         if (final_w == 0 && !dummy_win->w_surface()->monitor_details().empty()) {
             final_w = dummy_win->w_surface()->monitor_details()[0].width;
             final_h = dummy_win->w_surface()->monitor_details()[0].height;
@@ -138,18 +128,18 @@ int main(int argc, char** argv) {
     if (!capture_ready) return 1;
 
     if (record_video) {
-        LOG_INFO << "[CaptureApp] Starting video recording: " << final_w << "x" << final_h;
+        LOG_INFO << "[CaptureApp] Starting recording (Audio: " << (record_audio ? "ON" : "OFF") << "): " << final_w << "x" << final_h;
         g_recorder = std::make_shared<horizon::capture::VideoRecorder>();
         signal(SIGINT, signal_handler);
         
-        if (g_recorder->start(output_file, final_x, final_y, final_w, final_h)) {
+        if (g_recorder->start(output_file, final_x, final_y, final_w, final_h, 30, record_audio)) {
             std::cout << "Recording... Press Ctrl+C to stop." << std::endl;
             while (g_keep_running && g_recorder->is_recording()) {
                 usleep(100000);
             }
             LOG_INFO << "[CaptureApp] Stopping recording...";
             g_recorder->stop();
-            std::cout << "Video saved to " << output_file << std::endl;
+            std::cout << "Recording saved to " << output_file << std::endl;
         } else {
             std::cerr << "Failed to start recording" << std::endl;
             return 1;

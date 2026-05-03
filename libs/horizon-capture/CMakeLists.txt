@@ -5,6 +5,8 @@ pkg_check_modules(AVCODEC REQUIRED libavcodec)
 pkg_check_modules(AVFORMAT REQUIRED libavformat)
 pkg_check_modules(AVUTIL REQUIRED libavutil)
 pkg_check_modules(SWSCALE REQUIRED libswscale)
+pkg_check_modules(SWRESAMPLE REQUIRED libswresample)
+pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
 
 set(SOURCES 
     src/CaptureEngine.cpp
@@ -28,6 +30,8 @@ target_include_directories(horizon-capture
         ${AVFORMAT_INCLUDE_DIRS}
         ${AVUTIL_INCLUDE_DIRS}
         ${SWSCALE_INCLUDE_DIRS}
+        ${SWRESAMPLE_INCLUDE_DIRS}
+        ${PIPEWIRE_INCLUDE_DIRS}
 )
 
 target_link_libraries(horizon-capture
@@ -40,6 +44,8 @@ target_link_libraries(horizon-capture
         ${AVFORMAT_LIBRARIES}
         ${AVUTIL_LIBRARIES}
         ${SWSCALE_LIBRARIES}
+        ${SWRESAMPLE_LIBRARIES}
+        ${PIPEWIRE_LIBRARIES}
 )
 
 install(TARGETS horizon-capture DESTINATION lib COMPONENT core)
