@@ -130,16 +130,19 @@ namespace horizon::greeter
 
                 if (lower_msg.find("greetd") != std::string::npos)
                 {
-                    this->post_task([this, level, msg]() {
-                        if (!m_log_view) return;
-                        std::string prefix = "[INFO] ";
-                        if (level == horizon::LogLevel::WARNING)
-                            prefix = "[WARN] ";
-                        if (level == horizon::LogLevel::ERROR)
-                            prefix = "[ERR ] ";
-                        m_log_view->set_text(m_log_view->text() + prefix + msg + "\n");
-                        m_log_view->move_cursor_to_end();
-                    });
+                    this->post_task(
+                        [this, level, msg]()
+                        {
+                            if (!m_log_view)
+                                return;
+                            std::string prefix = "[INFO] ";
+                            if (level == horizon::LogLevel::WARNING)
+                                prefix = "[WARN] ";
+                            if (level == horizon::LogLevel::ERROR)
+                                prefix = "[ERR ] ";
+                            m_log_view->set_text(m_log_view->text() + prefix + msg + "\n");
+                            m_log_view->move_cursor_to_end();
+                        });
                 }
             });
     }
@@ -266,7 +269,8 @@ namespace horizon::greeter
             {
                 LOG_INFO << "GreeterWindow: Powering off system...";
                 int res = system("/usr/bin/systemctl poweroff -i");
-                if (res != 0) {
+                if (res != 0)
+                {
                     LOG_ERROR << "GreeterWindow: poweroff failed with code: " << res;
                 }
             });
@@ -281,7 +285,8 @@ namespace horizon::greeter
             {
                 LOG_INFO << "GreeterWindow: Rebooting system...";
                 int res = system("/usr/bin/systemctl reboot -i");
-                if (res != 0) {
+                if (res != 0)
+                {
                     LOG_ERROR << "GreeterWindow: reboot failed with code: " << res;
                 }
             });
@@ -388,7 +393,7 @@ namespace horizon::greeter
             return;
 
         std::string final_path = path;
-        const std::string default_bg = "/usr/share/horizon/backgrounds/pictures/Wave.png";
+        const std::string default_bg = "/usr/share/horizon/backgrounds/pictures/smoke.jpg";
 
         if (final_path.empty() || !std::filesystem::exists(final_path))
         {
