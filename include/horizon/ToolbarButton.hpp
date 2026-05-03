@@ -17,6 +17,9 @@ namespace horizon
         void set_active(bool active);
         bool is_active() const { return m_active; }
 
+        void set_title(const std::string &title);
+        void set_icon_name(const std::string &icon_name);
+
         void set_text_color(Color color);
 
         void draw(GraphicsContext &gc) override;

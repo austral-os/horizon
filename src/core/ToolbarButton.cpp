@@ -35,6 +35,34 @@ namespace horizon
         }
     }
 
+    void ToolbarButton::set_title(const std::string &title)
+    {
+        m_title = title;
+        for (auto &child : children())
+        {
+            if (auto label = dynamic_cast<Label *>(child.get()))
+            {
+                label->set_text(title);
+                break;
+            }
+        }
+        invalidate();
+    }
+
+    void ToolbarButton::set_icon_name(const std::string &icon_name)
+    {
+        m_icon_name = icon_name;
+        for (auto &child : children())
+        {
+            if (auto icon = dynamic_cast<Icon *>(child.get()))
+            {
+                icon->set_icon_name(icon_name);
+                break;
+            }
+        }
+        invalidate();
+    }
+
     void ToolbarButton::set_text_color(Color color)
     {
         m_text_color = color;
