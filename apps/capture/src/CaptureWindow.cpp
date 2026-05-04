@@ -234,10 +234,18 @@ void CaptureWindow::start_screen_video() {
     std::string filename = "recording_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count()) + "." + container;
     std::filesystem::path full_path = std::filesystem::path(out_dir) / filename;
     
-    // Get monitor dimensions (dummy way for now)
-    int w = 1920, h = 1080; 
+    // Get monitor dimensions dynamically
+    int w, h;
+    if (!m_engine.get_output_dimensions("", w, h)) {
+        LOG_ERROR << "[CaptureApp] Failed to get monitor dimensions, falling back to 1920x1080";
+        w = 1920; h = 1080;
+    }
     
-    LOG_INFO << "[CaptureApp] Starting video recording to: " << full_path.string();
+    // Ensure dimensions are even (required for H.264)
+    if (w % 2 != 0) w--;
+    if (h % 2 != 0) h--;
+    
+    LOG_INFO << "[CaptureApp] Starting video recording to: " << full_path.string() << " (" << w << "x" << h << ")";
     
     if (m_recorder->start(full_path.string(), 0, 0, w, h, 30, true)) {
         m_is_recording = true;

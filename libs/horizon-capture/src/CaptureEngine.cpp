@@ -15,6 +15,8 @@ struct OutputInfo {
     struct wl_output* output;
     std::string name;
     uint32_t id;
+    int width = 0;
+    int height = 0;
 };
 
 struct CaptureEngine::Impl {
@@ -68,7 +70,18 @@ struct CaptureEngine::Impl {
             
             static const struct wl_output_listener output_listener = {
                 .geometry = [](void*, struct wl_output*, int32_t, int32_t, int32_t, int32_t, int32_t, const char*, const char*, int32_t) {},
-                .mode = [](void*, struct wl_output*, uint32_t, int32_t, int32_t, int32_t) {},
+                .mode = [](void* data, struct wl_output* output, uint32_t flags, int32_t width, int32_t height, int32_t refresh) {
+                    auto* impl = static_cast<Impl*>(data);
+                    if (flags & WL_OUTPUT_MODE_CURRENT) {
+                        for (auto& o : impl->outputs) {
+                            if (o.output == output) {
+                                o.width = width;
+                                o.height = height;
+                                break;
+                            }
+                        }
+                    }
+                },
                 .done = [](void*, struct wl_output*) {},
                 .scale = [](void*, struct wl_output*, int32_t) {},
                 .name = handle_output_name,
@@ -252,6 +265,25 @@ bool CaptureEngine::capture_region(const std::string& output_name, int x, int y,
     }
 
     return true;
+}
+
+bool CaptureEngine::get_output_dimensions(const std::string& output_name, int& w, int& h) {
+    if (output_name.empty()) {
+        if (!m_impl->outputs.empty()) {
+            w = m_impl->outputs[0].width;
+            h = m_impl->outputs[0].height;
+            return true;
+        }
+    } else {
+        for (const auto& o : m_impl->outputs) {
+            if (o.name == output_name) {
+                w = o.width;
+                h = o.height;
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 } // namespace horizon::capture

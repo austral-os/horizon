@@ -104,6 +104,9 @@ namespace horizon
         auto btn_next = std::make_unique<Button<AirObject>>();
         btn_next->set_text(i18n().tr("welcome.buttons.ok"));
         btn_next->set_fixed_size(120);
+        btn_next->when_click.connect([this](const MouseButtonEventContext &) {
+            application()->quit();
+        });
 
         footer_area->add_child(std::move(start_on_boot));
         footer_area->add_child(Spacer());

@@ -84,6 +84,7 @@ struct VideoRecorder::Impl {
 
     int x, y, width, height, fps;
     bool done = false;
+    bool failed = false;
     bool record_audio = false;
 
     // Wayland Buffer
@@ -290,7 +291,11 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
     }
 
     if (!(m_impl->fmt_ctx->oformat->flags & AVFMT_NOFILE)) avio_open(&m_impl->fmt_ctx->pb, output_file.c_str(), AVIO_FLAG_WRITE);
-    avformat_write_header(m_impl->fmt_ctx, nullptr);
+    if (avformat_write_header(m_impl->fmt_ctx, nullptr) < 0) {
+        LOG_ERROR << "[VideoRecorder] Could not write header to output file";
+        m_impl->cleanup();
+        return false;
+    }
 
     m_impl->video_frame = av_frame_alloc();
     m_impl->video_frame->format = AV_PIX_FMT_YUV420P;
@@ -388,7 +393,7 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
                 // ready
                 [](void* d, struct zwlr_screencopy_frame_v1*, uint32_t, uint32_t, uint32_t) { ((Impl*)d)->done=true; },
                 // failed
-                [](void* d, struct zwlr_screencopy_frame_v1*) { ((Impl*)d)->done=true; },
+                [](void* d, struct zwlr_screencopy_frame_v1*) { auto* i=(Impl*)d; i->failed=true; i->done=true; },
                 // damage
                 [](void*, struct zwlr_screencopy_frame_v1*, uint32_t, uint32_t, uint32_t, uint32_t) {},
                 // linux_dmabuf
@@ -409,6 +414,11 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
                 struct pollfd pfd = { wl_display_get_fd(m_impl->display), POLLIN, 0 };
                 wl_display_flush(m_impl->display);
                 if (poll(&pfd, 1, 100) > 0) wl_display_dispatch(m_impl->display);
+            }
+            if (m_impl->failed) {
+                LOG_ERROR << "[VideoRecorder] Screencopy failed, stopping recording";
+                m_impl->running = false;
+                break;
             }
             if (m_impl->buffer_data) {
                 RawFrame f; f.width=m_impl->b_width; f.height=m_impl->b_height; f.stride=m_impl->b_stride; f.format=m_impl->b_format; f.size=m_impl->buffer_size;
