@@ -91,6 +91,7 @@ void CaptureWindow::setup_ui() {
     // Toolbar setup
     m_toolbar = toolbar();
     if (m_toolbar) {
+        m_toolbar->set_bottom_height(58);
         auto img_btn_ptr = std::make_unique<ToolbarButton>(horizon::i18n().tr("capture.toolbar.screenshot"), "camera-photo-symbolic");
         auto* img_btn = img_btn_ptr.get();
         m_toolbar->add_toolbar_widget(std::move(img_btn_ptr));
