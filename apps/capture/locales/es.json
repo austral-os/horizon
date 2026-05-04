@@ -24,7 +24,12 @@
             "select_region": "Seleccione región...",
             "recording_screen": "Grabando pantalla...",
             "recording_stop_hint": "Grabando... (Presione Stop para finalizar)",
-            "recording_finished": "Grabación finalizada y guardada."
+            "recording_finished": "Grabación finalizada y guardada.",
+            "not_implemented": "No implementado"
+        },
+        "alert": {
+            "not_implemented_title": "Función no implementada",
+            "not_implemented_msg": "La captura de ventana aún no está disponible."
         },
         "toolbar": {
             "screenshot": "Captura",

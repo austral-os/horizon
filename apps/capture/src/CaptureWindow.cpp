@@ -213,7 +213,8 @@ void CaptureWindow::capture_selection_image() {
 }
 
 void CaptureWindow::capture_window_image() {
-    m_status_label->set_text("Window capture not implemented yet");
+    m_status_label->set_text(horizon::i18n().tr("capture.status.not_implemented"));
+    application()->alert(horizon::i18n().tr("capture.alert.not_implemented_msg"), horizon::i18n().tr("capture.alert.not_implemented_title"));
 }
 
 void CaptureWindow::start_screen_video() {
@@ -314,7 +315,8 @@ void CaptureWindow::start_selection_video() {
 }
 
 void CaptureWindow::start_window_video() {
-    m_status_label->set_text("Window video recording not implemented yet");
+    m_status_label->set_text(horizon::i18n().tr("capture.status.not_implemented"));
+    application()->alert(horizon::i18n().tr("capture.alert.not_implemented_msg"), horizon::i18n().tr("capture.alert.not_implemented_title"));
 }
 
 void CaptureWindow::stop_video() {

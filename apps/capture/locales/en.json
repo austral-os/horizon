@@ -24,7 +24,12 @@
             "select_region": "Select region...",
             "recording_screen": "Recording screen...",
             "recording_stop_hint": "Recording... (Press Stop to finish)",
-            "recording_finished": "Recording finished and saved."
+            "recording_finished": "Recording finished and saved.",
+            "not_implemented": "Not implemented"
+        },
+        "alert": {
+            "not_implemented_title": "Feature not implemented",
+            "not_implemented_msg": "Window capture is not available yet."
         },
         "toolbar": {
             "screenshot": "Screenshot",
