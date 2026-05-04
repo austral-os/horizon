@@ -1,5 +1,6 @@
 #include "CaptureWindow.hpp"
 #include <horizon/Application.hpp>
+#include <horizon/WaylandWindow.hpp>
 #include <horizon/MenuBar.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/MenuItem.hpp>
@@ -26,6 +27,38 @@ CaptureWindow::CaptureWindow() : ApplicationWindow("Capture") {
     char *home = std::getenv("HOME");
     std::string config_path = home ? std::string(home) + "/.config/horizon/capture.json" : "capture.json";
     m_config = std::make_unique<ConfigManager>(config_path);
+
+    when_application_load.connect([this](EventContext&) {
+        auto* app = application();
+        if (!app) return;
+
+        LOG_INFO << "[CaptureApp] Setting up global menu signal connections";
+
+        app->signal_manager.connect("img_selection", [this](const SignalContext&) {
+            LOG_INFO << "[CaptureApp] Global Signal: img_selection received";
+            this->capture_selection_image();
+        });
+        app->signal_manager.connect("img_window", [this](const SignalContext&) {
+            LOG_INFO << "[CaptureApp] Global Signal: img_window received";
+            this->capture_window_image();
+        });
+        app->signal_manager.connect("img_screen", [this](const SignalContext&) {
+            LOG_INFO << "[CaptureApp] Global Signal: img_screen received";
+            this->capture_screen_image();
+        });
+        app->signal_manager.connect("vid_selection", [this](const SignalContext&) {
+            LOG_INFO << "[CaptureApp] Global Signal: vid_selection received";
+            this->start_selection_video();
+        });
+        app->signal_manager.connect("vid_window", [this](const SignalContext&) {
+            LOG_INFO << "[CaptureApp] Global Signal: vid_window received";
+            this->start_window_video();
+        });
+        app->signal_manager.connect("vid_screen", [this](const SignalContext&) {
+            LOG_INFO << "[CaptureApp] Global Signal: vid_screen received";
+            this->start_screen_video();
+        });
+    });
     m_config->load();
     
     setup_ui();
@@ -125,26 +158,35 @@ void CaptureWindow::capture_screen_image() {
 }
 
 void CaptureWindow::capture_selection_image() {
-    m_status_label->set_text("Select region...");
-    auto selection_win = std::make_shared<SelectionWindow>();
-    selection_win->initialize();
+    LOG_INFO << "[CaptureApp] capture_selection_image() called";
+    m_status_label->set_text(horizon::i18n().tr("capture.status.select_region"));
+    m_selection_win = std::make_shared<SelectionWindow>();
+
+    std::thread([win = m_selection_win]() {
+        win->initialize();
+        win->set_visible(true);
+        win->run();
+    }).detach();
     
-    selection_win->selection_widget()->when_selected().connect([this, selection_win](SelectionRect rect) {
-        int x = rect.x + selection_win->screen_x();
-        int y = rect.y + selection_win->screen_y();
+    m_selection_win->selection_widget()->when_selected().connect([this](SelectionRect rect) {
+        int x = rect.x + m_selection_win->screen_x();
+        int y = rect.y + m_selection_win->screen_y();
         int w = rect.width;
         int h = rect.height;
         
-        selection_win->set_visible(false);
-        
-        // Brief delay to let selection window disappear
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        m_selection_win->set_visible(false);
+        m_selection_win->quit();
+        this->application()->post_task([this]() {
+            m_selection_win.reset();
+        });
+
+        // Small delay to ensure the window is gone from the compositor's view
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         
         m_config->load();
         std::string out_dir = expand_tilde(m_config->get_value("general", "output_directory", "."));
         std::string format = m_config->get_value("image", "format", "png");
 
-        // Ensure directory exists
         if (!out_dir.empty() && !std::filesystem::exists(out_dir)) {
             std::filesystem::create_directories(out_dir);
         }
@@ -153,15 +195,21 @@ void CaptureWindow::capture_selection_image() {
         std::filesystem::path full_path = std::filesystem::path(out_dir) / filename;
         
         if (m_engine.capture_region("", x, y, w, h, full_path.string())) {
-            m_status_label->set_text("Region saved to " + full_path.string());
+            m_status_label->set_text(horizon::i18n().tr("capture.status.saved").replace(horizon::i18n().tr("capture.status.saved").find("{}"), 2, full_path.string()));
         } else {
-            m_status_label->set_text("Failed to capture region");
+            m_status_label->set_text(horizon::i18n().tr("capture.status.failed"));
         }
-        
-        selection_win->quit();
     });
-    
-    selection_win->run();
+
+    m_selection_win->selection_widget()->when_cancelled().connect([this](const EventContext&) {
+        LOG_INFO << "[CaptureApp] Selection cancelled";
+        m_selection_win->set_visible(false);
+        m_selection_win->quit();
+        this->application()->post_task([this]() {
+            m_selection_win.reset();
+        });
+        m_status_label->set_text(horizon::i18n().tr("capture.status.ready"));
+    });
 }
 
 void CaptureWindow::capture_window_image() {
@@ -202,27 +250,37 @@ void CaptureWindow::start_screen_video() {
 }
 
 void CaptureWindow::start_selection_video() {
-    m_status_label->set_text("Select region for video...");
-    auto selection_win = std::make_shared<SelectionWindow>();
-    selection_win->initialize();
+    LOG_INFO << "[CaptureApp] start_selection_video() called";
+    m_status_label->set_text(horizon::i18n().tr("capture.status.select_region"));
+    m_selection_win = std::make_shared<SelectionWindow>();
+
+    std::thread([win = m_selection_win]() {
+        win->initialize();
+        win->set_visible(true);
+        win->run();
+    }).detach();
     
-    selection_win->selection_widget()->when_selected().connect([this, selection_win](SelectionRect rect) {
-        int x = rect.x + selection_win->screen_x();
-        int y = rect.y + selection_win->screen_y();
+    m_selection_win->selection_widget()->when_selected().connect([this](SelectionRect rect) {
+        int x = rect.x + m_selection_win->screen_x();
+        int y = rect.y + m_selection_win->screen_y();
         int w = rect.width;
         int h = rect.height;
         
         if (w % 2 != 0) w--;
         if (h % 2 != 0) h--;
 
-        selection_win->set_visible(false);
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        m_selection_win->set_visible(false);
+        m_selection_win->quit();
+        this->application()->post_task([this]() {
+            m_selection_win.reset();
+        });
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         
         m_config->load();
         std::string out_dir = expand_tilde(m_config->get_value("general", "output_directory", "."));
         std::string container = m_config->get_value("video", "container", "mp4");
         
-        // Ensure directory exists
         if (!out_dir.empty() && !std::filesystem::exists(out_dir)) {
             std::filesystem::create_directories(out_dir);
         }
@@ -234,19 +292,25 @@ void CaptureWindow::start_selection_video() {
         
         if (m_recorder->start(full_path.string(), x, y, w, h, 30, true)) {
             m_is_recording = true;
-            m_status_label->set_text("Recording region...");
+            m_status_label->set_text(horizon::i18n().tr("capture.status.recording_screen"));
             if (m_record_btn) {
-                m_record_btn->set_title("Stop");
+                m_record_btn->set_title(horizon::i18n().tr("capture.toolbar.stop"));
                 m_record_btn->set_icon_name("media-playback-stop-symbolic");
             }
         } else {
-            m_status_label->set_text("Failed to start region recording");
+            m_status_label->set_text(horizon::i18n().tr("capture.status.failed"));
         }
-        
-        selection_win->quit();
     });
-    
-    selection_win->run();
+
+    m_selection_win->selection_widget()->when_cancelled().connect([this](const EventContext&) {
+        LOG_INFO << "[CaptureApp] Selection cancelled";
+        m_selection_win->set_visible(false);
+        m_selection_win->quit();
+        this->application()->post_task([this]() {
+            m_selection_win.reset();
+        });
+        m_status_label->set_text(horizon::i18n().tr("capture.status.ready"));
+    });
 }
 
 void CaptureWindow::start_window_video() {

@@ -1,26 +1,25 @@
-#include <horizon/capture/SelectionWindow.h>
 #include <horizon/WaylandSurface.hpp>
+#include <horizon/capture/SelectionWindow.h>
 
-namespace horizon::capture {
-
-SelectionWindow::SelectionWindow() 
-    : WaylandLayerWindow("horizon.capture.selection", 3) // OVERLAY
+namespace horizon::capture
 {
-    // Try to anchor ONLY to Top-Left (1 | 4 = 5) and set a fixed size.
-    // This often bypasses exclusive zone resizing because the window is not 
-    // "stretched" between edges.
-    set_anchor(5); 
-    
-    set_exclusive_zone(-1);
-    
-    // Allow keyboard interactivity to catch Esc
-    set_keyboard_interactivity(1); // ON-DEMAND
 
-    auto widget = std::make_unique<SelectionWidget>();
-    m_selection_widget = widget.get();
-    set_root(std::move(widget));
-}
+    SelectionWindow::SelectionWindow()
+        : WaylandLayerWindow("horizon.capture.selection", 3, true) // OVERLAY, defer_init=true
+    {
+        // Anchor to all edges to cover the full screen
+        set_anchor(15);
 
-SelectionWindow::~SelectionWindow() = default;
+        set_exclusive_zone(-1);
+
+        // Allow keyboard interactivity to catch Esc
+        set_keyboard_interactivity(1); // ON-DEMAND
+
+        auto widget = std::make_unique<SelectionWidget>();
+        m_selection_widget = widget.get();
+        set_root(std::move(widget));
+    }
+
+    SelectionWindow::~SelectionWindow() = default;
 
 } // namespace horizon::capture

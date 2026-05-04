@@ -13,6 +13,8 @@
 
 namespace horizon::capture {
 
+class SelectionWindow;
+
 class CaptureWindow : public ApplicationWindow {
 public:
     CaptureWindow();
@@ -34,6 +36,7 @@ private:
     std::shared_ptr<VideoRecorder> m_recorder;
     CaptureEngine m_engine;
     std::unique_ptr<ConfigManager> m_config;
+    std::shared_ptr<SelectionWindow> m_selection_win;
     
     Toolbar* m_toolbar = nullptr;
     Label* m_status_label = nullptr;

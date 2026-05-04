@@ -65,12 +65,15 @@ int main(int argc, char** argv) {
     auto image_menu = std::make_unique<Menu>();
     image_menu->set_title(horizon::i18n().tr("capture.menu.image"));
     image_menu->add_item(horizon::i18n().tr("capture.menu.selection"), "Shift+S", "img_selection")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
+        LOG_INFO << "[CaptureApp] Menu: Image -> Selection clicked";
         win_ptr->capture_selection_image();
     });
     image_menu->add_item(horizon::i18n().tr("capture.menu.window"), "Shift+W", "img_window")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
+        LOG_INFO << "[CaptureApp] Menu: Image -> Window clicked";
         win_ptr->capture_window_image();
     });
     image_menu->add_item(horizon::i18n().tr("capture.menu.screen"), "Print", "img_screen")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
+        LOG_INFO << "[CaptureApp] Menu: Image -> Screen clicked";
         win_ptr->capture_screen_image();
     });
     app.add_menu(std::move(image_menu));
@@ -79,12 +82,15 @@ int main(int argc, char** argv) {
     auto video_menu = std::make_unique<Menu>();
     video_menu->set_title(horizon::i18n().tr("capture.menu.video"));
     video_menu->add_item(horizon::i18n().tr("capture.menu.selection"), "Ctrl+Shift+S", "vid_selection")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
+        LOG_INFO << "[CaptureApp] Menu: Video -> Selection clicked";
         win_ptr->start_selection_video();
     });
     video_menu->add_item(horizon::i18n().tr("capture.menu.window"), "Ctrl+Shift+W", "vid_window")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
+        LOG_INFO << "[CaptureApp] Menu: Video -> Window clicked";
         win_ptr->start_window_video();
     });
     video_menu->add_item(horizon::i18n().tr("capture.menu.screen"), "Ctrl+Print", "vid_screen")->when_click.connect([win_ptr](const MouseButtonEventContext&) {
+        LOG_INFO << "[CaptureApp] Menu: Video -> Screen clicked";
         win_ptr->start_screen_video();
     });
     app.add_menu(std::move(video_menu));

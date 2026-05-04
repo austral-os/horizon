@@ -1,6 +1,9 @@
 #include <horizon/capture/SelectionWidget.h>
 #include <horizon/GraphicsContext.hpp>
+#include <horizon/Logger.hpp>
 #include <algorithm>
+#include <ios>
+#include <iomanip>
 
 namespace horizon::capture {
 
@@ -8,6 +11,7 @@ SelectionWidget::SelectionWidget() {
     set_focusable(true);
 
     when_mouse_press.connect([this](MouseButtonEventContext& ev) {
+        LOG_INFO << "[CaptureApp] SelectionWidget: Mouse Press at " << ev.x << "," << ev.y;
         set_focus(true);
         m_start_x = ev.x;
         m_start_y = ev.y;
@@ -30,6 +34,7 @@ SelectionWidget::SelectionWidget() {
 
     when_mouse_release.connect([this](MouseButtonEventContext& ev) {
         if (m_selecting) {
+            LOG_INFO << "[CaptureApp] SelectionWidget: Mouse Release. Rect: " << m_start_x << "," << m_start_y << " to " << m_current_x << "," << m_current_y;
             m_selecting = false;
             auto rect = get_current_rect();
             
@@ -45,7 +50,9 @@ SelectionWidget::SelectionWidget() {
     });
 
     when_key_press.connect([this](KeyEventContext& ev) {
+        LOG_INFO << "[CaptureApp] SelectionWidget: Key Press, keysym=" << std::hex << ev.keysym << std::dec;
         if (ev.keysym == 0xFF1B) { // Escape
+            LOG_INFO << "[CaptureApp] SelectionWidget: Escape pressed, cancelling";
             EventContext ctx;
             m_when_cancelled.run(ctx);
         }
@@ -70,11 +77,15 @@ void SelectionWidget::draw(GraphicsContext& ctx) {
     int h = height();
 
     if (m_start_x == -1) {
+        // Initial state: dim the whole screen slightly so the user knows it's active
+        ctx.setColor(0, 0, 0, 0.3f);
+        ctx.fillRect(0, 0, w, h);
         return;
     }
 
     auto rect = get_current_rect();
     
+    // Draw dim overlay around the selection
     ctx.setColor(0, 0, 0, 0.4f);
     
     if (rect.y > 0)
@@ -89,9 +100,11 @@ void SelectionWidget::draw(GraphicsContext& ctx) {
     if (rect.x + rect.width < w)
         ctx.fillRect(rect.x + rect.width, rect.y, w - (rect.x + rect.width), rect.height);
 
+    // Draw the selection rectangle border
     ctx.setColor(1.0f, 1.0f, 1.0f, 0.8f);
     ctx.drawRect(rect.x, rect.y, rect.width, rect.height, 0, 1.5f);
     
+    // Draw handles
     ctx.setColor(1.0f, 1.0f, 1.0f, 1.0f);
     ctx.fillRect(rect.x - 3, rect.y - 3, 6, 6);
     ctx.fillRect(rect.x + rect.width - 3, rect.y - 3, 6, 6);
