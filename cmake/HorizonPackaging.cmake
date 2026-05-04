@@ -49,6 +49,12 @@ macro(horizon_install_app TARGET_NAME)
         set(CPACK_DEBIAN_${APP_APP_ID}_PACKAGE_NAME "horizon-${APP_ID_NORM}")
     endif()
 
+    # Get the actual output name of the binary
+    get_target_property(APP_BINARY_NAME ${TARGET_NAME} OUTPUT_NAME)
+    if(NOT APP_BINARY_NAME)
+        set(APP_BINARY_NAME ${TARGET_NAME})
+    endif()
+
     # Install Locales
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/locales")
         install(DIRECTORY locales/
@@ -59,9 +65,9 @@ macro(horizon_install_app TARGET_NAME)
 
     # Generate and Install Desktop File
     if(APP_EXEC_ARGS)
-        set(APP_EXEC "${CMAKE_INSTALL_PREFIX}/bin/${TARGET_NAME} ${APP_EXEC_ARGS}")
+        set(APP_EXEC "${CMAKE_INSTALL_PREFIX}/bin/${APP_BINARY_NAME} ${APP_EXEC_ARGS}")
     else()
-        set(APP_EXEC "${CMAKE_INSTALL_PREFIX}/bin/${TARGET_NAME}")
+        set(APP_EXEC "${CMAKE_INSTALL_PREFIX}/bin/${APP_BINARY_NAME}")
     endif()
     set(APP_CATEGORIES "${APP_CAT}")
     

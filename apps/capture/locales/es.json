@@ -1,24 +1,36 @@
 {
-    "capture.title": "Captura",
-    "capture.about.description": "Una utilidad profesional de captura y grabación de pantalla para Austral OS.",
-    "capture.preferences.general": "General",
-    "capture.preferences.image": "Imagen",
-    "capture.preferences.video": "Video",
-    "capture.menu.image": "Imagen",
-    "capture.menu.video": "Video",
-    "capture.menu.selection": "Selección",
-    "capture.menu.window": "Ventana",
-    "capture.menu.screen": "Pantalla Completa",
-    "capture.status.ready": "Listo",
-    "capture.status.capturing_screen": "Capturando pantalla...",
-    "capture.status.saved": "Guardado en {}",
-    "capture.status.failed": "Error en la captura",
-    "capture.status.select_region": "Seleccione región...",
-    "capture.status.recording_screen": "Grabando pantalla...",
-    "capture.status.recording_stop_hint": "Grabando... (Presione Stop para finalizar)",
-    "capture.status.recording_finished": "Grabación finalizada y guardada.",
-    "capture.toolbar.screenshot": "Captura",
-    "capture.toolbar.record": "Grabar Video",
-    "capture.toolbar.stop": "Parar",
-    "capture.toolbar.preferences": "Preferencias"
+    "capture": {
+        "title": "Captura",
+        "about": {
+            "description": "Una utilidad profesional de captura y grabación de pantalla para Austral OS."
+        },
+        "preferences": {
+            "general": "General",
+            "image": "Imagen",
+            "video": "Video"
+        },
+        "menu": {
+            "image": "Imagen",
+            "video": "Video",
+            "selection": "Selección",
+            "window": "Ventana",
+            "screen": "Pantalla Completa"
+        },
+        "status": {
+            "ready": "Listo",
+            "capturing_screen": "Capturando pantalla...",
+            "saved": "Guardado en {}",
+            "failed": "Error en la captura",
+            "select_region": "Seleccione región...",
+            "recording_screen": "Grabando pantalla...",
+            "recording_stop_hint": "Grabando... (Presione Stop para finalizar)",
+            "recording_finished": "Grabación finalizada y guardada."
+        },
+        "toolbar": {
+            "screenshot": "Captura",
+            "record": "Grabar Video",
+            "stop": "Parar",
+            "preferences": "Preferencias"
+        }
+    }
 }

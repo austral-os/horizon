@@ -1,30 +1,28 @@
-add_executable(capture_app
+add_executable(capture
     src/main.cpp
     src/CaptureWindow.cpp
 )
 
-set_target_properties(capture_app PROPERTIES OUTPUT_NAME horizon-capture)
-
-target_include_directories(capture_app
+target_include_directories(capture
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(capture_app
+target_link_libraries(capture
     PRIVATE
         horizon
         horizon-capture
 )
 
-horizon_install_app(capture_app
-    APP_ID org.horizon.capture
+horizon_install_app(capture
+    APP_ID capture
     NAME "Capture"
     COMMENT "Screen Capture and Recording"
     ICON "screenrecorder"
     CATEGORIES "Utility;AudioVideo;"
 )
 
-add_custom_command(TARGET capture_app POST_BUILD
+add_custom_command(TARGET capture POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_CURRENT_SOURCE_DIR}/locales
     ${CMAKE_CURRENT_BINARY_DIR}/locales
