@@ -1,0 +1,11 @@
+{
+    "zenit": {
+        "title": "Zenit Media Player",
+        "play_file": "Play file...",
+        "aspect_ratio": "Aspect Ratio",
+        "aspect_auto": "Auto",
+        "aspect_16_9": "16:9",
+        "aspect_4_3": "4:3",
+        "aspect_21_9": "21:9"
+    }
+}

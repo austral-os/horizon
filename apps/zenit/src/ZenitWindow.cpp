@@ -11,6 +11,7 @@
 #include <horizon/ToolbarButton.hpp>
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/Application.hpp>
 
 namespace zenit
 {
@@ -19,6 +20,9 @@ namespace zenit
 
     ZenitWindow::ZenitWindow() : Window("Zenit")
     {
+        horizon::i18n().load_app_locales("zenit");
+        set_title(horizon::i18n().tr("zenit.title"));
+
         set_size(1280, 720);
 
         setup_ui();
@@ -155,22 +159,32 @@ namespace zenit
     {
         auto menu = std::make_unique<horizon::Menu>();
 
+        auto *play_item = menu->add_item(horizon::i18n().tr("zenit.play_file"));
+        play_item->set_icon("document-open");
+        play_item->when_click.connect([this](horizon::EventContext &)
+                                     {
+                                         if (application())
+                                             application()->signal_manager.emit("file.open");
+                                     });
+
+        menu->add_separator();
+
         auto *ar_menu = menu->add_item(horizon::i18n().tr("zenit.aspect_ratio"));
         auto ar_sub_ptr = std::make_unique<horizon::Menu>();
         auto *ar_sub = ar_sub_ptr.get();
         ar_menu->set_submenu(std::move(ar_sub_ptr));
 
-        auto add_ar = [&](const std::string &label, const std::string &ratio)
+        auto add_ar = [&](const std::string &label_key, const std::string &ratio)
         {
-            auto *item = ar_sub->add_item(label);
+            auto *item = ar_sub->add_item(horizon::i18n().tr(label_key));
             item->when_click.connect([this, ratio](horizon::EventContext &)
                                      { m_video_view->set_aspect_ratio(ratio); });
         };
 
-        add_ar("Auto", "auto");
-        add_ar("16:9", "16:9");
-        add_ar("4:3", "4:3");
-        add_ar("21:9", "21:9");
+        add_ar("zenit.aspect_auto", "auto");
+        add_ar("zenit.aspect_16_9", "16:9");
+        add_ar("zenit.aspect_4_3", "4:3");
+        add_ar("zenit.aspect_21_9", "21:9");
 
         m_video_view->set_context_menu(std::move(menu));
     }

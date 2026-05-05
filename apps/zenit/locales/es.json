@@ -1,0 +1,11 @@
+{
+    "zenit": {
+        "title": "Reproductor Zenit",
+        "play_file": "Reproducir archivo...",
+        "aspect_ratio": "Relación de aspecto",
+        "aspect_auto": "Automático",
+        "aspect_16_9": "16:9",
+        "aspect_4_3": "4:3",
+        "aspect_21_9": "21:9"
+    }
+}
