@@ -59,6 +59,11 @@ namespace zenit
         m_control_bar->set_margin(0);
         m_control_bar->set_corner_radius({0, 0, 10, 10});
 
+        auto container = std::make_unique<horizon::Widget>();
+        container->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
+        container->set_spacing(10);
+        container->set_margin(10);
+
         // --- Control Bar Widgets ---
 
         // Rewind
@@ -71,7 +76,7 @@ namespace zenit
                 m_video_view->seek(m_video_view->position() - 10.0);
                 update_controls();
             });
-        m_control_bar->add_child(std::move(rewind));
+        container->add_child(std::move(rewind));
 
         // Play/Pause
         auto play_btn = std::make_unique<horizon::ToolbarButton>("", "media-playback-start");
@@ -83,7 +88,7 @@ namespace zenit
                 m_video_view->toggle_play();
                 update_controls();
             });
-        m_control_bar->add_child(std::move(play_btn));
+        container->add_child(std::move(play_btn));
 
         // Forward
         auto forward = std::make_unique<horizon::ToolbarButton>("", "media-skip-forward");
@@ -95,25 +100,27 @@ namespace zenit
                 m_video_view->seek(m_video_view->position() + 10.0);
                 update_controls();
             });
-        m_control_bar->add_child(std::move(forward));
+        container->add_child(std::move(forward));
 
         // Current Time
         auto current_lbl = std::make_unique<horizon::Label>("00:00");
         m_current_time_label = current_lbl.get();
         m_current_time_label->set_margin(5);
-        m_control_bar->add_child(std::move(current_lbl));
+        m_current_time_label->set_fixed_size(100);
+        container->add_child(std::move(current_lbl));
 
         // Progress Bar
         auto progress = std::make_unique<horizon::ProgressBar>();
         m_progress_bar = progress.get();
         m_progress_bar->set_position_type(horizon::FILL); // Fills remaining space
-        m_control_bar->add_child(std::move(progress));
+        container->add_child(std::move(progress));
 
         // Total Time
         auto total_lbl = std::make_unique<horizon::Label>("00:00");
         m_total_time_label = total_lbl.get();
         m_total_time_label->set_margin(5);
-        m_control_bar->add_child(std::move(total_lbl));
+        m_total_time_label->set_fixed_size(100);
+        container->add_child(std::move(total_lbl));
 
         // Fullscreen (optional but nice to keep)
         auto fs_btn = std::make_unique<horizon::ToolbarButton>("", "view-fullscreen");
@@ -124,7 +131,9 @@ namespace zenit
                 if (application())
                     application()->signal_manager.emit("fullscreen");
             });
-        m_control_bar->add_child(std::move(fs_btn));
+        container->add_child(std::move(fs_btn));
+
+        m_control_bar->add_child(std::move(container));
 
         main_layout->add_child(std::move(control_bar));
 
