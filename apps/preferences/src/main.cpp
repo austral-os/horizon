@@ -1,7 +1,7 @@
 #include "PreferencesWindow.hpp"
+#include <horizon/I18n.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/WaylandWindow.hpp>
-#include <horizon/I18n.hpp>
 #include <memory>
 
 int main(int argc, char *argv[])
@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
         horizon::Logger::instance().init("preferences");
 
         // 1. Setup the basic Wayland/Horizon context
-        horizon::WaylandWindow app("horizon.preferences", 800, 650);
+        horizon::WaylandWindow app("horizon.preferences", 900, 650);
 
         // Load translations
         horizon::i18n().load_app_locales("preferences");

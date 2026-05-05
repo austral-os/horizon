@@ -172,6 +172,18 @@
             "hidden_network": "<Hidden Network>",
             "tcp_ip_config": "TCP/IP Configuration (Coming Soon)"
         },
+        "power": {
+            "display_and_brightness": "Display and Brightness",
+            "change_brightness": "Change brightness:",
+            "dim_automatically": "Dim automatically:",
+            "turn_off_display": "Turn off display:",
+            "never": "Never",
+            "charge_limits": "Battery charge limits",
+            "battery_charge_range": "Battery charge range:",
+            "ac_power": "AC Power",
+            "battery_power": "On Battery",
+            "apply": "APPLY"
+        },
         "common": {
             "error": "Error",
             "warning": "Warning"

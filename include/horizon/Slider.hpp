@@ -40,8 +40,14 @@ namespace horizon
         void draw(GraphicsContext &gc) override;
 
         // --- Value ---
-        void set_value(float value); // 0.0 - 1.0
+        void set_value(float value); // 0.0 - 1.0 (or min value in range mode)
         float value() const;
+
+        void set_second_value(float value); // Only used if range enabled
+        float second_value() const;
+
+        void set_enable_range(bool enable);
+        bool range_enabled() const;
 
         // --- Range ---
         void set_min(float min);
@@ -74,19 +80,24 @@ namespace horizon
         void handle_mouse_press(MouseButtonEventContext &ev);
         void handle_mouse_drag(MouseMoveEventContext &ev);
         void update_value_from_pos(int x, int y);
-        int thumb_center() const; // pixel offset of thumb along track axis
-        void update_thumb_polygon();
+        int thumb_center(float val) const; // pixel offset of thumb along track axis
+        void update_thumb_polygons();
 
         float m_value{0.5f};
+        float m_second_value{0.75f};
         float m_min{0.0f};
         float m_max{1.0f};
+        bool m_enable_range{false};
+
         SliderOrientation m_orientation{SliderOrientation::Horizontal};
         int m_tick_count{0};
         std::vector<float> m_custom_ticks;
         bool m_show_ticks{true};
         ThumbShape m_thumb_shape{ThumbShape::Marker};
-        bool m_dragging{false};
+        bool m_dragging_first{false};
+        bool m_dragging_second{false};
 
         std::unique_ptr<AquaPolygon> m_thumb_poly;
+        std::unique_ptr<AquaPolygon> m_second_thumb_poly;
     };
 } // namespace horizon

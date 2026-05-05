@@ -1,6 +1,5 @@
 #include "PreferencesWindow.hpp"
 #include "ViewPanel.hpp"
-#include <horizon/I18n.hpp>
 #include "views/AppearanceView/AppearanceView.hpp"
 #include "views/ApplicationsView/ApplicationsView.hpp"
 #include "views/BluetoothView/BluetoothView.hpp"
@@ -19,13 +18,14 @@
 #include "views/SoundView/SoundView.hpp"
 #include "views/UsersView/UsersView.hpp"
 #include "views/WifiView/WifiView.hpp"
+#include <horizon/I18n.hpp>
 
 namespace horizon::preferences
 {
     PreferencesWindow::PreferencesWindow(const std::string &initial_section)
         : ApplicationWindow(i18n().tr("preferences.title"))
     {
-        set_size(800, 650);
+        set_size(900, 650);
 
         // Custom Toolbar
         auto toolbar_widget = std::make_unique<PreferencesToolbar>();

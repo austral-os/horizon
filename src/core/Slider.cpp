@@ -31,11 +31,17 @@ namespace horizon
         m_thumb_poly->set_has_border(true);
         m_thumb_poly->set_border_size(1.0f);
 
+        m_second_thumb_poly = std::make_unique<AquaPolygon>();
+        m_second_thumb_poly->set_accent_color(WidgetAccentColor::Primary);
+        m_second_thumb_poly->set_has_border(true);
+        m_second_thumb_poly->set_border_size(1.0f);
+
         when_mouse_press.connect([this](MouseButtonEventContext &ev) { handle_mouse_press(ev); });
         when_mouse_drag.connect([this](MouseMoveEventContext &ev) { handle_mouse_drag(ev); });
         when_mouse_release.connect([this](MouseButtonEventContext &) { 
-            if (m_dragging) {
-                m_dragging = false; 
+            if (m_dragging_first || m_dragging_second) {
+                m_dragging_first = false; 
+                m_dragging_second = false;
                 EventContext ev;
                 ev.sender = this;
                 when_changed.run(ev);
@@ -50,19 +56,20 @@ namespace horizon
         Widget::set_application_recursive(app);
         if (m_thumb_poly)
             m_thumb_poly->set_application_recursive(app);
+        if (m_second_thumb_poly)
+            m_second_thumb_poly->set_application_recursive(app);
     }
 
     void Slider::set_value(float v)
     {
-        v = std::max(m_min, std::min(m_max, v));
+        float upper_limit = m_enable_range ? m_second_value : m_max;
+        v = std::max(m_min, std::min(upper_limit, v));
         if (v != m_value)
         {
             m_value = v;
-            update_thumb_polygon();
+            update_thumb_polygons();
             EventContext ev;
             ev.sender = this;
-            // Since we don't have a specific ValueChangedEventContext yet,
-            // we use the base and the user can check the sender.
             when_value_changed.run(ev);
             invalidate();
         }
@@ -71,6 +78,44 @@ namespace horizon
     float Slider::value() const
     {
         return m_value;
+    }
+
+    void Slider::set_second_value(float v)
+    {
+        if (!m_enable_range) return;
+        v = std::max(m_value, std::min(m_max, v));
+        if (v != m_second_value)
+        {
+            m_second_value = v;
+            update_thumb_polygons();
+            EventContext ev;
+            ev.sender = this;
+            when_value_changed.run(ev);
+            invalidate();
+        }
+    }
+
+    float Slider::second_value() const
+    {
+        return m_second_value;
+    }
+
+    void Slider::set_enable_range(bool enable)
+    {
+        if (m_enable_range != enable)
+        {
+            m_enable_range = enable;
+            if (m_enable_range && m_second_value < m_value) {
+                m_second_value = m_value;
+            }
+            update_thumb_polygons();
+            invalidate();
+        }
+    }
+
+    bool Slider::range_enabled() const
+    {
+        return m_enable_range;
     }
 
     void Slider::set_min(float min)
@@ -87,7 +132,7 @@ namespace horizon
     void Slider::set_orientation(SliderOrientation o)
     {
         m_orientation = o;
-        update_thumb_polygon();
+        update_thumb_polygons();
         invalidate();
     }
 
@@ -128,7 +173,7 @@ namespace horizon
     void Slider::set_thumb_shape(ThumbShape shape)
     {
         m_thumb_shape = shape;
-        update_thumb_polygon();
+        update_thumb_polygons();
         invalidate();
     }
 
@@ -137,9 +182,9 @@ namespace horizon
         return m_thumb_shape;
     }
 
-    int Slider::thumb_center() const
+    int Slider::thumb_center(float val) const
     {
-        float t = (m_max > m_min) ? (m_value - m_min) / (m_max - m_min) : 0.0f;
+        float t = (m_max > m_min) ? (val - m_min) / (m_max - m_min) : 0.0f;
         if (m_orientation == SliderOrientation::Horizontal)
         {
             int track_start = m_x + TRACK_PAD;
@@ -155,127 +200,122 @@ namespace horizon
         }
     }
 
-    void Slider::update_thumb_polygon()
+    void Slider::update_thumb_polygons()
     {
-        if (!m_thumb_poly)
-            return;
+        auto update_poly = [this](std::unique_ptr<AquaPolygon>& poly, float val) {
+            if (!poly) return;
+            const bool horiz = (m_orientation == SliderOrientation::Horizontal);
+            int tc = thumb_center(val);
 
-        const bool horiz = (m_orientation == SliderOrientation::Horizontal);
-        int tc = thumb_center();
+            std::vector<PolygonPoint> pts;
 
-        std::vector<PolygonPoint> pts;
-
-        if (m_thumb_shape == ThumbShape::Marker)
-        {
-            if (horiz)
+            if (m_thumb_shape == ThumbShape::Marker)
             {
-                // Points DOWN
-                int tx = tc - THUMB_W / 2;
-                // Center vertically on track
-                int track_y;
-                if (m_tick_count > 0 && m_show_ticks)
+                if (horiz)
                 {
-                    int ticks_area = TICK_H + 6;
+                    // Points DOWN
+                    int tx = tc - THUMB_W / 2;
+                    int track_y;
+                    if (m_tick_count > 0 && m_show_ticks)
+                    {
+                        int ticks_area = TICK_H + 6;
+                        int usable_h = m_height - ticks_area;
+                        track_y = m_y + (usable_h - TRACK_H) / 2;
+                    }
+                    else
+                    {
+                        track_y = m_y + (m_height - TRACK_H) / 2;
+                    }
+
+                    int ty = track_y + TRACK_H / 2 - THUMB_H / 2;
+                    int pill_h = THUMB_H - 8;
+                    pts.push_back({tx, ty, THUMB_W / 2});               // Top-left
+                    pts.push_back({tx + THUMB_W, ty, THUMB_W / 2});     // Top-right
+                    pts.push_back({tx + THUMB_W, ty + pill_h, 0});      // Bottom-right base
+                    pts.push_back({tx + THUMB_W / 2, ty + THUMB_H, 0}); // Tip
+                    pts.push_back({tx, ty + pill_h, 0});                // Bottom-left base
+                }
+                else
+                {
+                    // Points RIGHT
+                    int ty = tc - THUMB_W / 2;
+                    int track_x;
+                    if (m_tick_count > 0 && m_show_ticks)
+                    {
+                        int ticks_area = TICK_H + 6;
+                        int usable_w = m_width - ticks_area;
+                        track_x = m_x + (usable_w - TRACK_H) / 2;
+                    }
+                    else
+                    {
+                        track_x = m_x + (m_width - TRACK_H) / 2;
+                    }
+
+                    int tx = track_x + TRACK_H / 2 - THUMB_H / 2;
+                    int pill_w = THUMB_H - 8;
+                    pts.push_back({tx, ty, THUMB_W / 2});               // Top-left
+                    pts.push_back({tx + pill_w, ty, 0});                // Top-right base
+                    pts.push_back({tx + THUMB_H, ty + THUMB_W / 2, 0}); // Tip
+                    pts.push_back({tx + pill_w, ty + THUMB_W, 0});      // Bottom-right base
+                    pts.push_back({tx, ty + THUMB_W, THUMB_W / 2});     // Bottom-left
+                }
+            }
+            else // Circle
+            {
+                int size = std::min(THUMB_W, THUMB_H) * 1.5;
+                int r = size / 2;
+
+                if (horiz)
+                {
+                    int ticks_area = (m_tick_count > 0 && m_show_ticks) ? (TICK_H + 6) : 0;
                     int usable_h = m_height - ticks_area;
-                    track_y = m_y + (usable_h - TRACK_H) / 2;
+                    int track_y = m_y + (usable_h - TRACK_H) / 2;
+                    int tx = tc;
+                    int ty = track_y + TRACK_H / 2;
+
+                    float angle_step = PI / 2.0;
+                    for (int i = 0; i < 4; ++i)
+                    {
+                        float angle = i * angle_step;
+                        pts.push_back({(int)(tx + r * std::cos(angle)), (int)(ty + r * std::sin(angle)), r});
+                    }
                 }
                 else
                 {
-                    track_y = m_y + (m_height - TRACK_H) / 2;
-                }
-
-                int ty = track_y + TRACK_H / 2 - THUMB_H / 2;
-
-                int pill_h = THUMB_H - 8;
-                pts.push_back({tx, ty, THUMB_W / 2});               // Top-left
-                pts.push_back({tx + THUMB_W, ty, THUMB_W / 2});     // Top-right
-                pts.push_back({tx + THUMB_W, ty + pill_h, 0});      // Bottom-right base
-                pts.push_back({tx + THUMB_W / 2, ty + THUMB_H, 0}); // Tip
-                pts.push_back({tx, ty + pill_h, 0});                // Bottom-left base
-            }
-            else
-            {
-                // Points RIGHT
-                int ty = tc - THUMB_W / 2;
-                int track_x;
-                if (m_tick_count > 0 && m_show_ticks)
-                {
-                    int ticks_area = TICK_H + 6;
+                    int ticks_area = (m_tick_count > 0 && m_show_ticks) ? (TICK_H + 6) : 0;
                     int usable_w = m_width - ticks_area;
-                    track_x = m_x + (usable_w - TRACK_H) / 2;
-                }
-                else
-                {
-                    track_x = m_x + (m_width - TRACK_H) / 2;
-                }
+                    int track_x = m_x + (usable_w - TRACK_H) / 2;
+                    int tx = track_x + TRACK_H / 2;
+                    int ty = tc;
 
-                int tx = track_x + TRACK_H / 2 - THUMB_H / 2;
-
-                int pill_w = THUMB_H - 8;
-                pts.push_back({tx, ty, THUMB_W / 2});               // Top-left
-                pts.push_back({tx + pill_w, ty, 0});                // Top-right base
-                pts.push_back({tx + THUMB_H, ty + THUMB_W / 2, 0}); // Tip
-                pts.push_back({tx + pill_w, ty + THUMB_W, 0});      // Bottom-right base
-                pts.push_back({tx, ty + THUMB_W, THUMB_W / 2});     // Bottom-left
-            }
-        }
-        else // Circle
-        {
-            int size = std::min(THUMB_W, THUMB_H) * 1.5;
-            int r = size / 2;
-
-            int track_x, track_y;
-            if (horiz)
-            {
-                int ticks_area = (m_tick_count > 0 && m_show_ticks) ? (TICK_H + 6) : 0;
-                int usable_h = m_height - ticks_area;
-                track_y = m_y + (usable_h - TRACK_H) / 2;
-                int tx = tc;
-                int ty = track_y + TRACK_H / 2;
-
-                // Simple octagon to approximate circle for AquaPolygon
-                float angle_step = PI / 2.0;
-                for (int i = 0; i < 4; ++i)
-                {
-                    float angle = i * angle_step;
-                    pts.push_back(
-                        {(int)(tx + r * std::cos(angle)), (int)(ty + r * std::sin(angle)), r});
+                    float angle_step = PI / 2.0;
+                    for (int i = 0; i < 4; ++i)
+                    {
+                        float angle = i * angle_step;
+                        pts.push_back({(int)(tx + r * std::cos(angle)), (int)(ty + r * std::sin(angle)), r});
+                    }
                 }
             }
-            else
-            {
-                int ticks_area = (m_tick_count > 0 && m_show_ticks) ? (TICK_H + 6) : 0;
-                int usable_w = m_width - ticks_area;
-                track_x = m_x + (usable_w - TRACK_H) / 2;
-                int tx = track_x + TRACK_H / 2;
-                int ty = tc;
+            poly->set_points(pts);
+        };
 
-                float angle_step = M_PI / 2.0;
-                for (int i = 0; i < 4; ++i)
-                {
-                    float angle = i * angle_step;
-                    pts.push_back(
-                        {(int)(tx + r * std::cos(angle)), (int)(ty + r * std::sin(angle)), r});
-                }
-            }
-        }
-
-        m_thumb_poly->set_points(pts);
+        update_poly(m_thumb_poly, m_value);
+        if (m_enable_range)
+            update_poly(m_second_thumb_poly, m_second_value);
     }
 
     void Slider::update_value_from_pos(int x, int y)
     {
         float t;
         int track_len = 0;
-        int cursor_px = 0; // cursor position along the track axis in pixels
+        int cursor_px = 0;
 
         if (m_orientation == SliderOrientation::Horizontal)
         {
             int track_start = m_x + TRACK_PAD;
             int track_end = m_x + m_width - TRACK_PAD;
             track_len = track_end - track_start;
-            if (track_len <= 0)
-                return;
+            if (track_len <= 0) return;
             cursor_px = x - track_start;
             t = (float)cursor_px / (float)track_len;
         }
@@ -284,87 +324,79 @@ namespace horizon
             int track_start = m_y + TRACK_PAD;
             int track_end = m_y + m_height - TRACK_PAD;
             track_len = track_end - track_start;
-            if (track_len <= 0)
-                return;
+            if (track_len <= 0) return;
             cursor_px = y - track_start;
             t = 1.0f - (float)cursor_px / (float)track_len;
         }
         t = std::max(0.0f, std::min(1.0f, t));
 
-        // ── Tick-mark snapping (magnet behaviour) ───────────────────────────
-        // Work entirely in pixel space so the snap radius is consistent
-        // regardless of the value range.
-        static constexpr int SNAP_PX = 10; // pixels within which snapping activates
-
+        // Snap logic
+        static constexpr int SNAP_PX = 10;
         if (m_tick_count > 1)
         {
-            // For vertical we inverted t above, so convert cursor_px back to
-            // a comparable direction by using (track_len - cursor_px) for vert.
-            int px = (m_orientation == SliderOrientation::Horizontal)
-                         ? cursor_px
-                         : (track_len - cursor_px); // ascending = upward
-
+            int px = (m_orientation == SliderOrientation::Horizontal) ? cursor_px : (track_len - cursor_px);
             for (int i = 0; i < m_tick_count; ++i)
             {
                 float t_i = (float)i / (float)(m_tick_count - 1);
                 int tick_px = (int)(t_i * track_len);
-                int dist = std::abs(px - tick_px);
-                if (dist <= SNAP_PX)
-                {
-                    t = t_i; // snap!
-                    break;
-                }
+                if (std::abs(px - tick_px) <= SNAP_PX) { t = t_i; break; }
             }
         }
-
-        // --- Custom tick-mark snapping ---
         if (!m_custom_ticks.empty())
         {
             for (float tick_val : m_custom_ticks)
             {
                 float t_i = (m_max > m_min) ? (tick_val - m_min) / (m_max - m_min) : 0.0f;
                 int tick_px = (int)(t_i * track_len);
-                int px = (m_orientation == SliderOrientation::Horizontal)
-                             ? cursor_px
-                             : (track_len - cursor_px);
-                int dist = std::abs(px - tick_px);
-                if (dist <= SNAP_PX)
-                {
-                    t = t_i; // snap!
-                    break;
-                }
+                int px = (m_orientation == SliderOrientation::Horizontal) ? cursor_px : (track_len - cursor_px);
+                if (std::abs(px - tick_px) <= SNAP_PX) { t = t_i; break; }
             }
         }
 
-        set_value(m_min + t * (m_max - m_min));
+        float val = m_min + t * (m_max - m_min);
+        if (m_dragging_first) set_value(val);
+        else if (m_dragging_second) set_second_value(val);
     }
 
     void Slider::handle_mouse_press(MouseButtonEventContext &ev)
     {
-        m_dragging = true;
+        if (m_enable_range)
+        {
+            int c1 = thumb_center(m_value);
+            int c2 = thumb_center(m_second_value);
+            int pos = (m_orientation == SliderOrientation::Horizontal) ? (int)ev.x : (int)ev.y;
+            if (std::abs(pos - c1) < std::abs(pos - c2))
+            {
+                m_dragging_first = true;
+                m_dragging_second = false;
+            }
+            else
+            {
+                m_dragging_first = false;
+                m_dragging_second = true;
+            }
+        }
+        else
+        {
+            m_dragging_first = true;
+            m_dragging_second = false;
+        }
         update_value_from_pos((int)ev.x, (int)ev.y);
     }
 
     void Slider::handle_mouse_drag(MouseMoveEventContext &ev)
     {
-        if (m_dragging)
+        if (m_dragging_first || m_dragging_second)
             update_value_from_pos((int)ev.x, (int)ev.y);
     }
-
-    // -----------------------------------------------------------------------
-    // Drawing
-    // -----------------------------------------------------------------------
 
     void Slider::draw(GraphicsContext &gc)
     {
         const bool horiz = (m_orientation == SliderOrientation::Horizontal);
-
-        // ── Layout ──────────────────────────────────────────────────────────
         int track_x, track_y, track_w, track_h;
 
         if (horiz)
         {
-            // Leave a few pixels below for tick marks
             int ticks_area = (m_tick_count > 0 && m_show_ticks) ? (TICK_H + 6) : 0;
             int usable_h = m_height - ticks_area;
             track_x = m_x + TRACK_PAD;
@@ -382,82 +414,60 @@ namespace horizon
             track_h = m_height - TRACK_PAD * 2;
         }
 
-        // ── 1. Track (recessed groove) ───────────────────────────────────
-        // Corner radius = half the THIN side of the track bar (produces pill ends)
         int track_r = std::min(track_w, track_h) / 2;
-
-        // Outer sunken fill — dark → light gradient
         gc.fillLinearGradientRect(track_x, track_y, track_w, track_h,
                                   Color(0.40f, 0.40f, 0.42f, 1.0f),
                                   Color(0.70f, 0.70f, 0.72f, 1.0f), !horiz, CornerRadius(track_r));
 
-        // Bright highlight (1px line inside the top/left edge of the track)
         gc.setColor(Color(0.90f, 0.90f, 0.92f, 0.8f));
-        if (horiz)
-            gc.fillRect(track_x + track_r, track_y, track_w - track_r * 2, 1);
-        else
-            gc.fillRect(track_x, track_y + track_r, 1, track_h - track_r * 2);
+        if (horiz) gc.fillRect(track_x + track_r, track_y, track_w - track_r * 2, 1);
+        else gc.fillRect(track_x, track_y + track_r, 1, track_h - track_r * 2);
 
-        // Track border
         gc.drawLinearGradientRect(
             track_x, track_y, track_w, track_h, Color(0.28f, 0.28f, 0.30f, 1.0f),
             Color(0.55f, 0.55f, 0.58f, 1.0f), 1.0f, !horiz, CornerRadius(track_r));
 
-        // ── 2. Tick marks ────────────────────────────────────────────────
-        if (m_tick_count > 1 && m_show_ticks)
-        {
+        auto draw_ticks = [&](const std::vector<float>& ticks, int count) {
+            if (count <= 0 && ticks.empty()) return;
             gc.setColor(Color(0.5f, 0.5f, 0.5f, 0.9f));
-            if (horiz)
-            {
+            if (horiz) {
                 int tick_y = track_y + track_h + 5;
-                for (int i = 0; i < m_tick_count; ++i)
-                {
-                    float t_i = (float)i / (float)(m_tick_count - 1);
-                    int tx = track_x + (int)(t_i * track_w);
-                    gc.fillRect(tx, tick_y, TICK_W, TICK_H);
+                if (ticks.empty()) {
+                    for (int i = 0; i < count; ++i) {
+                        float t_i = (float)i / (float)(count - 1);
+                        gc.fillRect(track_x + (int)(t_i * track_w), tick_y, TICK_W, TICK_H);
+                    }
+                } else {
+                    for (float v : ticks) {
+                        float t_i = (m_max > m_min) ? (v - m_min) / (m_max - m_min) : 0.0f;
+                        gc.fillRect(track_x + (int)(t_i * track_w), tick_y, TICK_W, TICK_H);
+                    }
                 }
-            }
-            else
-            {
+            } else {
                 int tick_x = track_x + track_w + 5;
-                for (int i = 0; i < m_tick_count; ++i)
-                {
-                    float t_i = (float)i / (float)(m_tick_count - 1);
-                    int ty = track_y + (int)((1.0f - t_i) * track_h);
-                    gc.fillRect(tick_x, ty, TICK_H, TICK_W);
+                if (ticks.empty()) {
+                    for (int i = 0; i < count; ++i) {
+                        float t_i = (float)i / (float)(count - 1);
+                        gc.fillRect(tick_x, track_y + (int)((1.0f - t_i) * track_h), TICK_H, TICK_W);
+                    }
+                } else {
+                    for (float v : ticks) {
+                        float t_i = (m_max > m_min) ? (v - m_min) / (m_max - m_min) : 0.0f;
+                        gc.fillRect(tick_x, track_y + (int)((1.0f - t_i) * track_h), TICK_H, TICK_W);
+                    }
                 }
             }
+        };
+
+        if (m_show_ticks) {
+            draw_ticks({}, m_tick_count);
+            draw_ticks(m_custom_ticks, (int)m_custom_ticks.size());
         }
 
-        // --- 2b. Custom Tick marks ---
-        if (!m_custom_ticks.empty() && m_show_ticks)
-        {
-            gc.setColor(Color(0.5f, 0.5f, 0.5f, 0.9f));
-            if (horiz)
-            {
-                int tick_y = track_y + track_h + 5;
-                for (float tick_val : m_custom_ticks)
-                {
-                    float t_i = (m_max > m_min) ? (tick_val - m_min) / (m_max - m_min) : 0.0f;
-                    int tx = track_x + (int)(t_i * track_w);
-                    gc.fillRect(tx, tick_y, TICK_W, TICK_H);
-                }
-            }
-            else
-            {
-                int tick_x = track_x + track_w + 5;
-                for (float tick_val : m_custom_ticks)
-                {
-                    float t_i = (m_max > m_min) ? (tick_val - m_min) / (m_max - m_min) : 0.0f;
-                    int ty = track_y + (int)((1.0f - t_i) * track_h);
-                    gc.fillRect(tick_x, ty, TICK_H, TICK_W);
-                }
-            }
-        }
-
-        // ── 3. Thumb (AquaPolygon) ──────────────────────────────────────
-        update_thumb_polygon();
+        update_thumb_polygons();
         m_thumb_poly->draw(gc);
+        if (m_enable_range)
+            m_second_thumb_poly->draw(gc);
     }
 
 } // namespace horizon
