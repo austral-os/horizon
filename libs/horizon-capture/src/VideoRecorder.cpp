@@ -242,9 +242,20 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
 
     // FFmpeg
     avformat_alloc_output_context2(&m_impl->fmt_ctx, nullptr, nullptr, output_file.c_str());
+    if (!m_impl->fmt_ctx) {
+        LOG_ERROR << "[VideoRecorder] Could not create output context for " << output_file;
+        return false;
+    }
     
     // Video
-    const AVCodec* v_codec = avcodec_find_encoder(AV_CODEC_ID_H264);
+    AVCodecID v_codec_id = m_impl->fmt_ctx->oformat->video_codec;
+    if (v_codec_id == AV_CODEC_ID_NONE) v_codec_id = AV_CODEC_ID_H264;
+    const AVCodec* v_codec = avcodec_find_encoder(v_codec_id);
+    if (!v_codec) {
+        LOG_ERROR << "[VideoRecorder] Could not find video encoder for " << avcodec_get_name(v_codec_id);
+        return false;
+    }
+
     m_impl->video_stream = avformat_new_stream(m_impl->fmt_ctx, v_codec);
     m_impl->video_codec_ctx = avcodec_alloc_context3(v_codec);
     m_impl->video_codec_ctx->width = width; m_impl->video_codec_ctx->height = height;
@@ -252,28 +263,59 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
     m_impl->video_codec_ctx->framerate = {fps, 1};
     m_impl->video_codec_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
     m_impl->video_codec_ctx->gop_size = 30; m_impl->video_codec_ctx->max_b_frames = 0;
-    av_opt_set(m_impl->video_codec_ctx->priv_data, "preset", "ultrafast", 0);
-    av_opt_set(m_impl->video_codec_ctx->priv_data, "tune", "zerolatency", 0);
+    
+    if (v_codec_id == AV_CODEC_ID_H264) {
+        av_opt_set(m_impl->video_codec_ctx->priv_data, "preset", "ultrafast", 0);
+        av_opt_set(m_impl->video_codec_ctx->priv_data, "tune", "zerolatency", 0);
+    } else if (v_codec_id == AV_CODEC_ID_VP8 || v_codec_id == AV_CODEC_ID_VP9) {
+        av_opt_set(m_impl->video_codec_ctx->priv_data, "deadline", "realtime", 0);
+        av_opt_set(m_impl->video_codec_ctx->priv_data, "cpu-used", "8", 0);
+    }
+
     if (m_impl->fmt_ctx->oformat->flags & AVFMT_GLOBALHEADER) m_impl->video_codec_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-    avcodec_open2(m_impl->video_codec_ctx, v_codec, nullptr);
+    if (avcodec_open2(m_impl->video_codec_ctx, v_codec, nullptr) < 0) {
+        LOG_ERROR << "[VideoRecorder] Could not open video codec";
+        return false;
+    }
     avcodec_parameters_from_context(m_impl->video_stream->codecpar, m_impl->video_codec_ctx);
     m_impl->video_stream->time_base = m_impl->video_codec_ctx->time_base;
 
     // Audio
     if (m_impl->record_audio) {
-        const AVCodec* a_codec = avcodec_find_encoder_by_name("libmp3lame");
-        if (!a_codec) a_codec = avcodec_find_encoder(AV_CODEC_ID_MP3);
+        AVCodecID a_codec_id = m_impl->fmt_ctx->oformat->audio_codec;
+        if (a_codec_id == AV_CODEC_ID_NONE) a_codec_id = AV_CODEC_ID_AAC;
+        const AVCodec* a_codec = avcodec_find_encoder(a_codec_id);
+        if (!a_codec) {
+            LOG_ERROR << "[VideoRecorder] Could not find audio encoder for " << avcodec_get_name(a_codec_id);
+            return false;
+        }
         
         m_impl->audio_stream = avformat_new_stream(m_impl->fmt_ctx, a_codec);
         m_impl->audio_codec_ctx = avcodec_alloc_context3(a_codec);
-        m_impl->audio_codec_ctx->sample_fmt = AV_SAMPLE_FMT_FLTP;
+        
+        AVSampleFormat a_sample_fmt = AV_SAMPLE_FMT_FLTP;
+        if (a_codec->sample_fmts) {
+            bool supported = false;
+            for (int i = 0; a_codec->sample_fmts[i] != AV_SAMPLE_FMT_NONE; i++) {
+                if (a_codec->sample_fmts[i] == AV_SAMPLE_FMT_FLTP) {
+                    supported = true;
+                    break;
+                }
+            }
+            if (!supported) a_sample_fmt = a_codec->sample_fmts[0];
+        }
+
+        m_impl->audio_codec_ctx->sample_fmt = a_sample_fmt;
         m_impl->audio_codec_ctx->sample_rate = 48000;
         AVChannelLayout out_layout = AV_CHANNEL_LAYOUT_STEREO;
         av_channel_layout_copy(&m_impl->audio_codec_ctx->ch_layout, &out_layout);
         m_impl->audio_codec_ctx->time_base = {1, 48000};
         m_impl->audio_codec_ctx->bit_rate = 192000;
         if (m_impl->fmt_ctx->oformat->flags & AVFMT_GLOBALHEADER) m_impl->audio_codec_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-        avcodec_open2(m_impl->audio_codec_ctx, a_codec, nullptr);
+        if (avcodec_open2(m_impl->audio_codec_ctx, a_codec, nullptr) < 0) {
+            LOG_ERROR << "[VideoRecorder] Could not open audio codec";
+            return false;
+        }
         avcodec_parameters_from_context(m_impl->audio_stream->codecpar, m_impl->audio_codec_ctx);
         m_impl->audio_stream->time_base = m_impl->audio_codec_ctx->time_base;
         
@@ -285,7 +327,7 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
         m_impl->audio_pkt = av_packet_alloc();
 
         AVChannelLayout in_layout = AV_CHANNEL_LAYOUT_STEREO;
-        swr_alloc_set_opts2(&m_impl->swr_ctx, &out_layout, AV_SAMPLE_FMT_FLTP, 48000,
+        swr_alloc_set_opts2(&m_impl->swr_ctx, &out_layout, m_impl->audio_codec_ctx->sample_fmt, 48000,
                                               &in_layout, AV_SAMPLE_FMT_FLT, 48000, 0, nullptr);
         swr_init(m_impl->swr_ctx);
     }
