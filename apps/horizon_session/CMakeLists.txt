@@ -186,3 +186,18 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/xdg-open")
         COMPONENT session
     )
 endif()
+
+# --- Compositor Config Files ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/rc.xml")
+    install(FILES data/rc.xml
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/wayfire.ini")
+    install(FILES data/wayfire.ini
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()

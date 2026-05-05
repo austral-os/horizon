@@ -262,6 +262,43 @@ void HorizonSession::init(const std::string &compositor)
             }
         }
 
+        // Migrate compositor configuration files if not present
+        std::vector<std::pair<std::string, std::string>> compositor_configs = {
+            {"rc.xml", ".config/labwc/rc.xml"}, {"wayfire.ini", ".config/wayfire.ini"}};
+
+        for (const auto &cfg : compositor_configs)
+        {
+            std::string user_path = std::string(home) + "/" + cfg.second;
+            std::string system_path = "/usr/share/horizon/" + cfg.first;
+
+            if (is_dev_mode())
+            {
+                system_path =
+                    std::string(HORIZON_SOURCE_DIR) + "/apps/horizon_session/data/" + cfg.first;
+            }
+
+            try
+            {
+                if (!fs::exists(user_path))
+                {
+                    LOG_INFO << "[HorizonSession] Compositor config " << cfg.first
+                             << " not found, checking for source at: " << system_path;
+                    if (fs::exists(system_path))
+                    {
+                        fs::create_directories(fs::path(user_path).parent_path());
+                        fs::copy_file(system_path, user_path, fs::copy_options::overwrite_existing);
+                        LOG_INFO << "[HorizonSession] Successfully migrated compositor config "
+                                 << cfg.first << " to: " << user_path;
+                    }
+                }
+            }
+            catch (const std::exception &e)
+            {
+                LOG_ERROR << "[HorizonSession] Error during " << cfg.first
+                          << " migration: " << e.what();
+            }
+        }
+
         // --- Language Initialization ---
         std::string region_path = std::string(home) + "/.config/horizon/region.json";
         std::string lang_to_set = "en";
