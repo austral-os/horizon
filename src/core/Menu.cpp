@@ -148,6 +148,35 @@ namespace horizon
         return this;
     }
 
+    int Menu::calculate_cascade_width() const
+    {
+        int max_sub_cascade = 0;
+        for (const auto &child : m_children)
+        {
+            if (auto *item = dynamic_cast<const MenuItem *>(child.get()))
+            {
+                if (item->submenu())
+                {
+                    Menu *sub = item->submenu();
+
+                    // Force a layout pass at (0,0) if the submenu hasn't been laid out
+                    // yet. This gives us accurate width without needing to open the submenu.
+                    if (sub->width() == 0)
+                    {
+                        sub->set_position(0, 0);
+                        const_cast<Menu *>(sub)->calculate_layout();
+                    }
+
+                    int sub_w = sub->width();
+                    if (sub_w < sub->m_min_width) sub_w = sub->m_min_width;
+                    int nested = sub->calculate_cascade_width();
+                    max_sub_cascade = std::max(max_sub_cascade, sub_w + nested);
+                }
+            }
+        }
+        return max_sub_cascade;
+    }
+
     void Menu::close_submenus()
     {
         if (m_active_submenu)
@@ -174,13 +203,9 @@ namespace horizon
         {
             m_active_submenu = menu;
             m_active_submenu->m_parent = this;
+            m_active_submenu->set_application_recursive(application());
             m_active_submenu->set_visible(true);
             m_active_submenu->invalidate();
-
-            // Positioning is tricky here because MenuItem doesn't know its own screen position
-            // reliably without Widget::calculate_layout having been called recently. But we can try
-            // to find the item that triggered this. Actually, for now we let the MenuItem pass its
-            // position if needed, or we just find which child is hovered.
 
             for (const auto &child : m_children)
             {
@@ -188,8 +213,40 @@ namespace horizon
                 {
                     if (item->is_selected())
                     {
-                        // Position submenu to the right of the item
+                        // Do a preliminary layout to know the submenu's dimensions
                         m_active_submenu->set_position(item->x() + item->width() - 2, item->y());
+                        m_active_submenu->calculate_layout();
+
+                        // --- Edge detection & smart repositioning ---
+                        int sub_w = m_active_submenu->width();
+                        int sub_h = m_active_submenu->height();
+
+                        int pos_x = item->x() + item->width() - 2;
+                        int pos_y = item->y();
+
+                        // Get available surface space
+                        int surface_w = 0, surface_h = 0;
+                        if (application() && application()->w_surface())
+                        {
+                            surface_w = application()->w_surface()->width();
+                            surface_h = application()->w_surface()->height();
+                        }
+
+                        // Flip horizontally: if submenu right edge exceeds surface width, open to the left
+                        if (surface_w > 0 && pos_x + sub_w > surface_w)
+                        {
+                            pos_x = item->x() - sub_w + 2;
+                            if (pos_x < 0) pos_x = 0;
+                        }
+
+                        // Flip vertically: if submenu bottom exceeds surface height, push it up
+                        if (surface_h > 0 && pos_y + sub_h > surface_h)
+                        {
+                            pos_y = surface_h - sub_h;
+                            if (pos_y < 0) pos_y = 0;
+                        }
+
+                        m_active_submenu->set_position(pos_x, pos_y);
                         m_active_submenu->calculate_layout();
                         break;
                     }

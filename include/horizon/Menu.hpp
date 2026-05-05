@@ -94,6 +94,12 @@ namespace horizon
             return m_id;
         }
 
+        /**
+         * @brief Calculates the total extra width needed for all nested submenus.
+         * Used to size the popup surface so submenus don't get clipped.
+         */
+        int calculate_cascade_width() const;
+
     protected:
         void draw(GraphicsContext &gc) override;
 

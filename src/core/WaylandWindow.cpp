@@ -2761,11 +2761,12 @@ namespace horizon
         int w = m_popup_menu->width();
         int h = m_popup_menu->height();
 
-        // Submenus need space! Since we currently render submenus in the same popup surface
-        // as their parent, we need to make the surface wide and tall enough to accommodate them.
-        // 600px extra width should fit two levels of submenus easily.
-        int surface_w = w + 600;
-        int surface_h = std::max(h, monitor_h - y - 20); // Try to use available height
+        // Calculate total surface size needed dynamically based on the submenu tree.
+        // cascade_w accounts for all nested submenus at any depth.
+        int cascade_w = m_popup_menu->calculate_cascade_width();
+        if (cascade_w == 0) cascade_w = w; // Ensure at least one extra submenu can fit
+        int surface_w = w + cascade_w + 20; // +20 margin
+        int surface_h = std::max(h, monitor_h - y - 20);
 
         m_popup_surface = std::make_unique<WaylandSurface>(surface_w, surface_h);
 
@@ -2777,8 +2778,10 @@ namespace horizon
             m_surface->set_last_serial(serial);
         }
 
-        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, surface_w, surface_h);
-        m_popup_surface->set_window_geometry(0, 0, w, h);
+        // Pass real menu dimensions (w, h) as popup_w/popup_h.
+        // setup_xdg_popup will call xdg_surface_set_window_geometry(0,0,w,h) BEFORE
+        // the first commit, so the compositor anchors at the cursor correctly.
+        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, surface_w, surface_h, w, h);
 
         invalidate();
     }

@@ -340,14 +340,19 @@ namespace horizon
         m_role = Role::XdgPopup;
         share_connection_from(parent);
         m_width = w; m_height = h;
+        // Remember the full surface dimensions. The configure callback will ensure
+        // the buffer never shrinks below this, even if the compositor sends a smaller size.
+        m_popup_full_w = w;
+        m_popup_full_h = h;
 
         m_surface = wl_compositor_create_surface(m_compositor);
         wl_surface_set_user_data(m_surface, this);
         wl_surface_add_listener(m_surface, &surface_listener, this);
         resize_buffer(w, h);
 
-        // Use real menu size (not extended surface size) for positioner
-        // so the compositor anchors/flips correctly
+        // Ask the positioner for the REAL menu size (popup_w x popup_h), not the
+        // extended surface. This makes the compositor anchor the menu correctly
+        // at the cursor position.
         int pos_w = (popup_w > 0) ? popup_w : w;
         int pos_h = (popup_h > 0) ? popup_h : h;
 
@@ -356,9 +361,9 @@ namespace horizon
         xdg_positioner_set_anchor_rect(m_xdg_positioner, x, y, 1, 1);
         xdg_positioner_set_anchor(m_xdg_positioner, XDG_POSITIONER_ANCHOR_TOP_LEFT);
         xdg_positioner_set_gravity(m_xdg_positioner, XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT);
-        xdg_positioner_set_constraint_adjustment(m_xdg_positioner, 
-            XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_X | 
-            XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_Y | 
+        xdg_positioner_set_constraint_adjustment(m_xdg_positioner,
+            XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_X |
+            XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_Y |
             XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y);
 
         if (parent->m_xdg_surface || parent->m_layer_surface) {
@@ -377,12 +382,15 @@ namespace horizon
 
         if (m_xdg_popup) {
             static const struct xdg_popup_listener popup_listener = {
-                .configure = [](void *data, struct xdg_popup *, int32_t, int32_t, int32_t width, int32_t height) {
+                .configure = [](void *data, struct xdg_popup *popup, int32_t, int32_t, int32_t width, int32_t height) {
                     WaylandSurface *self = static_cast<WaylandSurface *>(data);
-                    if (width > 0 && height > 0) {
-                        self->resize_buffer(width, height);
-                        if (self->m_listener) self->m_listener->on_resize(width, height);
-                    }
+                    // Keep the buffer at least as large as what we originally requested.
+                    // The compositor sends the positioner size (real menu), but we need
+                    // the full surface for rendering submenus.
+                    int actual_w = (width  > 0) ? std::max(width,  self->m_popup_full_w) : self->m_width;
+                    int actual_h = (height > 0) ? std::max(height, self->m_popup_full_h) : self->m_height;
+                    self->resize_buffer(actual_w, actual_h);
+                    if (self->m_listener) self->m_listener->on_resize(actual_w, actual_h);
                 },
                 .popup_done = [](void *data, struct xdg_popup *) {
                     WaylandSurface *self = static_cast<WaylandSurface *>(data);
@@ -390,6 +398,13 @@ namespace horizon
                 }};
             xdg_popup_add_listener(m_xdg_popup, &popup_listener, this);
             if (m_seat) xdg_popup_grab(m_xdg_popup, m_seat, parent->last_serial());
+        }
+
+        // Set window_geometry BEFORE commit so the compositor uses the real menu
+        // dimensions for screen-edge constraint checks and anchoring.
+        if (m_xdg_surface && popup_w > 0 && popup_h > 0)
+        {
+            xdg_surface_set_window_geometry(m_xdg_surface, 0, 0, popup_w, popup_h);
         }
 
         wl_surface_commit(m_surface);

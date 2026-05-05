@@ -331,6 +331,11 @@ namespace horizon
 
         double m_pointer_x{0.0}, m_pointer_y{0.0};
 
+        // Tracks the full requested popup buffer size so the configure callback
+        // won't shrink the buffer below what we need to render submenus.
+        int m_popup_full_w{0};
+        int m_popup_full_h{0};
+
         void init_registry();
         void init_egl();
 
