@@ -196,6 +196,8 @@ void HorizonSession::init(const std::string &compositor)
         m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) +
                                      "/apps/horizon-polkit-agent/horizon-polkit-agent");
         m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) +
+                                     "/apps/horizon-powerd/horizon-powerd");
+        m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) +
                                      "/apps/horizon_wall/horizon_wall");
         m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) +
                                      "/apps/top_panel/top_panel");
@@ -205,6 +207,7 @@ void HorizonSession::init(const std::string &compositor)
     {
         LOG_INFO << "[HorizonSession] Production mode detected, using system paths.";
         m_startup_services.push_back("horizon-polkit-agent");
+        m_startup_services.push_back("horizon-powerd");
         m_startup_services.push_back("horizon_wall");
         m_startup_services.push_back("top_panel");
         m_startup_services.push_back("dock");
@@ -214,8 +217,8 @@ void HorizonSession::init(const std::string &compositor)
     if (home)
     {
         std::vector<std::string> config_files = {"desktop.json", "terminal.json",
-                                                 "text-editor.json", "nova.json",
-                                                 "capture.json"};
+                                                 "power.json",   "text-editor.json",
+                                                 "nova.json",    "capture.json"};
 
         for (const auto &config_file : config_files)
         {

@@ -1,0 +1,18 @@
+{
+    "power": {
+        "ac": {
+            "brightness": 40,
+            "change_brightness": true,
+            "dim_after": "never",
+            "turn_off_after": "never"
+        },
+        "battery": {
+            "brightness": 20,
+            "change_brightness": true,
+            "charge_limit_max": 80,
+            "charge_limit_min": 20,
+            "dim_after": "never",
+            "turn_off_after": "never"
+        }
+    }
+}

@@ -163,6 +163,14 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/capture.json")
     )
 endif()
 
+# --- Power Config ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/power.json")
+    install(FILES data/power.json
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
+
 # --- License ---
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/license_lgplv3.txt")
     install(FILES data/license_lgplv3.txt
