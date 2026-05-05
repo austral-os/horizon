@@ -21,6 +21,8 @@ public:
     void toggle_play();
     void stop();
     void seek(double seconds);
+    
+    bool supports_fullscreen() const override { return true; }
 
     bool is_playing() const;
     double duration() const;

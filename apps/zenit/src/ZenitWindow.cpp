@@ -159,6 +159,7 @@ namespace zenit
     {
         auto menu = std::make_unique<horizon::Menu>();
 
+        // 1. File Section
         auto *play_item = menu->add_item(horizon::i18n().tr("zenit.play_file"));
         play_item->set_icon("document-open");
         play_item->when_click.connect([this](horizon::EventContext &)
@@ -169,6 +170,7 @@ namespace zenit
 
         menu->add_separator();
 
+        // 2. Video-Specific Section
         auto *ar_menu = menu->add_item(horizon::i18n().tr("zenit.aspect_ratio"));
         auto ar_sub_ptr = std::make_unique<horizon::Menu>();
         auto *ar_sub = ar_sub_ptr.get();
