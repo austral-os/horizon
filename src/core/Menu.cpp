@@ -66,7 +66,7 @@ namespace horizon
     {
         Widget::calculate_layout();
 
-        int max_w = m_width;
+        int max_w = m_min_width; // Start with m_min_width to enforce minimums (like in Combos)
         int padding_top = 4;
         int padding_bottom = 4;
         int current_y = padding_top;
@@ -100,6 +100,7 @@ namespace horizon
 
         if (max_w < 100) max_w = 200;
 
+        // Enforce max width if set
         if (m_max_width > 0)
             max_w = std::min(max_w, m_max_width);
 
