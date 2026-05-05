@@ -171,7 +171,7 @@ sudo apt install build-essential g++ pkg-config \
                  libpango1.0-dev libmount-dev \
                  nlohmann-json3-dev wayland-utils \
                  wlr-randr xdg-utils shared-mime-info \
-                 desktop-file-utils
+                 desktop-file-utils libmpv-dev
 ```
 
 _Note: For applications like Nova (web browser), you may also need multimedia plugins:_

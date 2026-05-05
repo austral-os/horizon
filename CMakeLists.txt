@@ -125,6 +125,7 @@ add_subdirectory(libs/horizon-terminal)
 add_subdirectory(libs/horizon-web)
 add_subdirectory(libs/horizon-pdf)
 add_subdirectory(libs/horizon-image)
+add_subdirectory(libs/horizon-video)
 add_subdirectory(libs/horizon-text)
 add_subdirectory(libs/horizon-disk-utilities)
 add_subdirectory(libs/horizon-installer-utils)
@@ -152,6 +153,7 @@ add_subdirectory(apps/horizon-greeter)
 add_subdirectory(apps/austral-welcome)
 add_subdirectory(apps/downloader)
 add_subdirectory(apps/capture)
+add_subdirectory(apps/zenit)
 
 # --- Demos and Tests ---
 add_executable(files_demo
