@@ -23,6 +23,7 @@ namespace horizon
         void set_text_color(Color color);
 
         void draw(GraphicsContext &gc) override;
+        void calculate_layout() override;
 
     private:
         std::string m_title;

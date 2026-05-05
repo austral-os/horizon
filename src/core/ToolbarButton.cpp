@@ -19,11 +19,14 @@ namespace horizon
         icon_widget->set_margin(4);
         add_child(std::move(icon_widget));
 
-        auto label_widget = std::make_unique<Label>(m_title);
-        label_widget->set_font_size(10);
-        label_widget->set_alignment(TextAlignment::Center);
-        label_widget->set_height(12);
-        add_child(std::move(label_widget));
+        if (!m_title.empty())
+        {
+            auto label_widget = std::make_unique<Label>(m_title);
+            label_widget->set_font_size(10);
+            label_widget->set_alignment(TextAlignment::Center);
+            label_widget->set_height(12);
+            add_child(std::move(label_widget));
+        }
     }
 
     void ToolbarButton::set_active(bool active)
@@ -37,13 +40,37 @@ namespace horizon
 
     void ToolbarButton::set_title(const std::string &title)
     {
+        bool was_empty = m_title.empty();
         m_title = title;
+        
+        Label* label = nullptr;
         for (auto &child : children())
         {
-            if (auto label = dynamic_cast<Label *>(child.get()))
+            if (auto l = dynamic_cast<Label *>(child.get()))
             {
-                label->set_text(title);
+                label = l;
                 break;
+            }
+        }
+
+        if (m_title.empty())
+        {
+            if (label) remove_child(label);
+        }
+        else
+        {
+            if (label)
+            {
+                label->set_text(m_title);
+            }
+            else
+            {
+                auto label_widget = std::make_unique<Label>(m_title);
+                label_widget->set_font_size(10);
+                label_widget->set_alignment(TextAlignment::Center);
+                label_widget->set_height(12);
+                label_widget->set_text_color(m_text_color);
+                add_child(std::move(label_widget));
             }
         }
         invalidate();
@@ -90,6 +117,27 @@ namespace horizon
             }
             gc.setColor(highlight);
             gc.fillRect(m_start_draw_x + 2, m_start_draw_y + 2, m_width - 4, m_height - 4, 6);
+        }
+    }
+
+    void ToolbarButton::calculate_layout()
+    {
+        Widget::calculate_layout();
+
+        if (m_title.empty() && !children().empty())
+        {
+            int total_children_height = 0;
+            for (auto &child : children())
+            {
+                if (child->is_visible())
+                {
+                    total_children_height += child->height();
+                }
+            }
+            if (total_children_height < m_height)
+            {
+                m_start_draw_y = m_y + (m_height - total_children_height) / 2;
+            }
         }
     }
 } // namespace horizon
