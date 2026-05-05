@@ -37,6 +37,7 @@ struct CaptureEngine::Impl {
     uint32_t stride = 0;
     uint32_t format = 0;
     bool y_invert = false;
+    struct wl_buffer* cur_wl_buffer = nullptr;
 
     ~Impl() {
         if (screencopy_manager) zwlr_screencopy_manager_v1_destroy(screencopy_manager);
@@ -214,17 +215,22 @@ bool CaptureEngine::capture_region(const std::string& output_name, int x, int y,
             }
 
             struct wl_shm_pool* pool = wl_shm_create_pool(impl->shm, fd, impl->buffer_size);
-            struct wl_buffer* buffer = wl_shm_pool_create_buffer(pool, 0, impl->width, impl->height, impl->stride, impl->format);
+            impl->cur_wl_buffer = wl_shm_pool_create_buffer(pool, 0, impl->width, impl->height, impl->stride, impl->format);
             wl_shm_pool_destroy(pool);
             close(fd);
 
-            zwlr_screencopy_frame_v1_copy(frame, buffer);
+            zwlr_screencopy_frame_v1_copy(frame, impl->cur_wl_buffer);
         }
     };
 
     zwlr_screencopy_frame_v1_add_listener(frame, &frame_listener, m_impl.get());
 
     while (!m_impl->done && wl_display_dispatch(m_impl->display) != -1);
+
+    if (m_impl->cur_wl_buffer) {
+        wl_buffer_destroy(m_impl->cur_wl_buffer);
+        m_impl->cur_wl_buffer = nullptr;
+    }
 
     if (m_impl->failed || !m_impl->buffer_data) {
         LOG_ERROR << "[CaptureEngine] Screen capture protocol failed";

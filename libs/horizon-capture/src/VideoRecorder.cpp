@@ -91,6 +91,7 @@ struct VideoRecorder::Impl {
     void* buffer_data = nullptr;
     size_t buffer_size = 0;
     uint32_t b_width, b_height, b_stride, b_format;
+    struct wl_buffer* cur_wl_buffer = nullptr;
 
     // PipeWire
     struct pw_main_loop* pw_loop = nullptr;
@@ -196,7 +197,14 @@ struct VideoRecorder::Impl {
                 }
                 impl->audio_peak = p;
 
-                { std::lock_guard<std::mutex> lock(impl->queue_mutex); impl->audio_queue.push(audio); }
+                { 
+                    std::lock_guard<std::mutex> lock(impl->queue_mutex); 
+                    if (impl->audio_queue.size() < 128) {
+                        impl->audio_queue.push(audio); 
+                    } else {
+                        delete[] audio.data;
+                    }
+                }
                 impl->queue_cond.notify_one();
             }
         }
@@ -446,9 +454,9 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
                     int fd = Impl::create_shm_file(i->buffer_size);
                     i->buffer_data = mmap(0, i->buffer_size, PROT_READ, MAP_SHARED, fd, 0);
                     auto* pool = wl_shm_create_pool(i->shm, fd, i->buffer_size);
-                    auto* buf = wl_shm_pool_create_buffer(pool, 0, i->b_width, i->b_height, i->b_stride, i->b_format);
+                    i->cur_wl_buffer = wl_shm_pool_create_buffer(pool, 0, i->b_width, i->b_height, i->b_stride, i->b_format);
                     wl_shm_pool_destroy(pool); close(fd);
-                    zwlr_screencopy_frame_v1_copy(fr, buf);
+                    zwlr_screencopy_frame_v1_copy(fr, i->cur_wl_buffer);
                 }
             };
             zwlr_screencopy_frame_v1_add_listener(fr, &fl, m_impl.get());
@@ -467,8 +475,20 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
                 f.data = new uint8_t[f.size]; memcpy(f.data, m_impl->buffer_data, f.size);
                 f.timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
                 munmap(m_impl->buffer_data, m_impl->buffer_size); m_impl->buffer_data=nullptr;
-                { std::lock_guard<std::mutex> l(m_impl->queue_mutex); m_impl->video_queue.push(f); }
+                { 
+                    std::lock_guard<std::mutex> l(m_impl->queue_mutex); 
+                    if (m_impl->video_queue.size() < 60) {
+                        m_impl->video_queue.push(f); 
+                    } else {
+                        LOG_WARNING << "[VideoRecorder] Video queue full, dropping frame to save memory";
+                        delete[] f.data;
+                    }
+                }
                 m_impl->queue_cond.notify_one();
+            }
+            if (m_impl->cur_wl_buffer) {
+                wl_buffer_destroy(m_impl->cur_wl_buffer);
+                m_impl->cur_wl_buffer = nullptr;
             }
             zwlr_screencopy_frame_v1_destroy(fr);
             usleep(1000000 / m_impl->fps);
