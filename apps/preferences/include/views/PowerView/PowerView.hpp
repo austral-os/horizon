@@ -27,6 +27,8 @@ namespace horizon::preferences
         bool has_battery() const;
         void save_config();
         void apply_system_settings();
+        void apply_brightness(int value);
+        bool is_on_ac() const;
 
         Label* m_title_label{nullptr};
         Notebook* m_notebook{nullptr};

@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <fstream>
 #include <horizon/I18n.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/UnderConstruction.hpp>
@@ -102,9 +103,14 @@ namespace horizon::preferences
         auto [r1, s1_ptr] = create_row(i18n().tr("preferences.power.change_brightness"), 
                                        std::move(s1), &controls.brightness_label, &controls.brightness_check);
         controls.brightness_slider = dynamic_cast<Slider*>(s1_ptr);
-        controls.brightness_slider->when_value_changed.connect([this, &controls](EventContext&){
+        controls.brightness_slider->when_value_changed.connect([this, is_battery, &controls](EventContext&){
             int val = static_cast<int>(controls.brightness_slider->value() * 100);
             controls.brightness_label->set_text(std::to_string(val) + "%");
+            
+            // Aplicar solo si la pestaña coincide con el estado actual de energía
+            if (this->is_on_ac() == !is_battery) {
+                this->apply_brightness(val);
+            }
         });
         controls.brightness_slider->when_changed.connect([this](EventContext&){
             this->save_config();
@@ -255,6 +261,36 @@ namespace horizon::preferences
 
         // Ejecutar de forma asíncrona para no bloquear la UI del Panel de Preferencias
         system((cmd + " &").c_str());
+    }
+
+    void PowerView::apply_brightness(int value)
+    {
+        if (m_is_loading) return;
+        std::string cmd = "brightnessctl set " + std::to_string(value) + "%";
+        system(cmd.c_str());
+    }
+
+    bool PowerView::is_on_ac() const
+    {
+        try
+        {
+            if (std::filesystem::exists("/sys/class/power_supply"))
+            {
+                for (const auto &entry :
+                     std::filesystem::directory_iterator("/sys/class/power_supply"))
+                {
+                    std::string name = entry.path().filename().string();
+                    if (name.find("AC") == 0 || name.find("ADP") == 0)
+                    {
+                        std::ifstream f(entry.path() / "online");
+                        int online = 0;
+                        if (f >> online) return online == 1;
+                    }
+                }
+            }
+        }
+        catch (...) {}
+        return true; // Asumimos AC por defecto si no podemos determinarlo
     }
 
     bool PowerView::has_battery() const
