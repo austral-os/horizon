@@ -1,6 +1,7 @@
 {
     "zenit": {
         "title": "Reproductor Zenit",
+        "description": "Un reproductor de video de alta fidelidad para Austral OS, potenciado por horizon-video.",
         "play_file": "Reproducir archivo...",
         "aspect_ratio": "Relación de aspecto",
         "aspect_auto": "Automático",

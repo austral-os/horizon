@@ -28,6 +28,6 @@ horizon_install_app(${APP_NAME}
     COMMENT "Reproductor de video de alta fidelidad"
     ICON "multimedia-video-player"
     CATEGORIES "Video;Player;"
-    MIMETYPE "video/mp4;video/x-matroska;video/webm;video/ogg;video/mpeg;video/quicktime;"
+    MIMETYPE "video/mp4;video/x-matroska;video/webm;video/ogg;video/mpeg;video/quicktime;video/x-msvideo;video/x-flv;video/3gpp;video/x-ms-wmv;"
     EXEC_ARGS "%F"
 )

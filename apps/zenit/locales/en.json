@@ -1,6 +1,7 @@
 {
     "zenit": {
         "title": "Zenit Media Player",
+        "description": "A high-fidelity video player for Austral OS, powered by horizon-video.",
         "play_file": "Play file...",
         "aspect_ratio": "Aspect Ratio",
         "aspect_auto": "Auto",

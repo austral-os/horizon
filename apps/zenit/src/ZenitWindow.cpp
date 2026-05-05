@@ -20,7 +20,6 @@ namespace zenit
 
     ZenitWindow::ZenitWindow() : Window("Zenit")
     {
-        horizon::i18n().load_app_locales("zenit");
         set_title(horizon::i18n().tr("zenit.title"));
 
         set_size(1280, 720);

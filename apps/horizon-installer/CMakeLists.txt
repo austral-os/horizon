@@ -27,12 +27,6 @@ target_link_libraries(horizon-installer
         nlohmann_json::nlohmann_json
 )
 
-add_custom_command(TARGET horizon-installer POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/locales
-    $<TARGET_FILE_DIR:horizon-installer>/locales
-)
-
 horizon_install_app(horizon-installer
     APP_ID "horizon-installer"
     NAME "OS Installer"

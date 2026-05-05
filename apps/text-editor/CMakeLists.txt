@@ -20,14 +20,6 @@ target_link_libraries(text-editor
         horizon-text
 )
 
-# Copiar archivos de локаles al directorio de compilación
-add_custom_command(TARGET text-editor POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_SOURCE_DIR}/locales
-    ${CMAKE_CURRENT_BINARY_DIR}/locales
-    COMMENT "Copying app locales to build directory"
-)
-
 horizon_install_app(text-editor
     APP_ID "text-editor"
     NAME "Text Editor"

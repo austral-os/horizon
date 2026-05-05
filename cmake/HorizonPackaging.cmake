@@ -61,6 +61,14 @@ macro(horizon_install_app TARGET_NAME)
             DESTINATION share/horizon/apps/${APP_APP_ID}/locales
             COMPONENT ${APP_APP_ID}
         )
+        
+        # Copy locales to build directory for local testing
+        add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_SOURCE_DIR}/locales
+            $<TARGET_FILE_DIR:${TARGET_NAME}>/locales
+            COMMENT "Copying app locales to build directory"
+        )
     endif()
 
     # Generate and Install Desktop File
