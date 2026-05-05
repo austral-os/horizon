@@ -81,12 +81,12 @@ void VideoView::set_subtitle_track(int id) {
 }
 
 void VideoView::draw(GraphicsContext& ctx) {
+    // Always draw black background first
+    ctx.setColor(0, 0, 0, 1);
+    ctx.fillRect(x(), y(), width(), height());
+
     if (m_driver) {
         m_driver->draw(ctx, x(), y(), width(), height());
-    } else {
-        // Draw black background if no driver/video
-        ctx.setColor(0, 0, 0, 1);
-        ctx.fillRect(x(), y(), width(), height());
     }
 }
 
