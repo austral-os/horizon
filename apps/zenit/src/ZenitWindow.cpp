@@ -27,6 +27,14 @@ namespace zenit
         when_file_opened.connect([this](const horizon::Window::FileOpenedContext &ev)
                                  { open_file(ev.path); });
 
+        m_video_view->when_finished.connect(
+            [this](horizon::EventContext &)
+            {
+                m_progress_bar->set_progress(0.0f);
+                m_play_pause_btn->set_icon_name("media-playback-start");
+                update_controls();
+            });
+
         when_file_close.connect(
             [this](const horizon::EventContext &)
             {
@@ -243,8 +251,19 @@ namespace zenit
 
         if (dur > 0)
         {
-            m_progress_bar->set_progress((float)(pos / dur));
+            float progress = (float)(pos / dur);
+            
+            // Safety check: if we are at the end but the progress bar hasn't reset
+            if (dur - pos < 0.2 && !m_video_view->is_playing())
+            {
+                progress = 0.0f;
+                m_play_pause_btn->set_icon_name("media-playback-start");
+            }
+            
+            m_progress_bar->set_progress(progress);
         }
+
+        invalidate();
     }
 
 } // namespace zenit

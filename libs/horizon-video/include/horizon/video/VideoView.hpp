@@ -2,6 +2,7 @@
 
 #include <horizon/Widget.hpp>
 #include <horizon/video/VideoDriver.hpp>
+#include <horizon/EventsManager.hpp>
 #include <memory>
 #include <string>
 
@@ -32,6 +33,8 @@ public:
     std::vector<TrackInfo> subtitle_tracks() const;
     void set_audio_track(int id);
     void set_subtitle_track(int id);
+
+    EventsManager<EventContext> when_finished;
 
 protected:
     void draw(GraphicsContext& ctx) override;

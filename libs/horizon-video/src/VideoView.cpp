@@ -24,7 +24,9 @@ void VideoView::set_path(const std::string& path) {
 
 void VideoView::play() {
     ensure_driver();
-    if (m_driver) m_driver->play();
+    if (m_driver) {
+        m_driver->play();
+    }
 }
 
 void VideoView::pause() {
@@ -102,6 +104,11 @@ void VideoView::ensure_driver() {
         if (m_driver) {
             m_driver->on_position_changed = [this](double) {
                 invalidate(); // Request redraw on each frame/position change
+            };
+            m_driver->on_finished = [this]() {
+                EventContext ctx;
+                ctx.sender = this;
+                when_finished.run(ctx);
             };
         }
     }

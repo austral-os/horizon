@@ -4,6 +4,8 @@
 #include <horizon/Logger.hpp>
 #include <stdexcept>
 #include <mutex>
+#include <thread>
+#include <atomic>
 
 namespace horizon::video {
 namespace internal {
@@ -16,14 +18,14 @@ public:
 
         mpv_set_option_string(m_mpv, "vo", "libmpv");
         mpv_set_option_string(m_mpv, "hwdec", "auto");
+        mpv_set_option_string(m_mpv, "keep-open", "yes");
 
         if (mpv_initialize(m_mpv) < 0) {
             mpv_terminate_destroy(m_mpv);
             throw std::runtime_error("Could not initialize mpv");
         }
 
-        // Setup render context for software rendering (simplest for Cairo integration)
-        // In the future, we could use OpenGL for better performance
+        // Setup render context for software rendering
         mpv_render_param params[] = {
             {MPV_RENDER_PARAM_API_TYPE, (void*)MPV_RENDER_API_TYPE_SW},
             {MPV_RENDER_PARAM_INVALID, nullptr}
@@ -32,9 +34,32 @@ public:
         if (mpv_render_context_create(&m_render_ctx, m_mpv, params) < 0) {
              LOG_ERROR << "[MpvDriver] Could not create render context";
         }
+
+        // Start event thread
+        m_running = true;
+        m_event_thread = std::thread([this]() {
+            while (m_running) {
+                mpv_event* event = mpv_wait_event(m_mpv, 0.1); // Wait up to 100ms
+                if (event->event_id == MPV_EVENT_NONE) continue;
+                if (event->event_id == MPV_EVENT_SHUTDOWN) {
+                    LOG_INFO << "[MpvDriver] Shutdown event received";
+                    break;
+                }
+
+                if (event->event_id == MPV_EVENT_END_FILE) {
+                    LOG_INFO << "[MpvDriver] EOF detected in event thread";
+                    if (on_finished) on_finished();
+                } else {
+                    LOG_INFO << "[MpvDriver] Event: " << mpv_event_name(event->event_id);
+                }
+            }
+        });
     }
 
     virtual ~MpvDriver() {
+        m_running = false;
+        if (m_event_thread.joinable()) m_event_thread.join();
+        
         if (m_render_ctx) mpv_render_context_free(m_render_ctx);
         if (m_mpv) mpv_terminate_destroy(m_mpv);
     }
@@ -45,6 +70,14 @@ public:
     }
 
     void play() override {
+        // If we reached EOF, seek to beginning first
+        int eof = 0;
+        mpv_get_property(m_mpv, "eof-reached", MPV_FORMAT_FLAG, &eof);
+        if (eof) {
+            const char* cmd[] = {"seek", "0", "absolute", nullptr};
+            mpv_command(m_mpv, cmd);
+        }
+
         int pause = 0;
         mpv_set_property(m_mpv, "pause", MPV_FORMAT_FLAG, &pause);
     }
@@ -74,14 +107,16 @@ public:
     bool is_playing() const override {
         int pause = 1;
         mpv_get_property(m_mpv, "pause", MPV_FORMAT_FLAG, &pause);
-        return !pause;
+        
+        int eof = 0;
+        mpv_get_property(m_mpv, "eof-reached", MPV_FORMAT_FLAG, &eof);
+        
+        return !pause && !eof;
     }
 
     void draw(GraphicsContext& ctx, int x, int y, int w, int h) override {
         if (!m_render_ctx || w <= 0 || h <= 0) return;
 
-        // Software rendering implementation
-        // We render to a buffer and then use ctx.drawPixels
         int stride = w * 4;
         std::vector<uint8_t> buffer(stride * h);
 
@@ -98,7 +133,6 @@ public:
 
         ctx.drawPixels(buffer.data(), w, h, x, y, w, h, 4);
         
-        // Notify position change (this should be done via mpv events, but for now simple)
         if (on_position_changed) on_position_changed(position());
     }
 
@@ -125,11 +159,11 @@ public:
 private:
     mpv_handle* m_mpv = nullptr;
     mpv_render_context* m_render_ctx = nullptr;
+    std::thread m_event_thread;
+    std::atomic<bool> m_running{false};
 
     std::vector<TrackInfo> get_tracks(const std::string& type) const {
         std::vector<TrackInfo> tracks;
-        // In a real implementation, we would parse the 'track-list' property
-        // For now, this is a skeleton
         return tracks;
     }
 };
