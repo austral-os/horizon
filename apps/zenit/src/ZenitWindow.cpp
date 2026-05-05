@@ -207,7 +207,7 @@ namespace zenit
 
     uint32_t ZenitWindow::file_capabilities() const
     {
-        return horizon::FileOpen | horizon::FileClose;
+        return horizon::FileOpen;
     }
 
     std::string ZenitWindow::current_file_path() const
@@ -252,14 +252,14 @@ namespace zenit
         if (dur > 0)
         {
             float progress = (float)(pos / dur);
-            
+
             // Safety check: if we are at the end but the progress bar hasn't reset
             if (dur - pos < 0.2 && !m_video_view->is_playing())
             {
                 progress = 0.0f;
                 m_play_pause_btn->set_icon_name("media-playback-start");
             }
-            
+
             m_progress_bar->set_progress(progress);
         }
 
