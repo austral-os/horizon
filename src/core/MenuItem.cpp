@@ -158,6 +158,10 @@ namespace horizon
     {
         m_submenu = std::move(submenu);
         set_has_submenu(m_submenu != nullptr);
+        if (m_submenu && application())
+        {
+            m_submenu->set_application_recursive(application());
+        }
     }
 
     int MenuItem::preferred_width() const
@@ -227,9 +231,10 @@ namespace horizon
         int content_x = padding;
         if (m_icon)
         {
+            // Absolute: icon at (m_start_draw_x + padding, m_start_draw_y + ...)
             m_icon->set_position(m_start_draw_x + padding, m_start_draw_y + (m_height - 16) / 2);
             m_icon->set_size(16, 16);
-            content_x += 24; // Standard icon slot
+            content_x += 24;
             m_icon->calculate_layout();
         }
         else if (m_reserve_icon_space)
@@ -238,18 +243,30 @@ namespace horizon
         }
 
         int available_content_width = m_width - content_x - shortcut_gap - shortcut_width -
-                                      arrow_width - padding + 5; // +5 safety buffer
+                                      arrow_width - padding + 5;
 
+        // Absolute: label starts at (m_start_draw_x + content_x, m_start_draw_y)
         m_content->set_position(m_start_draw_x + content_x, m_start_draw_y);
         m_content->set_size(available_content_width, m_height);
         m_content->calculate_layout();
 
         if (!m_shortcut_text.empty() && m_shortcut_label)
         {
+            // Absolute: shortcut label from right edge
             m_shortcut_label->set_position(
-                m_start_draw_x + m_width - arrow_width - shortcut_width - padding, m_start_draw_y);
+                m_start_draw_x + m_width - arrow_width - shortcut_width - padding,
+                m_start_draw_y);
             m_shortcut_label->set_size(shortcut_width, m_height);
             m_shortcut_label->calculate_layout();
+        }
+    }
+
+    void MenuItem::set_application_recursive(WaylandWindow *app)
+    {
+        Widget::set_application_recursive(app);
+        if (m_submenu)
+        {
+            m_submenu->set_application_recursive(app);
         }
     }
 

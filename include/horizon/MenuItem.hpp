@@ -73,6 +73,8 @@ namespace horizon
         // Returns the minimum width needed to display this item without truncation
         int preferred_width() const override;
 
+        void set_application_recursive(WaylandWindow *app) override;
+
         bool has_icon() const
         {
             return m_icon != nullptr;

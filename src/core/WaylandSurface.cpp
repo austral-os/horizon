@@ -334,7 +334,8 @@ namespace horizon
         resize_buffer(m_width, m_height);
     }
 
-    void WaylandSurface::setup_xdg_popup(WaylandSurface *parent, int x, int y, int w, int h)
+    void WaylandSurface::setup_xdg_popup(WaylandSurface *parent, int x, int y, int w, int h,
+                                          int popup_w, int popup_h)
     {
         m_role = Role::XdgPopup;
         share_connection_from(parent);
@@ -345,8 +346,13 @@ namespace horizon
         wl_surface_add_listener(m_surface, &surface_listener, this);
         resize_buffer(w, h);
 
+        // Use real menu size (not extended surface size) for positioner
+        // so the compositor anchors/flips correctly
+        int pos_w = (popup_w > 0) ? popup_w : w;
+        int pos_h = (popup_h > 0) ? popup_h : h;
+
         m_xdg_positioner = xdg_wm_base_create_positioner(m_xdg_wm_base);
-        xdg_positioner_set_size(m_xdg_positioner, w, h);
+        xdg_positioner_set_size(m_xdg_positioner, pos_w, pos_h);
         xdg_positioner_set_anchor_rect(m_xdg_positioner, x, y, 1, 1);
         xdg_positioner_set_anchor(m_xdg_positioner, XDG_POSITIONER_ANCHOR_TOP_LEFT);
         xdg_positioner_set_gravity(m_xdg_positioner, XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT);
@@ -909,6 +915,14 @@ namespace horizon
                 d.description = description ? description : "";
                 break;
             }
+        }
+    }
+
+    void WaylandSurface::set_window_geometry(int x, int y, int w, int h)
+    {
+        if (m_xdg_surface)
+        {
+            xdg_surface_set_window_geometry(m_xdg_surface, x, y, w, h);
         }
     }
 

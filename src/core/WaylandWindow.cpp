@@ -1496,12 +1496,8 @@ namespace horizon
         // handle the click normally.
         if (!under && event.type == PointerEvent::Type::Press)
         {
-            LOG_INFO << "[POPUP] Click outside popup detected on main window. Closing menu.";
-            
+            LOG_INFO << "[POPUP] Click outside popup detected. Closing menu.";
             m_window->close_context_menu();
-            
-            // Re-dispatch to main window's normal handler
-            m_window->on_pointer_event(event);
             return;
         }
 
@@ -2765,7 +2761,13 @@ namespace horizon
         int w = m_popup_menu->width();
         int h = m_popup_menu->height();
 
-        m_popup_surface = std::make_unique<WaylandSurface>(w, h);
+        // Submenus need space! Since we currently render submenus in the same popup surface
+        // as their parent, we need to make the surface wide and tall enough to accommodate them.
+        // 600px extra width should fit two levels of submenus easily.
+        int surface_w = w + 600;
+        int surface_h = std::max(h, monitor_h - y - 20); // Try to use available height
+
+        m_popup_surface = std::make_unique<WaylandSurface>(surface_w, surface_h);
 
         m_popup_listener = std::make_unique<PopupEventListener>(this, serial);
         m_popup_surface->set_event_listener(m_popup_listener.get());
@@ -2775,7 +2777,8 @@ namespace horizon
             m_surface->set_last_serial(serial);
         }
 
-        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, w, h);
+        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, surface_w, surface_h);
+        m_popup_surface->set_window_geometry(0, 0, w, h);
 
         invalidate();
     }

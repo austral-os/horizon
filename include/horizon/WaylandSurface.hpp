@@ -185,13 +185,15 @@ namespace horizon
         void setup_layer_surface(uint32_t layer, const std::string &namespace_id, struct wl_output *output = nullptr);
         uint32_t layer_num() const { return m_layer_num; }
         const std::string &layer_namespace() const { return m_layer_namespace; }
-        void setup_xdg_popup(WaylandSurface *parent, int x, int y, int w, int h);
+        void setup_xdg_popup(WaylandSurface *parent, int x, int y, int w, int h,
+                              int popup_w = 0, int popup_h = 0);
         void set_layer_anchor(uint32_t anchor);
         void set_layer_exclusive_zone(int32_t zone);
         void set_layer_keyboard_interactivity(uint32_t interactivity);
         void set_layer_margin(int32_t top, int32_t right, int32_t bottom, int32_t left);
         void set_layer_size(uint32_t width, uint32_t height);
         void set_input_region(int x, int y, int w, int h);
+        void set_window_geometry(int x, int y, int w, int h);
         void clear_input_region();
 
         void init();

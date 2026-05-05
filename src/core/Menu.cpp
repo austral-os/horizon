@@ -64,15 +64,14 @@ namespace horizon
 
     void Menu::calculate_layout()
     {
-        // Update m_start_draw_x/y based on current m_x/y
         Widget::calculate_layout();
 
-        int padding_top = 10;
-        int padding_bottom = 10;
-        int current_y = 1 + padding_top; // 1px border + padding
-        int max_w = m_min_width;
+        int max_w = m_width;
+        int padding_top = 4;
+        int padding_bottom = 4;
+        int current_y = padding_top;
 
-        // Detect if any MenuItem has an icon (for consistent left margin)
+        // First pass: Determine icons presence
         bool any_has_icon = false;
         for (const auto &child : m_children)
         {
@@ -86,57 +85,53 @@ namespace horizon
             }
         }
 
-        // Propagate icon space reservation to all items
         for (const auto &child : m_children)
         {
             if (auto *item = dynamic_cast<MenuItem *>(child.get()))
-            {
                 item->set_reserve_icon_space(any_has_icon);
-            }
         }
 
-        // First pass: Determine max width needed based on actual content
+        // Second pass: Determine max width needed
         for (const auto &child : m_children)
         {
             if (auto *item = dynamic_cast<MenuItem *>(child.get()))
-            {
                 max_w = std::max(max_w, item->preferred_width() + 2);
-            }
-            else
-            {
-                max_w = std::max(max_w, child->width() + 2);
-            }
         }
 
-        // Apply max_width constraint if set
+        if (max_w < 100) max_w = 200;
+
         if (m_max_width > 0)
-        {
             max_w = std::min(max_w, m_max_width);
-        }
 
-        // Second pass: Layout children using absolute coordinates
+        // Third pass: Layout children with ABSOLUTE coordinates
         for (auto &child : m_children)
         {
+            int h = child->preferred_height();
+            if (h <= 0) h = 24;
+
             child->set_position(m_start_draw_x + 1, m_start_draw_y + current_y);
-            child->set_size(max_w - 2, child->height());
-            child->calculate_layout(); // Explicit recursive call for stable positioning
-            current_y += child->height();
+            child->set_size(max_w - 2, h);
+            child->calculate_layout();
+            current_y += h;
         }
 
         m_total_content_height = current_y + padding_bottom;
         int final_h = (int)m_total_content_height;
-        if (m_max_menu_height > 0 && final_h > m_max_menu_height) {
+        if (m_max_menu_height > 0 && final_h > m_max_menu_height)
             final_h = m_max_menu_height;
-        }
 
-        // Update size through set_size to trigger invalidation if changed
         set_size(max_w, final_h);
-        // Base coordinate refresh is handled within set_size -> invalidate or explicitly
-        Widget::calculate_layout();
     }
 
     Widget *Menu::hit_test(int x, int y)
     {
+        // First check if we have an active submenu and if the hit is there
+        if (m_active_submenu && m_active_submenu->is_visible())
+        {
+            if (Widget *hit = m_active_submenu->hit_test(x, y))
+                return hit;
+        }
+
         if (x < m_x || y < m_y || x > m_x + m_width || y > m_y + m_height)
             return nullptr;
 
@@ -159,6 +154,10 @@ namespace horizon
         {
             m_active_submenu->close_submenus();
             m_active_submenu->set_visible(false);
+            // Crucial: Unset parent before clearing pointer
+            if (m_active_submenu->m_parent == this) {
+                m_active_submenu->m_parent = nullptr;
+            }
             m_active_submenu = nullptr;
             invalidate(); // Ensure the area where the submenu was is repainted
         }
@@ -174,6 +173,7 @@ namespace horizon
         if (menu)
         {
             m_active_submenu = menu;
+            m_active_submenu->m_parent = this;
             m_active_submenu->set_visible(true);
             m_active_submenu->invalidate();
 
@@ -260,6 +260,14 @@ namespace horizon
 
         ctx.restore(); // Restore translation
         ctx.restore(); // Restore clipping
+
+        // 4. Draw active submenu (outside the parent's clipping and translation)
+        if (m_active_submenu && m_active_submenu->is_visible())
+        {
+            // Ensure the submenu is rendered into the same context but with its own absolute coordinates.
+            // We pass the same dirty region as the parent.
+            m_active_submenu->render(ctx, cx, cy, cw, ch, force || should_draw);
+        }
 
         m_dirty = false;
         m_child_dirty = false;

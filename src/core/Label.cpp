@@ -105,7 +105,8 @@ namespace horizon
         // Cache-based layout
         if (m_last_width != m_available_draw_width || m_last_height != m_available_draw_height ||
             m_last_text != m_text || m_last_font_weight != m_font_weight ||
-            m_last_font_size != size || m_last_font_family != family)
+            m_last_font_size != size || m_last_font_family != family ||
+            m_cached_lines.empty()) // Always recalculate if cache is empty
          {
              m_cached_lines = calculate_lines(gc, m_available_draw_width - m_left_padding,
                                               m_available_draw_height, line_height);
@@ -125,7 +126,7 @@ namespace horizon
             total_height = (int)lines.size() * line_height - 4; // Subtract trailing padding
         }
 
-        int start_y = m_y;
+        int start_y = m_start_draw_y;
 
         if (m_vertical_alignment == VerticalAlignment::Middle && m_height > total_height)
         {
@@ -139,7 +140,7 @@ namespace horizon
         for (size_t i = 0; i < lines.size(); ++i)
         {
             int current_y = start_y + (i * line_height) + size - 3;
-            int text_x = m_x + m_left_padding;
+            int text_x = m_start_draw_x + m_left_padding;
 
             if (m_alignment == TextAlignment::Center || m_alignment == TextAlignment::Right)
             {
