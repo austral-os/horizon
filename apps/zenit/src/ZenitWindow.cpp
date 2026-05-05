@@ -107,6 +107,7 @@ namespace zenit
         m_current_time_label = current_lbl.get();
         m_current_time_label->set_margin(5);
         m_current_time_label->set_fixed_size(100);
+        m_current_time_label->set_alignment(horizon::TextAlignment::Right);
         container->add_child(std::move(current_lbl));
 
         // Progress Bar
