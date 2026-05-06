@@ -52,8 +52,7 @@ namespace horizon
                     std::string msg = i18n().tr("system_monitor.confirm_kill") + " " + p.name + " (PID: " + std::to_string(p.pid) + ")?";
                     if (application()->confirm(msg, i18n().tr("system_monitor.toolbar.terminate")))
                     {
-                        ProcessManager pm;
-                        pm.terminate_process(p.pid);
+                        m_process_manager.terminate_process(p.pid);
                         update_processes();
                     }
                 }
@@ -86,7 +85,14 @@ namespace horizon
         m_search_box = search_box.get();
         m_search_box->set_placeholder(i18n().tr("system_monitor.toolbar.search"));
         m_search_box->set_fixed_size(35);
-        m_search_box->when_text_changed.connect([this](KeyEventContext &) { update_processes(); });
+        m_search_box->when_text_changed.connect([this](KeyEventContext &) { 
+            // Simple debounce using a timer
+            static size_t debounce_timer = 0;
+            if (debounce_timer) application()->stop_timer(debounce_timer);
+            debounce_timer = application()->add_timer(300, [this]() {
+                update_processes();
+            });
+        });
 
         auto search_wrapper = std::make_unique<Widget>();
         search_wrapper->set_layout_type(WidgetLayoutTypes::WIDGET_LAYOUT_VERTICAL);
@@ -206,8 +212,7 @@ namespace horizon
 
     void SystemMonitorWindow::update_processes()
     {
-        ProcessManager pm;
-        auto processes = pm.get_processes();
+        auto processes = m_process_manager.get_processes();
         
         set_title(i18n().tr("system_monitor.title"));
 

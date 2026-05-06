@@ -27,6 +27,7 @@ namespace horizon
 
         size_t m_refresh_timer_id{0};
         int m_selected_pid{-1};
+        ProcessManager m_process_manager;
         TableView<ProcessInfo>* m_table_view{nullptr};
         ToolbarButton* m_btn_terminate{nullptr};
         SearchBox* m_search_box{nullptr};
