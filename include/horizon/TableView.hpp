@@ -169,6 +169,29 @@ namespace horizon
         const std::vector<T>& data() const { return m_data; }
         int selected_index() const { return m_selected_rows.empty() ? -1 : *m_selected_rows.begin(); }
 
+        int sort_column() const { return m_sort_column; }
+        bool sort_ascending() const { return m_sort_ascending; }
+
+        void apply_sort()
+        {
+            if (m_sort_column < 0 || (size_t)m_sort_column >= m_columns.size())
+                return;
+            
+            size_t col_idx = (size_t)m_sort_column;
+            if (m_columns[col_idx].sort_predicate)
+            {
+                std::sort(m_data.begin(), m_data.end(),
+                          [this, col_idx](const T &a, const T &b)
+                          {
+                              if (m_sort_ascending)
+                                  return m_columns[col_idx].sort_predicate(a, b);
+                              else
+                                  return m_columns[col_idx].sort_predicate(b, a);
+                          });
+                rebuild_content();
+            }
+        }
+
         EventsManager<TableViewRowMouseClickContext<T>> when_row_click;
         EventsManager<TableViewRowMouseClickContext<T>> when_row_dbl_click;
 

@@ -183,10 +183,8 @@ namespace horizon
     {
         ProcessManager pm;
         auto processes = pm.get_processes();
-
-        // Debug: update title to show it's alive
-        set_title(i18n().tr("system_monitor.title") + " (" + std::to_string(processes.size()) +
-                  " proc, " + std::to_string(m_table_view->children().size()) + " children)");
+        
+        set_title(i18n().tr("system_monitor.title"));
 
         std::string filter = m_search_box->text();
         if (!filter.empty())
@@ -206,5 +204,7 @@ namespace horizon
         {
             m_table_view->set_data(std::move(processes));
         }
+
+        m_table_view->apply_sort();
     }
 } // namespace horizon
