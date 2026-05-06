@@ -188,5 +188,13 @@
             "error": "Error",
             "warning": "Advertencia"
         }
+    },
+    "datetime": {
+        "minutes": {
+            "short": {
+                "one": "Minuto",
+                "other": "Minutos"
+            }
+        }
     }
 }

@@ -17,8 +17,13 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
+#include <atomic>
+#include <thread>
+#include <vector>
 
 using namespace horizon;
+
+static std::atomic<bool> g_unlocked{false};
 
 // PAM Definitions (since headers are missing)
 #define PAM_SUCCESS 0
@@ -114,14 +119,21 @@ bool validate_password(const std::string &username, const std::string &password)
 class LockWindow : public WaylandLayerWindow
 {
 public:
-    LockWindow() : WaylandLayerWindow("horizon.lock", 3, true)
+    LockWindow(int monitor_index = -1) : WaylandLayerWindow("horizon.lock", 3, true, monitor_index)
     {
         set_name("Horizon Lock Screen");
         set_anchor(15); // Top, Bottom, Left, Right
+        set_exclusive_zone(-1); // Ignore exclusive zones (like the dock)
         set_keyboard_interactivity(1);
+        set_blur(true);
 
         initialize();
         setup_ui();
+
+        // Timer to check if we should quit (unlocked from another monitor)
+        add_timer(100, [this]() {
+            if (g_unlocked) quit();
+        }, true);
     }
 
 private:
@@ -232,6 +244,7 @@ private:
         if (validate_password(username, password))
         {
             LOG_INFO << "Unlock successful.";
+            g_unlocked = true;
             quit();
         }
         else
@@ -255,8 +268,26 @@ int main(int argc, char **argv)
     i18n().add_search_path("./");
     i18n().load_core_locales();
 
-    LockWindow app;
-    app.run();
+    LockWindow main_window(0);
+    int monitor_count = main_window.get_monitor_count();
+    LOG_INFO << "Starting Horizon Lock on " << monitor_count << " monitors.";
+
+    std::vector<std::thread> secondary_threads;
+    for (int i = 1; i < monitor_count; ++i)
+    {
+        secondary_threads.emplace_back([i]() {
+            LockWindow secondary(i);
+            secondary.run();
+        });
+    }
+
+    main_window.run();
+
+    for (auto &t : secondary_threads)
+    {
+        if (t.joinable())
+            t.join();
+    }
 
     return 0;
 }
