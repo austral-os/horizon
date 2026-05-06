@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <fstream>
 #include <horizon/ConfigManager.hpp>
+#include <horizon/IdleManager.hpp>
 #include <horizon/Logger.hpp>
 #include <iostream>
 #include <string>
@@ -64,6 +65,24 @@ void apply_brightness(int value)
 }
 
 /**
+ * Get current screen brightness percentage.
+ */
+int get_brightness_percent()
+{
+    FILE *pipe = popen("brightnessctl -m | cut -d, -f4 | tr -d '%'", "r");
+    if (!pipe)
+        return 50;
+    char buffer[128];
+    int val = 50;
+    if (fgets(buffer, sizeof(buffer), pipe))
+    {
+        val = std::atoi(buffer);
+    }
+    pclose(pipe);
+    return val;
+}
+
+/**
  * Apply battery charge thresholds to sysfs nodes.
  */
 void apply_battery_limits(int start, int end)
@@ -100,72 +119,222 @@ void apply_battery_limits(int start, int end)
     }
 }
 
-int main(int argc, char **argv)
+uint32_t parse_duration(const std::string &s)
 {
-    // Initialize Horizon Logger
-    Logger::instance().init("horizon-powerd");
-    LOG_INFO << "Horizon Power Daemon started";
-
-    bool last_ac_state = !is_on_ac(); // Force first check
-    std::filesystem::file_time_type last_config_time;
-    std::string config_file = get_config_path("power.json");
-
-    while (true)
+    if (s == "never")
+        return 0;
+    try
     {
-        bool current_ac = is_on_ac();
-        bool config_changed = false;
-
-        // Check if config file was modified
-        if (std::filesystem::exists(config_file))
+        if (s.find("m") != std::string::npos)
         {
-            auto current_time = std::filesystem::last_write_time(config_file);
-            if (current_time != last_config_time)
-            {
-                config_changed = true;
-                last_config_time = current_time;
-            }
+            return std::stoul(s) * 60 * 1000;
         }
-
-        // Apply settings if power state changed or config changed
-        if (current_ac != last_ac_state || config_changed)
+        if (s.find("s") != std::string::npos)
         {
-            ConfigManager config(config_file);
-            if (config.load())
-            {
-                auto power = config.get_section("power");
-
-                // 1. Handle Brightness
-                std::string mode = current_ac ? "ac" : "battery";
-                LOG_INFO << "Applying brightness for mode: " << mode;
-                if (power.contains(mode))
-                {
-                    auto section = power[mode];
-                    if (section.contains("brightness"))
-                    {
-                        int brightness = section["brightness"].get<int>();
-                        LOG_INFO << "Applying brightness: " << brightness << "%";
-                        apply_brightness(brightness);
-                    }
-                }
-
-                // 2. Handle Battery Limits (Always apply to be sure)
-                if (power.contains("battery"))
-                {
-                    auto b = power["battery"];
-                    if (b.contains("charge_limit_min") && b.contains("charge_limit_max"))
-                    {
-                        LOG_INFO << "Applying battery limits: " << b["charge_limit_min"].get<int>()
-                                 << "% - " << b["charge_limit_max"].get<int>() << "%";
-                        apply_battery_limits(b["charge_limit_min"].get<int>(),
-                                             b["charge_limit_max"].get<int>());
-                    }
-                }
-            }
-            last_ac_state = current_ac;
+            return std::stoul(s) * 1000;
         }
+    }
+    catch (...)
+    {
+    }
+    return 0;
+}
 
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+class PowerDaemon
+{
+public:
+    PowerDaemon()
+    {
+        m_config_file = get_config_path("power.json");
     }
 
+    void run()
+    {
+        LOG_INFO << "Horizon Power Daemon started";
+        m_idle_manager.init();
+
+        bool last_ac_state = !is_on_ac(); // Force first check
+        std::filesystem::file_time_type last_config_time;
+
+        while (true)
+        {
+            bool current_ac = is_on_ac();
+            bool config_changed = false;
+
+            if (std::filesystem::exists(m_config_file))
+            {
+                auto current_time = std::filesystem::last_write_time(m_config_file);
+                if (current_time != last_config_time)
+                {
+                    config_changed = true;
+                    last_config_time = current_time;
+                }
+            }
+
+            if (current_ac != last_ac_state || config_changed)
+            {
+                apply_settings(current_ac);
+                last_ac_state = current_ac;
+            }
+
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+        }
+    }
+
+private:
+    void apply_settings(bool current_ac)
+    {
+        ConfigManager config(m_config_file);
+        if (!config.load())
+            return;
+
+        auto power = config.get_section("power");
+        std::string mode = current_ac ? "ac" : "battery";
+
+        if (power.contains(mode))
+        {
+            auto section = power[mode];
+
+            // 1. Brightness
+            if (section.contains("brightness") && !m_is_dimmed)
+            {
+                int brightness = section["brightness"].get<int>();
+                LOG_INFO << "Applying brightness: " << brightness << "%";
+                apply_brightness(brightness);
+            }
+
+            // 2. Idle / Dimming
+            if (section.contains("dim_after"))
+            {
+                std::string dim_after = section["dim_after"].get<std::string>();
+                update_idle_settings(dim_after);
+            }
+
+            // 3. Turn Off / Lock
+            if (section.contains("turn_off_after"))
+            {
+                std::string turn_off_after = section["turn_off_after"].get<std::string>();
+                update_lock_settings(turn_off_after);
+            }
+        }
+
+        // 4. Battery Limits
+        if (power.contains("battery"))
+        {
+            auto b = power["battery"];
+            if (b.contains("charge_limit_min") && b.contains("charge_limit_max"))
+            {
+                LOG_INFO << "Applying battery limits: " << b["charge_limit_min"].get<int>()
+                         << "% - " << b["charge_limit_max"].get<int>() << "%";
+                apply_battery_limits(b["charge_limit_min"].get<int>(),
+                                     b["charge_limit_max"].get<int>());
+            }
+        }
+    }
+
+    void update_idle_settings(const std::string &dim_after)
+    {
+        uint32_t ms = parse_duration(dim_after);
+        if (ms == m_current_dim_timeout)
+            return;
+
+        if (m_dim_handle)
+        {
+            m_idle_manager.remove_idle_timeout(m_dim_handle);
+            m_dim_handle = nullptr;
+        }
+
+        m_current_dim_timeout = ms;
+        if (ms > 0)
+        {
+            LOG_INFO << "Setting idle dim timeout to " << ms << "ms";
+            m_dim_handle = m_idle_manager.add_idle_timeout(ms, [this](bool idle)
+                                                           { this->handle_dim_event(idle); });
+        }
+    }
+
+    void update_lock_settings(const std::string &turn_off_after)
+    {
+        uint32_t ms = parse_duration(turn_off_after);
+        if (ms == m_current_lock_timeout)
+            return;
+
+        if (m_lock_handle)
+        {
+            m_idle_manager.remove_idle_timeout(m_lock_handle);
+            m_lock_handle = nullptr;
+        }
+
+        m_current_lock_timeout = ms;
+        if (ms > 0)
+        {
+            LOG_INFO << "Setting idle lock timeout to " << ms << "ms";
+            m_lock_handle = m_idle_manager.add_idle_timeout(ms, [this](bool idle)
+                                                            { this->handle_lock_event(idle); });
+        }
+    }
+
+    void handle_dim_event(bool idle)
+    {
+        if (idle)
+        {
+            if (m_is_dimmed)
+                return;
+            m_pre_dim_brightness = get_brightness_percent();
+            int dim_val = m_pre_dim_brightness / 2;
+            if (dim_val < 5)
+                dim_val = 5;
+
+            LOG_INFO << "System idle, dimming screen from " << m_pre_dim_brightness << "% to " << dim_val << "%";
+            apply_brightness(dim_val);
+            m_is_dimmed = true;
+        }
+        else
+        {
+            if (!m_is_dimmed)
+                return;
+            LOG_INFO << "System active, restoring brightness to " << m_pre_dim_brightness << "%";
+            apply_brightness(m_pre_dim_brightness);
+            m_is_dimmed = false;
+        }
+    }
+
+    void handle_lock_event(bool idle)
+    {
+        if (idle)
+        {
+            LOG_INFO << "System idle (long time), locking session and turning off screen";
+            // Lock session
+            int res = system("horizon-lock &");
+            (void)res;
+            
+            // Turn off screen (using brightness 0 for now as simple DPMS alternative)
+            apply_brightness(0);
+        }
+        else
+        {
+            LOG_INFO << "System active, turning screen back on";
+            // Restore brightness (dimming handle will handle the exact level)
+            if (!m_is_dimmed) {
+                apply_brightness(m_pre_dim_brightness);
+            }
+        }
+    }
+
+    std::string m_config_file;
+    IdleManager m_idle_manager;
+    void *m_dim_handle{nullptr};
+    void *m_lock_handle{nullptr};
+    uint32_t m_current_dim_timeout{0};
+    uint32_t m_current_lock_timeout{0};
+    bool m_is_dimmed{false};
+    int m_pre_dim_brightness{50};
+};
+
+int main(int argc, char **argv)
+{
+    Logger::instance().init("horizon-powerd");
+    PowerDaemon daemon;
+    daemon.run();
     return 0;
 }

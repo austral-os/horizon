@@ -3,9 +3,9 @@
 #include <horizon/I18n.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/UnderConstruction.hpp>
-#include <utils/ConfigUtils.hpp>
 #include <iomanip>
 #include <sstream>
+#include <utils/ConfigUtils.hpp>
 #include <views/PowerView/PowerView.hpp>
 
 namespace horizon::preferences
@@ -49,7 +49,7 @@ namespace horizon::preferences
         page->set_spacing(30);
         page->set_margin(20);
 
-        auto& controls = is_battery ? m_battery_controls : m_ac_controls;
+        auto &controls = is_battery ? m_battery_controls : m_ac_controls;
 
         // --- Pantalla y brillo ---
         auto brightness_group = std::make_unique<Widget>();
@@ -63,8 +63,8 @@ namespace horizon::preferences
         section_title->set_fixed_size(30);
         brightness_group->add_child(std::move(section_title));
 
-        auto create_row = [](const std::string &label_text, std::unique_ptr<Widget> control, 
-                             Label** suffix_lbl, Checkbox<AquaObject>** check_ptr = nullptr)
+        auto create_row = [](const std::string &label_text, std::unique_ptr<Widget> control,
+                             Label **suffix_lbl, Checkbox<AquaObject> **check_ptr = nullptr)
         {
             auto row = std::make_unique<Widget>();
             row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
@@ -100,25 +100,28 @@ namespace horizon::preferences
 
         // Screen brightness
         auto s1 = std::make_unique<Slider>();
-        auto [r1, s1_ptr] = create_row(i18n().tr("preferences.power.change_brightness"), 
-                                       std::move(s1), &controls.brightness_label, &controls.brightness_check);
-        controls.brightness_slider = dynamic_cast<Slider*>(s1_ptr);
-        controls.brightness_slider->when_value_changed.connect([this, is_battery, &controls](EventContext&){
-            int val = static_cast<int>(controls.brightness_slider->value() * 100);
-            controls.brightness_label->set_text(std::to_string(val) + "%");
-            
-            // Aplicar solo si la pestaña coincide con el estado actual de energía
-            if (this->is_on_ac() == !is_battery) {
-                this->apply_brightness(val);
-            }
-        });
-        controls.brightness_slider->when_changed.connect([this](EventContext&){
-            this->save_config();
-        });
-        if (controls.brightness_check) {
-            controls.brightness_check->when_toggle.connect([this](ToggleEventContext&){
-                this->save_config();
+        auto [r1, s1_ptr] =
+            create_row(i18n().tr("preferences.power.change_brightness"), std::move(s1),
+                       &controls.brightness_label, &controls.brightness_check);
+        controls.brightness_slider = dynamic_cast<Slider *>(s1_ptr);
+        controls.brightness_slider->when_value_changed.connect(
+            [this, is_battery, &controls](EventContext &)
+            {
+                int val = static_cast<int>(controls.brightness_slider->value() * 100);
+                controls.brightness_label->set_text(std::to_string(val) + "%");
+
+                // Aplicar solo si la pestaña coincide con el estado actual de energía
+                if (this->is_on_ac() == !is_battery)
+                {
+                    this->apply_brightness(val);
+                }
             });
+        controls.brightness_slider->when_changed.connect([this](EventContext &)
+                                                         { this->save_config(); });
+        if (controls.brightness_check)
+        {
+            controls.brightness_check->when_toggle.connect([this](ToggleEventContext &)
+                                                           { this->save_config(); });
         }
         brightness_group->add_child(std::move(r1));
 
@@ -128,12 +131,12 @@ namespace horizon::preferences
         c2->add_item("1m", "1 " + i18n().tr("datetime.minutes.short.one"));
         c2->add_item("5m", "5 " + i18n().tr("datetime.minutes.short.other"));
         c2->set_selected_item_index(0);
-        Label* dummy_lbl2;
-        auto [r2, c2_ptr] = create_row(i18n().tr("preferences.power.dim_automatically"), std::move(c2), &dummy_lbl2);
-        controls.dim_combo = dynamic_cast<Combo*>(c2_ptr);
-        controls.dim_combo->when_item_selected.connect([this](ComboItemSelectedContext&){
-            this->save_config();
-        });
+        Label *dummy_lbl2;
+        auto [r2, c2_ptr] = create_row(i18n().tr("preferences.power.dim_automatically"),
+                                       std::move(c2), &dummy_lbl2);
+        controls.dim_combo = dynamic_cast<Combo *>(c2_ptr);
+        controls.dim_combo->when_item_selected.connect([this](ComboItemSelectedContext &)
+                                                       { this->save_config(); });
         brightness_group->add_child(std::move(r2));
 
         // Turn off display
@@ -142,12 +145,12 @@ namespace horizon::preferences
         c3->add_item("1m", "1 " + i18n().tr("datetime.minutes.short.one"));
         c3->add_item("5m", "5 " + i18n().tr("datetime.minutes.short.other"));
         c3->set_selected_item_index(0);
-        Label* dummy_lbl3;
-        auto [r3, c3_ptr] = create_row(i18n().tr("preferences.power.turn_off_display"), std::move(c3), &dummy_lbl3);
-        controls.turn_off_combo = dynamic_cast<Combo*>(c3_ptr);
-        controls.turn_off_combo->when_item_selected.connect([this](ComboItemSelectedContext&){
-            this->save_config();
-        });
+        Label *dummy_lbl3;
+        auto [r3, c3_ptr] =
+            create_row(i18n().tr("preferences.power.turn_off_display"), std::move(c3), &dummy_lbl3);
+        controls.turn_off_combo = dynamic_cast<Combo *>(c3_ptr);
+        controls.turn_off_combo->when_item_selected.connect([this](ComboItemSelectedContext &)
+                                                            { this->save_config(); });
         brightness_group->add_child(std::move(r3));
 
         // --- Battery Limits ---
@@ -167,18 +170,24 @@ namespace horizon::preferences
             s_charge->set_value(20.0f);
             s_charge->set_second_value(80.0f);
 
-            auto [r_charge, sc_ptr] = create_row(i18n().tr("preferences.power.battery_charge_range"), 
-                                                 std::move(s_charge), &controls.charge_label);
-            controls.charge_slider = dynamic_cast<Slider*>(sc_ptr);
-            controls.charge_slider->when_value_changed.connect([&controls](EventContext&){
-                int v1 = static_cast<int>(controls.charge_slider->value());
-                int v2 = static_cast<int>(controls.charge_slider->second_value());
-                controls.charge_label->set_text(std::to_string(v1) + "-" + std::to_string(v2) + "%");
-            });
-            controls.charge_slider->when_changed.connect([this](EventContext&){
-                this->save_config();
-                this->apply_system_settings();
-            });
+            auto [r_charge, sc_ptr] =
+                create_row(i18n().tr("preferences.power.battery_charge_range"), std::move(s_charge),
+                           &controls.charge_label);
+            controls.charge_slider = dynamic_cast<Slider *>(sc_ptr);
+            controls.charge_slider->when_value_changed.connect(
+                [&controls](EventContext &)
+                {
+                    int v1 = static_cast<int>(controls.charge_slider->value());
+                    int v2 = static_cast<int>(controls.charge_slider->second_value());
+                    controls.charge_label->set_text(std::to_string(v1) + "-" + std::to_string(v2) +
+                                                    "%");
+                });
+            controls.charge_slider->when_changed.connect(
+                [this](EventContext &)
+                {
+                    this->save_config();
+                    this->apply_system_settings();
+                });
             brightness_group->add_child(std::move(r_charge));
         }
 
@@ -188,9 +197,11 @@ namespace horizon::preferences
 
     void PowerView::from_json(const nlohmann::json &j)
     {
-        auto load_page = [](const nlohmann::json& sj, PageControls& c) {
-            if (sj.is_null()) return;
-            if (c.brightness_slider && sj.contains("brightness")) 
+        auto load_page = [](const nlohmann::json &sj, PageControls &c)
+        {
+            if (sj.is_null())
+                return;
+            if (c.brightness_slider && sj.contains("brightness"))
                 c.brightness_slider->set_value(sj["brightness"].get<float>() / 100.0f);
             if (c.brightness_check && sj.contains("change_brightness"))
                 c.brightness_check->set_checked(sj["change_brightness"].get<bool>());
@@ -198,27 +209,35 @@ namespace horizon::preferences
                 c.dim_combo->set_selected_item_by_id(sj["dim_after"].get<std::string>());
             if (c.turn_off_combo && sj.contains("turn_off_after"))
                 c.turn_off_combo->set_selected_item_by_id(sj["turn_off_after"].get<std::string>());
-            if (c.charge_slider && sj.contains("charge_limit_min") && sj.contains("charge_limit_max")) {
+            if (c.charge_slider && sj.contains("charge_limit_min") &&
+                sj.contains("charge_limit_max"))
+            {
                 c.charge_slider->set_value(sj["charge_limit_min"].get<float>());
                 c.charge_slider->set_second_value(sj["charge_limit_max"].get<float>());
             }
         };
 
-        if (j.contains("ac")) load_page(j["ac"], m_ac_controls);
-        if (j.contains("battery")) load_page(j["battery"], m_battery_controls);
+        if (j.contains("ac"))
+            load_page(j["ac"], m_ac_controls);
+        if (j.contains("battery"))
+            load_page(j["battery"], m_battery_controls);
     }
 
     nlohmann::json PowerView::to_json() const
     {
-        auto save_page = [](const PageControls& c) {
+        auto save_page = [](const PageControls &c)
+        {
             nlohmann::json sj;
-            if (c.brightness_slider) sj["brightness"] = static_cast<int>(c.brightness_slider->value() * 100);
-            if (c.brightness_check) sj["change_brightness"] = c.brightness_check->is_checked();
-            if (c.dim_combo && c.dim_combo->selected_item()) 
+            if (c.brightness_slider)
+                sj["brightness"] = static_cast<int>(c.brightness_slider->value() * 100);
+            if (c.brightness_check)
+                sj["change_brightness"] = c.brightness_check->is_checked();
+            if (c.dim_combo && c.dim_combo->selected_item())
                 sj["dim_after"] = c.dim_combo->selected_item()->id;
             if (c.turn_off_combo && c.turn_off_combo->selected_item())
                 sj["turn_off_after"] = c.turn_off_combo->selected_item()->id;
-            if (c.charge_slider) {
+            if (c.charge_slider)
+            {
                 sj["charge_limit_min"] = static_cast<int>(c.charge_slider->value());
                 sj["charge_limit_max"] = static_cast<int>(c.charge_slider->second_value());
             }
@@ -227,7 +246,8 @@ namespace horizon::preferences
 
         nlohmann::json j;
         j["ac"] = save_page(m_ac_controls);
-        if (has_battery()) {
+        if (has_battery())
+        {
             j["battery"] = save_page(m_battery_controls);
         }
         return j;
@@ -235,15 +255,18 @@ namespace horizon::preferences
 
     void PowerView::save_config()
     {
-        if (m_is_loading) return;
+        if (m_is_loading)
+            return;
         m_config->set_section("power", to_json());
         m_config->save();
     }
 
     void PowerView::apply_system_settings()
     {
-        if (m_is_loading) return;
-        if (!has_battery() || !m_battery_controls.charge_slider) return;
+        if (m_is_loading)
+            return;
+        if (!has_battery() || !m_battery_controls.charge_slider)
+            return;
 
         int start = static_cast<int>(m_battery_controls.charge_slider->value());
         int end = static_cast<int>(m_battery_controls.charge_slider->second_value());
@@ -252,11 +275,19 @@ namespace horizon::preferences
         // Cubre tanto el estándar moderno como el de ThinkPads
         std::string cmd = "pkexec bash -c 'for bat in /sys/class/power_supply/BAT*; do "
                           "if [ -f \"$bat/charge_control_start_threshold\" ]; then "
-                          "echo " + std::to_string(start) + " > \"$bat/charge_control_start_threshold\" && "
-                          "echo " + std::to_string(end) + " > \"$bat/charge_control_end_threshold\"; "
+                          "echo " +
+                          std::to_string(start) +
+                          " > \"$bat/charge_control_start_threshold\" && "
+                          "echo " +
+                          std::to_string(end) +
+                          " > \"$bat/charge_control_end_threshold\"; "
                           "elif [ -f \"$bat/charge_start_threshold\" ]; then "
-                          "echo " + std::to_string(start) + " > \"$bat/charge_start_threshold\" && "
-                          "echo " + std::to_string(end) + " > \"$bat/charge_stop_threshold\"; "
+                          "echo " +
+                          std::to_string(start) +
+                          " > \"$bat/charge_start_threshold\" && "
+                          "echo " +
+                          std::to_string(end) +
+                          " > \"$bat/charge_stop_threshold\"; "
                           "fi; done'";
 
         // Ejecutar de forma asíncrona para no bloquear la UI del Panel de Preferencias
@@ -265,7 +296,8 @@ namespace horizon::preferences
 
     void PowerView::apply_brightness(int value)
     {
-        if (m_is_loading) return;
+        if (m_is_loading)
+            return;
         std::string cmd = "brightnessctl set " + std::to_string(value) + "%";
         system(cmd.c_str());
     }
@@ -284,12 +316,15 @@ namespace horizon::preferences
                     {
                         std::ifstream f(entry.path() / "online");
                         int online = 0;
-                        if (f >> online) return online == 1;
+                        if (f >> online)
+                            return online == 1;
                     }
                 }
             }
         }
-        catch (...) {}
+        catch (...)
+        {
+        }
         return true; // Asumimos AC por defecto si no podemos determinarlo
     }
 
@@ -309,7 +344,9 @@ namespace horizon::preferences
                 }
             }
         }
-        catch (...) {}
+        catch (...)
+        {
+        }
         return false;
     }
 } // namespace horizon::preferences
