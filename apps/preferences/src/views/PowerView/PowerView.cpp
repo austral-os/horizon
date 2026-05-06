@@ -51,18 +51,6 @@ namespace horizon::preferences
 
         auto &controls = is_battery ? m_battery_controls : m_ac_controls;
 
-        // --- Pantalla y brillo ---
-        auto brightness_group = std::make_unique<Widget>();
-        brightness_group->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        brightness_group->set_spacing(15);
-
-        auto section_title =
-            std::make_unique<Label>(i18n().tr("preferences.power.display_and_brightness"));
-        section_title->set_font_weight(FontWeight::FONT_WEIGHT_BOLD);
-        section_title->set_font_size(18);
-        section_title->set_fixed_size(30);
-        brightness_group->add_child(std::move(section_title));
-
         auto create_row = [](const std::string &label_text, std::unique_ptr<Widget> control,
                              Label **suffix_lbl, Checkbox<AquaObject> **check_ptr = nullptr)
         {
@@ -98,6 +86,50 @@ namespace horizon::preferences
             return std::make_pair(std::move(row), control_ptr);
         };
 
+        // --- Pantalla y brillo ---
+        auto brightness_group = std::make_unique<Widget>();
+        brightness_group->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        brightness_group->set_spacing(15);
+
+        // Modo de energía
+        auto profile_title = std::make_unique<Label>(i18n().tr("preferences.power.power_mode"));
+        profile_title->set_font_weight(FontWeight::FONT_WEIGHT_BOLD);
+        profile_title->set_font_size(18);
+        profile_title->set_fixed_size(30);
+        brightness_group->add_child(std::move(profile_title));
+
+        auto c_profile = std::make_unique<Combo>();
+        c_profile->add_item("power-saver", i18n().tr("preferences.power.power_saver"));
+        c_profile->add_item("balanced", i18n().tr("preferences.power.balanced"));
+        c_profile->add_item("performance", i18n().tr("preferences.power.performance"));
+        c_profile->set_selected_item_index(1);
+        Label *dummy_lbl_profile;
+        auto [r_profile, cp_ptr] = create_row(i18n().tr("preferences.power.select_profile"),
+                                              std::move(c_profile), &dummy_lbl_profile);
+        controls.profile_combo = dynamic_cast<Combo *>(cp_ptr);
+        controls.profile_combo->when_item_selected.connect(
+            [this, is_battery](ComboItemSelectedContext &)
+            {
+                this->save_config();
+                if (this->is_on_ac() == !is_battery)
+                {
+                    this->apply_power_profile();
+                }
+            });
+        brightness_group->add_child(std::move(r_profile));
+
+        // Espaciador entre secciones
+        auto spacer = Spacer();
+        spacer->set_fixed_size(20);
+        brightness_group->add_child(std::move(spacer));
+
+        auto section_title =
+            std::make_unique<Label>(i18n().tr("preferences.power.display_and_brightness"));
+        section_title->set_font_weight(FontWeight::FONT_WEIGHT_BOLD);
+        section_title->set_font_size(18);
+        section_title->set_fixed_size(30);
+        brightness_group->add_child(std::move(section_title));
+
         // Screen brightness
         auto s1 = std::make_unique<Slider>();
         auto [r1, s1_ptr] =
@@ -130,6 +162,10 @@ namespace horizon::preferences
         c2->add_item("never", i18n().tr("preferences.power.never"));
         c2->add_item("1m", "1 " + i18n().tr("datetime.minutes.short.one"));
         c2->add_item("5m", "5 " + i18n().tr("datetime.minutes.short.other"));
+        c2->add_item("10m", "10 " + i18n().tr("datetime.minutes.short.other"));
+        c2->add_item("20m", "20 " + i18n().tr("datetime.minutes.short.other"));
+        c2->add_item("30m", "30 " + i18n().tr("datetime.minutes.short.other"));
+        c2->add_item("60m", "60 " + i18n().tr("datetime.minutes.short.other"));
         c2->set_selected_item_index(0);
         Label *dummy_lbl2;
         auto [r2, c2_ptr] = create_row(i18n().tr("preferences.power.dim_automatically"),
@@ -144,6 +180,10 @@ namespace horizon::preferences
         c3->add_item("never", i18n().tr("preferences.power.never"));
         c3->add_item("1m", "1 " + i18n().tr("datetime.minutes.short.one"));
         c3->add_item("5m", "5 " + i18n().tr("datetime.minutes.short.other"));
+        c3->add_item("10m", "10 " + i18n().tr("datetime.minutes.short.other"));
+        c3->add_item("20m", "20 " + i18n().tr("datetime.minutes.short.other"));
+        c3->add_item("30m", "30 " + i18n().tr("datetime.minutes.short.other"));
+        c3->add_item("60m", "60 " + i18n().tr("datetime.minutes.short.other"));
         c3->set_selected_item_index(0);
         Label *dummy_lbl3;
         auto [r3, c3_ptr] =
@@ -203,6 +243,8 @@ namespace horizon::preferences
                 return;
             if (c.brightness_slider && sj.contains("brightness"))
                 c.brightness_slider->set_value(sj["brightness"].get<float>() / 100.0f);
+            if (c.profile_combo && sj.contains("profile"))
+                c.profile_combo->set_selected_item_by_id(sj["profile"].get<std::string>());
             if (c.brightness_check && sj.contains("change_brightness"))
                 c.brightness_check->set_checked(sj["change_brightness"].get<bool>());
             if (c.dim_combo && sj.contains("dim_after"))
@@ -230,6 +272,8 @@ namespace horizon::preferences
             nlohmann::json sj;
             if (c.brightness_slider)
                 sj["brightness"] = static_cast<int>(c.brightness_slider->value() * 100);
+            if (c.profile_combo && c.profile_combo->selected_item())
+                sj["profile"] = c.profile_combo->selected_item()->id;
             if (c.brightness_check)
                 sj["change_brightness"] = c.brightness_check->is_checked();
             if (c.dim_combo && c.dim_combo->selected_item())
@@ -300,6 +344,21 @@ namespace horizon::preferences
             return;
         std::string cmd = "brightnessctl set " + std::to_string(value) + "%";
         system(cmd.c_str());
+    }
+
+    void PowerView::apply_power_profile()
+    {
+        if (m_is_loading)
+            return;
+
+        bool on_ac = is_on_ac();
+        auto &controls = on_ac ? m_ac_controls : m_battery_controls;
+        if (!controls.profile_combo || !controls.profile_combo->selected_item())
+            return;
+
+        std::string profile = controls.profile_combo->selected_item()->id;
+        std::string cmd = "powerprofilesctl set " + profile;
+        system((cmd + " &").c_str());
     }
 
     bool PowerView::is_on_ac() const

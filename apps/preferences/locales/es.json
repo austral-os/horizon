@@ -182,7 +182,12 @@
             "battery_charge_range": "Rango de carga de la batería:",
             "ac_power": "Con energía AC",
             "battery_power": "Con batería",
-            "apply": "APLICAR"
+            "apply": "APLICAR",
+            "power_mode": "Modo de energía",
+            "select_profile": "Perfil de energía:",
+            "power_saver": "Ahorro de energía",
+            "balanced": "Balanceado",
+            "performance": "Rendimiento"
         },
         "common": {
             "error": "Error",

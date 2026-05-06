@@ -28,6 +28,7 @@ namespace horizon::preferences
         void save_config();
         void apply_system_settings();
         void apply_brightness(int value);
+        void apply_power_profile();
         bool is_on_ac() const;
 
         Label* m_title_label{nullptr};
@@ -35,6 +36,7 @@ namespace horizon::preferences
 
         // UI Controls for state management
         struct PageControls {
+            Combo* profile_combo{nullptr};
             Slider* brightness_slider{nullptr};
             Label* brightness_label{nullptr};
             Checkbox<AquaObject>* brightness_check{nullptr};

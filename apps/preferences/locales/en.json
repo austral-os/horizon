@@ -182,7 +182,12 @@
             "battery_charge_range": "Battery charge range:",
             "ac_power": "AC Power",
             "battery_power": "On Battery",
-            "apply": "APPLY"
+            "apply": "APPLY",
+            "power_mode": "Power Mode",
+            "select_profile": "Power Profile:",
+            "power_saver": "Power Saver",
+            "balanced": "Balanced",
+            "performance": "Performance"
         },
         "common": {
             "error": "Error",
