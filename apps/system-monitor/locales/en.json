@@ -11,6 +11,7 @@
             "network": "Network",
             "search": "Search process..."
         },
+        "confirm_kill": "Are you sure you want to terminate",
         "columns": {
             "name": "Process Name",
             "memory": "Memory",

@@ -11,6 +11,7 @@
             "network": "Red",
             "search": "Buscar proceso..."
         },
+        "confirm_kill": "¿Estás seguro de que quieres terminar",
         "columns": {
             "name": "Nombre del Proceso",
             "memory": "Memoria",

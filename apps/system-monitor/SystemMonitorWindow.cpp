@@ -1,6 +1,7 @@
 #include "SystemMonitorWindow.hpp"
 #include "ProcessManager.hpp"
 #include <horizon/I18n.hpp>
+#include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/TableColumn.hpp>
@@ -38,18 +39,23 @@ namespace horizon
         // Terminate Button
         auto btn_terminate = std::make_unique<ToolbarButton>(
             i18n().tr("system_monitor.toolbar.terminate"), "process-stop");
-        btn_terminate->when_click.connect(
+        m_btn_terminate = btn_terminate.get();
+        m_btn_terminate->set_enabled(false);
+        
+        m_btn_terminate->when_click.connect(
             [this](EventContext &)
             {
                 auto selected = m_table_view->get_selected_items();
                 if (!selected.empty())
                 {
-                    ProcessManager pm;
-                    for (const auto &p : selected)
+                    const auto &p = selected[0];
+                    std::string msg = i18n().tr("system_monitor.confirm_kill") + " " + p.name + " (PID: " + std::to_string(p.pid) + ")?";
+                    if (application()->confirm(msg, i18n().tr("system_monitor.toolbar.terminate")))
                     {
+                        ProcessManager pm;
                         pm.terminate_process(p.pid);
+                        update_processes();
                     }
-                    update_processes();
                 }
             });
         tb->add_toolbar_widget(std::move(btn_terminate));
@@ -97,6 +103,20 @@ namespace horizon
 
         auto table_view = std::make_unique<TableView<ProcessInfo>>();
         m_table_view = table_view.get();
+
+        // Icon Column
+        TableColumn<ProcessInfo> col_icon;
+        col_icon.title = "";
+        col_icon.width = 32;
+        col_icon.sortable = false;
+        col_icon.cell_factory = [](const ProcessInfo &p)
+        {
+            auto icon = std::make_unique<Icon>();
+            icon->set_icon_name(p.name);
+            icon->set_icon_size(16);
+            return icon;
+        };
+        m_table_view->add_column(col_icon);
 
         // PID Column
         TableColumn<ProcessInfo> col_pid;
@@ -169,6 +189,7 @@ namespace horizon
 
         m_table_view->when_row_click.connect([this](const TableViewRowMouseClickContext<ProcessInfo>& ctx) {
             m_selected_pid = ctx.row_data.pid;
+            m_btn_terminate->set_enabled(true);
         });
 
         root->add_child(std::move(table_view));
@@ -220,9 +241,12 @@ namespace horizon
                 if (data[i].pid == m_selected_pid)
                 {
                     m_table_view->set_selected_index((int)i);
-                    break;
+                    m_btn_terminate->set_enabled(true);
+                    return;
                 }
             }
         }
+        
+        m_btn_terminate->set_enabled(false);
     }
 } // namespace horizon
