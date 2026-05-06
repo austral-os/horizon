@@ -167,6 +167,10 @@ namespace horizon
         { return a.command < b.command; };
         m_table_view->add_column(col_cmd);
 
+        m_table_view->when_row_click.connect([this](const TableViewRowMouseClickContext<ProcessInfo>& ctx) {
+            m_selected_pid = ctx.row_data.pid;
+        });
+
         root->add_child(std::move(table_view));
 
         // Empty area for future graphs
@@ -206,5 +210,19 @@ namespace horizon
         }
 
         m_table_view->apply_sort();
+
+        // Restore selection
+        if (m_selected_pid != -1)
+        {
+            const auto &data = m_table_view->data();
+            for (size_t i = 0; i < data.size(); ++i)
+            {
+                if (data[i].pid == m_selected_pid)
+                {
+                    m_table_view->set_selected_index((int)i);
+                    break;
+                }
+            }
+        }
     }
 } // namespace horizon
