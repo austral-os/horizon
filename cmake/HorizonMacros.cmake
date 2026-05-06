@@ -1,0 +1,127 @@
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
+
+# --- Runtime Dependencies (External Debian packages) ---
+set(HORIZON_RUNTIME_DEPENDS
+    "wayfire (>= 0.9.0), labwc (>= 0.8.3), wayland-utils (>= 1.2.0), wlr-randr (>= 0.4.1), xdg-utils (>= 1.2.1), shared-mime-info (>= 2.4), fontconfig (>= 2.15.0), librsvg2-common (>= 2.60.0), gstreamer1.0-plugins-bad (>= 1.26.2), gstreamer1.0-libav (>= 1.26.2), desktop-file-utils"
+)
+
+# Function to install an app with its locales and desktop file
+macro(horizon_install_app TARGET_NAME)
+    set(options)
+    set(oneValueArgs APP_ID NAME COMMENT ICON TERMINAL EXEC_ARGS EXTRA_DESKTOP)
+    set(multiValueArgs MIMETYPE CATEGORIES)
+    cmake_parse_arguments(APP "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if(NOT APP_APP_ID)
+        set(APP_APP_ID ${TARGET_NAME})
+    endif()
+    if(NOT APP_NAME)
+        set(APP_NAME ${TARGET_NAME})
+    endif()
+    if(NOT APP_COMMENT)
+        set(APP_COMMENT "Horizon ${APP_NAME}")
+    endif()
+    if(NOT APP_ICON)
+        set(APP_ICON "applications-other")
+    endif()
+    if(NOT APP_TERMINAL)
+        set(APP_TERMINAL "false")
+    endif()
+    if(NOT APP_CATEGORIES)
+        set(APP_CAT "Utility;")
+    else()
+        set(APP_CAT "")
+        foreach(cat ${APP_CATEGORIES})
+            if(NOT cat STREQUAL "")
+                set(APP_CAT "${APP_CAT}${cat};")
+            endif()
+        endforeach()
+    endif()
+
+    # Install Binary
+    install(TARGETS ${TARGET_NAME}
+        RUNTIME DESTINATION bin
+        COMPONENT ${APP_APP_ID}
+    )
+
+    # Normalize APP_ID to use hyphens for the package name
+    string(REPLACE "_" "-" APP_ID_NORM "${APP_APP_ID}")
+    
+    # Set Debian package name for this component
+    if(APP_ID_NORM MATCHES "^horizon-")
+        set(CPACK_DEBIAN_${APP_APP_ID}_PACKAGE_NAME "${APP_ID_NORM}")
+    else()
+        set(CPACK_DEBIAN_${APP_APP_ID}_PACKAGE_NAME "horizon-${APP_ID_NORM}")
+    endif()
+
+    # Get the actual output name of the binary
+    get_target_property(APP_BINARY_NAME ${TARGET_NAME} OUTPUT_NAME)
+    if(NOT APP_BINARY_NAME)
+        set(APP_BINARY_NAME ${TARGET_NAME})
+    endif()
+
+    # Install Locales
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/locales")
+        install(DIRECTORY locales/
+            DESTINATION share/horizon/apps/${APP_APP_ID}/locales
+            COMPONENT ${APP_APP_ID}
+        )
+        
+        # Copy locales to build directory for local testing
+        add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_SOURCE_DIR}/locales
+            $<TARGET_FILE_DIR:${TARGET_NAME}>/locales
+            COMMENT "Copying app locales to build directory"
+        )
+    endif()
+
+    # Generate and Install Desktop File
+    if(APP_EXEC_ARGS)
+        set(APP_EXEC "${CMAKE_INSTALL_PREFIX}/bin/${APP_BINARY_NAME} ${APP_EXEC_ARGS}")
+    else()
+        set(APP_EXEC "${CMAKE_INSTALL_PREFIX}/bin/${APP_BINARY_NAME}")
+    endif()
+    set(APP_CATEGORIES "${APP_CAT}")
+    
+    if(APP_MIMETYPE)
+        set(MIME_STR "")
+        foreach(m ${APP_MIMETYPE})
+            if(NOT m STREQUAL "")
+                set(MIME_STR "${MIME_STR}${m};")
+            endif()
+        endforeach()
+        set(APP_MIME "MimeType=${MIME_STR}")
+    else()
+        set(APP_MIME "")
+    endif()
+    set(APP_EXTRA "${APP_EXTRA_DESKTOP}")
+    
+    configure_file(
+        ${CMAKE_SOURCE_DIR}/cmake/app.desktop.in
+        ${CMAKE_CURRENT_BINARY_DIR}/${APP_APP_ID}.desktop
+        @ONLY
+    )
+
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${APP_APP_ID}.desktop
+        DESTINATION share/applications
+        COMPONENT ${APP_APP_ID}
+    )
+
+    if(COMMAND cpack_add_component)
+        # Inter-component dependencies (using component names)
+        set(COMPONENT_DEPS "core") 
+        
+        cpack_add_component(${APP_APP_ID}
+            DISPLAY_NAME "${APP_NAME}"
+            DESCRIPTION "${APP_COMMENT}"
+            DEPENDS ${COMPONENT_DEPS}
+        )
+
+        # External Debian dependencies for this specific component
+        if("${APP_APP_ID}" STREQUAL "session")
+            set(CPACK_DEBIAN_SESSION_PACKAGE_DEPENDS "${HORIZON_RUNTIME_DEPENDS}")
+        endif()
+    endif()
+endmacro()

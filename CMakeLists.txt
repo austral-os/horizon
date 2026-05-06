@@ -116,8 +116,8 @@ target_link_libraries(main_window
         horizon
 )
 
-# --- Packaging ---
-include(cmake/HorizonPackaging.cmake)
+# --- Macros and Functions ---
+include(cmake/HorizonMacros.cmake)
 
 # --- Libraries ---
 add_subdirectory(libs/horizon-overview)
@@ -342,3 +342,6 @@ add_custom_command(TARGET i18n_demo POST_BUILD
     ${CMAKE_CURRENT_BINARY_DIR}/locales
     COMMENT "Copying demo locales to build directory"
 )
+
+# --- Packaging ---
+include(cmake/HorizonPackaging.cmake)
