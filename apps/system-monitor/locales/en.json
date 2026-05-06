@@ -1,0 +1,21 @@
+{
+    "system_monitor": {
+        "title": "System Monitor",
+        "about": "Monitor system resources and processes.",
+        "toolbar": {
+            "terminate": "Terminate",
+            "info": "Information",
+            "memory": "Memory",
+            "energy": "Energy",
+            "disk": "Disk",
+            "network": "Network",
+            "search": "Search process..."
+        },
+        "columns": {
+            "name": "Process Name",
+            "memory": "Memory",
+            "user": "User",
+            "command": "Command"
+        }
+    }
+}

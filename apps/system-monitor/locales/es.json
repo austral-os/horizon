@@ -1,0 +1,21 @@
+{
+    "system_monitor": {
+        "title": "Monitor del Sistema",
+        "about": "Monitorea los recursos y procesos del sistema.",
+        "toolbar": {
+            "terminate": "Terminar",
+            "info": "Información",
+            "memory": "Memoria",
+            "energy": "Energía",
+            "disk": "Disco",
+            "network": "Red",
+            "search": "Buscar proceso..."
+        },
+        "columns": {
+            "name": "Nombre del Proceso",
+            "memory": "Memoria",
+            "user": "Usuario",
+            "command": "Comando"
+        }
+    }
+}

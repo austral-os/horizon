@@ -156,6 +156,7 @@ add_subdirectory(apps/austral-welcome)
 add_subdirectory(apps/downloader)
 add_subdirectory(apps/capture)
 add_subdirectory(apps/zenit)
+add_subdirectory(apps/system-monitor)
 
 # --- Demos and Tests ---
 add_executable(files_demo
