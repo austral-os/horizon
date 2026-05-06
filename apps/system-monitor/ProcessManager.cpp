@@ -32,14 +32,15 @@ namespace horizon
         enum pids_item items[] = { 
             PIDS_ID_PID, 
             PIDS_CMD, 
-            PIDS_MEM_RES, 
-            PIDS_TICS_ALL, // Changed from PIDS_UTILIZATION
+            PIDS_SMAP_PSS, 
+            PIDS_TICS_ALL,
             PIDS_ID_EUSER,
-            PIDS_CMDLINE
+            PIDS_CMDLINE,
+            PIDS_MEM_RES
         };
         
         if (!info) {
-            if (procps_pids_new(&info, items, 6) < 0) {
+            if (procps_pids_new(&info, items, 7) < 0) {
                 std::cerr << "Failed to open libproc2" << std::endl;
                 return processes;
             }
@@ -63,7 +64,12 @@ namespace horizon
                 const char* name_ptr = PIDS_VAL(1, str, stack, info);
                 p.name = name_ptr ? name_ptr : "";
                 
-                p.memory_bytes = (uint64_t)PIDS_VAL(2, ul_int, stack, info) * 1024;
+                // Use PSS if available, fallback to RSS
+                uint64_t pss_kib = PIDS_VAL(2, ul_int, stack, info);
+                if (pss_kib == 0) {
+                    pss_kib = PIDS_VAL(6, ul_int, stack, info);
+                }
+                p.memory_bytes = pss_kib * 1024;
                 
                 // Calculate instantaneous CPU percentage
                 uint64_t current_tics = PIDS_VAL(3, ull_int, stack, info);
