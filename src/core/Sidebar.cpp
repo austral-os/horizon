@@ -48,6 +48,20 @@ namespace horizon
         m_content_container->add_child(std::move(group_container));
     }
 
+    void Sidebar::select_item(SidebarItem *item)
+    {
+        if (m_selected_item)
+        {
+            m_selected_item->set_selected(false);
+        }
+        m_selected_item = item;
+        if (m_selected_item)
+        {
+            m_selected_item->set_selected(true);
+        }
+        invalidate();
+    }
+
     void Sidebar::clear()
     {
         if (m_content_container)

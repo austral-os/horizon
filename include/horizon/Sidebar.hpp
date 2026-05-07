@@ -43,6 +43,12 @@ namespace horizon
          */
         void clear();
 
+        /**
+         * @brief Programmatically selects an item.
+         * @param item The item to select.
+         */
+        void select_item(SidebarItem *item);
+
         void render(GraphicsContext &gc, int cx, int cy, int cw, int ch,
                     bool force = false) override;
         void calculate_layout() override;

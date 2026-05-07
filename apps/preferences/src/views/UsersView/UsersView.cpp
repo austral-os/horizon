@@ -11,13 +11,28 @@
 #include <pwd.h>
 #include <sstream>
 #include <system_error>
+#include <thread>
 #include <unistd.h>
+#include <views/UsersView/PasswordDialog.hpp>
 #include <views/UsersView/UsersView.hpp>
 
 namespace fs = std::filesystem;
-
+ 
 namespace horizon::preferences
 {
+    static std::string shell_escape(const std::string &s)
+    {
+        std::string res = "'";
+        for (char c : s)
+        {
+            if (c == '\'')
+                res += "'\\''";
+            else
+                res += c;
+        }
+        res += "'";
+        return res;
+    }
     // Custom Sidebar Item for Users
     class UserSidebarItem : public SidebarItem
     {
@@ -310,15 +325,20 @@ namespace horizon::preferences
         m_sidebar->add_group(i18n().tr("preferences.users.your_account"));
         m_sidebar->add_group(i18n().tr("preferences.users.other_accounts"));
 
+        UserSidebarItem* first_item = nullptr;
         for (const auto &user : m_users)
         {
             std::string group = user.is_current ? i18n().tr("preferences.users.your_account")
                                                 : i18n().tr("preferences.users.other_accounts");
-            m_sidebar->add_item(group, std::make_unique<UserSidebarItem>(user));
+            auto item = std::make_unique<UserSidebarItem>(user);
+            if (!first_item) first_item = item.get();
+            m_sidebar->add_item(group, std::move(item));
         }
 
-        if (!m_users.empty())
-            select_user(m_users[0]);
+        if (first_item) {
+            m_sidebar->select_item(first_item);
+            select_user(first_item->user_info());
+        }
     }
 
     void UsersView::select_user(const UserInfo &user)
@@ -373,11 +393,27 @@ namespace horizon::preferences
 
     void UsersView::on_change_password_clicked()
     {
-        std::string cmd = "/usr/bin/passwd " + m_selected_user.username;
-        if (!m_selected_user.is_current)
-            cmd = "pkexec " + cmd;
-        LOG_INFO << "Change password requested: " << cmd;
-        std::system(cmd.c_str());
+        std::thread([this, username = m_selected_user.username]() {
+            auto dialog = std::make_unique<PasswordDialog>(username);
+            dialog->when_finished.connect(
+                [this, username](PasswordDialogEvent &ev)
+                {
+                    if (ev.accepted && !ev.password.empty())
+                    {
+                        // Use chpasswd to set password non-interactively
+                        std::string payload = username + ":" + ev.password;
+                        std::string cmd = "printf %s " + shell_escape(payload) + " | ";
+                        if (username != m_current_user.username)
+                            cmd += "pkexec ";
+
+                        cmd += "/usr/sbin/chpasswd";
+ 
+                        LOG_INFO << "Updating password for " << username << " using chpasswd";
+                        std::system(cmd.c_str());
+                    }
+                });
+            dialog->run();
+        }).detach();
     }
 
     void UsersView::on_delete_user_clicked()

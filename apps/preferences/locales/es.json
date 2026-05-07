@@ -191,7 +191,9 @@
         },
         "common": {
             "error": "Error",
-            "warning": "Advertencia"
+            "warning": "Advertencia",
+            "accept": "Aceptar",
+            "cancel": "Cancelar"
         },
         "users": {
             "your_account": "Su cuenta",
@@ -203,7 +205,12 @@
             "change_password": "Cambiar contraseña",
             "delete_user": "Eliminar",
             "type_standard": "Estándar",
-            "type_admin": "Administrador"
+            "type_admin": "Administrador",
+            "change_password_for": "Cambiar contraseña de",
+            "new_password": "Nueva contraseña",
+            "confirm_password": "Confirmar contraseña",
+            "error_empty_password": "La contraseña no puede estar vacía",
+            "error_password_mismatch": "Las contraseñas no coinciden"
         }
     },
     "datetime": {
