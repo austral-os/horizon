@@ -72,18 +72,20 @@ namespace horizon
     {
         if (!application()) return;
         
-        // Premium Midnight Palette (Opaque for maximum compatibility)
-        Color bg_top = Color(0.20f, 0.22f, 0.26f, 1.0f);
-        Color bg_bottom = Color(0.12f, 0.14f, 0.16f, 1.0f);
-        Color border_color = Color(0.40f, 0.42f, 0.48f, 1.0f);
+        // Horizon Menu style (macOS inspired)
+        // We use full rounding for Vault as it's a bubble, 
+        // but the colors/borders must match Menu.
+        CornerRadius radius(m_border_radius);
+        Color menu_bg = Color(1.0f, 1.0f, 1.0f, 1.0f);
+        Color menu_border = Color(0.7f, 0.7f, 0.7f, 0.8f);
 
-        // 1. Draw Main Bubble with Linear Gradient
-        gc.fillLinearGradientRect(m_start_draw_x, m_start_draw_y, m_width, m_height, 
-                                 bg_top, bg_bottom, true, CornerRadius(m_border_radius));
+        // 1. Draw Border/Shadow
+        gc.setColor(menu_border);
+        gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height, radius, 1.0f);
 
-        // 2. Draw Polished Border
-        gc.setColor(border_color);
-        gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height, CornerRadius(m_border_radius), 1.2f);
+        // 2. Fill Background
+        gc.setColor(menu_bg);
+        gc.fillRect(m_start_draw_x + 1, m_start_draw_y + 1, m_width - 2, m_height - 2, radius);
 
         // 3. Draw Integrated Arrow
         int arrow_size = 10;
@@ -96,12 +98,12 @@ namespace horizon
             {(float)ax + arrow_size, (float)ay + 1, 0}  // Base Right
         };
 
-        gc.setColor(bg_top);
+        gc.setColor(menu_bg);
         gc.fillPolygon(arrow_points);
         
-        gc.setColor(border_color);
-        gc.drawLine(ax - arrow_size, ay + 1, ax, ay - 8, 1.2f);
-        gc.drawLine(ax, ay - 8, ax + arrow_size, ay + 1, 1.2f);
+        gc.setColor(menu_border);
+        gc.drawLine(ax - arrow_size, ay + 1, ax, ay - 8, 1.0f);
+        gc.drawLine(ax, ay - 8, ax + arrow_size, ay + 1, 1.0f);
     }
 
 } // namespace horizon
