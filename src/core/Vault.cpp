@@ -31,25 +31,30 @@ namespace horizon
 
     void Vault::calculate_layout()
     {
+        m_start_draw_x = m_x + m_margin;
+        m_start_draw_y = m_y + m_margin;
+
         Widget *child = content();
         if (child)
         {
             child->set_position_type(FREE);
-            child->calculate_layout();
-            int content_w = child->width();
-            int content_h = child->height();
 
-            // Prefer preferred size over current size to avoid feedback loops
-            if (child->preferred_width() > 0) content_w = child->preferred_width();
-            if (child->preferred_height() > 0) content_h = child->preferred_height();
-            
-            // If still 0, use a reasonable minimum
+            // Pass 1: Get preferred/content dimensions without caring about position
+            int content_w = child->preferred_width();
+            int content_h = child->preferred_height();
+            if (content_w <= 0) { child->calculate_layout(); content_w = child->width(); }
+            if (content_h <= 0) { child->calculate_layout(); content_h = child->height(); }
             if (content_w <= 0) content_w = 200;
             if (content_h <= 0) content_h = 100;
 
+            // Set our own size based on content
             set_size(content_w + m_padding * 2, content_h + m_padding * 2);
-            child->set_position(m_padding, m_padding);
+
+            // Pass 2: Place child at the correct ABSOLUTE position and re-layout
+            // so all grandchildren (Labels, Sliders, etc.) end up at the right coordinates
+            child->set_position(m_start_draw_x + m_padding, m_start_draw_y + m_padding);
             child->set_size(content_w, content_h);
+            child->calculate_layout(); // This call places grandchildren correctly
         }
     }
 

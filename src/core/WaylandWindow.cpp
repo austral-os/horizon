@@ -1514,7 +1514,9 @@ namespace horizon
         // handle the click normally.
         if (!under && event.type == PointerEvent::Type::Press)
         {
-            LOG_INFO << "[POPUP] Click outside popup detected. Closing menu/vault.";
+            LOG_INFO << "[POPUP] Click outside. Click=(" << x << "," << y 
+                     << ") Vault bounds: x=" << popup_root->x() << " y=" << popup_root->y() 
+                     << " w=" << popup_root->width() << " h=" << popup_root->height();
             if (m_window->m_popup_menu) m_window->close_context_menu();
             else m_window->close_vault();
             return;
@@ -1598,10 +1600,14 @@ namespace horizon
             }
             m_window->invalidate();
         }
-        else if (under)
+        else
         {
+            // If we have a pressed widget, route events to it even if mouse moved outside it
+            Widget *target = m_pressed ? m_pressed : under;
+            if (!target) return;
+
             std::vector<Widget *> chain;
-            Widget *temp = under;
+            Widget *temp = target;
             while (temp)
             {
                 chain.push_back(temp);
@@ -1614,17 +1620,28 @@ namespace horizon
                 mv.x = (double)x;
                 mv.y = (double)y;
                 mv.modifiers = m_window->m_modifiers;
-                for (Widget *w : chain)
-                {
-                    mv.sender = w;
-                    w->when_mouse_move.run(mv);
-                    if (mv.stop_propagation)
-                        break;
+
+                if (!m_pressed_buttons.empty() && m_pressed) {
+                    for (Widget *w : chain) {
+                        mv.sender = w;
+                        w->when_mouse_drag.run(mv);
+                        if (mv.stop_propagation) break;
+                    }
+                } else {
+                    for (Widget *w : chain) {
+                        mv.sender = w;
+                        w->when_mouse_move.run(mv);
+                        if (mv.stop_propagation) break;
+                    }
                 }
             }
             else if (event.type == PointerEvent::Type::Press)
             {
                 m_pressed_buttons.insert(event.button);
+                m_pressed = under; // Capture the pressed widget for drag/release
+                
+                // Allow interactive widgets (like TextBox) inside Vaults to receive keyboard focus
+                m_window->set_focused_widget(under);
 
                 MouseButtonEventContext ev;
                 ev.button = event.button;
@@ -1668,22 +1685,17 @@ namespace horizon
                 ev.stop_propagation = true; // IMPORTANT: Prevent propagation to main window
 
                 // IMPORTANT: Close the menu BEFORE running the handlers.
-                // If the handler blocks (e.g. opening a modal dialog), the menu
-                // must already be dismissed in the compositor's eyes.
                 WaylandWindow *win = m_window;
-                // Keep references to what we need before potential self-destruction
                 uint32_t mods = win->m_modifiers;
 
-                if (win->m_popup_menu) win->close_context_menu();
-                else win->close_vault();
+                if (win->m_popup_menu) {
+                    win->close_context_menu();
+                }
                 
-                // WARNING: 'this' might be deleted here! Use 'win' and stack variables.
-
                 for (Widget *w : chain)
                 {
                     ev.sender = w;
                     ev.modifiers = mods;
-                    // Adjust Y for scrolled menus so bounds checks pass in Widget.cpp
                     if (auto *m = dynamic_cast<Menu *>(w->parent()))
                     {
                         ev.y = (double)y + m->scroll_y();
@@ -1694,37 +1706,13 @@ namespace horizon
                     }
                     w->when_mouse_release.run(ev);
                 }
-            }
-        }
-        else if (event.type == PointerEvent::Type::Scroll)
-        {
-            // Robust Scroll Dispatch: Always try to scroll the menu if we are over the popup surface,
-            // even if we are not directly over a specific sub-widget (e.g. over border or padding).
-            MouseWheelEventContext ev;
-            ev.dx = event.dx;
-            ev.dy = event.dy;
-            ev.x = (double)x;
-            ev.y = (double)y;
-            ev.modifiers = m_window->m_modifiers;
-            
-            std::vector<Widget *> chain;
-            Widget *temp = under ? under : popup_root;
-            while (temp)
-            {
-                chain.push_back(temp);
-                temp = temp->parent();
-            }
 
-            for (Widget *w : chain)
-            {
-                ev.sender = w;
-                w->when_mouse_wheel.run(ev);
-                if (ev.stop_propagation) {
-                    break;
+                if (m_pressed_buttons.empty()) {
+                    m_pressed = nullptr; // Clear pressed widget state
                 }
             }
-            m_window->invalidate();
         }
+
     }
 
     void WaylandWindow::PopupEventListener::on_close()
@@ -2939,12 +2927,16 @@ namespace horizon
             else monitor_h = 1080;
         }
 
+        // Position vault at origin of the popup surface - no offset
+        m_popup_vault->set_position(0, 0);
+        m_popup_vault->calculate_layout();
+
         int w = m_popup_vault->width();
         int h = m_popup_vault->height();
 
-        // Vault is usually a single surface, no cascade needed like menus
-        int surface_w = w + 20;
-        int surface_h = h + 20;
+        // Surface exactly matches Vault size
+        int surface_w = w;
+        int surface_h = h;
 
         m_popup_surface = std::make_unique<WaylandSurface>(surface_w, surface_h);
         m_popup_listener = std::make_unique<PopupEventListener>(this, serial);
@@ -2955,7 +2947,7 @@ namespace horizon
             m_surface->set_last_serial(serial);
         }
 
-        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, surface_w, surface_h, w, h);
+        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, surface_w, surface_h, w, h, false); // No grab: Vault needs to be interactive
 
         invalidate();
     }

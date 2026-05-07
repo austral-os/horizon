@@ -35,6 +35,7 @@ namespace horizon
         {
             WaylandWindow *m_window;
             Widget *m_hovered = nullptr;
+            Widget *m_pressed = nullptr;
             uint32_t m_opening_serial = 0;
             std::set<uint32_t> m_pressed_buttons;
 

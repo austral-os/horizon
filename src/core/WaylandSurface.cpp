@@ -335,7 +335,7 @@ namespace horizon
     }
 
     void WaylandSurface::setup_xdg_popup(WaylandSurface *parent, int x, int y, int w, int h,
-                                          int popup_w, int popup_h)
+                                          int popup_w, int popup_h, bool use_grab)
     {
         m_role = Role::XdgPopup;
         share_connection_from(parent);
@@ -397,7 +397,7 @@ namespace horizon
                     if (self->m_listener) self->m_listener->on_close();
                 }};
             xdg_popup_add_listener(m_xdg_popup, &popup_listener, this);
-            if (m_seat) xdg_popup_grab(m_xdg_popup, m_seat, parent->last_serial());
+            if (use_grab && m_seat) xdg_popup_grab(m_xdg_popup, m_seat, parent->last_serial());
         }
 
         // Set window_geometry BEFORE commit so the compositor uses the real menu

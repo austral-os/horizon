@@ -186,7 +186,7 @@ namespace horizon
         uint32_t layer_num() const { return m_layer_num; }
         const std::string &layer_namespace() const { return m_layer_namespace; }
         void setup_xdg_popup(WaylandSurface *parent, int x, int y, int w, int h,
-                              int popup_w = 0, int popup_h = 0);
+                              int popup_w = 0, int popup_h = 0, bool use_grab = true);
         void set_layer_anchor(uint32_t anchor);
         void set_layer_exclusive_zone(int32_t zone);
         void set_layer_keyboard_interactivity(uint32_t interactivity);
