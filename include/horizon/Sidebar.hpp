@@ -38,6 +38,11 @@ namespace horizon
          */
         void add_item(const std::string &group_name, std::unique_ptr<Widget> item);
 
+        /**
+         * @brief Clears all groups and items from the sidebar.
+         */
+        void clear();
+
         void render(GraphicsContext &gc, int cx, int cy, int cw, int ch,
                     bool force = false) override;
         void calculate_layout() override;

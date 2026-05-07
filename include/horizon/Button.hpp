@@ -104,6 +104,11 @@ namespace horizon
             return m_label->text();
         }
 
+        void set_text_color(Color color)
+        {
+            m_label->set_text_color(color);
+        }
+
     private:
         std::unique_ptr<Label> m_label;
     };

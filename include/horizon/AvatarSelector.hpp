@@ -14,6 +14,7 @@ namespace horizon
         ~AvatarSelector() override = default;
 
         std::string selected_avatar() const;
+        void set_selected_avatar(const std::string &path);
         void clear_selection();
 
         static void set_avatars_directory(const std::string &path);

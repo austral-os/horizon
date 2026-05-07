@@ -40,7 +40,7 @@ namespace horizon
             return m_path;
         }
 
-    private:
+    protected:
         Icon *m_icon_ptr{nullptr};
         Label *m_label_ptr{nullptr};
         bool m_selected{false};

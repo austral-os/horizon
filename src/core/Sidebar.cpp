@@ -21,6 +21,7 @@ namespace horizon
         m_content_container = content.get();
 
         m_scroll_area->set_content(std::move(content));
+        scroll_area->set_position_type(FILL);
         add_child(std::move(scroll_area));
     }
 
@@ -45,6 +46,17 @@ namespace horizon
 
         group_container->add_child(std::move(header));
         m_content_container->add_child(std::move(group_container));
+    }
+
+    void Sidebar::clear()
+    {
+        if (m_content_container)
+        {
+            m_content_container->clear_children();
+        }
+        m_groups.clear();
+        m_selected_item = nullptr;
+        invalidate();
     }
 
     void Sidebar::add_item(const std::string &group_name, std::unique_ptr<Widget> item)

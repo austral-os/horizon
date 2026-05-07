@@ -192,6 +192,18 @@
         "common": {
             "error": "Error",
             "warning": "Advertencia"
+        },
+        "users": {
+            "your_account": "Su cuenta",
+            "other_accounts": "Otras cuentas",
+            "name": "Nombre",
+            "username": "Nombre de usuario",
+            "account_type": "Tipo de cuenta",
+            "email": "E-Mail",
+            "change_password": "Cambiar contraseña",
+            "delete_user": "Eliminar",
+            "type_standard": "Estándar",
+            "type_admin": "Administrador"
         }
     },
     "datetime": {

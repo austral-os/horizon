@@ -150,6 +150,12 @@ namespace horizon
         return m_selected_avatar;
     }
 
+    void AvatarSelector::set_selected_avatar(const std::string &path)
+    {
+        m_selected_avatar = path;
+        invalidate();
+    }
+
     void AvatarSelector::clear_selection()
     {
         m_selected_avatar = "avatar-default";
