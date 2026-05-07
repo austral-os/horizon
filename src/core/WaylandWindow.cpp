@@ -2906,35 +2906,76 @@ namespace horizon
             return;
         }
 
-        if (x == -1 && y == -1)
-        {
-            x = (int)m_pointer_x;
-            y = (int)m_pointer_y;
-        }
-
         m_popup_vault = vault;
         m_popup_vault->set_application_recursive(this);
         m_popup_vault->set_visible(true);
         m_popup_vault->calculate_layout();
 
+        int monitor_w = m_surface->monitor_width();
         int monitor_h = m_surface->monitor_height();
-        if (monitor_h <= 0)
+        if (monitor_w <= 0 || monitor_h <= 0)
         {
             auto monitors = SystemInfo::get_monitors();
-            if (!monitors.empty()) monitor_h = monitors[0].height;
-            else monitor_h = 1080;
+            if (!monitors.empty()) {
+                monitor_w = monitors[0].width;
+                monitor_h = monitors[0].height;
+            } else {
+                monitor_w = 1920;
+                monitor_h = 1080;
+            }
+        }
+
+        int w = m_popup_vault->width();
+        int h = m_popup_vault->height();
+
+        if (owner && x == -1 && y == -1)
+        {
+            int ox = owner->x();
+            int oy = owner->y();
+            int ow = owner->width();
+            int oh = owner->height();
+
+            // Check if it's on the left/right/top/bottom edge
+            if (ox < 100) { // Left toolbar
+                x = ox + ow + 4;
+                y = oy + (oh / 2) - (h / 2);
+                if (y < 0) y = 4;
+                if (y + h > monitor_h) y = monitor_h - h - 4;
+                m_popup_vault->set_arrow_position(0, (oy + oh / 2) - y);
+            } else if (ox > monitor_w - 100) { // Right toolbar
+                x = ox - w - 4;
+                y = oy + (oh / 2) - (h / 2);
+                if (y < 0) y = 4;
+                if (y + h > monitor_h) y = monitor_h - h - 4;
+                m_popup_vault->set_arrow_position(w, (oy + oh / 2) - y);
+            } else if (oy < 100) { // Top toolbar
+                y = oy + oh + 4;
+                x = ox + (ow / 2) - (w / 2);
+                if (x < 0) x = 4;
+                if (x + w > monitor_w) x = monitor_w - w - 4;
+                m_popup_vault->set_arrow_position((ox + ow / 2) - x, 0);
+            } else { // Bottom toolbar
+                y = oy - h - 4;
+                x = ox + (ow / 2) - (w / 2);
+                if (x < 0) x = 4;
+                if (x + w > monitor_w) x = monitor_w - w - 4;
+                m_popup_vault->set_arrow_position((ox + ow / 2) - x, h);
+            }
+        }
+        else if (x == -1 && y == -1)
+        {
+            x = (int)m_pointer_x;
+            y = (int)m_pointer_y;
+            m_popup_vault->set_arrow_position(-1, -1);
         }
 
         // Position vault at origin of the popup surface - no offset
         m_popup_vault->set_position(0, 0);
         m_popup_vault->calculate_layout();
 
-        int w = m_popup_vault->width();
-        int h = m_popup_vault->height();
-
         // Surface exactly matches Vault size
-        int surface_w = w;
-        int surface_h = h;
+        int surface_w = m_popup_vault->width();
+        int surface_h = m_popup_vault->height();
 
         m_popup_surface = std::make_unique<WaylandSurface>(surface_w, surface_h);
         m_popup_listener = std::make_unique<PopupEventListener>(this, serial);

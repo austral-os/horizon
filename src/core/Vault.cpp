@@ -10,6 +10,9 @@ namespace horizon
     Vault::Vault() : Widget()
     {
         set_focusable(true);
+        m_margin = 12;
+        m_arrow_x = -1;
+        m_arrow_y = -1;
     }
 
     void Vault::set_content(std::unique_ptr<Widget> content)
@@ -66,14 +69,13 @@ namespace horizon
             if (content_w <= 0) content_w = 200;
             if (content_h <= 0) content_h = 100;
 
-            // Set our own size based on content
-            set_size(content_w + m_padding * 2, content_h + m_padding * 2);
+            // Set our own size based on content PLUS margins for the arrow
+            set_size(content_w + m_padding * 2 + m_margin * 2, content_h + m_padding * 2 + m_margin * 2);
 
             // Pass 2: Place child at the correct ABSOLUTE position and re-layout
-            // so all grandchildren (Labels, Sliders, etc.) end up at the right coordinates
             child->set_position(m_start_draw_x + m_padding, m_start_draw_y + m_padding);
             child->set_size(content_w, content_h);
-            child->calculate_layout(); // This call places grandchildren correctly
+            child->calculate_layout();
         }
     }
 
@@ -96,38 +98,78 @@ namespace horizon
     {
         if (!application()) return;
         
-        // Horizon Menu style (macOS inspired)
-        // We use full rounding for Vault as it's a bubble, 
-        // but the colors/borders must match Menu.
         CornerRadius radius(m_border_radius);
         Color menu_bg = Color(1.0f, 1.0f, 1.0f, 1.0f);
         Color menu_border = Color(0.7f, 0.7f, 0.7f, 0.8f);
 
+        int rect_w = m_width - m_margin * 2;
+        int rect_h = m_height - m_margin * 2;
+
         // 1. Draw Border/Shadow
         gc.setColor(menu_border);
-        gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height, radius, 1.0f);
+        gc.drawRect(m_start_draw_x, m_start_draw_y, rect_w, rect_h, radius, 1.0f);
 
         // 2. Fill Background
         gc.setColor(menu_bg);
-        gc.fillRect(m_start_draw_x + 1, m_start_draw_y + 1, m_width - 2, m_height - 2, radius);
+        gc.fillRect(m_start_draw_x + 1, m_start_draw_y + 1, rect_w - 2, rect_h - 2, radius);
 
         // 3. Draw Integrated Arrow
-        int arrow_size = 10;
-        int ax = m_start_draw_x + m_width / 2;
-        int ay = m_start_draw_y;
+        if (m_arrow_x >= 0 && m_arrow_y >= 0) {
+            int arrow_size = 10;
+            std::vector<PolygonPoint> arrow_points;
+            int tip_x = m_arrow_x;
+            int tip_y = m_arrow_y;
 
-        std::vector<PolygonPoint> arrow_points = {
-            {(float)ax, (float)ay - 8, 0},              // Tip
-            {(float)ax - arrow_size, (float)ay + 1, 0}, // Base Left
-            {(float)ax + arrow_size, (float)ay + 1, 0}  // Base Right
-        };
-
-        gc.setColor(menu_bg);
-        gc.fillPolygon(arrow_points);
-        
-        gc.setColor(menu_border);
-        gc.drawLine(ax - arrow_size, ay + 1, ax, ay - 8, 1.0f);
-        gc.drawLine(ax, ay - 8, ax + arrow_size, ay + 1, 1.0f);
+            // Determine which edge the arrow is on
+            if (m_arrow_x < m_start_draw_x) { // Left
+                arrow_points = {
+                    {(float)tip_x, (float)tip_y, 0},
+                    {(float)m_start_draw_x + 1, (float)tip_y - arrow_size, 0},
+                    {(float)m_start_draw_x + 1, (float)tip_y + arrow_size, 0}
+                };
+                gc.setColor(menu_bg);
+                gc.fillPolygon(arrow_points);
+                gc.setColor(menu_border);
+                gc.drawLine(m_start_draw_x + 1, tip_y - arrow_size, tip_x, tip_y, 1.0f);
+                gc.drawLine(tip_x, tip_y, m_start_draw_x + 1, tip_y + arrow_size, 1.0f);
+            }
+            else if (m_arrow_x > m_start_draw_x + rect_w) { // Right
+                arrow_points = {
+                    {(float)tip_x, (float)tip_y, 0},
+                    {(float)m_start_draw_x + rect_w - 1, (float)tip_y - arrow_size, 0},
+                    {(float)m_start_draw_x + rect_w - 1, (float)tip_y + arrow_size, 0}
+                };
+                gc.setColor(menu_bg);
+                gc.fillPolygon(arrow_points);
+                gc.setColor(menu_border);
+                gc.drawLine(m_start_draw_x + rect_w - 1, tip_y - arrow_size, tip_x, tip_y, 1.0f);
+                gc.drawLine(tip_x, tip_y, m_start_draw_x + rect_w - 1, tip_y + arrow_size, 1.0f);
+            }
+            else if (m_arrow_y < m_start_draw_y) { // Top
+                arrow_points = {
+                    {(float)tip_x, (float)tip_y, 0},
+                    {(float)tip_x - arrow_size, (float)m_start_draw_y + 1, 0},
+                    {(float)tip_x + arrow_size, (float)m_start_draw_y + 1, 0}
+                };
+                gc.setColor(menu_bg);
+                gc.fillPolygon(arrow_points);
+                gc.setColor(menu_border);
+                gc.drawLine(tip_x - arrow_size, m_start_draw_y + 1, tip_x, tip_y, 1.0f);
+                gc.drawLine(tip_x, tip_y, tip_x + arrow_size, m_start_draw_y + 1, 1.0f);
+            }
+            else if (m_arrow_y > m_start_draw_y + rect_h) { // Bottom
+                arrow_points = {
+                    {(float)tip_x, (float)tip_y, 0},
+                    {(float)tip_x - arrow_size, (float)m_start_draw_y + rect_h - 1, 0},
+                    {(float)tip_x + arrow_size, (float)m_start_draw_y + rect_h - 1, 0}
+                };
+                gc.setColor(menu_bg);
+                gc.fillPolygon(arrow_points);
+                gc.setColor(menu_border);
+                gc.drawLine(tip_x - arrow_size, m_start_draw_y + rect_h - 1, tip_x, tip_y, 1.0f);
+                gc.drawLine(tip_x, tip_y, tip_x + arrow_size, m_start_draw_y + rect_h - 1, 1.0f);
+            }
+        }
     }
 
 } // namespace horizon
