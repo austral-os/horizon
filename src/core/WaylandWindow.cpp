@@ -1245,18 +1245,16 @@ namespace horizon
 
         if (m_popup_listener)
         {
-            // Keep listener alive during processing even if it gets cleared from m_window
-            auto keep_alive = std::move(m_popup_listener);
-            m_popup_listener = nullptr; 
-            
-            keep_alive->on_pointer_event(event);
-            
-            // If the listener didn't close the menu or vault, restore it.
-            // We check m_popup_menu/vault because a hidden menu (via hide_context_menu)
-            // still has m_popup_menu != nullptr and needs its listener for the release event.
-            if ((m_popup_menu != nullptr || m_popup_vault != nullptr) && !m_popup_listener) {
-                m_popup_listener = std::move(keep_alive);
+            // If the main window receives a pointer event while a non-grabbing popup (like Vault)
+            // is open, it means the user clicked OUTSIDE the popup.
+            // (If they clicked inside the popup, the compositor would deliver the event to the popup surface).
+            if (event.type == PointerEvent::Type::Press)
+            {
+                LOG_INFO << "[WINDOW] Click outside popup detected on main window. Closing popup.";
+                if (m_popup_menu) close_context_menu();
+                else close_vault();
             }
+            // Consume the event so we don't accidentally click a button underneath the popup
             return;
         }
 
