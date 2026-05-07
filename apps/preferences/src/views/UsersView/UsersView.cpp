@@ -420,10 +420,15 @@ namespace horizon::preferences
     {
         if (m_selected_user.is_current)
             return;
-        std::string cmd = "pkexec /usr/sbin/userdel -r " + m_selected_user.username;
-        LOG_INFO << "Deleting user: " << cmd;
-        std::system(cmd.c_str());
-        load_users();
+
+        std::string msg = i18n().tr("preferences.users.delete_confirm", {{"0", m_selected_user.username}});
+        if (application() && application()->confirm(msg, i18n().tr("preferences.users.delete_user"), MessageType::Warning))
+        {
+            std::string cmd = "pkexec /usr/sbin/userdel -r " + m_selected_user.username;
+            LOG_INFO << "Deleting user: " << cmd;
+            std::system(cmd.c_str());
+            load_users();
+        }
     }
 
     std::string UsersView::get_user_avatar(const std::string &username)

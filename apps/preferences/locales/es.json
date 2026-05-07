@@ -210,7 +210,8 @@
             "new_password": "Nueva contraseña",
             "confirm_password": "Confirmar contraseña",
             "error_empty_password": "La contraseña no puede estar vacía",
-            "error_password_mismatch": "Las contraseñas no coinciden"
+            "error_password_mismatch": "Las contraseñas no coinciden",
+            "delete_confirm": "¿Estás seguro de que deseas eliminar al usuario '{0}'? Esta acción eliminará su cuenta y todos sus archivos personales."
         }
     },
     "datetime": {
