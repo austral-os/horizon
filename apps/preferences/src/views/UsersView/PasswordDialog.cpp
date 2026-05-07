@@ -46,6 +46,24 @@ namespace horizon::preferences
         m_pass2_box->set_fixed_size(35);
         root->add_child(std::move(box2));
 
+        auto validate = [this]()
+        {
+            std::string p1 = m_pass1_box->text();
+            std::string p2 = m_pass2_box->text();
+
+            if (p1 != p2 && !p2.empty())
+            {
+                m_error_label->set_text(i18n().tr("preferences.users.error_password_mismatch"));
+            }
+            else
+            {
+                m_error_label->set_text("");
+            }
+        };
+
+        m_pass1_box->when_text_changed.connect([validate](auto &) { validate(); });
+        m_pass2_box->when_text_changed.connect([validate](auto &) { validate(); });
+
         // Error label
         auto err = std::make_unique<Label>("");
         err->set_text_color(Color(0.8f, 0.2f, 0.2f, 1.0f));
