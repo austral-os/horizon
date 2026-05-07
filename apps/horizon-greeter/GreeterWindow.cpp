@@ -3,6 +3,8 @@
 #include <fstream>
 #include <horizon/Button.hpp>
 #include <horizon/Icon.hpp>
+#include <horizon/Image.hpp>
+#include <horizon/IconThemeLookup.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/MenuItem.hpp>
 #include <horizon/Spacer.hpp>
@@ -18,6 +20,59 @@ namespace fs = std::filesystem;
 namespace horizon::greeter
 {
     /**
+     * @class UserAvatar
+     * @brief A circular avatar widget with gradient fallback.
+     */
+    class UserAvatar : public Widget
+    {
+    public:
+        UserAvatar(const std::string &path) : m_path(path)
+        {
+            set_fixed_size(128);
+        }
+ 
+        void draw(GraphicsContext &gc) override
+        {
+            int size = std::min(m_width, m_height);
+            int radius = size / 2;
+            int center_x = m_x + m_width / 2;
+            int center_y = m_y + m_height / 2;
+ 
+            gc.save();
+            gc.clipRoundedRect(center_x - radius, center_y - radius, size, size, CornerRadius(radius));
+ 
+            if (m_path.empty() || !fs::exists(m_path))
+            {
+                gc.fillGradientCircle(center_x, center_y, radius,
+                                      Color(0.25f, 0.65f, 1.0f, 1.0f),
+                                      Color(0.05f, 0.45f, 0.85f, 1.0f),
+                                      GradientDirection::Radial);
+ 
+                std::string default_icon = IconThemeLookup::find_icon("user-identity", size);
+                if (default_icon.empty())
+                    default_icon = IconThemeLookup::find_icon("avatar-default", size);
+ 
+                if (!default_icon.empty())
+                {
+                    gc.drawImage(default_icon, center_x - radius, center_y - radius, size, size);
+                }
+            }
+            else
+            {
+                gc.drawImage(m_path, center_x - radius, center_y - radius, size, size);
+            }
+ 
+            gc.restore();
+ 
+            gc.setColor(Color(1.0f, 1.0f, 1.0f, 0.3f));
+            gc.drawCircle(center_x, center_y, radius, 2.0f);
+        }
+ 
+    private:
+        std::string m_path;
+    };
+ 
+    /**
      * @class UserItem
      * @brief Individual user widget for CoverFlow.
      */
@@ -29,11 +84,7 @@ namespace horizon::greeter
             set_layout_type(WIDGET_LAYOUT_VERTICAL);
             set_fixed_size(180);
 
-            auto icon = std::make_unique<Icon>();
-            icon->set_icon_name("avatar-default");
-            icon->set_icon_size(128);
-            icon->set_fixed_size(128);
-            add_child(std::move(icon));
+            add_child(std::make_unique<UserAvatar>(info.avatar_path));
 
             auto name = std::make_unique<Label>(info.real_name);
             name->set_alignment(TextAlignment::Center);
