@@ -47,9 +47,11 @@ int main(int argc, char **argv)
 
     auto title = std::make_unique<Label>("Vault Settings");
     title->set_font_weight(FONT_WEIGHT_BOLD);
+    title->set_fixed_size(24);
     vault_content->add_child(std::move(title));
 
     auto slider_label = std::make_unique<Label>("Brightness Control");
+    slider_label->set_fixed_size(20);
     vault_content->add_child(std::move(slider_label));
 
     auto slider = std::make_unique<Slider>();

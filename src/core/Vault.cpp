@@ -43,7 +43,26 @@ namespace horizon
             int content_w = child->preferred_width();
             int content_h = child->preferred_height();
             if (content_w <= 0) { child->calculate_layout(); content_w = child->width(); }
-            if (content_h <= 0) { child->calculate_layout(); content_h = child->height(); }
+            if (content_h <= 0) { 
+                child->calculate_layout(); 
+                content_h = child->height(); 
+                
+                // If it's a vertical layout container, compute height from children dynamically
+                if (content_h <= 0 && child->layout_type() == WIDGET_LAYOUT_VERTICAL) {
+                    int total_h = child->margin() * 2;
+                    int visible_count = 0;
+                    for (const auto& c : child->children()) {
+                        if (c->is_visible() && c->position_type() != FREE) {
+                            total_h += c->preferred_height(content_w);
+                            visible_count++;
+                        }
+                    }
+                    if (visible_count > 1) {
+                        total_h += child->spacing() * (visible_count - 1);
+                    }
+                    content_h = total_h;
+                }
+            }
             if (content_w <= 0) content_w = 200;
             if (content_h <= 0) content_h = 100;
 
