@@ -5,6 +5,7 @@
 #include "horizon/IpcClient.hpp"
 #include "horizon/LabwcCompositorContext.hpp"
 #include "horizon/Menu.hpp"
+#include "horizon/Vault.hpp"
 #include "horizon/WayfireCompositorContext.hpp"
 #include "horizon/Window.hpp"
 #include "horizon/SystemInfo.hpp"
@@ -58,7 +59,7 @@ namespace horizon
     WaylandWindow::WaylandWindow(std::string app_id, int w, int h, bool defer_init, bool resizable,
                                  int min_w, int min_h)
         : m_app_id(app_id), m_resizable(resizable), m_min_width(min_w), m_min_height(min_h),
-          m_popup_menu(nullptr)
+          m_popup_menu(nullptr), m_popup_vault(nullptr)
     {
         // Inicialización del sistema
         m_surface = std::make_unique<WaylandSurface>(w, h);
@@ -734,6 +735,21 @@ namespace horizon
                             render_gl_popup();
                         }
 
+                        if (m_popup_vault && m_popup_surface && m_popup_surface->data())
+                        {
+                            CairoGraphicContext pctx(this, m_popup_surface->data(),
+                                                     m_popup_surface->width(),
+                                                     m_popup_surface->height());
+                            pctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+                            pctx.clearRect(0, 0, m_popup_surface->width(),
+                                           m_popup_surface->height());
+
+                            m_popup_vault->render(pctx, 0, 0, m_popup_surface->width(),
+                                                 m_popup_surface->height(), true);
+                            pctx.flush();
+                            render_gl_vault();
+                        }
+
                         if (m_tooltip_widget && m_tooltip_surface && m_tooltip_surface->data())
                         {
                             CairoGraphicContext tctx(this, m_tooltip_surface->data(),
@@ -1235,10 +1251,10 @@ namespace horizon
             
             keep_alive->on_pointer_event(event);
             
-            // If the listener didn't close the menu, restore it.
-            // We check m_popup_menu because a hidden menu (via hide_context_menu)
+            // If the listener didn't close the menu or vault, restore it.
+            // We check m_popup_menu/vault because a hidden menu (via hide_context_menu)
             // still has m_popup_menu != nullptr and needs its listener for the release event.
-            if (m_popup_menu != nullptr && !m_popup_listener) {
+            if ((m_popup_menu != nullptr || m_popup_vault != nullptr) && !m_popup_listener) {
                 m_popup_listener = std::move(keep_alive);
             }
             return;
@@ -1479,31 +1495,36 @@ namespace horizon
 
     void WaylandWindow::PopupEventListener::on_pointer_event(const PointerEvent &event)
     {
-        if (!m_window || !m_window->m_popup_menu)
+        if (!m_window || (!m_window->m_popup_menu && !m_window->m_popup_vault))
         {
             return;
         }
+
+        Widget *popup_root = m_window->m_popup_menu ? (Widget*)m_window->m_popup_menu : (Widget*)m_window->m_popup_vault;
 
         LOG_INFO << "[POPUP_EV] Type: " << (int)event.type << " at (" << event.x << ", " << event.y << ") serial: " << event.serial;
 
         int x = (int)event.x;
         int y = (int)event.y;
 
-        Widget *under = m_window->m_popup_menu->hit_test(x, y);
+        Widget *under = popup_root->hit_test(x, y);
 
         // 0. Click-outside logic: If we are clicking on the main window (not the popup)
         // while a popup is active, we should close the popup and let the main window
         // handle the click normally.
         if (!under && event.type == PointerEvent::Type::Press)
         {
-            LOG_INFO << "[POPUP] Click outside popup detected. Closing menu.";
-            m_window->close_context_menu();
+            LOG_INFO << "[POPUP] Click outside popup detected. Closing menu/vault.";
+            if (m_window->m_popup_menu) m_window->close_context_menu();
+            else m_window->close_vault();
             return;
         }
 
-        // 1. Hover tracking (Enter/Leave)
-        if (event.type == PointerEvent::Type::Move || event.type == PointerEvent::Type::Enter)
+        // 1. Hover tracking (Enter/Leave/Move)
+        if (event.type == PointerEvent::Type::Move || event.type == PointerEvent::Type::Enter || event.type == PointerEvent::Type::Leave)
         {
+            if (event.type == PointerEvent::Type::Leave) under = nullptr;
+
             if (under != m_hovered)
             {
                 std::vector<Widget *> old_path;
@@ -1560,7 +1581,7 @@ namespace horizon
             ev.modifiers = m_window->m_modifiers;
             
             std::vector<Widget *> chain;
-            Widget *temp = under ? under : m_window->m_popup_menu;
+            Widget *temp = under ? under : popup_root;
             while (temp)
             {
                 chain.push_back(temp);
@@ -1650,11 +1671,18 @@ namespace horizon
                 // If the handler blocks (e.g. opening a modal dialog), the menu
                 // must already be dismissed in the compositor's eyes.
                 WaylandWindow *win = m_window;
-                win->close_context_menu();
+                // Keep references to what we need before potential self-destruction
+                uint32_t mods = win->m_modifiers;
+
+                if (win->m_popup_menu) win->close_context_menu();
+                else win->close_vault();
+                
+                // WARNING: 'this' might be deleted here! Use 'win' and stack variables.
 
                 for (Widget *w : chain)
                 {
                     ev.sender = w;
+                    ev.modifiers = mods;
                     // Adjust Y for scrolled menus so bounds checks pass in Widget.cpp
                     if (auto *m = dynamic_cast<Menu *>(w->parent()))
                     {
@@ -1680,7 +1708,7 @@ namespace horizon
             ev.modifiers = m_window->m_modifiers;
             
             std::vector<Widget *> chain;
-            Widget *temp = under ? under : m_window->m_popup_menu;
+            Widget *temp = under ? under : popup_root;
             while (temp)
             {
                 chain.push_back(temp);
@@ -2288,6 +2316,58 @@ namespace horizon
                        m_surface->egl_context());
     }
 
+    void WaylandWindow::render_gl_vault()
+    {
+        if (!m_popup_surface || !m_popup_surface->data() || !m_popup_vault)
+            return;
+
+        eglMakeCurrent(m_popup_surface->egl_display(), m_popup_surface->egl_surface(),
+                       m_popup_surface->egl_surface(), m_popup_surface->egl_context());
+
+        init_gl_resources();
+
+        glViewport(0, 0, m_popup_surface->width(), m_popup_surface->height());
+        glClearColor(0, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        glUseProgram(m_gl_program);
+
+        float identity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+        GLint mvp_loc = glGetUniformLocation(m_gl_program, "u_mvp");
+        glUniformMatrix4fv(mvp_loc, 1, GL_FALSE, identity);
+
+        GLint opacity_loc = glGetUniformLocation(m_gl_program, "u_opacity");
+        glUniform1f(opacity_loc, 1.0f);
+        GLint grad_start_loc = glGetUniformLocation(m_gl_program, "u_gradient_start");
+        glUniform1f(grad_start_loc, 1.0f);
+        GLint grad_end_loc = glGetUniformLocation(m_gl_program, "u_gradient_end");
+        glUniform1f(grad_end_loc, 1.0f);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_gl_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_popup_surface->width(), m_popup_surface->height(),
+                     0, GL_RGBA, GL_UNSIGNED_BYTE, m_popup_surface->data());
+
+        GLint pos_attr = glGetAttribLocation(m_gl_program, "position");
+        GLint tex_attr = glGetAttribLocation(m_gl_program, "texcoord");
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_gl_vbo);
+        glVertexAttribPointer(pos_attr, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+        glEnableVertexAttribArray(pos_attr);
+        glVertexAttribPointer(tex_attr, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                              (void *)(3 * sizeof(float)));
+        glEnableVertexAttribArray(tex_attr);
+
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        m_popup_surface->swap_buffers();
+
+        // Restore main surface context
+        eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(), m_surface->egl_surface(),
+                       m_surface->egl_context());
+    }
+
     void WaylandWindow::render_gl_tooltip()
     {
         if (!m_tooltip_surface || !m_tooltip_surface->data())
@@ -2811,6 +2891,98 @@ namespace horizon
         if (m_surface && m_surface->display()) {
             wl_display_roundtrip(m_surface->display());
         }
+            if (m_popup_listener)
+            {
+                m_popup_listener->deactivate();
+            }
+            m_popup_listener = nullptr;
+        }
+        invalidate();
+
+        if (emit_signal)
+        {
+            post_task([this, serial]() {
+                PopupDismissedContext ctx;
+                ctx.serial = serial;
+                when_popup_dismissed.run(ctx);
+            });
+        }
+    }
+
+    void WaylandWindow::show_vault(Vault *vault, int x, int y, uint32_t serial, Widget *owner)
+    {
+        close_vault(false);
+        close_context_menu(false);
+
+        if (!m_surface || !vault)
+        {
+            LOG_ERROR << "[WINDOW] show_vault: surface or vault is NULL";
+            return;
+        }
+
+        if (x == -1 && y == -1)
+        {
+            x = (int)m_pointer_x;
+            y = (int)m_pointer_y;
+        }
+
+        m_popup_vault = vault;
+        m_popup_vault->set_application_recursive(this);
+        m_popup_vault->set_visible(true);
+        m_popup_vault->calculate_layout();
+
+        int monitor_h = m_surface->monitor_height();
+        if (monitor_h <= 0)
+        {
+            auto monitors = SystemInfo::get_monitors();
+            if (!monitors.empty()) monitor_h = monitors[0].height;
+            else monitor_h = 1080;
+        }
+
+        int w = m_popup_vault->width();
+        int h = m_popup_vault->height();
+
+        // Vault is usually a single surface, no cascade needed like menus
+        int surface_w = w + 20;
+        int surface_h = h + 20;
+
+        m_popup_surface = std::make_unique<WaylandSurface>(surface_w, surface_h);
+        m_popup_listener = std::make_unique<PopupEventListener>(this, serial);
+        m_popup_surface->set_event_listener(m_popup_listener.get());
+
+        if (serial > 0)
+        {
+            m_surface->set_last_serial(serial);
+        }
+
+        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, surface_w, surface_h, w, h);
+
+        invalidate();
+    }
+
+    void WaylandWindow::hide_vault()
+    {
+        if (m_popup_vault)
+        {
+            m_popup_vault->set_visible(false);
+        }
+        invalidate();
+    }
+
+    void WaylandWindow::close_vault(bool emit_signal, uint32_t serial)
+    {
+        if (m_popup_vault)
+        {
+            m_popup_vault->set_visible(false);
+            m_popup_vault = nullptr;
+        }
+
+        if (m_popup_surface || m_popup_listener)
+        {
+            m_popup_surface = nullptr;
+            if (m_surface && m_surface->display()) {
+                wl_display_roundtrip(m_surface->display());
+            }
             if (m_popup_listener)
             {
                 m_popup_listener->deactivate();

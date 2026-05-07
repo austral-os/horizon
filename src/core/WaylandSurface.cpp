@@ -512,7 +512,11 @@ namespace horizon
             m_egl_surface = EGL_NO_SURFACE;
         }
         if (m_egl_window) { wl_egl_window_destroy(m_egl_window); m_egl_window = nullptr; }
-        if (m_surface) { wl_surface_destroy(m_surface); m_surface = nullptr; }
+        if (m_surface) { 
+            wl_surface_set_user_data(m_surface, nullptr);
+            wl_surface_destroy(m_surface); 
+            m_surface = nullptr; 
+        }
         if (m_data) { munmap(m_data, m_mapped_size); m_data = nullptr; }
 
         if (m_owns_connection) {
@@ -738,12 +742,12 @@ namespace horizon
         if (!surface) return;
         auto *entered_ws = static_cast<WaylandSurface *>(wl_surface_get_user_data(surface));
         
-        if (entered_ws) {
+        if (entered_ws && entered_ws->listener()) {
             g_pointer_focus = entered_ws;
             entered_ws->set_pointer_x(wl_fixed_to_double(sx));
             entered_ws->set_pointer_y(wl_fixed_to_double(sy));
             entered_ws->set_last_serial(serial);
-            if (entered_ws->listener()) { 
+            { 
                 PointerEvent ev; 
                 ev.type = PointerEvent::Type::Enter; 
                 ev.x = entered_ws->pointer_x(); 
@@ -756,10 +760,10 @@ namespace horizon
     static void pointer_handle_leave(void *data, wl_pointer *, uint32_t serial, struct wl_surface *surface) {
         if (!surface) return;
         auto *left_ws = static_cast<WaylandSurface *>(wl_surface_get_user_data(surface));
-        if (left_ws) {
+        if (left_ws && left_ws->listener()) {
             if (g_pointer_focus == left_ws) g_pointer_focus = nullptr;
             left_ws->set_last_serial(serial);
-            if (left_ws->listener()) { 
+            { 
                 PointerEvent ev; 
                 ev.type = PointerEvent::Type::Leave; 
                 ev.serial = serial; 
@@ -768,10 +772,10 @@ namespace horizon
         }
     }
     static void pointer_handle_motion(void *data, wl_pointer *, uint32_t, wl_fixed_t sx, wl_fixed_t sy) {
-        if (g_pointer_focus) {
+        if (g_pointer_focus && g_pointer_focus->listener()) {
             g_pointer_focus->set_pointer_x(wl_fixed_to_double(sx));
             g_pointer_focus->set_pointer_y(wl_fixed_to_double(sy));
-            if (g_pointer_focus->listener()) { 
+            { 
                 PointerEvent ev; 
                 ev.type = PointerEvent::Type::Move; 
                 ev.x = g_pointer_focus->pointer_x(); 
@@ -781,9 +785,9 @@ namespace horizon
         }
     }
     static void pointer_handle_button(void *data, wl_pointer *, uint32_t serial, uint32_t, uint32_t button, uint32_t state) {
-        if (g_pointer_focus) {
+        if (g_pointer_focus && g_pointer_focus->listener()) {
             g_pointer_focus->set_last_serial(serial);
-            if (g_pointer_focus->listener()) { 
+            { 
                 PointerEvent ev; 
                 ev.type = (state == WL_POINTER_BUTTON_STATE_PRESSED) ? PointerEvent::Type::Press : PointerEvent::Type::Release; 
                 ev.x = g_pointer_focus->pointer_x(); 
@@ -795,8 +799,15 @@ namespace horizon
         }
     }
     static void pointer_handle_axis(void *data, wl_pointer *, uint32_t, uint32_t axis, wl_fixed_t value) {
-        auto *ws = static_cast<WaylandSurface *>(data);
-        if (ws->listener()) { PointerEvent ev; ev.type = PointerEvent::Type::Scroll; ev.x = ws->pointer_x(); ev.y = ws->pointer_y(); double val = wl_fixed_to_double(value); if (axis == WL_POINTER_AXIS_VERTICAL_SCROLL) ev.dy = val; else ev.dx = val; ws->listener()->on_pointer_event(ev); }
+        if (g_pointer_focus && g_pointer_focus->listener()) { 
+            PointerEvent ev; 
+            ev.type = PointerEvent::Type::Scroll; 
+            ev.x = g_pointer_focus->pointer_x(); 
+            ev.y = g_pointer_focus->pointer_y(); 
+            double val = wl_fixed_to_double(value); 
+            if (axis == WL_POINTER_AXIS_VERTICAL_SCROLL) ev.dy = val; else ev.dx = val; 
+            g_pointer_focus->listener()->on_pointer_event(ev); 
+        }
     }
 
     static void keyboard_handle_keymap(void *data, wl_keyboard *, uint32_t format, int32_t fd, uint32_t size) { static_cast<WaylandSurface *>(data)->update_xkb_keymap(format, fd, size); }

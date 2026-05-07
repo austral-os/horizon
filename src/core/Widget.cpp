@@ -2,6 +2,7 @@
 #include <horizon/Notification.hpp>
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/Menu.hpp>
+#include <horizon/Vault.hpp>
 #include <linux/input-event-codes.h>
 
 namespace horizon
@@ -85,7 +86,15 @@ namespace horizon
                         {
                             if (ev.button == BTN_LEFT)
                             {
-                                when_click.run(ev);
+                                if (m_vault)
+                                {
+                                    application()->show_vault(m_vault.get(), -1, -1, ev.serial, this);
+                                    ev.stop_propagation = true;
+                                }
+                                else
+                                {
+                                    when_click.run(ev);
+                                }
                             }
                             else if (ev.button == BTN_RIGHT)
                             {
@@ -847,6 +856,16 @@ namespace horizon
     Menu *Widget::context_menu() const
     {
         return m_context_menu.get();
+    }
+
+    void Widget::set_vault(std::unique_ptr<Vault> vault)
+    {
+        m_vault = std::move(vault);
+    }
+
+    Vault *Widget::vault() const
+    {
+        return m_vault.get();
     }
 
     void Widget::set_tooltip(std::unique_ptr<Notification> tooltip)

@@ -235,6 +235,15 @@ target_link_libraries(grouped_icons_demo
         horizon
 )
 
+add_executable(vault_demo
+    examples/vault_demo/main.cpp
+)
+
+target_link_libraries(vault_demo
+    PRIVATE
+        horizon
+)
+
 add_executable(notification_demo
     examples/notification_demo.cpp
 )

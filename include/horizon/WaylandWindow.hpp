@@ -26,6 +26,7 @@ namespace horizon
     class IpcClient;
     class PreferencesContent;
     class AboutManager;
+    class Vault;
 
     class WaylandWindow : public WaylandEventListener
     {
@@ -183,6 +184,10 @@ namespace horizon
                                Widget *owner = nullptr);
         void hide_context_menu();
         void close_context_menu(bool emit_signal = true, uint32_t serial = 0);
+
+        void show_vault(Vault *vault, int x = -1, int y = -1, uint32_t serial = 0, Widget *owner = nullptr);
+        void hide_vault();
+        void close_vault(bool emit_signal = true, uint32_t serial = 0);
         void show_tooltip(Widget *owner, Notification *tooltip);
         void hide_tooltip();
         Widget *tooltip_owner() const
@@ -587,6 +592,7 @@ namespace horizon
         void init_gl_resources();
         void render_gl_ui();
         void render_gl_popup();
+        void render_gl_vault();
         void render_gl_tooltip();
 
         mutable std::unique_ptr<GraphicsContext> m_gc;
@@ -637,6 +643,7 @@ namespace horizon
         int m_popup_x{0};
         int m_popup_y{0};
         Menu *m_popup_menu = nullptr;
+        Vault *m_popup_vault = nullptr;
         std::unique_ptr<PopupEventListener> m_popup_listener;
 
         std::unique_ptr<WaylandSurface> m_tooltip_surface;
