@@ -244,6 +244,19 @@ target_link_libraries(vault_demo
         horizon
 )
 
+add_executable(avatar_selector_demo
+    examples/avatar_selector_demo/main.cpp
+)
+
+target_link_libraries(avatar_selector_demo
+    PRIVATE
+        horizon
+)
+
+target_compile_definitions(avatar_selector_demo PRIVATE 
+    HORIZON_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
 add_executable(notification_demo
     examples/notification_demo.cpp
 )

@@ -196,6 +196,7 @@ namespace horizon
                         item_widget->set_context_menu(m_item_menu_factory(m_data[i]));
                     }
 
+                    item_widget->set_position_type(FREE);
                     m_content_pane->add_child(std::move(item_widget));
                 }
             }

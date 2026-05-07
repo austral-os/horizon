@@ -187,6 +187,14 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/backgrounds")
     )
 endif()
 
+# --- Avatars ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/avatars")
+    install(DIRECTORY data/avatars/
+        DESTINATION share/horizon/avatars
+        COMPONENT session
+    )
+endif()
+
 # --- Custom xdg-open ---
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/xdg-open")
     install(PROGRAMS data/xdg-open

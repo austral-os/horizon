@@ -75,6 +75,7 @@ namespace horizon
         if (m_side_margin != margin)
         {
             m_side_margin = margin;
+            invalidate();
             calculate_layout();
         }
     }
@@ -88,6 +89,7 @@ namespace horizon
     {
         BASE_ITEM_WIDTH = width;
         BASE_ITEM_HEIGHT = height;
+        invalidate();
         calculate_layout();
     }
 
@@ -135,12 +137,9 @@ namespace horizon
         m_item_height = std::max(16, static_cast<int>(BASE_ITEM_HEIGHT * m_zoom));
         m_grid_spacing = std::max(0, static_cast<int>(BASE_GRID_SPACING * m_zoom));
 
-        int effective_margin = std::max(0, static_cast<int>(m_grid_spacing));
         int side_margin = std::max(0, static_cast<int>(m_side_margin * m_zoom));
-
         int available_width = m_width - 2 * side_margin;
 
-        // Ensure available_width is sensible
         if (available_width <= 0)
             available_width = m_width;
 
@@ -163,8 +162,6 @@ namespace horizon
         int actual_spacing = m_grid_spacing;
         if (columns > 1)
         {
-            // Justify: distribute extra space as spacing between columns
-            // This ensures margins are exactly side_margin (plus zoom factor)
             actual_spacing = (available_width - columns * m_item_width) / (columns - 1);
             start_x = side_margin;
         }
@@ -177,14 +174,12 @@ namespace horizon
             int row_max_height = 0;
             int row_end = std::min(i + columns, (int)children.size());
 
-            // 1. Calculate max height for this row
             for (int j = i; j < row_end; ++j)
             {
                 row_max_height =
                     std::max(row_max_height, children[j]->preferred_height(m_item_width));
             }
 
-            // 2. Position items in this row
             for (int j = i; j < row_end; ++j)
             {
                 int col = j - i;
