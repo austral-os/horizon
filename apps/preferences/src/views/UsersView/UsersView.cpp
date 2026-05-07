@@ -366,7 +366,6 @@ namespace horizon::preferences
         }
 
         std::string cmd = "";
-
         if (new_fullname != m_selected_user.real_name || new_is_admin != m_selected_user.is_admin || new_email != m_selected_user.email)
         {
             cmd = "/usr/sbin/usermod ";
@@ -387,8 +386,20 @@ namespace horizon::preferences
             cmd = "pkexec " + cmd;
             LOG_INFO << "Executing: " << cmd;
             std::system(cmd.c_str());
-            load_users();
         }
+
+        // Handle avatar change
+        std::string new_avatar = m_avatar_selector->selected_avatar();
+        if (!new_avatar.empty() && new_avatar != m_selected_user.avatar_path)
+        {
+            std::string dest = "/home/" + m_selected_user.username + "/.face";
+            std::string cp_cmd = "pkexec cp " + shell_escape(new_avatar) + " " + shell_escape(dest) + 
+                                " && pkexec chown " + m_selected_user.username + ":" + m_selected_user.username + " " + shell_escape(dest);
+            LOG_INFO << "Saving avatar: " << cp_cmd;
+            std::system(cp_cmd.c_str());
+        }
+
+        load_users();
     }
 
     void UsersView::on_change_password_clicked()
