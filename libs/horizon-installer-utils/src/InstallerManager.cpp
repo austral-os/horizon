@@ -124,6 +124,11 @@ namespace horizon::installer
         report_progress(0.1, "Creating user account...");
         auto res = create_user(final_config.username, final_config.password, final_config.fullname);
         if (!res.success) return res;
+ 
+        if (!final_config.avatar.empty() && final_config.avatar != "avatar-default") {
+            report_progress(0.2, "Setting user avatar...");
+            set_user_avatar(final_config.username, final_config.avatar);
+        }
 
         // Create localized user directories (Documents, Downloads, etc.)
         report_progress(0.3, "Creating localized user directories...");
@@ -594,6 +599,37 @@ namespace horizon::installer
         }
 
         return {true, "System configuration updated"};
+    }
+ 
+    StepResult InstallerManager::set_user_avatar(const std::string& username, const std::string& avatar_path)
+    {
+        LOG_INFO << "Setting avatar for user " << username << " from " << avatar_path;
+        
+        std::string target_icon_dir = "/var/lib/AccountsService/icons";
+        std::string target_icon_path = target_icon_dir + "/" + username;
+        std::string user_info_dir = "/var/lib/AccountsService/users";
+        std::string user_info_path = user_info_dir + "/" + username;
+ 
+        execute_privileged_command("mkdir -p " + target_icon_dir);
+        execute_privileged_command("mkdir -p " + user_info_dir);
+ 
+        // 1. Copy icon
+        auto res = execute_privileged_command("cp \"" + avatar_path + "\" \"" + target_icon_path + "\"");
+        if (!res.success) return res;
+        execute_privileged_command("chmod 644 \"" + target_icon_path + "\"");
+ 
+        // 2. Update AccountsService user file
+        // We ensure the [User] section exists and set the Icon
+        std::string update_script = "bash -c 'if [ ! -f " + user_info_path + " ]; then "
+                                    "echo \"[User]\" > " + user_info_path + "; "
+                                    "fi; "
+                                    "if grep -q \"^Icon=\" " + user_info_path + "; then "
+                                    "sed -i \"s|^Icon=.*|Icon=" + target_icon_path + "|\" " + user_info_path + "; "
+                                    "else "
+                                    "sed -i \"/\\[User\\]/a Icon=" + target_icon_path + "\" " + user_info_path + "; "
+                                    "fi'";
+        
+        return execute_privileged_command(update_script);
     }
 
     void InstallerManager::finalize_oobe()

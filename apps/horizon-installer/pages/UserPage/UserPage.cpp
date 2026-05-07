@@ -4,6 +4,7 @@
 #include <horizon/Spacer.hpp>
 #include <horizon/TextBox.hpp>
 #include <horizon/ToolbarButton.hpp>
+#include <horizon/AvatarSelector.hpp>
 
 namespace horizon::installer
 {
@@ -21,18 +22,17 @@ namespace horizon::installer
         content->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         content->set_margin(20);
 
-        // User Icon
+        // User Icon (now AvatarSelector)
         auto icon_row = std::make_unique<Widget>();
         icon_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        icon_row->set_fixed_size(100);
+        icon_row->set_fixed_size(120);
         icon_row->add_child(Spacer());
-
-        auto icon = std::make_unique<Icon>();
-        icon->set_icon_name("user-identity");
-        icon->set_icon_size(96);
-        icon->set_width(96);
-        icon_row->add_child(std::move(icon));
-
+ 
+        auto avatar_sel = std::make_unique<horizon::AvatarSelector>();
+        m_avatar_selector = avatar_sel.get();
+        m_avatar_selector->set_fixed_size(110);
+        icon_row->add_child(std::move(avatar_sel));
+ 
         icon_row->add_child(Spacer());
         content->add_child(std::move(icon_row));
         content->add_child(Spacer(20));
@@ -115,6 +115,10 @@ namespace horizon::installer
     std::string UserPage::password() const
     {
         return static_cast<TextBoxBase *>(m_password_box)->text();
+    }
+    std::string UserPage::avatar() const
+    {
+        return m_avatar_selector->selected_avatar();
     }
 
     void UserPage::validate_inputs()

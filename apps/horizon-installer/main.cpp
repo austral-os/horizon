@@ -88,6 +88,7 @@ private:
                     m_config.fullname = user_ptr->fullname();
                     m_config.username = user_ptr->username();
                     m_config.password = user_ptr->password();
+                    m_config.avatar = user_ptr->avatar();
                     m_config.hostname = "austral-os"; // Default or prompt
                     m_config.is_oobe = true;
 

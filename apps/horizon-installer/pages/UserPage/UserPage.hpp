@@ -5,6 +5,8 @@
 #include <horizon/ToolbarButton.hpp>
 #include <string>
 
+namespace horizon { class AvatarSelector; }
+ 
 namespace horizon::installer
 {
     /**
@@ -19,6 +21,7 @@ namespace horizon::installer
         std::string fullname() const;
         std::string username() const;
         std::string password() const;
+        std::string avatar() const;
 
         EventsManager<EventContext> when_continue;
         EventsManager<EventContext> when_back;
@@ -30,6 +33,7 @@ namespace horizon::installer
         Widget* m_verify_box{nullptr};
         Label* m_error_label{nullptr};
         ToolbarButton* m_next_btn{nullptr};
+        horizon::AvatarSelector* m_avatar_selector{nullptr};
 
         void validate_inputs();
     };

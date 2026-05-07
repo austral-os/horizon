@@ -171,14 +171,18 @@ namespace horizon
         // Circular clip
         gc.clipRoundedRect(center_x - radius, center_y - radius, size, size, CornerRadius(radius));
 
-        // Draw background
-        gc.setColor(Color(0.2f, 0.2f, 0.2f, 1.0f));
-        gc.fillRect(center_x - radius, center_y - radius, size, size);
+        // Draw background (Radial Gradient for a premium look)
+        gc.fillGradientCircle(center_x, center_y, radius, 
+                              Color(0.25f, 0.65f, 1.0f, 1.0f), 
+                              Color(0.05f, 0.45f, 0.85f, 1.0f), 
+                              GradientDirection::Radial);
 
         // Draw image or icon
-        if (m_selected_avatar == "avatar-default") {
+        if (m_selected_avatar.empty() || m_selected_avatar == "avatar-default") {
             if (application() && application()->theme_manager) {
-                std::string path = IconThemeLookup::find_icon("avatar-default", size);
+                std::string path = IconThemeLookup::find_icon("user-identity", size);
+                if (path.empty()) path = IconThemeLookup::find_icon("avatar-default", size);
+                
                 if (!path.empty()) {
                     gc.drawImage(path, center_x - radius, center_y - radius, size, size);
                 }

@@ -26,6 +26,7 @@ namespace horizon::installer
         std::string fullname;      // Stage 2 (OOBE)
         std::string username;      // Stage 2 (OOBE)
         std::string password;      // Stage 2 (OOBE)
+        std::string avatar;        // Stage 2 (OOBE)
         std::string hostname;      // Stage 2 (OOBE)
         std::string country;       // Stage 2 (OOBE)
         std::string timezone;      // Stage 2 (OOBE)
@@ -92,6 +93,7 @@ namespace horizon::installer
         
         StepResult create_user(const std::string& username, const std::string& password, const std::string& fullname = "");
         StepResult set_system_config(const std::string& hostname, const std::string& timezone);
+        StepResult set_user_avatar(const std::string& username, const std::string& avatar_path);
         void finalize_oobe();
 
         void report_progress(float progress, const std::string& message);
