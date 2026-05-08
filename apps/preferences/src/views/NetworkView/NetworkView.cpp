@@ -188,11 +188,11 @@ namespace horizon::preferences
         // Advanced button
         auto bottom_row = std::make_unique<Widget>();
         bottom_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        bottom_row->set_fixed_size(40);
+        bottom_row->set_fixed_size(35);
         bottom_row->add_child(Spacer());
         auto adv_btn = std::make_unique<Button<AquaObject>>();
-        adv_btn->set_text("Advanced...");
-        adv_btn->set_width(120);
+        adv_btn->set_text("Advanced");
+        adv_btn->set_fixed_size(150);
         bottom_row->add_child(std::move(adv_btn));
         details_container->add_child(std::move(bottom_row));
 
