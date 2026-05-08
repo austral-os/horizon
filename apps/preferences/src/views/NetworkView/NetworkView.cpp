@@ -52,7 +52,7 @@ namespace horizon::preferences
             container->set_margin(8);
 
             // 1. Status Dot
-            auto dot = std::make_unique<SolidObject>();
+            auto dot = std::make_unique<Widget>();
             dot->set_fixed_size(12);
             dot->set_border_radius(6);
             dot->set_background_color(data.connected ? Color("#2ecc71") : Color("#e74c3c"));
@@ -71,13 +71,14 @@ namespace horizon::preferences
             auto subtitle = std::make_unique<Label>(
                 data.connected ? data.ip_address : i18n().tr("preferences.network.not_connected"));
             subtitle->set_text_color(Color("#666666"));
-            // subtitle->set_font_size(12);
+
+            subtitle->set_font_size(14);
             info->add_child(std::move(subtitle));
 
             container->add_child(std::move(info));
 
             // 3. Icon
-            container->add_child(Spacer());
+            // container->add_child(Spacer());
             auto icon = std::make_unique<Icon>();
             icon->set_icon_name(data.type == network::DeviceType::Wifi ? "network-wireless"
                                                                        : "network-wired");
