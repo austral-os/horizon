@@ -219,6 +219,8 @@ namespace horizon::preferences
     void NetworkView::on_device_selected(const network::DeviceDetails &dev)
     {
         m_selected_device = dev;
+        std::string path = dev.path;
+        when_selection_changed.run(path);
         if (m_status_label)
 
         {
@@ -254,4 +256,22 @@ namespace horizon::preferences
         if (m_dns_label)
             m_dns_label->set_text(dev.connected ? dev.dns : "---");
     }
+
+    void NetworkView::select_device_by_path(const std::string &path)
+    {
+        if (!m_device_table)
+            return;
+
+        const auto &items = m_device_table->data();
+        for (size_t i = 0; i < items.size(); ++i)
+        {
+            if (items[i].path == path)
+            {
+                m_device_table->set_selected_index(i);
+                on_device_selected(items[i]);
+                break;
+            }
+        }
+    }
 } // namespace horizon::preferences
+

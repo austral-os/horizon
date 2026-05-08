@@ -30,5 +30,7 @@ namespace horizon::preferences
 
         std::vector<std::string> m_history;
         int m_history_index{-1};
+        std::string m_last_selected_network_path;
     };
+
 } // namespace horizon::preferences

@@ -16,6 +16,9 @@ namespace horizon::preferences
         ~NetworkView() override = default;
 
         EventsManager<network::DeviceDetails> when_advanced_click;
+        EventsManager<std::string> when_selection_changed;
+
+        void select_device_by_path(const std::string &path);
 
     private:
         void setup_ui();

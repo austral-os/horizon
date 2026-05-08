@@ -93,7 +93,14 @@ namespace horizon::preferences
         else if (id == "bluetooth")
             view = std::make_unique<BluetoothView>();
         else if (id == "network")
-            view = std::make_unique<NetworkView>();
+        {
+            auto nview = std::make_unique<NetworkView>();
+            if (!m_last_selected_network_path.empty())
+            {
+                nview->select_device_by_path(m_last_selected_network_path);
+            }
+            view = std::move(nview);
+        }
         else if (id == "users")
             view = std::make_unique<UsersView>();
         else if (id == "datetime")
@@ -134,13 +141,21 @@ namespace horizon::preferences
         else if (auto network_view = dynamic_cast<NetworkView *>(view))
         {
             network_view->when_advanced_click.connect([this](const network::DeviceDetails &dev) {
+
                 auto adv_view = std::make_unique<AdvancedNetworkView>(dev);
                 m_content_view->load_view(std::move(adv_view));
                 
+                // Track current selection
+                m_last_selected_network_path = dev.path;
+
                 // Add to history manually for now as it's a sub-page
                 m_history.push_back("advanced-network");
                 m_history_index = m_history.size() - 1;
                 update_navigation_buttons();
+            });
+
+            network_view->when_selection_changed.connect([this](const std::string &path) {
+                m_last_selected_network_path = path;
             });
         }
     }
