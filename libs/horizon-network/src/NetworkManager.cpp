@@ -3,6 +3,7 @@
 #include <dbus/dbus.h>
 #include <iostream>
 #include <arpa/inet.h>
+#include <sstream>
 
 namespace horizon::network
 {
@@ -75,6 +76,38 @@ namespace horizon::network
         return inet_ntoa(addr);
     }
 
+    // Helper to parse aa{sv} structure (Array of Dictionaries)
+    static void parse_aasv(DBusMessageIter* iter, std::function<void(const std::string&, DBusMessageIter*)> callback)
+    {
+        DBusMessageIter variant_iter, array_iter, sub_array_iter, dict_iter, entry_iter;
+        
+        if (dbus_message_iter_get_arg_type(iter) != DBUS_TYPE_VARIANT) return;
+        dbus_message_iter_recurse(iter, &variant_iter);
+        
+        if (dbus_message_iter_get_arg_type(&variant_iter) != DBUS_TYPE_ARRAY) return;
+        dbus_message_iter_recurse(&variant_iter, &array_iter);
+        
+        while (dbus_message_iter_get_arg_type(&array_iter) == DBUS_TYPE_ARRAY)
+        {
+            dbus_message_iter_recurse(&array_iter, &sub_array_iter);
+            while (dbus_message_iter_get_arg_type(&sub_array_iter) == DBUS_TYPE_DICT_ENTRY)
+            {
+                dbus_message_iter_recurse(&sub_array_iter, &dict_iter);
+                const char* key;
+                dbus_message_iter_get_basic(&dict_iter, &key);
+                dbus_message_iter_next(&dict_iter);
+                
+                DBusMessageIter val_var_iter;
+                dbus_message_iter_recurse(&dict_iter, &val_var_iter);
+                
+                callback(std::string(key), &val_var_iter);
+                
+                dbus_message_iter_next(&sub_array_iter);
+            }
+            dbus_message_iter_next(&array_iter);
+        }
+    }
+
     std::vector<DeviceDetails> NetworkManager::get_all_devices()
     {
         std::vector<DeviceDetails> devices;
@@ -91,6 +124,11 @@ namespace horizon::network
         {
             DeviceDetails dev;
             dev.path = path;
+            dev.ip_address = "---";
+            dev.subnet_mask = "---";
+            dev.router = "---";
+            dev.dns = "---";
+            dev.config_method = "Using DHCP";
             
             auto type_var = m_dbus->get_property("org.freedesktop.NetworkManager", path,
                                                "org.freedesktop.NetworkManager.Device", "DeviceType");
@@ -107,9 +145,6 @@ namespace horizon::network
             auto state_var = m_dbus->get_property("org.freedesktop.NetworkManager", path,
                                                 "org.freedesktop.NetworkManager.Device", "State");
             uint32_t state = std::holds_alternative<uint32_t>(state_var) ? std::get<uint32_t>(state_var) : 0;
-            
-            // NM_DEVICE_STATE_ACTIVATED is 100. But sometimes it's reported as something else if it's still connecting.
-            // Let's also check if it's currently connected via Connectivity property or just use state >= 100
             dev.connected = (state == 100);
             dev.status_text = (dev.connected ? "Connected" : "Disconnected");
 
@@ -120,92 +155,61 @@ namespace horizon::network
                 if (std::holds_alternative<std::string>(ip4_path_var)) {
                     std::string ip4_path = std::get<std::string>(ip4_path_var);
                     if (ip4_path != "/" && !ip4_path.empty()) {
-                        DBusMessage* prop_msg = dbus_message_new_method_call(
-                            "org.freedesktop.NetworkManager", ip4_path.c_str(),
-                            "org.freedesktop.DBus.Properties", "Get");
+                        // 1. IP and Mask
+                        DBusMessage* prop_msg = dbus_message_new_method_call("org.freedesktop.NetworkManager", ip4_path.c_str(), "org.freedesktop.DBus.Properties", "Get");
                         const char* iface = "org.freedesktop.NetworkManager.IP4Config";
                         const char* prop = "AddressData";
                         dbus_message_append_args(prop_msg, DBUS_TYPE_STRING, &iface, DBUS_TYPE_STRING, &prop, DBUS_TYPE_INVALID);
-                        
                         DBusMessage* reply = dbus_connection_send_with_reply_and_block(m_dbus->get_connection(), prop_msg, -1, nullptr);
                         if (reply) {
-                            DBusMessageIter iter, var_iter, outer_array_iter, dict_iter, entry_iter;
+                            DBusMessageIter iter;
                             dbus_message_iter_init(reply, &iter);
-                            
-                            // Property Get returns a Variant
-                            if (dbus_message_iter_get_arg_type(&iter) == DBUS_TYPE_VARIANT) {
-                                dbus_message_iter_recurse(&iter, &var_iter);
-                                // AddressData is aa{sv} (Array of Dictionaries)
-                                if (dbus_message_iter_get_arg_type(&var_iter) == DBUS_TYPE_ARRAY) {
-                                    dbus_message_iter_recurse(&var_iter, &outer_array_iter);
-                                    
-                                    // Get the first dictionary in the array
-                                    if (dbus_message_iter_get_arg_type(&outer_array_iter) == DBUS_TYPE_ARRAY) {
-                                        dbus_message_iter_recurse(&outer_array_iter, &dict_iter);
-                                        while (dbus_message_iter_get_arg_type(&dict_iter) == DBUS_TYPE_DICT_ENTRY) {
-                                            dbus_message_iter_recurse(&dict_iter, &entry_iter);
-                                            const char* key;
-                                            dbus_message_iter_get_basic(&entry_iter, &key);
-                                            dbus_message_iter_next(&entry_iter);
-                                            
-                                            DBusMessageIter val_var_iter;
-                                            dbus_message_iter_recurse(&entry_iter, &val_var_iter);
-                                            
-                                            if (std::string(key) == "address") {
-                                                const char* addr;
-                                                dbus_message_iter_get_basic(&val_var_iter, &addr);
-                                                dev.ip_address = addr;
-                                            } else if (std::string(key) == "prefix") {
-                                                uint32_t prefix;
-                                                dbus_message_iter_get_basic(&val_var_iter, &prefix);
-                                                dev.subnet_mask = prefix_to_mask(prefix);
-                                            }
-                                            dbus_message_iter_next(&dict_iter);
-                                        }
-                                    }
-                                    // Sometimes NM returns a{sv} directly if it's simplified or I misread the signature?
-                                    // Actually AddressData is aa{sv}. Let's try to handle a{sv} inside the array.
-                                    else if (dbus_message_iter_get_arg_type(&outer_array_iter) == DBUS_TYPE_DICT_ENTRY) {
-                                        // This means it's an array of dict entries directly? (a{sv})
-                                        // Let's reuse the logic
-                                        DBusMessageIter& dict_iter2 = outer_array_iter;
-                                        while (dbus_message_iter_get_arg_type(&dict_iter2) == DBUS_TYPE_DICT_ENTRY) {
-                                            dbus_message_iter_recurse(&dict_iter2, &entry_iter);
-                                            const char* key;
-                                            dbus_message_iter_get_basic(&entry_iter, &key);
-                                            dbus_message_iter_next(&entry_iter);
-                                            DBusMessageIter val_var_iter;
-                                            dbus_message_iter_recurse(&entry_iter, &val_var_iter);
-                                            if (std::string(key) == "address") {
-                                                const char* addr;
-                                                dbus_message_iter_get_basic(&val_var_iter, &addr);
-                                                dev.ip_address = addr;
-                                            } else if (std::string(key) == "prefix") {
-                                                uint32_t prefix;
-                                                dbus_message_iter_get_basic(&val_var_iter, &prefix);
-                                                dev.subnet_mask = prefix_to_mask(prefix);
-                                            }
-                                            dbus_message_iter_next(&dict_iter2);
-                                        }
-                                    }
+                            parse_aasv(&iter, [&](const std::string& key, DBusMessageIter* val) {
+                                if (key == "address") {
+                                    const char* addr;
+                                    dbus_message_iter_get_basic(val, &addr);
+                                    dev.ip_address = addr;
+                                } else if (key == "prefix") {
+                                    uint32_t prefix;
+                                    dbus_message_iter_get_basic(val, &prefix);
+                                    dev.subnet_mask = prefix_to_mask(prefix);
                                 }
-                            }
+                            });
                             dbus_message_unref(reply);
                         }
                         dbus_message_unref(prop_msg);
 
-                        auto gateway_var = m_dbus->get_property("org.freedesktop.NetworkManager", ip4_path,
-                                                             "org.freedesktop.NetworkManager.IP4Config", "Gateway");
+                        // 2. Gateway
+                        auto gateway_var = m_dbus->get_property("org.freedesktop.NetworkManager", ip4_path, "org.freedesktop.NetworkManager.IP4Config", "Gateway");
                         if (std::holds_alternative<std::string>(gateway_var)) dev.router = std::get<std::string>(gateway_var);
+
+                        // 3. DNS
+                        DBusMessage* dns_msg = dbus_message_new_method_call("org.freedesktop.NetworkManager", ip4_path.c_str(), "org.freedesktop.DBus.Properties", "Get");
+                        const char* dns_prop = "NameserverData";
+                        dbus_message_append_args(dns_msg, DBUS_TYPE_STRING, &iface, DBUS_TYPE_STRING, &dns_prop, DBUS_TYPE_INVALID);
+                        DBusMessage* dns_reply = dbus_connection_send_with_reply_and_block(m_dbus->get_connection(), dns_msg, -1, nullptr);
+                        if (dns_reply) {
+                            DBusMessageIter iter;
+                            dbus_message_iter_init(dns_reply, &iter);
+                            std::stringstream ss;
+                            bool first = true;
+                            parse_aasv(&iter, [&](const std::string& key, DBusMessageIter* val) {
+                                if (key == "address") {
+                                    const char* addr;
+                                    dbus_message_iter_get_basic(val, &addr);
+                                    if (!first) ss << ", ";
+                                    ss << addr;
+                                    first = false;
+                                }
+                            });
+                            std::string dns_str = ss.str();
+                            if (!dns_str.empty()) dev.dns = dns_str;
+                            dbus_message_unref(dns_reply);
+                        }
+                        dbus_message_unref(dns_msg);
                     }
                 }
             }
-            
-            if (dev.ip_address.empty()) dev.ip_address = "---";
-            if (dev.subnet_mask.empty()) dev.subnet_mask = "---";
-            if (dev.router.empty()) dev.router = "---";
-            if (dev.dns.empty()) dev.dns = "---";
-            dev.config_method = "Using DHCP";
 
             devices.push_back(dev);
         }
