@@ -26,7 +26,6 @@ namespace horizon::preferences
 
     void AdvancedNetworkView::setup_ui()
     {
-
         auto notebook = std::make_unique<Notebook>();
 
         // --- Tab 1: General ---
@@ -43,23 +42,6 @@ namespace horizon::preferences
 
         m_notebook = notebook.get();
         add_child(std::move(notebook));
-
-        // Bottom buttons
-        auto buttons = std::make_unique<Widget>();
-        buttons->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        buttons->set_fixed_size(40);
-        buttons->set_spacing(10);
-        buttons->add_child(Spacer());
-
-        auto apply_btn = std::make_unique<Button<AquaObject>>();
-        apply_btn->set_text("Apply");
-        apply_btn->set_fixed_size(100);
-        apply_btn->set_accent_color(WidgetAccentColor::Primary);
-        apply_btn->when_click.connect([this](MouseButtonEventContext &)
-                                      { this->on_apply_clicked(); });
-        buttons->add_child(std::move(apply_btn));
-
-        add_child(std::move(buttons));
     }
 
     std::unique_ptr<Widget> AdvancedNetworkView::create_general_tab()
@@ -79,7 +61,7 @@ namespace horizon::preferences
             lbl->set_alignment(TextAlignment::Right);
             row->add_child(std::move(lbl));
             auto val = std::make_unique<Label>(value);
-            val->set_margin(10); // Fixed from vector to int
+            val->set_margin(10);
             row->add_child(std::move(val));
             container->add_child(std::move(row));
         };
@@ -114,7 +96,7 @@ namespace horizon::preferences
             if (password)
                 input = std::make_unique<TextBox<PasswordPolicy>>();
             else
-                input = std::make_unique<TextBox<TextPolicy>>(); // Fixed from DefaultPolicy
+                input = std::make_unique<TextBox<TextPolicy>>();
 
             input->set_fixed_size(200);
             *out_ptr = input.get();
@@ -168,9 +150,8 @@ namespace horizon::preferences
         combo->add_item("manual", "Manually");
         combo->set_width(200);
         combo->set_selected_item_by_id(m_device.config_method == "Manual" ? "manual" : "dhcp");
-        combo->when_item_selected.connect([this](const ComboItemSelectedContext &) { // Fixed from when_change
-            this->update_tcpip_fields_visibility();
-        });
+        combo->when_item_selected.connect([this](const ComboItemSelectedContext &)
+                                          { this->update_tcpip_fields_visibility(); });
         m_ipv4_method_combo = combo.get();
         method_row->add_child(std::move(combo));
         container->add_child(std::move(method_row));
@@ -186,7 +167,7 @@ namespace horizon::preferences
             lbl->set_alignment(TextAlignment::Right);
             row->add_child(std::move(lbl));
 
-            auto input = std::make_unique<TextBox<TextPolicy>>(); // Fixed from DefaultPolicy
+            auto input = std::make_unique<TextBox<TextPolicy>>();
             input->set_fixed_size(200);
             input->set_text(val == "---" ? "" : val);
             *out_ptr = input.get();
@@ -201,6 +182,25 @@ namespace horizon::preferences
 
         update_tcpip_fields_visibility();
 
+        container->add_child(Spacer());
+
+        // Bottom Apply button INSIDE TCP/IP tab
+        auto buttons = std::make_unique<Widget>();
+        buttons->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        buttons->set_fixed_size(40);
+        buttons->set_spacing(10);
+        buttons->add_child(Spacer());
+
+        auto apply_btn = std::make_unique<Button<AquaObject>>();
+        apply_btn->set_text("Apply");
+        apply_btn->set_fixed_size(100);
+        apply_btn->set_accent_color(WidgetAccentColor::Primary);
+        apply_btn->when_click.connect([this](MouseButtonEventContext &)
+                                      { this->on_apply_clicked(); });
+        buttons->add_child(std::move(apply_btn));
+
+        container->add_child(std::move(buttons));
+
         return container;
     }
 
@@ -209,7 +209,7 @@ namespace horizon::preferences
         bool manual = false;
         if (m_ipv4_method_combo && m_ipv4_method_combo->selected_item())
         {
-            manual = (m_ipv4_method_combo->selected_item()->id == "manual"); // Fixed API
+            manual = (m_ipv4_method_combo->selected_item()->id == "manual");
         }
 
         if (m_ip_input)
