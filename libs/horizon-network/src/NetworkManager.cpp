@@ -4,6 +4,8 @@
 #include <iostream>
 #include <arpa/inet.h>
 #include <sstream>
+#include <horizon/Logger.hpp>
+
 
 namespace horizon::network
 {
@@ -237,20 +239,205 @@ namespace horizon::network
         return devices;
     }
 
+    static void copy_dbus_iterator(DBusMessageIter* src, DBusMessageIter* dest)
+    {
+        int type = dbus_message_iter_get_arg_type(src);
+        if (type == DBUS_TYPE_INVALID) return;
+
+        if (dbus_type_is_container(type)) {
+            DBusMessageIter src_sub, dest_sub;
+            dbus_message_iter_recurse(src, &src_sub);
+            
+            char* sig = nullptr;
+            const char* contained_sig = nullptr;
+            
+            if (type == DBUS_TYPE_ARRAY || type == DBUS_TYPE_VARIANT) {
+                sig = dbus_message_iter_get_signature(&src_sub);
+                contained_sig = sig;
+            }
+
+            dbus_message_iter_open_container(dest, type, contained_sig, &dest_sub);
+            
+            while (dbus_message_iter_get_arg_type(&src_sub) != DBUS_TYPE_INVALID) {
+                copy_dbus_iterator(&src_sub, &dest_sub);
+                dbus_message_iter_next(&src_sub);
+            }
+            dbus_message_iter_close_container(dest, &dest_sub);
+            if (sig) dbus_free(sig);
+        } else {
+            // Basic type
+            switch (type) {
+                case DBUS_TYPE_STRING:
+                case DBUS_TYPE_OBJECT_PATH:
+                case DBUS_TYPE_SIGNATURE: {
+                    const char* val;
+                    dbus_message_iter_get_basic(src, &val);
+                    dbus_message_iter_append_basic(dest, type, &val);
+                    break;
+                }
+                case DBUS_TYPE_BOOLEAN: {
+                    dbus_bool_t val;
+                    dbus_message_iter_get_basic(src, &val);
+                    dbus_message_iter_append_basic(dest, type, &val);
+                    break;
+                }
+                case DBUS_TYPE_BYTE: {
+                    unsigned char val;
+                    dbus_message_iter_get_basic(src, &val);
+                    dbus_message_iter_append_basic(dest, type, &val);
+                    break;
+                }
+                case DBUS_TYPE_INT16: {
+                    dbus_int16_t val;
+                    dbus_message_iter_get_basic(src, &val);
+                    dbus_message_iter_append_basic(dest, type, &val);
+                    break;
+                }
+                case DBUS_TYPE_UINT16: {
+                    dbus_uint16_t val;
+                    dbus_message_iter_get_basic(src, &val);
+                    dbus_message_iter_append_basic(dest, type, &val);
+                    break;
+                }
+                case DBUS_TYPE_INT32: {
+                    dbus_int32_t val;
+                    dbus_message_iter_get_basic(src, &val);
+                    dbus_message_iter_append_basic(dest, type, &val);
+                    break;
+                }
+                case DBUS_TYPE_UINT32: {
+                    dbus_uint32_t val;
+                    dbus_message_iter_get_basic(src, &val);
+                    dbus_message_iter_append_basic(dest, type, &val);
+                    break;
+                }
+                case DBUS_TYPE_INT64: {
+                    dbus_int64_t val;
+                    dbus_message_iter_get_basic(src, &val);
+                    dbus_message_iter_append_basic(dest, type, &val);
+                    break;
+                }
+                case DBUS_TYPE_UINT64: {
+                    dbus_uint64_t val;
+                    dbus_message_iter_get_basic(src, &val);
+                    dbus_message_iter_append_basic(dest, type, &val);
+                    break;
+                }
+                case DBUS_TYPE_DOUBLE: {
+                    double val;
+                    dbus_message_iter_get_basic(src, &val);
+                    dbus_message_iter_append_basic(dest, type, &val);
+                    break;
+                }
+                case DBUS_TYPE_UNIX_FD: {
+                    int val;
+                    dbus_message_iter_get_basic(src, &val);
+                    dbus_message_iter_append_basic(dest, type, &val);
+                    break;
+                }
+            }
+        }
+    }
+
+
+
     bool NetworkManager::apply_device_settings(const DeviceDetails& details)
     {
         if (!m_dbus) return false;
+        LOG_INFO << "[NETWORK] Applying settings to " << details.name << " via nmcli + D-Bus Reapply";
 
-        // In a real implementation, we would use Device.Reapply or update the Connection profile.
-        // For now, let's log the action and return true to allow UI development.
-        std::cout << "NetworkManager: Applying settings to " << details.name 
-                  << " (Method: " << details.config_method << ", IP: " << details.ip_address << ")" << std::endl;
+        // Step 1: Get the active connection's path
+        auto active_conn_var = m_dbus->get_property("org.freedesktop.NetworkManager", details.path,
+                                                    "org.freedesktop.NetworkManager.Device",
+                                                    "ActiveConnection");
+        if (!std::holds_alternative<std::string>(active_conn_var)) {
+            LOG_ERROR << "[NETWORK] No active connection on device " << details.name;
+            return false;
+        }
+        std::string active_conn_path = std::get<std::string>(active_conn_var);
+
+        // Step 2: Get the UUID directly from the device using nmcli (Most robust way)
+        std::string target_uuid;
+        {
+            std::string cmd = "nmcli -g GENERAL.CON-UUID device show " + details.name;
+            FILE* pipe = popen(cmd.c_str(), "r");
+            if (pipe) {
+                char buffer[128];
+                if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                    target_uuid = buffer;
+                    // Remove newline
+                    target_uuid.erase(target_uuid.find_last_not_of(" \n\r\t") + 1);
+                }
+                pclose(pipe);
+            }
+        }
+
+        if (target_uuid.empty()) {
+            LOG_ERROR << "[NETWORK] Could not find active connection UUID for " << details.name;
+            return false;
+        }
+
+        LOG_INFO << "[NETWORK] Target UUID for " << details.name << ": " << target_uuid;
+
+        // Step 3: Use nmcli to modify the connection
+        std::stringstream ss;
+        ss << "nmcli connection modify " << target_uuid << " ";
+
+
         
-        // Mock success for now
-        return true;
+        if (details.config_method == "Manual") {
+            uint32_t prefix = mask_to_prefix(details.subnet_mask);
+            ss << "ipv4.method manual ipv4.addresses " << details.ip_address << "/" << prefix << " ";
+            if (!details.router.empty() && details.router != "---") {
+                ss << "ipv4.gateway " << details.router << " ";
+            }
+            if (!details.dns.empty() && details.dns != "---") {
+                // NM expects DNS separated by spaces or commas depending on version, nmcli handles it
+                ss << "ipv4.dns \"" << details.dns << "\" ";
+            }
+        } else {
+            ss << "ipv4.method auto ipv4.addresses \"\" ipv4.gateway \"\" ipv4.dns \"\" ";
+        }
+
+        LOG_INFO << "[NETWORK] Executing: " << ss.str();
+        int res = system(ss.str().c_str());
+        if (res != 0) {
+            LOG_ERROR << "[NETWORK] nmcli failed with code " << res;
+            return false;
+        }
+
+        // Step 5: Force immediate application via D-Bus Reapply
+        DBusMessage* reapply_msg = dbus_message_new_method_call("org.freedesktop.NetworkManager",
+                                                               details.path.c_str(),
+                                                               "org.freedesktop.NetworkManager.Device",
+                                                               "Reapply");
+        DBusMessageIter ri, empty_conn;
+        dbus_message_iter_init_append(reapply_msg, &ri);
+        dbus_message_iter_open_container(&ri, DBUS_TYPE_ARRAY, "{sa{sv}}", &empty_conn);
+        dbus_message_iter_close_container(&ri, &empty_conn);
+
+        dbus_uint64_t version_id = 0;
+        dbus_message_iter_append_basic(&ri, DBUS_TYPE_UINT64, &version_id);
+        dbus_uint32_t reapply_flags = 0;
+        dbus_message_iter_append_basic(&ri, DBUS_TYPE_UINT32, &reapply_flags);
+
+        DBusMessage* reapply_reply = dbus_connection_send_with_reply_and_block(
+            m_dbus->get_connection(), reapply_msg, 5000, nullptr);
+        dbus_message_unref(reapply_msg);
+
+        if (reapply_reply) {
+            dbus_message_unref(reapply_reply);
+            LOG_INFO << "[NETWORK] Settings applied successfully for " << details.name;
+            return true;
+        }
+
+        LOG_ERROR << "[NETWORK] Reapply failed after nmcli update";
+        return false;
     }
 
+
     void NetworkManager::monitor_loop()
+
     {
         DBusError err;
         dbus_error_init(&err);
