@@ -234,7 +234,8 @@ namespace horizon::preferences
         if (m_status_label)
         {
             m_status_label->set_text(dev.connected ? "Connected" : "Not Connected");
-            m_status_label->set_text_color(dev.connected ? Color("#2ecc71") : Color("#e74c3c"));
+            m_status_label->set_font_weight(FontWeight::FONT_WEIGHT_BOLD);
+            m_status_label->set_text_color(dev.connected ? Color("#279555ff") : Color("#e74c3c"));
         }
 
         if (m_description_label)
