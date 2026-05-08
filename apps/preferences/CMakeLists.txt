@@ -52,8 +52,10 @@ target_link_libraries(preferences
     PRIVATE
         horizon
         horizon-overview
+        horizon-network
         PkgConfig::PIPEWIRE
         nlohmann_json::nlohmann_json
+
 )
 
 add_custom_command(TARGET preferences POST_BUILD

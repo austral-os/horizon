@@ -8,43 +8,34 @@
 #include <horizon/Button.hpp>
 #include <horizon/Combo.hpp>
 #include <horizon/LoadingBar.hpp>
-#include <horizon/dbusutils/DbusHelper.hpp>
 #include <horizon/EventsManager.hpp>
+#include <horizon-network/WirelessDevice.hpp>
+#include <horizon-network/NetworkTypes.hpp>
 #include <string>
 #include <vector>
 #include <memory>
 
 namespace horizon::preferences
 {
-    struct WifiDevice
-    {
-        std::string name;
-        std::string path;
-    };
-
     class WifiConnectDialog : public WaylandWindow
     {
     public:
-        WifiConnectDialog(const std::string& ssid, const std::string& ap_path, const std::vector<WifiDevice>& devices);
+        WifiConnectDialog(std::shared_ptr<network::WirelessDevice> device, const network::WifiNetwork& network);
         ~WifiConnectDialog() override = default;
 
         EventsManager<bool> when_finished;
 
     private:
-        void setup_ui(const std::string& ssid);
-        void perform_connection_async(const std::string& password, const std::string& device_path);
+        void setup_ui();
+        void perform_connection_async(const std::string& password);
 
-        std::string m_ssid;
-        std::string m_ap_path;
-        std::vector<WifiDevice> m_devices;
+        std::shared_ptr<network::WirelessDevice> m_device;
+        network::WifiNetwork m_network;
 
-        Combo *m_device_combo{nullptr};
         TextBoxBase *m_password_input{nullptr};
         Button<AquaObject> *m_accept_btn{nullptr};
         Button<AquaObject> *m_cancel_btn{nullptr};
         Label *m_status_label{nullptr};
         LoadingBar *m_loading_bar{nullptr};
-
-        std::unique_ptr<dbusutils::DbusHelper> m_dbus;
     };
 }

@@ -14,18 +14,6 @@
 
 namespace horizon::preferences
 {
-    static std::string get_security_string(uint32_t wpa, uint32_t rsn)
-    {
-        std::string security = "";
-        if (rsn != 0)
-            security += "WPA2 ";
-        if (wpa != 0)
-            security += "WPA ";
-        if (security.empty())
-            security = "None";
-        return security;
-    }
-
     WifiConfigView::WifiConfigView() : Widget()
     {
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
@@ -33,13 +21,11 @@ namespace horizon::preferences
         set_spacing(10);
         set_margin(10);
 
-        try
+        // Get the first wireless device available
+        auto devices = network::NetworkManager::instance().get_wireless_devices();
+        if (!devices.empty())
         {
-            m_dbus = std::make_unique<dbusutils::DbusHelper>(DBUS_BUS_SYSTEM);
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Failed to initialize D-Bus: " << e.what() << std::endl;
+            m_device = devices[0];
         }
 
         setup_ui();
@@ -51,22 +37,22 @@ namespace horizon::preferences
                 if (auto *app = application())
                 {
                     app->add_timer(1000, [this]() { m_initialized = true; });
+                }
+            });
 
-                    // Start monitoring thread
-                    m_stop_monitor = false;
-                    m_monitor_thread = std::thread(&WifiConfigView::monitor_loop, this);
+        // Listen for network changes from the library
+        network::NetworkManager::instance().when_state_changed.connect(
+            [this](EventContext &)
+            {
+                if (auto *app = application())
+                {
+                    app->post_task([this]() { this->refresh_networks(); });
                 }
             });
     }
 
     WifiConfigView::~WifiConfigView()
     {
-        m_stop_monitor = true;
-        if (m_monitor_thread.joinable())
-        {
-            m_monitor_thread.join();
-        }
-
         if (m_refresh_timer_id != 0)
         {
             if (auto *app = application())
@@ -76,101 +62,47 @@ namespace horizon::preferences
         }
     }
 
-    void WifiConfigView::monitor_loop()
-    {
-        DBusError err;
-        dbus_error_init(&err);
-
-        DBusConnection *conn = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
-        if (dbus_error_is_set(&err))
-        {
-            std::cerr << "WifiConfigView Monitor: D-Bus connection error: " << err.message
-                      << std::endl;
-            dbus_error_free(&err);
-            return;
-        }
-
-        // Match common NM signals
-        dbus_bus_add_match(conn, "type='signal',interface='org.freedesktop.NetworkManager'", &err);
-        if (dbus_error_is_set(&err))
-        {
-            std::cerr << "WifiConfigView Monitor: Add match error: " << err.message << std::endl;
-            dbus_error_free(&err);
-            return;
-        }
-
-        while (!m_stop_monitor)
-        {
-            // Read messages (non-blocking wait)
-            dbus_connection_read_write_dispatch(conn, 100); // Wait 100ms
-
-            DBusMessage *msg = dbus_connection_pop_message(conn);
-            if (!msg)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                continue;
-            }
-
-            // We filter slightly for performance, but any NM signal means we should probably
-            // refresh status
-            if (dbus_message_is_signal(msg, "org.freedesktop.NetworkManager", "StateChanged") ||
-                dbus_message_is_signal(msg, "org.freedesktop.DBus.Properties", "PropertiesChanged"))
-            {
-                if (auto *app = application())
-                {
-                    app->post_task([this]() { this->refresh_networks(); });
-                }
-            }
-
-            dbus_message_unref(msg);
-        }
-
-        dbus_connection_unref(conn);
-    }
-
     void WifiConfigView::setup_ui()
     {
-        // 1. Label: Redes Preferidas
         auto label = std::make_unique<Label>(i18n().tr("preferences.wifi.preferred_networks"));
         label->set_font_weight(FONT_WEIGHT_BOLD);
         label->set_fixed_size(24);
         m_title_label = label.get();
         add_child(std::move(label));
 
-        // 2. TableView: SSID, Security, Signal, Connection
-        auto table = std::make_unique<TableView<WifiNetwork>>();
+        auto table = std::make_unique<TableView<network::WifiNetwork>>();
         table->set_height(250);
 
-        TableColumn<WifiNetwork> ssid_col;
+        TableColumn<network::WifiNetwork> ssid_col;
         ssid_col.title = i18n().tr("preferences.wifi.network_name");
         ssid_col.width = 250;
-        ssid_col.cell_factory = [](const WifiNetwork &data)
+        ssid_col.cell_factory = [](const network::WifiNetwork &data)
         { return std::make_unique<Label>(data.ssid); };
         table->add_column(std::move(ssid_col));
 
-        TableColumn<WifiNetwork> security_col;
+        TableColumn<network::WifiNetwork> security_col;
         security_col.title = i18n().tr("preferences.wifi.security_type");
         security_col.width = 150;
-        security_col.cell_factory = [](const WifiNetwork &data)
+        security_col.cell_factory = [](const network::WifiNetwork &data)
         { return std::make_unique<Label>(data.security); };
         table->add_column(std::move(security_col));
 
-        TableColumn<WifiNetwork> signal_col;
+        TableColumn<network::WifiNetwork> signal_col;
         signal_col.title = i18n().tr("preferences.wifi.signal");
         signal_col.width = 70;
-        signal_col.cell_factory = [](const WifiNetwork &data)
+        signal_col.cell_factory = [](const network::WifiNetwork &data)
         { return std::make_unique<Label>(std::to_string(data.signal) + "%"); };
         table->add_column(std::move(signal_col));
 
-        TableColumn<WifiNetwork> connection_col;
+        TableColumn<network::WifiNetwork> connection_col;
         connection_col.title = i18n().tr("preferences.wifi.connection");
         connection_col.width = 150;
-        connection_col.cell_factory = [](const WifiNetwork &data)
+        connection_col.cell_factory = [](const network::WifiNetwork &data)
         {
             auto lbl = std::make_unique<Label>(data.connected ? i18n().tr("preferences.wifi.connected") : "");
             if (data.connected)
             {
-                lbl->set_text_color(Color("#0b7c37ff")); // Emerald Green
+                lbl->set_text_color(Color("#0b7c37ff"));
                 lbl->set_font_weight(FONT_WEIGHT_BOLD);
             }
             return lbl;
@@ -182,7 +114,6 @@ namespace horizon::preferences
                                              { this->on_network_selected(ctx.row_data); });
         add_child(std::move(table));
 
-        // 3. Buttons: Agregar, Quitar (Horizontal Container)
         auto button_container = std::make_unique<Widget>();
         button_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         button_container->set_fixed_size(35);
@@ -198,18 +129,14 @@ namespace horizon::preferences
 
         auto refresh_btn = std::make_unique<Button<SolidObject>>();
         refresh_btn->set_text(i18n().tr("preferences.wifi.refresh"));
-
         refresh_btn->when_click.connect([this](MouseButtonEventContext &)
                                         { this->refresh_networks(); });
         m_refresh_button = refresh_btn.get();
         button_container->add_child(std::move(refresh_btn));
 
-        // Spacer to the right of buttons
         button_container->add_child(Spacer());
-
         add_child(std::move(button_container));
 
-        // 4. Options Area: connection label (Replaces checkbox)
         auto options_container = std::make_unique<Widget>();
         options_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         options_container->set_fixed_size(24);
@@ -224,12 +151,13 @@ namespace horizon::preferences
 
     void WifiConfigView::refresh_networks()
     {
-        if (m_table_view)
+        if (m_table_view && m_device)
         {
-            m_table_view->set_data(scan_networks());
+            m_device->request_scan();
+            auto networks = m_device->get_access_points();
+            m_table_view->set_data(networks);
 
-            // Check for active connection
-            std::string active_ssid = get_active_ssid();
+            std::string active_ssid = m_device->get_active_ssid();
             if (!active_ssid.empty())
             {
                 if (m_active_network_label)
@@ -249,195 +177,21 @@ namespace horizon::preferences
                 }
             }
 
-            // Polling backup (optional, but keep it for extra safety)
             if (auto *app = application())
             {
-                if (m_refresh_timer_id != 0)
-                {
-                    app->stop_timer(m_refresh_timer_id);
-                }
-                m_refresh_timer_id = app->add_timer(5000,
-                                                    [this]()
-                                                    {
-                                                        m_refresh_timer_id = 0;
-                                                        this->refresh_networks();
-                                                    });
+                if (m_refresh_timer_id != 0) app->stop_timer(m_refresh_timer_id);
+                m_refresh_timer_id = app->add_timer(5000, [this]() {
+                    m_refresh_timer_id = 0;
+                    this->refresh_networks();
+                });
             }
         }
     }
 
-    std::string WifiConfigView::get_active_ssid()
+    void WifiConfigView::on_network_selected(const network::WifiNetwork &network)
     {
-        if (!m_dbus)
-            return "";
-
-        // Get all devices
-        auto msg =
-            m_dbus->call_method("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
-                                "org.freedesktop.NetworkManager", "GetDevices");
-        if (!msg)
-            return "";
-
-        auto devices = m_dbus->get_object_path_list(msg);
-        dbus_message_unref(msg);
-
-        for (const auto &path : devices)
-        {
-            // Check if device is WiFi and has an ActiveAccessPoint
-            auto type_var =
-                m_dbus->get_property("org.freedesktop.NetworkManager", path,
-                                     "org.freedesktop.NetworkManager.Device", "DeviceType");
-            if (std::holds_alternative<uint32_t>(type_var) && std::get<uint32_t>(type_var) == 2)
-            {
-                auto active_ap_var = m_dbus->get_property(
-                    "org.freedesktop.NetworkManager", path,
-                    "org.freedesktop.NetworkManager.Device.Wireless", "ActiveAccessPoint");
-                if (std::holds_alternative<std::string>(active_ap_var))
-                {
-                    std::string active_ap_path = std::get<std::string>(active_ap_var);
-                    if (active_ap_path != "/" && !active_ap_path.empty())
-                    {
-                        // Get Ssid of the active Access Point
-                        auto ssid_var = m_dbus->get_property(
-                            "org.freedesktop.NetworkManager", active_ap_path,
-                            "org.freedesktop.NetworkManager.AccessPoint", "Ssid");
-                        if (std::holds_alternative<std::vector<uint8_t>>(ssid_var))
-                        {
-                            auto bytes = std::get<std::vector<uint8_t>>(ssid_var);
-                            return std::string(bytes.begin(), bytes.end());
-                        }
-                    }
-                }
-            }
-        }
-
-        return "";
-    }
-
-    std::vector<WifiNetwork> WifiConfigView::scan_networks()
-    {
-        std::vector<WifiNetwork> networks;
-        if (!m_dbus)
-            return networks;
-
-        std::map<std::string, WifiNetwork> unique_networks;
-        std::string active_ssid = get_active_ssid();
-
-        // 1. Get Devices
-        auto msg =
-            m_dbus->call_method("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
-                                "org.freedesktop.NetworkManager", "GetDevices");
-        if (!msg)
-            return networks;
-
-        auto devices = m_dbus->get_object_path_list(msg);
-        dbus_message_unref(msg);
-
-        m_scan_devices.clear();
-        std::vector<std::string> wifi_device_paths;
-        for (const auto &path : devices)
-        {
-            auto type_var =
-                m_dbus->get_property("org.freedesktop.NetworkManager", path,
-                                     "org.freedesktop.NetworkManager.Device", "DeviceType");
-            if (std::holds_alternative<uint32_t>(type_var) &&
-                std::get<uint32_t>(type_var) == 2) // NM_DEVICE_TYPE_WIFI = 2
-            {
-                // Get interface name (e.g. wlo1)
-                auto iface_var =
-                    m_dbus->get_property("org.freedesktop.NetworkManager", path,
-                                         "org.freedesktop.NetworkManager.Device", "Interface");
-                std::string iface_name = std::holds_alternative<std::string>(iface_var)
-                                             ? std::get<std::string>(iface_var)
-                                             : "wlan0";
-                m_scan_devices.push_back({iface_name, path});
-                wifi_device_paths.push_back(path);
-
-                // Trigger scan
-                m_dbus->call_void_method_with_empty_dict(
-                    "org.freedesktop.NetworkManager", path,
-                    "org.freedesktop.NetworkManager.Device.Wireless", "RequestScan");
-            }
-        }
-
-        if (wifi_device_paths.empty())
-            return networks;
-
-        // 2. Get Access Points from all wifi devices
-        for (const auto &wifi_device_path : wifi_device_paths)
-        {
-            msg = m_dbus->call_method("org.freedesktop.NetworkManager", wifi_device_path,
-                                      "org.freedesktop.NetworkManager.Device.Wireless",
-                                      "GetAllAccessPoints");
-            if (!msg)
-                continue;
-
-            auto ap_paths = m_dbus->get_object_path_list(msg);
-            dbus_message_unref(msg);
-
-            for (const auto &ap_path : ap_paths)
-            {
-                auto ssid_var =
-                    m_dbus->get_property("org.freedesktop.NetworkManager", ap_path,
-                                         "org.freedesktop.NetworkManager.AccessPoint", "Ssid");
-                auto wpa_var =
-                    m_dbus->get_property("org.freedesktop.NetworkManager", ap_path,
-                                         "org.freedesktop.NetworkManager.AccessPoint", "WpaFlags");
-                auto rsn_var =
-                    m_dbus->get_property("org.freedesktop.NetworkManager", ap_path,
-                                         "org.freedesktop.NetworkManager.AccessPoint", "RsnFlags");
-                auto strength_var =
-                    m_dbus->get_property("org.freedesktop.NetworkManager", ap_path,
-                                         "org.freedesktop.NetworkManager.AccessPoint", "Strength");
-
-                std::string ssid_str = "";
-                if (std::holds_alternative<std::vector<uint8_t>>(ssid_var))
-                {
-                    auto bytes = std::get<std::vector<uint8_t>>(ssid_var);
-                    ssid_str = std::string(bytes.begin(), bytes.end());
-                }
-
-                if (ssid_str.empty())
-                    ssid_str = i18n().tr("preferences.wifi.hidden_network");
-
-                uint32_t wpa =
-                    std::holds_alternative<uint32_t>(wpa_var) ? std::get<uint32_t>(wpa_var) : 0;
-                uint32_t rsn =
-                    std::holds_alternative<uint32_t>(rsn_var) ? std::get<uint32_t>(rsn_var) : 0;
-                int signal = std::holds_alternative<uint32_t>(strength_var)
-                                 ? (int)std::get<uint32_t>(strength_var)
-                                 : 0;
-
-                bool is_active = (!active_ssid.empty() && ssid_str == active_ssid);
-
-                auto it = unique_networks.find(ssid_str);
-                if (it == unique_networks.end() || signal > it->second.signal)
-                {
-                    unique_networks[ssid_str] = {ssid_str, get_security_string(wpa, rsn), ap_path,
-                                                 signal, is_active};
-                }
-            }
-        }
-
-        for (auto const &[ssid, network] : unique_networks)
-        {
-            networks.push_back(network);
-        }
-
-        // 3. Sort by signal strength (descending)
-        std::sort(networks.begin(), networks.end(),
-                  [](const WifiNetwork &a, const WifiNetwork &b) { return a.signal > b.signal; });
-
-        return networks;
-    }
-
-    void WifiConfigView::on_network_selected(const WifiNetwork &network)
-    {
-        if (!m_initialized)
-            return;
-
+        if (!m_initialized) return;
         m_selected_network = network;
-
         if (m_connect_button)
         {
             m_connect_button->set_enabled(true);
@@ -447,85 +201,32 @@ namespace horizon::preferences
 
     void WifiConfigView::on_connect_clicked()
     {
-        if (m_selected_network.ssid.empty())
-            return;
-
+        if (m_selected_network.ssid.empty()) return;
         if (m_selected_network.connected)
         {
             disconnect_selected();
             return;
         }
 
-        if (m_dialog_open)
-            return;
-
-        if (m_scan_devices.empty())
-            return;
+        if (m_dialog_open || !m_device) return;
 
         if (auto *app = application())
         {
             m_dialog_open = true;
-            auto dialog = std::make_unique<WifiConnectDialog>(
-                m_selected_network.ssid, m_selected_network.path, m_scan_devices);
-
+            auto dialog = std::make_unique<WifiConnectDialog>(m_device, m_selected_network);
             dialog->when_close.connect([this](EventContext &) { m_dialog_open = false; });
 
-            std::thread(
-                [this, app, d = std::move(dialog)]() mutable
-                {
-                    d->initialize();
-                    d->run();
-                    app->post_task([this]() { m_dialog_open = false; });
-                })
-                .detach();
+            std::thread([this, app, d = std::move(dialog)]() mutable {
+                d->initialize();
+                d->run();
+                app->post_task([this]() { m_dialog_open = false; });
+            }).detach();
         }
     }
 
     void WifiConfigView::disconnect_selected()
     {
-        if (m_selected_network.ssid.empty() || !m_dbus)
-            return;
-
-        // 1. Get all ActiveConnections from NM
-        auto active_conns_var = m_dbus->get_property(
-            "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
-            "org.freedesktop.NetworkManager", "ActiveConnections");
-
-        if (std::holds_alternative<std::vector<std::string>>(active_conns_var))
-        {
-            auto active_conns = std::get<std::vector<std::string>>(active_conns_var);
-            for (const auto &conn_path : active_conns)
-            {
-                // Check if this connection's ID matches our SSID
-                auto id_var = m_dbus->get_property(
-                    "org.freedesktop.NetworkManager", conn_path,
-                    "org.freedesktop.NetworkManager.Connection.Active", "Id");
-                if (std::holds_alternative<std::string>(id_var) &&
-                    std::get<std::string>(id_var) == m_selected_network.ssid)
-                {
-                    // Found it! Deactivate.
-                    DBusMessage *msg = dbus_message_new_method_call(
-                        "org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager",
-                        "org.freedesktop.NetworkManager", "DeactivateConnection");
-                    if (msg)
-                    {
-                        const char *path_ptr = conn_path.c_str();
-                        dbus_message_append_args(msg, DBUS_TYPE_OBJECT_PATH, &path_ptr,
-                                                 DBUS_TYPE_INVALID);
-
-                        DBusError err;
-                        dbus_error_init(&err);
-                        DBusMessage *reply = dbus_connection_send_with_reply_and_block(
-                            m_dbus->get_connection(), msg, -1, &err);
-                        if (reply)
-                            dbus_message_unref(reply);
-                        if (dbus_error_is_set(&err))
-                            dbus_error_free(&err);
-                        dbus_message_unref(msg);
-                    }
-                    break;
-                }
-            }
-        }
+        if (m_selected_network.ssid.empty() || !m_device) return;
+        m_device->disconnect(m_selected_network.ssid);
     }
-} // namespace horizon::preferences
+}
