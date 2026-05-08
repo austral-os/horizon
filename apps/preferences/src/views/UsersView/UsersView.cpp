@@ -370,8 +370,9 @@ namespace horizon::preferences
         m_email_box->set_text(user.email);
         m_account_type_combo->set_selected_item_by_id(user.is_admin ? "admin" : "standard");
         m_avatar_selector->set_selected_avatar(user.avatar_path);
-
-        m_delete_btn->set_enabled(!user.is_current);
+ 
+        // Only allow deleting if it's not the current user AND there's more than one real user
+        m_delete_btn->set_enabled(!user.is_current && m_users.size() > 1);
     }
 
     void UsersView::on_save_clicked()
