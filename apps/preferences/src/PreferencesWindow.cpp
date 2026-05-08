@@ -10,7 +10,9 @@
 #include "views/KeyboardView/KeyboardView.hpp"
 #include "views/MouseView/MouseView.hpp"
 #include "views/NetworkView/NetworkView.hpp"
+#include "views/NetworkView/AdvancedNetworkView.hpp"
 #include "views/NotificationsView/NotificationsView.hpp"
+
 #include "views/PowerView/PowerView.hpp"
 #include "views/PrintersView/PrintersView.hpp"
 #include "views/RegionView/RegionView.hpp"
@@ -129,7 +131,20 @@ namespace horizon::preferences
             home_panel->when_item_click.connect([this](const GroupedIconItem &item)
                                                 { load_view_by_id(item.id); });
         }
+        else if (auto network_view = dynamic_cast<NetworkView *>(view))
+        {
+            network_view->when_advanced_click.connect([this](const network::DeviceDetails &dev) {
+                auto adv_view = std::make_unique<AdvancedNetworkView>(dev);
+                m_content_view->load_view(std::move(adv_view));
+                
+                // Add to history manually for now as it's a sub-page
+                m_history.push_back("advanced-network");
+                m_history_index = m_history.size() - 1;
+                update_navigation_buttons();
+            });
+        }
     }
+
 
     void PreferencesWindow::go_back()
     {

@@ -15,6 +15,8 @@ namespace horizon::preferences
         NetworkView();
         ~NetworkView() override = default;
 
+        EventsManager<network::DeviceDetails> when_advanced_click;
+
     private:
         void setup_ui();
         void refresh_devices();
@@ -32,5 +34,7 @@ namespace horizon::preferences
         Label *m_mask_label{nullptr};
         Label *m_router_label{nullptr};
         Label *m_dns_label{nullptr};
+
+        network::DeviceDetails m_selected_device;
     };
 } // namespace horizon::preferences

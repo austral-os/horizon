@@ -28,7 +28,9 @@ add_executable(preferences
     src/views/BluetoothView/BluetoothView.cpp
     src/views/BluetoothView/BluetoothPairDialog.cpp
     src/views/NetworkView/NetworkView.cpp
+    src/views/NetworkView/AdvancedNetworkView.cpp
     src/views/UsersView/UsersView.cpp
+
     src/views/UsersView/PasswordDialog.cpp
     src/views/DateTimeView/DateTimeView.cpp
     src/views/RegionView/RegionView.cpp

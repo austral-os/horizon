@@ -76,6 +76,19 @@ namespace horizon::network
         return inet_ntoa(addr);
     }
 
+    static uint32_t mask_to_prefix(const std::string& mask)
+    {
+        uint32_t m;
+        inet_pton(AF_INET, mask.c_str(), &m);
+        m = ntohl(m);
+        uint32_t prefix = 0;
+        while (m & 0x80000000) {
+            prefix++;
+            m <<= 1;
+        }
+        return prefix;
+    }
+
     static void parse_aasv(DBusMessageIter* iter, std::function<void(const std::string&, DBusMessageIter*)> callback)
     {
         DBusMessageIter variant_iter, array_iter, sub_array_iter, dict_iter, entry_iter;
@@ -150,7 +163,6 @@ namespace horizon::network
 
             if (dev.connected)
             {
-                // Active Connection Name
                 auto active_conn_var = m_dbus->get_property("org.freedesktop.NetworkManager", path,
                                                          "org.freedesktop.NetworkManager.Device", "ActiveConnection");
                 if (std::holds_alternative<std::string>(active_conn_var)) {
@@ -167,7 +179,6 @@ namespace horizon::network
                 if (std::holds_alternative<std::string>(ip4_path_var)) {
                     std::string ip4_path = std::get<std::string>(ip4_path_var);
                     if (ip4_path != "/" && !ip4_path.empty()) {
-                        // 1. IP and Mask
                         DBusMessage* prop_msg = dbus_message_new_method_call("org.freedesktop.NetworkManager", ip4_path.c_str(), "org.freedesktop.DBus.Properties", "Get");
                         const char* iface = "org.freedesktop.NetworkManager.IP4Config";
                         const char* prop = "AddressData";
@@ -191,11 +202,9 @@ namespace horizon::network
                         }
                         dbus_message_unref(prop_msg);
 
-                        // 2. Gateway
                         auto gateway_var = m_dbus->get_property("org.freedesktop.NetworkManager", ip4_path, "org.freedesktop.NetworkManager.IP4Config", "Gateway");
                         if (std::holds_alternative<std::string>(gateway_var)) dev.router = std::get<std::string>(gateway_var);
 
-                        // 3. DNS
                         DBusMessage* dns_msg = dbus_message_new_method_call("org.freedesktop.NetworkManager", ip4_path.c_str(), "org.freedesktop.DBus.Properties", "Get");
                         const char* dns_prop = "NameserverData";
                         dbus_message_append_args(dns_msg, DBUS_TYPE_STRING, &iface, DBUS_TYPE_STRING, &dns_prop, DBUS_TYPE_INVALID);
@@ -214,8 +223,7 @@ namespace horizon::network
                                     first = false;
                                 }
                             });
-                            std::string dns_str = ss.str();
-                            if (!dns_str.empty()) dev.dns = dns_str;
+                            if (!ss.str().empty()) dev.dns = ss.str();
                             dbus_message_unref(dns_reply);
                         }
                         dbus_message_unref(dns_msg);
@@ -227,6 +235,19 @@ namespace horizon::network
         }
 
         return devices;
+    }
+
+    bool NetworkManager::apply_device_settings(const DeviceDetails& details)
+    {
+        if (!m_dbus) return false;
+
+        // In a real implementation, we would use Device.Reapply or update the Connection profile.
+        // For now, let's log the action and return true to allow UI development.
+        std::cout << "NetworkManager: Applying settings to " << details.name 
+                  << " (Method: " << details.config_method << ", IP: " << details.ip_address << ")" << std::endl;
+        
+        // Mock success for now
+        return true;
     }
 
     void NetworkManager::monitor_loop()

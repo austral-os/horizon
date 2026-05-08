@@ -193,7 +193,13 @@ namespace horizon::preferences
         auto adv_btn = std::make_unique<Button<AquaObject>>();
         adv_btn->set_text("Advanced");
         adv_btn->set_fixed_size(150);
+        adv_btn->when_click.connect([this](MouseButtonEventContext &) {
+            if (m_selected_device.path != "") {
+                this->when_advanced_click.run(m_selected_device);
+            }
+        });
         bottom_row->add_child(std::move(adv_btn));
+
         details_container->add_child(std::move(bottom_row));
 
         m_details_container = details_container.get();
@@ -212,7 +218,9 @@ namespace horizon::preferences
 
     void NetworkView::on_device_selected(const network::DeviceDetails &dev)
     {
+        m_selected_device = dev;
         if (m_status_label)
+
         {
             m_status_label->set_text(dev.connected ? "Connected" : "Not Connected");
             m_status_label->set_font_weight(FontWeight::FONT_WEIGHT_BOLD);

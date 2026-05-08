@@ -23,6 +23,8 @@ namespace horizon::network
 
         std::vector<std::shared_ptr<WirelessDevice>> get_wireless_devices();
         std::vector<DeviceDetails> get_all_devices();
+        bool apply_device_settings(const DeviceDetails& details);
+
 
         
         // Signals
