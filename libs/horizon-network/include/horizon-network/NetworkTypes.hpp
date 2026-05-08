@@ -6,6 +6,28 @@
 
 namespace horizon::network
 {
+    enum class DeviceType
+    {
+        Unknown = 0,
+        Ethernet = 1,
+        Wifi = 2
+    };
+
+    struct DeviceDetails
+    {
+        std::string name;
+        std::string path;
+        DeviceType type;
+        bool connected;
+        std::string status_text;
+        std::string ip_address;
+        std::string subnet_mask;
+        std::string router;
+        std::string dns;
+        std::string search_domains;
+        std::string config_method; // e.g. "DHCP"
+    };
+
     struct WifiNetwork
     {
         std::string ssid;
@@ -13,12 +35,6 @@ namespace horizon::network
         std::string path; // D-Bus object path for the AccessPoint
         int signal;
         bool connected;
-    };
-
-    struct WifiDevice
-    {
-        std::string name; // interface name (e.g. wlo1)
-        std::string path; // D-Bus object path for the Device
     };
 
     enum class ConnectionState

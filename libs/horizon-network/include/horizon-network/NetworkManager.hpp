@@ -22,6 +22,8 @@ namespace horizon::network
         ~NetworkManager();
 
         std::vector<std::shared_ptr<WirelessDevice>> get_wireless_devices();
+        std::vector<DeviceDetails> get_all_devices();
+
         
         // Signals
         EventsManager<EventContext> when_state_changed;
