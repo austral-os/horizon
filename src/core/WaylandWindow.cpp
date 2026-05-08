@@ -1500,7 +1500,7 @@ namespace horizon
 
         Widget *popup_root = m_window->m_popup_menu ? (Widget*)m_window->m_popup_menu : (Widget*)m_window->m_popup_vault;
 
-        LOG_INFO << "[POPUP_EV] Type: " << (int)event.type << " at (" << event.x << ", " << event.y << ") serial: " << event.serial;
+        // LOG_INFO << "[POPUP_EV] Type: " << (int)event.type << " at (" << event.x << ", " << event.y << ") serial: " << event.serial;
 
         int x = (int)event.x;
         int y = (int)event.y;

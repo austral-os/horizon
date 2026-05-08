@@ -1,3 +1,5 @@
+#include "horizon/GraphicsContext.hpp"
+#include <horizon-network/WirelessDevice.hpp>
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Combo.hpp>
@@ -57,9 +59,10 @@ namespace horizon::preferences
             row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
             row->set_fixed_size(25);
             auto lbl = std::make_unique<Label>(label);
-            lbl->set_width(120);
             lbl->set_alignment(TextAlignment::Right);
+            lbl->set_font_weight(FONT_WEIGHT_BOLD);
             row->add_child(std::move(lbl));
+            row->add_child(Spacer(10));
             auto val = std::make_unique<Label>(value);
             val->set_margin(10);
             row->add_child(std::move(val));
@@ -88,9 +91,10 @@ namespace horizon::preferences
             row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
             row->set_fixed_size(35);
             auto lbl = std::make_unique<Label>(label);
-            lbl->set_width(120);
             lbl->set_alignment(TextAlignment::Right);
             row->add_child(std::move(lbl));
+
+            row->add_child(Spacer(10));
 
             std::unique_ptr<TextBoxBase> input;
             if (password)
@@ -98,7 +102,7 @@ namespace horizon::preferences
             else
                 input = std::make_unique<TextBox<TextPolicy>>();
 
-            input->set_fixed_size(200);
+            input->set_fixed_size(-1);
             *out_ptr = input.get();
             row->add_child(std::move(input));
             container->add_child(std::move(row));
@@ -112,9 +116,10 @@ namespace horizon::preferences
         security_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         security_row->set_fixed_size(35);
         auto sec_lbl = std::make_unique<Label>("Security:");
-        sec_lbl->set_width(120);
         sec_lbl->set_alignment(TextAlignment::Right);
         security_row->add_child(std::move(sec_lbl));
+
+        security_row->add_child(Spacer(10));
 
         auto combo = std::make_unique<Combo>();
         combo->add_item("none", "None");
@@ -126,6 +131,25 @@ namespace horizon::preferences
         container->add_child(std::move(security_row));
 
         create_input("Password:", &m_password_input, true);
+
+        container->add_child(Spacer());
+
+        // Connect button for Wifi
+        auto buttons = std::make_unique<Widget>();
+        buttons->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        buttons->set_fixed_size(40);
+        buttons->set_spacing(10);
+        buttons->add_child(Spacer());
+
+        auto connect_btn = std::make_unique<Button<AquaObject>>();
+        connect_btn->set_text("Connect");
+        connect_btn->set_fixed_size(100);
+        connect_btn->set_accent_color(WidgetAccentColor::Primary);
+        connect_btn->when_click.connect([this](MouseButtonEventContext &)
+                                        { this->on_connect_wifi_clicked(); });
+        buttons->add_child(std::move(connect_btn));
+
+        container->add_child(std::move(buttons));
 
         return container;
     }
@@ -141,9 +165,10 @@ namespace horizon::preferences
         method_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         method_row->set_fixed_size(35);
         auto m_lbl = std::make_unique<Label>("Configure IPv4:");
-        m_lbl->set_width(120);
         m_lbl->set_alignment(TextAlignment::Right);
         method_row->add_child(std::move(m_lbl));
+
+        method_row->add_child(Spacer(10));
 
         auto combo = std::make_unique<Combo>();
         combo->add_item("dhcp", "Using DHCP");
@@ -163,12 +188,13 @@ namespace horizon::preferences
             row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
             row->set_fixed_size(35);
             auto lbl = std::make_unique<Label>(label);
-            lbl->set_width(120);
             lbl->set_alignment(TextAlignment::Right);
             row->add_child(std::move(lbl));
 
+            row->add_child(Spacer(10));
+
             auto input = std::make_unique<TextBox<TextPolicy>>();
-            input->set_fixed_size(200);
+            input->set_fixed_size(-1);
             input->set_text(val == "---" ? "" : val);
             *out_ptr = input.get();
             row->add_child(std::move(input));
@@ -243,5 +269,18 @@ namespace horizon::preferences
         {
             // Successfully applied
         }
+    }
+
+    void AdvancedNetworkView::on_connect_wifi_clicked()
+    {
+        if (m_device.type != network::DeviceType::Wifi)
+            return;
+
+        std::string ssid = m_ssid_input ? m_ssid_input->text() : "";
+        std::string password = m_password_input ? m_password_input->text() : "";
+
+        // For now we assume we are using the device from m_device.path
+        auto dev = std::make_shared<network::WirelessDevice>(m_device.name, m_device.path);
+        dev->connect(ssid, password, ""); // ap_path empty for manual entry? Or find AP.
     }
 } // namespace horizon::preferences

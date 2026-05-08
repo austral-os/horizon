@@ -24,7 +24,9 @@ namespace horizon::preferences
         std::unique_ptr<Widget> create_tcpip_tab();
         
         void on_apply_clicked();
+        void on_connect_wifi_clicked();
         void update_tcpip_fields_visibility();
+
 
         network::DeviceDetails m_device;
         
