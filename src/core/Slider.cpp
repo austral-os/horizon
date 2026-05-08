@@ -25,7 +25,6 @@ namespace horizon
     {
         set_focusable(true);
         m_height = 40; // default fixed height for horizontal
-        set_fixed_size(40);
 
         m_thumb_poly = std::make_unique<AquaPolygon>();
         m_thumb_poly->set_accent_color(WidgetAccentColor::Primary);
