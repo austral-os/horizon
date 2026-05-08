@@ -17,7 +17,7 @@
 #include <views/UsersView/UsersView.hpp>
 
 namespace fs = std::filesystem;
- 
+
 namespace horizon::preferences
 {
     static std::string shell_escape(const std::string &s)
@@ -256,7 +256,7 @@ namespace horizon::preferences
 
         auto save_btn = std::make_unique<Button<AquaObject>>();
         save_btn->set_accent_color(WidgetAccentColor::Primary);
-        save_btn->set_text(i18n().tr("preferences.buttons.save"));
+        save_btn->set_text(i18n().tr("preferences.users.save"));
         save_btn->set_fixed_size(120);
         save_btn->when_click.connect([this](auto &) { on_save_clicked(); });
         m_save_btn = save_btn.get();
@@ -283,20 +283,23 @@ namespace horizon::preferences
             UserInfo user;
             user.username = pw->pw_name ? pw->pw_name : "";
             user.uid = pw->pw_uid;
-            
+
             std::string gecos = pw->pw_gecos ? pw->pw_gecos : "";
             std::vector<std::string> fields;
             std::stringstream ss(gecos);
             std::string segment;
-            while (std::getline(ss, segment, ',')) {
+            while (std::getline(ss, segment, ','))
+            {
                 fields.push_back(segment);
             }
-            
+
             user.real_name = !fields.empty() ? fields[0] : user.username;
-            if (user.real_name.empty()) user.real_name = user.username;
-            
+            if (user.real_name.empty())
+                user.real_name = user.username;
+
             // Email is often stored in the 5th field of GECOS
-            if (fields.size() >= 5) {
+            if (fields.size() >= 5)
+            {
                 user.email = fields[4];
             }
 
@@ -325,17 +328,19 @@ namespace horizon::preferences
         m_sidebar->add_group(i18n().tr("preferences.users.your_account"));
         m_sidebar->add_group(i18n().tr("preferences.users.other_accounts"));
 
-        UserSidebarItem* first_item = nullptr;
+        UserSidebarItem *first_item = nullptr;
         for (const auto &user : m_users)
         {
             std::string group = user.is_current ? i18n().tr("preferences.users.your_account")
                                                 : i18n().tr("preferences.users.other_accounts");
             auto item = std::make_unique<UserSidebarItem>(user);
-            if (!first_item) first_item = item.get();
+            if (!first_item)
+                first_item = item.get();
             m_sidebar->add_item(group, std::move(item));
         }
 
-        if (first_item) {
+        if (first_item)
+        {
             m_sidebar->select_item(first_item);
             select_user(first_item->user_info());
         }
@@ -366,7 +371,8 @@ namespace horizon::preferences
         }
 
         std::string cmd = "";
-        if (new_fullname != m_selected_user.real_name || new_is_admin != m_selected_user.is_admin || new_email != m_selected_user.email)
+        if (new_fullname != m_selected_user.real_name || new_is_admin != m_selected_user.is_admin ||
+            new_email != m_selected_user.email)
         {
             cmd = "/usr/sbin/usermod ";
             if (new_fullname != m_selected_user.real_name || new_email != m_selected_user.email)
@@ -393,8 +399,10 @@ namespace horizon::preferences
         if (!new_avatar.empty() && new_avatar != m_selected_user.avatar_path)
         {
             std::string dest = "/home/" + m_selected_user.username + "/.face";
-            std::string cp_cmd = "pkexec cp " + shell_escape(new_avatar) + " " + shell_escape(dest) + 
-                                " && pkexec chown " + m_selected_user.username + ":" + m_selected_user.username + " " + shell_escape(dest);
+            std::string cp_cmd = "pkexec cp " + shell_escape(new_avatar) + " " +
+                                 shell_escape(dest) + " && pkexec chown " +
+                                 m_selected_user.username + ":" + m_selected_user.username + " " +
+                                 shell_escape(dest);
             LOG_INFO << "Saving avatar: " << cp_cmd;
             std::system(cp_cmd.c_str());
         }
@@ -404,27 +412,30 @@ namespace horizon::preferences
 
     void UsersView::on_change_password_clicked()
     {
-        std::thread([this, username = m_selected_user.username]() {
-            auto dialog = std::make_unique<PasswordDialog>(username);
-            dialog->when_finished.connect(
-                [this, username](PasswordDialogEvent &ev)
-                {
-                    if (ev.accepted && !ev.password.empty())
+        std::thread(
+            [this, username = m_selected_user.username]()
+            {
+                auto dialog = std::make_unique<PasswordDialog>(username);
+                dialog->when_finished.connect(
+                    [this, username](PasswordDialogEvent &ev)
                     {
-                        // Use chpasswd to set password non-interactively
-                        std::string payload = username + ":" + ev.password;
-                        std::string cmd = "printf %s " + shell_escape(payload) + " | ";
-                        if (username != m_current_user.username)
-                            cmd += "pkexec ";
+                        if (ev.accepted && !ev.password.empty())
+                        {
+                            // Use chpasswd to set password non-interactively
+                            std::string payload = username + ":" + ev.password;
+                            std::string cmd = "printf %s " + shell_escape(payload) + " | ";
+                            if (username != m_current_user.username)
+                                cmd += "pkexec ";
 
-                        cmd += "/usr/sbin/chpasswd";
- 
-                        LOG_INFO << "Updating password for " << username << " using chpasswd";
-                        std::system(cmd.c_str());
-                    }
-                });
-            dialog->run();
-        }).detach();
+                            cmd += "/usr/sbin/chpasswd";
+
+                            LOG_INFO << "Updating password for " << username << " using chpasswd";
+                            std::system(cmd.c_str());
+                        }
+                    });
+                dialog->run();
+            })
+            .detach();
     }
 
     void UsersView::on_delete_user_clicked()
@@ -432,8 +443,10 @@ namespace horizon::preferences
         if (m_selected_user.is_current)
             return;
 
-        std::string msg = i18n().tr("preferences.users.delete_confirm", {{"0", m_selected_user.username}});
-        if (application() && application()->confirm(msg, i18n().tr("preferences.users.delete_user"), MessageType::Warning))
+        std::string msg =
+            i18n().tr("preferences.users.delete_confirm", {{"0", m_selected_user.username}});
+        if (application() && application()->confirm(msg, i18n().tr("preferences.users.delete_user"),
+                                                    MessageType::Warning))
         {
             std::string cmd = "pkexec /usr/sbin/userdel -r " + m_selected_user.username;
             LOG_INFO << "Deleting user: " << cmd;
