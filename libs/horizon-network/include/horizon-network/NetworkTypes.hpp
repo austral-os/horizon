@@ -16,7 +16,9 @@ namespace horizon::network
     struct DeviceDetails
     {
         std::string name;
+        std::string connection_name;
         std::string path;
+
         DeviceType type;
         bool connected;
         std::string status_text;

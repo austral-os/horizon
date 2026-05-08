@@ -71,14 +71,12 @@ namespace horizon::preferences
             auto subtitle = std::make_unique<Label>(
                 data.connected ? data.ip_address : i18n().tr("preferences.network.not_connected"));
             subtitle->set_text_color(Color("#666666"));
-
             subtitle->set_font_size(14);
             info->add_child(std::move(subtitle));
 
             container->add_child(std::move(info));
 
             // 3. Icon
-            // container->add_child(Spacer());
             auto icon = std::make_unique<Icon>();
             icon->set_icon_name(data.type == network::DeviceType::Wifi ? "network-wireless"
                                                                        : "network-wired");
@@ -152,11 +150,14 @@ namespace horizon::preferences
         grid->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         grid->set_spacing(15);
 
-        /////////////////
+        auto conn_name_lbl = std::make_unique<Label>("---");
+        conn_name_lbl->set_font_weight(FONT_WEIGHT_BOLD);
+        m_connection_name_label = conn_name_lbl.get();
+        grid->add_child(create_row("Connection:", conn_name_lbl.release()));
+
         auto status_lbl = std::make_unique<Label>("---");
         m_status_label = status_lbl.get();
         grid->add_child(create_row("Status:", status_lbl.release()));
-        ////////////////
 
         auto desc_lbl = std::make_unique<Label>("");
         desc_lbl->set_alignment(TextAlignment::Center);
@@ -165,13 +166,6 @@ namespace horizon::preferences
         desc_lbl->set_fixed_size(50);
         m_description_label = desc_lbl.get();
         details_container->add_child(std::move(desc_lbl));
-
-        auto config_combo = std::make_unique<Combo>();
-        config_combo->add_item("dhcp", "Using DHCP");
-        config_combo->add_item("manual", "Manually");
-        config_combo->set_width(200);
-        m_config_combo = config_combo.get();
-        grid->add_child(create_row("Configure IPv4:", config_combo.release()));
 
         auto ip_val = std::make_unique<Label>("---");
         m_ip_label = ip_val.get();
@@ -189,13 +183,7 @@ namespace horizon::preferences
         m_dns_label = dns_val.get();
         grid->add_child(create_row("DNS Server:", dns_val.release()));
 
-        auto domains_val = std::make_unique<Label>("---");
-        m_domains_label = domains_val.get();
-        grid->add_child(create_row("Search Domains:", domains_val.release()));
-
         details_container->add_child(std::move(grid));
-
-        // details->add_child(Spacer());
 
         // Advanced button
         auto bottom_row = std::make_unique<Widget>();
@@ -209,9 +197,7 @@ namespace horizon::preferences
         details_container->add_child(std::move(bottom_row));
 
         m_details_container = details_container.get();
-
         details->add_child(std::move(details_container));
-
         add_child(std::move(details));
     }
 
@@ -221,12 +207,6 @@ namespace horizon::preferences
         {
             auto devices = network::NetworkManager::instance().get_all_devices();
             m_device_table->set_data(devices);
-
-            if (!devices.empty())
-            {
-                // Select first by default if nothing selected?
-                // For now we wait for click.
-            }
         }
     }
 
@@ -255,6 +235,8 @@ namespace horizon::preferences
             }
         }
 
+        if (m_connection_name_label)
+            m_connection_name_label->set_text(dev.connected ? dev.connection_name : "---");
         if (m_ip_label)
             m_ip_label->set_text(dev.connected ? dev.ip_address : "---");
         if (m_mask_label)
@@ -263,12 +245,5 @@ namespace horizon::preferences
             m_router_label->set_text(dev.connected ? dev.router : "---");
         if (m_dns_label)
             m_dns_label->set_text(dev.connected ? dev.dns : "---");
-        if (m_domains_label)
-            m_domains_label->set_text(dev.connected ? dev.search_domains : "---");
-
-        if (m_config_combo)
-        {
-            m_config_combo->set_selected_item_by_id(dev.connected ? "dhcp" : "");
-        }
     }
 } // namespace horizon::preferences

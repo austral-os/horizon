@@ -27,11 +27,10 @@ namespace horizon::preferences
         // Detail components
         Label *m_status_label{nullptr};
         Label *m_description_label{nullptr};
-        Combo *m_config_combo{nullptr};
+        Label *m_connection_name_label{nullptr};
         Label *m_ip_label{nullptr};
         Label *m_mask_label{nullptr};
         Label *m_router_label{nullptr};
         Label *m_dns_label{nullptr};
-        Label *m_domains_label{nullptr};
     };
 } // namespace horizon::preferences

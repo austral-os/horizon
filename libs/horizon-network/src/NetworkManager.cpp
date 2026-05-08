@@ -76,7 +76,6 @@ namespace horizon::network
         return inet_ntoa(addr);
     }
 
-    // Helper to parse aa{sv} structure (Array of Dictionaries)
     static void parse_aasv(DBusMessageIter* iter, std::function<void(const std::string&, DBusMessageIter*)> callback)
     {
         DBusMessageIter variant_iter, array_iter, sub_array_iter, dict_iter, entry_iter;
@@ -128,6 +127,7 @@ namespace horizon::network
             dev.subnet_mask = "---";
             dev.router = "---";
             dev.dns = "---";
+            dev.connection_name = "---";
             dev.config_method = "Using DHCP";
             
             auto type_var = m_dbus->get_property("org.freedesktop.NetworkManager", path,
@@ -150,6 +150,18 @@ namespace horizon::network
 
             if (dev.connected)
             {
+                // Active Connection Name
+                auto active_conn_var = m_dbus->get_property("org.freedesktop.NetworkManager", path,
+                                                         "org.freedesktop.NetworkManager.Device", "ActiveConnection");
+                if (std::holds_alternative<std::string>(active_conn_var)) {
+                    std::string active_path = std::get<std::string>(active_conn_var);
+                    if (active_path != "/" && !active_path.empty()) {
+                        auto id_var = m_dbus->get_property("org.freedesktop.NetworkManager", active_path,
+                                                         "org.freedesktop.NetworkManager.Connection.Active", "Id");
+                        if (std::holds_alternative<std::string>(id_var)) dev.connection_name = std::get<std::string>(id_var);
+                    }
+                }
+
                 auto ip4_path_var = m_dbus->get_property("org.freedesktop.NetworkManager", path,
                                                       "org.freedesktop.NetworkManager.Device", "Ip4Config");
                 if (std::holds_alternative<std::string>(ip4_path_var)) {
