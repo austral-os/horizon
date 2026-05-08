@@ -151,6 +151,14 @@ namespace horizon::preferences
                 {
                     select_user(user_item->user_info());
                 }
+                else
+                {
+                    // If it's not a UserSidebarItem, check if it's the "New User" item
+                    if (ctx.item && ctx.item->path() == "new_user")
+                    {
+                        on_add_user_clicked();
+                    }
+                }
             });
 
         add_child(std::move(sidebar));
@@ -327,6 +335,7 @@ namespace horizon::preferences
         // Add to sidebar
         m_sidebar->add_group(i18n().tr("preferences.users.your_account"));
         m_sidebar->add_group(i18n().tr("preferences.users.other_accounts"));
+        m_sidebar->add_group(i18n().tr("preferences.users.add_user"));
 
         UserSidebarItem *first_item = nullptr;
         for (const auto &user : m_users)
@@ -339,6 +348,11 @@ namespace horizon::preferences
             m_sidebar->add_item(group, std::move(item));
         }
 
+        // Add "New User" item to the last group
+        auto new_user_item = std::make_unique<SidebarItem>("list-add", i18n().tr("preferences.users.new_user_item"));
+        new_user_item->set_path("new_user");
+        m_sidebar->add_item(i18n().tr("preferences.users.add_user"), std::move(new_user_item));
+
         if (first_item)
         {
             m_sidebar->select_item(first_item);
@@ -348,6 +362,7 @@ namespace horizon::preferences
 
     void UsersView::select_user(const UserInfo &user)
     {
+        m_is_new_user = false;
         m_selected_user = user;
 
         m_fullname_box->set_text(user.real_name);
@@ -371,49 +386,93 @@ namespace horizon::preferences
         }
 
         std::string cmd = "";
-        if (new_fullname != m_selected_user.real_name || new_is_admin != m_selected_user.is_admin ||
-            new_email != m_selected_user.email)
-        {
-            cmd = "/usr/sbin/usermod ";
-            if (new_fullname != m_selected_user.real_name || new_email != m_selected_user.email)
-            {
-                // Format GECOS: Full Name,Room,Work,Home,Email
-                cmd += "-c \"" + new_fullname + ",,,," + new_email + "\" ";
-            }
-            if (new_is_admin != m_selected_user.is_admin)
-            {
-                cmd += "-G " + std::string(new_is_admin ? "sudo" : "users") + " ";
-            }
-            cmd += m_selected_user.username;
-        }
-
-        if (!cmd.empty())
-        {
-            cmd = "pkexec " + cmd;
-            LOG_INFO << "Executing: " << cmd;
-            std::system(cmd.c_str());
-        }
-
-        // Handle avatar change
         std::string new_avatar = m_avatar_selector->selected_avatar();
-        if (!new_avatar.empty() && new_avatar != m_selected_user.avatar_path)
+
+        if (m_is_new_user)
         {
-            std::string dest = "/home/" + m_selected_user.username + "/.face";
-            std::string cp_cmd = "pkexec cp " + shell_escape(new_avatar) + " " +
-                                 shell_escape(dest) + " && pkexec chown " +
-                                 m_selected_user.username + ":" + m_selected_user.username + " " +
-                                 shell_escape(dest);
-            LOG_INFO << "Saving avatar: " << cp_cmd;
-            std::system(cp_cmd.c_str());
+            if (new_username.empty()) return;
+
+            // useradd -m -c "Real Name" -G groups username
+            cmd = "/usr/sbin/useradd -m ";
+            cmd += "-c " + shell_escape(new_fullname + ",,,," + new_email) + " ";
+            if (new_is_admin)
+                cmd += "-G sudo ";
+            cmd += shell_escape(new_username);
+            
+            cmd = "pkexec " + cmd;
+            LOG_INFO << "Creating user: " << cmd;
+            std::system(cmd.c_str());
+
+            // After creation, open password dialog
+            open_password_dialog(new_username);
+        }
+        else
+        {
+            if (new_fullname != m_selected_user.real_name || new_is_admin != m_selected_user.is_admin ||
+                new_email != m_selected_user.email)
+            {
+                cmd = "/usr/sbin/usermod ";
+                if (new_fullname != m_selected_user.real_name || new_email != m_selected_user.email)
+                {
+                    // Format GECOS: Full Name,Room,Work,Home,Email
+                    cmd += "-c \"" + new_fullname + ",,,," + new_email + "\" ";
+                }
+                if (new_is_admin != m_selected_user.is_admin)
+                {
+                    cmd += "-G " + std::string(new_is_admin ? "sudo" : "users") + " ";
+                }
+                cmd += m_selected_user.username;
+            }
+
+            if (!cmd.empty())
+            {
+                cmd = "pkexec " + cmd;
+                LOG_INFO << "Executing: " << cmd;
+                std::system(cmd.c_str());
+            }
+
+            // Handle avatar change
+            if (!new_avatar.empty() && new_avatar != m_selected_user.avatar_path)
+            {
+                std::string dest = "/home/" + m_selected_user.username + "/.face";
+                std::string cp_cmd = "pkexec cp " + shell_escape(new_avatar) + " " +
+                                     shell_escape(dest) + " && pkexec chown " +
+                                     m_selected_user.username + ":" + m_selected_user.username + " " +
+                                     shell_escape(dest);
+                LOG_INFO << "Saving avatar: " << cp_cmd;
+                std::system(cp_cmd.c_str());
+            }
         }
 
         load_users();
     }
 
+    void UsersView::on_add_user_clicked()
+    {
+        m_is_new_user = true;
+        m_selected_user = UserInfo();
+        
+        m_sidebar->select_item(nullptr);
+        
+        m_fullname_box->set_text("");
+        m_username_box->set_text("");
+        m_email_box->set_text("");
+        m_account_type_combo->set_selected_item_by_id("standard");
+        m_avatar_selector->clear_selection();
+
+        m_delete_btn->set_enabled(false);
+        m_password_btn->set_enabled(false);
+    }
+
     void UsersView::on_change_password_clicked()
     {
+        open_password_dialog(m_selected_user.username);
+    }
+
+    void UsersView::open_password_dialog(const std::string &username)
+    {
         std::thread(
-            [this, username = m_selected_user.username]()
+            [this, username]()
             {
                 auto dialog = std::make_unique<PasswordDialog>(username);
                 dialog->when_finished.connect(

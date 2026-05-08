@@ -212,7 +212,9 @@
             "error_empty_password": "Password cannot be empty",
             "error_password_mismatch": "Passwords do not match",
             "delete_confirm": "Are you sure you want to delete user '{0}'? This action will remove their account and all personal files.",
-            "save": "Apply"
+            "save": "Apply",
+            "add_user": "Add user",
+            "new_user_item": "New user"
         }
     },
     "datetime": {

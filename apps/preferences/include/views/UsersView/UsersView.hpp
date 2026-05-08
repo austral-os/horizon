@@ -34,11 +34,13 @@ namespace horizon::preferences
         void select_user(const UserInfo &user);
 
         // Actions
+        void on_add_user_clicked();
         void on_save_clicked();
         void on_change_password_clicked();
         void on_delete_user_clicked();
 
         // Helpers
+        void open_password_dialog(const std::string &username);
         std::string get_user_avatar(const std::string &username);
         bool check_is_admin(const std::string &username);
 
@@ -60,5 +62,6 @@ namespace horizon::preferences
         std::vector<UserInfo> m_users;
         UserInfo m_selected_user;
         UserInfo m_current_user;
+        bool m_is_new_user{false};
     };
 } // namespace horizon::preferences

@@ -212,7 +212,9 @@
             "error_empty_password": "La contraseña no puede estar vacía",
             "error_password_mismatch": "Las contraseñas no coinciden",
             "delete_confirm": "¿Estás seguro de que deseas eliminar al usuario '{0}'? Esta acción eliminará su cuenta y todos sus archivos personales.",
-            "save": "Aplicar"
+            "save": "Aplicar",
+            "add_user": "Añadir usuario",
+            "new_user_item": "Usuario nuevo"
         }
     },
     "datetime": {
