@@ -425,4 +425,13 @@ namespace horizon
         return m_about_manager;
     }
 
+    void Application::post_task(std::function<void()> task)
+    {
+        std::lock_guard<std::mutex> lock(m_windows_mutex);
+        if (!m_managed_windows.empty())
+        {
+            m_managed_windows[0].window->post_task(std::move(task));
+        }
+    }
+
 } // namespace horizon

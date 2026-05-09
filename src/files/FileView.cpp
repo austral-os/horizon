@@ -8,6 +8,7 @@
 #include <horizon/Clipboard.hpp>
 #include <horizon/ClipboardProvider.hpp>
 #include <horizon/arkutils/FileOperations.hpp>
+#include <horizon/NotificationSender.hpp>
 #include <sys/stat.h>
 #include <filesystem>
 #include <sstream>
@@ -254,14 +255,17 @@ namespace horizon::files
             }
             else
             {
+                auto filename = src.filename().string();
                 auto future = arkutils::FileOperations::copy(src_path, m_current_path, nullptr);
-                std::thread([this, f = std::move(future)]() mutable {
+                std::thread([this, f = std::move(future), filename]() mutable {
                     auto result = f.get();
                     if (application())
                     {
-                        application()->post_task([this, result]() {
-                            if (result == arkutils::FileOperations::Result::Success)
+                        application()->post_task([this, result, filename]() {
+                            if (result == arkutils::FileOperations::Result::Success) {
+                                NotificationSender::send("Copia finalizada", "El archivo " + filename + " se ha copiado correctamente.", "edit-copy");
                                 this->navigate_to(m_current_path);
+                            }
                         });
                     }
                 }).detach();

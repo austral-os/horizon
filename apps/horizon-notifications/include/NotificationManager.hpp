@@ -4,6 +4,10 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <horizon/FileWatcher.hpp>
+#include <horizon/ConfigManager.hpp>
+
+namespace horizon { class Application; }
 
 namespace horizon::notifications
 {
@@ -17,11 +21,13 @@ namespace horizon::notifications
         int timeout;
     };
 
-    class NotificationManager
+    class NotificationManager : public FileWatcher
     {
     public:
         NotificationManager();
-        ~NotificationManager();
+        virtual ~NotificationManager() override;
+        
+        void initialize(Application* app);
 
         uint32_t add_notification(const std::string &app_name,
                                   const std::string &icon_name,
@@ -34,11 +40,22 @@ namespace horizon::notifications
         const std::vector<NotificationData>& active_notifications() const { return m_notifications; }
 
         void set_on_changed_callback(std::function<void()> callback) { m_on_changed = callback; }
+        
+        void load_config();
+
+    protected:
+        // FileWatcher implementation
+        void on_file_changed() override;
+        void post_watcher_task(std::function<void()> task) override;
 
     private:
         std::vector<NotificationData> m_notifications;
         uint32_t m_next_id = 1;
         std::function<void()> m_on_changed;
+        
+        Application* m_app{nullptr};
+        bool m_enabled{true};
+        std::unique_ptr<ConfigManager> m_config;
         
         const size_t MAX_NOTIFICATIONS = 5;
     };

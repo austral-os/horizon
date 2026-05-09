@@ -13,6 +13,7 @@
 #include <horizon/I18n.hpp>
 #include <horizon/capture/SelectionWindow.h>
 #include <horizon/ApplicationLauncher.hpp>
+#include <horizon/NotificationSender.hpp>
 #include <chrono>
 #include <thread>
 
@@ -151,6 +152,7 @@ void CaptureWindow::capture_screen_image() {
     
     if (m_engine.capture_screenshot("", full_path.string())) {
         LOG_INFO << "[CaptureApp] Screenshot successful";
+        NotificationSender::send("Captura realizada", "La imagen se ha guardado en: " + full_path.filename().string(), "camera-photo");
         m_status_label->set_text(horizon::i18n().tr("capture.status.saved").replace(horizon::i18n().tr("capture.status.saved").find("{}"), 2, full_path.string()));
     } else {
         LOG_ERROR << "[CaptureApp] Screenshot failed";
@@ -196,6 +198,7 @@ void CaptureWindow::capture_selection_image() {
         std::filesystem::path full_path = std::filesystem::path(out_dir) / filename;
         
         if (m_engine.capture_region("", x, y, w, h, full_path.string())) {
+            NotificationSender::send("Captura realizada", "La selección se ha guardado en: " + full_path.filename().string(), "camera-photo");
             m_status_label->set_text(horizon::i18n().tr("capture.status.saved").replace(horizon::i18n().tr("capture.status.saved").find("{}"), 2, full_path.string()));
         } else {
             m_status_label->set_text(horizon::i18n().tr("capture.status.failed"));
@@ -249,6 +252,7 @@ void CaptureWindow::start_screen_video() {
     
     if (m_recorder->start(full_path.string(), 0, 0, w, h, 30, true)) {
         m_is_recording = true;
+        NotificationSender::send("Grabación iniciada", "Se está grabando la pantalla completa.", "media-record");
         m_status_label->set_text(horizon::i18n().tr("capture.status.recording_stop_hint"));
         if (m_record_btn) {
             m_record_btn->set_title(horizon::i18n().tr("capture.toolbar.stop"));
@@ -302,6 +306,7 @@ void CaptureWindow::start_selection_video() {
         
         if (m_recorder->start(full_path.string(), x, y, w, h, 30, true)) {
             m_is_recording = true;
+            NotificationSender::send("Grabación iniciada", "Se está grabando la región seleccionada.", "media-record");
             m_status_label->set_text(horizon::i18n().tr("capture.status.recording_screen"));
             if (m_record_btn) {
                 m_record_btn->set_title(horizon::i18n().tr("capture.toolbar.stop"));
@@ -331,6 +336,7 @@ void CaptureWindow::start_window_video() {
 void CaptureWindow::stop_video() {
     if (!m_is_recording) return;
     m_recorder->stop();
+    NotificationSender::send("Grabación finalizada", "El video se ha guardado correctamente.", "media-playback-stop");
     m_is_recording = false;
     m_status_label->set_text(horizon::i18n().tr("capture.status.recording_finished"));
     if (m_record_btn) {

@@ -1,5 +1,6 @@
 #include "horizon/download/DownloadTask.hpp"
 #include "horizon/Logger.hpp"
+#include <horizon/NotificationSender.hpp>
 #include <libsoup/soup.h>
 #include <fstream>
 #include <filesystem>
@@ -103,6 +104,7 @@ struct DownloadTask::Impl {
         if (parent->m_state == DownloadState::DOWNLOADING) {
             parent->m_state = DownloadState::COMPLETED;
             parent->m_progress.progress = 1.0;
+            NotificationSender::send("Descarga completada", "El archivo " + parent->filename() + " se ha descargado.", "emblem-downloads");
             parent->when_state_changed.run(parent->m_state);
         }
     }
@@ -129,6 +131,8 @@ void DownloadTask::start() {
 
     LOG_INFO << "[DOWNLOAD] Starting: " << m_url << " -> " << m_destination;
     
+    NotificationSender::send("Descarga iniciada", "Descargando " + filename() + "...", "folder-download");
+
     m_state = DownloadState::DOWNLOADING;
     when_state_changed.run(m_state);
 

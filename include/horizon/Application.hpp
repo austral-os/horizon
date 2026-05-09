@@ -117,6 +117,11 @@ namespace horizon
          */
         void show_aboutus();
 
+        /**
+         * @brief Posts a task to be executed on the main window's thread.
+         */
+        void post_task(std::function<void()> task);
+
     private:
         /**
          * @brief Removes a window and its thread.

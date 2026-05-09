@@ -14,6 +14,8 @@ namespace horizon::notifications
         // Load translations
         i18n().load_app_locales("horizon-notifications");
 
+        m_manager.initialize(this);
+        
         auto win = std::make_unique<NotificationWindow>(m_manager);
         m_managed_windows.push_back({std::move(win), nullptr, {}});
         
