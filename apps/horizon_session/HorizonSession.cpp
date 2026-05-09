@@ -202,6 +202,8 @@ void HorizonSession::init(const std::string &compositor)
         m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) +
                                      "/apps/top_panel/top_panel");
         m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) + "/apps/dock/dock");
+        m_startup_services.push_back(std::string(HORIZON_BUILD_BIN_DIR) +
+                                     "/apps/horizon-notifications/horizon-notifications");
     }
     else
     {
@@ -211,6 +213,7 @@ void HorizonSession::init(const std::string &compositor)
         m_startup_services.push_back("horizon_wall");
         m_startup_services.push_back("top_panel");
         m_startup_services.push_back("dock");
+        m_startup_services.push_back("horizon-notifications");
     }
 
     // Migrate configuration files from system to user home if not present

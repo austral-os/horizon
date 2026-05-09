@@ -63,6 +63,7 @@ namespace horizon
 
         int m_internal_padding{15};
         int m_icon_size{32};
+        int m_fixed_width{-1};
     };
 
 } // namespace horizon

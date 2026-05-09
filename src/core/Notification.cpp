@@ -61,7 +61,8 @@ namespace horizon
 
     void Notification::set_fixed_width(int width)
     {
-        set_fixed_size(width);
+        m_fixed_width = width;
+        invalidate();
     }
 
     const std::string &Notification::message() const
@@ -76,8 +77,8 @@ namespace horizon
 
     int Notification::preferred_width() const
     {
-        if (m_fixed_size > 0)
-            return m_fixed_size;
+        if (m_fixed_width > 0)
+            return m_fixed_width;
 
         int width = (m_margin * 2);
         if (m_icon_widget->is_visible())

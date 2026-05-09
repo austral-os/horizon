@@ -138,6 +138,7 @@ add_subdirectory(libs/horizon-capture)
 
 # --- Core Applications ---
 add_subdirectory(apps/top_panel)
+add_subdirectory(apps/horizon-notifications)
 add_subdirectory(apps/horizon-polkit-agent)
 add_subdirectory(apps/dock)
 add_subdirectory(apps/horizon_wall)
@@ -266,6 +267,24 @@ add_executable(notification_demo
 )
 
 target_link_libraries(notification_demo
+    PRIVATE
+        horizon
+)
+
+add_executable(test_notification_sender
+    examples/test_notification_sender.cpp
+)
+
+target_link_libraries(test_notification_sender
+    PRIVATE
+        horizon
+)
+
+add_executable(notification_gui_demo
+    examples/notification_gui_demo.cpp
+)
+
+target_link_libraries(notification_gui_demo
     PRIVATE
         horizon
 )
