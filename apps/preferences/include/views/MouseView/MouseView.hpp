@@ -17,6 +17,8 @@ namespace horizon::preferences
         void setup_ui();
         void load_config();
         void save_config();
+        void apply_to_labwc(float speed);
+        void apply_to_wayfire(float speed);
 
         Label* m_title_label{nullptr};
         Slider* m_double_click_slider{nullptr};

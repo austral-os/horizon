@@ -218,7 +218,8 @@ void HorizonSession::init(const std::string &compositor)
     {
         std::vector<std::string> config_files = {"desktop.json", "terminal.json",
                                                  "power.json",   "text-editor.json",
-                                                 "nova.json",    "capture.json"};
+                                                 "nova.json",    "capture.json",
+                                                 "mouse.json"};
 
         for (const auto &config_file : config_files)
         {

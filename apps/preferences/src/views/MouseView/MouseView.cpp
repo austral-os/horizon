@@ -1,9 +1,15 @@
-#include "horizon/Frame.hpp"
-#include "horizon/Widget.hpp"
+#include <views/MouseView/MouseView.hpp>
 #include <horizon/I18n.hpp>
 #include <horizon/Spacer.hpp>
+#include <horizon/Frame.hpp>
+#include <horizon/Widget.hpp>
 #include <utils/ConfigUtils.hpp>
-#include <views/MouseView/MouseView.hpp>
+#include <fstream>
+#include <iostream>
+#include <algorithm>
+#include <cstdlib>
+#include <filesystem>
+#include <regex>
 
 namespace horizon::preferences
 {
@@ -159,5 +165,123 @@ namespace horizon::preferences
 
         m_config->set_section("mouse", j);
         m_config->save();
+
+        if (m_pointer_speed_slider)
+        {
+            float speed = m_pointer_speed_slider->value();
+            apply_to_labwc(speed);
+            apply_to_wayfire(speed);
+        }
+    }
+
+    void MouseView::apply_to_labwc(float speed)
+    {
+        const char *home = std::getenv("HOME");
+        if (!home) return;
+
+        std::filesystem::path config_path(home);
+        config_path /= ".config/labwc/rc.xml";
+
+        if (!std::filesystem::exists(config_path)) return;
+
+        std::ifstream file(config_path);
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        std::string content = buffer.str();
+        file.close();
+
+        // Very basic XML "parsing" using regex to update accel_speed
+        // This is not perfect for all XML cases but should work for standard rc.xml
+        std::regex accel_regex("<accel_speed>.*</accel_speed>");
+        std::string new_val = "<accel_speed>" + std::to_string(speed) + "</accel_speed>";
+
+        if (std::regex_search(content, accel_regex)) {
+            content = std::regex_replace(content, accel_regex, new_val);
+        } else {
+            // Try to insert it into <libinput><device> or at the end of <labwc_config>
+            std::regex device_regex("<device>");
+            if (std::regex_search(content, device_regex)) {
+                content = std::regex_replace(content, device_regex, "<device>\n    " + new_val);
+            } else {
+                std::regex libinput_regex("<libinput>");
+                if (std::regex_search(content, libinput_regex)) {
+                    content = std::regex_replace(content, libinput_regex, "<libinput>\n  <device>\n    " + new_val + "\n  </device>");
+                } else {
+                    std::regex root_regex("</labwc_config>");
+                    content = std::regex_replace(content, root_regex, "  <libinput>\n    <device>\n      " + new_val + "\n    </device>\n  </libinput>\n</labwc_config>");
+                }
+            }
+        }
+
+        std::ofstream out(config_path);
+        out << content;
+        out.close();
+
+        // Check if we are in labwc to run reconfigure
+        const char *desktop_env = getenv("XDG_CURRENT_DESKTOP");
+        std::string desktop_str = desktop_env ? desktop_env : "";
+        std::transform(desktop_str.begin(), desktop_str.end(), desktop_str.begin(), ::tolower);
+        if (desktop_str.find("labwc") != std::string::npos) {
+            std::system("labwc --reconfigure");
+        }
+    }
+
+    void MouseView::apply_to_wayfire(float speed)
+    {
+        const char *home = std::getenv("HOME");
+        if (!home) return;
+
+        std::filesystem::path config_path(home);
+        config_path /= ".config/wayfire.ini";
+
+        if (!std::filesystem::exists(config_path)) return;
+
+        std::vector<std::string> lines;
+        bool in_input_section = false;
+        bool speed_found = false;
+        std::string speed_str = "mouse_cursor_speed = " + std::to_string(speed);
+
+        std::ifstream file(config_path);
+        std::string line;
+        while (std::getline(file, line)) {
+            std::string trimmed = line;
+            trimmed.erase(0, trimmed.find_first_not_of(" \t"));
+            trimmed.erase(trimmed.find_last_not_of(" \t") + 1);
+
+            if (trimmed == "[input]") {
+                in_input_section = true;
+            } else if (!trimmed.empty() && trimmed[0] == '[' && trimmed.back() == ']') {
+                if (in_input_section && !speed_found) {
+                    lines.push_back(speed_str);
+                    speed_found = true;
+                }
+                in_input_section = false;
+            }
+
+            if (in_input_section && trimmed.compare(0, 19, "mouse_cursor_speed") == 0) {
+                lines.push_back(speed_str);
+                speed_found = true;
+            } else {
+                lines.push_back(line);
+            }
+        }
+        file.close();
+
+        if (in_input_section && !speed_found) {
+            lines.push_back(speed_str);
+            speed_found = true;
+        }
+
+        if (!speed_found) {
+            lines.push_back("");
+            lines.push_back("[input]");
+            lines.push_back(speed_str);
+        }
+
+        std::ofstream out(config_path);
+        for (const auto &l : lines) {
+            out << l << "\n";
+        }
+        out.close();
     }
 } // namespace horizon::preferences

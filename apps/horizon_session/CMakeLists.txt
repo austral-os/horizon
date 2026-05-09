@@ -171,6 +171,14 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/power.json")
     )
 endif()
 
+# --- Mouse Config ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/mouse.json")
+    install(FILES data/mouse.json
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
+
 # --- License ---
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/license_lgplv3.txt")
     install(FILES data/license_lgplv3.txt
