@@ -1,15 +1,15 @@
-#include <views/MouseView/MouseView.hpp>
-#include <horizon/I18n.hpp>
-#include <horizon/Spacer.hpp>
-#include <horizon/Frame.hpp>
-#include <horizon/Widget.hpp>
-#include <utils/ConfigUtils.hpp>
-#include <fstream>
-#include <iostream>
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
+#include <horizon/Frame.hpp>
+#include <horizon/I18n.hpp>
+#include <horizon/Spacer.hpp>
+#include <horizon/Widget.hpp>
+#include <iostream>
 #include <regex>
+#include <utils/ConfigUtils.hpp>
+#include <views/MouseView/MouseView.hpp>
 
 namespace horizon::preferences
 {
@@ -55,8 +55,8 @@ namespace horizon::preferences
         dc_section->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         dc_section->set_spacing(10);
 
-        auto dc_label = std::make_unique<Label>(
-            i18n().tr("preferences.sections.mouse_settings.double_click_speed"));
+        auto dc_label =
+            std::make_unique<Label>(i18n().tr("preferences.mouse_settings.double_click_speed"));
         dc_label->set_fixed_size(20);
         dc_section->add_child(std::move(dc_label));
 
@@ -65,8 +65,7 @@ namespace horizon::preferences
         dc_slider_row->set_spacing(10);
         dc_slider_row->set_fixed_size(30);
 
-        auto dc_slow =
-            std::make_unique<Label>(i18n().tr("preferences.sections.mouse_settings.fast"));
+        auto dc_slow = std::make_unique<Label>(i18n().tr("preferences.mouse_settings.fast"));
         dc_slow->set_font_size(11);
         dc_slow->set_fixed_size(50);
         dc_slider_row->add_child(std::move(dc_slow));
@@ -80,8 +79,7 @@ namespace horizon::preferences
         m_double_click_slider->when_changed.connect([this](EventContext &) { save_config(); });
         dc_slider_row->add_child(std::move(dc_slider));
 
-        auto dc_fast =
-            std::make_unique<Label>(i18n().tr("preferences.sections.mouse_settings.slow"));
+        auto dc_fast = std::make_unique<Label>(i18n().tr("preferences.mouse_settings.slow"));
         dc_fast->set_font_size(11);
         dc_fast->set_fixed_size(50);
         dc_slider_row->add_child(std::move(dc_fast));
@@ -95,7 +93,7 @@ namespace horizon::preferences
         ps_section->set_spacing(10);
 
         auto ps_label =
-            std::make_unique<Label>(i18n().tr("preferences.sections.mouse_settings.pointer_speed"));
+            std::make_unique<Label>(i18n().tr("preferences.mouse_settings.pointer_speed"));
         ps_label->set_fixed_size(20);
         ps_section->add_child(std::move(ps_label));
 
@@ -104,8 +102,7 @@ namespace horizon::preferences
         ps_slider_row->set_spacing(10);
         ps_slider_row->set_fixed_size(30);
 
-        auto ps_slow =
-            std::make_unique<Label>(i18n().tr("preferences.sections.mouse_settings.slow"));
+        auto ps_slow = std::make_unique<Label>(i18n().tr("preferences.mouse_settings.slow"));
         ps_slow->set_font_size(11);
         ps_slow->set_fixed_size(50);
         ps_slider_row->add_child(std::move(ps_slow));
@@ -119,8 +116,7 @@ namespace horizon::preferences
         m_pointer_speed_slider->when_changed.connect([this](EventContext &) { save_config(); });
         ps_slider_row->add_child(std::move(ps_slider));
 
-        auto ps_fast =
-            std::make_unique<Label>(i18n().tr("preferences.sections.mouse_settings.fast"));
+        auto ps_fast = std::make_unique<Label>(i18n().tr("preferences.mouse_settings.fast"));
         ps_fast->set_font_size(11);
         ps_fast->set_fixed_size(50);
         ps_slider_row->add_child(std::move(ps_fast));
@@ -177,12 +173,14 @@ namespace horizon::preferences
     void MouseView::apply_to_labwc(float speed)
     {
         const char *home = std::getenv("HOME");
-        if (!home) return;
+        if (!home)
+            return;
 
         std::filesystem::path config_path(home);
         config_path /= ".config/labwc/rc.xml";
 
-        if (!std::filesystem::exists(config_path)) return;
+        if (!std::filesystem::exists(config_path))
+            return;
 
         std::ifstream file(config_path);
         std::stringstream buffer;
@@ -195,20 +193,34 @@ namespace horizon::preferences
         std::regex accel_regex("<accel_speed>.*</accel_speed>");
         std::string new_val = "<accel_speed>" + std::to_string(speed) + "</accel_speed>";
 
-        if (std::regex_search(content, accel_regex)) {
+        if (std::regex_search(content, accel_regex))
+        {
             content = std::regex_replace(content, accel_regex, new_val);
-        } else {
+        }
+        else
+        {
             // Try to insert it into <libinput><device> or at the end of <labwc_config>
             std::regex device_regex("<device>");
-            if (std::regex_search(content, device_regex)) {
+            if (std::regex_search(content, device_regex))
+            {
                 content = std::regex_replace(content, device_regex, "<device>\n    " + new_val);
-            } else {
+            }
+            else
+            {
                 std::regex libinput_regex("<libinput>");
-                if (std::regex_search(content, libinput_regex)) {
-                    content = std::regex_replace(content, libinput_regex, "<libinput>\n  <device>\n    " + new_val + "\n  </device>");
-                } else {
+                if (std::regex_search(content, libinput_regex))
+                {
+                    content = std::regex_replace(content, libinput_regex,
+                                                 "<libinput>\n  <device>\n    " + new_val +
+                                                     "\n  </device>");
+                }
+                else
+                {
                     std::regex root_regex("</labwc_config>");
-                    content = std::regex_replace(content, root_regex, "  <libinput>\n    <device>\n      " + new_val + "\n    </device>\n  </libinput>\n</labwc_config>");
+                    content =
+                        std::regex_replace(content, root_regex,
+                                           "  <libinput>\n    <device>\n      " + new_val +
+                                               "\n    </device>\n  </libinput>\n</labwc_config>");
                 }
             }
         }
@@ -221,7 +233,8 @@ namespace horizon::preferences
         const char *desktop_env = getenv("XDG_CURRENT_DESKTOP");
         std::string desktop_str = desktop_env ? desktop_env : "";
         std::transform(desktop_str.begin(), desktop_str.end(), desktop_str.begin(), ::tolower);
-        if (desktop_str.find("labwc") != std::string::npos) {
+        if (desktop_str.find("labwc") != std::string::npos)
+        {
             std::system("labwc --reconfigure");
         }
     }
@@ -229,12 +242,14 @@ namespace horizon::preferences
     void MouseView::apply_to_wayfire(float speed)
     {
         const char *home = std::getenv("HOME");
-        if (!home) return;
+        if (!home)
+            return;
 
         std::filesystem::path config_path(home);
         config_path /= ".config/wayfire.ini";
 
-        if (!std::filesystem::exists(config_path)) return;
+        if (!std::filesystem::exists(config_path))
+            return;
 
         std::vector<std::string> lines;
         bool in_input_section = false;
@@ -243,43 +258,54 @@ namespace horizon::preferences
 
         std::ifstream file(config_path);
         std::string line;
-        while (std::getline(file, line)) {
+        while (std::getline(file, line))
+        {
             std::string trimmed = line;
             trimmed.erase(0, trimmed.find_first_not_of(" \t"));
             trimmed.erase(trimmed.find_last_not_of(" \t") + 1);
 
-            if (trimmed == "[input]") {
+            if (trimmed == "[input]")
+            {
                 in_input_section = true;
-            } else if (!trimmed.empty() && trimmed[0] == '[' && trimmed.back() == ']') {
-                if (in_input_section && !speed_found) {
+            }
+            else if (!trimmed.empty() && trimmed[0] == '[' && trimmed.back() == ']')
+            {
+                if (in_input_section && !speed_found)
+                {
                     lines.push_back(speed_str);
                     speed_found = true;
                 }
                 in_input_section = false;
             }
 
-            if (in_input_section && trimmed.compare(0, 19, "mouse_cursor_speed") == 0) {
+            if (in_input_section && trimmed.compare(0, 19, "mouse_cursor_speed") == 0)
+            {
                 lines.push_back(speed_str);
                 speed_found = true;
-            } else {
+            }
+            else
+            {
                 lines.push_back(line);
             }
         }
         file.close();
 
-        if (in_input_section && !speed_found) {
+        if (in_input_section && !speed_found)
+        {
             lines.push_back(speed_str);
             speed_found = true;
         }
 
-        if (!speed_found) {
+        if (!speed_found)
+        {
             lines.push_back("");
             lines.push_back("[input]");
             lines.push_back(speed_str);
         }
 
         std::ofstream out(config_path);
-        for (const auto &l : lines) {
+        for (const auto &l : lines)
+        {
             out << l << "\n";
         }
         out.close();

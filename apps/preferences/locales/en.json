@@ -95,6 +95,12 @@
             "paired_success": "Paired successfully",
             "next": "Next"
         },
+        "mouse_settings": {
+            "double_click_speed": "Double click speed",
+            "pointer_speed": "Pointer speed",
+            "slow": "Slow",
+            "fast": "Fast"
+        },
         "desktop": {
             "wallpaper": "Desktop",
             "dock": "Dock",
@@ -214,7 +220,7 @@
             "delete_confirm": "Are you sure you want to delete user '{0}'? This action will remove their account and all personal files.",
             "save": "Apply",
             "add_user": "Add user",
-        "new_user_item": "New user"
+            "new_user_item": "New user"
         },
         "datetime": {
             "auto_update": "Update date and time automatically",
