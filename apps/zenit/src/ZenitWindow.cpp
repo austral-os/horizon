@@ -12,6 +12,7 @@
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/Application.hpp>
+#include <sstream>
 
 namespace zenit
 {
@@ -44,6 +45,26 @@ namespace zenit
                 if (m_video_view)
                     m_video_view->stop();
             });
+
+        set_accept_drops(true);
+        when_drop.connect([this](horizon::DropEventContext &ctx) {
+            auto data = ctx.get_data("text/uri-list");
+            if (!data.empty())
+            {
+                std::string uris(data.begin(), data.end());
+                std::stringstream ss(uris);
+                std::string line;
+                if (std::getline(ss, line))
+                {
+                    if (line.substr(0, 7) == "file://")
+                        line = line.substr(7);
+                    if (!line.empty() && line.back() == '\r')
+                        line.pop_back();
+
+                    open_file(line);
+                }
+            }
+        });
     }
 
     ZenitWindow::~ZenitWindow() {}

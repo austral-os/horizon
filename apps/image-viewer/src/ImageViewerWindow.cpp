@@ -7,6 +7,7 @@
 #include <horizon/Logger.hpp>
 #include <filesystem>
 #include <algorithm>
+#include <sstream>
 
 namespace fs = std::filesystem;
 
@@ -102,6 +103,26 @@ ImageViewerWindow::ImageViewerWindow() : ApplicationWindow(i18n().tr("app.title"
     when_file_close.connect([this](EventContext&) {
         if (m_tabs && m_tabs->tab_count() > 0) {
             m_tabs->remove_tab(m_tabs->current_tab_index());
+        }
+    });
+
+    set_accept_drops(true);
+    when_drop.connect([this](DropEventContext &ctx) {
+        auto data = ctx.get_data("text/uri-list");
+        if (!data.empty())
+        {
+            std::string uris(data.begin(), data.end());
+            std::stringstream ss(uris);
+            std::string line;
+            if (std::getline(ss, line))
+            {
+                if (line.substr(0, 7) == "file://")
+                    line = line.substr(7);
+                if (!line.empty() && line.back() == '\r')
+                    line.pop_back();
+
+                open_file(line);
+            }
         }
     });
 }

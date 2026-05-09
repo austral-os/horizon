@@ -1379,17 +1379,11 @@ namespace horizon
 
                 // Look for a widget that accepts drops in the hierarchy
                 Widget *target = under;
-                if (under) {
-                    LOG_INFO << "[DND] Hovering over widget: " << typeid(*under).name() << " accepts: " << (under->accept_drops() ? "YES" : "NO");
-                }
                 while (target && !target->accept_drops())
                 {
                     target = target->parent();
                 }
                 drag_hovered = target;
-                if (drag_hovered) {
-                    LOG_INFO << "[DND] Found drop target: " << typeid(*drag_hovered).name();
-                }
 
                 if (drag_hovered)
                 {
@@ -3632,7 +3626,6 @@ namespace horizon
 
     static void data_source_handle_cancelled(void *data, struct wl_data_source *source)
     {
-        LOG_INFO << "[DND_SOURCE] Drag cancelled";
         auto *state = static_cast<DragSourceState *>(data);
         state->window->cleanup_drag_icon();
         delete state;
@@ -3641,7 +3634,6 @@ namespace horizon
 
     static void data_source_handle_dnd_finished(void *data, struct wl_data_source *source)
     {
-        LOG_INFO << "[DND_SOURCE] Drag finished successfully";
         auto *state = static_cast<DragSourceState *>(data);
         state->window->cleanup_drag_icon();
         delete state;
@@ -3652,13 +3644,9 @@ namespace horizon
         .target = [](void *, struct wl_data_source *, const char *) {},
         .send = data_source_handle_send,
         .cancelled = data_source_handle_cancelled,
-        .dnd_drop_performed = [](void *, struct wl_data_source *) {
-            LOG_INFO << "[DND_SOURCE] Drop performed";
-        },
+        .dnd_drop_performed = [](void *, struct wl_data_source *) {},
         .dnd_finished = data_source_handle_dnd_finished,
-        .action = [](void *, struct wl_data_source *, uint32_t action) {
-            LOG_INFO << "[DND_SOURCE] Action selected: " << action;
-        },
+        .action = [](void *, struct wl_data_source *, uint32_t) {},
     };
 
     WaylandWindow* WaylandWindow::s_active_drag_source = nullptr;
@@ -3667,7 +3655,6 @@ namespace horizon
                                    std::function<std::vector<uint8_t>(const std::string &)> data_fetcher,
                                    Widget *icon_widget)
     {
-        LOG_INFO << "[DND] Starting drag operation with " << mime_types.size() << " mime types.";
         if (!m_surface->data_device_manager() || !m_surface->data_device())
             return;
 
