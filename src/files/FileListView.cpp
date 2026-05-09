@@ -7,6 +7,9 @@
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Menu.hpp>
+#include <horizon/Application.hpp>
+#include <thread>
+#include "horizon/arkutils/FileOperations.hpp"
 
 namespace horizon::files
 {
@@ -94,6 +97,70 @@ namespace horizon::files
                                              });
 
         when_application_load.connect([this](EventContext &) { this->refresh(m_current_path); });
+
+        set_row_setup_callback([this](TableRow *row, const arkutils::FileInfo &f)
+                               {
+                                   row->set_draggable(true);
+                                   row->when_drag_start.connect([this, f, row](DragEventContext &ctx)
+                                                               {
+                                                                   if (application())
+                                                                   {
+                                                                       std::vector<std::string> mimes = {"text/uri-list", "text/plain"};
+                                                                       application()->start_drag(mimes, [f](const std::string &mime) -> std::vector<uint8_t>
+                                                                                                 {
+                                                                                                     if (mime == "text/uri-list")
+                                                                                                     {
+                                                                                                         std::string uri = "file://" + f.path + "\r\n";
+                                                                                                         return std::vector<uint8_t>(uri.begin(), uri.end());
+                                                                                                     }
+                                                                                                     return std::vector<uint8_t>(f.path.begin(), f.path.end());
+                                                                                                 },
+                                                                                                 row);
+                                                                   }
+                                                               });
+
+                                   if (f.type == arkutils::FileType::Directory)
+                                   {
+                                       row->set_accept_drops(true);
+                                       row->when_drop.connect([this, f](DropEventContext &ctx)
+                                                              {
+                                                                  auto data = ctx.get_data("text/uri-list");
+                                                                  if (data.empty())
+                                                                      return;
+
+                                                                  std::string uris(data.begin(), data.end());
+
+                                                                  size_t start = 0;
+                                                                  while (start < uris.length())
+                                                                  {
+                                                                      size_t pos = uris.find("file://", start);
+                                                                      if (pos == std::string::npos)
+                                                                          break;
+
+                                                                      size_t end = uris.find("\r\n", pos);
+                                                                      std::string src = uris.substr(pos + 7, (end == std::string::npos) ? std::string::npos : end - (pos + 7));
+
+                                                                      if (!src.empty())
+                                                                      {
+                                                                          std::filesystem::path p(src);
+                                                                          std::string dest = f.path + "/" + p.filename().string();
+
+                                                                          if (src != dest)
+                                                                          {
+                                                                              auto future = arkutils::FileOperations::copy(src, dest);
+                                                                              std::thread([f_future = std::move(future)]() mutable
+                                                                                          { f_future.get(); })
+                                                                                  .detach();
+                                                                          }
+                                                                      }
+
+                                                                      if (end == std::string::npos)
+                                                                          break;
+                                                                      start = end + 2;
+                                                                  }
+                                                              });
+                                   }
+                               });
     }
 
     void FileListView::refresh(const std::string &path, const std::string &filter)

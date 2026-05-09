@@ -538,6 +538,11 @@ namespace horizon
                     row_widget->set_context_menu(m_row_menu_factory(row_data));
                 }
 
+                if (m_row_setup_callback)
+                {
+                    m_row_setup_callback(row_widget.get(), row_data);
+                }
+
                 content->add_child(std::move(row_widget));
             }
             invalidate();
@@ -622,6 +627,11 @@ namespace horizon
             rebuild_content();
         }
 
+        void set_row_setup_callback(std::function<void(TableRow *, const T &)> callback)
+        {
+            m_row_setup_callback = callback;
+        }
+
     protected:
         std::vector<TableColumn<T>> m_columns;
         std::vector<T> m_data;
@@ -641,6 +651,7 @@ namespace horizon
 
         std::set<int> m_selected_rows;
         std::function<std::unique_ptr<Menu>(const T &)> m_row_menu_factory;
+        std::function<void(TableRow *, const T &)> m_row_setup_callback;
 
         int m_resizing_col = -1;
         int m_resizing_start_x = 0;
