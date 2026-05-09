@@ -9,6 +9,9 @@
 namespace horizon
 {
 
+    const int NOTEBOOK_HEADER_HEIGHT = 34;
+    const int NOTEBOOK_BORDER_RADIUS = 14;
+
     Notebook::Notebook() : Widget()
     {
 
@@ -61,7 +64,7 @@ namespace horizon
     void Notebook::render(GraphicsContext &ctx, int cx, int cy, int cw, int ch, bool force)
     {
         m_header->set_position(m_x, m_y + m_margin_top->fixed_size());
-        m_header->set_size(width(), 40);
+        m_header->set_size(width(), NOTEBOOK_HEADER_HEIGHT);
 
         Widget::render(ctx, cx, cy, cw, ch, force);
     }
@@ -88,11 +91,13 @@ namespace horizon
 
                     if (index == 0)
                     {
-                        button->set_corner_radius({10, 0, 0, 10});
+                        button->set_corner_radius(
+                            {NOTEBOOK_BORDER_RADIUS, 0, 0, NOTEBOOK_BORDER_RADIUS});
                     }
                     else if (index == count_tabs - 1)
                     {
-                        button->set_corner_radius({0, 10, 10, 0});
+                        button->set_corner_radius(
+                            {0, NOTEBOOK_BORDER_RADIUS, NOTEBOOK_BORDER_RADIUS, 0});
                     }
                     else
                     {
