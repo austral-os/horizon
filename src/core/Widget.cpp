@@ -3,6 +3,8 @@
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/Vault.hpp>
+#include <horizon/ConfigManager.hpp>
+#include <horizon/MouseSettings.hpp>
 #include <linux/input-event-codes.h>
 
 namespace horizon
@@ -76,8 +78,8 @@ namespace horizon
                                             now - m_last_click_time)
                                             .count();
 
-                        // Logic for double click: two valid release-based clicks within 200ms
-                        if (m_last_click_button == ev.button && duration < 200)
+                        // Logic for double click: two valid release-based clicks within configured speed
+                        if (m_last_click_button == ev.button && duration < get_double_click_speed())
                         {
                             when_dbl_click.run(ev);
                             m_last_click_button = 0; // Reset to prevent triple-click being dbl-click
@@ -383,6 +385,11 @@ namespace horizon
             m_draw_state = draw_state;
             invalidate();
         }
+    }
+
+    int Widget::get_double_click_speed()
+    {
+        return MouseSettings::instance().double_click_speed();
     }
 
     void Widget::map_draw_state(WidgetEvent event, WidgetDrawState draw_state)

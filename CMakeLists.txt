@@ -40,6 +40,8 @@ file(GLOB_RECURSE SOURCES
     "src/*.c"
     "src/core/*.cpp"
     "src/core/ConfigManager.cpp"
+    "src/core/MouseSettings.cpp"
+    "src/core/FileWatcher.cpp"
     "src/protocols/*.c"
 )
 

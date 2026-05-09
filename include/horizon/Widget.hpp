@@ -351,6 +351,9 @@ namespace horizon
         uint32_t m_pressed_button{0};
         std::unique_ptr<Notification> m_tooltip;
         size_t m_tooltip_timer_id{0};
+
+    private:
+        static int get_double_click_speed();
     };
 
 } // namespace horizon
