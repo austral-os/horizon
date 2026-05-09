@@ -7,6 +7,7 @@ add_executable(top_panel
     src/DateAndTimeIndicator.cpp
     src/NetworkIndicator.cpp
     src/BatteryIndicator.cpp
+    src/NotificationIndicator.cpp
 )
 
 target_include_directories(top_panel
