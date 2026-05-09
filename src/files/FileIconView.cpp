@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
+#include <thread>
+#include "horizon/arkutils/FileOperations.hpp"
 
 namespace horizon::files
 {
@@ -44,6 +46,38 @@ namespace horizon::files
                     }, this);
                 }
             });
+
+            when_drop.connect([this](DropEventContext &ctx) {
+                auto data = ctx.get_data("text/uri-list");
+                if (data.empty()) return;
+
+                std::string uris(data.begin(), data.end());
+                
+                // Simple parsing of text/uri-list
+                size_t start = 0;
+                while (start < uris.length()) {
+                    size_t pos = uris.find("file://", start);
+                    if (pos == std::string::npos) break;
+                    
+                    size_t end = uris.find("\r\n", pos);
+                    std::string src = uris.substr(pos + 7, (end == std::string::npos) ? std::string::npos : end - (pos + 7));
+                    
+                    if (!src.empty()) {
+                        std::filesystem::path p(src);
+                        std::string dest = m_file_info.path + "/" + p.filename().string();
+                        
+                        if (src != dest) {
+                            auto future = arkutils::FileOperations::copy(src, dest);
+                            std::thread([f = std::move(future)]() mutable {
+                                f.get();
+                            }).detach();
+                        }
+                    }
+                    
+                    if (end == std::string::npos) break;
+                    start = end + 2;
+                }
+            });
         }
 
         void set_data(const arkutils::FileInfo &f, float zoom, bool selected)
@@ -60,6 +94,15 @@ namespace horizon::files
             m_icon_ptr->set_icon_size(m_icon_size);
 
             m_label_ptr->set_font_size(10 * m_zoom);
+
+            if (f.type == arkutils::FileType::Directory)
+            {
+                set_accept_drops(true);
+            }
+            else
+            {
+                set_accept_drops(false);
+            }
 
             invalidate();
         }

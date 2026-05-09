@@ -1019,6 +1019,7 @@ namespace horizon
     static void data_device_handle_enter(void *data, struct wl_data_device *data_device, uint32_t serial, struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y, struct wl_data_offer *id)
     {
         auto *ws = static_cast<WaylandSurface *>(data);
+        LOG_INFO << "[WL_DND] Enter. Offer: " << id << " Serial: " << serial;
         ws->m_last_drag_serial = serial;
         ws->m_current_drag_offer = id;
 
@@ -1040,6 +1041,7 @@ namespace horizon
     static void data_device_handle_leave(void *data, struct wl_data_device *data_device)
     {
         auto *ws = static_cast<WaylandSurface *>(data);
+        LOG_INFO << "[WL_DND] Leave";
         ws->m_current_drag_offer = nullptr;
         if (!ws->listener()) return;
 
@@ -1072,6 +1074,7 @@ namespace horizon
     static void data_device_handle_drop(void *data, struct wl_data_device *data_device)
     {
         auto *ws = static_cast<WaylandSurface *>(data);
+        LOG_INFO << "[WL_DND] Drop protocol received!";
         if (!ws->listener()) return;
 
         DragDropEvent ev;

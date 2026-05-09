@@ -12,6 +12,7 @@
 #include "horizon/dialogs/AboutUsDialog.hpp"
 #include <GLES2/gl2.h>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <future>
 #include <glib-object.h>
@@ -1378,11 +1379,17 @@ namespace horizon
 
                 // Look for a widget that accepts drops in the hierarchy
                 Widget *target = under;
+                if (under) {
+                    LOG_INFO << "[DND] Hovering over widget: " << typeid(*under).name() << " accepts: " << (under->accept_drops() ? "YES" : "NO");
+                }
                 while (target && !target->accept_drops())
                 {
                     target = target->parent();
                 }
                 drag_hovered = target;
+                if (drag_hovered) {
+                    LOG_INFO << "[DND] Found drop target: " << typeid(*drag_hovered).name();
+                }
 
                 if (drag_hovered)
                 {
@@ -1452,6 +1459,13 @@ namespace horizon
 
                 drop_ctx.m_data_fetcher = [this, offer](const std::string &mime) -> std::vector<uint8_t>
                 {
+                    // Internal bypass: if source is in the same process, fetch directly from memory
+                    if (s_active_drag_source && s_active_drag_source->m_current_fetcher)
+                    {
+                        return s_active_drag_source->m_current_fetcher(mime);
+                    }
+
+                    // External drag: use standard Wayland pipe
                     int fds[2];
                     if (pipe(fds) < 0) return {};
 
@@ -1462,6 +1476,7 @@ namespace horizon
                     std::vector<uint8_t> result;
                     uint8_t buffer[4096];
                     ssize_t n;
+                    // For external drags, this read is safe because the sender is another process
                     while ((n = read(fds[0], buffer, sizeof(buffer))) > 0)
                     {
                         result.insert(result.end(), buffer, buffer + n);
@@ -3617,6 +3632,7 @@ namespace horizon
 
     static void data_source_handle_cancelled(void *data, struct wl_data_source *source)
     {
+        LOG_INFO << "[DND_SOURCE] Drag cancelled";
         auto *state = static_cast<DragSourceState *>(data);
         state->window->cleanup_drag_icon();
         delete state;
@@ -3625,6 +3641,7 @@ namespace horizon
 
     static void data_source_handle_dnd_finished(void *data, struct wl_data_source *source)
     {
+        LOG_INFO << "[DND_SOURCE] Drag finished successfully";
         auto *state = static_cast<DragSourceState *>(data);
         state->window->cleanup_drag_icon();
         delete state;
@@ -3635,10 +3652,16 @@ namespace horizon
         .target = [](void *, struct wl_data_source *, const char *) {},
         .send = data_source_handle_send,
         .cancelled = data_source_handle_cancelled,
-        .dnd_drop_performed = [](void *, struct wl_data_source *) {},
+        .dnd_drop_performed = [](void *, struct wl_data_source *) {
+            LOG_INFO << "[DND_SOURCE] Drop performed";
+        },
         .dnd_finished = data_source_handle_dnd_finished,
-        .action = [](void *, struct wl_data_source *, uint32_t) {},
+        .action = [](void *, struct wl_data_source *, uint32_t action) {
+            LOG_INFO << "[DND_SOURCE] Action selected: " << action;
+        },
     };
+
+    WaylandWindow* WaylandWindow::s_active_drag_source = nullptr;
 
     void WaylandWindow::start_drag(const std::vector<std::string> &mime_types,
                                    std::function<std::vector<uint8_t>(const std::string &)> data_fetcher,
@@ -3657,6 +3680,8 @@ namespace horizon
         }
 
         auto *state = new DragSourceState{this, data_fetcher};
+        m_current_fetcher = data_fetcher;
+        s_active_drag_source = this;
         wl_data_source_add_listener(source, &data_source_listener, state);
 
         struct wl_surface *icon_surf = nullptr;
@@ -3691,6 +3716,7 @@ namespace horizon
     void WaylandWindow::cleanup_drag_icon()
     {
         m_drag_icon_surface.reset();
+        s_active_drag_source = nullptr;
     }
 
 } // namespace horizon
