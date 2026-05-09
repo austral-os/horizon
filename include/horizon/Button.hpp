@@ -21,15 +21,15 @@ namespace horizon
             // this->when_mouse_enter.connect([this](EventContext &) { this->invalidate(); });
             // this->when_mouse_leave.connect([this](EventContext &) { this->invalidate(); });
 
-            if (std::is_same<T, AquaObject>::value)
+            if constexpr (std::is_same_v<T, AquaObject>)
             {
                 this->set_corner_radius({15, 15, 15, 15});
             }
-            else if (std::is_same<T, SolidObject>::value)
+            else if constexpr (std::is_same_v<T, SolidObject>)
             {
                 this->set_corner_radius({6, 6, 6, 6});
             }
-            else if (std::is_same<T, AirObject>::value)
+            else if constexpr (std::is_same_v<T, AirObject>)
             {
                 this->set_corner_radius({8, 8, 8, 8});
             }

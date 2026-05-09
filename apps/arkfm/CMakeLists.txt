@@ -6,6 +6,7 @@ add_executable(arkfm
     src/dialogs/NewFolderDialog.cpp
     src/dialogs/PropertiesDialog.cpp
     src/dialogs/RenameDialog.cpp
+    src/dialogs/GoToFolderDialog.cpp
 )
 
 target_include_directories(arkfm

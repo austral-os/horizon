@@ -28,6 +28,7 @@ pkg_check_modules(GLESV2 REQUIRED glesv2)
 pkg_check_modules(DBUS REQUIRED dbus-1)
 pkg_check_modules(UUID REQUIRED uuid)
 pkg_check_modules(FONTCONFIG REQUIRED fontconfig)
+pkg_check_modules(MOUNT REQUIRED mount)
 pkg_check_modules(PIPEWIRE REQUIRED IMPORTED_TARGET libpipewire-0.3)
 set(PIPEWIRE_INCLUDE_DIRS ${PIPEWIRE_INCLUDE_DIRS} CACHE INTERNAL "")
 set(PIPEWIRE_LIBRARIES ${PIPEWIRE_LIBRARIES} CACHE INTERNAL "")
@@ -42,6 +43,7 @@ file(GLOB_RECURSE SOURCES
     "src/core/ConfigManager.cpp"
     "src/core/MouseSettings.cpp"
     "src/core/FileWatcher.cpp"
+    "src/files/disks/*.cpp"
     "src/protocols/*.c"
 )
 
@@ -69,6 +71,7 @@ target_include_directories(horizon
         ${DBUS_INCLUDE_DIRS}
         ${UUID_INCLUDE_DIRS}
         ${PIPEWIRE_INCLUDE_DIRS}
+        ${MOUNT_INCLUDE_DIRS}
     PRIVATE
         ${WAYLAND_INCLUDE_DIRS}
         ${CAIRO_INCLUDE_DIRS}
@@ -98,6 +101,7 @@ target_link_libraries(horizon
         ${EGL_LIBRARIES}
         ${GLESV2_LIBRARIES}
         ${FONTCONFIG_LIBRARIES}
+        ${MOUNT_LIBRARIES}
 )
 
 add_executable(minimal

@@ -1,27 +1,20 @@
 cmake_minimum_required(VERSION 3.10)
 project(horizon-disk-utilities)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(MOUNT REQUIRED mount)
+# This library is now integrated into horizon core.
+# We keep this target as an INTERFACE for compatibility.
 
-file(GLOB_RECURSE SOURCES "src/*.cpp")
-
-add_library(horizon-disk-utilities SHARED ${SOURCES})
+add_library(horizon-disk-utilities INTERFACE)
 
 target_include_directories(horizon-disk-utilities
-    PUBLIC
+    INTERFACE
         ${PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/../../include
-        ${PROJECT_SOURCE_DIR}/../../src
-        ${MOUNT_INCLUDE_DIRS}
 )
 
 target_link_libraries(horizon-disk-utilities
-    PUBLIC
+    INTERFACE
         horizon
-        ${MOUNT_LIBRARIES}
 )
 
-set_target_properties(horizon-disk-utilities PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-install(TARGETS horizon-disk-utilities DESTINATION lib COMPONENT core)
+# No installation needed for an interface library that is just a proxy to horizon

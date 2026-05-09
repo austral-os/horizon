@@ -10,14 +10,29 @@
       "delete": "Delete",
       "properties": "Properties",
       "about": "About",
-      "rename": "Rename"
+      "rename": "Rename",
+      "go": "Go",
+      "back": "Back",
+      "forward": "Forward",
+      "parent": "Enclosing Folder",
+      "all_files": "All My Files",
+      "documents": "Documents",
+      "desktop": "Desktop",
+      "downloads": "Downloads",
+      "videos": "Videos",
+      "images": "Images",
+      "applications": "Applications",
+      "go_to_folder": "Go to Folder...",
+      "connect_to_server": "Connect to Server..."
     },
     "dialog": {
       "properties": "Properties",
       "new_folder": "New Folder",
       "rename": "Rename",
       "new_name": "New name:",
-      "folder_name": "Folder name:"
+      "folder_name": "Folder name:",
+      "go_to_folder": "Go to Folder",
+      "enter_path": "Enter the path of the folder:"
     },
     "properties": {
       "type": "Type",

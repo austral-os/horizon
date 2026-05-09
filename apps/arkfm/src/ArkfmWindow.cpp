@@ -5,6 +5,7 @@
 #include "dialogs/NewFolderDialog.hpp"
 #include "dialogs/RenameDialog.hpp"
 #include "dialogs/PropertiesDialog.hpp"
+#include "dialogs/GoToFolderDialog.hpp"
 #include "horizon/ApplicationWindow.hpp"
 #include <horizon/DialogTypes.hpp>
 #include "horizon/Label.hpp"
@@ -166,6 +167,50 @@ namespace horizon::arkfm
                     application()->signal_manager.connect(
                         "properties", [this](SignalContext &)
                         { handle_properties(); });
+
+                    // Go Menu Handlers
+                    application()->signal_manager.connect("go-back", [this](SignalContext&) { 
+                        if (m_view_ptr) m_view_ptr->navigate_back(); 
+                    });
+                    application()->signal_manager.connect("go-forward", [this](SignalContext&) { 
+                        if (m_view_ptr) m_view_ptr->navigate_forward(); 
+                    });
+                    application()->signal_manager.connect("go-parent", [this](SignalContext&) {
+                        if (m_view_ptr) {
+                            std::filesystem::path p(m_view_ptr->current_path());
+                            m_view_ptr->navigate_to(p.parent_path().string());
+                        }
+                    });
+                    application()->signal_manager.connect("go-home", [this](SignalContext&) { 
+                        if (m_view_ptr) m_view_ptr->navigate_to(getenv("HOME") ? getenv("HOME") : "/"); 
+                    });
+                    application()->signal_manager.connect("go-documents", [this](SignalContext&) { 
+                        if (m_view_ptr) m_view_ptr->navigate_to(std::string(getenv("HOME") ? getenv("HOME") : "/") + "/Documents"); 
+                    });
+                    application()->signal_manager.connect("go-desktop", [this](SignalContext&) { 
+                        if (m_view_ptr) m_view_ptr->navigate_to(std::string(getenv("HOME") ? getenv("HOME") : "/") + "/Desktop"); 
+                    });
+                    application()->signal_manager.connect("go-downloads", [this](SignalContext&) { 
+                        if (m_view_ptr) m_view_ptr->navigate_to(std::string(getenv("HOME") ? getenv("HOME") : "/") + "/Downloads"); 
+                    });
+                    application()->signal_manager.connect("go-videos", [this](SignalContext&) { 
+                        if (m_view_ptr) m_view_ptr->navigate_to(std::string(getenv("HOME") ? getenv("HOME") : "/") + "/Videos"); 
+                    });
+                    application()->signal_manager.connect("go-images", [this](SignalContext&) { 
+                        if (m_view_ptr) m_view_ptr->navigate_to(std::string(getenv("HOME") ? getenv("HOME") : "/") + "/Images"); 
+                    });
+                    application()->signal_manager.connect("go-applications", [this](SignalContext&) { 
+                        if (m_view_ptr) m_view_ptr->navigate_to("/usr/share/applications"); 
+                    });
+                    application()->signal_manager.connect("go-to-folder", [this](SignalContext&) {
+                        application()->post_task([this]() {
+                            auto dialog = std::make_unique<GoToFolderDialog>();
+                            dialog->when_accepted.connect([this](GoToFolderEvent& ev) {
+                                if (m_view_ptr) m_view_ptr->navigate_to(ev.path);
+                            });
+                            dialog->run();
+                        });
+                    });
 
                     m_view_ptr->when_right_click.connect(
                         [this](MouseButtonEventContext &ctx)

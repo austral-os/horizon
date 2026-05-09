@@ -10,14 +10,29 @@
       "delete": "Eliminar",
       "properties": "Propiedades",
       "about": "Acerca de",
-      "rename": "Renombrar"
+      "rename": "Renombrar",
+      "go": "Ir",
+      "back": "Atrás",
+      "forward": "Adelante",
+      "parent": "Carpeta superior",
+      "all_files": "Todos mis archivos",
+      "documents": "Documentos",
+      "desktop": "Escritorio",
+      "downloads": "Descargas",
+      "videos": "Videos",
+      "images": "Imágenes",
+      "applications": "Aplicaciones",
+      "go_to_folder": "Ir a la carpeta...",
+      "connect_to_server": "Conectarse al servidor..."
     },
     "dialog": {
       "properties": "Propiedades",
       "new_folder": "Nueva Carpeta",
       "rename": "Cambiar nombre",
       "new_name": "Nuevo nombre:",
-      "folder_name": "Nombre de la carpeta:"
+      "folder_name": "Nombre de la carpeta:",
+      "go_to_folder": "Ir a la carpeta",
+      "enter_path": "Ingrese la ruta de la carpeta:"
     },
     "properties": {
       "type": "Tipo",

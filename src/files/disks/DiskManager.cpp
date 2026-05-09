@@ -1,4 +1,4 @@
-#include "horizon-disk-utilities/DiskManager.hpp"
+#include "horizon/disks/DiskManager.hpp"
 #include <horizon/dbusutils/DbusHelper.hpp>
 #include <horizon/Logger.hpp>
 #include <filesystem>
@@ -33,12 +33,14 @@ namespace horizon::disks
             
             // Second connection for monitoring ONLY to avoid blocking issues
             m_monitor_dbus_helper = std::make_unique<dbusutils::DbusHelper>(DBUS_BUS_SYSTEM);
-            m_monitor_dbus_helper->add_match_rule("type='signal',interface='org.freedesktop.DBus.ObjectManager',path='/org/freedesktop/UDisks2'");
-            m_monitor_dbus_helper->add_match_rule("type='signal',interface='org.freedesktop.DBus.Properties',path_namespace='/org/freedesktop/UDisks2/jobs'");
+            m_monitor_dbus_helper->add_match_rule("type='signal',path='/org/freedesktop/UDisks2'");
+            m_monitor_dbus_helper->add_match_rule("type='signal',path_namespace='/org/freedesktop/UDisks2'");
             // Listen for job removal to clear state
             m_monitor_dbus_helper->add_match_rule("type='signal',interface='org.freedesktop.DBus.ObjectManager',member='InterfacesRemoved',path='/org/freedesktop/UDisks2'");
-        } catch (...) {
-            std::cerr << "[DiskManager] Warning: Could not initialize DBusHelper" << std::endl;
+            
+            LOG_INFO << "[DiskManager] Monitoring initialized for UDisks2 signals";
+        } catch (const std::exception& e) {
+            LOG_ERROR << "[DiskManager] Error: Could not initialize DBusHelper: " << e.what();
         }
     }
 
@@ -705,11 +707,17 @@ namespace horizon::disks
 
         bool changed = false;
         DBusMessage* msg;
-        while ((msg = m_monitor_dbus_helper->pop_message(0)))
+        while ((msg = m_monitor_dbus_helper->pop_message(10)))
         {
+            const char* iface = dbus_message_get_interface(msg);
+            const char* member = dbus_message_get_member(msg);
+            
+            LOG_INFO << "[DiskManager] Monitor received signal: " << (iface ? iface : "?") << "." << (member ? member : "?");
+
             if (dbus_message_is_signal(msg, "org.freedesktop.DBus.ObjectManager", "InterfacesAdded") ||
                 dbus_message_is_signal(msg, "org.freedesktop.DBus.ObjectManager", "InterfacesRemoved"))
             {
+                LOG_INFO << "[DiskManager] Hardware change detected (InterfacesAdded/Removed)";
                 changed = true;
             }
             dbus_message_unref(msg);

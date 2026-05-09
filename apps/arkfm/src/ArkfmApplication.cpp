@@ -43,6 +43,24 @@ namespace horizon::arkfm
         m_mnu_edit->set_title(i18n().tr("arkfm.menu.edit"));
         m_mnu_edit->set_id("edit");
 
+        auto m_mnu_go = std::make_unique<horizon::Menu>();
+        m_mnu_go->set_title(i18n().tr("arkfm.menu.go"));
+        m_mnu_go->set_id("go");
+        m_mnu_go->add_item(i18n().tr("arkfm.menu.back"), "Alt+Left", "go-back");
+        m_mnu_go->add_item(i18n().tr("arkfm.menu.forward"), "Alt+Right", "go-forward");
+        m_mnu_go->add_item(i18n().tr("arkfm.menu.parent"), "Alt+Up", "go-parent");
+        m_mnu_go->add_separator();
+        m_mnu_go->add_item(i18n().tr("arkfm.menu.all_files"), "Shift+Ctrl+H", "go-home");
+        m_mnu_go->add_item(i18n().tr("arkfm.menu.documents"), "Shift+Ctrl+O", "go-documents");
+        m_mnu_go->add_item(i18n().tr("arkfm.menu.desktop"), "Shift+Ctrl+D", "go-desktop");
+        m_mnu_go->add_item(i18n().tr("arkfm.menu.downloads"), "Shift+Ctrl+L", "go-downloads");
+        m_mnu_go->add_item(i18n().tr("arkfm.menu.videos"), "Shift+Ctrl+V", "go-videos");
+        m_mnu_go->add_item(i18n().tr("arkfm.menu.images"), "Shift+Ctrl+I", "go-images");
+        m_mnu_go->add_item(i18n().tr("arkfm.menu.applications"), "Shift+Ctrl+A", "go-applications");
+        m_mnu_go->add_separator();
+        m_mnu_go->add_item(i18n().tr("arkfm.menu.go_to_folder"), "Shift+Ctrl+G", "go-to-folder");
+        m_mnu_go->add_item(i18n().tr("arkfm.menu.connect_to_server"), "Shift+Ctrl+K", "go-connect");
+
         auto mnu_help = std::make_unique<horizon::Menu>();
         mnu_help->set_title(i18n().tr("arkfm.menu.help"));
         mnu_help->set_id("help");
@@ -50,6 +68,7 @@ namespace horizon::arkfm
 
         add_menu(std::move(m_mnu_file));
         add_menu(std::move(m_mnu_edit));
+        add_menu(std::move(m_mnu_go));
         add_menu(std::move(mnu_help));
     }
 
