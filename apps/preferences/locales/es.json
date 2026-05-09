@@ -215,6 +215,20 @@
             "save": "Aplicar",
             "add_user": "Añadir usuario",
             "new_user_item": "Usuario nuevo"
+        },
+        "datetime": {
+            "auto_update": "Actualizar fecha y hora automáticamente",
+            "tab_date_time": "Fecha y Hora",
+            "tab_time_zone": "Zona Horaria",
+            "add": "Agregar",
+            "remove": "Eliminar",
+            "default": "Por defecto",
+            "column_timezone": "Zona Horaria",
+            "column_default": "Predeterminada",
+            "select_timezone": "Seleccionar Zona Horaria",
+            "search_timezones": "Buscar zonas horarias...",
+            "cancel": "Cancelar",
+            "accept": "Aceptar"
         }
     },
     "datetime": {

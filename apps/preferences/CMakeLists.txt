@@ -33,6 +33,7 @@ add_executable(preferences
 
     src/views/UsersView/PasswordDialog.cpp
     src/views/DateTimeView/DateTimeView.cpp
+    src/views/DateTimeView/TimeZonePickerDialog.cpp
     src/views/RegionView/RegionView.cpp
     src/views/DetailsView/DetailsView.cpp
     src/views/ApplicationsView/ApplicationsView.cpp

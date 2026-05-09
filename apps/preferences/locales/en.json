@@ -214,7 +214,21 @@
             "delete_confirm": "Are you sure you want to delete user '{0}'? This action will remove their account and all personal files.",
             "save": "Apply",
             "add_user": "Add user",
-            "new_user_item": "New user"
+        "new_user_item": "New user"
+        },
+        "datetime": {
+            "auto_update": "Update date and time automatically",
+            "tab_date_time": "Date & Time",
+            "tab_time_zone": "Time Zone",
+            "add": "Add",
+            "remove": "Remove",
+            "default": "Default",
+            "column_timezone": "Time Zone",
+            "column_default": "Default",
+            "select_timezone": "Select Time Zone",
+            "search_timezones": "Search time zones...",
+            "cancel": "Cancel",
+            "accept": "Accept"
         }
     },
     "datetime": {
