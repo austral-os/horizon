@@ -179,6 +179,14 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/mouse.json")
     )
 endif()
 
+# --- Notifications Config ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/notifications.json")
+    install(FILES data/notifications.json
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
+
 # --- License ---
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/license_lgplv3.txt")
     install(FILES data/license_lgplv3.txt

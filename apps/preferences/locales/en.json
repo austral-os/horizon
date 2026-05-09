@@ -235,6 +235,9 @@
             "search_timezones": "Search time zones...",
             "cancel": "Cancel",
             "accept": "Accept"
+        },
+        "notifications": {
+            "show_notifications": "Show notifications"
         }
     },
     "datetime": {

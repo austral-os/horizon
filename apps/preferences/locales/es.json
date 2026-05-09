@@ -235,6 +235,9 @@
             "search_timezones": "Buscar zonas horarias...",
             "cancel": "Cancelar",
             "accept": "Aceptar"
+        },
+        "notifications": {
+            "show_notifications": "Mostrar notificaciones"
         }
     },
     "datetime": {
