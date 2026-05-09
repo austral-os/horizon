@@ -1,3 +1,5 @@
+#include "horizon/Frame.hpp"
+#include "horizon/Widget.hpp"
 #include <horizon/I18n.hpp>
 #include <horizon/Spacer.hpp>
 #include <utils/ConfigUtils.hpp>
@@ -21,19 +23,26 @@ namespace horizon::preferences
 
     void MouseView::setup_ui()
     {
+
+        auto container = std::make_unique<Frame>();
+        container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        container->set_margin(0);
+        container->set_spacing(20);
+
+        // Content Area
+        auto content = std::make_unique<Widget>();
+        content->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        content->set_position_type(WidgetPositionTypes::FILL);
+        content->set_margin(30);
+        content->set_spacing(30);
+
         // Title
         auto title = std::make_unique<Label>(i18n().tr("preferences.sections.mouse"));
         title->set_font_size(18);
         title->set_font_weight(FONT_WEIGHT_BOLD);
         title->set_fixed_size(40);
         m_title_label = title.get();
-        add_child(std::move(title));
-
-        // Content Area
-        auto content = std::make_unique<Widget>();
-        content->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        content->set_position_type(WidgetPositionTypes::FILL);
-        content->set_spacing(30);
+        content->add_child(std::move(title));
 
         // --- Double Click Speed ---
         auto dc_section = std::make_unique<Widget>();
@@ -51,7 +60,7 @@ namespace horizon::preferences
         dc_slider_row->set_fixed_size(30);
 
         auto dc_slow =
-            std::make_unique<Label>(i18n().tr("preferences.sections.mouse_settings.slow"));
+            std::make_unique<Label>(i18n().tr("preferences.sections.mouse_settings.fast"));
         dc_slow->set_font_size(11);
         dc_slow->set_fixed_size(50);
         dc_slider_row->add_child(std::move(dc_slow));
@@ -66,7 +75,7 @@ namespace horizon::preferences
         dc_slider_row->add_child(std::move(dc_slider));
 
         auto dc_fast =
-            std::make_unique<Label>(i18n().tr("preferences.sections.mouse_settings.fast"));
+            std::make_unique<Label>(i18n().tr("preferences.sections.mouse_settings.slow"));
         dc_fast->set_font_size(11);
         dc_fast->set_fixed_size(50);
         dc_slider_row->add_child(std::move(dc_fast));
@@ -114,7 +123,9 @@ namespace horizon::preferences
         content->add_child(std::move(ps_section));
 
         content->add_child(Spacer());
-        add_child(std::move(content));
+        container->add_child(std::move(content));
+
+        add_child(std::move(container));
     }
 
     void MouseView::load_config()
