@@ -4,6 +4,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <map>
 #include <type_traits>
 
 namespace horizon
@@ -97,6 +98,52 @@ namespace horizon
     {
     public:
         bool checked;
+    };
+
+    /**
+     * @brief Context for drag and drop events.
+     */
+    class DragEventContext : public MouseMoveEventContext
+    {
+    public:
+        std::vector<std::string> mime_types;
+        
+        void add_data(const std::string &mime, const std::string &data)
+        {
+            m_provided_data[mime] = std::vector<uint8_t>(data.begin(), data.end());
+            mime_types.push_back(mime);
+        }
+
+        void add_data(const std::string &mime, const std::vector<uint8_t> &data)
+        {
+            m_provided_data[mime] = data;
+            mime_types.push_back(mime);
+        }
+
+        const std::map<std::string, std::vector<uint8_t>>& provided_data() const { return m_provided_data; }
+
+    private:
+        std::map<std::string, std::vector<uint8_t>> m_provided_data;
+    };
+
+    class DropEventContext : public DragEventContext
+    {
+    public:
+        std::vector<uint8_t> get_data(const std::string &mime) const
+        {
+            if (m_data_fetcher) {
+                return m_data_fetcher(mime);
+            }
+            return {};
+        }
+
+        std::string get_data_as_string(const std::string &mime) const
+        {
+            auto data = get_data(mime);
+            return std::string(data.begin(), data.end());
+        }
+
+        std::function<std::vector<uint8_t>(const std::string &)> m_data_fetcher;
     };
 
     /**

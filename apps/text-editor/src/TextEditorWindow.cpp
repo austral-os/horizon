@@ -23,6 +23,19 @@ namespace text_editor {
             this->open_file(ctx.path);
         });
 
+        set_accept_drops(true);
+        when_drop.connect([this](DropEventContext &ctx) {
+            auto data = ctx.get_data("text/uri-list");
+            if (!data.empty()) {
+                std::string content(data.begin(), data.end());
+                if (content.find("file://") == 0) {
+                    size_t end = content.find("\r\n");
+                    std::string path = content.substr(7, (end == std::string::npos) ? std::string::npos : end - 7);
+                    this->open_file(path);
+                }
+            }
+        });
+
         when_file_close.connect([this](EventContext&) {
             if (m_tabs && m_tabs->tab_count() > 0) {
                 m_tabs->remove_tab(m_tabs->current_tab_index());

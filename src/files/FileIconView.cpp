@@ -30,10 +30,25 @@ namespace horizon::files
             add_child(std::move(label));
 
             m_position_type = FREE;
+            
+            set_draggable(true);
+            when_drag_start.connect([this](DragEventContext &ctx) {
+                if (application()) {
+                    std::vector<std::string> mimes = {"text/uri-list", "text/plain"};
+                    application()->start_drag(mimes, [this](const std::string &mime) -> std::vector<uint8_t> {
+                        if (mime == "text/uri-list") {
+                            std::string uri = "file://" + m_file_info.path + "\r\n";
+                            return std::vector<uint8_t>(uri.begin(), uri.end());
+                        }
+                        return std::vector<uint8_t>(m_file_info.path.begin(), m_file_info.path.end());
+                    }, this);
+                }
+            });
         }
 
         void set_data(const arkutils::FileInfo &f, float zoom, bool selected)
         {
+            m_file_info = f;
             m_zoom = zoom;
             m_selected = selected;
             m_label_ptr->set_text(FileIconProvider::get_display_name(f));
@@ -100,6 +115,7 @@ namespace horizon::files
     private:
         Icon *m_icon_ptr{nullptr};
         Label *m_label_ptr{nullptr};
+        arkutils::FileInfo m_file_info;
         float m_zoom{1.5f};
         int m_icon_size{48};
         bool m_selected{false};

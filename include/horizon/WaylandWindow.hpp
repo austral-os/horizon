@@ -56,6 +56,8 @@ namespace horizon
             void deactivate() { m_window = nullptr; }
         };
 
+        void on_drag_drop_event(const DragDropEvent &event) override;
+
     public:
         WaylandWindow(std::string app_id = "horizon.app", int w = 800, int h = 600,
                       bool defer_init = false, bool resizable = true, int min_w = -1,
@@ -106,6 +108,12 @@ namespace horizon
          * @brief Requests the window to be restored from maximized state.
          */
         void restore(const std::string &token = "");
+        
+        void start_drag(const std::vector<std::string> &mime_types,
+                        std::function<std::vector<uint8_t>(const std::string &)> data_fetcher,
+                        Widget *icon_widget = nullptr);
+        
+        void cleanup_drag_icon();
 
         /**
          * @return True if the window is maximized.
@@ -584,6 +592,11 @@ namespace horizon
         Widget *m_hovered = nullptr; /**< The widget currently under the mouse pointer. */
         Widget *m_pressed = nullptr; /**< The widget currently being pressed by a mouse button. */
         Widget *m_focused = nullptr; /**< The widget currently having keyboard focus. */
+
+        double m_drag_start_x{0.0};
+        double m_drag_start_y{0.0};
+        bool m_is_dragging{false};
+        std::unique_ptr<WaylandSurface> m_drag_icon_surface;
 
         GLuint m_gl_program{0};
         GLuint m_gl_vbo{0};

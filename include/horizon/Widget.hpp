@@ -231,6 +231,12 @@ namespace horizon
          */
         virtual void on_clipboard_data_received(const std::string &mime, const std::vector<uint8_t> &data) {}
 
+        // --- Drag and Drop ---
+        void set_draggable(bool draggable) { m_draggable = draggable; }
+        bool is_draggable() const { return m_draggable; }
+
+        void set_accept_drops(bool accept) { m_accept_drops = accept; }
+        bool accept_drops() const { return m_accept_drops; }
         // --- Context Menu ---
         void set_context_menu(std::unique_ptr<Menu> menu);
         Menu *context_menu() const;
@@ -280,6 +286,11 @@ namespace horizon
         EventsManager<MouseWheelEventContext> when_mouse_wheel;
         EventsManager<MouseMoveEventContext> when_mouse_drag;
         EventsManager<MouseMoveEventContext> when_mouse_hover;
+        EventsManager<DragEventContext> when_drag_start;
+        EventsManager<DragEventContext> when_drag_enter;
+        EventsManager<DragEventContext> when_drag_leave;
+        EventsManager<DragEventContext> when_drag_over;
+        EventsManager<DropEventContext> when_drop;
         EventsManager<KeyEventContext> when_key_press;
         EventsManager<KeyEventContext> when_key_release;
         EventsManager<EventContext> when_focus;
@@ -349,6 +360,8 @@ namespace horizon
         std::chrono::steady_clock::time_point m_last_click_time;
         uint32_t m_last_click_button{0};
         uint32_t m_pressed_button{0};
+        bool m_draggable{false};
+        bool m_accept_drops{false};
         std::unique_ptr<Notification> m_tooltip;
         size_t m_tooltip_timer_id{0};
 

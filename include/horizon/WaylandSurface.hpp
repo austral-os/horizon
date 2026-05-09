@@ -90,7 +90,8 @@ namespace horizon
             None,
             XdgToplevel,
             LayerShell,
-            XdgPopup
+            XdgPopup,
+            DragIcon
         };
 
         explicit WaylandSurface(int w, int h);
@@ -187,6 +188,7 @@ namespace horizon
         const std::string &layer_namespace() const { return m_layer_namespace; }
         void setup_xdg_popup(WaylandSurface *parent, int x, int y, int w, int h,
                               int popup_w = 0, int popup_h = 0, bool use_grab = true);
+        void setup_drag_icon();
         void set_layer_anchor(uint32_t anchor);
         void set_layer_exclusive_zone(int32_t zone);
         void set_layer_keyboard_interactivity(uint32_t interactivity);
@@ -206,6 +208,9 @@ namespace horizon
         void request_resize(uint32_t serial, uint32_t edge);
         void set_min_size(int w, int h);
         void set_max_size(int w, int h);
+
+        uint32_t m_last_drag_serial{0};
+        struct wl_data_offer *m_current_drag_offer{nullptr};
         void update_xkb_keymap(uint32_t format, int32_t fd, uint32_t size);
         void update_xkb_modifiers(uint32_t mods_depressed, uint32_t mods_latched, uint32_t mods_locked, uint32_t group);
         void process_key(uint32_t key, uint32_t state, KeyEvent &ev);

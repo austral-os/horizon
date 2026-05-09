@@ -100,6 +100,40 @@ namespace horizon
         foreign_toplevel_manager_toplevel,
         nullptr // finished
     };
+    static void data_device_handle_data_offer(void *data, struct wl_data_device *data_device, struct wl_data_offer *id);
+    static void data_device_handle_enter(void *data, struct wl_data_device *data_device, uint32_t serial, struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y, struct wl_data_offer *id);
+    static void data_device_handle_leave(void *data, struct wl_data_device *data_device);
+    static void data_device_handle_motion(void *data, struct wl_data_device *data_device, uint32_t time, wl_fixed_t x, wl_fixed_t y);
+    static void data_device_handle_drop(void *data, struct wl_data_device *data_device);
+
+    static void data_device_handle_selection(void *data, struct wl_data_device *data_device, struct wl_data_offer *id)
+    {
+        // Handle selection (clipboard) if needed. 
+        // For now, we just ensure the protocol is satisfied to avoid crashes.
+        if (id) {
+            // According to protocol, the client must destroy the previous selection offer.
+            // But since we are not using this for clipboard yet, we'll just ignore it.
+        }
+    }
+
+    static const struct wl_data_device_listener data_device_listener = {
+        .data_offer = data_device_handle_data_offer,
+        .enter = data_device_handle_enter,
+        .leave = data_device_handle_leave,
+        .motion = data_device_handle_motion,
+        .drop = data_device_handle_drop,
+        .selection = data_device_handle_selection,
+    };
+
+    static void data_offer_handle_offer(void *data, struct wl_data_offer *data_offer, const char *mime_type);
+    static void data_offer_handle_source_actions(void *data, struct wl_data_offer *data_offer, uint32_t source_actions);
+    static void data_offer_handle_action(void *data, struct wl_data_offer *data_offer, uint32_t dnd_action);
+
+    static const struct wl_data_offer_listener data_offer_listener = {
+        .offer = data_offer_handle_offer,
+        .source_actions = data_offer_handle_source_actions,
+        .action = data_offer_handle_action,
+    };
 
     // --- Output Handlers ---
     void output_handle_geometry(void *data, struct wl_output *wl_output, int32_t x, int32_t y,
@@ -411,6 +445,13 @@ namespace horizon
         wl_display_roundtrip(m_display);
         resize_buffer(m_width, m_height);
     }
+    void WaylandSurface::setup_drag_icon()
+    {
+        m_role = Role::DragIcon;
+        m_surface = wl_compositor_create_surface(m_compositor);
+        wl_surface_set_user_data(m_surface, this);
+        wl_surface_add_listener(m_surface, &surface_listener, this);
+    }
 
     void WaylandSurface::set_layer_anchor(uint32_t anchor) { m_anchor = anchor; if (m_layer_surface) zwlr_layer_surface_v1_set_anchor(m_layer_surface, anchor); }
     void WaylandSurface::set_layer_exclusive_zone(int32_t zone) { m_exclusive_zone = zone; if (m_layer_surface) zwlr_layer_surface_v1_set_exclusive_zone(m_layer_surface, zone); }
@@ -671,6 +712,7 @@ namespace horizon
             wl_seat_add_listener(ws->m_seat, &g_seat_listener, ws); 
             if (ws->m_data_device_manager && !ws->m_data_device) {
                 ws->m_data_device = wl_data_device_manager_get_data_device(ws->m_data_device_manager, ws->m_seat);
+                wl_data_device_add_listener(ws->m_data_device, &data_device_listener, ws);
             }
         }
 
@@ -694,8 +736,9 @@ namespace horizon
         }
         else if (strcmp(interface, "wl_data_device_manager") == 0) {
             ws->m_data_device_manager = (wl_data_device_manager*)wl_registry_bind(registry, id, &wl_data_device_manager_interface, 3);
-            if (ws->m_seat) {
+            if (ws->m_seat && !ws->m_data_device) {
                 ws->m_data_device = wl_data_device_manager_get_data_device(ws->m_data_device_manager, ws->m_seat);
+                wl_data_device_add_listener(ws->m_data_device, &data_device_listener, ws);
             }
         }
     }
@@ -952,4 +995,95 @@ namespace horizon
         }
     }
 
+    struct DataOfferInfo
+    {
+        std::vector<std::string> mime_types;
+    };
+
+    static void data_offer_handle_offer(void *data, struct wl_data_offer *data_offer, const char *mime_type)
+    {
+        auto *info = static_cast<DataOfferInfo *>(data);
+        info->mime_types.push_back(mime_type);
+    }
+
+    static void data_offer_handle_source_actions(void *data, struct wl_data_offer *data_offer, uint32_t source_actions) {}
+    static void data_offer_handle_action(void *data, struct wl_data_offer *data_offer, uint32_t dnd_action) {}
+
+    static void data_device_handle_data_offer(void *data, struct wl_data_device *data_device, struct wl_data_offer *id)
+    {
+        auto *info = new DataOfferInfo();
+        wl_data_offer_add_listener(id, &data_offer_listener, info);
+        wl_data_offer_set_user_data(id, info);
+    }
+
+    static void data_device_handle_enter(void *data, struct wl_data_device *data_device, uint32_t serial, struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y, struct wl_data_offer *id)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        ws->m_last_drag_serial = serial;
+        ws->m_current_drag_offer = id;
+
+        if (!ws->listener()) return;
+
+        auto *info = static_cast<DataOfferInfo *>(wl_data_offer_get_user_data(id));
+        
+        DragDropEvent ev;
+        ev.type = DragDropEvent::Type::Enter;
+        ev.x = wl_fixed_to_double(x);
+        ev.y = wl_fixed_to_double(y);
+        ev.serial = serial;
+        if (info) ev.mime_types = info->mime_types;
+        ev.data_offer = id;
+        
+        ws->listener()->on_drag_drop_event(ev);
+    }
+
+    static void data_device_handle_leave(void *data, struct wl_data_device *data_device)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        ws->m_current_drag_offer = nullptr;
+        if (!ws->listener()) return;
+
+        DragDropEvent ev;
+        ev.type = DragDropEvent::Type::Leave;
+        ws->listener()->on_drag_drop_event(ev);
+    }
+
+    static void data_device_handle_motion(void *data, struct wl_data_device *data_device, uint32_t time, wl_fixed_t x, wl_fixed_t y)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        if (!ws->listener()) return;
+
+        DragDropEvent ev;
+        ev.type = DragDropEvent::Type::Motion;
+        ev.x = wl_fixed_to_double(x);
+        ev.y = wl_fixed_to_double(y);
+        ev.serial = ws->m_last_drag_serial;
+        ev.data_offer = ws->m_current_drag_offer;
+        
+        // Fetch mime types if offer exists
+        if (ws->m_current_drag_offer) {
+            auto *info = static_cast<DataOfferInfo *>(wl_data_offer_get_user_data(ws->m_current_drag_offer));
+            if (info) ev.mime_types = info->mime_types;
+        }
+
+        ws->listener()->on_drag_drop_event(ev);
+    }
+
+    static void data_device_handle_drop(void *data, struct wl_data_device *data_device)
+    {
+        auto *ws = static_cast<WaylandSurface *>(data);
+        if (!ws->listener()) return;
+
+        DragDropEvent ev;
+        ev.type = DragDropEvent::Type::Drop;
+        ev.data_offer = ws->m_current_drag_offer;
+        ev.serial = ws->m_last_drag_serial;
+        
+        if (ws->m_current_drag_offer) {
+            auto *info = static_cast<DataOfferInfo *>(wl_data_offer_get_user_data(ws->m_current_drag_offer));
+            if (info) ev.mime_types = info->mime_types;
+        }
+
+        ws->listener()->on_drag_drop_event(ev);
+    }
 } // namespace horizon

@@ -12,6 +12,7 @@
 #include "horizon/dialogs/AboutUsDialog.hpp"
 #include <GLES2/gl2.h>
 #include <algorithm>
+#include <cmath>
 #include <future>
 #include <glib-object.h>
 #include <horizon/DialogTypes.hpp>
@@ -1352,6 +1353,135 @@ namespace horizon
         }
     }
 
+    void WaylandWindow::on_drag_drop_event(const DragDropEvent &event)
+    {
+        if (!m_root)
+            return;
+
+        static Widget *drag_hovered = nullptr;
+
+        switch (event.type)
+        {
+        case DragDropEvent::Type::Enter:
+        case DragDropEvent::Type::Motion:
+        {
+            Widget *under = m_root->hit_test((int)event.x, (int)event.y);
+
+            if (under != drag_hovered)
+            {
+                if (drag_hovered)
+                {
+                    DragEventContext leave_ctx;
+                    leave_ctx.sender = drag_hovered;
+                    drag_hovered->when_drag_leave.run(leave_ctx);
+                }
+
+                // Look for a widget that accepts drops in the hierarchy
+                Widget *target = under;
+                while (target && !target->accept_drops())
+                {
+                    target = target->parent();
+                }
+                drag_hovered = target;
+
+                if (drag_hovered)
+                {
+                    DragEventContext enter_ctx;
+                    enter_ctx.sender = drag_hovered;
+                    enter_ctx.x = event.x;
+                    enter_ctx.y = event.y;
+                    enter_ctx.mime_types = event.mime_types;
+                    drag_hovered->when_drag_enter.run(enter_ctx);
+                }
+            }
+
+            if (drag_hovered)
+            {
+                DragEventContext over_ctx;
+                over_ctx.sender = drag_hovered;
+                over_ctx.x = event.x;
+                over_ctx.y = event.y;
+                over_ctx.mime_types = event.mime_types;
+                drag_hovered->when_drag_over.run(over_ctx);
+
+                // Feedback to compositor about acceptance
+                struct wl_data_offer *offer = static_cast<struct wl_data_offer *>(event.data_offer);
+                if (offer)
+                {
+                    // Accept the first supported mime type for now
+                    const char *mime = event.mime_types.empty() ? nullptr : event.mime_types[0].c_str();
+                    wl_data_offer_accept(offer, event.serial, mime);
+                    wl_data_offer_set_actions(offer, 
+                        WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY | WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE,
+                        WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
+                }
+            }
+            else
+            {
+                // Inform compositor that we don't accept it here
+                struct wl_data_offer *offer = static_cast<struct wl_data_offer *>(event.data_offer);
+                if (offer)
+                {
+                    wl_data_offer_accept(offer, event.serial, nullptr);
+                }
+            }
+            break;
+        }
+
+        case DragDropEvent::Type::Leave:
+            if (drag_hovered)
+            {
+                DragEventContext leave_ctx;
+                leave_ctx.sender = drag_hovered;
+                drag_hovered->when_drag_leave.run(leave_ctx);
+                drag_hovered = nullptr;
+            }
+            break;
+
+        case DragDropEvent::Type::Drop:
+            if (drag_hovered && drag_hovered->accept_drops())
+            {
+                struct wl_data_offer *offer = static_cast<struct wl_data_offer *>(event.data_offer);
+                if (!offer) {
+                    break;
+                }
+
+                DropEventContext drop_ctx;
+                drop_ctx.sender = drag_hovered;
+                drop_ctx.mime_types = event.mime_types;
+
+                drop_ctx.m_data_fetcher = [this, offer](const std::string &mime) -> std::vector<uint8_t>
+                {
+                    int fds[2];
+                    if (pipe(fds) < 0) return {};
+
+                    wl_data_offer_receive(offer, mime.c_str(), fds[1]);
+                    wl_display_flush(m_surface->display());
+                    close(fds[1]);
+
+                    std::vector<uint8_t> result;
+                    uint8_t buffer[4096];
+                    ssize_t n;
+                    while ((n = read(fds[0], buffer, sizeof(buffer))) > 0)
+                    {
+                        result.insert(result.end(), buffer, buffer + n);
+                    }
+                    close(fds[0]);
+                    return result;
+                };
+
+                drag_hovered->when_drop.run(drop_ctx);
+                
+                // Signal completion to compositor
+                if (wl_proxy_get_version((struct wl_proxy *)offer) >= 3) {
+                    wl_data_offer_finish(offer);
+                }
+            }
+            drag_hovered = nullptr;
+            break;
+        }
+    }
+
     void WaylandWindow::on_key_event(const KeyEvent &event)
     {
         switch (event.type)
@@ -1727,7 +1857,7 @@ namespace horizon
         m_pointer_x = event.x;
         m_pointer_y = event.y;
 
-        // Detectar borde para redimensionado
+        // Detect resize edge
         uint32_t edge = XDG_TOPLEVEL_RESIZE_EDGE_NONE;
         if (!is_maximized() && m_resizable)
         {
@@ -1809,7 +1939,6 @@ namespace horizon
                     temp = temp->parent();
                 }
 
-                // Send MouseLeave to widgets in old path that are NOT in new path
                 for (Widget *w : old_path)
                 {
                     if (std::find(new_path.begin(), new_path.end(), w) == new_path.end())
@@ -1820,7 +1949,6 @@ namespace horizon
                     }
                 }
 
-                // Send MouseEnter to widgets in new path that were NOT in old path
                 for (auto it = new_path.rbegin(); it != new_path.rend(); ++it)
                 {
                     Widget *w = *it;
@@ -1834,43 +1962,78 @@ namespace horizon
 
                 m_hovered = under;
             }
-        }
 
-        if (m_pressed)
-        {
-            MouseMoveEventContext new_ev;
-            new_ev.sender = m_pressed;
-            new_ev.x = (double)event.x;
-            new_ev.y = (double)event.y;
-            new_ev.modifiers = m_modifiers;
-
-            Widget *temp = m_pressed;
-            while (temp)
+            if (m_pressed)
             {
-                new_ev.sender = temp;
-                temp->when_mouse_drag.run(new_ev);
-                if (new_ev.stop_propagation)
-                    break;
-                temp = temp->parent();
+                if (!m_is_dragging)
+                {
+                    double dx = event.x - m_drag_start_x;
+                    double dy = event.y - m_drag_start_y;
+                    double dist = std::sqrt(dx * dx + dy * dy);
+
+                    if (dist > 8.0)
+                    {
+                        // Look for a draggable widget in the hierarchy
+                        Widget *draggable_widget = m_pressed;
+                        while (draggable_widget && !draggable_widget->is_draggable())
+                        {
+                            draggable_widget = draggable_widget->parent();
+                        }
+
+                        if (draggable_widget)
+                        {
+                            m_is_dragging = true;
+                            
+                            DragEventContext drag_ev;
+                            drag_ev.sender = draggable_widget;
+                            drag_ev.x = event.x;
+                            drag_ev.y = event.y;
+                            draggable_widget->when_drag_start.run(drag_ev);
+                            
+                            // Once DND starts, we stop processing normal mouse events for this press
+                            m_pressed = nullptr;
+                            return;
+                        }
+                    }
+                }
+
+                if (m_pressed)
+                {
+                    MouseMoveEventContext new_ev;
+                    new_ev.sender = m_pressed;
+                    new_ev.x = (double)event.x;
+                    new_ev.y = (double)event.y;
+                    new_ev.modifiers = m_modifiers;
+
+                    Widget *temp = m_pressed;
+                    while (temp)
+                    {
+                        new_ev.sender = temp;
+                        temp->when_mouse_drag.run(new_ev);
+                        if (new_ev.stop_propagation)
+                            break;
+                        temp = temp->parent();
+                    }
+                }
             }
-        }
-        else if (m_hovered)
-        {
-            MouseMoveEventContext new_ev;
-            new_ev.sender = m_hovered;
-            new_ev.x = (double)event.x;
-            new_ev.y = (double)event.y;
-            new_ev.modifiers = m_modifiers;
-
-            Widget *temp = m_hovered;
-            while (temp)
+            else if (m_hovered)
             {
-                new_ev.sender = temp;
-                temp->when_mouse_hover.run(new_ev);
-                temp->when_mouse_move.run(new_ev);
-                if (new_ev.stop_propagation)
-                    break;
-                temp = temp->parent();
+                MouseMoveEventContext new_ev;
+                new_ev.sender = m_hovered;
+                new_ev.x = (double)event.x;
+                new_ev.y = (double)event.y;
+                new_ev.modifiers = m_modifiers;
+
+                Widget *temp = m_hovered;
+                while (temp)
+                {
+                    new_ev.sender = temp;
+                    temp->when_mouse_hover.run(new_ev);
+                    temp->when_mouse_move.run(new_ev);
+                    if (new_ev.stop_propagation)
+                        break;
+                    temp = temp->parent();
+                }
             }
         }
 
@@ -1926,6 +2089,9 @@ namespace horizon
         if (under)
         {
             m_pressed = under;
+            m_drag_start_x = event.x;
+            m_drag_start_y = event.y;
+            m_is_dragging = false;
 
             // Update focus
             set_focused_widget(under);
@@ -3430,6 +3596,101 @@ namespace horizon
         {
             collect_focusable_widgets(child.get(), list);
         }
+    }
+
+    struct DragSourceState
+    {
+        WaylandWindow *window;
+        std::function<std::vector<uint8_t>(const std::string &)> fetcher;
+    };
+
+    static void data_source_handle_send(void *data, struct wl_data_source *source, const char *mime_type, int fd)
+    {
+        auto *state = static_cast<DragSourceState *>(data);
+        if (state->fetcher)
+        {
+            auto bytes = state->fetcher(mime_type ? mime_type : "");
+            write(fd, bytes.data(), bytes.size());
+        }
+        close(fd);
+    }
+
+    static void data_source_handle_cancelled(void *data, struct wl_data_source *source)
+    {
+        auto *state = static_cast<DragSourceState *>(data);
+        state->window->cleanup_drag_icon();
+        delete state;
+        wl_data_source_destroy(source);
+    }
+
+    static void data_source_handle_dnd_finished(void *data, struct wl_data_source *source)
+    {
+        auto *state = static_cast<DragSourceState *>(data);
+        state->window->cleanup_drag_icon();
+        delete state;
+        wl_data_source_destroy(source);
+    }
+
+    static const struct wl_data_source_listener data_source_listener = {
+        .target = [](void *, struct wl_data_source *, const char *) {},
+        .send = data_source_handle_send,
+        .cancelled = data_source_handle_cancelled,
+        .dnd_drop_performed = [](void *, struct wl_data_source *) {},
+        .dnd_finished = data_source_handle_dnd_finished,
+        .action = [](void *, struct wl_data_source *, uint32_t) {},
+    };
+
+    void WaylandWindow::start_drag(const std::vector<std::string> &mime_types,
+                                   std::function<std::vector<uint8_t>(const std::string &)> data_fetcher,
+                                   Widget *icon_widget)
+    {
+        LOG_INFO << "[DND] Starting drag operation with " << mime_types.size() << " mime types.";
+        if (!m_surface->data_device_manager() || !m_surface->data_device())
+            return;
+
+        struct wl_data_source *source =
+            wl_data_device_manager_create_data_source(m_surface->data_device_manager());
+
+        for (const auto &mime : mime_types)
+        {
+            wl_data_source_offer(source, mime.c_str());
+        }
+
+        auto *state = new DragSourceState{this, data_fetcher};
+        wl_data_source_add_listener(source, &data_source_listener, state);
+
+        struct wl_surface *icon_surf = nullptr;
+        if (icon_widget)
+        {
+            // Create a small surface for the icon
+            int iw = icon_widget->width() > 0 ? icon_widget->width() : 64;
+            int ih = icon_widget->height() > 0 ? icon_widget->height() : 64;
+            
+            m_drag_icon_surface = std::make_unique<WaylandSurface>(iw, ih);
+            m_drag_icon_surface->share_connection_from(m_surface.get());
+            m_drag_icon_surface->setup_drag_icon();
+            
+            // For now, we'll just clear it with a semi-transparent color as a placeholder
+            // because full widget rendering into a sub-surface requires a more complex GL state management.
+            // But we will commit it so it's visible.
+            m_drag_icon_surface->resize_buffer(iw, ih);
+            icon_surf = m_drag_icon_surface->surface();
+            wl_surface_commit(icon_surf);
+        }
+
+        if (wl_proxy_get_version((struct wl_proxy *)source) >= 3)
+        {
+            wl_data_source_set_actions(source, 
+                WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY | WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE);
+        }
+
+        wl_data_device_start_drag(m_surface->data_device(), source, m_surface->surface(), icon_surf,
+                                  m_last_serial);
+    }
+
+    void WaylandWindow::cleanup_drag_icon()
+    {
+        m_drag_icon_surface.reset();
     }
 
 } // namespace horizon

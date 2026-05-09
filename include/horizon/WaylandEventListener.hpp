@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace horizon
 {
@@ -61,6 +62,28 @@ namespace horizon
     };
 
     /**
+     * @struct DragDropEvent
+     * @brief Encapsulates details about a drag and drop event.
+     */
+    struct DragDropEvent
+    {
+        enum class Type
+        {
+            Enter,
+            Motion,
+            Leave,
+            Drop
+        };
+
+        Type type;
+        double x{0.0};
+        double y{0.0};
+        uint32_t serial{0};
+        std::vector<std::string> mime_types;
+        void *data_offer{nullptr}; // Internal handle to wl_data_offer
+    };
+
+    /**
      * @class WaylandEventListener
      * @brief Interface for objects that wish to receive input events from a Wayland surface.
      *
@@ -105,6 +128,13 @@ namespace horizon
          * @param active True if activated, false if deactivated.
          */
         virtual void on_activated(bool active) = 0;
+        
+        /**
+         * @brief Called when a drag and drop event occurs.
+         * @param event The drag and drop event details.
+         */
+        virtual void on_drag_drop_event(const DragDropEvent &event) {}
+
         /**
          * @brief Called when a foreign toplevel window (another app) is added, removed or changed.
          */
