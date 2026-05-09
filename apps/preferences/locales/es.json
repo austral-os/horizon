@@ -16,6 +16,12 @@
             "display": "Pantalla",
             "sound": "Sonido",
             "mouse": "Ratón y Panel táctil",
+            "mouse_settings": {
+                "double_click_speed": "Velocidad de doble clic",
+                "pointer_speed": "Velocidad del puntero",
+                "slow": "Lento",
+                "fast": "Rápido"
+            },
             "keyboard": "Teclado",
             "printers": "Impresoras",
             "power": "Energía",
