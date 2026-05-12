@@ -132,6 +132,8 @@ namespace horizon
         virtual void fillPolygon(const std::vector<PolygonPoint> &points) {};
         virtual void drawPolygon(const std::vector<PolygonPoint> &points, float lineWidth = 1.0f) {
         };
+        virtual void drawPolyline(const std::vector<PolygonPoint> &points, float lineWidth = 1.0f) {
+        };
         virtual void fillLinearGradientPolygon(const std::vector<PolygonPoint> &points, Color c1,
                                                Color c2, bool vertical = true) {};
         virtual void clipPolygon(const std::vector<PolygonPoint> &points) {};

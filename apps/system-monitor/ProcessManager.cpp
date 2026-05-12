@@ -4,6 +4,8 @@
 #include <pwd.h>
 #include <unistd.h>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 namespace horizon
 {
@@ -100,5 +102,71 @@ namespace horizon
     bool ProcessManager::terminate_process(int pid)
     {
         return kill(pid, SIGTERM) == 0;
+    }
+
+    CPUUsage ProcessManager::get_cpu_usage()
+    {
+        std::ifstream file("/proc/stat");
+        std::string line;
+        CPUUsage usage{0.0, {}};
+        
+        std::vector<CPUPoint> current_cores;
+        CPUPoint current_total{0, 0};
+
+        while (std::getline(file, line))
+        {
+            if (line.compare(0, 3, "cpu") == 0)
+            {
+                std::stringstream ss(line);
+                std::string cpu_label;
+                ss >> cpu_label;
+
+                uint64_t user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice;
+                ss >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal >> guest >> guest_nice;
+
+                uint64_t idle_time = idle + iowait;
+                uint64_t total_time = user + nice + system + idle + iowait + irq + softirq + steal;
+
+                if (cpu_label == "cpu")
+                {
+                    current_total = {idle_time, total_time};
+                }
+                else
+                {
+                    current_cores.push_back({idle_time, total_time});
+                }
+            }
+        }
+
+        // Calculate Total %
+        if (m_prev_total_cpu.total != 0)
+        {
+            uint64_t idle_delta = current_total.idle - m_prev_total_cpu.idle;
+            uint64_t total_delta = current_total.total - m_prev_total_cpu.total;
+            if (total_delta != 0)
+                usage.total = (1.0 - (double)idle_delta / total_delta) * 100.0;
+        }
+        m_prev_total_cpu = current_total;
+
+        // Calculate Cores %
+        if (m_prev_cores_cpu.size() == current_cores.size())
+        {
+            for (size_t i = 0; i < current_cores.size(); ++i)
+            {
+                uint64_t idle_delta = current_cores[i].idle - m_prev_cores_cpu[i].idle;
+                uint64_t total_delta = current_cores[i].total - m_prev_cores_cpu[i].total;
+                if (total_delta != 0)
+                    usage.cores.push_back((1.0 - (double)idle_delta / total_delta) * 100.0);
+                else
+                    usage.cores.push_back(0.0);
+            }
+        }
+        else
+        {
+            usage.cores.assign(current_cores.size(), 0.0);
+        }
+        m_prev_cores_cpu = current_cores;
+
+        return usage;
     }
 }

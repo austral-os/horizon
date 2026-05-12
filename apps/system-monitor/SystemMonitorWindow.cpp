@@ -200,12 +200,12 @@ namespace horizon
 
         root->add_child(std::move(table_view));
 
-        // Empty area for future graphs
-        auto graphs_area = std::make_unique<Widget>();
-        m_graphs_area = graphs_area.get();
-        m_graphs_area->set_fixed_size(200); // 200px height for graphs
-        m_graphs_area->set_position_type(FREE);
-        root->add_child(std::move(graphs_area));
+        // CPU Stats graph
+        auto cpu_stats = std::make_unique<CPUStats>();
+        m_cpu_stats = cpu_stats.get();
+        m_cpu_stats->set_fixed_size(200); // Height for graph
+        
+        root->add_child(std::move(cpu_stats));
 
         set_content(std::move(root));
     }
@@ -213,6 +213,9 @@ namespace horizon
     void SystemMonitorWindow::update_processes()
     {
         auto processes = m_process_manager.get_processes();
+        auto cpu_usage = m_process_manager.get_cpu_usage();
+
+        if (m_cpu_stats) m_cpu_stats->update(cpu_usage);
         
         set_title(i18n().tr("system_monitor.title"));
 

@@ -67,7 +67,7 @@ namespace horizon
         cairo_close_path(cr);
     }
 
-    static void rounded_polygon_path(cairo_t *cr, const std::vector<PolygonPoint> &points)
+    static void rounded_polygon_path(cairo_t *cr, const std::vector<PolygonPoint> &points, bool closed = true)
     {
         if (points.empty())
             return;
@@ -82,9 +82,9 @@ namespace horizon
 
         for (size_t i = 0; i < n; ++i)
         {
-            const auto &p1 = points[(i + n - 1) % n];
+            const auto &p1 = points[closed ? (i + n - 1) % n : (i == 0 ? 0 : i - 1)];
             const auto &p2 = points[i];
-            const auto &p3 = points[(i + 1) % n];
+            const auto &p3 = points[closed ? (i + 1) % n : (i == n - 1 ? n - 1 : i + 1)];
 
             if (p2.radius <= 0)
             {
@@ -171,7 +171,7 @@ namespace horizon
                     cairo_arc_negative(cr, cx, cy, effective_radius, start_angle, end_angle);
             }
         }
-        cairo_close_path(cr);
+        if (closed) cairo_close_path(cr);
     }
 
     void CairoGraphicContext::setColor(float r, float g, float b, float a)
@@ -681,7 +681,17 @@ namespace horizon
             return;
         cairo_set_line_width(cr, lineWidth);
         cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
-        rounded_polygon_path(cr, points);
+        rounded_polygon_path(cr, points, true);
+        cairo_stroke(cr);
+    }
+
+    void CairoGraphicContext::drawPolyline(const std::vector<PolygonPoint> &points, float lineWidth)
+    {
+        if (!cr || points.empty())
+            return;
+        cairo_set_line_width(cr, lineWidth);
+        cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+        rounded_polygon_path(cr, points, false);
         cairo_stroke(cr);
     }
 

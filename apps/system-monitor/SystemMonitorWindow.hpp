@@ -7,6 +7,7 @@
 #include <horizon/ToolbarButton.hpp>
 #include <horizon/Spacer.hpp>
 #include "ProcessManager.hpp"
+#include "CPUStats.hpp"
 #include <memory>
 #include <vector>
 
@@ -32,5 +33,6 @@ namespace horizon
         ToolbarButton* m_btn_terminate{nullptr};
         SearchBox* m_search_box{nullptr};
         Widget* m_graphs_area{nullptr};
+        CPUStats* m_cpu_stats{nullptr};
     };
 } // namespace horizon
