@@ -12,7 +12,7 @@
 namespace horizon::storage
 {
     MountPasswordDialog::MountPasswordDialog(const std::string &server_name)
-        : WaylandWindow("horizon.storage.mount_dialog", 520, 470)
+        : WaylandWindow("horizon.storage.mount_dialog", 700, 400, false, false)
     {
         set_name("Conectarse al servidor");
 
@@ -28,7 +28,7 @@ namespace horizon::storage
         header->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         // header->set_margin(25);
         // header->set_spacing(20);
-        header->set_fixed_size(100);
+        header->set_fixed_size(65);
 
         auto icon = std::make_unique<Icon>();
         icon->set_icon_name("network-server");
@@ -41,6 +41,7 @@ namespace horizon::storage
 
         auto title = std::make_unique<Label>("Ingrese su nombre y contraseña para el servidor");
         title->set_font_weight(FONT_WEIGHT_BOLD);
+        title->set_fixed_size(35);
 
         auto server_label = std::make_unique<Label>("\"" + server_name + "\"");
         server_label->set_font_weight(FONT_WEIGHT_BOLD);
@@ -49,6 +50,7 @@ namespace horizon::storage
         text_container->add_child(std::move(server_label));
 
         header->add_child(std::move(icon));
+        header->add_child(Spacer(15));
         header->add_child(std::move(text_container));
         content->add_child(std::move(header));
 
@@ -64,22 +66,32 @@ namespace horizon::storage
         connect_as_row->set_fixed_size(35);
 
         auto lbl_connect_as = std::make_unique<Label>("Conectarse como:");
-        lbl_connect_as->set_fixed_size(150);
+        lbl_connect_as->set_fixed_size(200);
 
         connect_as_row->add_child(std::move(lbl_connect_as));
 
-        auto guest = std::make_unique<RadioButton<AquaObject>>();
-        guest->set_text("Invitado");
+        auto guest_container = std::make_unique<Widget>();
+        guest_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        guest_container->set_spacing(5);
 
+        auto guest = std::make_unique<RadioButton<AquaObject>>();
         m_guest_radio = guest.get();
+        guest_container->add_child(std::move(guest));
+        guest_container->add_child(std::make_unique<Label>("Invitado"));
+
+        auto user_container = std::make_unique<Widget>();
+        user_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        user_container->set_spacing(5);
 
         auto user = std::make_unique<RadioButton<AquaObject>>();
-        user->set_text("Usuario registrado");
         user->set_selected(true);
         m_user_radio = user.get();
+        user_container->add_child(std::move(user));
+        user_container->add_child(std::make_unique<Label>("Usuario registrado"));
 
-        connect_as_row->add_child(std::move(guest));
-        // connect_as_row->add_child(std::move(user));
+        connect_as_row->add_child(std::move(guest_container));
+        connect_as_row->add_child(horizon::Spacer(15)); // Espacio entre opciones
+        connect_as_row->add_child(std::move(user_container));
         form->add_child(std::move(connect_as_row));
 
         // Inputs
