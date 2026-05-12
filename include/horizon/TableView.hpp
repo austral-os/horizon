@@ -93,9 +93,13 @@ namespace horizon
         void set_data(std::vector<T> data)
         {
             m_data = std::move(data);
+            uint64_t my_generation = ++m_rebuild_generation;
             if (auto *app = application())
             {
-                app->add_timer(0, [this]() { rebuild_content(); });
+                app->add_timer(0, [this, my_generation]() {
+                    if (my_generation == m_rebuild_generation)
+                        rebuild_content();
+                });
             }
             else
             {
@@ -656,5 +660,7 @@ namespace horizon
         int m_resizing_col = -1;
         int m_resizing_start_x = 0;
         int m_resizing_start_width = 0;
+
+        uint64_t m_rebuild_generation{0};
     };
 } // namespace horizon

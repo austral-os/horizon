@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
+#include <set>
 #include <thread>
 #include "horizon/arkutils/FileOperations.hpp"
 
@@ -193,7 +194,13 @@ namespace horizon::files
                                                  }
                                              });
 
-        when_application_load.connect([this](EventContext &) { this->refresh(m_current_path); });
+
+    }
+
+    void FileIconView::set_application_recursive(WaylandWindow *app)
+    {
+        IconView<arkutils::FileInfo>::set_application_recursive(app);
+        refresh(m_current_path);
     }
 
     void FileIconView::refresh(const std::string &path, const std::string &filter)
@@ -237,6 +244,21 @@ namespace horizon::files
 
     void FileIconView::update_icons(const std::vector<arkutils::FileInfo> &files)
     {
-        set_data(files);
+        std::vector<arkutils::FileInfo> unique_files;
+        std::set<std::string> seen_paths;
+
+        for (const auto &f : files)
+        {
+            if (seen_paths.find(f.path) == seen_paths.end())
+            {
+                unique_files.push_back(f);
+                seen_paths.insert(f.path);
+            }
+        }
+
+        LOG_INFO << "FileIconView [" << (void *)this << "]: Updating icons with " << unique_files.size()
+                 << " unique items (discarded " << (files.size() - unique_files.size()) << "). Path: " << m_current_path;
+
+        set_data(unique_files);
     }
 } // namespace horizon::files

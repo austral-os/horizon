@@ -92,6 +92,8 @@ namespace horizon
         {
             m_data = std::move(data);
             m_selected_index = -1;
+            // Increment generation so any pending async rebuild is cancelled
+            ++m_rebuild_generation;
             rebuild_items();
         }
 
@@ -209,5 +211,6 @@ namespace horizon
         std::vector<T> m_data;
         ItemFactory m_item_factory;
         std::function<std::unique_ptr<Menu>(const T &)> m_item_menu_factory;
+        uint64_t m_rebuild_generation{0};
     };
 } // namespace horizon

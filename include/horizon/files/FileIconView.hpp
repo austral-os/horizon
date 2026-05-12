@@ -14,6 +14,7 @@ namespace horizon::files
         FileIconView(std::string path);
         ~FileIconView() override = default;
 
+        void set_application_recursive(WaylandWindow *app) override;
         void refresh(const std::string &path, const std::string &filter = "");
         void update_grid(const std::vector<arkutils::FileInfo> &files);
         void set_context_menu_factory(std::function<std::unique_ptr<Menu>(const arkutils::FileInfo &)> factory)

@@ -31,6 +31,7 @@ namespace horizon::files
     {
         m_view_mode = vm;
         clear_children();
+        LOG_INFO << "FileView [" << (void*)this << "]: Children cleared. Remaining: " << m_children.size() << ". Mode: " << (int)vm;
 
         if (m_view_mode == ViewMode::List)
         {
@@ -84,6 +85,7 @@ namespace horizon::files
 
     void FileView::navigate_to(const std::string &path, bool record_history)
     {
+        if (m_current_path == path) return;
         m_current_path = path;
         if (record_history)
             m_history->push(m_current_path);

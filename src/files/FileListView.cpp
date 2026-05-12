@@ -9,6 +9,7 @@
 #include <horizon/Menu.hpp>
 #include <horizon/Application.hpp>
 #include <thread>
+#include <set>
 #include "horizon/arkutils/FileOperations.hpp"
 
 namespace horizon::files
@@ -96,7 +97,7 @@ namespace horizon::files
                                                  }
                                              });
 
-        when_application_load.connect([this](EventContext &) { this->refresh(m_current_path); });
+
 
         set_row_setup_callback([this](TableRow *row, const arkutils::FileInfo &f)
                                {
@@ -163,6 +164,14 @@ namespace horizon::files
                                });
     }
 
+    void FileListView::set_application_recursive(WaylandWindow *app)
+    {
+        // Call the base first (sets up header/content containers)
+        TableView<arkutils::FileInfo>::set_application_recursive(app);
+        // Do a single, controlled load — no timer, no double refresh
+        refresh(m_current_path);
+    }
+
     void FileListView::refresh(const std::string &path, const std::string &filter)
     {
         LOG_INFO << "Refreshing list view for path: " << path << " with filter: " << filter;
@@ -206,9 +215,22 @@ namespace horizon::files
     {
         try
         {
-            LOG_INFO << "Updating table with " << files.size() << " files.";
-            std::vector<arkutils::FileInfo> files_copy = files;
-            this->set_data(std::move(files_copy));
+            std::vector<arkutils::FileInfo> unique_files;
+            std::set<std::string> seen_paths;
+
+            for (const auto &f : files)
+            {
+                if (seen_paths.find(f.path) == seen_paths.end())
+                {
+                    unique_files.push_back(f);
+                    seen_paths.insert(f.path);
+                }
+            }
+
+            LOG_INFO << "FileListView [" << (void *)this << "]: Updating table with " << unique_files.size()
+                     << " unique items (discarded " << (files.size() - unique_files.size()) << "). Path: " << m_current_path;
+
+            this->set_data(std::move(unique_files));
         }
         catch (std::exception &e)
         {
