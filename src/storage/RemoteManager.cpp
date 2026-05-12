@@ -86,17 +86,40 @@ namespace horizon::storage
             GMountOperation* op = g_mount_operation_new();
 
             // Connect to signals to avoid hanging if GIO asks for something
-            g_signal_connect(op, "ask-password", G_CALLBACK(+[](GMountOperation* op, const char* message, const char* default_user, const char* default_domain, GAskPasswordFlags flags, gpointer user_data) {
-                LOG_INFO << "RemoteManager: GIO solicita contraseña: " << message;
-                // We don't want to handle interactive password asking here, 
-                // we want it to fail so we can show our own dialog in ArkFM.
-                g_mount_operation_reply(op, G_MOUNT_OPERATION_HANDLED);
-            }), nullptr);
+            g_signal_connect(op, "ask-password", G_CALLBACK(+[](GMountOperation *op, const char *message, const char *default_user,
+                               const char *default_domain, GAskPasswordFlags flags, gpointer user_data)
+    {
+        LOG_INFO << "RemoteManager: GIO solicita contraseña: " << message;
+        
+        const char* pwd = g_mount_operation_get_password(op);
+        bool has_creds = (pwd && strlen(pwd) > 0) || g_mount_operation_get_anonymous(op);
 
-            g_signal_connect(op, "ask-question", G_CALLBACK(+[](GMountOperation* op, const char* message, const char** choices, gpointer user_data) {
-                LOG_INFO << "RemoteManager: GIO solicita respuesta a pregunta: " << message;
-                g_mount_operation_reply(op, G_MOUNT_OPERATION_HANDLED);
-            }), nullptr);
+        int attempts = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(op), "hzn-auth-attempts"));
+        
+        if (has_creds && attempts == 0) {
+            LOG_INFO << "RemoteManager: Credenciales presentes, permitiendo intento a GIO.";
+            g_object_set_data(G_OBJECT(op), "hzn-auth-attempts", GINT_TO_POINTER(1));
+            g_mount_operation_reply(op, G_MOUNT_OPERATION_HANDLED);
+        } else {
+            LOG_INFO << "RemoteManager: Abortando (sin credenciales o segundo intento).";
+            g_mount_operation_reply(op, G_MOUNT_OPERATION_ABORTED);
+        }
+    }), nullptr);
+
+            g_signal_connect(op, "ask-question", G_CALLBACK(+[](GMountOperation *op, const char *message, const char **choices,
+                               gpointer user_data)
+    {
+        LOG_INFO << "RemoteManager: GIO solicita respuesta a pregunta: " << message;
+        
+        int attempts = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(op), "hzn-question-attempts"));
+        
+        if (attempts == 0) {
+            g_object_set_data(G_OBJECT(op), "hzn-question-attempts", GINT_TO_POINTER(1));
+            g_mount_operation_reply(op, G_MOUNT_OPERATION_HANDLED);
+        } else {
+            g_mount_operation_reply(op, G_MOUNT_OPERATION_ABORTED);
+        }
+    }), nullptr);
 
             if (credentials.is_guest) {
                 g_mount_operation_set_anonymous(op, TRUE);

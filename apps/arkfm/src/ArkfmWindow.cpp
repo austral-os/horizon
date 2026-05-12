@@ -413,56 +413,82 @@ namespace horizon::arkfm
         }
     }
 
-    void ArkfmWindow::handle_mount_remote(const std::string &uri, storage::RemoteCredentials creds)
+    void ArkfmWindow::handle_mount_remote(const std::string &uri, storage::RemoteCredentials creds, storage::MountPasswordDialog* dlg)
     {
         LOG_INFO << "ArkFM: Intentando montar " << uri;
         if (!m_remote_manager)
             m_remote_manager = std::make_unique<storage::RemoteManager>();
 
-        m_remote_manager->when_mount(uri, creds, [this, uri](storage::RemoteMountResult res) {
-            if (res.success) {
-                LOG_INFO << "ArkFM: Montado exitoso de " << uri << " en " << res.mount_path;
-                application()->post_task([this, uri, res]() {
-                    if (m_view_ptr) {
-                        m_view_ptr->navigate_to(res.mount_path);
+        // Capturamos un weak_ptr para saber si el diálogo sigue vivo de forma segura
+        std::weak_ptr<storage::MountPasswordDialog> weak_dlg = m_mount_dialog;
+
+        m_remote_manager->when_mount(uri, creds, [this, uri, weak_dlg](storage::RemoteMountResult res) {
+            auto shared_dlg = weak_dlg.lock();
+            
+            // ¡ESTO ES LO IMPORTANTE!
+            // Si hay diálogo, enviamos la tarea a SU cola. Si no, a la de la App.
+            auto task_launcher = [this, shared_dlg](std::function<void()> task) {
+                if (shared_dlg) shared_dlg->post_task(task);
+                else application()->post_task(task);
+            };
+
+            task_launcher([this, uri, res, shared_dlg]() {
+                if (res.success) {
+                    LOG_INFO << "ArkFM: Montado exitoso de " << uri << ". Cerrando diálogo...";
+                    if (shared_dlg) {
+                        shared_dlg->quit();
+                        shared_dlg->wakeup(); // ¡IMPORTANTE! Forzar la salida del loop
                     }
+                    if (m_mount_dialog) m_mount_dialog.reset();
+                    
+                    if (m_view_ptr) m_view_ptr->navigate_to(res.mount_path);
                     if (m_sidebar_ptr) {
-                        // Delay sidebar refresh to let GIO/GVFS stabilize
                         application()->add_timer(1000, [this]() {
                             if (m_sidebar_ptr) m_sidebar_ptr->refresh_devices();
                         }, false);
                     }
                     show_status_message("Conectado a " + uri);
-                });
-            } else {
-                LOG_ERROR << "ArkFM: Fallo al montar " << uri << ": " << res.message;
-                
-                std::string msg = res.message;
-                std::transform(msg.begin(), msg.end(), msg.begin(), ::tolower);
-
-                bool needs_auth = (msg.find("not authorized") != std::string::npos || 
-                                   msg.find("password") != std::string::npos ||
-                                   msg.find("access denied") != std::string::npos ||
-                                   msg.find("permission denied") != std::string::npos ||
-                                   msg.find("authentication") != std::string::npos ||
-                                   msg.find("autenticación") != std::string::npos ||
-                                   msg.find("no soportada") != std::string::npos ||
-                                   msg.find("not supported") != std::string::npos);
-
-                if (needs_auth) 
-                {
-                    LOG_INFO << "ArkFM: Detectada necesidad de contraseña o error de soporte. Abriendo diálogo...";
-                    application()->post_task([this, uri]() {
-                        auto dlg = std::make_unique<storage::MountPasswordDialog>(uri);
-                        dlg->when_accepted.connect([this, uri](storage::MountPasswordEvent& ev) {
-                            this->handle_mount_remote(uri, ev.credentials);
-                        });
-                        dlg->run();
-                    });
                 } else {
-                    show_status_message("Error: " + res.message, 5000);
+                    LOG_ERROR << "ArkFM: Fallo al montar " << uri << ": " << res.message;
+                    
+                    std::string msg = res.message;
+                    std::string raw_msg = msg;
+                    std::transform(msg.begin(), msg.end(), msg.begin(), ::tolower);
+
+                    bool needs_auth = (msg.find("not authorized") != std::string::npos || 
+                                       msg.find("password") != std::string::npos ||
+                                       msg.find("contrase") != std::string::npos ||
+                                       msg.find("access denied") != std::string::npos ||
+                                       msg.find("permission denied") != std::string::npos ||
+                                       msg.find("authentication") != std::string::npos ||
+                                       msg.find("autentica") != std::string::npos ||
+                                       msg.find("soportada") != std::string::npos ||
+                                       msg.find("supported") != std::string::npos);
+
+                    if (needs_auth) {
+                        if (shared_dlg) {
+                            LOG_INFO << "ArkFM: Informando error al diálogo existente.";
+                            shared_dlg->show_error(raw_msg);
+                        } else {
+                            LOG_INFO << "ArkFM: Creando nuevo diálogo de contraseña.";
+                            m_mount_dialog = std::make_shared<storage::MountPasswordDialog>(uri);
+                            auto shared_ptr_copy = m_mount_dialog; // Copia para el lambda
+                            m_mount_dialog->when_accepted.connect([this, uri, shared_ptr_copy](storage::MountPasswordEvent& ev) {
+                                // Pasamos el diálogo actual para que el sistema sepa a quién responder
+                                this->handle_mount_remote(uri, ev.credentials, shared_ptr_copy.get());
+                            });
+                            
+                            m_mount_dialog->run();
+                            m_mount_dialog.reset();
+                        }
+                    } else {
+                        if (shared_dlg) shared_dlg->show_error(raw_msg);
+                        show_status_message("Error: " + raw_msg, 5000);
+                    }
                 }
-            }
+            });
+            
+            if (shared_dlg) shared_dlg->wakeup();
         });
     }
 

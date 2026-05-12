@@ -12,6 +12,8 @@ namespace horizon
     template <typename T> class RadioButton;
     template <typename T> class Checkbox;
     class AquaObject;
+    class Label;
+    class ProgressBar;
 }
 
 namespace horizon::storage
@@ -29,6 +31,16 @@ namespace horizon::storage
         
         EventsManager<MountPasswordEvent> when_accepted;
 
+        /**
+         * @brief Shows the loading bar and disables inputs.
+         */
+        void show_loading();
+
+        /**
+         * @brief Shows an error message and stops loading.
+         */
+        void show_error(const std::string& message);
+
     private:
         void update_enabled_state();
         
@@ -37,5 +49,9 @@ namespace horizon::storage
         TextBox<TextPolicy>* m_name_input{nullptr};
         TextBox<PasswordPolicy>* m_pass_input{nullptr};
         Checkbox<AquaObject>* m_remember_check{nullptr};
+        
+        Label* m_error_label{nullptr};
+        ProgressBar* m_loading_bar{nullptr};
+        Widget* m_connect_btn{nullptr};
     };
 }

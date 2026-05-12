@@ -15,6 +15,11 @@ namespace horizon::files
         class FileSidebar;
     }
 
+namespace horizon::storage
+    {
+        class MountPasswordDialog;
+    }
+
 namespace horizon::arkfm
 {
 
@@ -29,7 +34,7 @@ namespace horizon::arkfm
         void handle_open();
         void handle_properties();
         void handle_new_folder();
-        void handle_mount_remote(const std::string &uri, storage::RemoteCredentials creds = {});
+        void handle_mount_remote(const std::string &uri, storage::RemoteCredentials creds = {}, storage::MountPasswordDialog* dlg = nullptr);
 
 
         void show_status_message(const std::string &msg, int timeout_ms = 3000);
@@ -41,6 +46,7 @@ namespace horizon::arkfm
         horizon::ProgressBar *m_progress_bar{nullptr};
         std::unique_ptr<horizon::Menu> m_active_context_menu;
         std::unique_ptr<storage::RemoteManager> m_remote_manager;
+        std::shared_ptr<storage::MountPasswordDialog> m_mount_dialog;
 
     };
 
