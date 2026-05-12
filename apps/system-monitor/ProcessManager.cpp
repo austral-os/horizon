@@ -381,4 +381,65 @@ namespace horizon
 
         return usage;
     }
+
+    NetworkUsage ProcessManager::get_network_usage()
+    {
+        NetworkUsage usage = {0};
+        std::ifstream file("/proc/net/dev");
+        std::string line;
+
+        // Skip first two header lines
+        std::getline(file, line);
+        std::getline(file, line);
+
+        uint64_t current_rx_bytes = 0;
+        uint64_t current_tx_bytes = 0;
+        uint64_t current_rx_packets = 0;
+        uint64_t current_tx_packets = 0;
+
+        while (std::getline(file, line)) {
+            std::stringstream ss(line);
+            std::string iface;
+            ss >> iface;
+            if (iface.empty() || iface == "lo:") continue;
+
+            uint64_t rx_b, rx_p, rx_err, rx_drop, rx_fifo, rx_frame, rx_comp, rx_multi;
+            uint64_t tx_b, tx_p, tx_err, tx_drop, tx_fifo, tx_coll, tx_carrier, tx_comp;
+
+            if (ss >> rx_b >> rx_p >> rx_err >> rx_drop >> rx_fifo >> rx_frame >> rx_comp >> rx_multi >>
+                      tx_b >> tx_p >> tx_err >> tx_drop >> tx_fifo >> tx_coll >> tx_carrier >> tx_comp) {
+                current_rx_bytes += rx_b;
+                current_tx_bytes += tx_b;
+                current_rx_packets += rx_p;
+                current_tx_packets += tx_p;
+            }
+        }
+
+        usage.rx_bytes = current_rx_bytes;
+        usage.tx_bytes = current_tx_bytes;
+        usage.rx_packets = current_rx_packets;
+        usage.tx_packets = current_tx_packets;
+
+        // Calculate rates
+        static auto last_call_time = std::chrono::steady_clock::now();
+        auto now = std::chrono::steady_clock::now();
+        double elapsed = std::chrono::duration<double>(now - last_call_time).count();
+        last_call_time = now;
+
+        if (elapsed > 0 && m_prev_net_stats.rx_packets > 0) {
+            uint64_t delta_rx_b = current_rx_bytes - m_prev_net_stats.rx_bytes;
+            uint64_t delta_tx_b = current_tx_bytes - m_prev_net_stats.tx_bytes;
+            uint64_t delta_rx_p = current_rx_packets - m_prev_net_stats.rx_packets;
+            uint64_t delta_tx_p = current_tx_packets - m_prev_net_stats.tx_packets;
+
+            usage.rx_kb_per_sec = (delta_rx_b / 1024.0) / elapsed;
+            usage.tx_kb_per_sec = (delta_tx_b / 1024.0) / elapsed;
+            usage.rx_packets_per_sec = (double)delta_rx_p / elapsed;
+            usage.tx_packets_per_sec = (double)delta_tx_p / elapsed;
+        }
+
+        m_prev_net_stats = {current_rx_bytes, current_tx_bytes, current_rx_packets, current_tx_packets};
+
+        return usage;
+    }
 } // namespace horizon

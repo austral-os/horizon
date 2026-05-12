@@ -56,6 +56,18 @@ namespace horizon
         uint64_t total_written_bytes;
     };
 
+    struct NetworkUsage
+    {
+        uint64_t rx_packets;
+        uint64_t tx_packets;
+        double rx_packets_per_sec;
+        double tx_packets_per_sec;
+        uint64_t rx_bytes;
+        uint64_t tx_bytes;
+        double rx_kb_per_sec;
+        double tx_kb_per_sec;
+    };
+
     struct ProcessInfo
     {
         int pid;
@@ -77,6 +89,7 @@ namespace horizon
         MemoryUsage get_memory_usage();
         EnergyUsage get_energy_usage();
         DiskUsage get_disk_usage();
+        NetworkUsage get_network_usage();
         bool terminate_process(int pid);
 
     private:
@@ -98,5 +111,13 @@ namespace horizon
             uint64_t writes_completed;
         };
         std::map<std::string, DiskPoint> m_prev_disk_stats;
+
+        struct NetPoint {
+            uint64_t rx_bytes;
+            uint64_t tx_bytes;
+            uint64_t rx_packets;
+            uint64_t tx_packets;
+        };
+        NetPoint m_prev_net_stats{0, 0, 0, 0};
     };
 } // namespace horizon
