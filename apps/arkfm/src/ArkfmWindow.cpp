@@ -431,6 +431,25 @@ namespace horizon::arkfm
         if (!m_remote_manager)
             m_remote_manager = std::make_unique<storage::RemoteManager>();
 
+        // Check if already mounted
+        auto active_mounts = m_remote_manager->get_active_mounts();
+        for (const auto& mount : active_mounts) {
+            std::string n_uri = uri;
+            if (!n_uri.empty() && n_uri.back() == '/') n_uri.pop_back();
+            std::string m_uri = mount.uri;
+            if (!m_uri.empty() && m_uri.back() == '/') m_uri.pop_back();
+
+            if (n_uri == m_uri) {
+                LOG_INFO << "ArkfmWindow: URI ya montada en " << mount.mount_path;
+                if (m_view_ptr) m_view_ptr->navigate_to(mount.mount_path);
+                
+                if (application()) {
+                    application()->alert(i18n().tr("arkfm.messages.already_mounted"));
+                }
+                return;
+            }
+        }
+
         // Capturamos un weak_ptr para saber si el diálogo sigue vivo de forma segura
         std::weak_ptr<storage::MountPasswordDialog> weak_dlg = m_mount_dialog;
 

@@ -52,6 +52,9 @@
       "none": "None",
       "read_only": "Read-only",
       "read_write": "Read & Write"
+    },
+    "messages": {
+      "already_mounted": "The location is already mounted."
     }
   }
 }

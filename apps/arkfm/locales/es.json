@@ -52,6 +52,9 @@
       "none": "Ninguno",
       "read_only": "Solo puede ver",
       "read_write": "Puede ver y modificar"
+    },
+    "messages": {
+      "already_mounted": "La ubicación ya se encuentra montada."
     }
   }
 }
