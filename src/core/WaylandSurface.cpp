@@ -625,7 +625,10 @@ namespace horizon
     void WaylandSurface::activate(const std::string &token) { if (m_activation && !token.empty()) xdg_activation_v1_activate(m_activation, token.c_str(), m_surface); }
 
     void WaylandSurface::set_cursor(CursorType type) {
-        if (!pointer() || !m_cursor_theme || !m_cursor_surface) return;
+        if (!pointer() || !m_cursor_theme || !m_cursor_surface) {
+            LOG_ERROR << "[SURFACE] Cannot set cursor: pointer=" << pointer() << " theme=" << m_cursor_theme << " surface=" << m_cursor_surface;
+            return;
+        }
         
         const char *name = "left_ptr";
         switch (type) {
@@ -644,6 +647,8 @@ namespace horizon
             default: name = "left_ptr"; break;
         }
 
+        LOG_INFO << "[SURFACE] Setting cursor to: " << name << " (serial: " << m_last_serial << ")";
+
         struct wl_cursor *cursor = wl_cursor_theme_get_cursor(m_cursor_theme, name);
         
         // Fallback for some themes or missing names
@@ -657,10 +662,15 @@ namespace horizon
         if (!cursor) return;
 
         struct wl_cursor_image *image = cursor->images[0];
+        
+        // Wayland requires a non-zero serial for set_cursor in many cases.
+        // If we don't have one, the compositor might ignore it, but we try anyway.
         wl_pointer_set_cursor(pointer(), m_last_serial, m_cursor_surface, image->hotspot_x, image->hotspot_y);
         wl_surface_attach(m_cursor_surface, wl_cursor_image_get_buffer(image), 0, 0);
         wl_surface_damage(m_cursor_surface, 0, 0, image->width, image->height);
         wl_surface_commit(m_cursor_surface);
+        
+        if (m_display) wl_display_flush(m_display);
     }
 
     void WaylandSurface::activate_foreign_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) {

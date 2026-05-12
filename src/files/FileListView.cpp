@@ -174,6 +174,9 @@ namespace horizon::files
 
     void FileListView::refresh(const std::string &path, const std::string &filter)
     {
+        if (application() && application()->w_surface())
+            application()->w_surface()->set_cursor(CursorType::Wait);
+
         LOG_INFO << "Refreshing list view for path: " << path << " with filter: " << filter;
         try
         {
@@ -209,6 +212,9 @@ namespace horizon::files
         {
             LOG_ERROR << "Failed to refresh list view: " << e.what();
         }
+
+        if (application() && application()->w_surface())
+            application()->w_surface()->set_cursor(CursorType::Default);
     }
 
     void FileListView::update_table(const std::vector<arkutils::FileInfo> &files)

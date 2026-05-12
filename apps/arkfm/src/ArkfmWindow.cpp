@@ -221,21 +221,25 @@ namespace horizon::arkfm
                     });
                     application()->signal_manager.connect("go-to-folder", [this](SignalContext&) {
                         application()->post_task([this]() {
+                            if (application() && application()->w_surface()) application()->w_surface()->set_cursor(CursorType::Wait);
                             auto dialog = std::make_unique<GoToFolderDialog>();
                             dialog->when_accepted.connect([this](GoToFolderEvent& ev) {
                                 if (m_view_ptr) m_view_ptr->navigate_to(ev.path);
                             });
                             dialog->run();
+                            if (application() && application()->w_surface()) application()->w_surface()->set_cursor(CursorType::Default);
                         });
                     });
 
                     application()->signal_manager.connect("go-connect", [this](SignalContext&) {
                         application()->post_task([this]() {
+                            if (application() && application()->w_surface()) application()->w_surface()->set_cursor(CursorType::Wait);
                             auto dialog = std::make_unique<ConnectToServerDialog>();
                             dialog->when_accepted.connect([this](ConnectToServerEvent& ev) {
                                 this->handle_mount_remote(ev.uri);
                             });
                             dialog->run();
+                            if (application() && application()->w_surface()) application()->w_surface()->set_cursor(CursorType::Default);
                         });
                     });
 
@@ -277,6 +281,7 @@ namespace horizon::arkfm
             return;
 
         application()->post_task([this]() {
+            if (application() && application()->w_surface()) application()->w_surface()->set_cursor(CursorType::Wait);
             auto dialog = std::make_unique<NewFolderDialog>();
             dialog->when_accepted.connect(
             [this](NewFolderEvent &ctx)
@@ -305,11 +310,13 @@ namespace horizon::arkfm
                 }).detach();
             });
             dialog->run();
+            if (application() && application()->w_surface()) application()->w_surface()->set_cursor(CursorType::Default);
         });
     }
 
     void ArkfmWindow::handle_rename(const std::string &path)
     {
+        if (application() && application()->w_surface()) application()->w_surface()->set_cursor(CursorType::Wait);
         std::filesystem::path p(path);
         auto dialog = std::make_unique<RenameDialog>(p.filename().string());
         dialog->when_accepted.connect([this, path, p](RenameEvent &ctx) {
@@ -342,10 +349,12 @@ namespace horizon::arkfm
             }).detach();
         });
         dialog->run();
+        if (application() && application()->w_surface()) application()->w_surface()->set_cursor(CursorType::Default);
     }
 
     void ArkfmWindow::handle_delete(const std::string &path)
     {
+        if (application() && application()->w_surface()) application()->w_surface()->set_cursor(CursorType::Wait);
         std::string filename = std::filesystem::path(path).filename().string();
         if (application()->confirm("¿Está seguro que desea eliminar '" + filename + "'?", "Confirmar eliminación"))
         {
@@ -370,6 +379,7 @@ namespace horizon::arkfm
                 }
             }).detach();
         }
+        if (application() && application()->w_surface()) application()->w_surface()->set_cursor(CursorType::Default);
     }
 
     void ArkfmWindow::handle_open()
@@ -399,8 +409,10 @@ namespace horizon::arkfm
         }
 
         application()->post_task([this, f]() {
+            if (application() && application()->w_surface()) application()->w_surface()->set_cursor(CursorType::Wait);
             auto dialog = std::make_unique<PropertiesDialog>(f);
             dialog->run();
+            if (application() && application()->w_surface()) application()->w_surface()->set_cursor(CursorType::Default);
         });
     }
 
@@ -427,6 +439,7 @@ namespace horizon::arkfm
 
     void ArkfmWindow::handle_mount_remote(const std::string &uri, storage::RemoteCredentials creds, storage::MountPasswordDialog* dlg)
     {
+        if (application() && application()->w_surface()) application()->w_surface()->set_cursor(CursorType::Wait);
         LOG_INFO << "ArkFM: Intentando montar " << uri;
         if (!m_remote_manager)
             m_remote_manager = std::make_unique<storage::RemoteManager>();
@@ -441,6 +454,7 @@ namespace horizon::arkfm
 
             if (n_uri == m_uri) {
                 LOG_INFO << "ArkfmWindow: URI ya montada en " << mount.mount_path;
+                if (application() && application()->w_surface()) application()->w_surface()->set_cursor(CursorType::Default);
                 if (m_view_ptr) m_view_ptr->navigate_to(mount.mount_path);
                 
                 if (application()) {
@@ -464,6 +478,7 @@ namespace horizon::arkfm
             };
 
             task_launcher([this, uri, res, shared_dlg]() {
+                if (application() && application()->w_surface()) application()->w_surface()->set_cursor(CursorType::Default);
                 if (res.success) {
                     LOG_INFO << "ArkFM: Montado exitoso de " << uri << ". Cerrando diálogo...";
                     if (shared_dlg) {

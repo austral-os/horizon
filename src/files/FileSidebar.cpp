@@ -48,7 +48,12 @@ namespace horizon::files
                         ctx.stop_propagation = true;
                         if (m_manager)
                         {
+                            if (application() && application()->w_surface()) 
+                                application()->w_surface()->set_cursor(CursorType::Wait);
                             m_manager->unmount_partition(m_partition->device_path);
+                            // DiskManager::unmount_partition seems to be synchronous or at least doesn't have a callback here
+                            if (application() && application()->w_surface()) 
+                                application()->w_surface()->set_cursor(CursorType::Default);
                         }
                     });
                 add_child(std::move(eject_btn));
@@ -91,6 +96,9 @@ namespace horizon::files
                     LOG_INFO << "RemoteSidebarItem: Intentando desmontar " << uri;
                     
                     if (sidebar && sidebar->remote_storage()) {
+                        if (sidebar->application() && sidebar->application()->w_surface())
+                            sidebar->application()->w_surface()->set_cursor(CursorType::Wait);
+                            
                         // Buscar la ruta de montaje antes de que se pierda
                         std::string mount_path;
                         auto mounts = sidebar->remote_storage()->get_active_mounts();
@@ -119,6 +127,9 @@ namespace horizon::files
                             } else {
                                 LOG_ERROR << "RemoteSidebarItem: Error al desmontar: " << msg;
                             }
+
+                            if (sidebar->application() && sidebar->application()->w_surface())
+                                sidebar->application()->w_surface()->set_cursor(CursorType::Default);
                         });
                     }
                 });
