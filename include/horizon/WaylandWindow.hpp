@@ -143,6 +143,9 @@ namespace horizon
         int width() const;
         int height() const;
 
+        void set_override_cursor(CursorType type);
+        void clear_override_cursor();
+
         size_t add_timer(int ms, std::function<void()> callback, bool repeat = false);
         void stop_timer(size_t id);
 
