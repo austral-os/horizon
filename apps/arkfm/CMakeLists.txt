@@ -19,7 +19,6 @@ target_include_directories(arkfm
 target_link_libraries(arkfm
     PRIVATE
         horizon
-        horizon-remote-storage
 )
 
 horizon_install_app(arkfm

@@ -1,6 +1,6 @@
 #pragma once
 #include <horizon/WaylandWindow.hpp>
-#include <horizon-remote-storage/RemoteManager.hpp>
+#include <horizon/storage/RemoteManager.hpp>
 #include <string>
 
 namespace horizon

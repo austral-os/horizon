@@ -46,6 +46,7 @@ file(GLOB_RECURSE SOURCES
     "src/core/MouseSettings.cpp"
     "src/core/FileWatcher.cpp"
     "src/files/disks/*.cpp"
+    "src/storage/*.cpp"
     "src/protocols/*.c"
 )
 
@@ -145,7 +146,6 @@ add_subdirectory(libs/horizon-installer-utils)
 add_subdirectory(libs/horizon-download)
 add_subdirectory(libs/horizon-network)
 add_subdirectory(libs/horizon-capture)
-add_subdirectory(libs/horizon-remote-storage)
 
 
 # --- Core Applications ---

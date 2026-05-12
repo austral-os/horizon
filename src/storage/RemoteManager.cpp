@@ -1,14 +1,31 @@
-#include "horizon-remote-storage/RemoteManager.hpp"
+#include "horizon/storage/RemoteManager.hpp"
 #include <gio/gio.h>
 #include <horizon/Logger.hpp>
 #include <thread>
 
 namespace horizon::storage
 {
-    struct RemoteManager::Private {};
+    struct RemoteManager::Private {
+        GVolumeMonitor* monitor;
+        RemoteManager* parent;
+        
+        static void on_mount_changed(GVolumeMonitor*, GMount*, gpointer user_data) {
+            auto* d = static_cast<RemoteManager::Private*>(user_data);
+            RemoteStorageEventContext ctx;
+            d->parent->when_changed.run(ctx);
+        }
+    };
 
-    RemoteManager::RemoteManager() : d(std::make_unique<Private>()) {}
-    RemoteManager::~RemoteManager() = default;
+    RemoteManager::RemoteManager() : d(std::make_unique<Private>()) {
+        d->parent = this;
+        d->monitor = g_volume_monitor_get();
+        g_signal_connect(d->monitor, "mount-added", G_CALLBACK(Private::on_mount_changed), d.get());
+        g_signal_connect(d->monitor, "mount-removed", G_CALLBACK(Private::on_mount_changed), d.get());
+    }
+    RemoteManager::~RemoteManager() {
+        g_signal_handlers_disconnect_by_data(d->monitor, d.get());
+        g_object_unref(d->monitor);
+    }
 
     struct MountContext {
         std::function<void(RemoteMountResult)> callback;
@@ -189,10 +206,61 @@ namespace horizon::storage
         }).detach();
     }
 
+    void RemoteManager::unmount_by_uri(const std::string& uri, std::function<void(bool, std::string)> callback)
+    {
+        std::thread([uri, callback]() {
+            GMainContext* context = g_main_context_new();
+            g_main_context_push_thread_default(context);
+
+            GFile* file = g_file_new_for_uri(uri.c_str());
+            GMount* mount = g_file_find_enclosing_mount(file, nullptr, nullptr);
+            
+            if (!mount) {
+                if (callback) callback(false, "No mount found for this URI");
+                g_object_unref(file);
+                g_main_context_pop_thread_default(context);
+                g_main_context_unref(context);
+                return;
+            }
+
+            struct State {
+                bool finished = false;
+                bool success = false;
+                std::string message;
+            } state;
+
+            g_mount_unmount_with_operation(mount, G_MOUNT_UNMOUNT_NONE, nullptr, nullptr, 
+                [](GObject* src, GAsyncResult* res, gpointer user_data) {
+                    auto* s = static_cast<State*>(user_data);
+                    GError* error = nullptr;
+                    s->success = g_mount_unmount_with_operation_finish(G_MOUNT(src), res, &error);
+                    if (error) {
+                        s->message = error->message;
+                        g_error_free(error);
+                    }
+                    s->finished = true;
+                }, &state);
+
+            while (!state.finished) {
+                g_main_context_iteration(context, TRUE);
+            }
+
+            if (callback) callback(state.success, state.message);
+
+            g_object_unref(mount);
+            g_object_unref(file);
+            g_main_context_pop_thread_default(context);
+            g_main_context_unref(context);
+        }).detach();
+    }
+
     std::vector<RemoteMountInfo> RemoteManager::get_active_mounts()
     {
+        // Force GIO to process pending signals to get fresh data
+        while (g_main_context_iteration(nullptr, FALSE));
+
         std::vector<RemoteMountInfo> mounts;
-        GVolumeMonitor* monitor = g_volume_monitor_get();
+        GVolumeMonitor* monitor = d->monitor;
         GList* g_mounts = g_volume_monitor_get_mounts(monitor);
 
         for (GList* l = g_mounts; l != nullptr; l = l->next) {
@@ -222,7 +290,6 @@ namespace horizon::storage
         }
 
         g_list_free_full(g_mounts, g_object_unref);
-        g_object_unref(monitor);
         return mounts;
     }
 }

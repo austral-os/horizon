@@ -8,7 +8,7 @@
 #include "dialogs/GoToFolderDialog.hpp"
 #include "dialogs/ConnectToServerDialog.hpp"
 #include "dialogs/MountPasswordDialog.hpp"
-#include <horizon-remote-storage/RemoteManager.hpp>
+#include <horizon/storage/RemoteManager.hpp>
 #include "horizon/ApplicationWindow.hpp"
 #include <horizon/DialogTypes.hpp>
 #include "horizon/Label.hpp"

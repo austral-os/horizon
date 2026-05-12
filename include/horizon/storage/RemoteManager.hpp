@@ -7,6 +7,10 @@
 
 namespace horizon::storage
 {
+    struct RemoteStorageEventContext : public EventContext
+    {
+    };
+
     struct RemoteMountInfo
     {
         std::string name;
@@ -41,8 +45,12 @@ namespace horizon::storage
                    std::function<void(RemoteMountResult)> callback);
 
         void unmount(const std::string& mount_path, std::function<void(bool, std::string)> callback);
+        void unmount_by_uri(const std::string& uri, std::function<void(bool, std::string)> callback);
 
         std::vector<RemoteMountInfo> get_active_mounts();
+
+        // Signal triggered when mounts change
+        EventsManager<RemoteStorageEventContext> when_changed;
 
     private:
         struct Private;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <horizon/ApplicationWindow.hpp>
-#include <horizon-remote-storage/RemoteManager.hpp>
+#include <horizon/storage/RemoteManager.hpp>
 
 namespace horizon
 {

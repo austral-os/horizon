@@ -1,6 +1,5 @@
 #include "horizon/files/FileSidebar.hpp"
 #include <cstdlib>
-#include <gio/gio.h>
 #include <horizon/Application.hpp>
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
@@ -9,7 +8,7 @@
 #include <horizon/SidebarItem.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/XdgUserDirs.hpp>
-#include <thread>
+#include <horizon/storage/RemoteManager.hpp>
 
 namespace horizon::files
 {
@@ -91,57 +90,20 @@ namespace horizon::files
                     FileSidebar* sidebar = m_parent_sidebar;
                     LOG_INFO << "RemoteSidebarItem: Intentando desmontar " << uri;
                     
-                    std::thread(
-                        [uri, sidebar]()
-                        {
-                            GMainContext* context = g_main_context_new();
-                            g_main_context_push_thread_default(context);
-
-                            GFile *file = g_file_new_for_uri(uri.c_str());
-                            GMount *mount = g_file_find_enclosing_mount(file, nullptr, nullptr);
-                            if (mount)
-                            {
-                                LOG_INFO << "RemoteSidebarItem: Montaje encontrado, enviando comando de desmontado...";
-                                
-                                struct State { 
-                                    bool finished = false; 
-                                    FileSidebar* sidebar;
-                                } state;
-                                state.sidebar = sidebar;
-
-                                g_mount_unmount_with_operation(mount, G_MOUNT_UNMOUNT_NONE, nullptr, nullptr, 
-                                    [](GObject* src, GAsyncResult* res, gpointer user_data) {
-                                        auto* s = static_cast<State*>(user_data);
-                                        GError* err = nullptr;
-                                        g_mount_unmount_with_operation_finish(G_MOUNT(src), res, &err);
-                                        if (err) {
-                                            LOG_ERROR << "RemoteSidebarItem: Error al desmontar: " << err->message;
-                                            g_error_free(err);
-                                        } else {
-                                            LOG_INFO << "RemoteSidebarItem: Desmontado exitoso. Esperando para refrescar...";
-                                            if (s->sidebar && s->sidebar->application()) {
-                                                s->sidebar->application()->add_timer(200, [sb = s->sidebar]() {
-                                                    sb->refresh_devices();
-                                                }, false);
-                                            }
-                                        }
-                                        s->finished = true;
-                                    }, &state);
-
-                                while (!state.finished) {
-                                    g_main_context_iteration(context, TRUE);
+                    if (sidebar && sidebar->remote_manager()) {
+                        sidebar->remote_manager()->unmount_by_uri(uri, [sidebar](bool success, std::string msg) {
+                            if (success) {
+                                LOG_INFO << "RemoteSidebarItem: Desmontado exitoso. Esperando para refrescar...";
+                                if (sidebar->application()) {
+                                    sidebar->application()->add_timer(200, [sidebar]() {
+                                        sidebar->refresh_devices();
+                                    }, false);
                                 }
-                                g_object_unref(mount);
+                            } else {
+                                LOG_ERROR << "RemoteSidebarItem: Error al desmontar: " << msg;
                             }
-                            else
-                            {
-                                LOG_ERROR << "RemoteSidebarItem: No se pudo encontrar el montaje para " << uri;
-                            }
-                            g_object_unref(file);
-                            g_main_context_pop_thread_default(context);
-                            g_main_context_unref(context);
-                        })
-                        .detach();
+                        });
+                    }
                 });
 
             add_child(std::move(icon));
@@ -158,6 +120,8 @@ namespace horizon::files
 
     FileSidebar::FileSidebar() : Sidebar()
     {
+        m_remote_manager = std::make_unique<storage::RemoteManager>();
+        
         when_application_load.connect([this](EventContext &) { this->setup_monitoring(); });
 
         refresh_devices();
@@ -165,23 +129,11 @@ namespace horizon::files
         m_disk_manager.when_hardware_changed.connect([this](disks::HardwareChangedContext &)
                                                      { this->refresh_devices(); });
 
-        GVolumeMonitor *monitor = g_volume_monitor_get();
-        g_signal_connect_swapped(monitor, "mount-added",
-                                 G_CALLBACK(+[](FileSidebar *self)
-                                            {
-                                                if (self->application())
-                                                    self->application()->post_task(
-                                                        [self]() { self->refresh_devices(); });
-                                            }),
-                                 this);
-        g_signal_connect_swapped(monitor, "mount-removed",
-                                 G_CALLBACK(+[](FileSidebar *self)
-                                            {
-                                                if (self->application())
-                                                    self->application()->post_task(
-                                                        [self]() { self->refresh_devices(); });
-                                            }),
-                                 this);
+        m_remote_manager->when_changed.connect([this](storage::RemoteStorageEventContext &) {
+            if (application()) {
+                application()->post_task([this]() { this->refresh_devices(); });
+            }
+        });
     }
 
     void FileSidebar::setup_monitoring()
@@ -195,9 +147,6 @@ namespace horizon::files
 
     void FileSidebar::refresh_devices()
     {
-        // Force GIO/DBus to process pending signals
-        while (g_main_context_iteration(nullptr, FALSE));
-
         clear();
         add_group("Favorites");
 
@@ -279,57 +228,21 @@ namespace horizon::files
             }
         }
 
-        // --- Add Remote Mounts using GIO directly ---
-        GVolumeMonitor *monitor = g_volume_monitor_get();
-        GList *g_mounts = g_volume_monitor_get_mounts(monitor);
-        LOG_INFO << "FileSidebar: GIO reporta " << g_list_length(g_mounts) << " montajes en total.";
+        // --- Add Remote Mounts using RemoteManager abstraction ---
+        auto remote_mounts = m_remote_manager->get_active_mounts();
         bool has_network = false;
 
-        for (GList *l = g_mounts; l != nullptr; l = l->next)
+        for (const auto &mount : remote_mounts)
         {
-            GMount *mount = G_MOUNT(l->data);
-            GFile *root = g_mount_get_root(mount);
-            char *uri = g_file_get_uri(root);
-
-            std::string s_uri = uri ? uri : "";
-            LOG_INFO << "FileSidebar: Detectado montaje GIO: " << s_uri;
-
-            if (s_uri.find("://") != std::string::npos && s_uri.find("file://") != 0)
+            if (!has_network)
             {
-                LOG_INFO << "FileSidebar: Agregando recurso remoto al sidebar: " << s_uri;
-                if (!has_network)
-                {
-                    add_group("Network");
-                    has_network = true;
-                }
-
-                char *name = g_mount_get_name(mount);
-                char *path = g_file_get_path(root);
-                GIcon *icon = g_mount_get_icon(mount);
-                std::string icon_name = "folder-remote";
-                if (G_IS_THEMED_ICON(icon))
-                {
-                    const char *const *names = g_themed_icon_get_names(G_THEMED_ICON(icon));
-                    if (names && names[0])
-                        icon_name = names[0];
-                }
-
-                auto item = std::make_unique<RemoteSidebarItem>(icon_name, name ? name : "Remote", s_uri, this);
-                item->set_path(path ? path : "");
-                add_item("Network", std::move(item));
-
-                if (name)
-                    g_free(name);
-                if (path)
-                    g_free(path);
-                if (icon)
-                    g_object_unref(icon);
+                add_group("Network");
+                has_network = true;
             }
-            if (uri)
-                g_free(uri);
-            g_object_unref(root);
+
+            auto item = std::make_unique<RemoteSidebarItem>(mount.icon_name, mount.name, mount.uri, this);
+            item->set_path(mount.mount_path);
+            add_item("Network", std::move(item));
         }
-        g_list_free_full(g_mounts, g_object_unref);
-        g_object_unref(monitor);
     }
 } // namespace horizon::files
