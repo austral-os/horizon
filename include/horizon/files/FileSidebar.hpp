@@ -17,4 +17,3 @@ namespace horizon::files
         disks::DiskManager m_disk_manager;
     };
 } // namespace horizon::files
-

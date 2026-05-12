@@ -6,6 +6,9 @@
 #include "dialogs/RenameDialog.hpp"
 #include "dialogs/PropertiesDialog.hpp"
 #include "dialogs/GoToFolderDialog.hpp"
+#include "dialogs/ConnectToServerDialog.hpp"
+#include "dialogs/MountPasswordDialog.hpp"
+#include <horizon-remote-storage/RemoteManager.hpp>
 #include "horizon/ApplicationWindow.hpp"
 #include <horizon/DialogTypes.hpp>
 #include "horizon/Label.hpp"
@@ -17,6 +20,7 @@
 #include "horizon/arkutils/FileOperations.hpp"
 #include "horizon/ApplicationLauncher.hpp"
 #include "horizon/Menu.hpp"
+#include <algorithm>
 #include <filesystem>
 #include <memory>
 #include <thread>
@@ -212,6 +216,16 @@ namespace horizon::arkfm
                         });
                     });
 
+                    application()->signal_manager.connect("go-connect", [this](SignalContext&) {
+                        application()->post_task([this]() {
+                            auto dialog = std::make_unique<ConnectToServerDialog>();
+                            dialog->when_accepted.connect([this](ConnectToServerEvent& ev) {
+                                this->handle_mount_remote(ev.uri);
+                            });
+                            dialog->run();
+                        });
+                    });
+
                     m_view_ptr->when_right_click.connect(
                         [this](MouseButtonEventContext &ctx)
                         {
@@ -240,6 +254,8 @@ namespace horizon::arkfm
                 }
             });
     }
+    
+    ArkfmWindow::~ArkfmWindow() = default;
 
 
     void ArkfmWindow::handle_new_folder()
@@ -394,6 +410,49 @@ namespace horizon::arkfm
                                          }
                                      });
         }
+    }
+
+    void ArkfmWindow::handle_mount_remote(const std::string &uri, storage::RemoteCredentials creds)
+    {
+        LOG_INFO << "ArkFM: Intentando montar " << uri;
+        if (!m_remote_manager)
+            m_remote_manager = std::make_unique<storage::RemoteManager>();
+
+        m_remote_manager->mount(uri, creds, [this, uri](storage::RemoteMountResult res) {
+            if (res.success) {
+                LOG_INFO << "ArkFM: Montado exitoso de " << uri << " en " << res.mount_path;
+                if (m_view_ptr) m_view_ptr->navigate_to(res.mount_path);
+                show_status_message("Conectado a " + uri);
+            } else {
+                LOG_ERROR << "ArkFM: Fallo al montar " << uri << ": " << res.message;
+                
+                std::string msg = res.message;
+                std::transform(msg.begin(), msg.end(), msg.begin(), ::tolower);
+
+                bool needs_auth = (msg.find("not authorized") != std::string::npos || 
+                                   msg.find("password") != std::string::npos ||
+                                   msg.find("access denied") != std::string::npos ||
+                                   msg.find("permission denied") != std::string::npos ||
+                                   msg.find("authentication") != std::string::npos ||
+                                   msg.find("autenticación") != std::string::npos ||
+                                   msg.find("no soportada") != std::string::npos ||
+                                   msg.find("not supported") != std::string::npos);
+
+                if (needs_auth) 
+                {
+                    LOG_INFO << "ArkFM: Detectada necesidad de contraseña o error de soporte. Abriendo diálogo...";
+                    application()->post_task([this, uri]() {
+                        auto dialog = std::make_unique<MountPasswordDialog>(uri);
+                        dialog->when_accepted.connect([this, uri](MountPasswordEvent& ev) {
+                            this->handle_mount_remote(uri, ev.credentials);
+                        });
+                        dialog->run();
+                    });
+                } else {
+                    show_status_message("Error: " + res.message, 5000);
+                }
+            }
+        });
     }
 
 } // namespace horizon::arkfm

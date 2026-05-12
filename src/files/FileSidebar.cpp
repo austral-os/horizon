@@ -7,7 +7,9 @@
 #include <horizon/Spacer.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Logger.hpp>
+#include <gio/gio.h>
 #include <cstdlib>
+#include <thread>
 
 namespace horizon::files
 {
@@ -19,7 +21,6 @@ namespace horizon::files
         {
             if (m_partition->is_mounted)
             {
-                // Add a spacer to push the eject button to the right
                 add_child(horizon::Spacer());
 
                 auto eject_btn = std::make_unique<Button<Widget>>();
@@ -31,10 +32,9 @@ namespace horizon::files
                 icon->set_icon_name("media-eject");
                 icon->set_icon_size(16);
                 icon->set_position_type(WidgetPositionTypes::FREE);
-                icon->set_position(4, 4); // Centered in a 24x24 button
+                icon->set_position(4, 4);
                 eject_btn->add_child(std::move(icon));
 
-                // Add hover effect manually since Button<Widget> doesn't have it built-in like AquaObject
                 eject_btn->when_mouse_enter.connect([btn = eject_btn.get()](EventContext&) {
                     btn->set_background_color(Color(1.0f, 1.0f, 1.0f, 0.2f));
                 });
@@ -50,7 +50,6 @@ namespace horizon::files
                 });
                 add_child(std::move(eject_btn));
                 
-                // Extra margin to the right
                 auto end_spacer = std::make_unique<Widget>();
                 end_spacer->set_fixed_size(4);
                 add_child(std::move(end_spacer));
@@ -60,6 +59,50 @@ namespace horizon::files
     private:
         disks::DiskPartition *m_partition;
         disks::DiskManager *m_manager;
+    };
+
+    class RemoteSidebarItem : public horizon::SidebarItem
+    {
+    public:
+        RemoteSidebarItem(const std::string &icon_name, const std::string &text, const std::string &mount_path)
+            : SidebarItem(icon_name, text), m_mount_path(mount_path)
+        {
+            add_child(horizon::Spacer());
+            auto eject_btn = std::make_unique<Button<Widget>>();
+            eject_btn->set_fixed_size(24);
+            eject_btn->set_background_color(Color(0.0f, 0.0f, 0.0f, 0.0f));
+            eject_btn->set_border_radius(4);
+            
+            auto icon = std::make_unique<Icon>();
+            icon->set_icon_name("media-eject");
+            icon->set_icon_size(16);
+            icon->set_position_type(WidgetPositionTypes::FREE);
+            icon->set_position(4, 4);
+            eject_btn->add_child(std::move(icon));
+
+            eject_btn->when_mouse_enter.connect([btn = eject_btn.get()](EventContext&) {
+                btn->set_background_color(Color(1.0f, 1.0f, 1.0f, 0.2f));
+            });
+            eject_btn->when_mouse_leave.connect([btn = eject_btn.get()](EventContext&) {
+                btn->set_background_color(Color(0.0f, 0.0f, 0.0f, 0.0f));
+            });
+
+            eject_btn->when_click.connect([this](MouseButtonEventContext &ctx) {
+                ctx.stop_propagation = true;
+                
+                GFile* file = g_file_new_for_path(m_mount_path.c_str());
+                GMount* mount = g_file_find_enclosing_mount(file, nullptr, nullptr);
+                if (mount) {
+                    g_mount_unmount_with_operation(mount, G_MOUNT_UNMOUNT_NONE, nullptr, nullptr, nullptr, nullptr);
+                    g_object_unref(mount);
+                }
+                g_object_unref(file);
+            });
+            add_child(std::move(eject_btn));
+        }
+
+    private:
+        std::string m_mount_path;
     };
 
     FileSidebar::FileSidebar() : Sidebar()
@@ -74,32 +117,27 @@ namespace horizon::files
             this->refresh_devices();
         });
 
-        when_item_selected.connect([this](SidebarItemSelectedContext& ctx) {
-            // Check if it's a disk item by checking path or some other way.
-            // For now, if it's not mounted and we click it, we should mount it.
-            // But SidebarItem doesn't know about its "mounted" status easily here.
-            // We can handle the click inside refresh_devices by connecting to the item's own click.
-        });
+        GVolumeMonitor* monitor = g_volume_monitor_get();
+        g_signal_connect_swapped(monitor, "mount-added", G_CALLBACK(+[](FileSidebar* self) {
+            if (self->application()) self->application()->post_task([self]() { self->refresh_devices(); });
+        }), this);
+        g_signal_connect_swapped(monitor, "mount-removed", G_CALLBACK(+[](FileSidebar* self) {
+            if (self->application()) self->application()->post_task([self]() { self->refresh_devices(); });
+        }), this);
     }
 
     void FileSidebar::setup_monitoring()
     {
-        // Start a timer to check for hardware changes
         if (application())
         {
-            LOG_INFO << "[FileSidebar] Starting hardware monitoring timer";
             application()->add_timer(2000, [this]() {
                 this->m_disk_manager.check_hardware_changes();
             }, true);
-        }
-        else {
-            LOG_ERROR << "[FileSidebar] setup_monitoring failed: application() is null";
         }
     }
 
     void FileSidebar::refresh_devices()
     {
-        LOG_INFO << "[FileSidebar] Refreshing devices list";
         clear();
         add_group("Favorites");
 
@@ -125,7 +163,6 @@ namespace horizon::files
         item_downloads->set_path(horizon::XdgUserDirs::get_download());
         add_item("Favorites", std::move(item_downloads));
 
-        // --- Add Devices ---
         m_disk_manager.scan();
         bool has_devices = false;
 
@@ -133,7 +170,6 @@ namespace horizon::files
         {
             for (const auto &part : disk->partitions)
             {
-                // Only show partitions that are likely user data (or removable)
                 if (disk->is_removable || part->is_mounted)
                 {
                     if (!has_devices)
@@ -150,12 +186,10 @@ namespace horizon::files
                     if (part->is_mounted) {
                         item->set_path(part->mount_point);
                     } else {
-                        // If not mounted, we set the device path and handle the click
                         std::string dev_path = part->device_path;
                         item->when_click.connect([this, dev_path](auto&) {
                             auto result = m_disk_manager.mount_partition(dev_path, "");
                             if (result.success) {
-                                // Wait a bit and refresh
                                 std::thread([this]() {
                                     std::this_thread::sleep_for(std::chrono::milliseconds(500));
                                     if (application()) {
@@ -165,10 +199,49 @@ namespace horizon::files
                             }
                         });
                     }
-                    
                     add_item("Devices", std::move(item));
                 }
             }
         }
+
+        // --- Add Remote Mounts using GIO directly ---
+        GVolumeMonitor* monitor = g_volume_monitor_get();
+        GList* g_mounts = g_volume_monitor_get_mounts(monitor);
+        bool has_network = false;
+
+        for (GList* l = g_mounts; l != nullptr; l = l->next) {
+            GMount* mount = G_MOUNT(l->data);
+            GFile* root = g_mount_get_root(mount);
+            char* uri = g_file_get_uri(root);
+            
+            std::string s_uri = uri ? uri : "";
+            if (s_uri.find("://") != std::string::npos && s_uri.find("file://") != 0) {
+                if (!has_network) {
+                    add_group("Network");
+                    has_network = true;
+                }
+
+                char* name = g_mount_get_name(mount);
+                char* path = g_file_get_path(root);
+                GIcon* icon = g_mount_get_icon(mount);
+                std::string icon_name = "folder-remote";
+                if (G_IS_THEMED_ICON(icon)) {
+                    const char* const* names = g_themed_icon_get_names(G_THEMED_ICON(icon));
+                    if (names && names[0]) icon_name = names[0];
+                }
+
+                auto item = std::make_unique<RemoteSidebarItem>(icon_name, name ? name : "Remote", path ? path : "");
+                item->set_path(path ? path : "");
+                add_item("Network", std::move(item));
+
+                if (name) g_free(name);
+                if (path) g_free(path);
+                if (icon) g_object_unref(icon);
+            }
+            if (uri) g_free(uri);
+            g_object_unref(root);
+        }
+        g_list_free_full(g_mounts, g_object_unref);
+        g_object_unref(monitor);
     }
 } // namespace horizon::files

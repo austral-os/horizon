@@ -7,6 +7,8 @@ add_executable(arkfm
     src/dialogs/PropertiesDialog.cpp
     src/dialogs/RenameDialog.cpp
     src/dialogs/GoToFolderDialog.cpp
+    src/dialogs/ConnectToServerDialog.cpp
+    src/dialogs/MountPasswordDialog.cpp
 )
 
 target_include_directories(arkfm
@@ -17,6 +19,7 @@ target_include_directories(arkfm
 target_link_libraries(arkfm
     PRIVATE
         horizon
+        horizon-remote-storage
 )
 
 horizon_install_app(arkfm

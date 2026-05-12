@@ -1,0 +1,51 @@
+#pragma once
+#include <string>
+#include <vector>
+#include <memory>
+#include <functional>
+#include <horizon/EventsManager.hpp>
+
+namespace horizon::storage
+{
+    struct RemoteMountInfo
+    {
+        std::string name;
+        std::string uri;
+        std::string mount_path;
+        std::string icon_name;
+    };
+
+    struct RemoteCredentials
+    {
+        bool is_guest = false;
+        std::string username;
+        std::string password;
+        bool remember = false;
+    };
+
+    struct RemoteMountResult
+    {
+        bool success;
+        std::string message;
+        std::string mount_path;
+    };
+
+    class RemoteManager
+    {
+    public:
+        RemoteManager();
+        ~RemoteManager();
+
+        void mount(const std::string& uri, 
+                   const RemoteCredentials& credentials,
+                   std::function<void(RemoteMountResult)> callback);
+
+        void unmount(const std::string& mount_path, std::function<void(bool, std::string)> callback);
+
+        std::vector<RemoteMountInfo> get_active_mounts();
+
+    private:
+        struct Private;
+        std::unique_ptr<Private> d;
+    };
+}
