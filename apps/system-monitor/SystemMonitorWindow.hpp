@@ -10,6 +10,7 @@
 #include "CPUStats.hpp"
 #include "MemoryStats.hpp"
 #include "EnergyStats.hpp"
+#include "DiskStats.hpp"
 #include <memory>
 #include <vector>
 
@@ -38,5 +39,6 @@ namespace horizon
         CPUStats* m_cpu_stats{nullptr};
         MemoryStats* m_memory_stats{nullptr};
         EnergyStats* m_energy_stats{nullptr};
+        DiskStats* m_disk_stats{nullptr};
     };
 } // namespace horizon

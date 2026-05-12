@@ -88,6 +88,7 @@ namespace horizon
             if (m_cpu_stats) m_cpu_stats->set_visible(ctx.button_text == "CPU");
             if (m_memory_stats) m_memory_stats->set_visible(ctx.button_text == i18n().tr("system_monitor.toolbar.memory"));
             if (m_energy_stats) m_energy_stats->set_visible(ctx.button_text == i18n().tr("system_monitor.toolbar.energy"));
+            if (m_disk_stats) m_disk_stats->set_visible(ctx.button_text == i18n().tr("system_monitor.toolbar.disk"));
         });
 
         tb->add_toolbar_widget(std::move(group_btn));
@@ -238,6 +239,11 @@ namespace horizon
             sb->add_child(std::move(energy_stats));
         }
 
+        auto disk_stats = std::make_unique<DiskStats>();
+        m_disk_stats = disk_stats.get();
+        m_disk_stats->set_visible(false);
+        sb->add_child(std::move(disk_stats));
+
         set_content(std::move(root));
     }
 
@@ -247,10 +253,12 @@ namespace horizon
         auto cpu_usage = m_process_manager.get_cpu_usage();
         auto mem_usage = m_process_manager.get_memory_usage();
         auto energy_usage = m_process_manager.get_energy_usage();
+        auto disk_usage = m_process_manager.get_disk_usage();
  
         if (m_cpu_stats) m_cpu_stats->update(cpu_usage);
         if (m_memory_stats) m_memory_stats->update(mem_usage);
         if (m_energy_stats) m_energy_stats->update(energy_usage);
+        if (m_disk_stats) m_disk_stats->update(disk_usage);
         
         set_title(i18n().tr("system_monitor.title"));
 

@@ -46,6 +46,16 @@ namespace horizon
         bool on_ac;
     };
 
+    struct DiskUsage
+    {
+        uint64_t reads_completed;
+        uint64_t writes_completed;
+        double read_speed_kb;
+        double write_speed_kb;
+        uint64_t total_read_bytes;
+        uint64_t total_written_bytes;
+    };
+
     struct ProcessInfo
     {
         int pid;
@@ -66,6 +76,7 @@ namespace horizon
         CPUUsage get_cpu_usage();
         MemoryUsage get_memory_usage();
         EnergyUsage get_energy_usage();
+        DiskUsage get_disk_usage();
         bool terminate_process(int pid);
 
     private:
@@ -79,5 +90,13 @@ namespace horizon
         };
         CPUPoint m_prev_total_cpu{0, 0};
         std::vector<CPUPoint> m_prev_cores_cpu;
+
+        struct DiskPoint {
+            uint64_t read_sectors;
+            uint64_t write_sectors;
+            uint64_t reads_completed;
+            uint64_t writes_completed;
+        };
+        std::map<std::string, DiskPoint> m_prev_disk_stats;
     };
 } // namespace horizon

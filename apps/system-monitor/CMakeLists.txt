@@ -7,6 +7,7 @@ add_executable(system-monitor
     CPUStats.cpp
     MemoryStats.cpp
     EnergyStats.cpp
+    DiskStats.cpp
 )
 
 target_link_libraries(system-monitor

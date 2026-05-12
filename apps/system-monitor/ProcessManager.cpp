@@ -320,4 +320,65 @@ namespace horizon
 
         return usage;
     }
+
+    DiskUsage ProcessManager::get_disk_usage()
+    {
+        DiskUsage usage = {0};
+        std::ifstream file("/proc/diskstats");
+        std::string line;
+
+        uint64_t current_total_read_sectors = 0;
+        uint64_t current_total_write_sectors = 0;
+        uint64_t current_total_reads = 0;
+        uint64_t current_total_writes = 0;
+
+        while (std::getline(file, line)) {
+            std::stringstream ss(line);
+            int major, minor;
+            std::string name;
+            uint64_t reads, reads_merged, read_sectors, read_time;
+            uint64_t writes, writes_merged, write_sectors, write_time;
+
+            if (!(ss >> major >> minor >> name >> reads >> reads_merged >> read_sectors >> read_time >> writes >> writes_merged >> write_sectors >> write_time))
+                continue;
+
+            // Only count physical disks, not partitions (simplified)
+            // Typically sda, sdb, nvme0n1, etc.
+            bool is_disk = false;
+            if (name.find("sd") == 0 && name.length() == 3) is_disk = true;
+            else if (name.find("nvme") == 0 && name.find("n") != std::string::npos && name.find("p") == std::string::npos) is_disk = true;
+
+            if (is_disk) {
+                current_total_read_sectors += read_sectors;
+                current_total_write_sectors += write_sectors;
+                current_total_reads += reads;
+                current_total_writes += writes;
+            }
+        }
+
+        usage.total_read_bytes = current_total_read_sectors * 512;
+        usage.total_written_bytes = current_total_write_sectors * 512;
+        usage.reads_completed = current_total_reads;
+        usage.writes_completed = current_total_writes;
+
+        // Calculate speed
+        static auto last_call_time = std::chrono::steady_clock::now();
+        static DiskPoint last_total_point = {0, 0, 0, 0};
+
+        auto now = std::chrono::steady_clock::now();
+        double elapsed = std::chrono::duration<double>(now - last_call_time).count();
+        last_call_time = now;
+
+        if (elapsed > 0 && last_total_point.read_sectors > 0) {
+            uint64_t delta_read = current_total_read_sectors - last_total_point.read_sectors;
+            uint64_t delta_write = current_total_write_sectors - last_total_point.write_sectors;
+            
+            usage.read_speed_kb = (delta_read * 512.0) / (elapsed * 1024.0);
+            usage.write_speed_kb = (delta_write * 512.0) / (elapsed * 1024.0);
+        }
+
+        last_total_point = {current_total_read_sectors, current_total_write_sectors, current_total_reads, current_total_writes};
+
+        return usage;
+    }
 } // namespace horizon
