@@ -72,7 +72,12 @@ namespace horizon
         auto group_btn = std::make_unique<ToggleGroupButton>();
         group_btn->add_item("CPU");
         group_btn->add_item(i18n().tr("system_monitor.toolbar.memory"));
-        group_btn->add_item(i18n().tr("system_monitor.toolbar.energy"));
+        
+        bool has_battery = m_process_manager.get_energy_usage().has_battery;
+        if (has_battery) {
+            group_btn->add_item(i18n().tr("system_monitor.toolbar.energy"));
+        }
+
         group_btn->add_item(i18n().tr("system_monitor.toolbar.disk"));
         group_btn->add_item(i18n().tr("system_monitor.toolbar.network"));
         group_btn->set_fixed_size(500);
@@ -80,8 +85,9 @@ namespace horizon
         group_btn->set_current_item(0);
 
         group_btn->when_button_clicked.connect([this](GroupButtonClickEvent &ctx) {
-            if (m_cpu_stats) m_cpu_stats->set_visible(ctx.button_index == 0);
-            if (m_memory_stats) m_memory_stats->set_visible(ctx.button_index == 1);
+            if (m_cpu_stats) m_cpu_stats->set_visible(ctx.button_text == "CPU");
+            if (m_memory_stats) m_memory_stats->set_visible(ctx.button_text == i18n().tr("system_monitor.toolbar.memory"));
+            if (m_energy_stats) m_energy_stats->set_visible(ctx.button_text == i18n().tr("system_monitor.toolbar.energy"));
         });
 
         tb->add_toolbar_widget(std::move(group_btn));
@@ -225,6 +231,13 @@ namespace horizon
         m_memory_stats->set_visible(false); // Hidden by default
         sb->add_child(std::move(mem_stats));
 
+        if (m_process_manager.get_energy_usage().has_battery) {
+            auto energy_stats = std::make_unique<EnergyStats>();
+            m_energy_stats = energy_stats.get();
+            m_energy_stats->set_visible(false);
+            sb->add_child(std::move(energy_stats));
+        }
+
         set_content(std::move(root));
     }
 
@@ -233,9 +246,11 @@ namespace horizon
         auto processes = m_process_manager.get_processes();
         auto cpu_usage = m_process_manager.get_cpu_usage();
         auto mem_usage = m_process_manager.get_memory_usage();
-
+        auto energy_usage = m_process_manager.get_energy_usage();
+ 
         if (m_cpu_stats) m_cpu_stats->update(cpu_usage);
         if (m_memory_stats) m_memory_stats->update(mem_usage);
+        if (m_energy_stats) m_energy_stats->update(energy_usage);
         
         set_title(i18n().tr("system_monitor.title"));
 

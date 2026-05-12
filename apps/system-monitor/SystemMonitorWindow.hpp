@@ -9,6 +9,7 @@
 #include "ProcessManager.hpp"
 #include "CPUStats.hpp"
 #include "MemoryStats.hpp"
+#include "EnergyStats.hpp"
 #include <memory>
 #include <vector>
 
@@ -36,5 +37,6 @@ namespace horizon
         Widget* m_graphs_area{nullptr};
         CPUStats* m_cpu_stats{nullptr};
         MemoryStats* m_memory_stats{nullptr};
+        EnergyStats* m_energy_stats{nullptr};
     };
 } // namespace horizon

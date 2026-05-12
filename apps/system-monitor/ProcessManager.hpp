@@ -34,6 +34,18 @@ namespace horizon
         double used_percent;
     };
 
+    struct EnergyUsage
+    {
+        bool has_battery;
+        double percentage;
+        std::string status;
+        int cycle_count;
+        double health_percent;
+        int time_to_empty_mins;
+        int time_to_full_mins;
+        bool on_ac;
+    };
+
     struct ProcessInfo
     {
         int pid;
@@ -53,6 +65,7 @@ namespace horizon
         std::vector<ProcessInfo> get_processes();
         CPUUsage get_cpu_usage();
         MemoryUsage get_memory_usage();
+        EnergyUsage get_energy_usage();
         bool terminate_process(int pid);
 
     private:

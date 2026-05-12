@@ -253,4 +253,71 @@ namespace horizon
 
         return usage;
     }
+
+    EnergyUsage ProcessManager::get_energy_usage()
+    {
+        EnergyUsage usage = {0};
+        usage.has_battery = false;
+        usage.on_ac = false;
+
+        // Check AC adapter
+        std::ifstream ac_file("/sys/class/power_supply/AC/online");
+        if (ac_file.is_open()) {
+            int online;
+            ac_file >> online;
+            usage.on_ac = (online == 1);
+        } else {
+            // Try common alternative names for AC
+             std::ifstream ac_file2("/sys/class/power_supply/ACAD/online");
+             if (ac_file2.is_open()) {
+                 int online;
+                 ac_file2 >> online;
+                 usage.on_ac = (online == 1);
+             }
+        }
+
+        // Check Battery (usually BAT0 or BAT1)
+        std::string bat_path = "/sys/class/power_supply/BAT0/";
+        std::ifstream bat_test(bat_path + "status");
+        if (!bat_test.is_open()) {
+            bat_path = "/sys/class/power_supply/BAT1/";
+            bat_test.open(bat_path + "status");
+        }
+
+        if (bat_test.is_open()) {
+            usage.has_battery = true;
+            std::getline(bat_test, usage.status);
+            
+            auto read_val = [&](const std::string& node) -> uint64_t {
+                std::ifstream f(bat_path + node);
+                uint64_t val = 0;
+                f >> val;
+                return val;
+            };
+
+            uint64_t capacity = read_val("capacity");
+            usage.percentage = (double)capacity;
+            
+            usage.cycle_count = (int)read_val("cycle_count");
+            
+            uint64_t energy_full = read_val("energy_full");
+            uint64_t energy_full_design = read_val("energy_full_design");
+            if (energy_full_design > 0) {
+                usage.health_percent = (double)energy_full / energy_full_design * 100.0;
+            }
+
+            uint64_t energy_now = read_val("energy_now");
+            uint64_t power_now = read_val("power_now");
+
+            if (power_now > 0) {
+                if (usage.status == "Discharging") {
+                    usage.time_to_empty_mins = (int)((double)energy_now / power_now * 60.0);
+                } else if (usage.status == "Charging") {
+                    usage.time_to_full_mins = (int)((double)(energy_full - energy_now) / power_now * 60.0);
+                }
+            }
+        }
+
+        return usage;
+    }
 } // namespace horizon
