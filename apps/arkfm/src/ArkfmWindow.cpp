@@ -437,17 +437,20 @@ namespace horizon::arkfm
                     LOG_INFO << "ArkFM: Montado exitoso de " << uri << ". Cerrando diálogo...";
                     if (shared_dlg) {
                         shared_dlg->quit();
-                        shared_dlg->wakeup(); // ¡IMPORTANTE! Forzar la salida del loop
+                        shared_dlg->wakeup();
                     }
-                    if (m_mount_dialog) m_mount_dialog.reset();
-                    
-                    if (m_view_ptr) m_view_ptr->navigate_to(res.mount_path);
-                    if (m_sidebar_ptr) {
-                        application()->add_timer(1000, [this]() {
-                            if (m_sidebar_ptr) m_sidebar_ptr->refresh_devices();
-                        }, false);
-                    }
-                    show_status_message("Conectado a " + uri);
+                    // NO reseteamos aquí para evitar destruir el objeto mientras su loop corre
+
+                    // IMPORTANTE: La navegación la hace la ventana principal, no el diálogo.
+                    application()->post_task([this, res]() {
+                        if (m_view_ptr) m_view_ptr->navigate_to(res.mount_path);
+                        if (m_sidebar_ptr) {
+                            application()->add_timer(1000, [this]() {
+                                if (m_sidebar_ptr) m_sidebar_ptr->refresh_devices();
+                            }, false);
+                        }
+                        show_status_message("Conectado a " + res.mount_path);
+                    });
                 } else {
                     LOG_ERROR << "ArkFM: Fallo al montar " << uri << ": " << res.message;
                     
@@ -472,14 +475,19 @@ namespace horizon::arkfm
                         } else {
                             LOG_INFO << "ArkFM: Creando nuevo diálogo de contraseña.";
                             m_mount_dialog = std::make_shared<storage::MountPasswordDialog>(uri);
-                            auto shared_ptr_copy = m_mount_dialog; // Copia para el lambda
-                            m_mount_dialog->when_accepted.connect([this, uri, shared_ptr_copy](storage::MountPasswordEvent& ev) {
-                                // Pasamos el diálogo actual para que el sistema sepa a quién responder
-                                this->handle_mount_remote(uri, ev.credentials, shared_ptr_copy.get());
+                            
+                            // Capturamos un weak_ptr para evitar una referencia circular
+                            std::weak_ptr<storage::MountPasswordDialog> weak_dlg_signal = m_mount_dialog;
+                            
+                            m_mount_dialog->when_accepted.connect([this, uri, weak_dlg_signal](storage::MountPasswordEvent& ev) {
+                                if (auto shared_dlg_signal = weak_dlg_signal.lock()) {
+                                    this->handle_mount_remote(uri, ev.credentials, shared_dlg_signal.get());
+                                }
                             });
                             
                             m_mount_dialog->run();
                             m_mount_dialog.reset();
+                            LOG_INFO << "ArkFM: El bucle del diálogo ha finalizado.";
                         }
                     } else {
                         if (shared_dlg) shared_dlg->show_error(raw_msg);
