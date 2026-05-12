@@ -222,6 +222,8 @@ namespace horizon
         
         uint64_t mem_free = 0;
         uint64_t mem_available = 0;
+        uint64_t sreclaimable = 0;
+        uint64_t shmem = 0;
         uint64_t swap_free = 0;
 
         while (std::getline(file, line))
@@ -237,13 +239,17 @@ namespace horizon
             else if (key == "MemAvailable:") mem_available = value * 1024;
             else if (key == "Cached:") usage.cached = value * 1024;
             else if (key == "Buffers:") usage.buffers = value * 1024;
+            else if (key == "SReclaimable:") sreclaimable = value * 1024;
+            else if (key == "Shmem:") shmem = value * 1024;
             else if (key == "SwapTotal:") usage.total_swap = value * 1024;
             else if (key == "SwapFree:") swap_free = value * 1024;
         }
 
         usage.free_physical = mem_free;
         usage.available_physical = mem_available;
-        usage.used_physical = usage.total_physical - mem_available;
+        // htop formula: used = total - free - buffers - cached + shmem - sreclaimable
+        // (because shmem is included in cached but htop counts it as used)
+        usage.used_physical = usage.total_physical - mem_free - usage.buffers - usage.cached + shmem - sreclaimable;
         usage.used_swap = usage.total_swap - swap_free;
         usage.total_virtual = usage.total_physical + usage.total_swap;
         
