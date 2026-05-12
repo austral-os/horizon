@@ -213,4 +213,44 @@ namespace horizon
 
         return usage;
     }
-}
+
+    MemoryUsage ProcessManager::get_memory_usage()
+    {
+        MemoryUsage usage = {0};
+        std::ifstream file("/proc/meminfo");
+        std::string line;
+        
+        uint64_t mem_free = 0;
+        uint64_t mem_available = 0;
+        uint64_t swap_free = 0;
+
+        while (std::getline(file, line))
+        {
+            std::string key;
+            uint64_t value;
+            std::string unit;
+            std::stringstream ss(line);
+            ss >> key >> value >> unit;
+
+            if (key == "MemTotal:") usage.total_physical = value * 1024;
+            else if (key == "MemFree:") mem_free = value * 1024;
+            else if (key == "MemAvailable:") mem_available = value * 1024;
+            else if (key == "Cached:") usage.cached = value * 1024;
+            else if (key == "Buffers:") usage.buffers = value * 1024;
+            else if (key == "SwapTotal:") usage.total_swap = value * 1024;
+            else if (key == "SwapFree:") swap_free = value * 1024;
+        }
+
+        usage.free_physical = mem_free;
+        usage.available_physical = mem_available;
+        usage.used_physical = usage.total_physical - mem_available;
+        usage.used_swap = usage.total_swap - swap_free;
+        usage.total_virtual = usage.total_physical + usage.total_swap;
+        
+        if (usage.total_physical > 0) {
+            usage.used_percent = (double)usage.used_physical / usage.total_physical * 100.0;
+        }
+
+        return usage;
+    }
+} // namespace horizon

@@ -20,6 +20,20 @@ namespace horizon
         std::vector<double> cores;
     };
 
+    struct MemoryUsage
+    {
+        uint64_t total_physical;
+        uint64_t used_physical;
+        uint64_t free_physical;
+        uint64_t available_physical;
+        uint64_t cached;
+        uint64_t buffers;
+        uint64_t total_swap;
+        uint64_t used_swap;
+        uint64_t total_virtual;
+        double used_percent;
+    };
+
     struct ProcessInfo
     {
         int pid;
@@ -38,6 +52,7 @@ namespace horizon
 
         std::vector<ProcessInfo> get_processes();
         CPUUsage get_cpu_usage();
+        MemoryUsage get_memory_usage();
         bool terminate_process(int pid);
 
     private:

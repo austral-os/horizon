@@ -5,6 +5,7 @@ add_executable(system-monitor
     SystemMonitorWindow.cpp
     ProcessManager.cpp
     CPUStats.cpp
+    MemoryStats.cpp
 )
 
 target_link_libraries(system-monitor

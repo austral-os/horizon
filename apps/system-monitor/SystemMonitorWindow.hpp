@@ -8,6 +8,7 @@
 #include <horizon/Spacer.hpp>
 #include "ProcessManager.hpp"
 #include "CPUStats.hpp"
+#include "MemoryStats.hpp"
 #include <memory>
 #include <vector>
 
@@ -34,5 +35,6 @@ namespace horizon
         SearchBox* m_search_box{nullptr};
         Widget* m_graphs_area{nullptr};
         CPUStats* m_cpu_stats{nullptr};
+        MemoryStats* m_memory_stats{nullptr};
     };
 } // namespace horizon

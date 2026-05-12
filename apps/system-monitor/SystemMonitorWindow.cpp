@@ -7,6 +7,7 @@
 #include <horizon/TableColumn.hpp>
 #include <horizon/Toolbar.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/ToggleGroupButton.hpp>
 #include <iomanip>
 #include <sstream>
 
@@ -68,13 +69,21 @@ namespace horizon
         tb->add_toolbar_widget(Spacer());
 
         // Group Button
-        auto group_btn = std::make_unique<GroupButton>();
+        auto group_btn = std::make_unique<ToggleGroupButton>();
         group_btn->add_item("CPU");
         group_btn->add_item(i18n().tr("system_monitor.toolbar.memory"));
         group_btn->add_item(i18n().tr("system_monitor.toolbar.energy"));
         group_btn->add_item(i18n().tr("system_monitor.toolbar.disk"));
         group_btn->add_item(i18n().tr("system_monitor.toolbar.network"));
         group_btn->set_fixed_size(500);
+        
+        group_btn->set_current_item(0);
+
+        group_btn->when_button_clicked.connect([this](GroupButtonClickEvent &ctx) {
+            if (m_cpu_stats) m_cpu_stats->set_visible(ctx.button_index == 0);
+            if (m_memory_stats) m_memory_stats->set_visible(ctx.button_index == 1);
+        });
+
         tb->add_toolbar_widget(std::move(group_btn));
 
         // Spacer
@@ -205,10 +214,16 @@ namespace horizon
         auto *sb = statusbar();
         sb->set_fixed_size(200);
         sb->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        sb->set_spacing(0);
         
         auto cpu_stats = std::make_unique<CPUStats>();
         m_cpu_stats = cpu_stats.get();
         sb->add_child(std::move(cpu_stats));
+
+        auto mem_stats = std::make_unique<MemoryStats>();
+        m_memory_stats = mem_stats.get();
+        m_memory_stats->set_visible(false); // Hidden by default
+        sb->add_child(std::move(mem_stats));
 
         set_content(std::move(root));
     }
@@ -217,8 +232,10 @@ namespace horizon
     {
         auto processes = m_process_manager.get_processes();
         auto cpu_usage = m_process_manager.get_cpu_usage();
+        auto mem_usage = m_process_manager.get_memory_usage();
 
         if (m_cpu_stats) m_cpu_stats->update(cpu_usage);
+        if (m_memory_stats) m_memory_stats->update(mem_usage);
         
         set_title(i18n().tr("system_monitor.title"));
 
