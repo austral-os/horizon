@@ -196,6 +196,7 @@ namespace horizon::storage
             return;
         bool is_user = m_user_radio->is_selected();
         m_name_input->set_enabled(is_user);
+        m_name_input->set_focus(is_user);
         m_pass_input->set_enabled(is_user);
         m_remember_check->set_enabled(is_user);
     }
