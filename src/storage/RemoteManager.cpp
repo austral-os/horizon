@@ -68,7 +68,7 @@ namespace horizon::storage
         delete context;
     }
 
-    void RemoteManager::mount(const std::string& uri, 
+    void RemoteManager::when_mount(const std::string& uri, 
                                const RemoteCredentials& credentials,
                                std::function<void(RemoteMountResult)> callback)
     {
@@ -158,7 +158,7 @@ namespace horizon::storage
         }).detach();
     }
 
-    void RemoteManager::unmount(const std::string& mount_path, std::function<void(bool, std::string)> callback)
+    void RemoteManager::when_unmount(const std::string& mount_path, std::function<void(bool, std::string)> callback)
     {
         std::thread([mount_path, callback]() {
             GMainContext* context = g_main_context_new();
@@ -206,7 +206,7 @@ namespace horizon::storage
         }).detach();
     }
 
-    void RemoteManager::unmount_by_uri(const std::string& uri, std::function<void(bool, std::string)> callback)
+    void RemoteManager::when_unmount_by_uri(const std::string& uri, std::function<void(bool, std::string)> callback)
     {
         std::thread([uri, callback]() {
             GMainContext* context = g_main_context_new();

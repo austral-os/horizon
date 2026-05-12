@@ -14,7 +14,7 @@ namespace horizon::files
 
         void refresh_devices();
 
-        storage::RemoteManager* remote_manager() { return m_remote_manager.get(); }
+        storage::RemoteManager* remote_storage() { return m_remote_manager.get(); }
 
     private:
         void setup_monitoring();

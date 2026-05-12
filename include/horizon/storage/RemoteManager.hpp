@@ -40,12 +40,12 @@ namespace horizon::storage
         RemoteManager();
         ~RemoteManager();
 
-        void mount(const std::string& uri, 
+        void when_mount(const std::string& uri, 
                    const RemoteCredentials& credentials,
                    std::function<void(RemoteMountResult)> callback);
 
-        void unmount(const std::string& mount_path, std::function<void(bool, std::string)> callback);
-        void unmount_by_uri(const std::string& uri, std::function<void(bool, std::string)> callback);
+        void when_unmount(const std::string& mount_path, std::function<void(bool, std::string)> callback);
+        void when_unmount_by_uri(const std::string& uri, std::function<void(bool, std::string)> callback);
 
         std::vector<RemoteMountInfo> get_active_mounts();
 

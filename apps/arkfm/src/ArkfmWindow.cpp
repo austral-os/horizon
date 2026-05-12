@@ -419,7 +419,7 @@ namespace horizon::arkfm
         if (!m_remote_manager)
             m_remote_manager = std::make_unique<storage::RemoteManager>();
 
-        m_remote_manager->mount(uri, creds, [this, uri](storage::RemoteMountResult res) {
+        m_remote_manager->when_mount(uri, creds, [this, uri](storage::RemoteMountResult res) {
             if (res.success) {
                 LOG_INFO << "ArkFM: Montado exitoso de " << uri << " en " << res.mount_path;
                 application()->post_task([this, uri, res]() {

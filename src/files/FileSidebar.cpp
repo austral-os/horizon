@@ -90,8 +90,8 @@ namespace horizon::files
                     FileSidebar* sidebar = m_parent_sidebar;
                     LOG_INFO << "RemoteSidebarItem: Intentando desmontar " << uri;
                     
-                    if (sidebar && sidebar->remote_manager()) {
-                        sidebar->remote_manager()->unmount_by_uri(uri, [sidebar](bool success, std::string msg) {
+                    if (sidebar && sidebar->remote_storage()) {
+                        sidebar->remote_storage()->when_unmount_by_uri(uri, [sidebar](bool success, std::string msg) {
                             if (success) {
                                 LOG_INFO << "RemoteSidebarItem: Desmontado exitoso. Esperando para refrescar...";
                                 if (sidebar->application()) {
