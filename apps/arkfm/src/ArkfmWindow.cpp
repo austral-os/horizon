@@ -9,6 +9,7 @@
 #include "dialogs/ConnectToServerDialog.hpp"
 #include <horizon/storage/MountPasswordDialog.hpp>
 #include <horizon/storage/RemoteManager.hpp>
+#include <horizon/I18n.hpp>
 #include "horizon/ApplicationWindow.hpp"
 #include <horizon/DialogTypes.hpp>
 #include "horizon/Label.hpp"
@@ -471,7 +472,17 @@ namespace horizon::arkfm
                     if (needs_auth) {
                         if (shared_dlg) {
                             LOG_INFO << "ArkFM: Informando error al diálogo existente.";
-                            shared_dlg->show_error(raw_msg);
+                            
+                            std::string display_msg = raw_msg;
+                            // Si el error es "cancelado" o "no soportada", usamos nuestro mensaje genérico amigable
+                            if (raw_msg.find("cancel") != std::string::npos || 
+                                raw_msg.find("soportada") != std::string::npos || 
+                                raw_msg.find("supported") != std::string::npos) 
+                            {
+                                display_msg = horizon::i18n().tr("core.storage.mount_dialog.auth_error");
+                            }
+                            
+                            shared_dlg->show_error(display_msg);
                         } else {
                             LOG_INFO << "ArkFM: Creando nuevo diálogo de contraseña.";
                             m_mount_dialog = std::make_shared<storage::MountPasswordDialog>(uri);
@@ -490,8 +501,16 @@ namespace horizon::arkfm
                             LOG_INFO << "ArkFM: El bucle del diálogo ha finalizado.";
                         }
                     } else {
-                        if (shared_dlg) shared_dlg->show_error(raw_msg);
-                        show_status_message("Error: " + raw_msg, 5000);
+                        std::string display_msg = raw_msg;
+                        if (raw_msg.find("cancel") != std::string::npos || 
+                            raw_msg.find("soportada") != std::string::npos || 
+                            raw_msg.find("supported") != std::string::npos) 
+                        {
+                            display_msg = horizon::i18n().tr("core.storage.mount_dialog.auth_error");
+                        }
+                        
+                        if (shared_dlg) shared_dlg->show_error(display_msg);
+                        show_status_message("Error: " + display_msg, 5000);
                     }
                 }
             });

@@ -2,24 +2,25 @@
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Checkbox.hpp>
+#include <horizon/I18n.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/ProgressBar.hpp>
 #include <horizon/RadioButton.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/TextBox.hpp>
 #include <horizon/Window.hpp>
-#include <horizon/I18n.hpp>
-#include <horizon/Logger.hpp>
 
 namespace horizon::storage
 {
     MountPasswordDialog::MountPasswordDialog(const std::string &server_name)
-        : WaylandWindow("horizon.storage.mount_dialog", 700, 450, false, false)
+        : WaylandWindow("horizon.storage.mount_dialog", 700, 410, false, false)
     {
         set_name(i18n().tr("core.storage.mount_dialog.title"));
 
-        auto window_widget = std::make_unique<horizon::Window>(i18n().tr("core.storage.mount_dialog.title"));
+        auto window_widget =
+            std::make_unique<horizon::Window>(i18n().tr("core.storage.mount_dialog.title"));
 
         auto content = std::make_unique<Widget>();
         content->set_layout_type(WIDGET_LAYOUT_VERTICAL);
@@ -65,7 +66,8 @@ namespace horizon::storage
         connect_as_row->set_position_type(WidgetPositionTypes::FILL);
         connect_as_row->set_fixed_size(35);
 
-        auto lbl_connect_as = std::make_unique<Label>(i18n().tr("core.storage.mount_dialog.connect_as"));
+        auto lbl_connect_as =
+            std::make_unique<Label>(i18n().tr("core.storage.mount_dialog.connect_as"));
         lbl_connect_as->set_fixed_size(200);
 
         connect_as_row->add_child(std::move(lbl_connect_as));
@@ -77,7 +79,8 @@ namespace horizon::storage
         auto guest = std::make_unique<RadioButton<AquaObject>>();
         m_guest_radio = guest.get();
         guest_container->add_child(std::move(guest));
-        guest_container->add_child(std::make_unique<Label>(i18n().tr("core.storage.mount_dialog.guest")));
+        guest_container->add_child(
+            std::make_unique<Label>(i18n().tr("core.storage.mount_dialog.guest")));
 
         auto user_container = std::make_unique<Widget>();
         user_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
@@ -87,7 +90,8 @@ namespace horizon::storage
         user->set_selected(true);
         m_user_radio = user.get();
         user_container->add_child(std::move(user));
-        user_container->add_child(std::make_unique<Label>(i18n().tr("core.storage.mount_dialog.registered_user")));
+        user_container->add_child(
+            std::make_unique<Label>(i18n().tr("core.storage.mount_dialog.registered_user")));
 
         connect_as_row->add_child(std::move(guest_container));
         connect_as_row->add_child(horizon::Spacer(15)); // Espacio entre opciones
@@ -138,7 +142,7 @@ namespace horizon::storage
         auto loading_bar = std::make_unique<ProgressBar>();
         loading_bar->set_indeterminate(true);
         loading_bar->set_visible(false);
-        loading_bar->set_fixed_size(8);
+        loading_bar->set_fixed_size(25);
         m_loading_bar = loading_bar.get();
         form->add_child(std::move(loading_bar));
 
@@ -220,31 +224,44 @@ namespace horizon::storage
     void MountPasswordDialog::show_loading()
     {
         LOG_INFO << "MountPasswordDialog: Activando estado de carga...";
-        if (m_loading_bar) m_loading_bar->set_visible(true);
-        if (m_error_label) m_error_label->set_visible(false);
-        if (m_connect_btn) m_connect_btn->set_enabled(false);
-        
+        if (m_loading_bar)
+            m_loading_bar->set_visible(true);
+        if (m_error_label)
+            m_error_label->set_visible(false);
+        if (m_connect_btn)
+            m_connect_btn->set_enabled(false);
+
         // Disable inputs while loading
-        if (m_guest_radio) m_guest_radio->set_enabled(false);
-        if (m_user_radio) m_user_radio->set_enabled(false);
-        if (m_name_input) m_name_input->set_enabled(false);
-        if (m_pass_input) m_pass_input->set_enabled(false);
-        if (m_remember_check) m_remember_check->set_enabled(false);
+        if (m_guest_radio)
+            m_guest_radio->set_enabled(false);
+        if (m_user_radio)
+            m_user_radio->set_enabled(false);
+        if (m_name_input)
+            m_name_input->set_enabled(false);
+        if (m_pass_input)
+            m_pass_input->set_enabled(false);
+        if (m_remember_check)
+            m_remember_check->set_enabled(false);
     }
 
-    void MountPasswordDialog::show_error(const std::string& message)
+    void MountPasswordDialog::show_error(const std::string &message)
     {
         LOG_INFO << "MountPasswordDialog: Mostrando error en UI: " << message;
-        if (m_loading_bar) m_loading_bar->set_visible(false);
-        if (m_error_label) {
+        if (m_loading_bar)
+            m_loading_bar->set_visible(false);
+        if (m_error_label)
+        {
             m_error_label->set_text(message);
             m_error_label->set_visible(true);
         }
-        if (m_connect_btn) m_connect_btn->set_enabled(true);
-        
+        if (m_connect_btn)
+            m_connect_btn->set_enabled(true);
+
         // Re-enable inputs based on current selection
-        if (m_guest_radio) m_guest_radio->set_enabled(true);
-        if (m_user_radio) m_user_radio->set_enabled(true);
+        if (m_guest_radio)
+            m_guest_radio->set_enabled(true);
+        if (m_user_radio)
+            m_user_radio->set_enabled(true);
         update_enabled_state();
     }
 } // namespace horizon::storage

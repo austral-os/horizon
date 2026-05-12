@@ -77,7 +77,8 @@
                 "password": "Contraseña:",
                 "remember": "Recordar esta contraseña en mi llavero",
                 "cancel": "Cancelar",
-                "connect": "Conectar"
+                "connect": "Conectar",
+                "auth_error": "Ha ocurrido un error. Por favor intente nuevamente."
             }
         }
     }
