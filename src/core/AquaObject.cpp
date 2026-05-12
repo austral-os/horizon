@@ -10,6 +10,8 @@ namespace horizon
     {
 
         m_corner_radius = CornerRadius();
+        m_c1 = Color(1.0f, 1.0f, 1.0f, 1.0f);
+        m_c2 = Color(0.9f, 0.9f, 0.9f, 1.0f);
 
         when_mouse_enter.connect(
             [this](EventContext &)
@@ -102,6 +104,10 @@ namespace horizon
         case WidgetAccentColor::Info:
             c1 = tm->get_color("info1");
             c2 = tm->get_color("info2");
+            break;
+        case WidgetAccentColor::Custom:
+            c1 = m_c1;
+            c2 = m_c2;
             break;
         }
 

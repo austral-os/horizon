@@ -78,6 +78,7 @@ namespace horizon
         void set_show_grid(bool show) { m_show_grid = show; invalidate(); }
         void set_show_legend(bool show) { m_show_legend = show; invalidate(); }
         void set_show_tooltip(bool show) { m_show_tooltip = show; invalidate(); }
+        void set_show_axes(bool show) { m_show_axes = show; invalidate(); }
         void set_smooth_curves(bool smooth) { m_smooth_curves = smooth; invalidate(); }
         void set_auto_scale(bool auto_scale) { m_auto_scale = auto_scale; invalidate(); }
         
@@ -153,6 +154,7 @@ namespace horizon
         bool m_show_grid{true};
         bool m_show_legend{true};
         bool m_show_tooltip{true};
+        bool m_show_axes{true};
         Color m_bg_color{1.0f, 1.0f, 1.0f, 1.0f}; // Default white
         
         bool m_auto_scale{true};

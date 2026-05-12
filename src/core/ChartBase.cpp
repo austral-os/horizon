@@ -152,6 +152,8 @@ namespace horizon
 
     void ChartBase::draw_axes(GraphicsContext &ctx, int px, int py, int pw, int ph, double min_y, double max_y)
     {
+        if (!m_show_axes) return;
+        
         auto *tm = application()->theme_manager.get();
         auto theme_font = tm->get_font("window");
         

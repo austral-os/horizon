@@ -1,6 +1,7 @@
 #include "CPUStats.hpp"
 #include "horizon/Widget.hpp"
 #include <horizon/Application.hpp>
+#include <horizon/AquaObject.hpp>
 #include <horizon/ThemeManager.hpp>
 #include <horizon/WaylandWindow.hpp>
 
@@ -10,21 +11,25 @@ namespace horizon
     {
         set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         set_spacing(15);
-        set_margin(30);
+        set_margin(20);
 
-        auto container = std::make_unique<Widget>();
+        auto container = std::make_unique<AquaObject>();
         container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        container->set_spacing(20);
-        container->set_margin(20);
-        container->set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
-        container->set_border_color(Color(0.5f, 0.5f, 0.5f, 1.0f));
+        // container->set_spacing(20);
+        // container->set_margin(20);
+        //  container->set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+        //  container->set_border_color(Color(0.5f, 0.5f, 0.5f, 1.0f));
+        container->set_accent_color(WidgetAccentColor::Custom);
+        container->set_color1(Color(0.8f, 0.9f, 0.4f, 1.0f));
+        container->set_color2(Color(0.8f, 0.8f, 0.4f, 1.0f));
         container->set_border_width(1);
-        container->set_border_radius(10);
+        container->set_corner_radius(15);
 
         // Left Panel: CPU load details
         auto left_panel = std::make_unique<Widget>();
         left_panel->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         left_panel->set_fixed_size(220);
+        left_panel->set_margin(15);
         left_panel->set_spacing(5);
         left_panel->add_child(create_stat_row("System:", &m_lbl_system));
         left_panel->add_child(create_stat_row("User:", &m_lbl_user));
@@ -40,19 +45,13 @@ namespace horizon
         m_chart->set_smooth_curves(true);
         m_chart->set_show_grid(true);
         m_chart->set_show_legend(false); // Legend might be too big here, stats already show info
+        m_chart->set_show_axes(false);
         m_chart->set_y_range(0, 100);
-        m_chart->set_margins(40, 10, 10, 20);
+        m_chart->set_margins(10, 10, 10, 10);
         m_chart->set_position_type(FILL);
 
-        // Update background color when application is loaded
-        when_application_load.connect(
-            [this](EventContext &)
-            {
-                if (application() && application()->theme_manager)
-                {
-                    m_chart->set_bg_color(application()->theme_manager->get_color("window_bg"));
-                }
-            });
+        // Set white background for the chart
+        m_chart->set_bg_color(Color(1.0f, 1.0f, 1.0f, 0.0f));
 
         chart_wrapper->add_child(std::move(chart));
 
@@ -63,13 +62,15 @@ namespace horizon
         auto right_panel = std::make_unique<Widget>();
         right_panel->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         right_panel->set_fixed_size(220);
+        right_panel->set_margin(15);
         right_panel->set_spacing(5);
         right_panel->add_child(create_stat_row("Threads:", &m_lbl_threads));
         right_panel->add_child(create_stat_row("Processes:", &m_lbl_processes));
 
-        m_core_colors = {Color(0.2f, 0.6f, 1.0f), Color(0.2f, 0.8f, 0.4f), Color(1.0f, 0.6f, 0.2f),
-                         Color(0.8f, 0.2f, 0.8f), Color(0.4f, 0.4f, 1.0f), Color(1.0f, 0.2f, 0.2f),
-                         Color(0.2f, 1.0f, 1.0f), Color(0.8f, 0.8f, 0.2f)};
+        m_core_colors = {Color(0.2f, 0.3f, 0.1f),    Color(0.3f, 0.4f, 0.15f),
+                         Color(0.4f, 0.5f, 0.2f),    Color(0.15f, 0.25f, 0.05f),
+                         Color(0.25f, 0.35f, 0.12f), Color(0.35f, 0.45f, 0.18f),
+                         Color(0.1f, 0.2f, 0.05f),   Color(0.45f, 0.55f, 0.22f)};
 
         container->add_child(std::move(left_panel));
         container->add_child(std::move(chart_wrapper));
@@ -88,9 +89,12 @@ namespace horizon
         auto name_lbl = std::make_unique<Label>(name);
         name_lbl->set_alignment(TextAlignment::Left);
         name_lbl->set_position_type(FILL);
+        name_lbl->set_font_weight(FontWeight::FONT_WEIGHT_BOLD);
+        name_lbl->set_text_color(Color(0.2f, 0.3f, 0.1f, 1.0f));
 
         auto value_lbl = std::make_unique<Label>("0.00%");
         value_lbl->set_alignment(TextAlignment::Right);
+        value_lbl->set_text_color(Color(0.2f, 0.3f, 0.1f, 1.0f));
 
         *value_label_out = value_lbl.get();
 
@@ -161,7 +165,7 @@ namespace horizon
 
         if (!m_show_cores)
         {
-            m_chart->add_series("CPU Total", Color(0.2f, 0.6f, 1.0f), m_history[0]);
+            m_chart->add_series("CPU Total", Color(0.2f, 0.3f, 0.1f), m_history[0]);
         }
         else
         {

@@ -1,8 +1,8 @@
 #pragma once
-#include "horizon/Color.hpp"
-#include "horizon/EventsManager.hpp"
 #include "horizon/ClipboardActions.hpp"
 #include "horizon/ClipboardProvider.hpp"
+#include "horizon/Color.hpp"
+#include "horizon/EventsManager.hpp"
 #include <chrono>
 #include <map>
 #include <memory>
@@ -27,7 +27,7 @@ namespace horizon
         Center,
         Right
     };
-    
+
     enum class WidgetOrientation
     {
         Horizontal,
@@ -81,7 +81,8 @@ namespace horizon
         Success,
         Warning,
         Error,
-        Info
+        Info,
+        Custom
     };
 
     /*
@@ -215,13 +216,31 @@ namespace horizon
         bool debug_mode() const;
 
         // --- Clipboard ---
-        virtual bool supports_fullscreen() const { return false; }
-        virtual bool supports_clipboard() const { return false; }
-        virtual bool can_perform(ClipboardAction action) const { return false; }
+        virtual bool supports_fullscreen() const
+        {
+            return false;
+        }
+        virtual bool supports_clipboard() const
+        {
+            return false;
+        }
+        virtual bool can_perform(ClipboardAction action) const
+        {
+            return false;
+        }
         virtual void perform(ClipboardAction action) {}
-        virtual std::vector<std::string> accepted_mime_types() const { return {}; }
-        virtual std::vector<std::string> provided_mime_types() const { return {}; }
-        virtual ClipboardProvider *get_clipboard_provider() { return this; }
+        virtual std::vector<std::string> accepted_mime_types() const
+        {
+            return {};
+        }
+        virtual std::vector<std::string> provided_mime_types() const
+        {
+            return {};
+        }
+        virtual ClipboardProvider *get_clipboard_provider()
+        {
+            return this;
+        }
 
         /**
          * @brief Standard implementation for providing clipboard data.
@@ -232,14 +251,29 @@ namespace horizon
         /**
          * @brief Called when clipboard data is received (Paste).
          */
-        virtual void on_clipboard_data_received(const std::string &mime, const std::vector<uint8_t> &data) {}
+        virtual void on_clipboard_data_received(const std::string &mime,
+                                                const std::vector<uint8_t> &data)
+        {
+        }
 
         // --- Drag and Drop ---
-        void set_draggable(bool draggable) { m_draggable = draggable; }
-        bool is_draggable() const { return m_draggable; }
+        void set_draggable(bool draggable)
+        {
+            m_draggable = draggable;
+        }
+        bool is_draggable() const
+        {
+            return m_draggable;
+        }
 
-        void set_accept_drops(bool accept) { m_accept_drops = accept; }
-        bool accept_drops() const { return m_accept_drops; }
+        void set_accept_drops(bool accept)
+        {
+            m_accept_drops = accept;
+        }
+        bool accept_drops() const
+        {
+            return m_accept_drops;
+        }
         // --- Context Menu ---
         void set_context_menu(std::unique_ptr<Menu> menu);
         Menu *context_menu() const;
