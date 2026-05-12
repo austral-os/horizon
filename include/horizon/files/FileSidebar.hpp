@@ -6,6 +6,11 @@
 
 namespace horizon::files
 {
+    struct UnmountEventContext : public EventContext
+    {
+        std::string mount_path;
+    };
+
     class FileSidebar : public Sidebar
     {
     public:
@@ -15,6 +20,8 @@ namespace horizon::files
         void refresh_devices();
 
         storage::RemoteManager* remote_storage() { return m_remote_manager.get(); }
+
+        EventsManager<UnmountEventContext> when_resource_unmounted;
 
     private:
         void setup_monitoring();

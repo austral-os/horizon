@@ -56,6 +56,17 @@ namespace horizon::arkfm
                 }
             });
 
+        m_sidebar_ptr->when_resource_unmounted.connect([this](horizon::files::UnmountEventContext& ctx) {
+            if (m_view_ptr) {
+                std::string current_path = m_view_ptr->current_path();
+                // Verificar si la ruta actual empieza por la ruta desmontada
+                if (!ctx.mount_path.empty() && current_path.find(ctx.mount_path) == 0) {
+                    LOG_INFO << "ArkfmWindow: El directorio actual (" << current_path << ") ha sido desmontado. Volviendo a Home.";
+                    m_view_ptr->navigate_to(getenv("HOME") ? getenv("HOME") : "/");
+                }
+            }
+        });
+
         show_status_bar();
         auto *sb = statusbar();
         auto lbl = std::make_unique<horizon::Label>("");

@@ -91,9 +91,26 @@ namespace horizon::files
                     LOG_INFO << "RemoteSidebarItem: Intentando desmontar " << uri;
                     
                     if (sidebar && sidebar->remote_storage()) {
-                        sidebar->remote_storage()->when_unmount_by_uri(uri, [sidebar](bool success, std::string msg) {
+                        // Buscar la ruta de montaje antes de que se pierda
+                        std::string mount_path;
+                        auto mounts = sidebar->remote_storage()->get_active_mounts();
+                        for (auto &m : mounts) {
+                            if (m.uri == uri) {
+                                mount_path = m.mount_path;
+                                break;
+                            }
+                        }
+
+                        sidebar->remote_storage()->when_unmount_by_uri(uri, [sidebar, mount_path](bool success, std::string msg) {
                             if (success) {
                                 LOG_INFO << "RemoteSidebarItem: Desmontado exitoso. Esperando para refrescar...";
+                                
+                                if (!mount_path.empty()) {
+                                    UnmountEventContext ctx;
+                                    ctx.mount_path = mount_path;
+                                    sidebar->when_resource_unmounted.run(ctx);
+                                }
+
                                 if (sidebar->application()) {
                                     sidebar->application()->add_timer(200, [sidebar]() {
                                         sidebar->refresh_devices();
