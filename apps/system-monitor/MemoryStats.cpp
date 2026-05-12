@@ -1,9 +1,9 @@
 #include "MemoryStats.hpp"
+#include <cstdio>
 #include <horizon/Application.hpp>
 #include <horizon/AquaObject.hpp>
 #include <horizon/ThemeManager.hpp>
 #include <horizon/WaylandWindow.hpp>
-#include <cstdio>
 
 namespace horizon
 {
@@ -24,7 +24,7 @@ namespace horizon
         // Left Panel
         auto left_panel = std::make_unique<Widget>();
         left_panel->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        left_panel->set_fixed_size(220);
+        left_panel->set_fixed_size(300);
         left_panel->set_margin(15);
         left_panel->set_spacing(5);
         left_panel->add_child(create_stat_row("Physical Memory:", &m_lbl_total_phys));
@@ -53,7 +53,7 @@ namespace horizon
         // Right Panel
         auto right_panel = std::make_unique<Widget>();
         right_panel->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        right_panel->set_fixed_size(220);
+        right_panel->set_fixed_size(300);
         right_panel->set_margin(15);
         right_panel->set_spacing(5);
         right_panel->add_child(create_stat_row("Available:", &m_lbl_available));
@@ -70,7 +70,8 @@ namespace horizon
         m_history.resize(m_max_history, 0.0);
     }
 
-    std::unique_ptr<Widget> MemoryStats::create_stat_row(const std::string &name, Label **value_label_out)
+    std::unique_ptr<Widget> MemoryStats::create_stat_row(const std::string &name,
+                                                         Label **value_label_out)
     {
         auto row = std::make_unique<Widget>();
         row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
@@ -96,33 +97,46 @@ namespace horizon
 
     void MemoryStats::update(const MemoryUsage &usage)
     {
-        auto format_bytes = [](uint64_t bytes) {
+        auto format_bytes = [](uint64_t bytes)
+        {
             char buf[64];
             double gb = (double)bytes / (1024.0 * 1024.0 * 1024.0);
-            if (gb >= 1.0) {
+            if (gb >= 1.0)
+            {
                 snprintf(buf, sizeof(buf), "%.2f GB", gb);
-            } else {
+            }
+            else
+            {
                 double mb = (double)bytes / (1024.0 * 1024.0);
                 snprintf(buf, sizeof(buf), "%.1f MB", mb);
             }
             return std::string(buf);
         };
 
-        if (m_lbl_total_phys) m_lbl_total_phys->set_text(format_bytes(usage.total_physical));
-        if (m_lbl_used_phys) m_lbl_used_phys->set_text(format_bytes(usage.used_physical));
-        if (m_lbl_total_virt) m_lbl_total_virt->set_text(format_bytes(usage.total_virtual));
-        if (m_lbl_used_swap) m_lbl_used_swap->set_text(format_bytes(usage.used_swap));
+        if (m_lbl_total_phys)
+            m_lbl_total_phys->set_text(format_bytes(usage.total_physical));
+        if (m_lbl_used_phys)
+            m_lbl_used_phys->set_text(format_bytes(usage.used_physical));
+        if (m_lbl_total_virt)
+            m_lbl_total_virt->set_text(format_bytes(usage.total_virtual));
+        if (m_lbl_used_swap)
+            m_lbl_used_swap->set_text(format_bytes(usage.used_swap));
 
-        if (m_lbl_available) m_lbl_available->set_text(format_bytes(usage.available_physical));
-        if (m_lbl_cached) m_lbl_cached->set_text(format_bytes(usage.cached));
-        if (m_lbl_free) m_lbl_free->set_text(format_bytes(usage.free_physical));
-        
+        if (m_lbl_available)
+            m_lbl_available->set_text(format_bytes(usage.available_physical));
+        if (m_lbl_cached)
+            m_lbl_cached->set_text(format_bytes(usage.cached));
+        if (m_lbl_free)
+            m_lbl_free->set_text(format_bytes(usage.free_physical));
+
         char pct_buf[32];
         snprintf(pct_buf, sizeof(pct_buf), "%.2f%%", usage.used_percent);
-        if (m_lbl_used_pct) m_lbl_used_pct->set_text(pct_buf);
+        if (m_lbl_used_pct)
+            m_lbl_used_pct->set_text(pct_buf);
 
         m_history.push_back(usage.used_percent);
-        if (m_history.size() > m_max_history) m_history.erase(m_history.begin());
+        if (m_history.size() > m_max_history)
+            m_history.erase(m_history.begin());
 
         m_chart->clear_series();
         m_chart->add_series("Memory Usage", Color(0.2f, 0.3f, 0.1f), m_history);

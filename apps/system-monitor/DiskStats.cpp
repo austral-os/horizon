@@ -1,9 +1,9 @@
 #include "DiskStats.hpp"
+#include <cstdio>
 #include <horizon/Application.hpp>
 #include <horizon/AquaObject.hpp>
 #include <horizon/ThemeManager.hpp>
 #include <horizon/WaylandWindow.hpp>
-#include <cstdio>
 
 namespace horizon
 {
@@ -24,7 +24,7 @@ namespace horizon
         // Left Panel
         auto left_panel = std::make_unique<Widget>();
         left_panel->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        left_panel->set_fixed_size(220);
+        left_panel->set_fixed_size(300);
         left_panel->set_margin(15);
         left_panel->set_spacing(5);
         left_panel->add_child(create_stat_row("Reads in:", &m_lbl_reads_completed));
@@ -53,7 +53,7 @@ namespace horizon
         // Right Panel
         auto right_panel = std::make_unique<Widget>();
         right_panel->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        right_panel->set_fixed_size(220);
+        right_panel->set_fixed_size(300);
         right_panel->set_margin(15);
         right_panel->set_spacing(5);
         right_panel->add_child(create_stat_row("Data Read:", &m_lbl_total_read));
@@ -71,7 +71,8 @@ namespace horizon
         m_write_history.resize(m_max_history, 0.0);
     }
 
-    std::unique_ptr<Widget> DiskStats::create_stat_row(const std::string &name, Label **value_label_out)
+    std::unique_ptr<Widget> DiskStats::create_stat_row(const std::string &name,
+                                                       Label **value_label_out)
     {
         auto row = std::make_unique<Widget>();
         row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
@@ -98,18 +99,24 @@ namespace horizon
     void DiskStats::update(const DiskUsage &usage)
     {
         char buf[64];
-        
+
         snprintf(buf, sizeof(buf), "%lu", usage.reads_completed);
-        if (m_lbl_reads_completed) m_lbl_reads_completed->set_text(buf);
+        if (m_lbl_reads_completed)
+            m_lbl_reads_completed->set_text(buf);
 
         snprintf(buf, sizeof(buf), "%lu", usage.writes_completed);
-        if (m_lbl_writes_completed) m_lbl_writes_completed->set_text(buf);
+        if (m_lbl_writes_completed)
+            m_lbl_writes_completed->set_text(buf);
 
-        auto format_speed = [](double kb_sec) {
+        auto format_speed = [](double kb_sec)
+        {
             char b[64];
-            if (kb_sec >= 1024.0) {
+            if (kb_sec >= 1024.0)
+            {
                 snprintf(b, sizeof(b), "%.2f MB/s", kb_sec / 1024.0);
-            } else {
+            }
+            else
+            {
                 snprintf(b, sizeof(b), "%.1f KB/s", kb_sec);
             }
             return std::string(b);
@@ -118,31 +125,43 @@ namespace horizon
         std::string r_speed = format_speed(usage.read_speed_kb);
         std::string w_speed = format_speed(usage.write_speed_kb);
 
-        if (m_lbl_read_speed) m_lbl_read_speed->set_text(r_speed);
-        if (m_lbl_write_speed) m_lbl_write_speed->set_text(w_speed);
-        if (m_lbl_read_speed_r) m_lbl_read_speed_r->set_text(r_speed);
-        if (m_lbl_write_speed_r) m_lbl_write_speed_r->set_text(w_speed);
+        if (m_lbl_read_speed)
+            m_lbl_read_speed->set_text(r_speed);
+        if (m_lbl_write_speed)
+            m_lbl_write_speed->set_text(w_speed);
+        if (m_lbl_read_speed_r)
+            m_lbl_read_speed_r->set_text(r_speed);
+        if (m_lbl_write_speed_r)
+            m_lbl_write_speed_r->set_text(w_speed);
 
-        auto format_bytes = [](uint64_t bytes) {
+        auto format_bytes = [](uint64_t bytes)
+        {
             char b[64];
             double gb = (double)bytes / (1024.0 * 1024.0 * 1024.0);
-            if (gb >= 1.0) {
+            if (gb >= 1.0)
+            {
                 snprintf(b, sizeof(b), "%.2f GB", gb);
-            } else {
+            }
+            else
+            {
                 double mb = (double)bytes / (1024.0 * 1024.0);
                 snprintf(b, sizeof(b), "%.1f MB", mb);
             }
             return std::string(b);
         };
 
-        if (m_lbl_total_read) m_lbl_total_read->set_text(format_bytes(usage.total_read_bytes));
-        if (m_lbl_total_written) m_lbl_total_written->set_text(format_bytes(usage.total_written_bytes));
+        if (m_lbl_total_read)
+            m_lbl_total_read->set_text(format_bytes(usage.total_read_bytes));
+        if (m_lbl_total_written)
+            m_lbl_total_written->set_text(format_bytes(usage.total_written_bytes));
 
         m_read_history.push_back(usage.read_speed_kb);
-        if (m_read_history.size() > m_max_history) m_read_history.erase(m_read_history.begin());
+        if (m_read_history.size() > m_max_history)
+            m_read_history.erase(m_read_history.begin());
 
         m_write_history.push_back(usage.write_speed_kb);
-        if (m_write_history.size() > m_max_history) m_write_history.erase(m_write_history.begin());
+        if (m_write_history.size() > m_max_history)
+            m_write_history.erase(m_write_history.begin());
 
         m_chart->clear_series();
         m_chart->add_series("Read Speed", Color(0.2f, 0.3f, 0.1f), m_read_history);
