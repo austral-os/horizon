@@ -80,6 +80,15 @@ namespace horizon
         void set_show_tooltip(bool show) { m_show_tooltip = show; invalidate(); }
         void set_smooth_curves(bool smooth) { m_smooth_curves = smooth; invalidate(); }
         void set_auto_scale(bool auto_scale) { m_auto_scale = auto_scale; invalidate(); }
+        
+        void set_margins(int left, int top, int right, int bottom)
+        {
+            m_margin_left = left;
+            m_margin_top = top;
+            m_margin_right = right;
+            m_margin_bottom = bottom;
+            invalidate();
+        }
 
         /**
          * @brief Manually sets the Y-axis range if auto-scaling is disabled.

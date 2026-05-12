@@ -2,6 +2,7 @@
 
 #include <horizon/Widget.hpp>
 #include <horizon/ChartArea.hpp>
+#include <horizon/Label.hpp>
 #include "ProcessManager.hpp"
 #include <memory>
 #include <vector>
@@ -32,8 +33,18 @@ namespace horizon
     private:
         void init_chart();
         void update_series();
+        
+        std::unique_ptr<Widget> create_stat_row(const std::string &name, Label** value_label_out);
 
         ChartArea* m_chart{nullptr};
+        
+        Label* m_lbl_system{nullptr};
+        Label* m_lbl_user{nullptr};
+        Label* m_lbl_idle{nullptr};
+        
+        Label* m_lbl_threads{nullptr};
+        Label* m_lbl_processes{nullptr};
+
         bool m_show_cores{false};
         
         // History data: [series_index][time_point]

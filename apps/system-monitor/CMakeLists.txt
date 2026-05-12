@@ -19,6 +19,6 @@ horizon_install_app(system-monitor
     NAME "System Monitor"
     COMMENT "Monitor system resources and processes"
     ICON "utilities-system-monitor"
-    VERSION "0.1.0"
+    VERSION "0.2.0"
     CATEGORIES "System;Monitor;"
 )

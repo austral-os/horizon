@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <dirent.h>
 
 namespace horizon
 {
@@ -108,10 +109,19 @@ namespace horizon
     {
         std::ifstream file("/proc/stat");
         std::string line;
-        CPUUsage usage{0.0, {}};
+        CPUUsage usage{0.0, 0.0, 0.0, 0.0, 0, 0, {}};
         
+        struct CPUDetailed {
+            uint64_t user;
+            uint64_t system;
+            uint64_t idle;
+            uint64_t total;
+        };
+        static CPUDetailed prev_detailed{0, 0, 0, 0};
+
         std::vector<CPUPoint> current_cores;
         CPUPoint current_total{0, 0};
+        CPUDetailed current_detailed{0, 0, 0, 0};
 
         while (std::getline(file, line))
         {
@@ -125,11 +135,14 @@ namespace horizon
                 ss >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal >> guest >> guest_nice;
 
                 uint64_t idle_time = idle + iowait;
-                uint64_t total_time = user + nice + system + idle + iowait + irq + softirq + steal;
+                uint64_t user_time = user + nice + guest + guest_nice;
+                uint64_t system_time = system + irq + softirq + steal;
+                uint64_t total_time = user_time + system_time + idle_time;
 
                 if (cpu_label == "cpu")
                 {
                     current_total = {idle_time, total_time};
+                    current_detailed = {user_time, system_time, idle_time, total_time};
                 }
                 else
                 {
@@ -138,17 +151,23 @@ namespace horizon
             }
         }
 
-        // Calculate Total %
-        if (m_prev_total_cpu.total != 0)
+        // Calculate detailed %
+        if (prev_detailed.total != 0)
         {
-            uint64_t idle_delta = current_total.idle - m_prev_total_cpu.idle;
-            uint64_t total_delta = current_total.total - m_prev_total_cpu.total;
+            uint64_t total_delta = current_detailed.total - prev_detailed.total;
             if (total_delta != 0)
-                usage.total = (1.0 - (double)idle_delta / total_delta) * 100.0;
+            {
+                usage.total = (1.0 - (double)(current_detailed.idle - prev_detailed.idle) / total_delta) * 100.0;
+                usage.user = (double)(current_detailed.user - prev_detailed.user) / total_delta * 100.0;
+                usage.system = (double)(current_detailed.system - prev_detailed.system) / total_delta * 100.0;
+                usage.idle = (double)(current_detailed.idle - prev_detailed.idle) / total_delta * 100.0;
+            }
         }
-        m_prev_total_cpu = current_total;
+        prev_detailed = current_detailed;
+        m_prev_total_cpu = {current_detailed.idle, current_detailed.total};
 
         // Calculate Cores %
+        // ... (rest of core calculation)
         if (m_prev_cores_cpu.size() == current_cores.size())
         {
             for (size_t i = 0; i < current_cores.size(); ++i)
@@ -166,6 +185,31 @@ namespace horizon
             usage.cores.assign(current_cores.size(), 0.0);
         }
         m_prev_cores_cpu = current_cores;
+
+        // Get process and thread counts
+        // A bit slow but accurate: read /proc
+        int procs = 0;
+        int threads = 0;
+        std::ifstream loadavg("/proc/loadavg");
+        std::string junk;
+        std::string procs_running_total;
+        // Format: 0.00 0.00 0.00 1/820 12345
+        loadavg >> junk >> junk >> junk >> procs_running_total;
+        size_t slash = procs_running_total.find('/');
+        if (slash != std::string::npos) {
+            usage.total_threads = std::stoi(procs_running_total.substr(slash + 1));
+        }
+        
+        // Count processes by counting directories in /proc
+        usage.total_processes = 0;
+        if (auto dir = opendir("/proc")) {
+            while (auto entry = readdir(dir)) {
+                if (entry->d_type == DT_DIR && isdigit(entry->d_name[0])) {
+                    usage.total_processes++;
+                }
+            }
+            closedir(dir);
+        }
 
         return usage;
     }

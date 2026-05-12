@@ -12,6 +12,11 @@ namespace horizon
     struct CPUUsage
     {
         double total;
+        double user;
+        double system;
+        double idle;
+        int total_threads;
+        int total_processes;
         std::vector<double> cores;
     };
 
