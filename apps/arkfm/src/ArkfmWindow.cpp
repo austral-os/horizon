@@ -541,6 +541,11 @@ namespace horizon::arkfm
                         
                         if (shared_dlg) shared_dlg->show_error(display_msg);
                         show_status_message("Error: " + display_msg, 5000);
+                        
+                        // Show alert for real errors (excluding cancellations by user)
+                        if (raw_msg.find("cancel") == std::string::npos && application()) {
+                            application()->alert(display_msg, i18n().tr("arkfm.dialog.error") != "arkfm.dialog.error" ? i18n().tr("arkfm.dialog.error") : "Error");
+                        }
                     }
                 }
             });

@@ -32,7 +32,8 @@
       "new_name": "Nuevo nombre:",
       "folder_name": "Nombre de la carpeta:",
       "go_to_folder": "Ir a la carpeta",
-      "enter_path": "Ingrese la ruta de la carpeta:"
+      "enter_path": "Ingrese la ruta de la carpeta:",
+      "error": "Error"
     },
     "properties": {
       "type": "Tipo",

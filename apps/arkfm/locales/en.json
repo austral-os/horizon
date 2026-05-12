@@ -32,7 +32,8 @@
       "new_name": "New name:",
       "folder_name": "Folder name:",
       "go_to_folder": "Go to Folder",
-      "enter_path": "Enter the path of the folder:"
+      "enter_path": "Enter the path of the folder:",
+      "error": "Error"
     },
     "properties": {
       "type": "Type",
