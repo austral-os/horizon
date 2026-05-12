@@ -12,6 +12,10 @@
 #include <horizon/dialogs/MessageDialog.hpp>
 #include <horizon/About.hpp>
 
+#ifndef APP_VERSION
+#define APP_VERSION HORIZON_CORE_VERSION
+#endif
+
 namespace horizon
 {
 

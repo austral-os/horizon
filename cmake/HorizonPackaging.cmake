@@ -6,7 +6,7 @@ include(cmake/HorizonMacros.cmake)
 # CPack Configuration
 set(CPACK_PACKAGE_NAME "horizon-desktop")
 set(CPACK_PACKAGE_VENDOR "Austral OS")
-set(CPACK_PACKAGE_VERSION "0.1.0")
+set(CPACK_PACKAGE_VERSION "${HORIZON_VERSION}")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Horizon Desktop Environment Applications")
 set(CPACK_PACKAGE_CONTACT "Horacio <user@example.com>") # Placeholder, should be updated if known
 

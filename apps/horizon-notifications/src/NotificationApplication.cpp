@@ -8,7 +8,7 @@ namespace horizon::notifications
     {
         about_manager().set_app_title("Horizon Notifications");
         about_manager().set_app_description("Notification daemon for Horizon");
-        about_manager().set_app_version("1.0.0");
+        about_manager().set_app_version(APP_VERSION);
         about_manager().set_app_icon("dialog-information");
         
         // Load translations

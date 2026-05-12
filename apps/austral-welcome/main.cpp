@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
     auto &about = app->about_manager();
     about.set_app_title(horizon::i18n().tr("welcome.title"));
     about.set_app_description(horizon::i18n().tr("welcome.description"));
-    about.set_app_version("0.1.0");
+    about.set_app_version(APP_VERSION);
     about.set_app_icon("emblem-austral");
 
     auto window = std::make_unique<WelcomeWindow>();

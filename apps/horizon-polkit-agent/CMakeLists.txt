@@ -24,6 +24,7 @@ horizon_install_app(horizon-polkit-agent
     NAME "Horizon Polkit Agent"
     COMMENT "Horizon Authentication Agent"
     ICON "dialog-password"
+    VERSION "0.1.0"
     CATEGORIES "System;"
     EXTRA_DESKTOP "NoDisplay=true"
 )

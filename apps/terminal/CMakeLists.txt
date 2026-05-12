@@ -25,6 +25,7 @@ horizon_install_app(terminal
     NAME "Terminal"
     COMMENT "Horizon Terminal Emulator"
     ICON "horizon-terminal"
+    VERSION "0.1.0"
     CATEGORIES "System;TerminalEmulator;"
     MIMETYPE "x-scheme-handler/ssh;"
 )

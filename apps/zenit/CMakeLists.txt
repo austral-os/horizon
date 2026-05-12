@@ -27,6 +27,7 @@ horizon_install_app(${APP_NAME}
     NAME "Zenit Video Player"
     COMMENT "Reproductor de video de alta fidelidad"
     ICON "multimedia-video-player"
+    VERSION "0.1.0"
     CATEGORIES "Video;Player;"
     MIMETYPE "video/mp4;video/x-matroska;video/webm;video/ogg;video/mpeg;video/quicktime;video/x-msvideo;video/x-flv;video/3gpp;video/x-ms-wmv;"
     EXEC_ARGS "%F"

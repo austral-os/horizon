@@ -20,7 +20,7 @@ namespace horizon
         auto &about = about_manager();
         about.set_app_title("Launchpad");
         about.set_app_description("Horizon Launchpad allows you to find and open your applications easily.");
-        about.set_app_version("0.1.0");
+        about.set_app_version(APP_VERSION);
         about.set_app_icon("launchpad");
         about.set_app_git(ABOUT_HORIZON.git);
 

@@ -71,7 +71,7 @@ int main(int argc, char **argv)
     auto &about = app.about_manager();
     about.set_app_title("Horizon Terminal");
     about.set_app_description(horizon::i18n().tr("terminal.aboutus.about"));
-    about.set_app_version("0.1.0");
+    about.set_app_version(APP_VERSION);
     about.set_app_icon("horizon-terminal");
     about.set_app_git(ABOUT_HORIZON.git);
     about.add_app_translator("Horacio", "https://github.com/austral-os/horizon", "horaciodrs@gmail.com");

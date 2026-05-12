@@ -19,6 +19,7 @@ horizon_install_app(capture
     NAME "Capture"
     COMMENT "Screen Capture and Recording"
     ICON "screenrecorder"
+    VERSION "0.1.0"
     CATEGORIES "Utility;AudioVideo;"
 )
 

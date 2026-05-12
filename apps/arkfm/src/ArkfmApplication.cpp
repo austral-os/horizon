@@ -23,7 +23,7 @@ namespace horizon::arkfm
         auto &about = about_manager();
         about.set_app_title("ArkFM");
         about.set_app_description("ArkFM is the default file manager for Horizon.");
-        about.set_app_version("0.1.0");
+        about.set_app_version(APP_VERSION);
         about.set_app_icon("system-file-manager");
 
         auto window = std::make_unique<ArkfmWindow>(ARK_APP_DEFAULT_WIDTH, ARK_APP_DEFAULT_HEIGHT);

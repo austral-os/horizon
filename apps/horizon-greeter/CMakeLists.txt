@@ -20,6 +20,7 @@ horizon_install_app(horizon-greeter
     NAME "Horizon Greeter"
     COMMENT "System Greeter Application"
     ICON "avatar-default"
+    VERSION "0.1.0"
     CATEGORIES "System;"
     EXTRA_DESKTOP "NoDisplay=true"
 )

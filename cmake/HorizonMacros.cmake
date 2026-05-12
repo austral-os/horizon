@@ -9,9 +9,13 @@ set(HORIZON_RUNTIME_DEPENDS
 # Function to install an app with its locales and desktop file
 macro(horizon_install_app TARGET_NAME)
     set(options)
-    set(oneValueArgs APP_ID NAME COMMENT ICON TERMINAL EXEC_ARGS EXTRA_DESKTOP)
+    set(oneValueArgs APP_ID NAME COMMENT ICON TERMINAL EXEC_ARGS EXTRA_DESKTOP VERSION)
     set(multiValueArgs MIMETYPE CATEGORIES)
     cmake_parse_arguments(APP "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if(NOT APP_VERSION)
+        set(APP_VERSION ${HORIZON_VERSION})
+    endif()
 
     if(NOT APP_APP_ID)
         set(APP_APP_ID ${TARGET_NAME})
@@ -45,6 +49,9 @@ macro(horizon_install_app TARGET_NAME)
         COMPONENT ${APP_APP_ID}
     )
 
+    # Pass app version as compile definition
+    target_compile_definitions(${TARGET_NAME} PRIVATE APP_VERSION="${APP_VERSION}")
+
     # Normalize APP_ID to use hyphens for the package name
     string(REPLACE "_" "-" APP_ID_NORM "${APP_APP_ID}")
     
@@ -54,6 +61,9 @@ macro(horizon_install_app TARGET_NAME)
     else()
         set(CPACK_DEBIAN_${APP_APP_ID}_PACKAGE_NAME "horizon-${APP_ID_NORM}")
     endif()
+
+    # Set version for this component
+    set(CPACK_DEBIAN_${APP_APP_ID}_PACKAGE_VERSION "${APP_VERSION}")
 
     # Get the actual output name of the binary
     get_target_property(APP_BINARY_NAME ${TARGET_NAME} OUTPUT_NAME)

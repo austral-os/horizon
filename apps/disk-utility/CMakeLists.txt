@@ -25,5 +25,6 @@ horizon_install_app(disk-utility
     NAME "Utilidad de Discos"
     COMMENT "Administrar discos y particiones"
     ICON "gnome-disks"
+    VERSION "0.1.0"
     CATEGORIES "System;Settings;DiskUtility;"
 )

@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
     auto &about = app.about_manager();
     about.set_app_title(horizon::i18n().tr("capture.title"));
     about.set_app_description(horizon::i18n().tr("capture.about.description"));
-    about.set_app_version("1.0.0");
+    about.set_app_version(APP_VERSION);
     about.set_app_icon("screenrecorder");
     about.add_app_author("Austral OS Team", "https://github.com/austral-os", "contact@austral-os.org");
     about.set_app_web("https://github.com/austral-os/horizon");

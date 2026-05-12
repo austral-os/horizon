@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
-project(Horizon)
+project(Horizon VERSION 0.3.0)
+set(HORIZON_VERSION ${PROJECT_VERSION})
 
 # Default install prefix to /usr if not specified
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -83,9 +84,12 @@ target_include_directories(horizon
         ${FONTCONFIG_INCLUDE_DIRS}
 )
 
-target_compile_definitions(horizon PRIVATE
-    HORIZON_BUILD_DIR="${CMAKE_BINARY_DIR}"
-    HORIZON_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+target_compile_definitions(horizon
+    PUBLIC
+        HORIZON_CORE_VERSION="${HORIZON_VERSION}"
+    PRIVATE
+        HORIZON_BUILD_DIR="${CMAKE_BINARY_DIR}"
+        HORIZON_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
 target_link_libraries(horizon

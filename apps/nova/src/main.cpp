@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
     auto &about = app.about_manager();
     about.set_app_title("Nova");
     about.set_app_description("Nova is a fast and lightweight web browser for Horizon.");
-    about.set_app_version("0.1.0");
+    about.set_app_version(APP_VERSION);
     about.set_app_icon("web-browser");
     
     std::string config_path;

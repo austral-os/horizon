@@ -21,7 +21,7 @@ namespace horizon::greeter
             auto &about = about_manager();
             about.set_app_title("Horizon Greeter");
             about.set_app_description("System login interface for Austral OS.");
-            about.set_app_version("0.1.0");
+            about.set_app_version(APP_VERSION);
             about.set_app_icon("avatar-default");
             about.set_app_git(horizon::ABOUT_HORIZON.git);
             about.add_app_author("Horacio Daniel Ros", "https://github.com/austral-os/horizon", "horaciodrs@gmail.com");

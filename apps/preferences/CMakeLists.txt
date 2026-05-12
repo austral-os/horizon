@@ -72,6 +72,7 @@ horizon_install_app(preferences
     NAME "Preferences"
     COMMENT "Horizon System Preferences"
     ICON "applications-system"
+    VERSION "0.1.0"
     CATEGORIES "System;"
 )
 

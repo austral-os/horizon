@@ -22,6 +22,7 @@ horizon_install_app(horizon-notifications
     NAME "Horizon Notifications"
     COMMENT "Notification daemon for Horizon"
     ICON "dialog-information"
+    VERSION "0.1.0"
     CATEGORIES "System;"
     EXTRA_DESKTOP "NoDisplay=true"
 )

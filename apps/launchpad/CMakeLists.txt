@@ -27,5 +27,6 @@ horizon_install_app(launchpad
     NAME "Launchpad"
     COMMENT "Applications Launcher"
     ICON "slingscold"
+    VERSION "0.1.0"
     CATEGORIES "System;"
 )

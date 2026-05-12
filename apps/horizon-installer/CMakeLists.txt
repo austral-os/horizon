@@ -32,5 +32,6 @@ horizon_install_app(horizon-installer
     NAME "OS Installer"
     COMMENT "Install Austral OS to your computer"
     ICON "emblem-austral"
+    VERSION "0.1.0"
     CATEGORIES "System;Settings;Utility;"
 )

@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     auto &about = app.about_manager();
     about.set_app_title("Text Editor");
     about.set_app_description("A modern text editor for Horizon with syntax highlighting support.");
-    about.set_app_version("0.1.0");
+    about.set_app_version(APP_VERSION);
     about.set_app_icon("accessories-text-editor");
 
     // Setup preferences factory

@@ -1,7 +1,11 @@
 #pragma once
 #include <string>
-#include <vector>
 #include <algorithm>
+#include <vector>
+
+#ifndef HORIZON_CORE_VERSION
+#define HORIZON_CORE_VERSION "0.0.0"
+#endif
 
 namespace horizon
 {
@@ -29,7 +33,7 @@ namespace horizon
         "Horizon is a free and open-source desktop environment for Linux.",
         "https://github.com/austral-os/horizon",
         "https://github.com/austral-os/horizon",
-        "0.1.0",
+        HORIZON_CORE_VERSION,
         "horizon-desktop",
         {{"Horacio Daniel Ros", "https://github.com/austral-os/horizon", "horaciodrs@gmail.com"}},
         {{"Horacio", "https://github.com/austral-os/horizon", "horaciodrs@gmail.com"}}};

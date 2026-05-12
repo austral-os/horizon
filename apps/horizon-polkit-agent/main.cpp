@@ -30,7 +30,7 @@ public:
         g_app = this;
         about_manager().set_app_title("Horizon Polkit Agent");
         about_manager().set_app_description("Horizon Authentication Agent");
-        about_manager().set_app_version("0.1.0");
+        about_manager().set_app_version(APP_VERSION);
         about_manager().set_app_icon("dialog-password");
     }
 

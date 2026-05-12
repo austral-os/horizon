@@ -39,7 +39,7 @@ namespace horizon
         auto &about = about_manager();
         about.set_app_title("Horizon Wallpaper");
         about.set_app_description("Horizon Wallpaper manages and displays your desktop backgrounds.");
-        about.set_app_version("0.1.0");
+        about.set_app_version(APP_VERSION);
         about.set_app_icon("preferences-desktop-wallpaper");
         about.set_app_git(ABOUT_HORIZON.git);
         setup_window(first);
