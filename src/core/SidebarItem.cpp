@@ -9,7 +9,7 @@ namespace horizon
         set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         set_fixed_size(30); // Height of the item
         set_spacing(10);
-        set_margin(10); // MUST be 0 to allow vertical centering using full 30px height
+        set_margin(10); // Restore original margin
 
         auto icon = std::make_unique<Icon>();
         icon->set_icon_name(icon_name);
@@ -58,6 +58,11 @@ namespace horizon
     {
         if (!m_visible || !m_enabled)
             return nullptr;
+
+        // Check if any child (like an eject button) was hit first
+        Widget* child_hit = Widget::hit_test(x, y);
+        if (child_hit && child_hit != this)
+            return child_hit;
 
         if (x < m_x || y < m_y || x >= m_x + m_width || y >= m_y + m_height)
             return nullptr;

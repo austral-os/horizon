@@ -10,9 +10,10 @@ namespace horizon
 }
 
 namespace horizon::files
-{
-    class FileView;
-}
+    {
+        class FileView;
+        class FileSidebar;
+    }
 
 namespace horizon::arkfm
 {
@@ -35,6 +36,7 @@ namespace horizon::arkfm
 
     private:
         files::FileView *m_view_ptr{nullptr};
+        files::FileSidebar *m_sidebar_ptr{nullptr};
         horizon::Label *m_status_label{nullptr};
         horizon::ProgressBar *m_progress_bar{nullptr};
         std::unique_ptr<horizon::Menu> m_active_context_menu;

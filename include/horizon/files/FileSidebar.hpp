@@ -10,8 +10,9 @@ namespace horizon::files
         FileSidebar();
         ~FileSidebar() override = default;
 
-    private:
         void refresh_devices();
+
+    private:
         void setup_monitoring();
         
         disks::DiskManager m_disk_manager;

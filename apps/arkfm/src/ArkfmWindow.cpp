@@ -40,7 +40,8 @@ namespace horizon::arkfm
         vpanel->set_spacing(10);
 
         auto sidebar = std::make_unique<files::FileSidebar>();
-        auto *sidebar_ptr = sidebar.get();
+        m_sidebar_ptr = sidebar.get();
+        auto *sidebar_ptr = m_sidebar_ptr;
         auto view = std::make_unique<files::FileView>(getenv("HOME") ? getenv("HOME") : "~/");
         m_view_ptr = view.get();
         auto *view_ptr = m_view_ptr;
@@ -421,8 +422,18 @@ namespace horizon::arkfm
         m_remote_manager->mount(uri, creds, [this, uri](storage::RemoteMountResult res) {
             if (res.success) {
                 LOG_INFO << "ArkFM: Montado exitoso de " << uri << " en " << res.mount_path;
-                if (m_view_ptr) m_view_ptr->navigate_to(res.mount_path);
-                show_status_message("Conectado a " + uri);
+                application()->post_task([this, uri, res]() {
+                    if (m_view_ptr) {
+                        m_view_ptr->navigate_to(res.mount_path);
+                    }
+                    if (m_sidebar_ptr) {
+                        // Delay sidebar refresh to let GIO/GVFS stabilize
+                        application()->add_timer(1000, [this]() {
+                            if (m_sidebar_ptr) m_sidebar_ptr->refresh_devices();
+                        }, false);
+                    }
+                    show_status_message("Conectado a " + uri);
+                });
             } else {
                 LOG_ERROR << "ArkFM: Fallo al montar " << uri << ": " << res.message;
                 
