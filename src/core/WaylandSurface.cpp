@@ -629,15 +629,18 @@ namespace horizon
         
         const char *name = "left_ptr";
         switch (type) {
-            case CursorType::Pointer:  name = "hand2"; break;
-            case CursorType::Text:     name = "xterm"; break;
-            case CursorType::Move:     name = "move"; break;
-            case CursorType::Wait:     name = "watch"; break;
-            case CursorType::Help:     name = "help"; break;
-            case CursorType::ResizeNS: name = "ns-resize"; break;
-            case CursorType::ResizeEW: name = "ew-resize"; break;
+            case CursorType::Pointer:    name = "hand2"; break;
+            case CursorType::Text:       name = "xterm"; break;
+            case CursorType::Move:       name = "move"; break;
+            case CursorType::Wait:       name = "watch"; break;
+            case CursorType::Help:       name = "help"; break;
+            case CursorType::ResizeNS:   name = "ns-resize"; break;
+            case CursorType::ResizeEW:   name = "ew-resize"; break;
             case CursorType::ResizeNESW: name = "nesw-resize"; break;
             case CursorType::ResizeNWSE: name = "nwse-resize"; break;
+            case CursorType::DndCopy:    name = "dnd-copy"; break;
+            case CursorType::DndMove:    name = "dnd-move"; break;
+            case CursorType::DndNone:    name = "dnd-no-drop"; break;
             default: name = "left_ptr"; break;
         }
 

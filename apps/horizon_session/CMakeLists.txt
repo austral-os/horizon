@@ -94,8 +94,19 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${ICON_TARBALL}")
     install(DIRECTORY "${EXTRACT_DIR}/austral-icon-theme/Light/"
         DESTINATION share/icons/austral
         COMPONENT session
+        USE_SOURCE_PERMISSIONS
+        FILES_MATCHING
+        PATTERN "*"
         PATTERN ".git" EXCLUDE
         PATTERN "README.md" EXCLUDE
+    )
+
+    # Explicitly ensure cursors are installed if the above missed them for some reason
+    install(DIRECTORY "${EXTRACT_DIR}/austral-icon-theme/Light/cursors/"
+        DESTINATION share/icons/austral/cursors
+        COMPONENT session
+        USE_SOURCE_PERMISSIONS
+        OPTIONAL
     )
 endif()
 

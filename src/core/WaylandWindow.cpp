@@ -3627,6 +3627,10 @@ namespace horizon
     static void data_source_handle_cancelled(void *data, struct wl_data_source *source)
     {
         auto *state = static_cast<DragSourceState *>(data);
+        if (state->window && state->window->w_surface())
+        {
+            state->window->w_surface()->set_cursor(CursorType::Default);
+        }
         state->window->cleanup_drag_icon();
         delete state;
         wl_data_source_destroy(source);
@@ -3635,18 +3639,46 @@ namespace horizon
     static void data_source_handle_dnd_finished(void *data, struct wl_data_source *source)
     {
         auto *state = static_cast<DragSourceState *>(data);
+        if (state->window && state->window->w_surface())
+        {
+            state->window->w_surface()->set_cursor(CursorType::Default);
+        }
         state->window->cleanup_drag_icon();
         delete state;
         wl_data_source_destroy(source);
     }
 
     static const struct wl_data_source_listener data_source_listener = {
-        .target = [](void *, struct wl_data_source *, const char *) {},
+        .target = [](void *data, struct wl_data_source *source, const char *mime_type) {
+            auto *state = static_cast<DragSourceState *>(data);
+            if (state->window && state->window->w_surface())
+            {
+                if (mime_type)
+                {
+                    state->window->w_surface()->set_cursor(CursorType::DndCopy);
+                }
+                else
+                {
+                    state->window->w_surface()->set_cursor(CursorType::DndNone);
+                }
+            }
+        },
         .send = data_source_handle_send,
         .cancelled = data_source_handle_cancelled,
         .dnd_drop_performed = [](void *, struct wl_data_source *) {},
         .dnd_finished = data_source_handle_dnd_finished,
-        .action = [](void *, struct wl_data_source *, uint32_t) {},
+        .action = [](void *data, struct wl_data_source *source, uint32_t action) {
+             auto *state = static_cast<DragSourceState *>(data);
+             if (state->window && state->window->w_surface())
+             {
+                 if (action == WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY)
+                     state->window->w_surface()->set_cursor(CursorType::DndCopy);
+                 else if (action == WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE)
+                     state->window->w_surface()->set_cursor(CursorType::DndMove);
+                 else if (action == WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE)
+                     state->window->w_surface()->set_cursor(CursorType::DndNone);
+             }
+        },
     };
 
     WaylandWindow* WaylandWindow::s_active_drag_source = nullptr;

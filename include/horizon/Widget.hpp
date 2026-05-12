@@ -67,7 +67,10 @@ namespace horizon
         ResizeNS,
         ResizeEW,
         ResizeNESW,
-        ResizeNWSE
+        ResizeNWSE,
+        DndCopy,
+        DndMove,
+        DndNone
     };
 
     enum class WidgetAccentColor

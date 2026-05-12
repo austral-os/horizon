@@ -95,7 +95,8 @@ void HorizonSession::init(const std::string &compositor)
                 }
 
                 bool has_settings_section = false;
-                bool has_theme_entry = false;
+                bool has_icon_theme_entry = false;
+                bool has_cursor_theme_entry = false;
                 std::vector<std::string> lines;
 
                 if (fs::exists(settings_path))
@@ -117,7 +118,12 @@ void HorizonSession::init(const std::string &compositor)
                         if (trimmed.rfind("gtk-icon-theme-name", 0) == 0)
                         {
                             lines.push_back("gtk-icon-theme-name=austral");
-                            has_theme_entry = true;
+                            has_icon_theme_entry = true;
+                        }
+                        else if (trimmed.rfind("gtk-cursor-theme-name", 0) == 0)
+                        {
+                            lines.push_back("gtk-cursor-theme-name=austral");
+                            has_cursor_theme_entry = true;
                         }
                         else
                         {
@@ -126,13 +132,22 @@ void HorizonSession::init(const std::string &compositor)
                     }
                 }
 
-                if (!has_theme_entry)
+                if (!has_icon_theme_entry || !has_cursor_theme_entry)
                 {
                     if (!has_settings_section)
                     {
                         lines.push_back("[Settings]");
                     }
-                    lines.push_back("gtk-icon-theme-name=austral");
+
+                    if (!has_icon_theme_entry)
+                    {
+                        lines.push_back("gtk-icon-theme-name=austral");
+                    }
+
+                    if (!has_cursor_theme_entry)
+                    {
+                        lines.push_back("gtk-cursor-theme-name=austral");
+                    }
                 }
 
                 // Write back the whole file
@@ -149,6 +164,29 @@ void HorizonSession::init(const std::string &compositor)
                 LOG_ERROR << "[HorizonSession] Error updating GTK settings: " << e.what();
             }
         }
+
+        // --- Cursor Theme Fallback (~/.icons/default/index.theme) ---
+        try
+        {
+            std::string icons_default_dir = std::string(home) + "/.icons/default";
+            std::string icons_index_path = icons_default_dir + "/index.theme";
+            if (!fs::exists(icons_default_dir))
+            {
+                fs::create_directories(icons_default_dir);
+            }
+            
+            std::ofstream icons_out(icons_index_path);
+            icons_out << "[Icon Theme]\nInherits=austral\n";
+            LOG_INFO << "[HorizonSession] Updated cursor theme fallback in: " << icons_index_path;
+        }
+        catch (const std::exception &e)
+        {
+            LOG_ERROR << "[HorizonSession] Error updating cursor fallback: " << e.what();
+        }
+
+        // Set environment variable for the session
+        setenv("XCURSOR_THEME", "austral", 1);
+        LOG_INFO << "[HorizonSession] Set XCURSOR_THEME to: austral";
     }
 
     // Logger is now automatically initialized by the base class Application
