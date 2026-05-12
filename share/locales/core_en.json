@@ -63,6 +63,21 @@
             "enter_password": "Enter your password",
             "authenticate": "Authenticate",
             "auth_failed": "Authentication failed. Please try again."
+        },
+        "storage": {
+            "mount_dialog": {
+                "title": "Connect to Server",
+                "instruction": "Enter your name and password for the server",
+                "connect_as": "Connect as:",
+                "guest": "Guest",
+                "registered_user": "Registered user",
+                "name": "Name:",
+                "username_placeholder": "username",
+                "password": "Password:",
+                "remember": "Remember this password in my keychain",
+                "cancel": "Cancel",
+                "connect": "Connect"
+            }
         }
     }
 }

@@ -8,15 +8,16 @@
 #include <horizon/Spacer.hpp>
 #include <horizon/TextBox.hpp>
 #include <horizon/Window.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::storage
 {
     MountPasswordDialog::MountPasswordDialog(const std::string &server_name)
         : WaylandWindow("horizon.storage.mount_dialog", 700, 400, false, false)
     {
-        set_name("Conectarse al servidor");
+        set_name(i18n().tr("core.storage.mount_dialog.title"));
 
-        auto window_widget = std::make_unique<horizon::Window>("Conectarse al servidor");
+        auto window_widget = std::make_unique<horizon::Window>(i18n().tr("core.storage.mount_dialog.title"));
 
         auto content = std::make_unique<Widget>();
         content->set_layout_type(WIDGET_LAYOUT_VERTICAL);
@@ -26,8 +27,6 @@ namespace horizon::storage
         // Header
         auto header = std::make_unique<Widget>();
         header->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        // header->set_margin(25);
-        // header->set_spacing(20);
         header->set_fixed_size(65);
 
         auto icon = std::make_unique<Icon>();
@@ -39,7 +38,7 @@ namespace horizon::storage
         text_container->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         text_container->set_spacing(5);
 
-        auto title = std::make_unique<Label>("Ingrese su nombre y contraseña para el servidor");
+        auto title = std::make_unique<Label>(i18n().tr("core.storage.mount_dialog.instruction"));
         title->set_font_weight(FONT_WEIGHT_BOLD);
         title->set_fixed_size(35);
 
@@ -62,10 +61,9 @@ namespace horizon::storage
         auto connect_as_row = std::make_unique<Widget>();
         connect_as_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         connect_as_row->set_position_type(WidgetPositionTypes::FILL);
-        // connect_as_row->set_spacing(10);
         connect_as_row->set_fixed_size(35);
 
-        auto lbl_connect_as = std::make_unique<Label>("Conectarse como:");
+        auto lbl_connect_as = std::make_unique<Label>(i18n().tr("core.storage.mount_dialog.connect_as"));
         lbl_connect_as->set_fixed_size(200);
 
         connect_as_row->add_child(std::move(lbl_connect_as));
@@ -77,7 +75,7 @@ namespace horizon::storage
         auto guest = std::make_unique<RadioButton<AquaObject>>();
         m_guest_radio = guest.get();
         guest_container->add_child(std::move(guest));
-        guest_container->add_child(std::make_unique<Label>("Invitado"));
+        guest_container->add_child(std::make_unique<Label>(i18n().tr("core.storage.mount_dialog.guest")));
 
         auto user_container = std::make_unique<Widget>();
         user_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
@@ -87,7 +85,7 @@ namespace horizon::storage
         user->set_selected(true);
         m_user_radio = user.get();
         user_container->add_child(std::move(user));
-        user_container->add_child(std::make_unique<Label>("Usuario registrado"));
+        user_container->add_child(std::make_unique<Label>(i18n().tr("core.storage.mount_dialog.registered_user")));
 
         connect_as_row->add_child(std::move(guest_container));
         connect_as_row->add_child(horizon::Spacer(15)); // Espacio entre opciones
@@ -97,15 +95,14 @@ namespace horizon::storage
         // Inputs
         auto name_row = std::make_unique<Widget>();
         name_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        // name_row->set_spacing(10);
         name_row->set_fixed_size(35);
 
-        auto name_label = std::make_unique<Label>("Nombre:");
+        auto name_label = std::make_unique<Label>(i18n().tr("core.storage.mount_dialog.name"));
         name_label->set_fixed_size(150);
         name_row->add_child(std::move(name_label));
 
         auto name = std::make_unique<TextBox<TextPolicy>>();
-        name->set_placeholder("usuario");
+        name->set_placeholder(i18n().tr("core.storage.mount_dialog.username_placeholder"));
         name->set_fixed_size(-1);
         m_name_input = name.get();
         name_row->add_child(std::move(name));
@@ -115,7 +112,7 @@ namespace horizon::storage
         pass_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         pass_row->set_fixed_size(35);
 
-        auto pass_label = std::make_unique<Label>("Contraseña:");
+        auto pass_label = std::make_unique<Label>(i18n().tr("core.storage.mount_dialog.password"));
         pass_label->set_fixed_size(150);
 
         pass_row->add_child(std::move(pass_label));
@@ -130,7 +127,7 @@ namespace horizon::storage
         form->add_child(Spacer());
 
         auto remember = std::make_unique<Checkbox<AquaObject>>();
-        remember->set_text("Recordar esta contraseña en mi llavero");
+        remember->set_text(i18n().tr("core.storage.mount_dialog.remember"));
         remember->set_checked(true);
         m_remember_check = remember.get();
         form->add_child(std::move(remember));
@@ -145,12 +142,12 @@ namespace horizon::storage
         footer->add_child(horizon::Spacer());
 
         auto cancel = std::make_unique<Button<AquaObject>>();
-        cancel->set_text("Cancelar");
+        cancel->set_text(i18n().tr("core.storage.mount_dialog.cancel"));
         cancel->set_fixed_size(150);
         cancel->when_click.connect([this](auto &) { quit(); });
 
         auto connect = std::make_unique<Button<AquaObject>>();
-        connect->set_text("Conectar");
+        connect->set_text(i18n().tr("core.storage.mount_dialog.connect"));
         connect->set_accent_color(WidgetAccentColor::Primary);
         connect->set_fixed_size(150);
         connect->when_click.connect(

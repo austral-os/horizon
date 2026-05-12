@@ -64,6 +64,21 @@
             "enter_password": "Escribe tu contraseña",
             "authenticate": "Autenticar",
             "auth_failed": "La autenticación falló. Reintente."
+        },
+        "storage": {
+            "mount_dialog": {
+                "title": "Conectarse al servidor",
+                "instruction": "Ingrese su nombre y contraseña para el servidor",
+                "connect_as": "Conectarse como:",
+                "guest": "Invitado",
+                "registered_user": "Usuario registrado",
+                "name": "Nombre:",
+                "username_placeholder": "usuario",
+                "password": "Contraseña:",
+                "remember": "Recordar esta contraseña en mi llavero",
+                "cancel": "Cancelar",
+                "connect": "Conectar"
+            }
         }
     }
 }
