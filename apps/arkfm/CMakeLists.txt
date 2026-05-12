@@ -8,7 +8,6 @@ add_executable(arkfm
     src/dialogs/RenameDialog.cpp
     src/dialogs/GoToFolderDialog.cpp
     src/dialogs/ConnectToServerDialog.cpp
-    src/dialogs/MountPasswordDialog.cpp
 )
 
 target_include_directories(arkfm

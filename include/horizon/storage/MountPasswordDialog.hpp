@@ -14,11 +14,11 @@ namespace horizon
     class AquaObject;
 }
 
-namespace horizon::arkfm
+namespace horizon::storage
 {
     struct MountPasswordEvent : public EventContext
     {
-        storage::RemoteCredentials credentials;
+        RemoteCredentials credentials;
     };
 
     class MountPasswordDialog : public WaylandWindow

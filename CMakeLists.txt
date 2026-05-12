@@ -46,7 +46,8 @@ file(GLOB_RECURSE SOURCES
     "src/core/MouseSettings.cpp"
     "src/core/FileWatcher.cpp"
     "src/files/disks/*.cpp"
-    "src/storage/*.cpp"
+    "src/storage/RemoteManager.cpp"
+    "src/storage/MountPasswordDialog.cpp"
     "src/protocols/*.c"
 )
 
@@ -126,6 +127,15 @@ add_executable(main_window
 )
 
 target_link_libraries(main_window
+    PRIVATE
+        horizon
+)
+
+add_executable(mount_password_demo
+    examples/mount_password_demo.cpp
+)
+
+target_link_libraries(mount_password_demo
     PRIVATE
         horizon
 )

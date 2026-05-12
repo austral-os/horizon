@@ -7,7 +7,7 @@
 #include "dialogs/PropertiesDialog.hpp"
 #include "dialogs/GoToFolderDialog.hpp"
 #include "dialogs/ConnectToServerDialog.hpp"
-#include "dialogs/MountPasswordDialog.hpp"
+#include <horizon/storage/MountPasswordDialog.hpp>
 #include <horizon/storage/RemoteManager.hpp>
 #include "horizon/ApplicationWindow.hpp"
 #include <horizon/DialogTypes.hpp>
@@ -453,11 +453,11 @@ namespace horizon::arkfm
                 {
                     LOG_INFO << "ArkFM: Detectada necesidad de contraseña o error de soporte. Abriendo diálogo...";
                     application()->post_task([this, uri]() {
-                        auto dialog = std::make_unique<MountPasswordDialog>(uri);
-                        dialog->when_accepted.connect([this, uri](MountPasswordEvent& ev) {
+                        auto dlg = std::make_unique<storage::MountPasswordDialog>(uri);
+                        dlg->when_accepted.connect([this, uri](storage::MountPasswordEvent& ev) {
                             this->handle_mount_remote(uri, ev.credentials);
                         });
-                        dialog->run();
+                        dlg->run();
                     });
                 } else {
                     show_status_message("Error: " + res.message, 5000);
