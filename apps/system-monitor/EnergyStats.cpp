@@ -80,10 +80,12 @@ namespace horizon
         name_lbl->set_position_type(FILL);
         name_lbl->set_font_weight(FontWeight::FONT_WEIGHT_BOLD);
         name_lbl->set_text_color(Color(0.2f, 0.3f, 0.1f, 1.0f));
+        name_lbl->set_font_size(16);
 
         auto value_lbl = std::make_unique<Label>("-");
         value_lbl->set_alignment(TextAlignment::Right);
         value_lbl->set_text_color(Color(0.2f, 0.3f, 0.1f, 1.0f));
+        value_lbl->set_font_size(16);
 
         *value_label_out = value_lbl.get();
 
