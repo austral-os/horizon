@@ -200,12 +200,15 @@ namespace horizon
 
         root->add_child(std::move(table_view));
 
-        // CPU Stats graph
+        // Status Bar for Graphs
+        show_status_bar();
+        auto *sb = statusbar();
+        sb->set_fixed_size(200);
+        sb->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        
         auto cpu_stats = std::make_unique<CPUStats>();
         m_cpu_stats = cpu_stats.get();
-        m_cpu_stats->set_fixed_size(200); // Height for graph
-        
-        root->add_child(std::move(cpu_stats));
+        sb->add_child(std::move(cpu_stats));
 
         set_content(std::move(root));
     }
