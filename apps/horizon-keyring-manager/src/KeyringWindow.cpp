@@ -31,8 +31,17 @@ namespace horizon::keyring
         auto btn_del = std::make_unique<ToolbarButton>("Eliminar", "edit-delete-symbolic");
         btn_del->when_click.connect([this](EventContext&) {
             auto items = m_table->get_selected_items();
-            for (const auto& item : items) {
-                delete_item(item.path);
+            if (items.empty()) return;
+
+            std::string msg = (items.size() == 1) 
+                ? "¿Está seguro que desea eliminar '" + items[0].label + "'?"
+                : "¿Está seguro que desea eliminar " + std::to_string(items.size()) + " elementos?";
+
+            if (application()->confirm(msg, "Confirmar eliminación")) {
+                for (const auto& item : items) {
+                    delete_item(item.path);
+                }
+                load_data();
             }
         });
         tb->add_toolbar_widget(std::move(btn_del));
@@ -219,7 +228,6 @@ namespace horizon::keyring
             "org.freedesktop.Secret.Item",
             "Delete"
         );
-        load_data();
     }
 
     void KeyringWindow::create_item_dialog()
@@ -373,7 +381,10 @@ namespace horizon::keyring
     void KeyringWindow::handle_row_action(const std::string& action, const KeyringItem& item)
     {
         if (action == "delete") {
-            delete_item(item.path);
+            if (application()->confirm("¿Está seguro que desea eliminar '" + item.label + "'?", "Confirmar eliminación")) {
+                delete_item(item.path);
+                load_data();
+            }
         } else if (action == "edit") {
             edit_item_dialog(item);
         }
