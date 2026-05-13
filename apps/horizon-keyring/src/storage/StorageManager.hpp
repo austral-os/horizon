@@ -29,8 +29,9 @@ namespace horizon::secrets::storage
         // Master Key Salt Management
         std::vector<uint8_t> get_master_salt();
 
-        // Placeholder methods for item management
+        // Item management
         void save_item(const std::string& collection, const SecretItem& item);
+        bool delete_item(uint64_t item_id);
         std::vector<SecretItem> search_items(const std::string& collection, const std::map<std::string, std::string>& attributes);
 
     private:

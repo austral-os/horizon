@@ -83,6 +83,11 @@ namespace horizon::secrets
                 handle_create_item(msg);
                 return DBUS_HANDLER_RESULT_HANDLED;
             }
+        } else if (interface == "org.freedesktop.Secret.Item") {
+            if (method == "Delete") {
+                handle_delete_item(msg);
+                return DBUS_HANDLER_RESULT_HANDLED;
+            }
         } else if (interface == "org.gnome.keyring.Daemon") {
             if (method == "GetControlDirectory") {
                 LOG_INFO << "[Horizon Keyring] Handling GNOME GetControlDirectory stub";
@@ -435,5 +440,32 @@ namespace horizon::secrets
         dbus_message_iter_close_container(&root_iter, &dict_iter);
         dbus_connection_send(m_dbus.get_connection(), reply, nullptr);
         dbus_message_unref(reply);
+    }
+
+    void Service::handle_delete_item(DBusMessage* msg)
+    {
+        LOG_INFO << "[Horizon Keyring] Method call: DeleteItem";
+        
+        std::string path = dbus_message_get_path(msg) ? dbus_message_get_path(msg) : "";
+        
+        // Extract ID from path: /org/freedesktop/secrets/collection/default/<id>
+        size_t last_slash = path.find_last_of('/');
+        if (last_slash != std::string::npos) {
+            std::string id_str = path.substr(last_slash + 1);
+            try {
+                uint64_t item_id = std::stoull(id_str);
+                bool deleted = m_storage->delete_item(item_id);
+                if (deleted) {
+                    LOG_INFO << "[Horizon Keyring] Deleted item " << item_id;
+                } else {
+                    LOG_WARNING << "[Horizon Keyring] Item " << item_id << " not found for deletion.";
+                }
+            } catch (const std::exception&) {
+                LOG_ERROR << "[Horizon Keyring] Invalid item ID in path: " << path;
+            }
+        }
+
+        // The Delete method returns a prompt path (o). We use "/" to indicate no prompt needed.
+        m_dbus.send_reply(msg, {dbusutils::ObjectPath("/")});
     }
 }

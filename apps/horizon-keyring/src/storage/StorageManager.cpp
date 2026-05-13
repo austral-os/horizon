@@ -132,6 +132,26 @@ namespace horizon::secrets::storage
         }
     }
 
+    bool StorageManager::delete_item(uint64_t item_id)
+    {
+        // First delete attributes
+        sqlite3_stmt* stmt;
+        sqlite3_prepare_v2(m_db, "DELETE FROM attributes WHERE item_id = ?;", -1, &stmt, nullptr);
+        sqlite3_bind_int64(stmt, 1, item_id);
+        sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
+
+        // Then delete the item itself
+        sqlite3_prepare_v2(m_db, "DELETE FROM items WHERE id = ?;", -1, &stmt, nullptr);
+        sqlite3_bind_int64(stmt, 1, item_id);
+        sqlite3_step(stmt);
+        
+        int changes = sqlite3_changes(m_db);
+        sqlite3_finalize(stmt);
+        
+        return changes > 0;
+    }
+
     std::vector<SecretItem> StorageManager::search_items(const std::string& collection, const std::map<std::string, std::string>& attributes)
     {
         std::vector<SecretItem> results;

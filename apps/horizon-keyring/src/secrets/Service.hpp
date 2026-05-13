@@ -35,5 +35,6 @@ namespace horizon::secrets
         void handle_get_secrets(DBusMessage* msg);
         void handle_read_alias(DBusMessage* msg);
         void handle_create_item(DBusMessage* msg);
+        void handle_delete_item(DBusMessage* msg);
     };
 }
