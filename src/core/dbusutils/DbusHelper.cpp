@@ -5,6 +5,10 @@
 
 namespace horizon::dbusutils
 {
+    static void append_basic_to_iter(DBusMessageIter* iter, const DbusVariant& value);
+    static void append_variant_to_iter(DBusMessageIter* parent_iter, const DbusVariant& value);
+    static void append_dict(DBusMessageIter* parent_iter, const std::map<std::string, DbusVariant>& options);
+
     DbusHelper::DbusHelper(DBusBusType bus_type)
     {
         dbus_threads_init_default();
@@ -64,6 +68,54 @@ namespace horizon::dbusutils
         {
             dbus_error_free(&error);
             return nullptr;
+        }
+        return reply;
+    }
+
+    DBusMessage* DbusHelper::call_method_sync(const std::string& destination,
+                                              const std::string& path,
+                                              const std::string& interface,
+                                              const std::string& method,
+                                              const std::vector<DbusVariant>& args,
+                                              int timeout_ms)
+    {
+        if (path.empty())
+        {
+            throw std::runtime_error("D-Bus method call failed: path is empty");
+        }
+
+        DBusMessage* msg = dbus_message_new_method_call(destination.c_str(),
+                                                        path.c_str(),
+                                                        interface.c_str(),
+                                                        method.c_str());
+        if (msg == nullptr)
+        {
+            return nullptr;
+        }
+
+        if (!args.empty())
+        {
+            DBusMessageIter iter;
+            dbus_message_iter_init_append(msg, &iter);
+            for (const auto& arg : args)
+            {
+                append_basic_to_iter(&iter, arg);
+            }
+        }
+
+        DBusError error;
+        dbus_error_init(&error);
+
+        DBusMessage* reply = dbus_connection_send_with_reply_and_block(m_connection, msg, timeout_ms, &error);
+        dbus_message_unref(msg);
+
+        if (dbus_error_is_set(&error))
+        {
+            std::string err_msg = "D-Bus error in call_method_sync: ";
+            err_msg += error.message;
+            dbus_error_free(&error);
+            if (reply) dbus_message_unref(reply);
+            throw std::runtime_error(err_msg);
         }
         return reply;
     }

@@ -101,9 +101,11 @@ namespace horizon::secrets
                 return DBUS_HANDLER_RESULT_HANDLED;
             }
         } else if (interface == "org.freedesktop.DBus.Properties") {
-            if (method == "Get" || method == "GetAll") {
-                // Return empty response for Get/GetAll to avoid crash
-                m_dbus.send_reply(msg, {});
+            if (method == "Get") {
+                handle_get_property(msg);
+                return DBUS_HANDLER_RESULT_HANDLED;
+            } else if (method == "GetAll") {
+                handle_get_all_properties(msg);
                 return DBUS_HANDLER_RESULT_HANDLED;
             } else if (method == "Set") {
                 handle_set_property(msg);
@@ -556,5 +558,47 @@ namespace horizon::secrets
         }
 
         m_dbus.send_reply(msg, {});
+    }
+
+    void Service::handle_get_property(DBusMessage* msg)
+    {
+        DBusMessageIter iter;
+        dbus_message_iter_init(msg, &iter);
+        
+        const char* interface_name;
+        const char* property_name;
+        dbus_message_iter_get_basic(&iter, &interface_name);
+        dbus_message_iter_next(&iter);
+        dbus_message_iter_get_basic(&iter, &property_name);
+        
+        std::string path = dbus_message_get_path(msg) ? dbus_message_get_path(msg) : "";
+        size_t last_slash = path.find_last_of('/');
+        if (last_slash == std::string::npos) { m_dbus.send_reply(msg, {}); return; }
+        
+        std::string id_str = path.substr(last_slash + 1);
+        auto all_items = m_storage->search_items("default", {});
+        auto it = std::find_if(all_items.begin(), all_items.end(), [&](const storage::SecretItem& item) {
+            return item.path == id_str;
+        });
+        
+        if (it == all_items.end()) {
+            m_dbus.send_reply(msg, {});
+            return;
+        }
+        
+        if (std::string(property_name) == "Label") {
+            m_dbus.send_reply_custom(msg, {{true, it->label}});
+        } else if (std::string(property_name) == "Attributes") {
+            m_dbus.send_reply_custom(msg, {{true, it->attributes}});
+        } else {
+            m_dbus.send_reply(msg, {});
+        }
+    }
+
+    void Service::handle_get_all_properties(DBusMessage* msg)
+    {
+        // For now, return an empty dictionary to avoid crashes if asked for all properties.
+        // It's recommended to query specific properties via Get.
+        m_dbus.send_reply(msg, {std::map<std::string, std::string>{}});
     }
 }

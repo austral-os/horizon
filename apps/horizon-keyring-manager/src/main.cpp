@@ -9,6 +9,11 @@ int main(int argc, char** argv)
     // Application constructor: (app_id, width, height)
     Application app("horizon.keyring.manager", 900, 600);
     
+    app.about_manager().set_app_title("Passwords and Keys");
+    app.about_manager().set_app_description("Manage your system passwords and keys securely.");
+    app.about_manager().set_app_version("0.1.0");
+    app.about_manager().set_app_icon("dialog-password-symbolic");
+    
     auto window = std::make_unique<KeyringWindow>(900, 600);
     app.set_root(std::move(window));
     

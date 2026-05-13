@@ -4,8 +4,10 @@
 #include <horizon/Sidebar.hpp>
 #include <horizon/TableView.hpp>
 #include <horizon/SearchBox.hpp>
+#include <horizon/ToggleGroupButton.hpp>
 #include <horizon/Toolbar.hpp>
 #include <horizon/VPanel.hpp>
+#include <horizon/dbusutils/DbusHelper.hpp>
 #include <string>
 #include <vector>
 
@@ -28,10 +30,13 @@ namespace horizon::keyring
     private:
         void setup_toolbar();
         void setup_content();
-        void load_mock_data();
+        void load_data();
+        void delete_item(const std::string& path);
+        void handle_row_action(const std::string& action, const KeyringItem& item);
 
         Sidebar* m_sidebar{nullptr};
         TableView<KeyringItem>* m_table{nullptr};
         SearchBox* m_search_box{nullptr};
+        horizon::dbusutils::DbusHelper m_dbus{DBUS_BUS_SESSION};
     };
 }

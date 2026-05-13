@@ -71,6 +71,16 @@ namespace horizon::dbusutils
                                  const std::string& interface,
                                  const std::string& method,
                                  int timeout_ms = -1);
+
+        /**
+         * @brief Calls a synchronous D-Bus method with dynamic arguments.
+         */
+        DBusMessage* call_method_sync(const std::string& destination,
+                                      const std::string& path,
+                                      const std::string& interface,
+                                      const std::string& method,
+                                      const std::vector<DbusVariant>& args,
+                                      int timeout_ms = -1);
         
         /**
          * @brief Calls a D-Bus method that takes no arguments and returns nothing (or result is ignored).
