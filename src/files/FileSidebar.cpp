@@ -48,11 +48,12 @@ namespace horizon::files
                         ctx.stop_propagation = true;
                         if (m_manager)
                         {
-                            if (application() && application()->w_surface()) 
+                            if (application() && application()->w_surface())
                                 application()->w_surface()->set_cursor(CursorType::Wait);
                             m_manager->unmount_partition(m_partition->device_path);
-                            // DiskManager::unmount_partition seems to be synchronous or at least doesn't have a callback here
-                            if (application() && application()->w_surface()) 
+                            // DiskManager::unmount_partition seems to be synchronous or at least
+                            // doesn't have a callback here
+                            if (application() && application()->w_surface())
                                 application()->w_surface()->set_cursor(CursorType::Default);
                         }
                     });
@@ -73,10 +74,11 @@ namespace horizon::files
     {
     public:
         RemoteSidebarItem(const std::string &icon_name, const std::string &text,
-                          const std::string &uri, FileSidebar* parent_sidebar)
+                          const std::string &uri, FileSidebar *parent_sidebar)
             : SidebarItem(icon_name, text), m_uri(uri), m_parent_sidebar(parent_sidebar)
         {
-            if (m_label_ptr) {
+            if (m_label_ptr)
+            {
                 m_label_ptr->set_fixed_size(-1);
             }
 
@@ -86,75 +88,90 @@ namespace horizon::files
             icon->set_icon_name("media-eject-symbolic");
             icon->set_icon_size(16);
             icon->set_fixed_size(24);
-            
+
             icon->when_click.connect(
                 [this](MouseButtonEventContext &ctx)
                 {
                     ctx.stop_propagation = true;
                     std::string uri = m_uri;
-                    FileSidebar* sidebar = m_parent_sidebar;
+                    FileSidebar *sidebar = m_parent_sidebar;
                     LOG_INFO << "RemoteSidebarItem: Intentando desmontar " << uri;
-                    
-                    if (sidebar && sidebar->remote_storage()) {
+
+                    if (sidebar && sidebar->remote_storage())
+                    {
                         if (sidebar->application() && sidebar->application()->w_surface())
                             sidebar->application()->w_surface()->set_cursor(CursorType::Wait);
-                            
+
                         // Buscar la ruta de montaje antes de que se pierda
                         std::string mount_path;
                         auto mounts = sidebar->remote_storage()->get_active_mounts();
-                        for (auto &m : mounts) {
-                            if (m.uri == uri) {
+                        for (auto &m : mounts)
+                        {
+                            if (m.uri == uri)
+                            {
                                 mount_path = m.mount_path;
                                 break;
                             }
                         }
 
-                        sidebar->remote_storage()->when_unmount_by_uri(uri, [sidebar, mount_path](bool success, std::string msg) {
-                            if (success) {
-                                LOG_INFO << "RemoteSidebarItem: Desmontado exitoso. Esperando para refrescar...";
-                                
-                                if (!mount_path.empty()) {
-                                    UnmountEventContext ctx;
-                                    ctx.mount_path = mount_path;
-                                    sidebar->when_resource_unmounted.run(ctx);
+                        sidebar->remote_storage()->when_unmount_by_uri(
+                            uri,
+                            [sidebar, mount_path](bool success, std::string msg)
+                            {
+                                if (success)
+                                {
+                                    LOG_INFO << "RemoteSidebarItem: Desmontado exitoso. Esperando "
+                                                "para refrescar...";
+
+                                    if (!mount_path.empty())
+                                    {
+                                        UnmountEventContext ctx;
+                                        ctx.mount_path = mount_path;
+                                        sidebar->when_resource_unmounted.run(ctx);
+                                    }
+
+                                    if (sidebar->application())
+                                    {
+                                        sidebar->application()->add_timer(
+                                            200, [sidebar]() { sidebar->refresh_devices(); },
+                                            false);
+                                    }
+                                }
+                                else
+                                {
+                                    LOG_ERROR << "RemoteSidebarItem: Error al desmontar: " << msg;
                                 }
 
-                                if (sidebar->application()) {
-                                    sidebar->application()->add_timer(200, [sidebar]() {
-                                        sidebar->refresh_devices();
-                                    }, false);
-                                }
-                            } else {
-                                LOG_ERROR << "RemoteSidebarItem: Error al desmontar: " << msg;
-                            }
-
-                            if (sidebar->application() && sidebar->application()->w_surface())
-                                sidebar->application()->w_surface()->set_cursor(CursorType::Default);
-                        });
+                                if (sidebar->application() && sidebar->application()->w_surface())
+                                    sidebar->application()->w_surface()->set_cursor(
+                                        CursorType::Default);
+                            });
                     }
                 });
 
             add_child(std::move(icon));
-            
+
             auto padding = std::make_unique<Widget>();
             padding->set_fixed_size(10);
-            add_child(std::move(padding));
         }
 
     private:
         std::string m_uri;
-        FileSidebar* m_parent_sidebar;
+        FileSidebar *m_parent_sidebar;
     };
 
     FileSidebar::FileSidebar() : Sidebar()
     {
-        
-        when_application_load.connect([this](EventContext &) { 
-            this->setup_monitoring(); 
-            if (application()) {
-                application()->add_timer(2000, [this]() { this->refresh_devices(); }, false);
-            }
-        });
+
+        when_application_load.connect(
+            [this](EventContext &)
+            {
+                this->setup_monitoring();
+                if (application())
+                {
+                    application()->add_timer(2000, [this]() { this->refresh_devices(); }, false);
+                }
+            });
 
         refresh_devices();
 
@@ -173,15 +190,19 @@ namespace horizon::files
         }
     }
 
-    void FileSidebar::set_remote_storage(storage::RemoteManagerBase* manager)
+    void FileSidebar::set_remote_storage(storage::RemoteManagerBase *manager)
     {
         m_remote_manager = manager;
-        if (m_remote_manager) {
-            m_remote_manager->when_changed.connect([this](storage::RemoteStorageEventContext &) {
-                if (application()) {
-                    application()->post_task([this]() { this->refresh_devices(); });
-                }
-            });
+        if (m_remote_manager)
+        {
+            m_remote_manager->when_changed.connect(
+                [this](storage::RemoteStorageEventContext &)
+                {
+                    if (application())
+                    {
+                        application()->post_task([this]() { this->refresh_devices(); });
+                    }
+                });
         }
         refresh_devices();
     }
@@ -270,7 +291,8 @@ namespace horizon::files
         }
 
         // --- Add Remote Mounts using RemoteManager abstraction ---
-        if (m_remote_manager) {
+        if (m_remote_manager)
+        {
             auto remote_mounts = m_remote_manager->get_active_mounts();
             bool has_network = false;
 
@@ -282,7 +304,8 @@ namespace horizon::files
                     has_network = true;
                 }
 
-                auto item = std::make_unique<RemoteSidebarItem>(mount.icon_name, mount.name, mount.uri, this);
+                auto item = std::make_unique<RemoteSidebarItem>(mount.icon_name, mount.name,
+                                                                mount.uri, this);
                 item->set_path(mount.mount_path);
                 add_item("Network", std::move(item));
             }
