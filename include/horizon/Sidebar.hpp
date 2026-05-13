@@ -63,11 +63,11 @@ namespace horizon
 
     protected:
         void draw(GraphicsContext &gc) override;
+        SidebarItem *m_selected_item{nullptr};
 
     private:
         std::map<std::string, Widget *> m_groups;
         ScrollArea *m_scroll_area{nullptr};
         Widget *m_content_container{nullptr};
-        SidebarItem *m_selected_item{nullptr};
     };
 } // namespace horizon

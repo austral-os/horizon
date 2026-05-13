@@ -50,15 +50,27 @@ namespace horizon
 
     void Sidebar::select_item_by_path(const std::string &path)
     {
+        auto normalize = [](std::string p)
+        {
+            while (!p.empty() && p.back() == '/' && p.length() > 1)
+                p.pop_back();
+            return p;
+        };
+
+        std::string target = normalize(path);
+
         for (auto const &[name, group_widget] : m_groups)
         {
             for (auto const &item_widget : group_widget->children())
             {
                 auto *sidebar_item = dynamic_cast<SidebarItem *>(item_widget.get());
-                if (sidebar_item && sidebar_item->path() == path)
+                if (sidebar_item)
                 {
-                    select_item(sidebar_item);
-                    return;
+                    if (normalize(sidebar_item->path()) == target)
+                    {
+                        select_item(sidebar_item);
+                        return;
+                    }
                 }
             }
         }

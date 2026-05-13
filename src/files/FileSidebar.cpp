@@ -16,33 +16,19 @@ namespace horizon::files
     {
     public:
         DiskSidebarItem(const std::string &icon_name, const std::string &text,
-                        disks::DiskPartition *part, disks::DiskManager *manager)
-            : SidebarItem(icon_name, text), m_partition(part), m_manager(manager)
+                        disks::DiskPartition *part, disks::DiskManager *manager, FileSidebar *parent_sidebar)
+            : SidebarItem(icon_name, text), m_partition(part), m_manager(manager), m_parent_sidebar(parent_sidebar)
         {
             if (m_partition->is_mounted)
             {
                 add_child(horizon::Spacer());
 
-                auto eject_btn = std::make_unique<Button<Widget>>();
-                eject_btn->set_fixed_size(24);
-                eject_btn->set_background_color(Color(0.0f, 0.0f, 0.0f, 0.0f));
-                eject_btn->set_border_radius(4);
-
                 auto icon = std::make_unique<Icon>();
-                icon->set_icon_name("media-eject");
+                icon->set_icon_name("media-eject-symbolic");
                 icon->set_icon_size(16);
-                icon->set_position_type(WidgetPositionTypes::FREE);
-                icon->set_position(4, 4);
-                eject_btn->add_child(std::move(icon));
+                icon->set_fixed_size(24);
 
-                eject_btn->when_mouse_enter.connect(
-                    [btn = eject_btn.get()](EventContext &)
-                    { btn->set_background_color(Color(1.0f, 1.0f, 1.0f, 0.2f)); });
-                eject_btn->when_mouse_leave.connect(
-                    [btn = eject_btn.get()](EventContext &)
-                    { btn->set_background_color(Color(0.0f, 0.0f, 0.0f, 0.0f)); });
-
-                eject_btn->when_click.connect(
+                icon->when_click.connect(
                     [this](MouseButtonEventContext &ctx)
                     {
                         ctx.stop_propagation = true;
@@ -50,24 +36,34 @@ namespace horizon::files
                         {
                             if (application() && application()->w_surface())
                                 application()->w_surface()->set_cursor(CursorType::Wait);
+
+                            LOG_INFO << "DiskSidebarItem: Desmontando " << m_partition->device_path;
+                            std::string old_path = m_partition->mount_point;
+                            auto *sidebar = m_parent_sidebar; // Capture locally
+                            
                             m_manager->unmount_partition(m_partition->device_path);
-                            // DiskManager::unmount_partition seems to be synchronous or at least
-                            // doesn't have a callback here
+                            
+                            if (!old_path.empty() && sidebar)
+                            {
+                                sidebar->refresh_devices(); // This deletes 'this'!
+                                UnmountEventContext unmount_ctx;
+                                unmount_ctx.mount_path = old_path;
+                                sidebar->when_resource_unmounted.run(unmount_ctx);
+                            }
+
                             if (application() && application()->w_surface())
                                 application()->w_surface()->set_cursor(CursorType::Default);
                         }
                     });
-                add_child(std::move(eject_btn));
 
-                auto end_spacer = std::make_unique<Widget>();
-                end_spacer->set_fixed_size(4);
-                add_child(std::move(end_spacer));
+                add_child(std::move(icon));
             }
         }
 
     private:
         disks::DiskPartition *m_partition;
         disks::DiskManager *m_manager;
+        FileSidebar *m_parent_sidebar;
     };
 
     class RemoteSidebarItem : public horizon::SidebarItem
@@ -122,19 +118,17 @@ namespace horizon::files
                                 {
                                     LOG_INFO << "RemoteSidebarItem: Desmontado exitoso. Esperando "
                                                 "para refrescar...";
-
-                                    if (!mount_path.empty())
+                                    
+                                    if (sidebar)
                                     {
-                                        UnmountEventContext ctx;
-                                        ctx.mount_path = mount_path;
-                                        sidebar->when_resource_unmounted.run(ctx);
-                                    }
-
-                                    if (sidebar->application())
-                                    {
-                                        sidebar->application()->add_timer(
-                                            200, [sidebar]() { sidebar->refresh_devices(); },
-                                            false);
+                                        sidebar->refresh_devices(); // This deletes the item!
+                                        
+                                        if (!mount_path.empty())
+                                        {
+                                            UnmountEventContext ctx;
+                                            ctx.mount_path = mount_path;
+                                            sidebar->when_resource_unmounted.run(ctx);
+                                        }
                                     }
                                 }
                                 else
@@ -142,7 +136,7 @@ namespace horizon::files
                                     LOG_ERROR << "RemoteSidebarItem: Error al desmontar: " << msg;
                                 }
 
-                                if (sidebar->application() && sidebar->application()->w_surface())
+                                if (sidebar && sidebar->application() && sidebar->application()->w_surface())
                                     sidebar->application()->w_surface()->set_cursor(
                                         CursorType::Default);
                             });
@@ -150,9 +144,6 @@ namespace horizon::files
                 });
 
             add_child(std::move(icon));
-
-            auto padding = std::make_unique<Widget>();
-            padding->set_fixed_size(10);
         }
 
     private:
@@ -209,6 +200,9 @@ namespace horizon::files
 
     void FileSidebar::refresh_devices()
     {
+        std::string last_path;
+        if (m_selected_item) last_path = m_selected_item->path();
+
         clear();
         add_group("Favorites");
 
@@ -255,7 +249,7 @@ namespace horizon::files
                         disk->is_removable ? "drive-removable-media" : "drive-harddisk";
 
                     auto item =
-                        std::make_unique<DiskSidebarItem>(icon, label, part.get(), &m_disk_manager);
+                        std::make_unique<DiskSidebarItem>(icon, label, part.get(), &m_disk_manager, this);
 
                     if (part->is_mounted)
                     {
@@ -310,5 +304,7 @@ namespace horizon::files
                 add_item("Network", std::move(item));
             }
         }
+
+        if (!last_path.empty()) select_item_by_path(last_path);
     }
 } // namespace horizon::files

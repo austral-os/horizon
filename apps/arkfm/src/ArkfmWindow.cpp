@@ -63,6 +63,10 @@ namespace horizon::arkfm
         std::string home_path = getenv("HOME") ? getenv("HOME") : "/";
         m_sidebar_ptr->select_item_by_path(home_path);
 
+        m_view_ptr->when_path_changed.connect([this](files::PathChangedEvent &ctx) {
+            if (m_sidebar_ptr) m_sidebar_ptr->select_item_by_path(ctx.path);
+        });
+
         m_sidebar_ptr->when_resource_unmounted.connect([this](horizon::files::UnmountEventContext& ctx) {
             if (m_view_ptr) {
                 std::string current_path = m_view_ptr->current_path();
