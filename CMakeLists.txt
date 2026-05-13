@@ -157,6 +157,8 @@ add_subdirectory(apps/downloader)
 add_subdirectory(apps/capture)
 add_subdirectory(apps/zenit)
 add_subdirectory(apps/system-monitor)
+add_subdirectory(apps/horizon-keyring)
+add_subdirectory(apps/horizon-keyring-manager)
 
 # --- Examples and Demos ---
 add_executable(minimal

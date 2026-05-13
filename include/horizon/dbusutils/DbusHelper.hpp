@@ -13,19 +13,29 @@ namespace horizon::dbusutils
     /**
      * @brief Represents a D-Bus variant data type.
      */
-    using DbusVariant = std::variant<
-        std::string,
-        uint32_t,
-        int32_t,
-        uint16_t,
-        int16_t,
-        uint64_t,
-        int64_t,
-        double,
-        bool,
-        std::vector<std::string>,
-        std::vector<uint8_t>
-    >;
+    struct ObjectPath {
+        std::string path;
+        ObjectPath(const std::string& p) : path(p) {}
+        ObjectPath(const char* p) : path(p) {}
+        operator std::string() const { return path; }
+    };
+
+    typedef std::variant<
+        std::string, 
+        bool, 
+        uint32_t, 
+        int32_t, 
+        uint16_t, 
+        int16_t, 
+        uint64_t, 
+        int64_t, 
+        double, 
+        std::vector<std::string>, 
+        std::vector<uint8_t>, 
+        ObjectPath,
+        std::vector<ObjectPath>,
+        std::map<std::string, std::string>
+    > DbusVariant;
 
     /**
      * @class DbusObject
@@ -184,6 +194,7 @@ namespace horizon::dbusutils
          * @param object The object instance to handle messages for this path.
          */
         void register_object(const std::string& path, DbusObject* object);
+        void register_fallback(const std::string& path, DbusObject* object);
 
         /**
          * @brief Unregisters an object path.
@@ -194,6 +205,7 @@ namespace horizon::dbusutils
          * @brief Sends a method return reply to a pending message.
          */
         void send_reply(DBusMessage* msg, const std::vector<DbusVariant>& args = {});
+        void send_reply_custom(DBusMessage* msg, const std::vector<std::pair<bool, DbusVariant>>& args);
 
         /**
          * @brief Sends an error reply to a pending message.

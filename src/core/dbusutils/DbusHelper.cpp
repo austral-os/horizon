@@ -188,6 +188,44 @@ namespace horizon::dbusutils
             dbus_message_iter_close_container(&var_iter, &array_iter);
             dbus_message_iter_close_container(parent_iter, &var_iter);
         }
+        else if (std::holds_alternative<ObjectPath>(value))
+        {
+            const char* s = std::get<ObjectPath>(value).path.c_str();
+            dbus_message_iter_open_container(parent_iter, DBUS_TYPE_VARIANT, "o", &var_iter);
+            dbus_message_iter_append_basic(&var_iter, DBUS_TYPE_OBJECT_PATH, &s);
+            dbus_message_iter_close_container(parent_iter, &var_iter);
+        }
+        else if (std::holds_alternative<std::vector<ObjectPath>>(value))
+        {
+            const auto& vec = std::get<std::vector<ObjectPath>>(value);
+            dbus_message_iter_open_container(parent_iter, DBUS_TYPE_VARIANT, "ao", &var_iter);
+            DBusMessageIter array_iter;
+            dbus_message_iter_open_container(&var_iter, DBUS_TYPE_ARRAY, "o", &array_iter);
+            for (const auto& op : vec) {
+                const char* s = op.path.c_str();
+                dbus_message_iter_append_basic(&array_iter, DBUS_TYPE_OBJECT_PATH, &s);
+            }
+            dbus_message_iter_close_container(&var_iter, &array_iter);
+            dbus_message_iter_close_container(parent_iter, &var_iter);
+        }
+        else if (std::holds_alternative<std::map<std::string, std::string>>(value))
+        {
+            const auto& map = std::get<std::map<std::string, std::string>>(value);
+            dbus_message_iter_open_container(parent_iter, DBUS_TYPE_VARIANT, "a{ss}", &var_iter);
+            DBusMessageIter dict_iter;
+            dbus_message_iter_open_container(&var_iter, DBUS_TYPE_ARRAY, "{ss}", &dict_iter);
+            for (const auto& [k, v] : map) {
+                DBusMessageIter entry_iter;
+                dbus_message_iter_open_container(&dict_iter, DBUS_TYPE_DICT_ENTRY, nullptr, &entry_iter);
+                const char* pk = k.c_str();
+                const char* pv = v.c_str();
+                dbus_message_iter_append_basic(&entry_iter, DBUS_TYPE_STRING, &pk);
+                dbus_message_iter_append_basic(&entry_iter, DBUS_TYPE_STRING, &pv);
+                dbus_message_iter_close_container(&dict_iter, &entry_iter);
+            }
+            dbus_message_iter_close_container(&var_iter, &dict_iter);
+            dbus_message_iter_close_container(parent_iter, &var_iter);
+        }
     }
 
     static void append_basic_to_iter(DBusMessageIter* iter, const DbusVariant& value)
@@ -196,6 +234,38 @@ namespace horizon::dbusutils
         {
             const char* s = std::get<std::string>(value).c_str();
             dbus_message_iter_append_basic(iter, DBUS_TYPE_STRING, &s);
+        }
+        else if (std::holds_alternative<ObjectPath>(value))
+        {
+            const char* s = std::get<ObjectPath>(value).path.c_str();
+            dbus_message_iter_append_basic(iter, DBUS_TYPE_OBJECT_PATH, &s);
+        }
+        else if (std::holds_alternative<std::vector<ObjectPath>>(value))
+        {
+            const auto& vec = std::get<std::vector<ObjectPath>>(value);
+            DBusMessageIter array_iter;
+            dbus_message_iter_open_container(iter, DBUS_TYPE_ARRAY, "o", &array_iter);
+            for (const auto& op : vec) {
+                const char* s = op.path.c_str();
+                dbus_message_iter_append_basic(&array_iter, DBUS_TYPE_OBJECT_PATH, &s);
+            }
+            dbus_message_iter_close_container(iter, &array_iter);
+        }
+        else if (std::holds_alternative<std::map<std::string, std::string>>(value))
+        {
+            const auto& map = std::get<std::map<std::string, std::string>>(value);
+            DBusMessageIter dict_iter;
+            dbus_message_iter_open_container(iter, DBUS_TYPE_ARRAY, "{ss}", &dict_iter);
+            for (const auto& [k, v] : map) {
+                DBusMessageIter entry_iter;
+                dbus_message_iter_open_container(&dict_iter, DBUS_TYPE_DICT_ENTRY, nullptr, &entry_iter);
+                const char* pk = k.c_str();
+                const char* pv = v.c_str();
+                dbus_message_iter_append_basic(&entry_iter, DBUS_TYPE_STRING, &pk);
+                dbus_message_iter_append_basic(&entry_iter, DBUS_TYPE_STRING, &pv);
+                dbus_message_iter_close_container(&dict_iter, &entry_iter);
+            }
+            dbus_message_iter_close_container(iter, &dict_iter);
         }
         else if (std::holds_alternative<bool>(value))
         {
@@ -434,7 +504,7 @@ namespace horizon::dbusutils
                                                         path.c_str(),
                                                         "org.freedesktop.DBus.Properties",
                                                         "Get");
-        if (msg == nullptr) return "";
+        if (msg == nullptr) return std::string("");
 
         const char* p_interface = interface.c_str();
         const char* p_property = property.c_str();
@@ -452,7 +522,7 @@ namespace horizon::dbusutils
         if (dbus_error_is_set(&error) || reply == nullptr)
         {
             dbus_error_free(&error);
-            return "";
+            return std::string("");
         }
 
         DBusMessageIter iter;
@@ -461,14 +531,14 @@ namespace horizon::dbusutils
         if (dbus_message_iter_get_arg_type(&iter) != DBUS_TYPE_VARIANT)
         {
             dbus_message_unref(reply);
-            return "";
+            return std::string("");
         }
 
         DBusMessageIter sub_iter;
         dbus_message_iter_recurse(&iter, &sub_iter);
 
         int type = dbus_message_iter_get_arg_type(&sub_iter);
-        DbusVariant val = "";
+        DbusVariant val = std::string("");
 
         switch (type)
         {
@@ -679,14 +749,22 @@ namespace horizon::dbusutils
         int result = dbus_bus_request_name(m_connection, name.c_str(), DBUS_NAME_FLAG_REPLACE_EXISTING, &error);
         if (dbus_error_is_set(&error))
         {
+            printf("[D-Bus] Error requesting name %s: %s\n", name.c_str(), error.message);
             dbus_error_free(&error);
             return false;
         }
-        return result == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER;
+        
+        if (result == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER) return true;
+        if (result == DBUS_REQUEST_NAME_REPLY_ALREADY_OWNER) return true;
+        
+        printf("[D-Bus] Could not acquire name %s (Result code: %d)\n", name.c_str(), result);
+        return false;
     }
 
     static DBusHandlerResult object_message_handler(DBusConnection* conn, DBusMessage* msg, void* user_data)
     {
+        printf("[D-Bus Core] Message received for object at path: %s\n", dbus_message_get_path(msg));
+        fflush(stdout);
         auto* object = static_cast<DbusObject*>(user_data);
         return object->handle_message(conn, msg);
     }
@@ -695,6 +773,12 @@ namespace horizon::dbusutils
     {
         DBusObjectPathVTable vtable = { nullptr, object_message_handler, nullptr, nullptr, nullptr, nullptr };
         dbus_connection_register_object_path(m_connection, path.c_str(), &vtable, object);
+    }
+
+    void DbusHelper::register_fallback(const std::string& path, DbusObject* object)
+    {
+        DBusObjectPathVTable vtable = { nullptr, object_message_handler, nullptr, nullptr, nullptr, nullptr };
+        dbus_connection_register_fallback(m_connection, path.c_str(), &vtable, object);
     }
 
     void DbusHelper::unregister_object(const std::string& path)
@@ -714,6 +798,27 @@ namespace horizon::dbusutils
             for (const auto& arg : args)
             {
                 append_basic_to_iter(&iter, arg);
+            }
+        }
+
+        dbus_connection_send(m_connection, reply, nullptr);
+        dbus_message_unref(reply);
+    }
+
+    void DbusHelper::send_reply_custom(DBusMessage* msg, const std::vector<std::pair<bool, DbusVariant>>& args)
+    {
+        DBusMessage* reply = dbus_message_new_method_return(msg);
+        if (!reply) return;
+
+        DBusMessageIter iter;
+        dbus_message_iter_init_append(reply, &iter);
+
+        for (const auto& [as_variant, value] : args)
+        {
+            if (as_variant) {
+                append_variant_to_iter(&iter, value);
+            } else {
+                append_basic_to_iter(&iter, value);
             }
         }
 
