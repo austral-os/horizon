@@ -68,15 +68,9 @@ namespace horizon::storage
             // Build the command. For anonymous/guest, just run gio mount <uri>.
             // For authenticated, use environment variables that gio mount can pick up,
             // or pass credentials via a wrapper script.
-            std::string cmd;
-
-            if (credentials.is_guest || credentials.username.empty())
+            std::string auth_uri = uri;
+            if (!credentials.is_guest && !credentials.username.empty())
             {
-                cmd = "gio mount \"" + uri + "\" < /dev/null 2>&1";
-            }
-            else
-            {
-                std::string auth_uri = uri;
                 auto proto_end = uri.find("://");
                 if (proto_end != std::string::npos)
                 {
@@ -84,68 +78,71 @@ namespace horizon::storage
                     std::string rest = uri.substr(proto_end + 3);
                     auto at_pos = rest.find('@');
                     if (at_pos != std::string::npos) rest = rest.substr(at_pos + 1);
-                    auth_uri = proto + credentials.username + "@" + rest; // Username in URI
-                }
-                
-                // Escape password for shell (basic mitigation for simple characters, though full escaping is complex)
-                // For safety in popen, we use single quotes and replace single quotes with '"'"'
-                std::string safe_pass = credentials.password;
-                size_t pos = 0;
-                while ((pos = safe_pass.find("'", pos)) != std::string::npos) {
-                    safe_pass.replace(pos, 1, "'\"'\"'");
-                    pos += 5;
-                }
-                
-                // SMB often asks for Domain first, then Password. 
-                // FTP/SFTP just asks for Password.
-                if (uri.find("smb://") == 0) {
-                    // Send newline for Domain, then password
-                    cmd = "printf '\\n%s\\n' '" + safe_pass + "' | gio mount \"" + auth_uri + "\" 2>&1";
-                } else {
-                    // Just password
-                    cmd = "printf '%s\\n' '" + safe_pass + "' | gio mount \"" + auth_uri + "\" 2>&1";
+                    auth_uri = proto + credentials.username + "@" + rest;
                 }
             }
 
-            LOG_INFO << "RemoteManager: Ejecutando gio mount...";
+            LOG_INFO << "RemoteManager: Ejecutando gio mount de forma segura...";
 
-            FILE *pipe = popen(cmd.c_str(), "r");
+            GError *error = NULL;
+            GSubprocessLauncher *launcher = g_subprocess_launcher_new(static_cast<GSubprocessFlags>(
+                G_SUBPROCESS_FLAGS_STDIN_PIPE | 
+                G_SUBPROCESS_FLAGS_STDOUT_PIPE | 
+                G_SUBPROCESS_FLAGS_STDERR_MERGE));
+
+            const char *argv[] = {"gio", "mount", auth_uri.c_str(), NULL};
+            GSubprocess *proc = g_subprocess_launcher_spawnv(launcher, argv, &error);
+            g_object_unref(launcher);
+
             RemoteMountResult result;
-
-            if (!pipe)
+            if (!proc)
             {
                 result.success = false;
-                result.message = "No se pudo ejecutar gio mount";
-                LOG_ERROR << "RemoteManager: popen failed";
+                result.message = error ? error->message : "Fallo al lanzar gio mount";
+                if (error) g_error_free(error);
                 callback(result);
                 return;
             }
 
-            std::string output;
-            char buf[256];
-            while (fgets(buf, sizeof(buf), pipe)) output += buf;
-            int exit_code = pclose(pipe);
+            // Construct stdin data: Empty for guest, or password for registered
+            std::string stdin_data;
+            if (!credentials.is_guest && !credentials.username.empty()) {
+                if (uri.find("smb://") == 0) stdin_data = "\n" + credentials.password + "\n";
+                else stdin_data = credentials.password + "\n";
+            }
+
+            char *stdout_buf = NULL;
+            g_subprocess_communicate_utf8(proc, stdin_data.empty() ? NULL : stdin_data.c_str(), NULL, &stdout_buf, NULL, &error);
+
+            int exit_status = 0;
+            if (g_subprocess_get_if_exited(proc)) {
+                exit_status = g_subprocess_get_exit_status(proc);
+            }
+
+            std::string output = stdout_buf ? stdout_buf : "";
+            if (stdout_buf) g_free(stdout_buf);
+            
+            g_object_unref(proc);
 
             // Trim output
             while (!output.empty() && (output.back() == '\n' || output.back() == '\r'))
                 output.pop_back();
 
-            LOG_INFO << "RemoteManager: gio mount exit=" << exit_code << " output=[" << output << "]";
+            LOG_INFO << "RemoteManager: gio mount finalizado con estado " << exit_status;
 
-            if (exit_code == 0)
+            if (exit_status == 0)
             {
                 result.success = true;
                 result.message = "Mounted successfully";
                 result.mount_path = find_fuse_path_for_uri(uri);
-                LOG_INFO << "RemoteManager: Montaje exitoso. FUSE path=" << result.mount_path;
             }
             else
             {
                 result.success = false;
                 result.message = output.empty() ? "Error desconocido al montar" : output;
-                LOG_ERROR << "RemoteManager: Error de montaje: " << result.message;
             }
 
+            if (error) g_error_free(error);
             callback(result);
         }).detach();
     }
