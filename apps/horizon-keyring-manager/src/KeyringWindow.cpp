@@ -61,13 +61,12 @@ namespace horizon::keyring
 
     void KeyringWindow::setup_content()
     {
-        auto container = std::make_unique<Widget>();
-        container->set_layout_type(WidgetLayoutTypes::WIDGET_LAYOUT_HORIZONTAL);
+        auto vpanel = std::make_unique<VPanel>();
+        vpanel->set_left_width(200);
 
         // Sidebar
         auto sidebar = std::make_unique<Sidebar>();
         m_sidebar = sidebar.get();
-        sidebar->set_fixed_size(200);
 
         m_sidebar->add_group("Passwords");
         auto item_login = std::make_unique<SidebarItem>("Login", "folder-password-symbolic");
@@ -117,10 +116,10 @@ namespace horizon::keyring
             return menu;
         });
 
-        container->add_child(std::move(sidebar));
-        container->add_child(std::move(table));
-
-        set_content(std::move(container));
+        vpanel->add_child(std::move(sidebar));
+        vpanel->add_child(std::move(table));
+        
+        set_content(std::move(vpanel));
     }
 
     void KeyringWindow::load_data()
