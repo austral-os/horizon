@@ -254,7 +254,7 @@ namespace horizon::arkfm
                                 m_active_context_menu = std::make_unique<horizon::Menu>();
                                 auto item_new = m_active_context_menu->add_item("Nueva carpeta");
                                 item_new->when_click.connect([this](auto &)
-                                                             { this->handle_new_folder(); });
+                                                              { this->handle_new_folder(); });
 
                                 m_active_context_menu->add_separator();
 
@@ -458,8 +458,12 @@ namespace horizon::arkfm
             if (n_uri == m_uri) {
                 LOG_INFO << "ArkfmWindow: URI ya montada en " << mount.mount_path;
                 application()->clear_override_cursor();
-                if (m_view_ptr) m_view_ptr->navigate_to(mount.mount_path);
-                if (m_sidebar_ptr) m_sidebar_ptr->select_item_by_path(mount.mount_path);
+                if (!mount.mount_path.empty()) {
+                    if (m_view_ptr) m_view_ptr->navigate_to(mount.mount_path);
+                    if (m_sidebar_ptr) m_sidebar_ptr->select_item_by_path(mount.mount_path);
+                } else {
+                    LOG_WARNING << "ArkfmWindow: URI montada pero sin ruta FUSE.";
+                }
                 
                 if (application()) {
                     application()->alert(i18n().tr("arkfm.messages.already_mounted"));
@@ -492,17 +496,22 @@ namespace horizon::arkfm
                     // NO reseteamos aquí para evitar destruir el objeto mientras su loop corre
 
                     // IMPORTANTE: La navegación la hace la ventana principal, no el diálogo.
-                    application()->post_task([this, res]() {
-                        if (m_view_ptr) m_view_ptr->navigate_to(res.mount_path);
-                        if (m_sidebar_ptr) {
-                            application()->add_timer(1000, [this, path = res.mount_path]() {
-                                if (m_sidebar_ptr) {
-                                    m_sidebar_ptr->refresh_devices();
-                                    m_sidebar_ptr->select_item_by_path(path);
-                                }
-                            }, false);
+                    application()->post_task([this, res, uri]() {
+                        if (!res.mount_path.empty()) {
+                            if (m_view_ptr) m_view_ptr->navigate_to(res.mount_path);
+                            if (m_sidebar_ptr) {
+                                application()->add_timer(1000, [this, path = res.mount_path]() {
+                                    if (m_sidebar_ptr) {
+                                        m_sidebar_ptr->refresh_devices();
+                                        m_sidebar_ptr->select_item_by_path(path);
+                                    }
+                                }, false);
+                            }
+                            show_status_message("Conectado a " + res.mount_path);
+                        } else {
+                            LOG_WARNING << "ArkfmWindow: Montaje exitoso pero sin ruta FUSE para " << uri;
+                            application()->alert("Conectado con éxito, pero no se encontró un punto de montaje local. Verifique que la ubicación sea un recurso compartido válido.", "Aviso");
                         }
-                        show_status_message("Conectado a " + res.mount_path);
                     });
                 } else {
                     LOG_ERROR << "ArkFM: Fallo al montar " << uri << ": " << res.message;

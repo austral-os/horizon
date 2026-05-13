@@ -9,8 +9,9 @@ namespace horizon::storage
         GVolumeMonitor* monitor;
         RemoteManager* parent;
         
-        static void on_mount_changed(GVolumeMonitor*, GMount*, gpointer user_data) {
+        static void on_mount_changed(GVolumeMonitor*, GMount* mount, gpointer user_data) {
             auto* d = static_cast<RemoteManager::Private*>(user_data);
+            LOG_INFO << "RemoteManager: Mount changed (added/removed)";
             RemoteStorageEventContext ctx;
             d->parent->when_changed.run(ctx);
         }
@@ -134,8 +135,10 @@ namespace horizon::storage
                 bool finished = false;
                 RemoteMountResult result;
                 GFile* file;
+                std::string target_uri;
             } state;
             state.file = file;
+            state.target_uri = uri;
 
             g_file_mount_enclosing_volume(file, G_MOUNT_MOUNT_NONE, op, nullptr, 
                 [](GObject* source, GAsyncResult* res, gpointer user_data) {
@@ -144,15 +147,46 @@ namespace horizon::storage
                     g_file_mount_enclosing_volume_finish(G_FILE(source), res, &error);
 
                     if (error) {
-                        s->result.success = false;
-                        s->result.message = error->message;
-                        LOG_ERROR << "RemoteManager: Error de GIO: " << error->message;
+                        if (error->domain == G_IO_ERROR && (error->code == G_IO_ERROR_ALREADY_MOUNTED)) {
+                            LOG_INFO << "RemoteManager: GIO reporta que ya está montado. Buscando punto de montaje...";
+                            s->result.success = true;
+                            s->result.message = "Already mounted";
+                        } else {
+                            s->result.success = false;
+                            s->result.message = error->message;
+                            LOG_ERROR << "RemoteManager: Error de GIO (Domain: " << error->domain << " Code: " << error->code << "): " << error->message;
+                        }
                         g_error_free(error);
                     } else {
                         s->result.success = true;
                         s->result.message = "Mounted successfully";
-                        
+                    }
+
+                    if (s->result.success) {
                         GMount* mount = g_file_find_enclosing_mount(s->file, nullptr, nullptr);
+                        
+                        // FALLBACK: If g_file_find_enclosing_mount fails, iterate all mounts
+                        if (!mount) {
+                            LOG_INFO << "RemoteManager: Fallback: Buscando montaje manualmente para URI: " << s->target_uri;
+                            GVolumeMonitor* monitor = g_volume_monitor_get();
+                            GList* mounts = g_volume_monitor_get_mounts(monitor);
+                            GFile* target_file = g_file_new_for_uri(s->target_uri.c_str());
+                            
+                            for (GList* l = mounts; l != nullptr; l = l->next) {
+                                GMount* m = G_MOUNT(l->data);
+                                GFile* root = g_mount_get_root(m);
+                                if (g_file_equal(root, target_file) || g_file_has_prefix(target_file, root)) {
+                                    mount = G_MOUNT(g_object_ref(m));
+                                    g_object_unref(root);
+                                    break;
+                                }
+                                g_object_unref(root);
+                            }
+                            g_object_unref(target_file);
+                            g_list_free_full(mounts, g_object_unref);
+                            g_object_unref(monitor);
+                        }
+
                         if (mount) {
                             GFile* root = g_mount_get_root(mount);
                             char* path = g_file_get_path(root);
@@ -160,11 +194,16 @@ namespace horizon::storage
                                 s->result.mount_path = path;
                                 LOG_INFO << "RemoteManager: Recurso montado en " << path;
                                 g_free(path);
+                            } else {
+                                LOG_WARNING << "RemoteManager: No se pudo obtener la ruta local para el montaje.";
                             }
                             g_object_unref(root);
                             g_object_unref(mount);
+                        } else {
+                            LOG_WARNING << "RemoteManager: No se pudo encontrar el montaje que GIO dice que ya existe.";
                         }
                     }
+                    
                     s->finished = true;
                 }, &state);
 
@@ -279,12 +318,16 @@ namespace horizon::storage
 
     std::vector<RemoteMountInfo> RemoteManager::get_active_mounts()
     {
+        LOG_INFO << "RemoteManager: get_active_mounts() called";
+        
         // Force GIO to process pending signals to get fresh data
         while (g_main_context_iteration(nullptr, FALSE));
 
         std::vector<RemoteMountInfo> mounts;
         GVolumeMonitor* monitor = d->monitor;
         GList* g_mounts = g_volume_monitor_get_mounts(monitor);
+        
+        LOG_INFO << "RemoteManager: GVolumeMonitor returned " << g_list_length(g_mounts) << " mounts";
 
         for (GList* l = g_mounts; l != nullptr; l = l->next) {
             GMount* mount = G_MOUNT(l->data);
@@ -293,6 +336,10 @@ namespace horizon::storage
             char* uri = g_file_get_uri(root);
             char* path = g_file_get_path(root);
             
+            LOG_INFO << "RemoteManager: Found mount: " << (name ? name : "Unnamed") 
+                     << " URI: " << (uri ? uri : "NULL") 
+                     << " Path: " << (path ? path : "NULL");
+
             GIcon* icon = g_mount_get_icon(mount);
             std::string icon_name = "folder-remote";
             if (G_IS_THEMED_ICON(icon)) {
@@ -301,8 +348,27 @@ namespace horizon::storage
             }
 
             std::string s_uri = uri ? uri : "";
-            if (s_uri.find("://") != std::string::npos && s_uri.find("file://") != 0) {
-                mounts.push_back({name ? name : "Remote Resource", s_uri, path ? path : "", icon_name});
+            std::string s_path = path ? path : "";
+            
+            // LIBERAL FILTER:
+            // 1. Include anything that doesn't start with file:// (standard remote URIs)
+            // 2. Include anything that IS file:// but points to the GVFS FUSE mount point
+            bool is_remote = !s_uri.empty() && s_uri.find("file://") != 0;
+            
+            if (!is_remote && s_path.find("/gvfs/") != std::string::npos) {
+                is_remote = true;
+            }
+            
+            // Exclude some internal URIs that we don't want to show
+            if (s_uri.find("burn://") == 0 || s_uri.find("recent://") == 0 || s_uri.find("trash://") == 0) {
+                is_remote = false;
+            }
+
+            if (is_remote) {
+                LOG_INFO << "RemoteManager: Including as remote mount: " << s_uri << " (Path: " << s_path << ")";
+                mounts.push_back({name ? name : "Remote Resource", s_uri, s_path, icon_name});
+            } else {
+                LOG_INFO << "RemoteManager: Excluding mount: " << s_uri;
             }
 
             if (name) g_free(name);

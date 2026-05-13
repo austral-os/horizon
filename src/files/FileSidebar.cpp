@@ -150,7 +150,12 @@ namespace horizon::files
     {
         m_remote_manager = std::make_unique<storage::RemoteManager>();
         
-        when_application_load.connect([this](EventContext &) { this->setup_monitoring(); });
+        when_application_load.connect([this](EventContext &) { 
+            this->setup_monitoring(); 
+            if (application()) {
+                application()->add_timer(2000, [this]() { this->refresh_devices(); }, false);
+            }
+        });
 
         refresh_devices();
 
