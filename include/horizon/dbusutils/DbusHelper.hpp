@@ -28,6 +28,17 @@ namespace horizon::dbusutils
     >;
 
     /**
+     * @class DbusObject
+     * @brief Base class for objects exported over D-Bus.
+     */
+    class DbusObject
+    {
+    public:
+        virtual ~DbusObject() = default;
+        virtual DBusHandlerResult handle_message(DBusConnection* conn, DBusMessage* msg) = 0;
+    };
+
+    /**
      * @class DbusHelper
      * @brief A high-level C++ wrapper around the low-level libdbus-1 library.
      */
@@ -144,6 +155,13 @@ namespace horizon::dbusutils
         DBusMessage* pop_message(int timeout_ms = 0);
 
         /**
+         * @brief Reads, writes and dispatches messages.
+         * @param timeout_ms Maximum time to wait.
+         * @return True if the connection is still open.
+         */
+        bool process_events(int timeout_ms = 100);
+
+        /**
          * @brief Retrieves all object paths provided as top-level arguments in a message.
          */
         std::vector<std::string> get_all_object_paths(DBusMessage* msg);
@@ -152,6 +170,40 @@ namespace horizon::dbusutils
          * @brief Returns the underlying D-Bus connection.
          */
         DBusConnection* get_connection() const { return m_connection; }
+
+        /**
+         * @brief Requests a name on the D-Bus bus.
+         * @param name The name to request (e.g., "org.freedesktop.Secrets").
+         * @return True if successful.
+         */
+        bool request_name(const std::string& name);
+
+        /**
+         * @brief Registers an object path on the D-Bus bus.
+         * @param path The object path (e.g., "/org/freedesktop/secrets").
+         * @param object The object instance to handle messages for this path.
+         */
+        void register_object(const std::string& path, DbusObject* object);
+
+        /**
+         * @brief Unregisters an object path.
+         */
+        void unregister_object(const std::string& path);
+
+        /**
+         * @brief Sends a method return reply to a pending message.
+         */
+        void send_reply(DBusMessage* msg, const std::vector<DbusVariant>& args = {});
+
+        /**
+         * @brief Sends an error reply to a pending message.
+         */
+        void send_error(DBusMessage* msg, const std::string& error_name, const std::string& error_message);
+
+        /**
+         * @brief Emits a signal from the specified path.
+         */
+        void emit_signal(const std::string& path, const std::string& interface, const std::string& signal, const std::vector<DbusVariant>& args = {});
 
     private:
         DBusConnection* m_connection{nullptr};

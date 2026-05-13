@@ -109,6 +109,149 @@ namespace horizon::dbusutils
         call_method_s_asv(destination, path, interface, method, "", {});
     }
 
+    static void append_variant_to_iter(DBusMessageIter* parent_iter, const DbusVariant& value)
+    {
+        DBusMessageIter var_iter;
+        if (std::holds_alternative<std::string>(value))
+        {
+            const char* s = std::get<std::string>(value).c_str();
+            dbus_message_iter_open_container(parent_iter, DBUS_TYPE_VARIANT, "s", &var_iter);
+            dbus_message_iter_append_basic(&var_iter, DBUS_TYPE_STRING, &s);
+            dbus_message_iter_close_container(parent_iter, &var_iter);
+        }
+        else if (std::holds_alternative<bool>(value))
+        {
+            dbus_bool_t b = std::get<bool>(value);
+            dbus_message_iter_open_container(parent_iter, DBUS_TYPE_VARIANT, "b", &var_iter);
+            dbus_message_iter_append_basic(&var_iter, DBUS_TYPE_BOOLEAN, &b);
+            dbus_message_iter_close_container(parent_iter, &var_iter);
+        }
+        else if (std::holds_alternative<uint32_t>(value))
+        {
+            uint32_t u = std::get<uint32_t>(value);
+            dbus_message_iter_open_container(parent_iter, DBUS_TYPE_VARIANT, "u", &var_iter);
+            dbus_message_iter_append_basic(&var_iter, DBUS_TYPE_UINT32, &u);
+            dbus_message_iter_close_container(parent_iter, &var_iter);
+        }
+        else if (std::holds_alternative<int32_t>(value))
+        {
+            int32_t i = std::get<int32_t>(value);
+            dbus_message_iter_open_container(parent_iter, DBUS_TYPE_VARIANT, "i", &var_iter);
+            dbus_message_iter_append_basic(&var_iter, DBUS_TYPE_INT32, &i);
+            dbus_message_iter_close_container(parent_iter, &var_iter);
+        }
+        else if (std::holds_alternative<uint64_t>(value))
+        {
+            uint64_t u = std::get<uint64_t>(value);
+            dbus_message_iter_open_container(parent_iter, DBUS_TYPE_VARIANT, "t", &var_iter);
+            dbus_message_iter_append_basic(&var_iter, DBUS_TYPE_UINT64, &u);
+            dbus_message_iter_close_container(parent_iter, &var_iter);
+        }
+        else if (std::holds_alternative<int64_t>(value))
+        {
+            int64_t i = std::get<int64_t>(value);
+            dbus_message_iter_open_container(parent_iter, DBUS_TYPE_VARIANT, "x", &var_iter);
+            dbus_message_iter_append_basic(&var_iter, DBUS_TYPE_INT64, &i);
+            dbus_message_iter_close_container(parent_iter, &var_iter);
+        }
+        else if (std::holds_alternative<double>(value))
+        {
+            double d = std::get<double>(value);
+            dbus_message_iter_open_container(parent_iter, DBUS_TYPE_VARIANT, "d", &var_iter);
+            dbus_message_iter_append_basic(&var_iter, DBUS_TYPE_DOUBLE, &d);
+            dbus_message_iter_close_container(parent_iter, &var_iter);
+        }
+        else if (std::holds_alternative<std::vector<std::string>>(value))
+        {
+            const auto& vec = std::get<std::vector<std::string>>(value);
+            dbus_message_iter_open_container(parent_iter, DBUS_TYPE_VARIANT, "as", &var_iter);
+            DBusMessageIter array_iter;
+            dbus_message_iter_open_container(&var_iter, DBUS_TYPE_ARRAY, "s", &array_iter);
+            for (const auto& s : vec)
+            {
+                const char* c_s = s.c_str();
+                dbus_message_iter_append_basic(&array_iter, DBUS_TYPE_STRING, &c_s);
+            }
+            dbus_message_iter_close_container(&var_iter, &array_iter);
+            dbus_message_iter_close_container(parent_iter, &var_iter);
+        }
+        else if (std::holds_alternative<std::vector<uint8_t>>(value))
+        {
+            const auto& vec = std::get<std::vector<uint8_t>>(value);
+            dbus_message_iter_open_container(parent_iter, DBUS_TYPE_VARIANT, "ay", &var_iter);
+            DBusMessageIter array_iter;
+            dbus_message_iter_open_container(&var_iter, DBUS_TYPE_ARRAY, "y", &array_iter);
+            for (const auto& b : vec)
+            {
+                dbus_message_iter_append_basic(&array_iter, DBUS_TYPE_BYTE, &b);
+            }
+            dbus_message_iter_close_container(&var_iter, &array_iter);
+            dbus_message_iter_close_container(parent_iter, &var_iter);
+        }
+    }
+
+    static void append_basic_to_iter(DBusMessageIter* iter, const DbusVariant& value)
+    {
+        if (std::holds_alternative<std::string>(value))
+        {
+            const char* s = std::get<std::string>(value).c_str();
+            dbus_message_iter_append_basic(iter, DBUS_TYPE_STRING, &s);
+        }
+        else if (std::holds_alternative<bool>(value))
+        {
+            dbus_bool_t b = std::get<bool>(value);
+            dbus_message_iter_append_basic(iter, DBUS_TYPE_BOOLEAN, &b);
+        }
+        else if (std::holds_alternative<uint32_t>(value))
+        {
+            uint32_t u = std::get<uint32_t>(value);
+            dbus_message_iter_append_basic(iter, DBUS_TYPE_UINT32, &u);
+        }
+        else if (std::holds_alternative<int32_t>(value))
+        {
+            int32_t i = std::get<int32_t>(value);
+            dbus_message_iter_append_basic(iter, DBUS_TYPE_INT32, &i);
+        }
+        else if (std::holds_alternative<uint64_t>(value))
+        {
+            uint64_t u = std::get<uint64_t>(value);
+            dbus_message_iter_append_basic(iter, DBUS_TYPE_UINT64, &u);
+        }
+        else if (std::holds_alternative<int64_t>(value))
+        {
+            int64_t i = std::get<int64_t>(value);
+            dbus_message_iter_append_basic(iter, DBUS_TYPE_INT64, &i);
+        }
+        else if (std::holds_alternative<double>(value))
+        {
+            double d = std::get<double>(value);
+            dbus_message_iter_append_basic(iter, DBUS_TYPE_DOUBLE, &d);
+        }
+        else if (std::holds_alternative<std::vector<std::string>>(value))
+        {
+            const auto& vec = std::get<std::vector<std::string>>(value);
+            DBusMessageIter array_iter;
+            dbus_message_iter_open_container(iter, DBUS_TYPE_ARRAY, "s", &array_iter);
+            for (const auto& s : vec)
+            {
+                const char* c_s = s.c_str();
+                dbus_message_iter_append_basic(&array_iter, DBUS_TYPE_STRING, &c_s);
+            }
+            dbus_message_iter_close_container(iter, &array_iter);
+        }
+        else if (std::holds_alternative<std::vector<uint8_t>>(value))
+        {
+            const auto& vec = std::get<std::vector<uint8_t>>(value);
+            DBusMessageIter array_iter;
+            dbus_message_iter_open_container(iter, DBUS_TYPE_ARRAY, "y", &array_iter);
+            for (const auto& b : vec)
+            {
+                dbus_message_iter_append_basic(&array_iter, DBUS_TYPE_BYTE, &b);
+            }
+            dbus_message_iter_close_container(iter, &array_iter);
+        }
+    }
+
     static void append_dict(DBusMessageIter* parent_iter, const std::map<std::string, DbusVariant>& options)
     {
         DBusMessageIter dict_iter;
@@ -116,34 +259,13 @@ namespace horizon::dbusutils
         
         for (const auto& [key, value] : options)
         {
-            DBusMessageIter entry_iter, variant_iter;
+            DBusMessageIter entry_iter;
             dbus_message_iter_open_container(&dict_iter, DBUS_TYPE_DICT_ENTRY, nullptr, &entry_iter);
             
             const char* c_key = key.c_str();
             dbus_message_iter_append_basic(&entry_iter, DBUS_TYPE_STRING, &c_key);
             
-            if (std::holds_alternative<std::string>(value))
-            {
-                const char* s = std::get<std::string>(value).c_str();
-                dbus_message_iter_open_container(&entry_iter, DBUS_TYPE_VARIANT, "s", &variant_iter);
-                dbus_message_iter_append_basic(&variant_iter, DBUS_TYPE_STRING, &s);
-                dbus_message_iter_close_container(&entry_iter, &variant_iter);
-            }
-            else if (std::holds_alternative<bool>(value))
-            {
-                dbus_bool_t b = std::get<bool>(value);
-                dbus_message_iter_open_container(&entry_iter, DBUS_TYPE_VARIANT, "b", &variant_iter);
-                dbus_message_iter_append_basic(&variant_iter, DBUS_TYPE_BOOLEAN, &b);
-                dbus_message_iter_close_container(&entry_iter, &variant_iter);
-            }
-            else if (std::holds_alternative<uint64_t>(value))
-            {
-                uint64_t u = std::get<uint64_t>(value);
-                dbus_message_iter_open_container(&entry_iter, DBUS_TYPE_VARIANT, "t", &variant_iter);
-                dbus_message_iter_append_basic(&variant_iter, DBUS_TYPE_UINT64, &u);
-                dbus_message_iter_close_container(&entry_iter, &variant_iter);
-            }
-            // Add other types as needed
+            append_variant_to_iter(&entry_iter, value);
             
             dbus_message_iter_close_container(&dict_iter, &entry_iter);
         }
@@ -542,5 +664,87 @@ namespace horizon::dbusutils
 
         dbus_connection_read_write(m_connection, timeout_ms);
         return dbus_connection_pop_message(m_connection);
+    }
+
+    bool DbusHelper::process_events(int timeout_ms)
+    {
+        if (m_connection == nullptr) return false;
+        return dbus_connection_read_write_dispatch(m_connection, timeout_ms);
+    }
+
+    bool DbusHelper::request_name(const std::string& name)
+    {
+        DBusError error;
+        dbus_error_init(&error);
+        int result = dbus_bus_request_name(m_connection, name.c_str(), DBUS_NAME_FLAG_REPLACE_EXISTING, &error);
+        if (dbus_error_is_set(&error))
+        {
+            dbus_error_free(&error);
+            return false;
+        }
+        return result == DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER;
+    }
+
+    static DBusHandlerResult object_message_handler(DBusConnection* conn, DBusMessage* msg, void* user_data)
+    {
+        auto* object = static_cast<DbusObject*>(user_data);
+        return object->handle_message(conn, msg);
+    }
+
+    void DbusHelper::register_object(const std::string& path, DbusObject* object)
+    {
+        DBusObjectPathVTable vtable = { nullptr, object_message_handler, nullptr, nullptr, nullptr, nullptr };
+        dbus_connection_register_object_path(m_connection, path.c_str(), &vtable, object);
+    }
+
+    void DbusHelper::unregister_object(const std::string& path)
+    {
+        dbus_connection_unregister_object_path(m_connection, path.c_str());
+    }
+
+    void DbusHelper::send_reply(DBusMessage* msg, const std::vector<DbusVariant>& args)
+    {
+        DBusMessage* reply = dbus_message_new_method_return(msg);
+        if (!reply) return;
+
+        if (!args.empty())
+        {
+            DBusMessageIter iter;
+            dbus_message_iter_init_append(reply, &iter);
+            for (const auto& arg : args)
+            {
+                append_basic_to_iter(&iter, arg);
+            }
+        }
+
+        dbus_connection_send(m_connection, reply, nullptr);
+        dbus_message_unref(reply);
+    }
+
+    void DbusHelper::send_error(DBusMessage* msg, const std::string& error_name, const std::string& error_message)
+    {
+        DBusMessage* error = dbus_message_new_error(msg, error_name.c_str(), error_message.c_str());
+        if (!error) return;
+        dbus_connection_send(m_connection, error, nullptr);
+        dbus_message_unref(error);
+    }
+
+    void DbusHelper::emit_signal(const std::string& path, const std::string& interface, const std::string& signal, const std::vector<DbusVariant>& args)
+    {
+        DBusMessage* sig = dbus_message_new_signal(path.c_str(), interface.c_str(), signal.c_str());
+        if (!sig) return;
+
+        if (!args.empty())
+        {
+            DBusMessageIter iter;
+            dbus_message_iter_init_append(sig, &iter);
+            for (const auto& arg : args)
+            {
+                append_basic_to_iter(&iter, arg);
+            }
+        }
+
+        dbus_connection_send(m_connection, sig, nullptr);
+        dbus_message_unref(sig);
     }
 }
