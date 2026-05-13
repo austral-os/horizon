@@ -137,6 +137,9 @@ namespace horizon::keyring
             edit->when_click.connect([this, item](EventContext&) {
                 handle_row_action("edit", item);
             });
+
+            menu->add_separator();
+
             auto* del = menu->add_item("Eliminar");
             del->when_click.connect([this, item](EventContext&) {
                 handle_row_action("delete", item);
