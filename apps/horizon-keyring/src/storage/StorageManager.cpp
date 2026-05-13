@@ -152,6 +152,35 @@ namespace horizon::secrets::storage
         return changes > 0;
     }
 
+    void StorageManager::update_item_label(uint64_t item_id, const std::string& label)
+    {
+        sqlite3_stmt* stmt;
+        sqlite3_prepare_v2(m_db, "UPDATE items SET label = ? WHERE id = ?;", -1, &stmt, nullptr);
+        sqlite3_bind_text(stmt, 1, label.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_int64(stmt, 2, item_id);
+        sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
+    }
+
+    void StorageManager::update_item_attributes(uint64_t item_id, const std::map<std::string, std::string>& attributes)
+    {
+        // Simplest way is delete all and re-insert
+        sqlite3_stmt* stmt;
+        sqlite3_prepare_v2(m_db, "DELETE FROM attributes WHERE item_id = ?;", -1, &stmt, nullptr);
+        sqlite3_bind_int64(stmt, 1, item_id);
+        sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
+
+        for (const auto& [key, value] : attributes) {
+            sqlite3_prepare_v2(m_db, "INSERT INTO attributes (item_id, key, value) VALUES (?, ?, ?);", -1, &stmt, nullptr);
+            sqlite3_bind_int64(stmt, 1, item_id);
+            sqlite3_bind_text(stmt, 2, key.c_str(), -1, SQLITE_STATIC);
+            sqlite3_bind_text(stmt, 3, value.c_str(), -1, SQLITE_STATIC);
+            sqlite3_step(stmt);
+            sqlite3_finalize(stmt);
+        }
+    }
+
     std::vector<SecretItem> StorageManager::search_items(const std::string& collection, const std::map<std::string, std::string>& attributes)
     {
         std::vector<SecretItem> results;

@@ -40,9 +40,8 @@ int main(int argc, char** argv)
         int iterations = 0;
         while (dbus.process_events(100)) {
             iterations++;
-            if (iterations % 50 == 0) { // Every ~5 seconds
-                printf("[Horizon Keyring] Heartbeat: Service is alive...\n");
-                fflush(stdout);
+            if (iterations % 300 == 0) { // Every ~30 seconds (100ms * 300)
+                LOG_INFO << "[Horizon Keyring] Service is healthy.";
             }
         }
     } catch (const std::exception& e) {

@@ -32,6 +32,8 @@ namespace horizon::secrets::storage
         // Item management
         void save_item(const std::string& collection, const SecretItem& item);
         bool delete_item(uint64_t item_id);
+        void update_item_label(uint64_t item_id, const std::string& label);
+        void update_item_attributes(uint64_t item_id, const std::map<std::string, std::string>& attributes);
         std::vector<SecretItem> search_items(const std::string& collection, const std::map<std::string, std::string>& attributes);
 
     private:

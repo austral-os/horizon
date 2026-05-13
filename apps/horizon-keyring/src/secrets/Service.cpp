@@ -57,8 +57,8 @@ namespace horizon::secrets
         std::string method = dbus_message_get_member(msg) ? dbus_message_get_member(msg) : "";
         std::string path = dbus_message_get_path(msg) ? dbus_message_get_path(msg) : "";
 
-        printf("[Horizon Keyring] Incoming D-Bus call: %s.%s at %s\n", interface.c_str(), method.c_str(), path.c_str());
-        fflush(stdout);
+        // Log incoming call (disabled in production to keep logs clean)
+        // LOG_DEBUG << "[Horizon Keyring] Incoming D-Bus call: " << interface << "." << method << " at " << path;
 
         if (interface == "org.freedesktop.Secret.Service") {
             if (method == "OpenSession") {
@@ -102,14 +102,47 @@ namespace horizon::secrets
             }
         } else if (interface == "org.freedesktop.DBus.Properties") {
             if (method == "Get" || method == "GetAll") {
-                LOG_INFO << "[Horizon Keyring] Handling Properties.Get/GetAll";
-                // Send empty reply for now to avoid compilation issues with unsupported map type
+                // Return empty response for Get/GetAll to avoid crash
                 m_dbus.send_reply(msg, {});
+                return DBUS_HANDLER_RESULT_HANDLED;
+            } else if (method == "Set") {
+                handle_set_property(msg);
                 return DBUS_HANDLER_RESULT_HANDLED;
             }
         } else if (interface == "org.freedesktop.DBus.Introspectable" && method == "Introspect") {
-            // Minimal introspection
-            std::string xml = R"(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+            std::string xml;
+            if (path.find("/collection/default/") != std::string::npos) {
+                // Introspection for an ITEM
+                xml = R"(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name="org.freedesktop.Secret.Item">
+    <method name="Delete">
+      <arg name="prompt" type="o" direction="out"/>
+    </method>
+    <property name="Label" type="s" access="readwrite"/>
+    <property name="Attributes" type="a{ss}" access="readwrite"/>
+  </interface>
+  <interface name="org.freedesktop.DBus.Properties">
+    <method name="Get">
+      <arg name="interface" type="s" direction="in"/>
+      <arg name="propname" type="s" direction="in"/>
+      <arg name="value" type="v" direction="out"/>
+    </method>
+    <method name="GetAll">
+      <arg name="interface" type="s" direction="in"/>
+      <arg name="props" type="a{sv}" direction="out"/>
+    </method>
+    <method name="Set">
+      <arg name="interface" type="s" direction="in"/>
+      <arg name="propname" type="s" direction="in"/>
+      <arg name="value" type="v" direction="in"/>
+    </method>
+  </interface>
+</node>)";
+            } else {
+                // Introspection for the SERVICE
+                xml = R"(<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
 "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
 <node>
   <interface name="org.freedesktop.Secret.Service">
@@ -136,6 +169,7 @@ namespace horizon::secrets
     </method>
   </interface>
 </node>)";
+            }
             m_dbus.send_reply(msg, {xml});
             return DBUS_HANDLER_RESULT_HANDLED;
         }
@@ -467,5 +501,60 @@ namespace horizon::secrets
 
         // The Delete method returns a prompt path (o). We use "/" to indicate no prompt needed.
         m_dbus.send_reply(msg, {dbusutils::ObjectPath("/")});
+    }
+
+    void Service::handle_set_property(DBusMessage* msg)
+    {
+        DBusMessageIter iter;
+        dbus_message_iter_init(msg, &iter);
+        
+        const char* interface_name;
+        const char* property_name;
+        dbus_message_iter_get_basic(&iter, &interface_name);
+        dbus_message_iter_next(&iter);
+        dbus_message_iter_get_basic(&iter, &property_name);
+        dbus_message_iter_next(&iter);
+        
+        // The value is in a variant
+        DBusMessageIter var_iter;
+        dbus_message_iter_recurse(&iter, &var_iter);
+        
+        std::string path = dbus_message_get_path(msg);
+        size_t last_slash = path.find_last_of('/');
+        if (last_slash == std::string::npos) return;
+        
+        std::string id_str = path.substr(last_slash + 1);
+        uint64_t item_id = 0;
+        try { item_id = std::stoull(id_str); } catch (...) { return; }
+
+        if (std::string(property_name) == "Label") {
+            if (dbus_message_iter_get_arg_type(&var_iter) == DBUS_TYPE_STRING) {
+                const char* label;
+                dbus_message_iter_get_basic(&var_iter, &label);
+                m_storage->update_item_label(item_id, label);
+                LOG_INFO << "[Horizon Keyring] Updated label for item " << item_id << " to: " << label;
+            }
+        } else if (std::string(property_name) == "Attributes") {
+            if (dbus_message_iter_get_arg_type(&var_iter) == DBUS_TYPE_ARRAY) {
+                std::map<std::string, std::string> attributes;
+                DBusMessageIter dict_iter;
+                dbus_message_iter_recurse(&var_iter, &dict_iter);
+                while (dbus_message_iter_get_arg_type(&dict_iter) == DBUS_TYPE_DICT_ENTRY) {
+                    DBusMessageIter entry_iter;
+                    dbus_message_iter_recurse(&dict_iter, &entry_iter);
+                    const char* k;
+                    const char* v;
+                    dbus_message_iter_get_basic(&entry_iter, &k);
+                    dbus_message_iter_next(&entry_iter);
+                    dbus_message_iter_get_basic(&entry_iter, &v);
+                    attributes[k] = v;
+                    dbus_message_iter_next(&dict_iter);
+                }
+                m_storage->update_item_attributes(item_id, attributes);
+                LOG_INFO << "[Horizon Keyring] Updated attributes for item " << item_id;
+            }
+        }
+
+        m_dbus.send_reply(msg, {});
     }
 }
