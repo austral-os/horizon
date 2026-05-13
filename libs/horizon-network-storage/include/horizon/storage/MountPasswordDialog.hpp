@@ -41,6 +41,11 @@ namespace horizon::storage
          */
         void show_error(const std::string& message);
 
+        /**
+         * @brief Pre-fills the dialog with existing credentials.
+         */
+        void set_initial_credentials(const RemoteCredentials& creds);
+
     private:
         void update_enabled_state();
         

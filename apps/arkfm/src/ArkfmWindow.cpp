@@ -264,7 +264,7 @@ namespace horizon::arkfm
                                 m_active_context_menu = std::make_unique<horizon::Menu>();
                                 auto item_new = m_active_context_menu->add_item("Nueva carpeta");
                                 item_new->when_click.connect([this](auto &)
-                                                              { this->handle_new_folder(); });
+                                                               { this->handle_new_folder(); });
 
                                 m_active_context_menu->add_separator();
 
@@ -468,6 +468,16 @@ namespace horizon::arkfm
 
         // Check if already mounted
         auto active_mounts = m_remote_manager->get_active_mounts();
+
+        // Check if we have saved credentials for this URI
+        if (creds.username.empty() && !creds.is_guest) {
+            storage::RemoteCredentials saved;
+            if (m_remote_manager->get_credentials(uri, saved)) {
+                LOG_INFO << "ArkfmWindow: Utilizando credenciales guardadas para " << uri;
+                creds = saved;
+            }
+        }
+
         for (const auto& mount : active_mounts) {
             std::string n_uri = uri;
             if (!n_uri.empty() && n_uri.back() == '/') n_uri.pop_back();
@@ -494,7 +504,7 @@ namespace horizon::arkfm
         // Capturamos un weak_ptr para saber si el diálogo sigue vivo de forma segura
         std::weak_ptr<storage::MountPasswordDialog> weak_dlg = m_mount_dialog;
 
-        m_remote_manager->when_mount(uri, creds, [this, uri, weak_dlg](storage::RemoteMountResult res) {
+        m_remote_manager->when_mount(uri, creds, [this, uri, weak_dlg, creds](storage::RemoteMountResult res) {
             auto shared_dlg = weak_dlg.lock();
             
             // ¡ESTO ES LO IMPORTANTE!
@@ -504,7 +514,7 @@ namespace horizon::arkfm
                 else application()->post_task(task);
             };
 
-            task_launcher([this, uri, res, shared_dlg]() {
+            task_launcher([this, uri, res, shared_dlg, creds]() {
                 application()->clear_override_cursor();
                 if (res.success) {
                     LOG_INFO << "ArkFM: Montado exitoso de " << uri << ". Cerrando diálogo...";
@@ -515,8 +525,13 @@ namespace horizon::arkfm
                     // NO reseteamos aquí para evitar destruir el objeto mientras su loop corre
 
                     // IMPORTANTE: La navegación la hace la ventana principal, no el diálogo.
-                    application()->post_task([this, res, uri]() {
+                    application()->post_task([this, res, uri, creds]() {
                         if (!res.mount_path.empty()) {
+                            // If successfully mounted and 'remember' was checked, save credentials
+                            if (creds.remember) {
+                                m_remote_manager->save_credentials(uri, creds);
+                            }
+
                             if (m_view_ptr) m_view_ptr->navigate_to(res.mount_path);
                             if (m_sidebar_ptr) {
                                 application()->add_timer(1000, [this, path = res.mount_path]() {
@@ -546,8 +561,10 @@ namespace horizon::arkfm
                                        msg.find("permission denied") != std::string::npos ||
                                        msg.find("authentication") != std::string::npos ||
                                        msg.find("autentica") != std::string::npos ||
-                                       msg.find("soportada") != std::string::npos ||
-                                       msg.find("supported") != std::string::npos);
+                                       msg.find("soportada") != std::string::npos || 
+                                       msg.find("supported") != std::string::npos ||
+                                       msg.find("handshake") != std::string::npos ||
+                                       msg.find("refused") != std::string::npos);
 
                     if (needs_auth) {
                         if (shared_dlg) {
@@ -555,9 +572,9 @@ namespace horizon::arkfm
                             
                             std::string display_msg = raw_msg;
                             // Si el error es "cancelado" o "no soportada", usamos nuestro mensaje genérico amigable
-                            if (raw_msg.find("cancel") != std::string::npos || 
-                                raw_msg.find("soportada") != std::string::npos || 
-                                raw_msg.find("supported") != std::string::npos) 
+                            if (msg.find("cancel") != std::string::npos || 
+                                msg.find("soportada") != std::string::npos || 
+                                msg.find("supported") != std::string::npos) 
                             {
                                 display_msg = horizon::i18n().tr("core.storage.mount_dialog.auth_error");
                             }
@@ -566,6 +583,7 @@ namespace horizon::arkfm
                         } else {
                             LOG_INFO << "ArkFM: Creando nuevo diálogo de contraseña.";
                             m_mount_dialog = std::make_shared<storage::MountPasswordDialog>(uri);
+                            m_mount_dialog->set_initial_credentials(creds);
                             
                             // Capturamos un weak_ptr para evitar una referencia circular
                             std::weak_ptr<storage::MountPasswordDialog> weak_dlg_signal = m_mount_dialog;
@@ -582,9 +600,9 @@ namespace horizon::arkfm
                         }
                     } else {
                         std::string display_msg = raw_msg;
-                        if (raw_msg.find("cancel") != std::string::npos || 
-                            raw_msg.find("soportada") != std::string::npos || 
-                            raw_msg.find("supported") != std::string::npos) 
+                        if (msg.find("cancel") != std::string::npos || 
+                            msg.find("soportada") != std::string::npos || 
+                            msg.find("supported") != std::string::npos) 
                         {
                             display_msg = horizon::i18n().tr("core.storage.mount_dialog.auth_error");
                         }
@@ -593,7 +611,7 @@ namespace horizon::arkfm
                         show_status_message("Error: " + display_msg, 5000);
                         
                         // Show alert for real errors (excluding cancellations by user)
-                        if (raw_msg.find("cancel") == std::string::npos && application()) {
+                        if (msg.find("cancel") == std::string::npos && application()) {
                             application()->alert(display_msg, i18n().tr("arkfm.dialog.error") != "arkfm.dialog.error" ? i18n().tr("arkfm.dialog.error") : "Error");
                         }
                     }

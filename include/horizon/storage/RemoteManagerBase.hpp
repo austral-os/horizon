@@ -44,6 +44,9 @@ namespace horizon::storage
         virtual void when_unmount_by_uri(const std::string& uri, std::function<void(bool, std::string)> callback) = 0;
 
         virtual std::vector<RemoteMountInfo> get_active_mounts() = 0;
+        
+        virtual void save_credentials(const std::string& uri, const RemoteCredentials& creds) = 0;
+        virtual bool get_credentials(const std::string& uri, RemoteCredentials& out_creds) = 0;
 
         EventsManager<RemoteStorageEventContext> when_changed;
     };

@@ -266,4 +266,14 @@ namespace horizon::storage
             m_user_radio->set_enabled(true);
         update_enabled_state();
     }
+
+    void MountPasswordDialog::set_initial_credentials(const RemoteCredentials& creds)
+    {
+        if (m_guest_radio) m_guest_radio->set_selected(creds.is_guest);
+        if (m_user_radio) m_user_radio->set_selected(!creds.is_guest);
+        if (m_name_input) m_name_input->set_text(creds.username);
+        if (m_pass_input) m_pass_input->set_text(creds.password);
+        if (m_remember_check) m_remember_check->set_checked(creds.remember);
+        update_enabled_state();
+    }
 } // namespace horizon::storage

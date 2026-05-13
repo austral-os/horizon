@@ -18,6 +18,9 @@ namespace horizon::storage
         void when_unmount_by_uri(const std::string& uri, std::function<void(bool, std::string)> callback) override;
 
         std::vector<RemoteMountInfo> get_active_mounts() override;
+        
+        void save_credentials(const std::string& uri, const RemoteCredentials& creds) override;
+        bool get_credentials(const std::string& uri, RemoteCredentials& out_creds) override;
 
     private:
         struct Private;
