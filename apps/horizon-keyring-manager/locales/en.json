@@ -1,0 +1,44 @@
+{
+  "keyring": {
+    "title": "Passwords and Keys",
+    "toolbar": {
+      "add": "Add",
+      "delete": "Delete",
+      "refresh": "Refresh",
+      "search": "Search..."
+    },
+    "sidebar": {
+      "passwords": "Passwords",
+      "keys": "Keys",
+      "certificates": "Certificates",
+      "login": "Login",
+      "gnupg": "GnuPG Keys",
+      "openssh": "OpenSSH Keys",
+      "default_trust": "Default Trust"
+    },
+    "table": {
+        "name": "Name",
+        "type": "Type",
+        "modified": "Modified"
+    },
+    "menu": {
+        "edit": "Edit",
+        "delete": "Delete"
+    },
+    "dialog": {
+        "create_title": "Create New Secret",
+        "edit_title": "Edit Secret",
+        "label": "Name:",
+        "secret": "Password:",
+        "type": "Type:",
+        "cancel": "Cancel",
+        "save": "Save",
+        "confirm_del_single": "Are you sure you want to delete '{name}'?",
+        "confirm_del_multiple": "Are you sure you want to delete {count} items?",
+        "confirm_title": "Confirm Delete"
+    },
+    "status": {
+        "elements": "{count} items"
+    }
+  }
+}

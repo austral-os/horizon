@@ -8,7 +8,7 @@
 
 namespace horizon::keyring
 {
-    KeyringWindow::KeyringWindow(int w, int h) : ApplicationWindow("Passwords and Keys")
+    KeyringWindow::KeyringWindow(int w, int h) : ApplicationWindow(i18n().tr("keyring.title"))
     {
         set_size(w, h);
         setup_toolbar();
@@ -22,23 +22,23 @@ namespace horizon::keyring
         auto tb = toolbar();
         
         // Add Button
-        auto btn_add = std::make_unique<ToolbarButton>("Añadir", "list-add-symbolic");
+        auto btn_add = std::make_unique<ToolbarButton>(i18n().tr("keyring.toolbar.add"), "list-add-symbolic");
         btn_add->when_click.connect([this](EventContext&) {
             create_item_dialog();
         });
         tb->add_toolbar_widget(std::move(btn_add));
 
         // Delete Button
-        auto btn_del = std::make_unique<ToolbarButton>("Eliminar", "edit-delete-symbolic");
+        auto btn_del = std::make_unique<ToolbarButton>(i18n().tr("keyring.toolbar.delete"), "edit-delete-symbolic");
         btn_del->when_click.connect([this](EventContext&) {
             auto items = m_table->get_selected_items();
             if (items.empty()) return;
 
             std::string msg = (items.size() == 1) 
-                ? "¿Está seguro que desea eliminar '" + items[0].label + "'?"
-                : "¿Está seguro que desea eliminar " + std::to_string(items.size()) + " elementos?";
+                ? i18n().tr("keyring.dialog.confirm_del_single", {{"name", items[0].label}})
+                : i18n().tr("keyring.dialog.confirm_del_multiple", {{"count", std::to_string(items.size())}});
 
-            if (application()->confirm(msg, "Confirmar eliminación")) {
+            if (application()->confirm(msg, i18n().tr("keyring.dialog.confirm_title"))) {
                 for (const auto& item : items) {
                     delete_item(item.path);
                 }
@@ -48,7 +48,7 @@ namespace horizon::keyring
         tb->add_toolbar_widget(std::move(btn_del));
 
         // Refresh Button
-        auto btn_refresh = std::make_unique<ToolbarButton>("Actualizar", "view-refresh-symbolic");
+        auto btn_refresh = std::make_unique<ToolbarButton>(i18n().tr("keyring.toolbar.refresh"), "view-refresh-symbolic");
         btn_refresh->when_click.connect([this](EventContext&) { load_data(); });
         tb->add_toolbar_widget(std::move(btn_refresh));
 
@@ -57,7 +57,7 @@ namespace horizon::keyring
         // Search Box with Wrapper
         auto search_box = std::make_unique<SearchBox>();
         m_search_box = search_box.get();
-        m_search_box->set_placeholder("Buscar...");
+        m_search_box->set_placeholder(i18n().tr("keyring.toolbar.search"));
         m_search_box->set_fixed_size(35);
         m_search_box->when_text_changed.connect([this](KeyEventContext &) { 
             load_data(); 
@@ -81,26 +81,26 @@ namespace horizon::keyring
         auto sidebar = std::make_unique<Sidebar>();
         m_sidebar = sidebar.get();
 
-        m_sidebar->add_group("Passwords");
-        auto item_login = std::make_unique<SidebarItem>("folder-password-symbolic", "Login");
+        m_sidebar->add_group(i18n().tr("keyring.sidebar.passwords"));
+        auto item_login = std::make_unique<SidebarItem>("folder-password-symbolic", i18n().tr("keyring.sidebar.login"));
         item_login->set_path("Passwords");
-        auto item_pass = std::make_unique<SidebarItem>("dialog-password-symbolic", "Passwords");
+        auto item_pass = std::make_unique<SidebarItem>("dialog-password-symbolic", i18n().tr("keyring.sidebar.passwords"));
         item_pass->set_path("Passwords");
-        m_sidebar->add_item("Passwords", std::move(item_login));
-        m_sidebar->add_item("Passwords", std::move(item_pass));
+        m_sidebar->add_item(i18n().tr("keyring.sidebar.passwords"), std::move(item_login));
+        m_sidebar->add_item(i18n().tr("keyring.sidebar.passwords"), std::move(item_pass));
         
-        m_sidebar->add_group("Keys");
-        auto item_gpg = std::make_unique<SidebarItem>("key-symbolic", "GNUGpg Keys");
+        m_sidebar->add_group(i18n().tr("keyring.sidebar.keys"));
+        auto item_gpg = std::make_unique<SidebarItem>("key-symbolic", i18n().tr("keyring.sidebar.gnupg"));
         item_gpg->set_path("Keys");
-        auto item_ssh = std::make_unique<SidebarItem>("key-symbolic", "OpenSSH Keys");
+        auto item_ssh = std::make_unique<SidebarItem>("key-symbolic", i18n().tr("keyring.sidebar.openssh"));
         item_ssh->set_path("Keys");
-        m_sidebar->add_item("Keys", std::move(item_gpg));
-        m_sidebar->add_item("Keys", std::move(item_ssh));
+        m_sidebar->add_item(i18n().tr("keyring.sidebar.keys"), std::move(item_gpg));
+        m_sidebar->add_item(i18n().tr("keyring.sidebar.keys"), std::move(item_ssh));
         
-        m_sidebar->add_group("Certificates");
-        auto item_cert = std::make_unique<SidebarItem>("certificate-symbolic", "Default Trust");
+        m_sidebar->add_group(i18n().tr("keyring.sidebar.certificates"));
+        auto item_cert = std::make_unique<SidebarItem>("certificate-symbolic", i18n().tr("keyring.sidebar.default_trust"));
         item_cert->set_path("Certificates");
-        m_sidebar->add_item("Certificates", std::move(item_cert));
+        m_sidebar->add_item(i18n().tr("keyring.sidebar.certificates"), std::move(item_cert));
 
         m_sidebar->when_item_selected.connect([this](SidebarItemSelectedContext &ctx) {
             if (ctx.item) {
@@ -114,33 +114,33 @@ namespace horizon::keyring
         m_table = table.get();
 
         m_table->add_column({
-            "name", "Name", 250, ColumnWidthPolicy::Fixed, true,
+            "name", i18n().tr("keyring.table.name"), 250, ColumnWidthPolicy::Fixed, true,
             [](const KeyringItem& item) { return std::make_unique<Label>(item.label); },
             [](const KeyringItem& a, const KeyringItem& b) { return a.label < b.label; }
         });
         
         m_table->add_column({
-            "type", "Type", 100, ColumnWidthPolicy::Fixed, true,
+            "type", i18n().tr("keyring.table.type"), 100, ColumnWidthPolicy::Fixed, true,
             [](const KeyringItem& item) { return std::make_unique<Label>(item.type); },
             [](const KeyringItem& a, const KeyringItem& b) { return a.type < b.type; }
         });
 
         m_table->add_column({
-            "modified", "Modified", 150, ColumnWidthPolicy::Fixed, true,
+            "modified", i18n().tr("keyring.table.modified"), 150, ColumnWidthPolicy::Fixed, true,
             [](const KeyringItem& item) { return std::make_unique<Label>(item.last_modified); },
             [](const KeyringItem& a, const KeyringItem& b) { return a.last_modified < b.last_modified; }
         });
 
         m_table->set_row_menu_factory([this](const KeyringItem& item) {
             auto menu = std::make_unique<Menu>();
-            auto* edit = menu->add_item("Editar");
+            auto* edit = menu->add_item(i18n().tr("keyring.menu.edit"));
             edit->when_click.connect([this, item](EventContext&) {
                 handle_row_action("edit", item);
             });
 
             menu->add_separator();
 
-            auto* del = menu->add_item("Eliminar");
+            auto* del = menu->add_item(i18n().tr("keyring.menu.delete"));
             del->when_click.connect([this, item](EventContext&) {
                 handle_row_action("delete", item);
             });
@@ -235,7 +235,7 @@ namespace horizon::keyring
         size_t count = filtered.size();
         m_table->set_data(std::move(filtered));
         if (m_status_label) {
-            m_status_label->set_text(std::to_string(count) + " elementos");
+            m_status_label->set_text(i18n().tr("keyring.status.elements", {{"count", std::to_string(count)}}));
         }
     }
 
@@ -252,7 +252,7 @@ namespace horizon::keyring
     void KeyringWindow::create_item_dialog()
     {
         application()->post_task([this]() {
-            auto dialog = std::make_unique<ItemDialog>("Crear Nuevo Secreto");
+            auto dialog = std::make_unique<ItemDialog>(i18n().tr("keyring.dialog.create_title"));
             dialog->when_accepted.connect([this](ItemEvent& ev) {
                 save_item(ev.label, ev.secret, ev.type);
             });
@@ -263,7 +263,7 @@ namespace horizon::keyring
     void KeyringWindow::edit_item_dialog(const KeyringItem& item)
     {
         application()->post_task([this, item]() {
-            auto dialog = std::make_unique<ItemDialog>("Editar Secreto");
+            auto dialog = std::make_unique<ItemDialog>(i18n().tr("keyring.dialog.edit_title"));
             dialog->set_initial_values(item.label, "", item.type);
             dialog->when_accepted.connect([this, item](ItemEvent& ev) {
                 save_item(ev.label, ev.secret, ev.type, item.path);
@@ -400,7 +400,7 @@ namespace horizon::keyring
     void KeyringWindow::handle_row_action(const std::string& action, const KeyringItem& item)
     {
         if (action == "delete") {
-            if (application()->confirm("¿Está seguro que desea eliminar '" + item.label + "'?", "Confirmar eliminación")) {
+            if (application()->confirm(i18n().tr("keyring.dialog.confirm_del_single", {{"name", item.label}}), i18n().tr("keyring.dialog.confirm_title"))) {
                 delete_item(item.path);
                 load_data();
             }

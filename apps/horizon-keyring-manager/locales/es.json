@@ -1,0 +1,44 @@
+{
+  "keyring": {
+    "title": "Contraseñas y Llaves",
+    "toolbar": {
+      "add": "Añadir",
+      "delete": "Eliminar",
+      "refresh": "Actualizar",
+      "search": "Buscar..."
+    },
+    "sidebar": {
+      "passwords": "Contraseñas",
+      "keys": "Llaves",
+      "certificates": "Certificados",
+      "login": "Sesión",
+      "gnupg": "Llaves GnuPG",
+      "openssh": "Llaves OpenSSH",
+      "default_trust": "Confianza por defecto"
+    },
+    "table": {
+        "name": "Nombre",
+        "type": "Tipo",
+        "modified": "Modificado"
+    },
+    "menu": {
+        "edit": "Editar",
+        "delete": "Eliminar"
+    },
+    "dialog": {
+        "create_title": "Crear Nuevo Secreto",
+        "edit_title": "Editar Secreto",
+        "label": "Nombre:",
+        "secret": "Contraseña:",
+        "type": "Tipo:",
+        "cancel": "Cancelar",
+        "save": "Guardar",
+        "confirm_del_single": "¿Está seguro que desea eliminar '{name}'?",
+        "confirm_del_multiple": "¿Está seguro que desea eliminar {count} elementos?",
+        "confirm_title": "Confirmar eliminación"
+    },
+    "status": {
+        "elements": "{count} elementos"
+    }
+  }
+}

@@ -6,6 +6,7 @@
 #include <horizon/Button.hpp>
 #include <horizon/Combo.hpp>
 #include <horizon/AquaObject.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::keyring
 {
@@ -26,26 +27,26 @@ namespace horizon::keyring
         root_panel->set_margin(20);
 
         // Label
-        root_panel->add_child(std::make_unique<Label>("Nombre:"));
+        root_panel->add_child(std::make_unique<Label>(i18n().tr("keyring.dialog.label")));
         auto txt_label = std::make_unique<TextBox<TextPolicy>>();
         m_txt_label = txt_label.get();
         m_txt_label->set_fixed_size(35);
         root_panel->add_child(std::move(txt_label));
 
         // Secret
-        root_panel->add_child(std::make_unique<Label>("Contraseña:"));
+        root_panel->add_child(std::make_unique<Label>(i18n().tr("keyring.dialog.secret")));
         auto txt_secret = std::make_unique<TextBox<PasswordPolicy>>();
         m_txt_secret = txt_secret.get();
         m_txt_secret->set_fixed_size(35);
         root_panel->add_child(std::move(txt_secret));
 
         // Type
-        root_panel->add_child(std::make_unique<Label>("Tipo:"));
+        root_panel->add_child(std::make_unique<Label>(i18n().tr("keyring.dialog.type")));
         auto cmb_type = std::make_unique<horizon::Combo>();
         m_cmb_type = cmb_type.get();
-        m_cmb_type->add_item("Password", "Contraseña", "dialog-password-symbolic");
-        m_cmb_type->add_item("Key", "Llave", "key-symbolic");
-        m_cmb_type->add_item("Certificate", "Certificado", "certificate-symbolic");
+        m_cmb_type->add_item("Password", i18n().tr("keyring.sidebar.passwords"), "dialog-password-symbolic");
+        m_cmb_type->add_item("Key", i18n().tr("keyring.sidebar.keys"), "key-symbolic");
+        m_cmb_type->add_item("Certificate", i18n().tr("keyring.sidebar.certificates"), "certificate-symbolic");
         m_cmb_type->set_selected_item_index(0);
         m_cmb_type->set_fixed_size(35);
         root_panel->add_child(std::move(cmb_type));
@@ -61,7 +62,7 @@ namespace horizon::keyring
         button_container->add_child(Spacer());
 
         auto cancel_btn = std::make_unique<horizon::Button<horizon::AquaObject>>();
-        cancel_btn->set_text("Cancelar");
+        cancel_btn->set_text(i18n().tr("keyring.dialog.cancel"));
         cancel_btn->set_size(100, 35);
         cancel_btn->when_click.connect([this](auto&) {
             EventContext ev;
@@ -72,7 +73,7 @@ namespace horizon::keyring
         button_container->add_child(std::move(cancel_btn));
 
         auto accept_btn = std::make_unique<horizon::Button<horizon::AquaObject>>();
-        accept_btn->set_text("Guardar");
+        accept_btn->set_text(i18n().tr("keyring.dialog.save"));
         accept_btn->set_size(100, 35);
         accept_btn->set_accent_color(WidgetAccentColor::Primary);
         accept_btn->when_click.connect([this](auto&) {
