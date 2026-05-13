@@ -1,18 +1,18 @@
 #include "dialogs/ConnectToServerDialog.hpp"
+#include <filesystem>
+#include <fstream>
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Combo.hpp>
+#include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/Spacer.hpp>
+#include <horizon/TableColumn.hpp>
+#include <horizon/TableView.hpp>
 #include <horizon/TextBox.hpp>
 #include <horizon/Window.hpp>
-#include <horizon/Icon.hpp>
-#include <horizon/TableView.hpp>
-#include <horizon/TableColumn.hpp>
 #include <nlohmann/json.hpp>
-#include <fstream>
-#include <filesystem>
-#include <horizon/Logger.hpp>
 
 namespace horizon::arkfm
 {
@@ -28,6 +28,7 @@ namespace horizon::arkfm
         content->set_margin(20);
 
         auto label = std::make_unique<Label>("Ingrese la dirección del servidor:");
+        label->set_fixed_size(35);
         content->add_child(std::move(label));
 
         auto input_row = std::make_unique<Widget>();
@@ -54,6 +55,7 @@ namespace horizon::arkfm
 
         auto history_label = std::make_unique<Label>("Recursos recientes:");
         history_label->set_font_weight(FONT_WEIGHT_BOLD);
+        history_label->set_fixed_size(35);
         content->add_child(std::move(history_label));
 
         // TableView for history
@@ -61,12 +63,13 @@ namespace horizon::arkfm
         m_history_table = history_table.get();
         m_history_table->set_header_visible(false);
         m_history_table->set_row_height(32);
-        
+
         TableColumn<std::string> col;
         col.id = "uri";
         col.title = "Servidor";
         col.width = 500;
-        col.cell_factory = [](const std::string& uri) {
+        col.cell_factory = [](const std::string &uri)
+        {
             auto container = std::make_unique<Widget>();
             container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
             container->set_spacing(8);
@@ -74,17 +77,24 @@ namespace horizon::arkfm
 
             std::string icon_name = "folder-remote";
             std::string display_name = uri;
-            
-            if (uri.find("smb://") == 0) {
+
+            if (uri.find("smb://") == 0)
+            {
                 icon_name = "network-server"; // Typical for SMB
                 display_name = uri.substr(6);
-            } else if (uri.find("ftp://") == 0) {
+            }
+            else if (uri.find("ftp://") == 0)
+            {
                 icon_name = "network-server";
                 display_name = uri.substr(6);
-            } else if (uri.find("sftp://") == 0) {
+            }
+            else if (uri.find("sftp://") == 0)
+            {
                 icon_name = "network-server";
                 display_name = uri.substr(7);
-            } else if (uri.find("dav://") == 0) {
+            }
+            else if (uri.find("dav://") == 0)
+            {
                 icon_name = "folder-remote";
                 display_name = uri.substr(6);
             }
@@ -95,36 +105,39 @@ namespace horizon::arkfm
             icon->set_fixed_size(16);
 
             auto lbl = std::make_unique<Label>(display_name);
-            
+
             container->add_child(std::move(icon));
             container->add_child(std::move(lbl));
             return container;
         };
         m_history_table->add_column(col);
 
-        m_history_table->when_row_click.connect([this](auto& ctx) {
-            std::string full_uri = ctx.row_data;
-            // Split URI into protocol and address
-            size_t pos = full_uri.find("://");
-            if (pos != std::string::npos) {
-                std::string protocol = full_uri.substr(0, pos + 3);
-                std::string addr = full_uri.substr(pos + 3);
-                
-                if (m_protocol_combo) m_protocol_combo->set_selected_item_by_id(protocol);
-                if (m_address_input) m_address_input->set_text(addr);
-            }
-        });
+        m_history_table->when_row_click.connect(
+            [this](auto &ctx)
+            {
+                std::string full_uri = ctx.row_data;
+                // Split URI into protocol and address
+                size_t pos = full_uri.find("://");
+                if (pos != std::string::npos)
+                {
+                    std::string protocol = full_uri.substr(0, pos + 3);
+                    std::string addr = full_uri.substr(pos + 3);
 
-        m_history_table->when_row_dbl_click.connect([this](auto&) {
-            handle_connect();
-        });
+                    if (m_protocol_combo)
+                        m_protocol_combo->set_selected_item_by_id(protocol);
+                    if (m_address_input)
+                        m_address_input->set_text(addr);
+                }
+            });
+
+        m_history_table->when_row_dbl_click.connect([this](auto &) { handle_connect(); });
 
         content->add_child(std::move(history_table));
 
         auto buttons = std::make_unique<Widget>();
         buttons->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         buttons->set_spacing(10);
-        buttons->set_fixed_size(30);
+        buttons->set_fixed_size(35);
         buttons->add_child(horizon::Spacer());
 
         auto cancel = std::make_unique<Button<AquaObject>>();
@@ -163,16 +176,20 @@ namespace horizon::arkfm
 
         // Add to history if not exists
         bool exists = false;
-        for (const auto& h : m_history) {
-            if (h == uri) {
+        for (const auto &h : m_history)
+        {
+            if (h == uri)
+            {
                 exists = true;
                 break;
             }
         }
-        
-        if (!exists) {
+
+        if (!exists)
+        {
             m_history.insert(m_history.begin(), uri);
-            if (m_history.size() > 10) m_history.pop_back();
+            if (m_history.size() > 10)
+                m_history.pop_back();
             save_history();
         }
 
@@ -186,21 +203,27 @@ namespace horizon::arkfm
     {
         std::string home = getenv("HOME") ? getenv("HOME") : "/tmp";
         std::string path = home + "/.config/arkfm/server_history.json";
-        
-        if (std::filesystem::exists(path)) {
-            try {
+
+        if (std::filesystem::exists(path))
+        {
+            try
+            {
                 std::ifstream f(path);
                 nlohmann::json j;
                 f >> j;
-                if (j.is_array()) {
+                if (j.is_array())
+                {
                     m_history = j.get<std::vector<std::string>>();
                 }
-            } catch (...) {
+            }
+            catch (...)
+            {
                 LOG_ERROR << "Failed to load server history";
             }
         }
-        
-        if (m_history_table) {
+
+        if (m_history_table)
+        {
             m_history_table->set_data(m_history);
         }
     }
@@ -210,16 +233,20 @@ namespace horizon::arkfm
         std::string home = getenv("HOME") ? getenv("HOME") : "/tmp";
         std::string dir = home + "/.config/arkfm";
         std::string path = dir + "/server_history.json";
-        
-        if (!std::filesystem::exists(dir)) {
+
+        if (!std::filesystem::exists(dir))
+        {
             std::filesystem::create_directories(dir);
         }
-        
-        try {
+
+        try
+        {
             std::ofstream f(path);
             nlohmann::json j = m_history;
             f << j.dump(4);
-        } catch (...) {
+        }
+        catch (...)
+        {
             LOG_ERROR << "Failed to save server history";
         }
     }
