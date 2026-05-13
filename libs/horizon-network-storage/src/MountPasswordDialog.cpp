@@ -134,7 +134,7 @@ namespace horizon::storage
         auto error_label = std::make_unique<Label>("");
         error_label->set_text_color({1.0f, 0.2f, 0.2f, 1.0f}); // Error red
         error_label->set_visible(false);
-        error_label->set_height(40); // Larger height for wrapping
+        error_label->set_fixed_size(40); // Larger height for wrapping
         m_error_label = error_label.get();
         form->add_child(std::move(error_label));
 
@@ -267,13 +267,18 @@ namespace horizon::storage
         update_enabled_state();
     }
 
-    void MountPasswordDialog::set_initial_credentials(const RemoteCredentials& creds)
+    void MountPasswordDialog::set_initial_credentials(const RemoteCredentials &creds)
     {
-        if (m_guest_radio) m_guest_radio->set_selected(creds.is_guest);
-        if (m_user_radio) m_user_radio->set_selected(!creds.is_guest);
-        if (m_name_input) m_name_input->set_text(creds.username);
-        if (m_pass_input) m_pass_input->set_text(creds.password);
-        if (m_remember_check) m_remember_check->set_checked(creds.remember);
+        if (m_guest_radio)
+            m_guest_radio->set_selected(creds.is_guest);
+        if (m_user_radio)
+            m_user_radio->set_selected(!creds.is_guest);
+        if (m_name_input)
+            m_name_input->set_text(creds.username);
+        if (m_pass_input)
+            m_pass_input->set_text(creds.password);
+        if (m_remember_check)
+            m_remember_check->set_checked(creds.remember);
         update_enabled_state();
     }
 } // namespace horizon::storage
