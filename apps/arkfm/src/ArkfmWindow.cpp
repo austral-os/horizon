@@ -164,6 +164,12 @@ namespace horizon::arkfm
                 auto dialog = std::make_unique<PropertiesDialog>(f);
                 dialog->run();
             });
+
+            menu->add_separator();
+            auto item_connect = menu->add_item("Conectar al servidor...");
+            item_connect->when_click.connect([this](auto&) {
+                application()->signal_manager.emit("go-connect");
+            });
             
             return menu;
         });
@@ -265,6 +271,13 @@ namespace horizon::arkfm
                                 auto item_props = m_active_context_menu->add_item("Propiedades");
                                 item_props->when_click.connect([this](auto &)
                                                                { this->handle_properties(); });
+
+                                m_active_context_menu->add_separator();
+
+                                auto item_connect = m_active_context_menu->add_item("Conectar al servidor...");
+                                item_connect->when_click.connect([this](auto &) {
+                                    application()->signal_manager.emit("go-connect");
+                                });
 
                                 application()->show_context_menu(m_active_context_menu.get(), -1, -1, ctx.serial,
                                                                  this->m_view_ptr);
