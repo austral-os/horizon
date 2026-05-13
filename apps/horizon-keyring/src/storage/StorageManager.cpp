@@ -73,6 +73,30 @@ namespace horizon::secrets::storage
 
         return new_salt;
     }
+    
+    std::vector<uint8_t> StorageManager::get_encrypted_db_key()
+    {
+        sqlite3_stmt* stmt;
+        sqlite3_prepare_v2(m_db, "SELECT value FROM keyring_meta WHERE key = 'encrypted_db_key';", -1, &stmt, nullptr);
+        
+        std::vector<uint8_t> key;
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            const void* blob = sqlite3_column_blob(stmt, 0);
+            int len = sqlite3_column_bytes(stmt, 0);
+            key.assign((const uint8_t*)blob, (const uint8_t*)blob + len);
+        }
+        sqlite3_finalize(stmt);
+        return key;
+    }
+
+    void StorageManager::set_encrypted_db_key(const std::vector<uint8_t>& encrypted_key)
+    {
+        sqlite3_stmt* stmt;
+        sqlite3_prepare_v2(m_db, "INSERT OR REPLACE INTO keyring_meta (key, value) VALUES ('encrypted_db_key', ?);", -1, &stmt, nullptr);
+        sqlite3_bind_blob(stmt, 1, encrypted_key.data(), (int)encrypted_key.size(), SQLITE_STATIC);
+        sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
+    }
 
     void StorageManager::create_collection(const std::string& name, const std::string& alias)
     {

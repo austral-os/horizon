@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <dbus/dbus.h>
 #include <unistd.h>
+#include <openssl/rand.h>
 
 namespace horizon::secrets
 {
@@ -40,14 +41,31 @@ namespace horizon::secrets
     {
         LOG_INFO << "[Horizon Keyring] Received password from PAM, deriving master key...";
         
-        // Fetch the unique master salt from the database
         std::vector<uint8_t> salt = m_storage->get_master_salt();
         
         try {
             m_master_key = m_crypto->derive_key(password, salt);
-            LOG_INFO << "[Horizon Keyring] Master key derived successfully. Keyring unlocked.";
+            
+            // Now handle the DB Key (Professional Key Wrapping)
+            std::vector<uint8_t> encrypted_db_key = m_storage->get_encrypted_db_key();
+            if (encrypted_db_key.empty()) {
+                LOG_INFO << "[Horizon Keyring] First run: Generating new Database Key...";
+                m_db_key.resize(32);
+                RAND_bytes(m_db_key.data(), m_db_key.size());
+                
+                // Encrypt it with Master Key and save
+                std::vector<uint8_t> encrypted = m_crypto->encrypt(m_db_key, m_master_key);
+                m_storage->set_encrypted_db_key(encrypted);
+            } else {
+                // Decrypt existing DB key using Master Key
+                m_db_key = m_crypto->decrypt(encrypted_db_key, m_master_key);
+            }
+            
+            LOG_INFO << "[Horizon Keyring] Keyring fully unlocked (Master Key + DB Key).";
         } catch (const std::exception& e) {
-            LOG_ERROR << "[Horizon Keyring] Failed to derive master key: " << e.what();
+            LOG_ERROR << "[Horizon Keyring] Failed to unlock keyring: " << e.what();
+            m_master_key.clear();
+            m_db_key.clear();
         }
     }
 
@@ -296,17 +314,20 @@ namespace horizon::secrets
         secret_bundle.insert(secret_bundle.end(), param_data.begin(), param_data.end());
         secret_bundle.insert(secret_bundle.end(), value_data.begin(), value_data.end());
 
-        // Encrypt bundle if we have a master key
-        std::vector<uint8_t> final_data = secret_bundle;
-        if (!m_master_key.empty()) {
+        // Encrypt bundle using the Database Key
+        std::vector<uint8_t> final_data;
+        if (!m_db_key.empty()) {
             try {
-                final_data = m_crypto->encrypt(secret_bundle, m_master_key);
-                LOG_INFO << "[Horizon Keyring] Secret encrypted with AES-256-GCM.";
+                final_data = m_crypto->encrypt(secret_bundle, m_db_key);
+                LOG_INFO << "[Horizon Keyring] Secret encrypted with Database Key (AES-256-GCM).";
             } catch (const std::exception& e) {
                 LOG_ERROR << "[Horizon Keyring] Encryption failed: " << e.what();
+                return;
             }
         } else {
-            LOG_WARNING << "[Horizon Keyring] Keyring is locked! Saving secret WITHOUT encryption (Testing only).";
+            LOG_ERROR << "[Horizon Keyring] Cannot create item: Keyring is locked!";
+            m_dbus.send_error(msg, "org.freedesktop.Secret.Error.IsLocked", "The keyring must be unlocked before creating items.");
+            return;
         }
 
         // Save to storage
@@ -433,7 +454,12 @@ namespace horizon::secrets
             
             std::vector<uint8_t> decrypted;
             try {
-                decrypted = m_crypto->decrypt(item.secret, m_master_key);
+                if (!m_db_key.empty()) {
+                    decrypted = m_crypto->decrypt(item.secret, m_db_key);
+                } else {
+                    LOG_ERROR << "[Horizon Keyring] Keyring is locked, cannot decrypt items.";
+                    decrypted = item.secret;
+                }
             } catch (const std::exception& e) {
                 LOG_ERROR << "[Horizon Keyring] Decryption failed for " << item.label << ": " << e.what();
                 decrypted = item.secret; // Fallback

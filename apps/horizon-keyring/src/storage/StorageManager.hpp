@@ -28,6 +28,10 @@ namespace horizon::secrets::storage
 
         // Master Key Salt Management
         std::vector<uint8_t> get_master_salt();
+        
+        // Encrypted Database Key Management
+        std::vector<uint8_t> get_encrypted_db_key();
+        void set_encrypted_db_key(const std::vector<uint8_t>& encrypted_key);
 
         // Item management
         void save_item(const std::string& collection, const SecretItem& item);

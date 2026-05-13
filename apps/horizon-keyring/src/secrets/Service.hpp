@@ -25,6 +25,7 @@ namespace horizon::secrets
         std::unique_ptr<crypto::CryptoManager> m_crypto;
         std::unique_ptr<SocketListener> m_socket_listener;
         std::vector<uint8_t> m_master_key;
+        std::vector<uint8_t> m_db_key;
 
         void init_storage();
         void init_pam_listener();
