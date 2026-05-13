@@ -13,6 +13,7 @@ namespace horizon::keyring
         set_size(w, h);
         setup_toolbar();
         setup_content();
+        show_status_bar();
         load_data();
     }
 
@@ -218,6 +219,7 @@ namespace horizon::keyring
             }
         }
         m_table->set_data(std::move(filtered));
+        set_status_text(std::to_string(filtered.size()) + " elementos");
     }
 
     void KeyringWindow::delete_item(const std::string& path)

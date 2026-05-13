@@ -40,6 +40,7 @@ namespace horizon::keyring
         Sidebar* m_sidebar{nullptr};
         TableView<KeyringItem>* m_table{nullptr};
         SearchBox* m_search_box{nullptr};
+        Label* m_status_label{nullptr};
         std::string m_selected_sidebar_path{"All"};
         horizon::dbusutils::DbusHelper m_dbus{DBUS_BUS_SESSION};
     };
