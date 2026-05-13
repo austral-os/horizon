@@ -44,6 +44,12 @@ namespace horizon
         void clear();
 
         /**
+         * @brief Programmatically selects an item by its path.
+         * @param path The path associated with the item to select.
+         */
+        void select_item_by_path(const std::string &path);
+
+        /**
          * @brief Programmatically selects an item.
          * @param item The item to select.
          */

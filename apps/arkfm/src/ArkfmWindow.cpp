@@ -56,6 +56,9 @@ namespace horizon::arkfm
                 }
             });
 
+        std::string home_path = getenv("HOME") ? getenv("HOME") : "/";
+        m_sidebar_ptr->select_item_by_path(home_path);
+
         m_sidebar_ptr->when_resource_unmounted.connect([this](horizon::files::UnmountEventContext& ctx) {
             if (m_view_ptr) {
                 std::string current_path = m_view_ptr->current_path();
@@ -456,6 +459,7 @@ namespace horizon::arkfm
                 LOG_INFO << "ArkfmWindow: URI ya montada en " << mount.mount_path;
                 application()->clear_override_cursor();
                 if (m_view_ptr) m_view_ptr->navigate_to(mount.mount_path);
+                if (m_sidebar_ptr) m_sidebar_ptr->select_item_by_path(mount.mount_path);
                 
                 if (application()) {
                     application()->alert(i18n().tr("arkfm.messages.already_mounted"));
@@ -491,8 +495,11 @@ namespace horizon::arkfm
                     application()->post_task([this, res]() {
                         if (m_view_ptr) m_view_ptr->navigate_to(res.mount_path);
                         if (m_sidebar_ptr) {
-                            application()->add_timer(1000, [this]() {
-                                if (m_sidebar_ptr) m_sidebar_ptr->refresh_devices();
+                            application()->add_timer(1000, [this, path = res.mount_path]() {
+                                if (m_sidebar_ptr) {
+                                    m_sidebar_ptr->refresh_devices();
+                                    m_sidebar_ptr->select_item_by_path(path);
+                                }
                             }, false);
                         }
                         show_status_message("Conectado a " + res.mount_path);

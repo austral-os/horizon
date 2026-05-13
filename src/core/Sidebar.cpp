@@ -48,6 +48,22 @@ namespace horizon
         m_content_container->add_child(std::move(group_container));
     }
 
+    void Sidebar::select_item_by_path(const std::string &path)
+    {
+        for (auto const &[name, group_widget] : m_groups)
+        {
+            for (auto const &item_widget : group_widget->children())
+            {
+                auto *sidebar_item = dynamic_cast<SidebarItem *>(item_widget.get());
+                if (sidebar_item && sidebar_item->path() == path)
+                {
+                    select_item(sidebar_item);
+                    return;
+                }
+            }
+        }
+    }
+
     void Sidebar::select_item(SidebarItem *item)
     {
         if (m_selected_item)
