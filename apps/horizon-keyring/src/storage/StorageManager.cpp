@@ -1,6 +1,7 @@
 #include "StorageManager.hpp"
 #include <stdexcept>
 #include <iostream>
+#include <openssl/rand.h>
 
 namespace horizon::secrets::storage
 {
@@ -39,6 +40,38 @@ namespace horizon::secrets::storage
                       "key TEXT, "
                       "value TEXT, "
                       "FOREIGN KEY(item_id) REFERENCES items(id));");
+
+        execute_query("CREATE TABLE IF NOT EXISTS keyring_meta ("
+                      "key TEXT PRIMARY KEY, "
+                      "value BLOB);");
+    }
+
+    std::vector<uint8_t> StorageManager::get_master_salt()
+    {
+        sqlite3_stmt* stmt;
+        sqlite3_prepare_v2(m_db, "SELECT value FROM keyring_meta WHERE key = 'master_salt';", -1, &stmt, nullptr);
+        
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            // Salt exists, return it
+            const void* blob = sqlite3_column_blob(stmt, 0);
+            int len = sqlite3_column_bytes(stmt, 0);
+            std::vector<uint8_t> salt((const uint8_t*)blob, (const uint8_t*)blob + len);
+            sqlite3_finalize(stmt);
+            return salt;
+        }
+        sqlite3_finalize(stmt);
+
+        // Salt doesn't exist, generate a new 16-byte random salt
+        std::vector<uint8_t> new_salt(16);
+        RAND_bytes(new_salt.data(), new_salt.size());
+
+        // Save it to the database
+        sqlite3_prepare_v2(m_db, "INSERT INTO keyring_meta (key, value) VALUES ('master_salt', ?);", -1, &stmt, nullptr);
+        sqlite3_bind_blob(stmt, 1, new_salt.data(), (int)new_salt.size(), SQLITE_STATIC);
+        sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
+
+        return new_salt;
     }
 
     void StorageManager::create_collection(const std::string& name, const std::string& alias)

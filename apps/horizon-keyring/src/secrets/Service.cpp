@@ -40,9 +40,8 @@ namespace horizon::secrets
     {
         LOG_INFO << "[Horizon Keyring] Received password from PAM, deriving master key...";
         
-        // In a real scenario, we would use a salt stored in the DB. 
-        // For this first implementation, we use a fixed salt or generate one.
-        std::vector<uint8_t> salt = { 'h', 'o', 'r', 'i', 'z', 'o', 'n', 's', 'e', 'c', 'r', 'e', 't', 's', '1', '2' };
+        // Fetch the unique master salt from the database
+        std::vector<uint8_t> salt = m_storage->get_master_salt();
         
         try {
             m_master_key = m_crypto->derive_key(password, salt);
