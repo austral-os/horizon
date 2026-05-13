@@ -3,8 +3,8 @@
 #include <horizon/Spacer.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Menu.hpp>
-#include <horizon/ToggleGroupButton.hpp>
 #include <horizon/I18n.hpp>
+#include <horizon/Logger.hpp>
 
 namespace horizon::keyring
 {
@@ -22,6 +22,9 @@ namespace horizon::keyring
         
         // Add Button
         auto btn_add = std::make_unique<ToolbarButton>("Añadir", "list-add-symbolic");
+        btn_add->when_click.connect([this](EventContext&) {
+            create_item_dialog();
+        });
         tb->add_toolbar_widget(std::move(btn_add));
 
         // Delete Button
@@ -120,7 +123,10 @@ namespace horizon::keyring
 
         m_table->set_row_menu_factory([this](const KeyringItem& item) {
             auto menu = std::make_unique<Menu>();
-            menu->add_item("Editar");
+            auto* edit = menu->add_item("Editar");
+            edit->when_click.connect([this, item](EventContext&) {
+                handle_row_action("edit", item);
+            });
             auto* del = menu->add_item("Eliminar");
             del->when_click.connect([this, item](EventContext&) {
                 handle_row_action("delete", item);
@@ -186,7 +192,7 @@ namespace horizon::keyring
         std::vector<KeyringItem> filtered;
         for (const auto& item : data) {
             // Sidebar filter
-            if (m_selected_sidebar_path != "All") {
+            if (m_selected_sidebar_path != "All" && !m_selected_sidebar_path.empty()) {
                 bool match = false;
                 if (m_selected_sidebar_path == "Passwords") match = (item.type == "Password");
                 else if (m_selected_sidebar_path == "Keys") match = (item.type == "Key" || item.type == "SSH Key");
@@ -216,10 +222,160 @@ namespace horizon::keyring
         load_data();
     }
 
+    void KeyringWindow::create_item_dialog()
+    {
+        application()->post_task([this]() {
+            auto dialog = std::make_unique<ItemDialog>("Crear Nuevo Secreto");
+            dialog->when_accepted.connect([this](ItemEvent& ev) {
+                save_item(ev.label, ev.secret, ev.type);
+            });
+            dialog->run();
+        });
+    }
+
+    void KeyringWindow::edit_item_dialog(const KeyringItem& item)
+    {
+        application()->post_task([this, item]() {
+            auto dialog = std::make_unique<ItemDialog>("Editar Secreto");
+            dialog->set_initial_values(item.label, "", item.type);
+            dialog->when_accepted.connect([this, item](ItemEvent& ev) {
+                save_item(ev.label, ev.secret, ev.type, item.path);
+            });
+            dialog->run();
+        });
+    }
+
+    void KeyringWindow::save_item(const std::string& label, const std::string& secret, const std::string& type, const std::string& existing_path)
+    {
+        if (existing_path.empty()) {
+            DBusMessage* msg = dbus_message_new_method_call(
+                "org.freedesktop.secrets",
+                "/org/freedesktop/secrets/collection/default",
+                "org.freedesktop.Secret.Collection",
+                "CreateItem"
+            );
+
+            DBusMessageIter iter;
+            dbus_message_iter_init_append(msg, &iter);
+
+            // 1. Properties a{sv}
+            DBusMessageIter dict_iter;
+            dbus_message_iter_open_container(&iter, DBUS_TYPE_ARRAY, "{sv}", &dict_iter);
+
+            // Label
+            {
+                DBusMessageIter entry_iter;
+                dbus_message_iter_open_container(&dict_iter, DBUS_TYPE_DICT_ENTRY, nullptr, &entry_iter);
+                const char* key = "org.freedesktop.Secret.Item.Label";
+                dbus_message_iter_append_basic(&entry_iter, DBUS_TYPE_STRING, &key);
+                DBusMessageIter var_iter;
+                const char* val = label.c_str();
+                dbus_message_iter_open_container(&entry_iter, DBUS_TYPE_VARIANT, "s", &var_iter);
+                dbus_message_iter_append_basic(&var_iter, DBUS_TYPE_STRING, &val);
+                dbus_message_iter_close_container(&entry_iter, &var_iter);
+                dbus_message_iter_close_container(&dict_iter, &entry_iter);
+            }
+
+            // Attributes
+            {
+                DBusMessageIter entry_iter;
+                dbus_message_iter_open_container(&dict_iter, DBUS_TYPE_DICT_ENTRY, nullptr, &entry_iter);
+                const char* key = "org.freedesktop.Secret.Item.Attributes";
+                dbus_message_iter_append_basic(&entry_iter, DBUS_TYPE_STRING, &key);
+                DBusMessageIter var_iter;
+                dbus_message_iter_open_container(&entry_iter, DBUS_TYPE_VARIANT, "a{ss}", &var_iter);
+                DBusMessageIter attr_dict_iter;
+                dbus_message_iter_open_container(&var_iter, DBUS_TYPE_ARRAY, "{ss}", &attr_dict_iter);
+                
+                // Add "type" attribute
+                DBusMessageIter attr_entry_iter;
+                dbus_message_iter_open_container(&attr_dict_iter, DBUS_TYPE_DICT_ENTRY, nullptr, &attr_entry_iter);
+                const char* k = "type";
+                const char* v = type.c_str();
+                dbus_message_iter_append_basic(&attr_entry_iter, DBUS_TYPE_STRING, &k);
+                dbus_message_iter_append_basic(&attr_entry_iter, DBUS_TYPE_STRING, &v);
+                dbus_message_iter_close_container(&attr_dict_iter, &attr_entry_iter);
+                
+                dbus_message_iter_close_container(&var_iter, &attr_dict_iter);
+                dbus_message_iter_close_container(&entry_iter, &var_iter);
+                dbus_message_iter_close_container(&dict_iter, &entry_iter);
+            }
+
+            dbus_message_iter_close_container(&iter, &dict_iter);
+
+            // 2. Secret (oayays)
+            DBusMessageIter struct_iter;
+            dbus_message_iter_open_container(&iter, DBUS_TYPE_STRUCT, nullptr, &struct_iter);
+            
+            // Session (o)
+            const char* session = "/org/freedesktop/secrets/session/plain";
+            dbus_message_iter_append_basic(&struct_iter, DBUS_TYPE_OBJECT_PATH, &session);
+            
+            // Parameters (ay)
+            DBusMessageIter param_iter;
+            dbus_message_iter_open_container(&struct_iter, DBUS_TYPE_ARRAY, "y", &param_iter);
+            dbus_message_iter_close_container(&struct_iter, &param_iter);
+            
+            // Secret value (ay)
+            DBusMessageIter val_iter;
+            dbus_message_iter_open_container(&struct_iter, DBUS_TYPE_ARRAY, "y", &val_iter);
+            for (char c : secret) {
+                dbus_message_iter_append_basic(&val_iter, DBUS_TYPE_BYTE, &c);
+            }
+            dbus_message_iter_close_container(&struct_iter, &val_iter);
+            
+            // Content type (s)
+            const char* content_type = "text/plain";
+            dbus_message_iter_append_basic(&struct_iter, DBUS_TYPE_STRING, &content_type);
+            
+            dbus_message_iter_close_container(&iter, &struct_iter);
+
+            // 3. Replace (b)
+            dbus_bool_t replace = true;
+            dbus_message_iter_append_basic(&iter, DBUS_TYPE_BOOLEAN, &replace);
+
+            DBusError err;
+            dbus_error_init(&err);
+            DBusMessage* reply = dbus_connection_send_with_reply_and_block(m_dbus.get_connection(), msg, 1000, &err);
+            
+            if (dbus_error_is_set(&err)) {
+                LOG_ERROR << "Error creating item: " << err.message;
+                dbus_error_free(&err);
+            }
+            
+            if (reply) dbus_message_unref(reply);
+            dbus_message_unref(msg);
+        } else {
+            // EDIT
+            // Update Label
+            m_dbus.call_method_sync(
+                "org.freedesktop.secrets",
+                existing_path,
+                "org.freedesktop.DBus.Properties",
+                "Set",
+                { std::string("org.freedesktop.Secret.Item"), std::string("Label"), dbusutils::DbusVariant(label) }
+            );
+
+            // Update Attributes
+            std::map<std::string, std::string> attrs;
+            attrs["type"] = type;
+            m_dbus.call_method_sync(
+                "org.freedesktop.secrets",
+                existing_path,
+                "org.freedesktop.DBus.Properties",
+                "Set",
+                { std::string("org.freedesktop.Secret.Item"), std::string("Attributes"), dbusutils::DbusVariant(attrs) }
+            );
+        }
+        load_data();
+    }
+
     void KeyringWindow::handle_row_action(const std::string& action, const KeyringItem& item)
     {
         if (action == "delete") {
             delete_item(item.path);
+        } else if (action == "edit") {
+            edit_item_dialog(item);
         }
     }
 }
