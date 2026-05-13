@@ -17,6 +17,7 @@
 #include <string>
 #include <horizon/DialogTypes.hpp>
 #include <mutex>
+#include <optional>
 
 namespace horizon
 {
@@ -581,6 +582,7 @@ namespace horizon
         uint32_t m_last_serial = 0; /**< Last received Wayland serial. */
 
         std::unique_ptr<WaylandSurface> m_surface;
+        std::optional<CursorType> m_override_cursor;
 
         int m_screen_x{0};
         int m_screen_y{0};

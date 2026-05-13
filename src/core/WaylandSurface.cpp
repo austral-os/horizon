@@ -647,7 +647,7 @@ namespace horizon
             default: name = "left_ptr"; break;
         }
 
-        LOG_INFO << "[SURFACE] Setting cursor to: " << name << " (serial: " << m_last_serial << ")";
+        // LOG_INFO << "[SURFACE] Setting cursor to: " << name << " (serial: " << m_last_serial << ")";
 
         struct wl_cursor *cursor = wl_cursor_theme_get_cursor(m_cursor_theme, name);
         

@@ -1858,6 +1858,31 @@ namespace horizon
         m_window = nullptr;
     }
 
+    void WaylandWindow::set_override_cursor(CursorType type)
+    {
+        m_override_cursor = type;
+        if (m_surface)
+        {
+            m_surface->set_cursor(type);
+            // Flush immediately so the compositor shows the cursor before any blocking call
+            wl_display_flush(m_surface->display());
+        }
+    }
+
+    void WaylandWindow::clear_override_cursor()
+    {
+        m_override_cursor.reset();
+        // Restore cursor based on current hover state
+        if (m_surface)
+        {
+            if (m_hovered)
+                m_surface->set_cursor(m_hovered->cursor_type());
+            else
+                m_surface->set_cursor(CursorType::Default);
+            wl_display_flush(m_surface->display());
+        }
+    }
+
     void WaylandWindow::handle_move(const PointerEvent &event)
     {
         if (!m_root)
@@ -1865,6 +1890,14 @@ namespace horizon
 
         m_pointer_x = event.x;
         m_pointer_y = event.y;
+
+        // If an override cursor is active, apply it and skip all hover logic
+        if (m_override_cursor.has_value())
+        {
+            if (m_surface)
+                m_surface->set_cursor(m_override_cursor.value());
+            return;
+        }
 
         // Detect resize edge
         uint32_t edge = XDG_TOPLEVEL_RESIZE_EDGE_NONE;
@@ -2047,7 +2080,12 @@ namespace horizon
         }
 
         // Push final cursor state to surface
-        if (m_resize_edge != 0)
+        // Override cursor always takes absolute priority
+        if (m_override_cursor.has_value())
+        {
+            m_surface->set_cursor(m_override_cursor.value());
+        }
+        else if (m_resize_edge != 0)
         {
             CursorType cursor = CursorType::Default;
             if (m_resize_edge == XDG_TOPLEVEL_RESIZE_EDGE_TOP ||

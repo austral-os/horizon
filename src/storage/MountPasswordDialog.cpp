@@ -224,7 +224,7 @@ namespace horizon::storage
     void MountPasswordDialog::show_loading()
     {
         LOG_INFO << "MountPasswordDialog: Activando estado de carga...";
-        if (w_surface()) w_surface()->set_cursor(CursorType::Wait);
+        set_override_cursor(CursorType::Wait);
         if (m_loading_bar)
             m_loading_bar->set_visible(true);
         if (m_error_label)
@@ -248,7 +248,7 @@ namespace horizon::storage
     void MountPasswordDialog::show_error(const std::string &message)
     {
         LOG_INFO << "MountPasswordDialog: Mostrando error en UI: " << message;
-        if (w_surface()) w_surface()->set_cursor(CursorType::Default);
+        clear_override_cursor();
         if (m_loading_bar)
             m_loading_bar->set_visible(false);
         if (m_error_label)
