@@ -13,7 +13,7 @@ namespace horizon::keyring
         set_size(w, h);
         setup_toolbar();
         setup_content();
-        show_status_bar();
+        setup_status_bar();
         load_data();
     }
 
@@ -150,6 +150,17 @@ namespace horizon::keyring
         set_content(std::move(vpanel));
     }
 
+    void KeyringWindow::setup_status_bar()
+    {
+        show_status_bar();
+        auto* sb = statusbar();
+        auto lbl = std::make_unique<Label>("");
+        m_status_label = lbl.get();
+        m_status_label->set_alignment(TextAlignment::Left);
+        sb->add_child(Spacer(10));
+        sb->add_child(std::move(lbl));
+    }
+
     void KeyringWindow::load_data()
     {
         std::vector<KeyringItem> data;
@@ -218,8 +229,11 @@ namespace horizon::keyring
                 filtered.push_back(item);
             }
         }
+        size_t count = filtered.size();
         m_table->set_data(std::move(filtered));
-        set_status_text(std::to_string(filtered.size()) + " elementos");
+        if (m_status_label) {
+            m_status_label->set_text(std::to_string(count) + " elementos");
+        }
     }
 
     void KeyringWindow::delete_item(const std::string& path)

@@ -30,6 +30,7 @@ namespace horizon::keyring
     private:
         void setup_toolbar();
         void setup_content();
+        void setup_status_bar();
         void load_data();
         void create_item_dialog();
         void edit_item_dialog(const KeyringItem& item);
