@@ -46,8 +46,6 @@ file(GLOB_RECURSE SOURCES
     "src/core/MouseSettings.cpp"
     "src/core/FileWatcher.cpp"
     "src/files/disks/*.cpp"
-    "src/storage/RemoteManager.cpp"
-    "src/storage/MountPasswordDialog.cpp"
     "src/protocols/*.c"
 )
 
@@ -113,32 +111,6 @@ target_link_libraries(horizon
         ${GIO_LIBRARIES}
 )
 
-add_executable(minimal
-    examples/minimal/main.cpp
-)
-
-target_link_libraries(minimal
-    PRIVATE
-        horizon
-)
-
-add_executable(main_window
-    examples/main_window/main_window.cpp
-)
-
-target_link_libraries(main_window
-    PRIVATE
-        horizon
-)
-
-add_executable(mount_password_demo
-    examples/mount_password_demo.cpp
-)
-
-target_link_libraries(mount_password_demo
-    PRIVATE
-        horizon
-)
 
 # --- Macros and Functions ---
 include(cmake/HorizonMacros.cmake)
@@ -155,6 +127,7 @@ add_subdirectory(libs/horizon-disk-utilities)
 add_subdirectory(libs/horizon-installer-utils)
 add_subdirectory(libs/horizon-download)
 add_subdirectory(libs/horizon-network)
+add_subdirectory(libs/horizon-network-storage)
 add_subdirectory(libs/horizon-capture)
 
 
@@ -184,6 +157,22 @@ add_subdirectory(apps/downloader)
 add_subdirectory(apps/capture)
 add_subdirectory(apps/zenit)
 add_subdirectory(apps/system-monitor)
+
+# --- Examples and Demos ---
+add_executable(minimal
+    examples/minimal/main.cpp
+)
+target_link_libraries(minimal PRIVATE horizon)
+
+add_executable(main_window
+    examples/main_window/main_window.cpp
+)
+target_link_libraries(main_window PRIVATE horizon)
+
+add_executable(mount_password_demo
+    examples/mount_password_demo.cpp
+)
+target_link_libraries(mount_password_demo PRIVATE horizon horizon-network-storage)
 
 # --- Demos and Tests ---
 add_executable(files_demo

@@ -1,7 +1,7 @@
 #pragma once
 #include "horizon/Sidebar.hpp"
 #include <horizon/disks/DiskManager.hpp>
-#include <horizon/storage/RemoteManager.hpp>
+#include <horizon/storage/RemoteManagerBase.hpp>
 #include <memory>
 
 namespace horizon::files
@@ -19,7 +19,8 @@ namespace horizon::files
 
         void refresh_devices();
 
-        storage::RemoteManager* remote_storage() { return m_remote_manager.get(); }
+        storage::RemoteManagerBase* remote_storage() { return m_remote_manager; }
+        void set_remote_storage(storage::RemoteManagerBase* manager);
 
         EventsManager<UnmountEventContext> when_resource_unmounted;
 
@@ -27,6 +28,6 @@ namespace horizon::files
         void setup_monitoring();
         
         disks::DiskManager m_disk_manager;
-        std::unique_ptr<storage::RemoteManager> m_remote_manager;
+        storage::RemoteManagerBase* m_remote_manager{nullptr};
     };
 } // namespace horizon::files

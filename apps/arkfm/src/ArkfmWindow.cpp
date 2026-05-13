@@ -56,6 +56,10 @@ namespace horizon::arkfm
                 }
             });
 
+        // Initialize Remote Storage from the new library
+        m_remote_manager = std::make_unique<storage::RemoteManager>();
+        m_sidebar_ptr->set_remote_storage(m_remote_manager.get());
+
         std::string home_path = getenv("HOME") ? getenv("HOME") : "/";
         m_sidebar_ptr->select_item_by_path(home_path);
 
@@ -444,8 +448,10 @@ namespace horizon::arkfm
     {
         application()->set_override_cursor(CursorType::Wait);
         LOG_INFO << "ArkFM: Intentando montar " << uri;
-        if (!m_remote_manager)
+        if (!m_remote_manager) {
             m_remote_manager = std::make_unique<storage::RemoteManager>();
+            m_sidebar_ptr->set_remote_storage(m_remote_manager.get());
+        }
 
         // Check if already mounted
         auto active_mounts = m_remote_manager->get_active_mounts();

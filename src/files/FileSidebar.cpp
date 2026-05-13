@@ -8,7 +8,7 @@
 #include <horizon/SidebarItem.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/XdgUserDirs.hpp>
-#include <horizon/storage/RemoteManager.hpp>
+#include <horizon/storage/RemoteManagerBase.hpp>
 
 namespace horizon::files
 {
@@ -148,7 +148,6 @@ namespace horizon::files
 
     FileSidebar::FileSidebar() : Sidebar()
     {
-        m_remote_manager = std::make_unique<storage::RemoteManager>();
         
         when_application_load.connect([this](EventContext &) { 
             this->setup_monitoring(); 
@@ -162,11 +161,7 @@ namespace horizon::files
         m_disk_manager.when_hardware_changed.connect([this](disks::HardwareChangedContext &)
                                                      { this->refresh_devices(); });
 
-        m_remote_manager->when_changed.connect([this](storage::RemoteStorageEventContext &) {
-            if (application()) {
-                application()->post_task([this]() { this->refresh_devices(); });
-            }
-        });
+        // m_remote_manager will be set by the application if needed
     }
 
     void FileSidebar::setup_monitoring()
@@ -176,6 +171,19 @@ namespace horizon::files
             application()->add_timer(
                 2000, [this]() { this->m_disk_manager.check_hardware_changes(); }, true);
         }
+    }
+
+    void FileSidebar::set_remote_storage(storage::RemoteManagerBase* manager)
+    {
+        m_remote_manager = manager;
+        if (m_remote_manager) {
+            m_remote_manager->when_changed.connect([this](storage::RemoteStorageEventContext &) {
+                if (application()) {
+                    application()->post_task([this]() { this->refresh_devices(); });
+                }
+            });
+        }
+        refresh_devices();
     }
 
     void FileSidebar::refresh_devices()
@@ -262,20 +270,22 @@ namespace horizon::files
         }
 
         // --- Add Remote Mounts using RemoteManager abstraction ---
-        auto remote_mounts = m_remote_manager->get_active_mounts();
-        bool has_network = false;
+        if (m_remote_manager) {
+            auto remote_mounts = m_remote_manager->get_active_mounts();
+            bool has_network = false;
 
-        for (const auto &mount : remote_mounts)
-        {
-            if (!has_network)
+            for (const auto &mount : remote_mounts)
             {
-                add_group("Network");
-                has_network = true;
-            }
+                if (!has_network)
+                {
+                    add_group("Network");
+                    has_network = true;
+                }
 
-            auto item = std::make_unique<RemoteSidebarItem>(mount.icon_name, mount.name, mount.uri, this);
-            item->set_path(mount.mount_path);
-            add_item("Network", std::move(item));
+                auto item = std::make_unique<RemoteSidebarItem>(mount.icon_name, mount.name, mount.uri, this);
+                item->set_path(mount.mount_path);
+                add_item("Network", std::move(item));
+            }
         }
     }
 } // namespace horizon::files
