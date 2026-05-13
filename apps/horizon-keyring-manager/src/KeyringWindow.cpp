@@ -69,20 +69,32 @@ namespace horizon::keyring
         m_sidebar = sidebar.get();
 
         m_sidebar->add_group("Passwords");
-        auto item_login = std::make_unique<SidebarItem>("Login", "folder-password-symbolic");
-        auto item_pass = std::make_unique<SidebarItem>("Passwords", "dialog-password-symbolic");
+        auto item_login = std::make_unique<SidebarItem>("folder-password-symbolic", "Login");
+        item_login->set_path("Passwords");
+        auto item_pass = std::make_unique<SidebarItem>("dialog-password-symbolic", "Passwords");
+        item_pass->set_path("Passwords");
         m_sidebar->add_item("Passwords", std::move(item_login));
         m_sidebar->add_item("Passwords", std::move(item_pass));
-
+        
         m_sidebar->add_group("Keys");
-        auto item_gpg = std::make_unique<SidebarItem>("GNUGpg Keys", "key-symbolic");
-        auto item_ssh = std::make_unique<SidebarItem>("OpenSSH Keys", "key-symbolic");
+        auto item_gpg = std::make_unique<SidebarItem>("key-symbolic", "GNUGpg Keys");
+        item_gpg->set_path("Keys");
+        auto item_ssh = std::make_unique<SidebarItem>("key-symbolic", "OpenSSH Keys");
+        item_ssh->set_path("Keys");
         m_sidebar->add_item("Keys", std::move(item_gpg));
         m_sidebar->add_item("Keys", std::move(item_ssh));
-
+        
         m_sidebar->add_group("Certificates");
-        auto item_cert = std::make_unique<SidebarItem>("Default Trust", "certificate-symbolic");
+        auto item_cert = std::make_unique<SidebarItem>("certificate-symbolic", "Default Trust");
+        item_cert->set_path("Certificates");
         m_sidebar->add_item("Certificates", std::move(item_cert));
+
+        m_sidebar->when_item_selected.connect([this](SidebarItemSelectedContext &ctx) {
+            if (ctx.item) {
+                m_selected_sidebar_path = ctx.item->path();
+                load_data();
+            }
+        });
 
         // Table View
         auto table = std::make_unique<TableView<KeyringItem>>();
@@ -173,6 +185,17 @@ namespace horizon::keyring
         std::string filter = m_search_box ? m_search_box->text() : "";
         std::vector<KeyringItem> filtered;
         for (const auto& item : data) {
+            // Sidebar filter
+            if (m_selected_sidebar_path != "All") {
+                bool match = false;
+                if (m_selected_sidebar_path == "Passwords") match = (item.type == "Password");
+                else if (m_selected_sidebar_path == "Keys") match = (item.type == "Key" || item.type == "SSH Key");
+                else if (m_selected_sidebar_path == "Certificates") match = (item.type == "Certificate");
+                
+                if (!match) continue;
+            }
+
+            // Search filter
             if (filter.empty() || 
                 item.label.find(filter) != std::string::npos ||
                 item.type.find(filter) != std::string::npos) {
