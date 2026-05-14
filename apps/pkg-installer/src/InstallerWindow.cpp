@@ -204,7 +204,7 @@ namespace horizon
         update_status(i18n().tr("installer.installing_msg", {{"name", m_current_deb->package_name}}));
         m_loading_bar->set_visible(true);
 
-        std::string cmd = "pkexec apt-get install -y --reinstall \"" + m_deb_path + "\"";
+        std::string cmd = "pkexec env DEBIAN_FRONTEND=noninteractive apt-get install -y --reinstall \"" + m_deb_path + "\"";
 
         std::thread(
             [this, cmd]()
