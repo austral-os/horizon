@@ -1,4 +1,5 @@
 #include "InstallerWindow.hpp"
+#include <horizon/I18n.hpp>
 #include "horizon/Spacer.hpp"
 #include <filesystem>
 #include <horizon/Application.hpp>
@@ -128,7 +129,7 @@ namespace horizon
 
         // --- Bottom Section: Feedback ---
         auto feedback_ptr =
-            std::make_unique<Label>("Drag the application icon to the system folder to install.");
+            std::make_unique<Label>(i18n().tr("installer.drag_instruction"));
         feedback_ptr->set_alignment(TextAlignment::Center);
         m_feedback_label = feedback_ptr.get();
         m_feedback_label->set_height(30);
@@ -154,7 +155,7 @@ namespace horizon
         auto info = DebInspector::inspect(path);
         if (!info)
         {
-            update_status("Error: Could not read package information.", WidgetAccentColor::Error);
+            update_status(i18n().tr("installer.error_read"), WidgetAccentColor::Error);
             return;
         }
 
@@ -180,17 +181,17 @@ namespace horizon
             m_app_image->set_path(info->icon_path);
         }
 
-        set_title("Install " + info->package_name);
+        set_title(i18n().tr("installer.ready") + " " + info->package_name);
         m_name_label->set_text(info->package_name);
 
         std::string desc = info->description;
 
         m_desc_label->set_text(info->version + " - " + desc);
 
-        std::string msg = "Ready to install " + info->package_name + " (" + info->version + ")";
+        std::string msg = i18n().tr("installer.ready_msg", {{"name", info->package_name}, {"version", info->version}});
         if (info->is_installed)
         {
-            msg = info->package_name + " is already installed. Drag to reinstall.";
+            msg = i18n().tr("installer.already_installed_msg", {{"name", info->package_name}});
         }
         update_status(msg);
     }
@@ -200,7 +201,7 @@ namespace horizon
         if (!m_current_deb)
             return;
 
-        update_status("Installing " + m_current_deb->package_name + "...");
+        update_status(i18n().tr("installer.installing_msg", {{"name", m_current_deb->package_name}}));
         m_loading_bar->set_visible(true);
 
         std::string cmd = "pkexec apt-get install -y --reinstall \"" + m_deb_path + "\"";
@@ -215,7 +216,7 @@ namespace horizon
                     application()->post_task(
                         [this]()
                         {
-                            update_status("Installation completed successfully!",
+                            update_status(i18n().tr("installer.success"),
                                           WidgetAccentColor::Success);
                             m_loading_bar->set_visible(false);
                         });
@@ -226,7 +227,7 @@ namespace horizon
                         [this]()
                         {
                             update_status(
-                                "Installation failed. Please check your password or dependencies.",
+                                i18n().tr("installer.failed"),
                                 WidgetAccentColor::Error);
                             m_loading_bar->set_visible(false);
                         });

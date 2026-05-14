@@ -20,7 +20,7 @@ target_link_libraries(pkg-installer
 )
 
 horizon_install_app(pkg-installer
-    APP_ID "org.horizon.pkg-installer"
+    APP_ID "pkg-installer"
     NAME "Package Installer"
     COMMENT "Install .deb packages easily"
     ICON "system-software-install"

@@ -1,0 +1,19 @@
+{
+    "app": {
+        "title": "Instalador de Paquetes",
+        "description": "Instala fácilmente paquetes .deb arrastrándolos a tu sistema."
+    },
+    "installer": {
+        "drag_instruction": "Arrastra el icono de la aplicación a la carpeta del sistema para instalar.",
+        "success": "¡Instalación completada con éxito!",
+        "failed": "La instalación falló. Por favor, comprueba tu contraseña o dependencias.",
+        "already_installed": "La aplicación ya está instalada.",
+        "ready": "Listo para instalar.",
+        "ready_msg": "Listo para instalar {name} ({version})",
+        "already_installed_msg": "{name} ya está instalado. Arrastra para reinstalar.",
+        "installing_msg": "Instalando {name}...",
+        "reinstall": "Reinstalar",
+        "install": "Instalar",
+        "error_read": "Error: No se pudo leer la información del paquete."
+    }
+}

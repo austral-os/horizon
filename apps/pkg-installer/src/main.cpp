@@ -1,19 +1,21 @@
 #include "InstallerWindow.hpp"
 #include <horizon/Application.hpp>
+#include <horizon/I18n.hpp>
 
 using namespace horizon;
 
 int main(int argc, char **argv)
 {
-    Application app("org.horizon.pkg-installer", 700, 550);
+    Application app("pkg-installer", 700, 550);
+    i18n().load_app_locales("pkg-installer");
 
-    app.set_name("Package Installer");
+    app.set_name(i18n().tr("app.title"));
     app.set_icon_name("system-software-install");
 
     // Setup About info
     auto &about = app.about_manager();
-    about.set_app_title("Package Installer");
-    about.set_app_description("Easily install .deb packages by dragging them into your system.");
+    about.set_app_title(i18n().tr("app.title"));
+    about.set_app_description(i18n().tr("app.description"));
     about.set_app_version("1.0.0");
     about.set_app_icon("system-software-install");
 

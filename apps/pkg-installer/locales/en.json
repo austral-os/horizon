@@ -1,0 +1,19 @@
+{
+    "app": {
+        "title": "Package Installer",
+        "description": "Easily install .deb packages by dragging them into your system."
+    },
+    "installer": {
+        "drag_instruction": "Drag the application icon to the system folder to install.",
+        "success": "Installation completed successfully!",
+        "failed": "Installation failed. Please check your password or dependencies.",
+        "already_installed": "Application already installed.",
+        "ready": "Ready to install.",
+        "ready_msg": "Ready to install {name} ({version})",
+        "already_installed_msg": "{name} is already installed. Drag to reinstall.",
+        "installing_msg": "Installing {name}...",
+        "reinstall": "Reinstall",
+        "install": "Install",
+        "error_read": "Error: Could not read package information."
+    }
+}
