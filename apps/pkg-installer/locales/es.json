@@ -4,6 +4,7 @@
         "description": "Instala fácilmente paquetes .deb arrastrándolos a tu sistema."
     },
     "installer": {
+        "loading": "Cargando paquete...",
         "drag_instruction": "Arrastra el icono de la aplicación a la carpeta del sistema para instalar.",
         "success": "¡Instalación completada con éxito!",
         "failed": "La instalación falló. Por favor, comprueba tu contraseña o dependencias.",

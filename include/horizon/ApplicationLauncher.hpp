@@ -43,7 +43,8 @@ namespace horizon
          * @return True if the launch was successful.
          */
         static bool launch_binary(const std::string &path,
-                                  const std::vector<std::string> &args = {});
+                                  const std::vector<std::string> &args = {},
+                                  const std::string &working_dir = "");
 
     private:
         /**

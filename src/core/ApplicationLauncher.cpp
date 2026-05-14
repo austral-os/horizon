@@ -38,6 +38,18 @@ namespace horizon
 
     static bool is_binary_in_path(const std::string &name)
     {
+        if (name.empty())
+            return false;
+
+        // If it's an absolute or relative path, check it directly
+        if (name.find('/') != std::string::npos)
+        {
+            fs::path p(name);
+            return fs::exists(p) &&
+                   (fs::status(p).permissions() & (fs::perms::owner_exec | fs::perms::group_exec |
+                                                   fs::perms::others_exec)) != fs::perms::none;
+        }
+
         const char *path_env = std::getenv("PATH");
         if (!path_env)
             return false;
@@ -63,7 +75,14 @@ namespace horizon
 
     bool ApplicationLauncher::launch(const std::string &name)
     {
-        LOG_INFO << "[ApplicationLauncher] Attempting to launch by name: " << name;
+        LOG_INFO << "[ApplicationLauncher] Attempting to launch: " << name;
+
+        if (name.size() > 8 && name.substr(name.size() - 8) == ".desktop")
+        {
+            LOG_INFO << "[ApplicationLauncher] '" << name
+                     << "' is a desktop file, launching via desktop entry logic.";
+            return launch_from_desktop_file(name);
+        }
 
         if (is_binary_in_path(name))
         {
@@ -98,6 +117,8 @@ namespace horizon
             LOG_ERROR << "[ApplicationLauncher] No Exec command found in: " << path;
             return false;
         }
+
+        std::string working_dir = DesktopEntry::get_value_from_desktop_file(path, "Path");
 
         // Handle field codes like %u, %F, etc.
         // %f: single file name
@@ -182,13 +203,24 @@ namespace horizon
         std::string binary = parts[0];
         parts.erase(parts.begin());
 
-        return launch_binary(binary, parts);
+        if (binary.empty())
+        {
+            LOG_ERROR << "[ApplicationLauncher] Extracted binary name is empty from command: " << final_command;
+            return false;
+        }
+
+        return launch_binary(binary, parts, working_dir);
     }
 
     bool ApplicationLauncher::launch_binary(const std::string &path,
-                                            const std::vector<std::string> &args)
+                                            const std::vector<std::string> &args,
+                                            const std::string &working_dir)
     {
         LOG_INFO << "[ApplicationLauncher] Launching: " << path;
+        if (!working_dir.empty())
+        {
+            LOG_INFO << "[ApplicationLauncher] Working directory: " << working_dir;
+        }
 
         pid_t pid = fork();
         if (pid < 0)
@@ -221,6 +253,14 @@ namespace horizon
                     close(dev_null);
                 }
 
+                if (!working_dir.empty())
+                {
+                    if (chdir(working_dir.c_str()) != 0)
+                    {
+                        LOG_ERROR << "[ApplicationLauncher] chdir failed for: " << working_dir;
+                    }
+                }
+
                 // Prepare arguments
                 std::vector<char *> argv;
                 argv.push_back(const_cast<char *>(path.c_str()));
@@ -232,8 +272,16 @@ namespace horizon
 
                 execvp(path.c_str(), argv.data());
 
-                // If execvp returns, it failed
-                LOG_ERROR << "[ApplicationLauncher] execvp failed for: " << path;
+                // If execvp returns, it failed. 
+                // Note: we can't use LOG_ERROR here effectively because stderr is /dev/null, 
+                // but the system error might be useful if we ever change that.
+                // However, we can write to a specific emergency log.
+                int err = errno;
+                FILE* f = fopen("/tmp/horizon_launch_error.log", "a");
+                if (f) {
+                    fprintf(f, "[ApplicationLauncher] execvp failed for: %s (errno: %d)\n", path.c_str(), err);
+                    fclose(f);
+                }
                 _exit(1);
             }
             else

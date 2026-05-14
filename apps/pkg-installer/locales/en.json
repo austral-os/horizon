@@ -4,6 +4,7 @@
         "description": "Easily install .deb packages by dragging them into your system."
     },
     "installer": {
+        "loading": "Loading package...",
         "drag_instruction": "Drag the application icon to the system folder to install.",
         "success": "Installation completed successfully!",
         "failed": "Installation failed. Please check your password or dependencies.",

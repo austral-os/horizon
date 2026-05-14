@@ -152,48 +152,64 @@ namespace horizon
 
     void InstallerWindow::load_deb(const std::string &path)
     {
-        auto info = DebInspector::inspect(path);
-        if (!info)
-        {
-            update_status(i18n().tr("installer.error_read"), WidgetAccentColor::Error);
-            return;
-        }
+        update_status(i18n().tr("installer.loading"));
+        m_loading_bar->set_visible(true);
 
-        m_current_deb = info;
-        m_deb_path = path;
+        // Run inspection in a separate thread to avoid blocking the UI
+        std::thread(
+            [this, path]()
+            {
+                auto info = DebInspector::inspect(path);
 
-        if (info->icon_path.empty())
-        {
-            m_app_icon->set_visible(true);
-            m_app_image->set_visible(false);
-            m_app_icon->set_icon_name("system-software-install");
-        }
-        else if (info->icon_is_theme_name)
-        {
-            m_app_icon->set_visible(true);
-            m_app_image->set_visible(false);
-            m_app_icon->set_icon_name(info->icon_path);
-        }
-        else
-        {
-            m_app_icon->set_visible(false);
-            m_app_image->set_visible(true);
-            m_app_image->set_path(info->icon_path);
-        }
+                application()->post_task(
+                    [this, info, path]()
+                    {
+                        m_loading_bar->set_visible(false);
 
-        set_title(i18n().tr("installer.ready") + " " + info->package_name);
-        m_name_label->set_text(info->package_name);
+                        if (!info)
+                        {
+                            update_status(i18n().tr("installer.error_read"), WidgetAccentColor::Error);
+                            return;
+                        }
 
-        std::string desc = info->description;
+                        m_current_deb = info;
+                        m_deb_path = path;
 
-        m_desc_label->set_text(info->version + " - " + desc);
+                        if (info->icon_path.empty())
+                        {
+                            m_app_icon->set_visible(true);
+                            m_app_image->set_visible(false);
+                            m_app_icon->set_icon_name("system-software-install");
+                        }
+                        else if (info->icon_is_theme_name)
+                        {
+                            m_app_icon->set_visible(true);
+                            m_app_image->set_visible(false);
+                            m_app_icon->set_icon_name(info->icon_path);
+                        }
+                        else
+                        {
+                            m_app_icon->set_visible(false);
+                            m_app_image->set_visible(true);
+                            m_app_image->set_path(info->icon_path);
+                        }
 
-        std::string msg = i18n().tr("installer.ready_msg", {{"name", info->package_name}, {"version", info->version}});
-        if (info->is_installed)
-        {
-            msg = i18n().tr("installer.already_installed_msg", {{"name", info->package_name}});
-        }
-        update_status(msg);
+                        set_title(i18n().tr("installer.ready") + " " + info->package_name);
+                        m_name_label->set_text(info->package_name);
+
+                        std::string desc = info->description;
+                        m_desc_label->set_text(info->version + " - " + desc);
+
+                        std::string msg = i18n().tr("installer.ready_msg",
+                                                   {{"name", info->package_name}, {"version", info->version}});
+                        if (info->is_installed)
+                        {
+                            msg = i18n().tr("installer.already_installed_msg", {{"name", info->package_name}});
+                        }
+                        update_status(msg);
+                    });
+            })
+            .detach();
     }
 
     void InstallerWindow::start_installation()
