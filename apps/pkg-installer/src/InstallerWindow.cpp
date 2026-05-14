@@ -1,8 +1,8 @@
 #include "InstallerWindow.hpp"
-#include <horizon/I18n.hpp>
 #include "horizon/Spacer.hpp"
 #include <filesystem>
 #include <horizon/Application.hpp>
+#include <horizon/I18n.hpp>
 #include <horizon/IconThemeLookup.hpp>
 #include <horizon/Logger.hpp>
 #include <thread>
@@ -45,7 +45,7 @@ namespace horizon
         auto app_icon_ptr = std::make_unique<Icon>();
         m_app_icon = app_icon_ptr.get();
         m_app_icon->set_icon_size(128);
-        m_app_icon->set_icon_name("system-software-install");
+        m_app_icon->set_icon_name("pkg-installer");
         app_icon_box->add_child(std::move(app_icon_ptr));
 
         // File Image
@@ -128,8 +128,7 @@ namespace horizon
         container->add_child(std::move(desc_ptr));
 
         // --- Bottom Section: Feedback ---
-        auto feedback_ptr =
-            std::make_unique<Label>(i18n().tr("installer.drag_instruction"));
+        auto feedback_ptr = std::make_unique<Label>(i18n().tr("installer.drag_instruction"));
         feedback_ptr->set_alignment(TextAlignment::Center);
         m_feedback_label = feedback_ptr.get();
         m_feedback_label->set_height(30);
@@ -168,7 +167,8 @@ namespace horizon
 
                         if (!info)
                         {
-                            update_status(i18n().tr("installer.error_read"), WidgetAccentColor::Error);
+                            update_status(i18n().tr("installer.error_read"),
+                                          WidgetAccentColor::Error);
                             return;
                         }
 
@@ -179,7 +179,7 @@ namespace horizon
                         {
                             m_app_icon->set_visible(true);
                             m_app_image->set_visible(false);
-                            m_app_icon->set_icon_name("system-software-install");
+                            m_app_icon->set_icon_name("pkg-installer");
                         }
                         else if (info->icon_is_theme_name)
                         {
@@ -200,11 +200,13 @@ namespace horizon
                         std::string desc = info->description;
                         m_desc_label->set_text(info->version + " - " + desc);
 
-                        std::string msg = i18n().tr("installer.ready_msg",
-                                                   {{"name", info->package_name}, {"version", info->version}});
+                        std::string msg =
+                            i18n().tr("installer.ready_msg",
+                                      {{"name", info->package_name}, {"version", info->version}});
                         if (info->is_installed)
                         {
-                            msg = i18n().tr("installer.already_installed_msg", {{"name", info->package_name}});
+                            msg = i18n().tr("installer.already_installed_msg",
+                                            {{"name", info->package_name}});
                         }
                         update_status(msg);
                     });
@@ -217,10 +219,13 @@ namespace horizon
         if (!m_current_deb)
             return;
 
-        update_status(i18n().tr("installer.installing_msg", {{"name", m_current_deb->package_name}}));
+        update_status(
+            i18n().tr("installer.installing_msg", {{"name", m_current_deb->package_name}}));
         m_loading_bar->set_visible(true);
 
-        std::string cmd = "pkexec env DEBIAN_FRONTEND=noninteractive apt-get install -y --reinstall \"" + m_deb_path + "\"";
+        std::string cmd =
+            "pkexec env DEBIAN_FRONTEND=noninteractive apt-get install -y --reinstall \"" +
+            m_deb_path + "\"";
 
         std::thread(
             [this, cmd]()
@@ -242,9 +247,7 @@ namespace horizon
                     application()->post_task(
                         [this]()
                         {
-                            update_status(
-                                i18n().tr("installer.failed"),
-                                WidgetAccentColor::Error);
+                            update_status(i18n().tr("installer.failed"), WidgetAccentColor::Error);
                             m_loading_bar->set_visible(false);
                         });
                 }
@@ -255,7 +258,7 @@ namespace horizon
     void InstallerWindow::update_status(const std::string &message, WidgetAccentColor accent)
     {
         m_feedback_label->set_text(message);
-        
+
         if (accent == WidgetAccentColor::Success)
         {
             m_feedback_label->set_text_color(Color(0.1f, 0.7f, 0.1f, 1.0f)); // Verde
