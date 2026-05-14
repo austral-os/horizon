@@ -159,6 +159,8 @@ add_subdirectory(apps/zenit)
 add_subdirectory(apps/system-monitor)
 add_subdirectory(apps/horizon-keyring)
 add_subdirectory(apps/horizon-keyring-manager)
+add_subdirectory(apps/pkg-installer)
+
 
 # --- Examples and Demos ---
 add_executable(minimal
