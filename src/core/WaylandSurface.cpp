@@ -108,11 +108,10 @@ namespace horizon
 
     static void data_device_handle_selection(void *data, struct wl_data_device *data_device, struct wl_data_offer *id)
     {
-        // Handle selection (clipboard) if needed. 
-        // For now, we just ensure the protocol is satisfied to avoid crashes.
-        if (id) {
-            // According to protocol, the client must destroy the previous selection offer.
-            // But since we are not using this for clipboard yet, we'll just ignore it.
+        auto *ws = static_cast<WaylandSurface *>(data);
+        if (ws->listener())
+        {
+            ws->listener()->on_clipboard_selection(id);
         }
     }
 
@@ -854,12 +853,13 @@ namespace horizon
             }
         }
     }
-    static void pointer_handle_axis(void *data, wl_pointer *, uint32_t, uint32_t axis, wl_fixed_t value) {
+    static void pointer_handle_axis(void *data, wl_pointer *, uint32_t time, uint32_t axis, wl_fixed_t value) {
         if (g_pointer_focus && g_pointer_focus->listener()) { 
             PointerEvent ev; 
             ev.type = PointerEvent::Type::Scroll; 
             ev.x = g_pointer_focus->pointer_x(); 
             ev.y = g_pointer_focus->pointer_y(); 
+            ev.serial = g_pointer_focus->last_serial(); // Use last known serial for axis events
             double val = wl_fixed_to_double(value); 
             if (axis == WL_POINTER_AXIS_VERTICAL_SCROLL) ev.dy = val; else ev.dx = val; 
             g_pointer_focus->listener()->on_pointer_event(ev); 
@@ -871,21 +871,9 @@ namespace horizon
     static void keyboard_handle_leave(void *, wl_keyboard *, uint32_t, struct wl_surface *) {}
     static void keyboard_handle_key(void *data, wl_keyboard *, uint32_t serial, uint32_t, uint32_t key, uint32_t state) {
         auto *ws = static_cast<WaylandSurface *>(data); if (!ws->listener()) return;
+        ws->set_last_serial(serial);
         KeyEvent ev; ev.type = (state == WL_KEYBOARD_KEY_STATE_PRESSED) ? KeyEvent::Type::Press : KeyEvent::Type::Release; ev.key = key; ev.serial = serial;
         ws->process_key(key, state, ev); ws->listener()->on_key_event(ev);
-    }
-    static void keyboard_handle_modifiers(void *data, wl_keyboard *, uint32_t, uint32_t d, uint32_t la, uint32_t lo, uint32_t g) { static_cast<WaylandSurface *>(data)->update_xkb_modifiers(d, la, lo, g); }
-    static void keyboard_handle_repeat_info(void *, wl_keyboard *, int32_t, int32_t) {}
-
-    void WaylandSurface::update_xkb_keymap(uint32_t format, int32_t fd, uint32_t size) {
-        if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) { close(fd); return; }
-        char *map = (char*)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
-        if (map == MAP_FAILED) { close(fd); return; }
-        struct xkb_keymap *km = xkb_keymap_new_from_string(m_xkb_context, map, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
-        munmap(map, size); close(fd); if (!km) return;
-        struct xkb_state *st = xkb_state_new(km); if (!st) { xkb_keymap_unref(km); return; }
-        if (m_xkb_state) xkb_state_unref(m_xkb_state); if (m_xkb_keymap) xkb_keymap_unref(m_xkb_keymap);
-        m_xkb_keymap = km; m_xkb_state = st;
     }
     void WaylandSurface::update_xkb_modifiers(uint32_t d, uint32_t la, uint32_t lo, uint32_t g) { 
         if (m_xkb_state) xkb_state_update_mask(m_xkb_state, d, la, lo, 0, 0, g); 
@@ -897,6 +885,24 @@ namespace horizon
             if (xkb_state_mod_name_is_active(m_xkb_state, XKB_MOD_NAME_ALT, XKB_STATE_MODS_EFFECTIVE)) mods |= 0x4;
             m_listener->on_modifiers_event(mods);
         }
+    }
+
+    static void keyboard_handle_modifiers(void *data, wl_keyboard *, uint32_t serial, uint32_t d, uint32_t la, uint32_t lo, uint32_t g) { 
+        auto *ws = static_cast<WaylandSurface *>(data);
+        ws->set_last_serial(serial);
+        ws->update_xkb_modifiers(d, la, lo, g); 
+    }
+    static void keyboard_handle_repeat_info(void *, wl_keyboard *, int32_t, int32_t) {}
+
+    void WaylandSurface::update_xkb_keymap(uint32_t format, int32_t fd, uint32_t size) {
+        if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) { close(fd); return; }
+        char *map = (char*)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+        if (map == MAP_FAILED) { close(fd); return; }
+        struct xkb_keymap *km = xkb_keymap_new_from_string(m_xkb_context, map, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        munmap(map, size); close(fd); if (!km) return;
+        struct xkb_state *st = xkb_state_new(km); if (!st) { xkb_keymap_unref(km); return; }
+        if (m_xkb_state) xkb_state_unref(m_xkb_state); if (m_xkb_keymap) xkb_keymap_unref(m_xkb_keymap);
+        m_xkb_keymap = km; m_xkb_state = st;
     }
     void WaylandSurface::process_key(uint32_t key, uint32_t state, KeyEvent &ev) {
         if (!m_xkb_state) return;
@@ -1008,14 +1014,11 @@ namespace horizon
         }
     }
 
-    struct DataOfferInfo
-    {
-        std::vector<std::string> mime_types;
-    };
+
 
     static void data_offer_handle_offer(void *data, struct wl_data_offer *data_offer, const char *mime_type)
     {
-        auto *info = static_cast<DataOfferInfo *>(data);
+        auto *info = static_cast<WaylandSurface::DataOfferInfo *>(data);
         info->mime_types.push_back(mime_type);
     }
 
@@ -1024,7 +1027,7 @@ namespace horizon
 
     static void data_device_handle_data_offer(void *data, struct wl_data_device *data_device, struct wl_data_offer *id)
     {
-        auto *info = new DataOfferInfo();
+        auto *info = new WaylandSurface::DataOfferInfo();
         wl_data_offer_add_listener(id, &data_offer_listener, info);
         wl_data_offer_set_user_data(id, info);
     }
@@ -1037,7 +1040,7 @@ namespace horizon
 
         if (!ws->listener()) return;
 
-        auto *info = static_cast<DataOfferInfo *>(wl_data_offer_get_user_data(id));
+        auto *info = static_cast<WaylandSurface::DataOfferInfo *>(wl_data_offer_get_user_data(id));
         
         DragDropEvent ev;
         ev.type = DragDropEvent::Type::Enter;
@@ -1075,7 +1078,7 @@ namespace horizon
         
         // Fetch mime types if offer exists
         if (ws->m_current_drag_offer) {
-            auto *info = static_cast<DataOfferInfo *>(wl_data_offer_get_user_data(ws->m_current_drag_offer));
+            auto *info = static_cast<WaylandSurface::DataOfferInfo *>(wl_data_offer_get_user_data(ws->m_current_drag_offer));
             if (info) ev.mime_types = info->mime_types;
         }
 
@@ -1093,10 +1096,17 @@ namespace horizon
         ev.serial = ws->m_last_drag_serial;
         
         if (ws->m_current_drag_offer) {
-            auto *info = static_cast<DataOfferInfo *>(wl_data_offer_get_user_data(ws->m_current_drag_offer));
+            auto *info = static_cast<WaylandSurface::DataOfferInfo *>(wl_data_offer_get_user_data(ws->m_current_drag_offer));
             if (info) ev.mime_types = info->mime_types;
         }
 
         ws->listener()->on_drag_drop_event(ev);
+    }
+    std::vector<std::string> WaylandSurface::get_offer_mime_types(void *offer)
+    {
+        if (!offer) return {};
+        auto *info = static_cast<WaylandSurface::DataOfferInfo *>(wl_data_offer_get_user_data((struct wl_data_offer *)offer));
+        if (info) return info->mime_types;
+        return {};
     }
 } // namespace horizon

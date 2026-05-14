@@ -33,18 +33,13 @@ public:
     // Legacy support (to be removed once fully migrated)
     void set(const ClipboardData& data);
 
-    // Wayland protocol callbacks
+    // Wayland selection handling (called from WaylandWindow)
+    void handle_selection(struct wl_data_offer* id);
+
+    // Wayland protocol callbacks (static for use with Wayland C API)
     static void data_source_handle_target(void *data, struct wl_data_source *source, const char *mime_type);
     static void data_source_handle_send(void *data, struct wl_data_source *source, const char *mime_type, int32_t fd);
     static void data_source_handle_cancelled(void *data, struct wl_data_source *source);
-    
-    static void data_device_handle_data_offer(void *data, struct wl_data_device *data_device, struct wl_data_offer *id);
-    static void data_device_handle_enter(void *data, struct wl_data_device *data_device, uint32_t serial, struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y, struct wl_data_offer *id);
-    static void data_device_handle_leave(void *data, struct wl_data_device *data_device);
-    static void data_device_handle_motion(void *data, struct wl_data_device *data_device, uint32_t time, wl_fixed_t x, wl_fixed_t y);
-    static void data_device_handle_drop(void *data, struct wl_data_device *data_device);
-    static void data_device_handle_selection(void *data, struct wl_data_device *data_device, struct wl_data_offer *id);
-    static void data_offer_handle_offer(void *data, struct wl_data_offer *offer, const char *mime_type);
 
 private:
     WaylandSurface* m_surface;

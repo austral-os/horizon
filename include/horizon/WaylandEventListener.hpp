@@ -139,6 +139,11 @@ namespace horizon
          * @brief Called when a foreign toplevel window (another app) is added, removed or changed.
          */
         virtual void on_foreign_toplevel_event() {}
+        
+        /**
+         * @brief Called when a new clipboard selection offer is received from the compositor.
+         */
+        virtual void on_clipboard_selection(void *offer) {}
 
         virtual void on_close() {}
     };

@@ -425,6 +425,7 @@ namespace horizon
         void on_resize(int width, int height) override;
         void on_activated(bool active) override;
         void on_foreign_toplevel_event() override;
+        void on_clipboard_selection(void *offer) override;
 
         /**
          * @brief Internal handler for pointer movement events.

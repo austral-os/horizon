@@ -12,17 +12,6 @@ namespace horizon {
 
 WaylandClipboardBackend::WaylandClipboardBackend(WaylandSurface* surface)
     : m_surface(surface) {
-    static const struct wl_data_device_listener device_listener = {
-        data_device_handle_data_offer,
-        data_device_handle_enter,
-        data_device_handle_leave,
-        data_device_handle_motion,
-        data_device_handle_drop,
-        data_device_handle_selection
-    };
-    if (m_surface->data_device()) {
-        wl_data_device_add_listener(m_surface->data_device(), &device_listener, this);
-    }
 }
 
 WaylandClipboardBackend::~WaylandClipboardBackend() {
@@ -172,6 +161,13 @@ void WaylandClipboardBackend::cleanup_offer() {
     }
 }
 
+void WaylandClipboardBackend::handle_selection(struct wl_data_offer* id) {
+    cleanup_offer();
+    m_current_offer = id;
+    m_offer_counter++;
+    m_offered_mime_types = WaylandSurface::get_offer_mime_types(id);
+}
+
 // Global callbacks implementation
 void WaylandClipboardBackend::data_source_handle_target(void *data, struct wl_data_source *source, const char *mime_type) {}
 
@@ -200,39 +196,6 @@ void WaylandClipboardBackend::data_source_handle_cancelled(void *data, struct wl
     auto self = static_cast<WaylandClipboardBackend*>(data);
     self->cleanup_source();
     self->m_local_provider = nullptr;
-}
-
-void WaylandClipboardBackend::data_device_handle_data_offer(void *data, struct wl_data_device *data_device, struct wl_data_offer *id) {
-    auto self = static_cast<WaylandClipboardBackend*>(data);
-    
-    // START FRESH: A new data offer announcement starts here.
-    self->m_offered_mime_types.clear();
-    
-    static const struct wl_data_offer_listener offer_listener = {
-        data_offer_handle_offer,
-        nullptr, // source_actions
-        nullptr  // action
-    };
-    wl_data_offer_add_listener(id, &offer_listener, self);
-}
-
-void WaylandClipboardBackend::data_device_handle_enter(void *, struct wl_data_device *, uint32_t, struct wl_surface *, wl_fixed_t, wl_fixed_t, struct wl_data_offer *) {}
-void WaylandClipboardBackend::data_device_handle_leave(void *, struct wl_data_device *) {}
-void WaylandClipboardBackend::data_device_handle_motion(void *, struct wl_data_device *, uint32_t, wl_fixed_t, wl_fixed_t) {}
-void WaylandClipboardBackend::data_device_handle_drop(void *, struct wl_data_device *) {}
-
-void WaylandClipboardBackend::data_device_handle_selection(void *data, struct wl_data_device *data_device, struct wl_data_offer *id) {
-    auto self = static_cast<WaylandClipboardBackend*>(data);
-    self->cleanup_offer();
-    self->m_current_offer = id;
-    self->m_offer_counter++;
-}
-
-void WaylandClipboardBackend::data_offer_handle_offer(void *data, struct wl_data_offer *offer, const char *mime_type) {
-    auto self = static_cast<WaylandClipboardBackend*>(data);
-    if (mime_type) {
-        self->m_offered_mime_types.push_back(mime_type);
-    }
 }
 
 } // namespace horizon

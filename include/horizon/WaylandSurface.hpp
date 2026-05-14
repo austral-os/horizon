@@ -155,6 +155,11 @@ namespace horizon
             std::vector<MonitorModeInfo> modes;
         };
 
+        struct DataOfferInfo
+        {
+            std::vector<std::string> mime_types;
+        };
+
         const std::vector<MonitorDetail> &monitor_details() const { return m_monitor_details; }
 
         EventsManager<struct wl_output*> when_monitor_update;
@@ -258,6 +263,8 @@ namespace horizon
         EGLContext egl_context() const { return m_egl_context; }
         void swap_buffers();
         void update_blur_region();
+
+        static std::vector<std::string> get_offer_mime_types(void *offer);
 
         struct wl_surface *wl_surface() const { return m_surface; }
 

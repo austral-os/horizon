@@ -1491,6 +1491,14 @@ namespace horizon
         }
     }
 
+    void WaylandWindow::on_clipboard_selection(void *offer)
+    {
+        if (m_clipboard_backend)
+        {
+            m_clipboard_backend->handle_selection((struct wl_data_offer *)offer);
+        }
+    }
+
     void WaylandWindow::on_key_event(const KeyEvent &event)
     {
         switch (event.type)
@@ -1538,11 +1546,14 @@ namespace horizon
 
         Widget *target = m_focused ? m_focused : m_root.get();
 
+        m_last_serial = event.serial;
+
         KeyEventContext new_ev;
         new_ev.sender = nullptr;
         new_ev.key = event.key;
         new_ev.modifiers = event.modifiers;
         new_ev.keysym = event.keysym;
+        new_ev.serial = event.serial;
         new_ev.text = event.text;
 
         // Dispatch key event with bubbling
