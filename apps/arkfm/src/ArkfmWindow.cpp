@@ -189,11 +189,14 @@ namespace horizon::arkfm
             
             auto item_other = sub_open_with->add_item("Elegir otra aplicación...");
             item_other->when_click.connect([this, f](auto&) {
-                auto dialog = std::make_unique<AppPickerDialog>();
-                dialog->when_accepted.connect([this, f](const DesktopEntry& entry) {
-                    ApplicationLauncher::launch_from_desktop_file(entry.path, {f.path});
+                this->application()->post_task([this, f]() {
+                    auto dialog = std::make_unique<AppPickerDialog>();
+                    dialog->when_accepted.connect([this, f](const DesktopEntry& entry) {
+                        ApplicationLauncher::launch_from_desktop_file(entry.path, {f.path});
+                    });
+                    dialog->initialize();
+                    dialog->run();
                 });
-                dialog->run();
             });
             
             item_open_with->set_submenu(std::move(sub_open_with));
@@ -225,10 +228,14 @@ namespace horizon::arkfm
             }
             
             auto item_rename = menu->add_item("Renombrar");
-            item_rename->when_click.connect([this, f](auto&) { this->handle_rename(f.path); });
+            item_rename->when_click.connect([this, f](auto&) {
+                this->application()->post_task([this, f]() { this->handle_rename(f.path); });
+            });
             
             auto item_delete = menu->add_item("Eliminar");
-            item_delete->when_click.connect([this, f](auto&) { this->handle_delete(f.path); });
+            item_delete->when_click.connect([this, f](auto&) {
+                this->application()->post_task([this, f]() { this->handle_delete(f.path); });
+            });
             
             menu->add_separator();
             

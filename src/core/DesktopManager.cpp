@@ -34,10 +34,49 @@ namespace horizon
     std::vector<std::string> DesktopManager::s_additional_search_paths = {};
     std::map<std::string, std::string> DesktopManager::s_desktop_file_cache = {};
     std::map<std::string, std::string> DesktopManager::s_icon_name_cache = {};
+    std::vector<DesktopEntry> DesktopManager::s_all_apps_cache = {};
+    std::map<std::string, std::string> DesktopManager::s_mime_type_cache = {};
 
     std::string DesktopManager::get_mime_type(const std::string& path)
     {
-        return run_command_capture_output("xdg-mime query filetype \"" + path + "\"");
+        if (s_mime_type_cache.count(path)) return s_mime_type_cache[path];
+
+        // Fast path for extensions
+        size_t dot = path.find_last_of('.');
+        if (dot != std::string::npos) {
+            std::string ext = path.substr(dot + 1);
+            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+            
+            static const std::map<std::string, std::string> ext_map = {
+                {"txt", "text/plain"},
+                {"pdf", "application/pdf"},
+                {"png", "image/png"},
+                {"jpg", "image/jpeg"},
+                {"jpeg", "image/jpeg"},
+                {"gif", "image/gif"},
+                {"svg", "image/svg+xml"},
+                {"zip", "application/zip"},
+                {"tar", "application/x-tar"},
+                {"gz", "application/gzip"},
+                {"7z", "application/x-7z-compressed"},
+                {"mp3", "audio/mpeg"},
+                {"mp4", "video/mp4"},
+                {"html", "text/html"},
+                {"cpp", "text/x-c++src"},
+                {"hpp", "text/x-c++hdr"},
+                {"c", "text/x-csrc"},
+                {"h", "text/x-chdr"}
+            };
+            
+            if (ext_map.count(ext)) {
+                s_mime_type_cache[path] = ext_map.at(ext);
+                return ext_map.at(ext);
+            }
+        }
+
+        std::string result = run_command_capture_output("xdg-mime query filetype \"" + path + "\"");
+        s_mime_type_cache[path] = result;
+        return result;
     }
 
     std::vector<DesktopEntry> DesktopManager::get_apps_for_mime(const std::string& mime_type)
@@ -95,6 +134,8 @@ namespace horizon
 
     std::vector<DesktopEntry> DesktopManager::load_all_desktop_entries()
     {
+        if (!s_all_apps_cache.empty()) return s_all_apps_cache;
+
         std::vector<DesktopEntry> entries;
         std::vector<std::string> dirs = get_desktop_search_dirs();
         
@@ -107,7 +148,6 @@ namespace horizon
                     if (entry.is_regular_file() && entry.path().extension() == ".desktop") {
                         std::string id = entry.path().filename().string();
                         // Overrides: preferred order is local > usr/local > usr/share
-                        // Since we iterate in order (mostly), we only add if not seen
                         if (seen_ids.count(id) == 0) {
                             auto desktop = parse_desktop_file(entry.path().string());
                             if (desktop) {
@@ -119,9 +159,9 @@ namespace horizon
                     }
                 }
             } catch (...) {
-                // Ignore directory access errors
             }
         }
+        s_all_apps_cache = entries;
         return entries;
     }
 

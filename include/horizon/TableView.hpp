@@ -539,7 +539,12 @@ namespace horizon
 
                 if (m_row_menu_factory)
                 {
-                    row_widget->set_context_menu(m_row_menu_factory(row_data));
+                    auto *row_ptr = row_widget.get();
+                    row_widget->when_right_click.connect([this, row_ptr, row_data](auto&) {
+                        if (m_row_menu_factory && !row_ptr->context_menu()) {
+                            row_ptr->set_context_menu(m_row_menu_factory(row_data));
+                        }
+                    });
                 }
 
                 if (m_row_setup_callback)

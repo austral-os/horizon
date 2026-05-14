@@ -80,5 +80,7 @@ namespace horizon
         static std::vector<std::string> s_additional_search_paths;
         static std::map<std::string, std::string> s_desktop_file_cache;
         static std::map<std::string, std::string> s_icon_name_cache;
+        static std::vector<DesktopEntry> s_all_apps_cache;
+        static std::map<std::string, std::string> s_mime_type_cache;
     };
 } // namespace horizon

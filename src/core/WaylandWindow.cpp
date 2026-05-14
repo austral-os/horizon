@@ -3090,7 +3090,12 @@ namespace horizon
         if (m_popup_menu)
         {
             m_popup_menu->set_visible(false);
-            m_popup_menu = nullptr;
+            // Move the menu to a temporary variable and destroy it in a deferred task
+            // This prevents segfaults if a menu item action blocks the thread (e.g., opens a dialog)
+            auto menu_to_destroy = std::move(m_popup_menu);
+            post_task([menu = std::move(menu_to_destroy)]() {
+                // The menu will be destroyed when this lambda goes out of scope, safely outside the click handler
+            });
         }
 
         if (m_popup_surface || m_popup_listener)
