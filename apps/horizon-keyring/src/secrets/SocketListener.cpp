@@ -12,7 +12,7 @@ namespace horizon::secrets
     SocketListener::SocketListener(int uid, std::function<void(const std::string&)> on_password_received)
         : m_uid(uid), m_on_password_received(on_password_received)
     {
-        m_socket_path = "/run/user/" + std::to_string(uid) + "/horizon-keyring.socket";
+        m_socket_path = "/tmp/horizon-keyring-" + std::to_string(uid) + ".socket";
     }
 
     SocketListener::~SocketListener()

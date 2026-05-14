@@ -35,10 +35,12 @@ namespace horizon::secrets
         void handle_search_items(DBusMessage* msg);
         void handle_get_secrets(DBusMessage* msg);
         void handle_read_alias(DBusMessage* msg);
+        void handle_unlock(DBusMessage* msg);
         void handle_create_item(DBusMessage* msg);
         void handle_delete_item(DBusMessage* msg);
         void handle_set_property(DBusMessage* msg);
         void handle_get_property(DBusMessage* msg);
         void handle_get_all_properties(DBusMessage* msg);
+        void check_pending_unlock();
     };
 }

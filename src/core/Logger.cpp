@@ -1,5 +1,6 @@
 #include "horizon/Logger.hpp"
 #include <iostream>
+#include <unistd.h>
 
 namespace horizon
 {
@@ -24,7 +25,7 @@ namespace horizon
             return;
 
         m_app_id = app_id;
-        std::string log_path = "/tmp/" + m_app_id + ".log";
+        std::string log_path = "/tmp/" + m_app_id + "_" + std::to_string(getuid()) + ".log";
 
         // Open and truncate
         m_log_file.open(log_path, std::ios::out | std::ios::trunc);

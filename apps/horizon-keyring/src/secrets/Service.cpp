@@ -3,9 +3,11 @@
 #include <iostream>
 #include <map>
 #include <algorithm>
+#include <cstring>
 #include <dbus/dbus.h>
 #include <unistd.h>
 #include <openssl/rand.h>
+#include <fstream>
 
 namespace horizon::secrets
 {
@@ -14,6 +16,7 @@ namespace horizon::secrets
         m_crypto = std::make_unique<crypto::CryptoManager>();
         init_storage();
         init_pam_listener();
+        check_pending_unlock();
     }
 
     void Service::init_storage()
@@ -94,6 +97,9 @@ namespace horizon::secrets
                 return DBUS_HANDLER_RESULT_HANDLED;
             } else if (method == "ReadAlias") {
                 handle_read_alias(msg);
+                return DBUS_HANDLER_RESULT_HANDLED;
+            } else if (method == "Unlock") {
+                handle_unlock(msg);
                 return DBUS_HANDLER_RESULT_HANDLED;
             }
         } else if (interface == "org.freedesktop.Secret.Collection") {
@@ -187,6 +193,11 @@ namespace horizon::secrets
       <arg name="name" type="s" direction="in"/>
       <arg name="collection" type="o" direction="out"/>
     </method>
+    <method name="Unlock">
+      <arg name="objects" type="ao" direction="in"/>
+      <arg name="unlocked" type="ao" direction="out"/>
+      <arg name="prompt" type="o" direction="out"/>
+    </method>
   </interface>
 </node>)";
             }
@@ -227,6 +238,46 @@ namespace horizon::secrets
             m_dbus.send_reply(msg, {dbusutils::ObjectPath("/org/freedesktop/secrets/collection/default")});
         } else {
             m_dbus.send_reply(msg, {dbusutils::ObjectPath("/")}); // Not found
+        }
+    }
+
+    void Service::handle_unlock(DBusMessage* msg)
+    {
+        LOG_INFO << "[Horizon Keyring] Method call: Unlock";
+        
+        DBusMessageIter iter;
+        dbus_message_iter_init(msg, &iter);
+        
+        std::vector<dbusutils::ObjectPath> unlocked_paths;
+        
+        if (dbus_message_iter_get_arg_type(&iter) == DBUS_TYPE_ARRAY) {
+            DBusMessageIter array_iter;
+            dbus_message_iter_recurse(&iter, &array_iter);
+            while (dbus_message_iter_get_arg_type(&array_iter) == DBUS_TYPE_OBJECT_PATH) {
+                const char* path;
+                dbus_message_iter_get_basic(&array_iter, &path);
+                unlocked_paths.push_back(dbusutils::ObjectPath(path));
+                dbus_message_iter_next(&array_iter);
+            }
+        }
+
+        // If the master key is already present, it means the keyring is unlocked (via PAM).
+        // We return all requested paths as "unlocked" and no prompt.
+        if (!m_master_key.empty()) {
+            LOG_INFO << "[Horizon Keyring] Keyring already unlocked, returning success for all paths.";
+            m_dbus.send_reply(msg, {
+                dbusutils::DbusVariant(unlocked_paths),
+                dbusutils::ObjectPath("/") // No prompt needed
+            });
+        } else {
+            // In a real implementation, if locked, we should return a Prompt object.
+            // For now, we return empty unlocked list and no prompt (which might cause client failure, 
+            // but at least the method exists).
+            LOG_WARNING << "[Horizon Keyring] Unlock called but keyring is LOCKED (no PAM password yet).";
+            m_dbus.send_reply(msg, {
+                dbusutils::DbusVariant(std::vector<dbusutils::ObjectPath>{}),
+                dbusutils::ObjectPath("/") 
+            });
         }
     }
     
@@ -626,5 +677,38 @@ namespace horizon::secrets
         // For now, return an empty dictionary to avoid crashes if asked for all properties.
         // It's recommended to query specific properties via Get.
         m_dbus.send_reply(msg, {std::map<std::string, std::string>{}});
+    }
+
+    void Service::check_pending_unlock()
+    {
+        std::string path = "/tmp/horizon-pass-" + std::to_string(getuid());
+        LOG_INFO << "[Horizon Keyring] Checking for pending password file at: " << path;
+        
+        if (access(path.c_str(), F_OK) == 0) {
+            LOG_INFO << "[Horizon Keyring] Found pending password file. Attempting to read...";
+            std::ifstream f(path);
+            if (f.is_open()) {
+                std::string password;
+                if (std::getline(f, password)) {
+                    LOG_INFO << "[Horizon Keyring] Password read successfully. Unlocking keyring...";
+                    unlock_keyring(password);
+                    f.close();
+                    
+                    // Securely delete the file
+                    if (unlink(path.c_str()) == 0) {
+                        LOG_INFO << "[Horizon Keyring] Pending password file deleted successfully.";
+                    } else {
+                        LOG_ERROR << "[Horizon Keyring] Failed to delete password file: " << strerror(errno);
+                    }
+                } else {
+                    LOG_ERROR << "[Horizon Keyring] Failed to read password from file (empty?).";
+                    f.close();
+                }
+            } else {
+                LOG_ERROR << "[Horizon Keyring] Could not open password file for reading: " << strerror(errno);
+            }
+        } else {
+            LOG_INFO << "[Horizon Keyring] No pending password file found (normal if already unlocked).";
+        }
     }
 }
