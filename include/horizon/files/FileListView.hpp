@@ -3,6 +3,7 @@
 #include "horizon/TableView.hpp"
 #include "horizon/arkutils/FileInfo.hpp"
 #include "horizon/arkutils/FileSystemModel.hpp"
+#include "horizon/files/FileEvents.hpp"
 
 namespace horizon::files
 {
@@ -19,6 +20,8 @@ namespace horizon::files
         {
             set_row_menu_factory(factory);
         }
+        
+        EventsManager<OperationProgressEvent> when_operation_progress;
 
     private:
         std::string m_current_path;

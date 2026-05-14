@@ -4,6 +4,7 @@
 #include "horizon/TableView.hpp"
 #include "horizon/Widget.hpp"
 #include "horizon/arkutils/FileInfo.hpp"
+#include "horizon/files/FileEvents.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -36,6 +37,8 @@ namespace horizon::files
 
         EventsManager<horizon::TableViewRowMouseClickContext<arkutils::FileInfo>>
             when_row_dbl_click;
+        
+        EventsManager<OperationProgressEvent> when_operation_progress;
 
         // Clipboard state
         std::vector<std::string> m_clipboard_paths;

@@ -66,6 +66,13 @@ namespace horizon::arkfm
         m_view_ptr->when_path_changed.connect([this](files::PathChangedEvent &ctx) {
             if (m_sidebar_ptr) m_sidebar_ptr->select_item_by_path(ctx.path);
         });
+        
+        m_view_ptr->when_operation_progress.connect([this](files::OperationProgressEvent &ctx) {
+            if (m_progress_bar) {
+                m_progress_bar->set_visible(!ctx.finished);
+                m_progress_bar->set_progress(static_cast<float>(ctx.progress));
+            }
+        });
 
         m_sidebar_ptr->when_resource_unmounted.connect([this](horizon::files::UnmountEventContext& ctx) {
             if (m_view_ptr) {

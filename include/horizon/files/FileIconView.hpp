@@ -3,6 +3,7 @@
 #include "horizon/IconView.hpp"
 #include "horizon/arkutils/FileInfo.hpp"
 #include "horizon/arkutils/FileSystemModel.hpp"
+#include "horizon/files/FileEvents.hpp"
 #include <memory>
 #include <string>
 
@@ -21,6 +22,8 @@ namespace horizon::files
         {
             set_item_menu_factory(factory);
         }
+
+        EventsManager<OperationProgressEvent> when_operation_progress;
 
     private:
         void update_icons(const std::vector<arkutils::FileInfo> &files);

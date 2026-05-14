@@ -3,6 +3,7 @@
 #include "horizon/Widget.hpp"
 #include "horizon/arkutils/FileInfo.hpp"
 #include "horizon/files/FileHistory.hpp"
+#include "horizon/files/FileEvents.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -14,11 +15,6 @@ namespace horizon::files
         List,
         Grid,
         CoverFlow
-    };
-
-    struct PathChangedEvent : public EventContext
-    {
-        std::string path;
     };
 
     class FileView : public Widget
@@ -48,6 +44,7 @@ namespace horizon::files
         // Signals
         EventsManager<PathChangedEvent> when_path_changed;
         EventsManager<arkutils::FileInfo> when_item_opened;
+        EventsManager<OperationProgressEvent> when_operation_progress;
 
         // Clipboard integration
         bool supports_clipboard() const override { return true; }

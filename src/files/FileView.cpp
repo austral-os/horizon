@@ -41,6 +41,12 @@ namespace horizon::files
                 {
                     this->open_item(ctx.row_data);
                 });
+            view->when_operation_progress.connect(
+                [this](OperationProgressEvent &ctx)
+                {
+                    this->when_operation_progress.run(ctx);
+                });
+
             if (m_context_menu_factory)
             {
                 view->set_context_menu_factory(m_context_menu_factory);
@@ -54,6 +60,11 @@ namespace horizon::files
                 [this](horizon::IconViewItemMouseClickContext<arkutils::FileInfo> &ctx)
                 {
                     this->open_item(ctx.item_data);
+                });
+            view->when_operation_progress.connect(
+                [this](OperationProgressEvent &ctx)
+                {
+                    this->when_operation_progress.run(ctx);
                 });
             if (m_context_menu_factory)
             {
@@ -69,6 +80,12 @@ namespace horizon::files
                 {
                     this->open_item(ctx.row_data);
                 });
+            view->when_operation_progress.connect(
+                [this](OperationProgressEvent &ctx)
+                {
+                    this->when_operation_progress.run(ctx);
+                });
+
             if (m_context_menu_factory)
             {
                 view->set_context_menu_factory(m_context_menu_factory);
@@ -258,7 +275,16 @@ namespace horizon::files
             else
             {
                 auto filename = src.filename().string();
-                auto future = arkutils::FileOperations::copy(src_path, m_current_path, nullptr);
+                auto future = arkutils::FileOperations::copy(src_path, m_current_path, [this](double progress) {
+                    if (application()) {
+                        application()->post_task([this, progress]() {
+                            OperationProgressEvent ev;
+                            ev.progress = progress;
+                            ev.finished = (progress >= 1.0);
+                            this->when_operation_progress.run(ev);
+                        });
+                    }
+                });
                 std::thread([this, f = std::move(future), filename]() mutable {
                     auto result = f.get();
                     if (application())
@@ -266,6 +292,12 @@ namespace horizon::files
                         application()->post_task([this, result, filename]() {
                             if (result == arkutils::FileOperations::Result::Success) {
                                 NotificationSender::send("Copia finalizada", "El archivo " + filename + " se ha copiado correctamente.", "edit-copy");
+                                
+                                OperationProgressEvent ev;
+                                ev.progress = 1.0;
+                                ev.finished = true;
+                                this->when_operation_progress.run(ev);
+
                                 this->navigate_to(m_current_path);
                             }
                         });

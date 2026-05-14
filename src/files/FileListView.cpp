@@ -11,6 +11,8 @@
 #include <thread>
 #include <set>
 #include "horizon/arkutils/FileOperations.hpp"
+#include <horizon/FormatUtils.hpp>
+
 
 namespace horizon::files
 {
@@ -63,7 +65,14 @@ namespace horizon::files
         col_size.title = "Size";
         col_size.width = 100;
         col_size.cell_factory = [](const arkutils::FileInfo &f)
-        { return std::make_unique<Label>(std::to_string(f.size / 1024) + " KB"); };
+        {
+            if (f.type == arkutils::FileType::Directory)
+            {
+                return std::make_unique<Label>("---");
+            }
+            return std::make_unique<Label>(horizon::format_bytes(f.size));
+        };
+
 
         TableColumn<arkutils::FileInfo> col_mod;
         col_mod.id = "modified";
@@ -148,10 +157,33 @@ namespace horizon::files
 
                                                                           if (src != dest)
                                                                           {
-                                                                              auto future = arkutils::FileOperations::copy(src, dest);
-                                                                              std::thread([f_future = std::move(future)]() mutable
-                                                                                          { f_future.get(); })
+                                                                              auto future = arkutils::FileOperations::copy(src, dest, [this](double progress) {
+                                                                                  if (application()) {
+                                                                                      application()->post_task([this, progress]() {
+                                                                                          OperationProgressEvent ev;
+                                                                                          ev.progress = progress;
+                                                                                          ev.finished = (progress >= 1.0);
+                                                                                          this->when_operation_progress.run(ev);
+                                                                                      });
+                                                                                  }
+                                                                              });
+
+                                                                              std::thread([f_future = std::move(future), this]() mutable
+                                                                                          { 
+                                                                                              auto result = f_future.get();
+                                                                                              if (application()) {
+                                                                                                  application()->post_task([this, result]() {
+                                                                                                      if (result == arkutils::FileOperations::Result::Success) {
+                                                                                                          OperationProgressEvent ev;
+                                                                                                          ev.progress = 1.0;
+                                                                                                          ev.finished = true;
+                                                                                                          this->when_operation_progress.run(ev);
+                                                                                                      }
+                                                                                                  });
+                                                                                              }
+                                                                                          })
                                                                                   .detach();
+
                                                                           }
                                                                       }
 

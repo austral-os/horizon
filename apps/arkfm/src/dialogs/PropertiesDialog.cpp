@@ -14,6 +14,8 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
+#include <horizon/FormatUtils.hpp>
+
 
 namespace horizon::arkfm
 {
@@ -82,7 +84,9 @@ namespace horizon::arkfm
         std::string type_str =
             (m_file_info.type == arkutils::FileType::Directory) ? i18n().tr("arkfm.properties.folder") : i18n().tr("arkfm.properties.file");
         add_info_row(i18n().tr("arkfm.properties.type"), type_str);
-        add_info_row(i18n().tr("arkfm.properties.size"), std::to_string(m_file_info.size / 1024) + " KB");
+        std::string size_str = (m_file_info.type == arkutils::FileType::Directory) ? "---" : horizon::format_bytes(m_file_info.size);
+        add_info_row(i18n().tr("arkfm.properties.size"), size_str);
+
         add_info_row(i18n().tr("arkfm.properties.location"), m_file_info.path);
 
         auto t = std::chrono::system_clock::to_time_t(m_file_info.last_modified);
