@@ -11,7 +11,7 @@ int main(int argc, char** argv)
     Application app("horizon.keyring.manager", 900, 600);
     
     // Load translations
-    i18n().load_app_locales("horizon-keyring-manager");
+    i18n().load_app_locales("keyring-manager");
     
     app.about_manager().set_app_title(i18n().tr("keyring.title"));
     app.about_manager().set_app_description("Manage your system passwords and keys securely.");

@@ -30,4 +30,16 @@ horizon_install_app(horizon-keyring
     EXTRA_DESKTOP "NoDisplay=true"
 )
 
+# Install D-Bus service file
+install(FILES org.freedesktop.secrets.service
+    DESTINATION share/dbus-1/services
+    COMPONENT keyring
+)
+
+# Install Systemd user service file
+install(FILES horizon-keyring.service
+    DESTINATION lib/systemd/user
+    COMPONENT keyring
+)
+
 add_subdirectory(pam)

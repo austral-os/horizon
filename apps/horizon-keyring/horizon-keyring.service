@@ -1,0 +1,10 @@
+[Unit]
+Description=Horizon Keyring Service
+After=dbus.socket
+
+[Service]
+ExecStart=/usr/bin/horizon-keyring
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

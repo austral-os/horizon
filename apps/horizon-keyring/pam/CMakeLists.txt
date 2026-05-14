@@ -6,3 +6,10 @@ target_link_libraries(pam_horizon_keyring PRIVATE pam)
 set_target_properties(pam_horizon_keyring PROPERTIES PREFIX "")
 
 install(TARGETS pam_horizon_keyring DESTINATION /lib/security)
+
+# Install PAM config for pam-auth-update
+install(FILES horizon-keyring.pam-config
+    DESTINATION share/pam-configs
+    RENAME horizon-keyring
+    COMPONENT keyring
+)

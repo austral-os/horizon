@@ -1,0 +1,6 @@
+Name: Horizon Keyring
+Default: yes
+Priority: 0
+Auth-Type: Additional
+Auth:
+	optional	pam_horizon_keyring.so

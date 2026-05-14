@@ -25,6 +25,11 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 
+# Conflict and replace gnome-keyring to avoid file conflicts
+set(CPACK_DEBIAN_PACKAGE_CONFLICTS "gnome-keyring")
+set(CPACK_DEBIAN_PACKAGE_REPLACES "gnome-keyring")
+set(CPACK_DEBIAN_PACKAGE_PROVIDES "secret-service, gnome-keyring")
+
 # Merging manual dependencies with shlibdeps for monolithic package
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "${HORIZON_RUNTIME_DEPENDS}")
 

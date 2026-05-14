@@ -21,6 +21,39 @@ case "$1" in
                 fi
             done
         fi
+
+        # Horizon Keyring Activation
+        echo "Configuring Horizon Keyring..."
+        
+        # 1. Enable Systemd User Service globally
+        if [ -x /usr/bin/systemctl ]; then
+            systemctl --global enable horizon-keyring.service || true
+        fi
+
+        # 2. Update PAM configuration
+        if [ -x /usr/sbin/pam-auth-update ]; then
+            pam-auth-update --package --force
+        fi
+
+        # 3. Create D-Bus activation aliases for compatibility
+        # These are usually not in the package to avoid conflicts with other keyrings,
+        # but we want them active in our system.
+        mkdir -p /usr/share/dbus-1/services
+        if [ ! -f /usr/share/dbus-1/services/org.freedesktop.Secrets.service ]; then
+            cat <<EOF > /usr/share/dbus-1/services/org.freedesktop.Secrets.service
+[D-BUS Service]
+Name=org.freedesktop.Secrets
+Exec=/usr/bin/horizon-keyring
+EOF
+        fi
+
+        if [ ! -f /usr/share/dbus-1/services/org.gnome.keyring.service ]; then
+            cat <<EOF > /usr/share/dbus-1/services/org.gnome.keyring.service
+[D-BUS Service]
+Name=org.gnome.keyring
+Exec=/usr/bin/horizon-keyring
+EOF
+        fi
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
