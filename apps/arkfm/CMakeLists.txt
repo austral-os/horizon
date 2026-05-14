@@ -19,6 +19,7 @@ target_link_libraries(arkfm
     PRIVATE
         horizon
         horizon-network-storage
+        horizon-compression-tools
 )
 
 horizon_install_app(arkfm
@@ -28,5 +29,5 @@ horizon_install_app(arkfm
     ICON "arkfm"
     CATEGORIES "System;FileVideo;"
     MIMETYPE "inode/directory;"
-    VERSION "0.2.7"
+    VERSION "0.2.8"
 )

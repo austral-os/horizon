@@ -128,6 +128,7 @@ add_subdirectory(libs/horizon-installer-utils)
 add_subdirectory(libs/horizon-download)
 add_subdirectory(libs/horizon-network)
 add_subdirectory(libs/horizon-network-storage)
+add_subdirectory(libs/horizon-compression-tools)
 add_subdirectory(libs/horizon-capture)
 
 

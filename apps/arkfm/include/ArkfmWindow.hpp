@@ -2,6 +2,8 @@
 
 #include <horizon/ApplicationWindow.hpp>
 #include <horizon/storage/RemoteManager.hpp>
+#include <horizon/compression/CompressionTask.hpp>
+#include <vector>
 
 namespace horizon
 {
@@ -39,6 +41,9 @@ namespace horizon::arkfm
 
         void show_status_message(const std::string &msg, int timeout_ms = 3000);
 
+        void handle_extract(const std::string &path);
+        void handle_compress(const std::vector<std::string> &paths, const std::string &format_ext);
+
     private:
         files::FileView *m_view_ptr{nullptr};
         files::FileSidebar *m_sidebar_ptr{nullptr};
@@ -47,6 +52,7 @@ namespace horizon::arkfm
         std::unique_ptr<horizon::Menu> m_active_context_menu;
         std::unique_ptr<storage::RemoteManager> m_remote_manager;
         std::shared_ptr<storage::MountPasswordDialog> m_mount_dialog;
+        std::vector<std::shared_ptr<compression::CompressionTask>> m_active_tasks;
 
     };
 

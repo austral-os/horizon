@@ -10,6 +10,7 @@
 #include <horizon/storage/MountPasswordDialog.hpp>
 #include <horizon/storage/RemoteManager.hpp>
 #include <horizon/I18n.hpp>
+#include <horizon/NotificationSender.hpp>
 #include "horizon/ApplicationWindow.hpp"
 #include <horizon/DialogTypes.hpp>
 #include "horizon/Label.hpp"
@@ -20,6 +21,7 @@
 #include "horizon/Widget.hpp"
 #include "horizon/arkutils/FileOperations.hpp"
 #include "horizon/ApplicationLauncher.hpp"
+#include "horizon/compression/CompressionManager.hpp"
 #include "horizon/Menu.hpp"
 #include <algorithm>
 #include <filesystem>
@@ -146,11 +148,18 @@ namespace horizon::arkfm
             });
 
         m_view_ptr->when_item_opened.connect(
-            [](const arkutils::FileInfo &f)
+            [this](const arkutils::FileInfo &f)
             {
                 if (f.type == arkutils::FileType::Regular)
                 {
-                    ApplicationLauncher::open_file(f.path);
+                    if (compression::CompressionManager::is_supported_archive(f.path))
+                    {
+                        this->handle_extract(f.path);
+                    }
+                    else
+                    {
+                        ApplicationLauncher::open_file(f.path);
+                    }
                 }
             });
 
@@ -161,6 +170,30 @@ namespace horizon::arkfm
             item_open->when_click.connect([this, f](auto&) { this->m_view_ptr->open_item(f); });
             
             menu->add_separator();
+
+            if (compression::CompressionManager::is_supported_archive(f.path))
+            {
+                auto item_extract = menu->add_item("Descomprimir aquí");
+                item_extract->when_click.connect([this, f](auto&) { this->handle_extract(f.path); });
+                menu->add_separator();
+            }
+            else
+            {
+                auto item_compress = menu->add_item("Comprimir...");
+                auto sub = std::make_unique<horizon::Menu>();
+                
+                auto zip = sub->add_item(".zip");
+                zip->when_click.connect([this, f](auto&) { this->handle_compress({f.path}, ".zip"); });
+                
+                auto targz = sub->add_item(".tar.gz");
+                targz->when_click.connect([this, f](auto&) { this->handle_compress({f.path}, ".tar.gz"); });
+                
+                auto sevenz = sub->add_item(".7z");
+                sevenz->when_click.connect([this, f](auto&) { this->handle_compress({f.path}, ".7z"); });
+                
+                item_compress->set_submenu(std::move(sub));
+                menu->add_separator();
+            }
             
             auto item_rename = menu->add_item("Renombrar");
             item_rename->when_click.connect([this, f](auto&) { this->handle_rename(f.path); });
@@ -631,6 +664,86 @@ namespace horizon::arkfm
             
             if (shared_dlg) shared_dlg->wakeup();
         });
+    }
+
+    void ArkfmWindow::handle_extract(const std::string &path)
+    {
+        std::string dest = m_view_ptr->current_path();
+        show_status_message("Extrayendo archivo...");
+        
+        auto task = compression::CompressionManager::extract_smart(path, dest);
+        m_active_tasks.push_back(task);
+        
+        task->when_progress.connect([this](compression::CompressionProgressEvent& ev) {
+            if (m_progress_bar) {
+                m_progress_bar->set_visible(true);
+                m_progress_bar->set_progress(static_cast<float>(ev.progress));
+            }
+            if (!ev.status_message.empty()) show_status_message(ev.status_message);
+        });
+
+        task->when_finished.connect([this, path, task](compression::CompressionFinishedEvent& ev) {
+            application()->post_task([this, ev, path, task]() {
+                if (m_progress_bar) m_progress_bar->set_visible(false);
+                
+                if (ev.success) {
+                    show_status_message("Extracción finalizada");
+                    NotificationSender::send("Extracción completada", "El archivo se ha extraído correctamente.", "package-x-generic");
+                    if (m_view_ptr) m_view_ptr->navigate_to(m_view_ptr->current_path());
+                } else {
+                    show_status_message("Error al extraer");
+                    application()->alert("Error al extraer el archivo: " + ev.error_message, "Error", MessageType::Error);
+                }
+
+                // Remove from active tasks
+                auto it = std::find(m_active_tasks.begin(), m_active_tasks.end(), task);
+                if (it != m_active_tasks.end()) m_active_tasks.erase(it);
+            });
+        });
+
+        task->start();
+    }
+
+    void ArkfmWindow::handle_compress(const std::vector<std::string> &paths, const std::string &format_ext)
+    {
+        if (paths.empty()) return;
+        
+        std::filesystem::path first(paths[0]);
+        std::string out_path = (first.parent_path() / (first.stem().string() + format_ext)).string();
+        
+        show_status_message("Comprimiendo...");
+        
+        compression::ArchiveFormat fmt = compression::CompressionManager::format_from_extension(format_ext);
+        auto task = compression::CompressionManager::compress(paths, out_path, fmt);
+        m_active_tasks.push_back(task);
+        
+        task->when_progress.connect([this](compression::CompressionProgressEvent& ev) {
+            if (m_progress_bar) {
+                m_progress_bar->set_visible(true);
+                m_progress_bar->set_progress(static_cast<float>(ev.progress));
+            }
+        });
+
+        task->when_finished.connect([this, out_path, task](compression::CompressionFinishedEvent& ev) {
+            application()->post_task([this, ev, out_path, task]() {
+                if (m_progress_bar) m_progress_bar->set_visible(false);
+                
+                if (ev.success) {
+                    show_status_message("Compresión finalizada");
+                    NotificationSender::send("Compresión completada", "El archivo se ha creado correctamente.", "package-x-generic");
+                    if (m_view_ptr) m_view_ptr->navigate_to(m_view_ptr->current_path());
+                } else {
+                    show_status_message("Error al comprimir");
+                    application()->alert("Error al comprimir: " + ev.error_message, "Error", MessageType::Error);
+                }
+
+                // Remove from active tasks
+                auto it = std::find(m_active_tasks.begin(), m_active_tasks.end(), task);
+                if (it != m_active_tasks.end()) m_active_tasks.erase(it);
+            });
+        });
+
+        task->start();
     }
 
 } // namespace horizon::arkfm
