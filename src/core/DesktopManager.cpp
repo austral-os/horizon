@@ -1,19 +1,43 @@
-#include <utils/DesktopManager.hpp>
+#include "horizon/DesktopManager.hpp"
 #include <fstream>
 #include <filesystem>
 #include <algorithm>
 #include <sstream>
 #include <map>
+#include <cstdlib>
+#include <horizon/Logger.hpp>
 
 namespace fs = std::filesystem;
 
-namespace horizon::preferences
+namespace horizon
 {
     static std::string trim(const std::string& s) {
         auto start = s.find_first_not_of(" \t\r\n");
         if (start == std::string::npos) return "";
         auto end = s.find_last_not_of(" \t\r\n");
         return s.substr(start, end - start + 1);
+    }
+
+    static std::string run_command_capture_output(const std::string &cmd)
+    {
+        char buffer[128];
+        std::string result = "";
+        FILE *pipe = popen(cmd.c_str(), "r");
+        if (!pipe) return "";
+        while (fgets(buffer, sizeof(buffer), pipe) != NULL) result += buffer;
+        int exit_code = pclose(pipe);
+        if (exit_code != 0) return "";
+        while (!result.empty() && (result.back() == '\n' || result.back() == '\r')) result.pop_back();
+        return result;
+    }
+
+    std::vector<std::string> DesktopManager::s_additional_search_paths = {};
+    std::map<std::string, std::string> DesktopManager::s_desktop_file_cache = {};
+    std::map<std::string, std::string> DesktopManager::s_icon_name_cache = {};
+
+    std::string DesktopManager::get_mime_type(const std::string& path)
+    {
+        return run_command_capture_output("xdg-mime query filetype \"" + path + "\"");
     }
 
     std::vector<DesktopEntry> DesktopManager::get_apps_for_mime(const std::string& mime_type)
@@ -72,34 +96,30 @@ namespace horizon::preferences
     std::vector<DesktopEntry> DesktopManager::load_all_desktop_entries()
     {
         std::vector<DesktopEntry> entries;
-        std::vector<std::string> dirs = {
-            "/usr/share/applications",
-            "/usr/local/share/applications"
-        };
+        std::vector<std::string> dirs = get_desktop_search_dirs();
         
-        const char* home = std::getenv("HOME");
-        if (home) {
-            dirs.push_back(std::string(home) + "/.local/share/applications");
-        }
-
         std::map<std::string, std::string> seen_ids; // id -> path (to handle overrides)
 
         for (const auto& dir : dirs) {
             if (!fs::exists(dir)) continue;
-            for (const auto& entry : fs::recursive_directory_iterator(dir)) {
-                if (entry.is_regular_file() && entry.path().extension() == ".desktop") {
-                    std::string id = entry.path().filename().string();
-                    // Overrides: preferred order is local > usr/local > usr/share
-                    // Since we iterate in order, we only add if not seen
-                    if (seen_ids.count(id) == 0) {
-                        auto desktop = parse_desktop_file(entry.path().string());
-                        if (desktop) {
-                            desktop->id = id;
-                            entries.push_back(*desktop);
-                            seen_ids[id] = entry.path().string();
+            try {
+                for (const auto& entry : fs::recursive_directory_iterator(dir)) {
+                    if (entry.is_regular_file() && entry.path().extension() == ".desktop") {
+                        std::string id = entry.path().filename().string();
+                        // Overrides: preferred order is local > usr/local > usr/share
+                        // Since we iterate in order (mostly), we only add if not seen
+                        if (seen_ids.count(id) == 0) {
+                            auto desktop = parse_desktop_file(entry.path().string());
+                            if (desktop) {
+                                desktop->id = id;
+                                entries.push_back(*desktop);
+                                seen_ids[id] = entry.path().string();
+                            }
                         }
                     }
                 }
+            } catch (...) {
+                // Ignore directory access errors
             }
         }
         return entries;
@@ -438,13 +458,10 @@ namespace horizon::preferences
 
         fs::path target_path = autostart_dir / entry.id;
         
-        // If the entry already exists, we might want to overwrite or skip.
-        // The user wants to "insert in the list", so we copy it.
         try {
             if (fs::exists(entry.path)) {
                 fs::copy_file(entry.path, target_path, fs::copy_options::overwrite_existing);
             } else {
-                // If the path doesn't exist (e.g. manually created DesktopEntry), create a basic file
                 std::ofstream outfile(target_path);
                 outfile << "[Desktop Entry]\n";
                 outfile << "Type=Application\n";
@@ -453,7 +470,6 @@ namespace horizon::preferences
                 if (!entry.icon.empty()) outfile << "Icon=" << entry.icon << "\n";
             }
         } catch (...) {
-            // Log error or handle
         }
     }
 
@@ -495,4 +511,139 @@ namespace horizon::preferences
             fs::remove(path);
         }
     }
-} // namespace horizon::preferences
+
+    // --- Utility methods moved from DesktopEntry ---
+
+    std::string DesktopManager::get_value_from_desktop_file(const std::string &path, const std::string &key)
+    {
+        if (path.empty()) return "";
+
+        std::ifstream file(path);
+        if (!file.is_open()) return "";
+
+        std::string line;
+        bool in_desktop_entry = false;
+        std::string key_prefix = key + "=";
+
+        while (std::getline(file, line))
+        {
+            line = trim(line);
+            if (line.empty() || line[0] == '#') continue;
+
+            if (line[0] == '[' && line.back() == ']')
+            {
+                if (line == "[Desktop Entry]") in_desktop_entry = true;
+                else in_desktop_entry = false;
+                continue;
+            }
+
+            if (!in_desktop_entry) continue;
+
+            if (line.rfind(key_prefix, 0) == 0)
+            {
+                return trim(line.substr(key_prefix.length()));
+            }
+        }
+        return "";
+    }
+
+    std::string DesktopManager::get_icon_name(const std::string &app_id)
+    {
+        if (s_icon_name_cache.count(app_id)) return s_icon_name_cache[app_id];
+
+        std::string path = find_desktop_file(app_id);
+        std::string icon = get_value_from_desktop_file(path, "Icon");
+        s_icon_name_cache[app_id] = icon;
+        return icon;
+    }
+
+    std::string DesktopManager::get_exec_command(const std::string &app_id)
+    {
+        std::string path = find_desktop_file(app_id);
+        return get_exec_command_from_path(path);
+    }
+
+    std::string DesktopManager::get_exec_command_from_path(const std::string &path)
+    {
+        return get_value_from_desktop_file(path, "Exec");
+    }
+
+    std::string DesktopManager::find_desktop_file(const std::string &app_id)
+    {
+        if (s_desktop_file_cache.count(app_id)) return s_desktop_file_cache[app_id];
+
+        auto dirs = get_desktop_search_dirs();
+        std::vector<std::string> candidates;
+        
+        if (app_id.size() >= 8 && app_id.substr(app_id.size() - 8) == ".desktop") candidates.push_back(app_id);
+        else candidates.push_back(app_id + ".desktop");
+
+        if (app_id.find('.') != std::string::npos)
+        {
+            std::string id_without_ext = app_id;
+            if (app_id.size() >= 8 && app_id.substr(app_id.size() - 8) == ".desktop")
+                id_without_ext = app_id.substr(0, app_id.size() - 8);
+
+            size_t last_dot = id_without_ext.find_last_of('.');
+            if (last_dot != std::string::npos)
+            {
+                std::string short_id = id_without_ext.substr(last_dot + 1);
+                if (!short_id.empty()) candidates.push_back(short_id + ".desktop");
+            }
+        }
+
+        for (const auto &dir : dirs)
+        {
+            if (!fs::is_directory(dir)) continue;
+            for (const auto &candidate : candidates)
+            {
+                std::string full_path = dir + "/" + candidate;
+                if (fs::exists(full_path))
+                {
+                    s_desktop_file_cache[app_id] = full_path;
+                    return full_path;
+                }
+            }
+        }
+
+        s_desktop_file_cache[app_id] = "";
+        return "";
+    }
+
+    void DesktopManager::add_search_path(const std::string &path)
+    {
+        s_additional_search_paths.push_back(path);
+    }
+
+    void DesktopManager::set_search_paths(const std::vector<std::string> &paths)
+    {
+        s_additional_search_paths = paths;
+    }
+
+    std::vector<std::string> DesktopManager::get_desktop_search_dirs()
+    {
+        std::vector<std::string> dirs;
+        for (const auto &path : s_additional_search_paths) dirs.push_back(path);
+
+        const char *home = std::getenv("HOME");
+        if (home) dirs.push_back(std::string(home) + "/.local/share/applications");
+
+        const char *xdg_data = std::getenv("XDG_DATA_DIRS");
+        if (xdg_data && xdg_data[0] != '\0')
+        {
+            std::istringstream ss(xdg_data);
+            std::string path;
+            while (std::getline(ss, path, ':'))
+            {
+                if (!path.empty()) dirs.push_back(path + "/applications");
+            }
+        }
+        else
+        {
+            dirs.push_back("/usr/local/share/applications");
+            dirs.push_back("/usr/share/applications");
+        }
+        return dirs;
+    }
+
+} // namespace horizon

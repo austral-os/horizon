@@ -1,5 +1,5 @@
 #include "ArkfmFileProvider.hpp"
-#include <horizon/DesktopEntry.hpp>
+#include <horizon/DesktopManager.hpp>
 
 namespace horizon::arkfm
 {
@@ -14,7 +14,7 @@ namespace horizon::arkfm
 
         if (ext == "desktop")
         {
-            std::string desktop_icon = DesktopEntry::get_value_from_desktop_file(f.path, "Icon");
+            std::string desktop_icon = DesktopManager::get_value_from_desktop_file(f.path, "Icon");
             if (!desktop_icon.empty())
             {
                 return desktop_icon;
@@ -91,7 +91,7 @@ namespace horizon::arkfm
     {
         if (f.extension == "desktop")
         {
-            std::string name = DesktopEntry::get_value_from_desktop_file(f.path, "Name");
+            std::string name = DesktopManager::get_value_from_desktop_file(f.path, "Name");
             if (!name.empty())
             {
                 return name;

@@ -5,7 +5,7 @@
 #include "NetworkIndicator.hpp"
 #include "BatteryIndicator.hpp"
 #include "NotificationIndicator.hpp"
-#include <horizon/DesktopEntry.hpp>
+#include <horizon/DesktopManager.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/I18n.hpp>
@@ -30,7 +30,7 @@ TopPanelApplication::TopPanelApplication()
     about.set_app_icon("preferences-system");
     about.set_app_git(ABOUT_HORIZON.git);
 
-    DesktopEntry::add_search_path(
+    DesktopManager::add_search_path(
         "/home/horacio/Desarrollo/austral-os/horizon/examples/config/apps/");
 
     // Load translations

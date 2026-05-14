@@ -6,9 +6,9 @@
 #include <horizon/Spacer.hpp>
 #include <horizon/TableColumn.hpp>
 #include <horizon/Window.hpp>
-#include <views/ApplicationsView/AppPickerDialog.hpp>
+#include <horizon/dialogs/AppPickerDialog.hpp>
 
-namespace horizon::preferences
+namespace horizon
 {
     AppPickerDialog::AppPickerDialog() : WaylandWindow("horizon.app_picker", 450, 550, true, true)
     {
@@ -140,4 +140,4 @@ namespace horizon::preferences
         }
         m_app_table->set_data(m_filtered_apps);
     }
-} // namespace horizon::preferences
+} // namespace horizon

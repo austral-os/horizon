@@ -1,5 +1,5 @@
 #include "horizon/ApplicationLauncher.hpp"
-#include "horizon/DesktopEntry.hpp"
+#include "horizon/DesktopManager.hpp"
 #include "horizon/Logger.hpp"
 #include <fcntl.h>
 #include <filesystem>
@@ -102,7 +102,7 @@ namespace horizon
         std::string path = path_or_id;
         if (!fs::exists(path) || !fs::is_regular_file(path))
         {
-            path = DesktopEntry::find_desktop_file(path_or_id);
+            path = DesktopManager::find_desktop_file(path_or_id);
         }
 
         if (path.empty())
@@ -111,14 +111,14 @@ namespace horizon
             return false;
         }
 
-        std::string command = DesktopEntry::get_exec_command_from_path(path);
+        std::string command = DesktopManager::get_exec_command_from_path(path);
         if (command.empty())
         {
             LOG_ERROR << "[ApplicationLauncher] No Exec command found in: " << path;
             return false;
         }
 
-        std::string working_dir = DesktopEntry::get_value_from_desktop_file(path, "Path");
+        std::string working_dir = DesktopManager::get_value_from_desktop_file(path, "Path");
 
         // Handle field codes like %u, %F, etc.
         // %f: single file name

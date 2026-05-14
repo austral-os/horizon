@@ -4,7 +4,7 @@
 #include "horizon/EventsManager.hpp"
 #include <algorithm>
 #include <horizon/ApplicationLauncher.hpp>
-#include <horizon/DesktopEntry.hpp>
+#include <horizon/DesktopManager.hpp>
 #include <horizon/LabwcAppAdapter.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
@@ -58,7 +58,7 @@ namespace horizon
         } catch (...) {}
 
         if (is_dev) {
-            DesktopEntry::add_search_path(std::string(HORIZON_SOURCE_DIR) + "/examples/config/apps/");
+            DesktopManager::add_search_path(std::string(HORIZON_SOURCE_DIR) + "/examples/config/apps/");
         }
 
         detect_environment();
@@ -188,12 +188,12 @@ namespace horizon
                 if (pin_icon.empty()) pin_icon = pin_id;
 
                 // Attempt to resolve better metadata from desktop entry
-                std::string desktop_path = DesktopEntry::find_desktop_file(pin_id);
+                std::string desktop_path = DesktopManager::find_desktop_file(pin_id);
                 if (!desktop_path.empty()) {
-                    std::string d_name = DesktopEntry::get_value_from_desktop_file(desktop_path, "Name");
+                    std::string d_name = DesktopManager::get_value_from_desktop_file(desktop_path, "Name");
                     if (!d_name.empty()) pin_name = d_name;
                     
-                    std::string d_icon = DesktopEntry::get_value_from_desktop_file(desktop_path, "Icon");
+                    std::string d_icon = DesktopManager::get_value_from_desktop_file(desktop_path, "Icon");
                     if (!d_icon.empty()) pin_icon = d_icon;
 
                     // If it's a desktop file, the run_id should be its ID (filename without .desktop)

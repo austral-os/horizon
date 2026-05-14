@@ -1,6 +1,6 @@
 #include <views/ApplicationsView/MimeTypesView.hpp>
 #include <views/ApplicationsView/InputDialog.hpp>
-#include <utils/DesktopManager.hpp>
+#include <horizon/DesktopManager.hpp>
 #include <horizon/TreeViewItem.hpp>
 #include <horizon/TableColumn.hpp>
 #include <horizon/AquaObject.hpp>
@@ -12,7 +12,7 @@
 #include <algorithm>
 #include <thread>
 #include <fstream>
-#include <views/ApplicationsView/AppPickerDialog.hpp>
+#include <horizon/dialogs/AppPickerDialog.hpp>
 #include <horizon/I18n.hpp>
 #include <regex>
 
@@ -420,7 +420,7 @@ namespace horizon::preferences
         if (m_current_mime.empty()) return;
 
         auto dialog = std::make_unique<AppPickerDialog>();
-        dialog->when_accepted.connect([this](DesktopEntry& entry) {
+        dialog->when_accepted.connect([this](const DesktopEntry& entry) {
             if (auto* app = application()) {
                 app->post_task([this, entry]() {
                     // 1. Add to UI if not already present

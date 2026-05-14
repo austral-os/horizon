@@ -1,5 +1,5 @@
 #include "horizon/IconThemeLookup.hpp"
-#include "horizon/DesktopEntry.hpp"
+#include "horizon/DesktopManager.hpp"
 #include <horizon/Logger.hpp>
 
 #include <climits>
@@ -456,7 +456,7 @@ namespace horizon
         // 2. Resolve through .desktop files as FALLBACK
         // This ensures that if app_id is "firefox", we look into firefox.desktop and find
         // Icon=browser-firefox
-        std::string desktop_icon = DesktopEntry::get_icon_name(icon_name);
+        std::string desktop_icon = DesktopManager::get_icon_name(icon_name);
         if (!desktop_icon.empty() && desktop_icon != icon_name)
         {
             LOG_INFO << "[IconThemeLookup] Fallback for " << icon_name

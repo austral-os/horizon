@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <horizon/Application.hpp>
 #include <horizon/ApplicationLauncher.hpp>
-#include <horizon/DesktopEntry.hpp>
+#include <horizon/DesktopManager.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/I18n.hpp>
@@ -94,7 +94,7 @@ namespace horizon
     void LaunchpadWindow::load_apps()
     {
         m_all_apps.clear();
-        auto dirs = DesktopEntry::get_desktop_search_dirs();
+        auto dirs = DesktopManager::get_desktop_search_dirs();
 
         for (const auto &dir : dirs)
         {
@@ -106,11 +106,11 @@ namespace horizon
                 if (entry.path().extension() == ".desktop")
                 {
                     std::string path = entry.path().string();
-                    std::string name = DesktopEntry::get_value_from_desktop_file(path, "Name");
-                    std::string icon = DesktopEntry::get_value_from_desktop_file(path, "Icon");
-                    std::string exec = DesktopEntry::get_value_from_desktop_file(path, "Exec");
+                    std::string name = DesktopManager::get_value_from_desktop_file(path, "Name");
+                    std::string icon = DesktopManager::get_value_from_desktop_file(path, "Icon");
+                    std::string exec = DesktopManager::get_value_from_desktop_file(path, "Exec");
                     std::string nodisplay =
-                        DesktopEntry::get_value_from_desktop_file(path, "NoDisplay");
+                        DesktopManager::get_value_from_desktop_file(path, "NoDisplay");
 
                     if (name.empty() || nodisplay == "true")
                         continue;

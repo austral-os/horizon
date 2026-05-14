@@ -4,11 +4,11 @@
 #include <horizon/EventsManager.hpp>
 #include <horizon/SearchBox.hpp>
 #include <horizon/TableView.hpp>
-#include <utils/DesktopManager.hpp>
+#include <horizon/DesktopManager.hpp>
 #include <string>
 #include <vector>
 
-namespace horizon::preferences
+namespace horizon
 {
     class AppPickerDialog : public WaylandWindow
     {
@@ -30,4 +30,4 @@ namespace horizon::preferences
         std::vector<DesktopEntry> m_all_apps;
         std::vector<DesktopEntry> m_filtered_apps;
     };
-} // namespace horizon::preferences
+} // namespace horizon

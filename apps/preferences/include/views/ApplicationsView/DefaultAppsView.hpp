@@ -2,7 +2,7 @@
 
 #include <horizon/Widget.hpp>
 #include <horizon/Combo.hpp>
-#include <utils/DesktopManager.hpp>
+#include <horizon/DesktopManager.hpp>
 #include <string>
 #include <vector>
 

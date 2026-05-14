@@ -39,11 +39,9 @@ add_executable(preferences
     src/views/ApplicationsView/ApplicationsView.cpp
     src/views/ApplicationsView/MimeTypesView.cpp
     src/views/ApplicationsView/InputDialog.cpp
-    src/views/ApplicationsView/AppPickerDialog.cpp
     src/views/ApplicationsView/DefaultAppsView.cpp
     src/views/ApplicationsView/StartupAppsView.cpp
     src/views/ApplicationsView/StartupEditDialog.cpp
-    src/utils/DesktopManager.cpp
     src/utils/XkbParser.cpp
     src/utils/WayfireConfigWriter.cpp
     src/views/KeyboardView/KeyboardLanguageView.cpp

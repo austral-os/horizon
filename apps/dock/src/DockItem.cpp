@@ -1,6 +1,6 @@
 #include "DockItem.hpp"
 #include "DockShelf.hpp"
-#include <horizon/DesktopEntry.hpp>
+#include <horizon/DesktopManager.hpp>
 #include <horizon/ApplicationLauncher.hpp>
 #include <horizon/IpcClient.hpp>
 #include <horizon/Logger.hpp>
@@ -31,13 +31,13 @@ namespace horizon
             set_icon_name(info.icon);
         else if (icon_name().empty() || icon_name() == _app_id)
         {
-            std::string resolved_icon = DesktopEntry::get_icon_name(info.app_id);
+            std::string resolved_icon = DesktopManager::get_icon_name(info.app_id);
             
             // Fallback for namespaced app_ids (e.g., org.gnome.Terminal -> Terminal)
             if (resolved_icon.empty() && info.app_id.find('.') != std::string::npos)
             {
                 size_t last_dot = info.app_id.find_last_of('.');
-                resolved_icon = DesktopEntry::get_icon_name(info.app_id.substr(last_dot + 1));
+                resolved_icon = DesktopManager::get_icon_name(info.app_id.substr(last_dot + 1));
             }
 
             if (!resolved_icon.empty())

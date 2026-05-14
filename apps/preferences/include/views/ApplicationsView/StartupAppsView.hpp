@@ -2,7 +2,7 @@
 
 #include <horizon/Widget.hpp>
 #include <horizon/TableView.hpp>
-#include <utils/DesktopManager.hpp>
+#include <horizon/DesktopManager.hpp>
 #include <vector>
 
 namespace horizon::preferences
@@ -20,7 +20,7 @@ namespace horizon::preferences
         void edit_app();
         void remove_app();
 
-        TableView<DesktopEntry>* m_table{nullptr};
-        std::vector<DesktopEntry> m_data;
+        TableView<horizon::DesktopEntry>* m_table{nullptr};
+        std::vector<horizon::DesktopEntry> m_data;
     };
 } // namespace horizon::preferences

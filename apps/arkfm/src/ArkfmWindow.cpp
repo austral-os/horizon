@@ -23,6 +23,8 @@
 #include "horizon/ApplicationLauncher.hpp"
 #include "horizon/compression/CompressionManager.hpp"
 #include "horizon/Menu.hpp"
+#include "horizon/DesktopManager.hpp"
+#include "horizon/dialogs/AppPickerDialog.hpp"
 #include <algorithm>
 #include <filesystem>
 #include <memory>
@@ -168,6 +170,33 @@ namespace horizon::arkfm
             
             auto item_open = menu->add_item("Abrir");
             item_open->when_click.connect([this, f](auto&) { this->m_view_ptr->open_item(f); });
+            
+            auto item_open_with = menu->add_item("Abrir con...");
+            auto sub_open_with = std::make_unique<horizon::Menu>();
+            
+            std::string mime = DesktopManager::get_mime_type(f.path);
+            auto apps = DesktopManager::get_apps_for_mime(mime);
+            
+            for (const auto& app : apps) {
+                auto app_item = sub_open_with->add_item(app.name);
+                if (!app.icon.empty()) app_item->set_icon(app.icon);
+                app_item->when_click.connect([this, f, app](auto&) {
+                    ApplicationLauncher::launch_from_desktop_file(app.path, {f.path});
+                });
+            }
+            
+            if (!apps.empty()) sub_open_with->add_separator();
+            
+            auto item_other = sub_open_with->add_item("Elegir otra aplicación...");
+            item_other->when_click.connect([this, f](auto&) {
+                auto dialog = std::make_unique<AppPickerDialog>();
+                dialog->when_accepted.connect([this, f](const DesktopEntry& entry) {
+                    ApplicationLauncher::launch_from_desktop_file(entry.path, {f.path});
+                });
+                dialog->run();
+            });
+            
+            item_open_with->set_submenu(std::move(sub_open_with));
             
             menu->add_separator();
 

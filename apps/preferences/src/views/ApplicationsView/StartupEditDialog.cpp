@@ -8,14 +8,14 @@
 
 namespace horizon::preferences
 {
-    StartupEditDialog::StartupEditDialog(const DesktopEntry& entry)
+    StartupEditDialog::StartupEditDialog(const horizon::DesktopEntry& entry)
         : WaylandWindow("horizon.startup_edit", 450, 250, true, true)
     {
         set_name("Editar Comando de Inicio");
         setup_ui(entry);
     }
 
-    void StartupEditDialog::setup_ui(const DesktopEntry& entry)
+    void StartupEditDialog::setup_ui(const horizon::DesktopEntry& entry)
     {
         auto root_wnd = std::make_unique<Window>(name());
         root_wnd->set_layout_type(WIDGET_LAYOUT_VERTICAL);

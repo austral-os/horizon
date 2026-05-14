@@ -6,7 +6,7 @@
 #include <horizon/TableColumn.hpp>
 #include <views/ApplicationsView/DefaultAppsView.hpp>
 #include <views/ApplicationsView/StartupAppsView.hpp>
-#include <views/ApplicationsView/AppPickerDialog.hpp>
+#include <horizon/dialogs/AppPickerDialog.hpp>
 #include <views/ApplicationsView/StartupEditDialog.hpp>
 #include <horizon/ScrollArea.hpp>
 #include <horizon/I18n.hpp>
@@ -27,16 +27,16 @@ namespace horizon::preferences
     void StartupAppsView::setup_ui()
     {
         // TableView for applications
-        auto table = std::make_unique<TableView<DesktopEntry>>();
+        auto table = std::make_unique<TableView<horizon::DesktopEntry>>();
         m_table = table.get();
         m_table->set_position_type(WidgetPositionTypes::FILL);
         m_table->set_header_visible(true);
 
         // Column: Icon
-        TableColumn<DesktopEntry> col_icon;
+        TableColumn<horizon::DesktopEntry> col_icon;
         col_icon.title = "";
         col_icon.width = 48;
-        col_icon.cell_factory = [](const DesktopEntry& entry) {
+        col_icon.cell_factory = [](const horizon::DesktopEntry& entry) {
             auto container = std::make_unique<Widget>();
             container->set_margin(4);
             auto icon = std::make_unique<Icon>();
@@ -49,10 +49,10 @@ namespace horizon::preferences
         m_table->add_column(col_icon);
 
         // Column: Name
-        TableColumn<DesktopEntry> col_name;
+        TableColumn<horizon::DesktopEntry> col_name;
         col_name.title = i18n().tr("preferences.applications.labels.name");
         col_name.width = 200;
-        col_name.cell_factory = [](const DesktopEntry& entry) {
+        col_name.cell_factory = [](const horizon::DesktopEntry& entry) {
             auto label = std::make_unique<Label>(entry.name);
             label->set_font_size(14);
             label->set_margin(10);
@@ -61,10 +61,10 @@ namespace horizon::preferences
         m_table->add_column(col_name);
 
         // Column: Command
-        TableColumn<DesktopEntry> col_exec;
+        TableColumn<horizon::DesktopEntry> col_exec;
         col_exec.title = i18n().tr("preferences.applications.labels.command");
         col_exec.width = 300;
-        col_exec.cell_factory = [](const DesktopEntry& entry) {
+        col_exec.cell_factory = [](const horizon::DesktopEntry& entry) {
             auto label = std::make_unique<Label>(entry.exec);
             label->set_font_size(14);
             label->set_margin(10);
@@ -112,7 +112,7 @@ namespace horizon::preferences
     {
         auto dialog = std::make_unique<AppPickerDialog>();
         auto* ptr_dialog = dialog.get();
-        ptr_dialog->when_accepted.connect([this](const DesktopEntry& entry) {
+        ptr_dialog->when_accepted.connect([this](const horizon::DesktopEntry& entry) {
             DesktopManager::add_to_autostart(entry);
             load_data();
         });
