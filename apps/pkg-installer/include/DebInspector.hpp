@@ -12,6 +12,7 @@ struct DebInfo {
     std::string description;
     std::string icon_path; // Path to extracted icon or theme icon name
     bool icon_is_theme_name = false;
+    bool is_installed = false;
 };
 
 class DebInspector {

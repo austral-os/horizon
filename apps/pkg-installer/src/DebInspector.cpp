@@ -39,16 +39,21 @@ std::optional<DebInfo> DebInspector::inspect(const std::string& deb_path) {
         info.icon_is_theme_name = true; // Usually control icons are names
     } else {
         // Look in theme by package name
-        std::string theme_icon = IconThemeLookup::find_icon(info.package_name, 64);
+        std::string theme_icon = IconThemeLookup::find_icon(info.package_name, 128);
         if (!theme_icon.empty()) {
-            info.icon_path = theme_icon;
-            info.icon_is_theme_name = false; // It's a path now
+            info.icon_path = info.package_name;
+            info.icon_is_theme_name = true; 
         } else {
             // Fallback to searching inside the package
             info.icon_path = find_icon_in_package(deb_path, info.package_name);
             info.icon_is_theme_name = false;
         }
     }
+
+    // Check if installed
+    std::string check_cmd = "dpkg-query -W -f='${Status}' " + info.package_name + " 2>/dev/null";
+    std::string status = exec(check_cmd);
+    info.is_installed = (status.find("install ok installed") != std::string::npos);
 
     return info;
 }
@@ -63,8 +68,16 @@ std::string DebInspector::extract_control_field(const std::string& deb_path, con
 
 std::string DebInspector::find_icon_in_package(const std::string& deb_path, const std::string& package_name) {
     // This is a bit expensive, we list files and look for icons
-    std::string cmd = "dpkg-deb -c \"" + deb_path + "\" | grep -E '\\.(png|svg)$' | grep -i 'icon' | head -n 1";
+    // We look for files in /usr/share/icons or /usr/share/pixmaps that match the package name
+    std::string cmd = "dpkg-deb -c \"" + deb_path + "\" | grep -E '\\.(png|svg)$' | grep -E '(/icons/|/pixmaps/)' | grep -i \"" + package_name + "\" | head -n 1";
     std::string line = exec(cmd);
+    
+    if (line.empty()) {
+        // Fallback: just find any icon
+        cmd = "dpkg-deb -c \"" + deb_path + "\" | grep -E '\\.(png|svg)$' | head -n 1";
+        line = exec(cmd);
+    }
+
     if (line.empty()) return "";
 
     // Parse the path from dpkg-deb -c output (last column)

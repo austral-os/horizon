@@ -1,5 +1,5 @@
 #include "InstallerWindow.hpp"
-#include "horizon/Frame.hpp"
+#include "horizon/Spacer.hpp"
 #include <filesystem>
 #include <horizon/Application.hpp>
 #include <horizon/IconThemeLookup.hpp>
@@ -11,7 +11,7 @@ namespace horizon
 
     InstallerWindow::InstallerWindow() : Window("Package Installer")
     {
-        set_size(500, 350);
+        set_size(700, 550);
         setup_ui();
 
         when_file_opened.connect([this](Window::FileOpenedContext &ctx)
@@ -30,19 +30,34 @@ namespace horizon
         // --- Top Section: Icons ---
         auto icon_container = std::make_unique<Frame>();
         icon_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        icon_container->set_spacing(60);
+        icon_container->set_fixed_size(200);
+        icon_container->set_margin(10);
+        icon_container->set_spacing(40);
         icon_container->set_position_type(FILL);
 
-        // App Icon (Source)
-        auto app_icon_ptr = std::make_unique<Image>();
-        m_app_icon = app_icon_ptr.get();
-        m_app_icon->set_fixed_size(128);
-        m_app_icon->set_mode(ImageMode::Fit);
-        m_app_icon->set_path(IconThemeLookup::find_icon("system-software-install", 128)); // Default
+        // App Icon Container (Source)
+        auto app_icon_box = std::make_unique<Widget>();
+        app_icon_box->set_fixed_size(128);
+        app_icon_box->set_layout_type(WIDGET_LAYOUT_VERTICAL);
 
-        m_app_icon->set_draggable(true);
-        m_app_icon->when_drag_start.connect(
-            [this](DragEventContext &ctx)
+        // Theme Icon
+        auto app_icon_ptr = std::make_unique<Icon>();
+        m_app_icon = app_icon_ptr.get();
+        m_app_icon->set_icon_size(128);
+        m_app_icon->set_icon_name("system-software-install");
+        app_icon_box->add_child(std::move(app_icon_ptr));
+
+        // File Image
+        auto app_image_ptr = std::make_unique<Image>();
+        m_app_image = app_image_ptr.get();
+        m_app_image->set_fixed_size(128);
+        m_app_image->set_mode(ImageMode::Fit);
+        m_app_image->set_visible(false);
+        app_icon_box->add_child(std::move(app_image_ptr));
+
+        app_icon_box->set_draggable(true);
+        app_icon_box->when_drag_start.connect(
+            [this, app_icon_box_ptr = app_icon_box.get()](DragEventContext &ctx)
             {
                 if (!m_current_deb)
                     return;
@@ -50,15 +65,15 @@ namespace horizon
                 std::vector<std::string> mimes = {"application/x-horizon-installer"};
                 auto fetcher = [this](const std::string &mime) -> std::vector<uint8_t>
                 { return std::vector<uint8_t>(m_deb_path.begin(), m_deb_path.end()); };
-                application()->start_drag(mimes, fetcher, m_app_icon);
+                application()->start_drag(mimes, fetcher, app_icon_box_ptr);
             });
 
         // System Icon (Target)
-        auto sys_icon_ptr = std::make_unique<Image>();
+        auto sys_icon_ptr = std::make_unique<Icon>();
         m_system_icon = sys_icon_ptr.get();
+        m_system_icon->set_icon_size(128);
         m_system_icon->set_fixed_size(128);
-        m_system_icon->set_mode(ImageMode::Fit);
-        m_system_icon->set_path(IconThemeLookup::find_icon("applications-system", 128));
+        m_system_icon->set_icon_name("folder-templates");
 
         m_system_icon->set_accept_drops(true);
         m_system_icon->when_drop.connect(
@@ -79,15 +94,42 @@ namespace horizon
                 }
             });
 
-        icon_container->add_child(std::move(app_icon_ptr));
+        icon_container->add_child(Spacer(10));
+        icon_container->add_child(std::move(app_icon_box));
+        icon_container->add_child(Spacer());
+
+        // Arrow Icon (Indicator)
+        auto arrow_icon = std::make_unique<Icon>();
+        arrow_icon->set_icon_name("go-next");
+        arrow_icon->set_icon_size(48);
+        arrow_icon->set_fixed_size(48);
+        arrow_icon->set_vertical_alignment(VerticalAlignment::Middle);
+        icon_container->add_child(std::move(arrow_icon));
+
+        icon_container->add_child(Spacer());
         icon_container->add_child(std::move(sys_icon_ptr));
+        icon_container->add_child(Spacer(10));
+
         container->add_child(std::move(icon_container));
+
+        // --- Package Info Section ---
+        auto name_ptr = std::make_unique<Label>("");
+        name_ptr->set_alignment(TextAlignment::Center);
+        name_ptr->set_font_weight(FONT_WEIGHT_BOLD);
+        name_ptr->set_font_size(24);
+        name_ptr->set_fixed_size(50);
+        m_name_label = name_ptr.get();
+        container->add_child(std::move(name_ptr));
+
+        auto desc_ptr = std::make_unique<Label>("");
+        desc_ptr->set_alignment(TextAlignment::Center);
+        m_desc_label = desc_ptr.get();
+        container->add_child(std::move(desc_ptr));
 
         // --- Bottom Section: Feedback ---
         auto feedback_ptr =
             std::make_unique<Label>("Drag the application icon to the system folder to install.");
         feedback_ptr->set_alignment(TextAlignment::Center);
-        feedback_ptr->set_fixed_size(40);
         m_feedback_label = feedback_ptr.get();
         m_feedback_label->set_height(30);
         container->add_child(std::move(feedback_ptr));
@@ -112,24 +154,45 @@ namespace horizon
         auto info = DebInspector::inspect(path);
         if (!info)
         {
-            update_status("Error: Could not read package information.", true);
+            update_status("Error: Could not read package information.", WidgetAccentColor::Error);
             return;
         }
 
         m_current_deb = info;
         m_deb_path = path;
 
-        if (info->icon_is_theme_name)
+        if (info->icon_path.empty())
         {
-            m_app_icon->set_path(IconThemeLookup::find_icon(info->icon_path, 128));
+            m_app_icon->set_visible(true);
+            m_app_image->set_visible(false);
+            m_app_icon->set_icon_name("system-software-install");
+        }
+        else if (info->icon_is_theme_name)
+        {
+            m_app_icon->set_visible(true);
+            m_app_image->set_visible(false);
+            m_app_icon->set_icon_name(info->icon_path);
         }
         else
         {
-            m_app_icon->set_path(info->icon_path);
+            m_app_icon->set_visible(false);
+            m_app_image->set_visible(true);
+            m_app_image->set_path(info->icon_path);
         }
 
         set_title("Install " + info->package_name);
-        update_status("Ready to install " + info->package_name + " (" + info->version + ")");
+        m_name_label->set_text(info->package_name);
+
+        std::string desc = info->description;
+
+        m_desc_label->set_text(info->version + " - " + desc);
+
+        std::string msg = "Ready to install " + info->package_name + " (" + info->version + ")";
+        if (info->is_installed)
+        {
+            msg = info->package_name + " is already installed. Drag to reinstall.";
+        }
+        update_status(msg);
     }
 
     void InstallerWindow::start_installation()
@@ -139,63 +202,54 @@ namespace horizon
 
         update_status("Installing " + m_current_deb->package_name + "...");
         m_loading_bar->set_visible(true);
-        m_app_icon->set_enabled(false);
 
-        // Run apt install via pkexec
-        // We use a detached thread or a non-blocking process call if possible.
-        // For now, let's use a simple background command.
         std::string cmd = "pkexec apt-get install -y --reinstall \"" + m_deb_path + "\"";
-
-        // In a real scenario, we'd use GSubprocess to track progress.
-        // Since we don't have a high-level async process runner here easily,
-        // we'll simulate the completion for now or use std::system in a thread.
 
         std::thread(
             [this, cmd]()
             {
                 int result = std::system(cmd.c_str());
 
-                // Back to main thread to update UI
-                // Horizon usually has a way to post tasks to main loop.
-                // Assuming application()->post_task exists or similar.
-                // If not, we'll just hope for the best or check if Horizon is thread-safe for
-                // simple invalidation.
-
                 if (result == 0)
                 {
-                    m_app->post_task(
+                    application()->post_task(
                         [this]()
                         {
-                            update_status("Installation completed successfully!");
+                            update_status("Installation completed successfully!",
+                                          WidgetAccentColor::Success);
                             m_loading_bar->set_visible(false);
                         });
                 }
                 else
                 {
-                    m_app->post_task(
+                    application()->post_task(
                         [this]()
                         {
                             update_status(
                                 "Installation failed. Please check your password or dependencies.",
-                                true);
+                                WidgetAccentColor::Error);
                             m_loading_bar->set_visible(false);
-                            m_app_icon->set_enabled(true);
                         });
                 }
             })
             .detach();
     }
 
-    void InstallerWindow::update_status(const std::string &message, bool is_error)
+    void InstallerWindow::update_status(const std::string &message, WidgetAccentColor accent)
     {
         m_feedback_label->set_text(message);
-        if (is_error)
+        
+        if (accent == WidgetAccentColor::Success)
         {
-            m_feedback_label->set_accent_color(WidgetAccentColor::Error);
+            m_feedback_label->set_text_color(Color(0.1f, 0.7f, 0.1f, 1.0f)); // Verde
+        }
+        else if (accent == WidgetAccentColor::Error)
+        {
+            m_feedback_label->set_text_color(Color(0.9f, 0.1f, 0.1f, 1.0f)); // Rojo
         }
         else
         {
-            m_feedback_label->set_accent_color(WidgetAccentColor::Default);
+            m_feedback_label->set_text_color(Color(0.0f, 0.0f, 0.0f, 1.0f)); // Negro
         }
     }
 
