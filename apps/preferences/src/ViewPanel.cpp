@@ -5,8 +5,6 @@ namespace horizon::preferences
 {
     ViewPanel::ViewPanel() : GroupedIconsView()
     {
-        set_alternate_colors(Color(0.98f, 0.98f, 0.98f, 1.0f), Color(1.0f, 1.0f, 1.0f, 1.0f));
-
         // Category: Personal
         IconGroup personal;
         personal.title = i18n().tr("preferences.groups.personal");

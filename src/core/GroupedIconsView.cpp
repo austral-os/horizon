@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/GroupedIconsView.hpp>
+#include <horizon/WaylandWindow.hpp>
 
 namespace horizon
 {
@@ -130,7 +131,11 @@ namespace horizon
 
     void GroupSeparator::draw(GraphicsContext &gc)
     {
-        gc.setColor(0.8f, 0.8f, 0.8f, 1.0f);
+        auto *tm = application()->theme_manager.get();
+
+        Color c1 = tm->get_color("group_separator");
+
+        gc.setColor(c1);
         gc.drawLine(x(), y() + height() / 2, x() + width(), y() + height() / 2, 1.0f);
     }
 
@@ -144,6 +149,22 @@ namespace horizon
     GroupContainer::GroupContainer() : Widget()
     {
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
+    }
+
+    void GroupContainer::draw(GraphicsContext &gc)
+    {
+        Color bg = background_color();
+        if (bg.a < 0.001f && application() && application()->theme_manager)
+        {
+            auto *tm = application()->theme_manager.get();
+            Color theme_bg = (m_index % 2 == 0) ? tm->get_color("group_alt_1") : tm->get_color("group_alt_2");
+            if (theme_bg.a > 0.001f)
+            {
+                gc.setColor(theme_bg);
+                gc.fillRect(x(), y(), width(), height(), border_radius());
+            }
+        }
+        Widget::draw(gc);
     }
 
     void GroupContainer::calculate_layout()
@@ -169,8 +190,6 @@ namespace horizon
 
     GroupedIconsView::GroupedIconsView() : Widget()
     {
-        set_background_color(Color(0.95f, 0.95f, 0.95f, 1.0f));
-
         auto scroll_area = std::make_unique<ScrollArea>();
         scroll_area->set_position_type(FREE);
         m_scroll_area = scroll_area.get();
@@ -182,6 +201,22 @@ namespace horizon
 
         m_scroll_area->set_content(std::move(content_pane));
         add_child(std::move(scroll_area));
+    }
+
+    void GroupedIconsView::draw(GraphicsContext &gc)
+    {
+        Color bg = background_color();
+        if (bg.a < 0.001f && application() && application()->theme_manager)
+        {
+            auto *tm = application()->theme_manager.get();
+            Color theme_bg = tm->get_color("window_bg");
+            if (theme_bg.a > 0.001f)
+            {
+                gc.setColor(theme_bg);
+                gc.fillRect(x(), y(), width(), height(), border_radius());
+            }
+        }
+        Widget::draw(gc);
     }
 
     void GroupedIconsView::add_group(const IconGroup &group)
@@ -215,6 +250,7 @@ namespace horizon
             const auto &group = m_groups[i];
 
             auto group_container = std::make_unique<GroupContainer>();
+            group_container->set_index((int)i);
             group_container->set_margin(15);
             group_container->set_spacing(10);
 

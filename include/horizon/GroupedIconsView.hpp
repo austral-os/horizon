@@ -40,6 +40,8 @@ namespace horizon
         GroupedIconsView();
         ~GroupedIconsView() override = default;
 
+        void draw(GraphicsContext &gc) override;
+
         /**
          * @brief Adds a group of icons to the view.
          */
@@ -118,6 +120,10 @@ namespace horizon
         GroupContainer();
         void calculate_layout() override;
         int preferred_height(int width) const override;
+        void draw(GraphicsContext &gc) override;
+        void set_index(int index) { m_index = index; }
+    private:
+        int m_index{0};
     };
 
 } // namespace horizon

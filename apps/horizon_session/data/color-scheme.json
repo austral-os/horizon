@@ -52,7 +52,10 @@
             "tab_header_1": "#f2f2f2",
             "tab_header_2": "#bfbfbf",
             "tab_button_1": "#e2e2e2",
-            "tab_button_2": "#a9a9a9"
+            "tab_button_2": "#a9a9a9",
+            "group_separator": "#cccccc",
+            "group_alt_1": "#f5f5f5",
+            "group_alt_2": "#ffffff"
         },
         "dark": {
             "titlebar_bg1": "#1e1e1e",
@@ -106,7 +109,10 @@
             "tab_header_1": "#1f1f1f",
             "tab_header_2": "#393939",
             "tab_button_1": "#0f0f0f",
-            "tab_button_2": "#2f2f2f"
+            "tab_button_2": "#2f2f2f",
+            "group_separator": "#1f1f1f",
+            "group_alt_1": "#212121",
+            "group_alt_2": "#282828"
         }
     },
     "variant": "dark",
