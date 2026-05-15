@@ -185,10 +185,15 @@ namespace horizon
         auto theme_font = tm->get_font("window");
         std::string family = m_font_family.empty() ? theme_font.family : m_font_family;
 
-        Color bg_color = Color(1.0f, 1.0f, 1.0f, 1.0f);
+        /*Color bg_color = Color(1.0f, 1.0f, 1.0f, 1.0f);
         Color border_color = Color(0.6f, 0.6f, 0.6f, 1.0f);
         Color focus_color = Color(0.4f, 0.7f, 1.0f, 0.8f);   // Blue when valid and focused
-        Color invalid_color = Color(1.0f, 0.3f, 0.3f, 1.0f); // Red when invalid
+        Color invalid_color = Color(1.0f, 0.3f, 0.3f, 1.0f); // Red when invalid*/
+
+        Color bg_color = tm->get_color("textbox_bg");
+        Color border_color = tm->get_color("textbox_brd");
+        Color focus_color = tm->get_color("textbox_focus");
+        Color invalid_color = tm->get_color("textbox_invalid");
 
         bool valid = is_valid();
 
@@ -241,18 +246,19 @@ namespace horizon
         int text_x_base = m_x + m_padding_left;
         int text_y = m_y + (m_height / 2.0f) + (theme_font.size * 0.4f) - 2;
 
-        gc.setDrawFont(family.c_str(), theme_font.size * 0.8, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+        gc.setDrawFont(family.c_str(), theme_font.size * 0.8, FONT_SLANT_NORMAL,
+                       FONT_WEIGHT_NORMAL);
 
         std::string display_text = get_display_text();
 
         TextMetrics total_metrics =
             gc.getTextMetrics(display_text.c_str(), family.c_str(), theme_font.size * 0.8,
-                               FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
- 
-         std::string lead_to_cursor = display_text.substr(0, m_cursor_pos);
-         TextMetrics cursor_metrics =
+                              FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+
+        std::string lead_to_cursor = display_text.substr(0, m_cursor_pos);
+        TextMetrics cursor_metrics =
             gc.getTextMetrics(lead_to_cursor.c_str(), family.c_str(), theme_font.size * 0.8,
-                               FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+                              FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
 
         int visible_width = m_width - (m_padding_left + m_padding_right);
         int cursor_x_rel = cursor_metrics.width;
@@ -295,10 +301,10 @@ namespace horizon
 
                 TextMetrics lead_m =
                     gc.getTextMetrics(lead_text.c_str(), family.c_str(), theme_font.size * 0.8,
-                                       FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
-                 TextMetrics sel_m =
+                                      FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+                TextMetrics sel_m =
                     gc.getTextMetrics(sel_text.c_str(), family.c_str(), theme_font.size * 0.8,
-                                       FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+                                      FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
 
                 int sel_x = draw_text_x + lead_m.width;
                 int sel_w = sel_m.width - lead_m.width;
@@ -322,7 +328,7 @@ namespace horizon
                 std::string sub = display_text.substr(0, i);
                 TextMetrics sub_metrics =
                     gc.getTextMetrics(sub.c_str(), family.c_str(), theme_font.size * 0.8,
-                                       FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+                                      FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
                 int dist = std::abs(sub_metrics.width - local_x);
                 if (dist < min_dist)
                 {
@@ -361,7 +367,7 @@ namespace horizon
     {
         return m_text;
     }
- 
+
     void TextBoxBase::set_font_family(const std::string &family)
     {
         m_font_family = family;
@@ -468,7 +474,7 @@ namespace horizon
         if (mime == "text/plain" && !data.empty())
         {
             std::string pasted(data.begin(), data.end());
-            
+
             // Delete selection if any
             if (m_selection_anchor != -1 && m_selection_anchor != m_cursor_pos)
             {

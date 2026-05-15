@@ -39,7 +39,11 @@
             "solid_primary": "#1e4ce1",
             "air_default1": "#ffffff",
             "air_default2": "#f5f5f5",
-            "air_border": "#666666"
+            "air_border": "#666666",
+            "textbox_bg": "#ffffff",
+            "textbox_brd": "#666666",
+            "textbox_focus": "#1e4ce1",
+            "textbox_invalid": "#e11e41"
         },
         "dark": {
             "titlebar_bg1": "#1e1e1e",
@@ -80,7 +84,11 @@
             "solid_primary": "#3e455a",
             "air_default1": "#303030",
             "air_default2": "#323232",
-            "air_border": "#121212"
+            "air_border": "#121212",
+            "textbox_bg": "#303030",
+            "textbox_brd": "#121212",
+            "textbox_focus": "#1e4ce1",
+            "textbox_invalid": "#e11e41"
         }
     },
     "variant": "dark",
