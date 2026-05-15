@@ -69,21 +69,22 @@ namespace horizon
         auto font = tm->get_font("window");
 
         Color window_bg = tm->get_color("window_bg");
-        Color c1 = tm->get_color("default1");
-        Color c2 = tm->get_color("default2");
+        Color c1 = tm->get_color("aqua_default1");
+        Color c2 = tm->get_color("aqua_default2");
         Color window_fg = tm->get_color("window_fg");
         Color shadow_color = tm->get_color("window_border");
         Color border_color = shadow_color.darker(10.0f);
+        Color aqua_hl = tm->get_color("aqua_highlight1");
 
         switch (m_accent_color)
         {
         case WidgetAccentColor::Default:
-            c1 = tm->get_color("default1");
-            c2 = tm->get_color("default2");
+            c1 = tm->get_color("aqua_default1");
+            c2 = tm->get_color("aqua_default2");
             break;
         case WidgetAccentColor::Primary:
-            c1 = tm->get_color("primary1");
-            c2 = tm->get_color("primary2");
+            c1 = tm->get_color("aqua_primary1");
+            c2 = tm->get_color("aqua_primary2");
             break;
         case WidgetAccentColor::Secondary:
             c1 = tm->get_color("secondary1");
@@ -118,7 +119,7 @@ namespace horizon
             Color top2 = c2;
             Color bot1 = c2;
             Color bot2 = c2.lighter(30.0f);
-            Color highlight = window_bg;
+            Color highlight = aqua_hl;
             Color highlight2 = highlight.with_alpha(0.3f);
             Color text_color = window_fg;
 
@@ -171,7 +172,7 @@ namespace horizon
             Color top2 = c2;
             Color bot1 = c2;
             Color bot2 = c2.lighter(30.0f);
-            Color highlight = window_bg;
+            Color highlight = aqua_hl;
             Color highlight2 = highlight.with_alpha(0.3f);
             Color text_color = window_fg;
 
@@ -227,7 +228,7 @@ namespace horizon
             Color top2 = c2;
             Color bot1 = c2;
             Color bot2 = c2.lighter(30.0f);
-            Color highlight = window_bg;
+            Color highlight = aqua_hl;
             Color highlight2 = highlight.with_alpha(0.3f);
             Color text_color = window_fg;
 

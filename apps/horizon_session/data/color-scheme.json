@@ -27,7 +27,12 @@
             "table_row": "#ffffff",
             "table_row_alternate": "#f3f8ff",
             "table_row_selected": "#1e4ce1",
-            "table_row_selected_fg": "#ffffff"
+            "table_row_selected_fg": "#ffffff",
+            "aqua_highlight1": "#f3f3f3",
+            "aqua_default1": "#616161",
+            "aqua_default2": "#dddddd",
+            "aqua_primary1": "#1e4ce1",
+            "aqua_primary2": "#61aff5"
         },
         "dark": {
             "titlebar_bg1": "#1e1e1e",
@@ -53,13 +58,18 @@
             "info1": "#e1d31e",
             "info2": "#f5de61",
             "table_row_fg": "#d3d3d3",
-            "table_row": "#ffffff",
-            "table_row_alternate": "#f3f8ff",
+            "table_row": "#212121",
+            "table_row_alternate": "#313131",
             "table_row_selected": "#1e4ce1",
-            "table_row_selected_fg": "#ffffff"
+            "table_row_selected_fg": "#ffffff",
+            "aqua_highlight1": "#f1f1f1",
+            "aqua_default1": "#010101",
+            "aqua_default2": "#121212",
+            "aqua_primary1": "#1e4ce1",
+            "aqua_primary2": "#61aff5"
         }
     },
-    "variant": "light",
+    "variant": "dark",
     "fonts": {
         "titlebar": {
             "family": "Lucida Grande",
