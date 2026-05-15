@@ -43,7 +43,9 @@
             "textbox_bg": "#ffffff",
             "textbox_brd": "#666666",
             "textbox_focus": "#1e4ce1",
-            "textbox_invalid": "#e11e41"
+            "textbox_invalid": "#e11e41",
+            "sidebar_bg": "#dfe6ee",
+            "sidebar_border": "#787878"
         },
         "dark": {
             "titlebar_bg1": "#1e1e1e",
@@ -88,7 +90,9 @@
             "textbox_bg": "#303030",
             "textbox_brd": "#121212",
             "textbox_focus": "#1e4ce1",
-            "textbox_invalid": "#e11e41"
+            "textbox_invalid": "#e11e41",
+            "sidebar_bg": "#2e3237",
+            "sidebar_border": "#212121"
         }
     },
     "variant": "dark",

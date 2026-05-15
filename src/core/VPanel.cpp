@@ -131,7 +131,12 @@ namespace horizon
 
     void VPanel::draw(GraphicsContext &gc)
     {
-        gc.setColor(0.9f, 0.9f, 0.9f, 1.0f);
+
+        auto *tm = application()->theme_manager.get();
+
+        Color bg_color = tm->get_color("window_bg");
+
+        gc.setColor(bg_color);
         gc.fillRect(m_x, m_y, m_width, m_height);
     }
 

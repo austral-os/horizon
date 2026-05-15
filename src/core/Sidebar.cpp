@@ -190,12 +190,17 @@ namespace horizon
 
     void Sidebar::draw(GraphicsContext &gc)
     {
+        auto *tm = application()->theme_manager.get();
+
+        Color bg_color = tm->get_color("sidebar_bg");
+        Color border_color = tm->get_color("sidebar_border");
+
         // Slight blueish background for the sidebar (Source List look)
-        gc.setColor(0.875f, 0.902f, 0.933f, 1.0f);
+        gc.setColor(bg_color);
         gc.fillRect(m_x, m_y, m_width, m_height);
 
         // Vertical separator line on the right
-        gc.setColor(0.85f, 0.85f, 0.85f, 1.0f);
-        gc.drawLine(m_x + m_width - 1, m_y, m_x + m_width - 1, m_y + m_height);
+        gc.setColor(border_color);
+        gc.drawLine(m_x + m_width, m_y, m_x + m_width, m_y + m_height);
     }
 } // namespace horizon
