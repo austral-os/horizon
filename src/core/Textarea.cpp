@@ -383,9 +383,9 @@ namespace horizon
         auto *tm = application()->theme_manager.get();
         auto font = tm->get_font("window");
 
-        Color bg_color = Color(1.0f, 1.0f, 1.0f, 1.0f);
-        Color border_color = Color(0.6f, 0.6f, 0.6f, 1.0f);
-        Color focus_color = Color(0.4f, 0.7f, 1.0f, 0.8f);
+        Color bg_color = tm->get_color("textbox_bg");
+        Color border_color = tm->get_color("textbox_brd");
+        Color focus_color = tm->get_color("textbox_focus");
 
         gc.setColor(bg_color);
         gc.fillRect(m_x, m_y, m_width, m_height, {m_corner_radius});
