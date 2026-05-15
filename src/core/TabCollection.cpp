@@ -56,11 +56,15 @@ namespace horizon
 
     void TabCollection::TabButton::draw(GraphicsContext &ctx)
     {
+
+        auto *tm = application()->theme_manager.get();
+
+        Color c1 = tm->get_color("tab_button_1");
+        Color c2 = tm->get_color("tab_button_2");
+
         // Draw background if active
         if (m_active)
         {
-            Color c1(0.95f, 0.95f, 0.95f, 1.0f);
-            Color c2(0.85f, 0.85f, 0.85f, 1.0f);
             ctx.fillLinearGradientRect(x(), y(), width(), height(), c1, c2, true);
         }
         else if (is_hovered())
@@ -74,7 +78,6 @@ namespace horizon
         ctx.drawLine(x() + width() - 1, y() + 8, x() + width() - 1, y() + height() - 8, 1.0f);
 
         // Draw text centered
-        auto *tm = application()->theme_manager.get();
         auto font = tm->get_font("window");
         ctx.setDrawFont(font.family.c_str(), font.size, FONT_SLANT_NORMAL,
                         m_active ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
@@ -310,9 +313,12 @@ namespace horizon
 
     void TabCollection::draw(GraphicsContext &ctx)
     {
-        // Draw header background (gradient)
-        Color c1(0.85f, 0.85f, 0.85f, 1.0f);
-        Color c2(0.75f, 0.75f, 0.75f, 1.0f);
+
+        auto *tm = application()->theme_manager.get();
+
+        Color c1 = tm->get_color("tab_header_1");
+        Color c2 = tm->get_color("tab_header_2");
+
         ctx.fillLinearGradientRect(m_header->x(), m_header->y(), m_header->width(),
                                    m_header->height(), c1, c2, true);
 

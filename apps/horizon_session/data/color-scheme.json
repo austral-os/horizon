@@ -45,7 +45,14 @@
             "textbox_focus": "#1e4ce1",
             "textbox_invalid": "#e11e41",
             "sidebar_bg": "#dfe6ee",
-            "sidebar_border": "#787878"
+            "sidebar_border": "#787878",
+            "panel_bg1": "#e6e6e6",
+            "panel_bg2": "#cccccc",
+            "panel_border": "#b3b3b3",
+            "tab_header_1": "#f2f2f2",
+            "tab_header_2": "#bfbfbf",
+            "tab_button_1": "#e2e2e2",
+            "tab_button_2": "#a9a9a9"
         },
         "dark": {
             "titlebar_bg1": "#1e1e1e",
@@ -92,7 +99,14 @@
             "textbox_focus": "#1e4ce1",
             "textbox_invalid": "#e11e41",
             "sidebar_bg": "#2e3237",
-            "sidebar_border": "#212121"
+            "sidebar_border": "#212121",
+            "panel_bg1": "#1e1e1e",
+            "panel_bg2": "#252526",
+            "panel_border": "#212121",
+            "tab_header_1": "#1f1f1f",
+            "tab_header_2": "#393939",
+            "tab_button_1": "#0f0f0f",
+            "tab_button_2": "#2f2f2f"
         }
     },
     "variant": "dark",
