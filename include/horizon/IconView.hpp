@@ -36,6 +36,7 @@ namespace horizon
         int get_theme_font_size(const std::string &role = "icon-view") const;
 
         void calculate_layout() override;
+        void set_application_recursive(WaylandWindow *app) override;
 
     protected:
         virtual void rebuild_items() = 0;
@@ -58,6 +59,8 @@ namespace horizon
         std::chrono::steady_clock::time_point m_last_item_click_time;
         int m_last_item_click_index{-1};
         uint32_t m_last_item_click_button{0};
+
+        bool m_transparent{false};
     };
 
     /**

@@ -7,7 +7,8 @@ namespace horizon
 {
     IconViewBase::IconViewBase() : Widget()
     {
-        m_background_color = Color(1.0f, 1.0f, 1.0f, 1.0f); // Default white
+        // Theme color will be applied when added to an application
+
 
         auto scroll_area = std::make_unique<ScrollArea>();
         scroll_area->set_position_type(FREE);
@@ -38,13 +39,27 @@ namespace horizon
 
     void IconViewBase::set_transparent(bool transparent)
     {
+        m_transparent = transparent;
         if (transparent)
         {
             set_background_color(Color(0.0f, 0.0f, 0.0f, 0.0f));
         }
+        else if (application() && application()->theme_manager)
+        {
+            set_background_color(application()->theme_manager->get_color("textbox_bg"));
+        }
         else
         {
-            set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+            set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f)); // fallback
+        }
+    }
+
+    void IconViewBase::set_application_recursive(WaylandWindow *app)
+    {
+        Widget::set_application_recursive(app);
+        if (app && app->theme_manager && !m_transparent)
+        {
+            set_background_color(app->theme_manager->get_color("textbox_bg"));
         }
     }
 
