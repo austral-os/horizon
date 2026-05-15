@@ -36,7 +36,10 @@
             "solid_highlight": "#f3f3f3",
             "solid_highlight2": "#ffffff",
             "solid_default": "#ffffff",
-            "solid_primary": "#1e4ce1"
+            "solid_primary": "#1e4ce1",
+            "air_default1": "#ffffff",
+            "air_default2": "#f5f5f5",
+            "air_border": "#666666"
         },
         "dark": {
             "titlebar_bg1": "#1e1e1e",
@@ -46,7 +49,7 @@
             "window_bg": "#1e1e1e",
             "window_bg_alt": "#212121",
             "window_fg": "#d3d3d3",
-            "window_border": "#585858",
+            "window_border": "#212121",
             "default1": "#313131",
             "default2": "#515151",
             "primary1": "#1c44c5",
@@ -74,7 +77,10 @@
             "solid_highlight": "#212121",
             "solid_highlight2": "#616161",
             "solid_default": "#414141",
-            "solid_primary": "#3e455a"
+            "solid_primary": "#3e455a",
+            "air_default1": "#303030",
+            "air_default2": "#323232",
+            "air_border": "#121212"
         }
     },
     "variant": "dark",

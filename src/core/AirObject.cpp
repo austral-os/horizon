@@ -10,22 +10,30 @@ namespace horizon
         m_corner_radius = CornerRadius(6, 6, 6, 6);
 
         // Basic event handling for visual feedback
-        when_mouse_enter.connect([this](EventContext &) {
-            set_draw_state(get_draw_state(WidgetEvent::MOUSE_ENTER));
-            invalidate();
-        });
-        when_mouse_leave.connect([this](EventContext &) {
-            set_draw_state(get_draw_state(WidgetEvent::MOUSE_LEAVE));
-            invalidate();
-        });
-        when_mouse_press.connect([this](MouseButtonEventContext &) {
-            set_draw_state(get_draw_state(WidgetEvent::MOUSE_PRESS));
-            invalidate();
-        });
-        when_mouse_release.connect([this](MouseButtonEventContext &) {
-            set_draw_state(get_draw_state(WidgetEvent::MOUSE_RELEASE));
-            invalidate();
-        });
+        when_mouse_enter.connect(
+            [this](EventContext &)
+            {
+                set_draw_state(get_draw_state(WidgetEvent::MOUSE_ENTER));
+                invalidate();
+            });
+        when_mouse_leave.connect(
+            [this](EventContext &)
+            {
+                set_draw_state(get_draw_state(WidgetEvent::MOUSE_LEAVE));
+                invalidate();
+            });
+        when_mouse_press.connect(
+            [this](MouseButtonEventContext &)
+            {
+                set_draw_state(get_draw_state(WidgetEvent::MOUSE_PRESS));
+                invalidate();
+            });
+        when_mouse_release.connect(
+            [this](MouseButtonEventContext &)
+            {
+                set_draw_state(get_draw_state(WidgetEvent::MOUSE_RELEASE));
+                invalidate();
+            });
     }
 
     void AirObject::set_corner_radius(CornerRadius radius)
@@ -49,16 +57,17 @@ namespace horizon
     {
         auto *tm = application()->theme_manager.get();
 
-        Color c1 = tm->get_color("default1");
-        Color c2 = tm->get_color("default2");
+        Color c1 = tm->get_color("air_default1");
+        Color c2 = tm->get_color("air_default2");
         Color window_bg = tm->get_color("window_bg");
         Color border_color = tm->get_color("window_border");
+        Color air_brd = tm->get_color("air_border");
 
         switch (m_accent_color)
         {
         case WidgetAccentColor::Default:
-            c1 = tm->get_color("default1");
-            c2 = tm->get_color("default2");
+            c1 = tm->get_color("air_default1");
+            c2 = tm->get_color("air_default2");
             break;
         case WidgetAccentColor::Primary:
             c1 = tm->get_color("primary1");
@@ -87,18 +96,18 @@ namespace horizon
         }
 
         // For the "Air" look, we use very light versions of the accent colors
-        Color top1 = c1.lighter(90.0f);
-        Color top2 = c1.lighter(80.0f);
-        Color bot1 = c1.lighter(78.0f); // Very close to top2 for a subtle transition
-        Color bot2 = c2.lighter(70.0f);
+        Color top1 = c1;
+        Color top2 = c2;
+        Color bot1 = c1.darker(5.0f); // Very close to top2 for a subtle transition
+        Color bot2 = c2.darker(5.0f);
 
-        if (m_accent_color == WidgetAccentColor::Default)
+        /*if (m_accent_color == WidgetAccentColor::Default)
         {
             top1 = Color(1.0f, 1.0f, 1.0f, 1.0f);
             top2 = Color(0.96f, 0.96f, 0.96f, 1.0f);
             bot1 = Color(0.94f, 0.94f, 0.94f, 1.0f);
             bot2 = Color(0.90f, 0.90f, 0.90f, 1.0f);
-        }
+        }*/
 
         // Adjust colors based on state
         if (m_draw_state == WidgetDrawState::HOVERED)
@@ -120,8 +129,8 @@ namespace horizon
 
         // 1. Top half fill
         CornerRadius top_radius(m_corner_radius.top_left, m_corner_radius.top_right, 0, 0);
-        gc.fillLinearGradientRect(m_start_draw_x, m_start_draw_y, m_width, halfHeight, top1,
-                                  top2, true, top_radius);
+        gc.fillLinearGradientRect(m_start_draw_x, m_start_draw_y, m_width, halfHeight, top1, top2,
+                                  true, top_radius);
 
         // 2. Bottom half fill
         CornerRadius bot_radius(0, 0, m_corner_radius.bottom_right, m_corner_radius.bottom_left);
@@ -129,14 +138,12 @@ namespace horizon
                                   m_height - halfHeight, bot1, bot2, true, bot_radius);
 
         // 3. Subtle white inner highlight (more pronounced at the top)
-        gc.setColor(Color(1.0f, 1.0f, 1.0f, 0.6f));
+        /*gc.setColor(air_brd.lighter(20.0f));
         gc.drawRect(m_start_draw_x + 1, m_start_draw_y + 1, m_width - 2, m_height - 2,
-                    m_corner_radius, 1.0f);
+                    m_corner_radius, 1.0f);*/
 
         // 4. Outer border
-        Color final_border = (m_accent_color == WidgetAccentColor::Default)
-                                 ? border_color.darker(20.0f)
-                                 : c1.darker(15.0f);
+        Color final_border = air_brd;
         gc.setColor(final_border);
         gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height, m_corner_radius, 1.25f);
     }
