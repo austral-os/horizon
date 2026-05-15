@@ -195,6 +195,9 @@ namespace horizon
         Color focus_color = tm->get_color("textbox_focus");
         Color invalid_color = tm->get_color("textbox_invalid");
 
+        Color text_color = tm->get_color("textbox_fg");
+        Color ph_color = tm->get_color("textbox_ph_fg");
+
         bool valid = is_valid();
 
         int radius = 0;
@@ -286,7 +289,7 @@ namespace horizon
 
         if (m_text.empty() && !m_placeholder.empty())
         {
-            gc.setColor(0.6f, 0.6f, 0.6f, 1.0f);
+            gc.setColor(ph_color);
             gc.drawText(text_x_base, text_y, m_placeholder.c_str());
         }
         else
@@ -313,7 +316,7 @@ namespace horizon
                 gc.fillRect(sel_x, m_y + 6, sel_w, m_height - 12);
             }
 
-            gc.setColor(0.0f, 0.0f, 0.0f, 1.0f);
+            gc.setColor(text_color);
             gc.drawText(draw_text_x, text_y, display_text.c_str());
         }
 
@@ -351,7 +354,7 @@ namespace horizon
         if (has_focus() && m_cursor_visible)
         {
             int cursor_x = draw_text_x + cursor_metrics.width;
-            gc.setColor(0.0f, 0.0f, 0.0f, 1.0f);
+            gc.setColor(text_color);
             gc.fillRect(cursor_x, m_y + 8, 2, m_height - 16);
         }
         gc.restore();

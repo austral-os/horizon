@@ -386,6 +386,8 @@ namespace horizon
         Color bg_color = tm->get_color("textbox_bg");
         Color border_color = tm->get_color("textbox_brd");
         Color focus_color = tm->get_color("textbox_focus");
+        Color text_color = tm->get_color("textbox_fg");
+        Color ph_color = tm->get_color("textbox_ph_fg");
 
         gc.setColor(bg_color);
         gc.fillRect(m_x, m_y, m_width, m_height, {m_corner_radius});
@@ -438,7 +440,7 @@ namespace horizon
 
         if (m_text.empty() && !m_placeholder.empty())
         {
-            gc.setColor(0.6f, 0.6f, 0.6f, 1.0f);
+            gc.setColor(ph_color);
             gc.drawText(m_x + m_padding_left, draw_y_base + font_size, m_placeholder.c_str());
         }
         else
@@ -490,7 +492,7 @@ namespace horizon
                         }
                     }
 
-                    gc.setColor(0.0f, 0.0f, 0.0f, 1.0f);
+                    gc.setColor(text_color);
                     gc.drawText(m_x + m_padding_left, line_y + font_size - 2, line.text.c_str());
                 }
             }
@@ -521,7 +523,7 @@ namespace horizon
                     int cursor_x = m_x + m_padding_left + m.width;
                     int cursor_y = draw_y_base + line.y_offset;
 
-                    gc.setColor(0.0f, 0.0f, 0.0f, 1.0f);
+                    gc.setColor(text_color);
                     gc.fillRect(cursor_x, cursor_y + 2, 2, font_size);
                     cursor_drawn = true;
                     break;
@@ -536,7 +538,7 @@ namespace horizon
                                            FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
                 int cursor_x = m_x + m_padding_left + m.width;
                 int cursor_y = draw_y_base + line.y_offset;
-                gc.setColor(0.0f, 0.0f, 0.0f, 1.0f);
+                gc.setColor(text_color);
                 gc.fillRect(cursor_x, cursor_y + 2, 2, font_size);
             }
         }
