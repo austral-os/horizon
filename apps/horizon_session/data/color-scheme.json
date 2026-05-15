@@ -32,7 +32,11 @@
             "aqua_default1": "#616161",
             "aqua_default2": "#dddddd",
             "aqua_primary1": "#1e4ce1",
-            "aqua_primary2": "#61aff5"
+            "aqua_primary2": "#61aff5",
+            "solid_highlight": "#f3f3f3",
+            "solid_highlight2": "#ffffff",
+            "solid_default": "#ffffff",
+            "solid_primary": "#1e4ce1"
         },
         "dark": {
             "titlebar_bg1": "#1e1e1e",
@@ -66,7 +70,11 @@
             "aqua_default1": "#010101",
             "aqua_default2": "#121212",
             "aqua_primary1": "#1e4ce1",
-            "aqua_primary2": "#61aff5"
+            "aqua_primary2": "#61aff5",
+            "solid_highlight": "#212121",
+            "solid_highlight2": "#616161",
+            "solid_default": "#414141",
+            "solid_primary": "#3e455a"
         }
     },
     "variant": "dark",

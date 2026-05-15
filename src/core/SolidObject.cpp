@@ -59,19 +59,21 @@ namespace horizon
         auto font = tm->get_font("window");
 
         Color window_bg = tm->get_color("window_bg");
-        Color c1 = tm->get_color("default1").lighter(85.f);
+        Color c1 = tm->get_color("solid_default").lighter(85.f);
 
         Color window_fg = tm->get_color("window_fg");
         Color shadow_color = tm->get_color("window_border");
         Color border_color = shadow_color.darker(40.0f);
+        Color solid_hl = tm->get_color("solid_highlight");
+        Color solid_hl2 = tm->get_color("solid_highlight2");
 
         switch (m_accent_color)
         {
         case WidgetAccentColor::Default:
-            c1 = tm->get_color("default1").lighter(85.f);
+            c1 = tm->get_color("solid_default");
             break;
         case WidgetAccentColor::Primary:
-            c1 = tm->get_color("primary1").lighter(80.f);
+            c1 = tm->get_color("solid_primary");
             break;
         case WidgetAccentColor::Secondary:
             c1 = tm->get_color("secondary1").lighter(80.f);
@@ -95,7 +97,7 @@ namespace horizon
 
             Color top1 = c1;
 
-            Color highlight = window_bg;
+            Color highlight = solid_hl;
             Color highlight2 = highlight.with_alpha(0.3f);
             Color text_color = window_fg;
 
@@ -122,7 +124,7 @@ namespace horizon
                 {0, 0, m_corner_radius.bottom_right, m_corner_radius.bottom_left});
 
             // Borde inferior
-            gc.setColor(border_color.lighter(80.f));
+            gc.setColor(solid_hl);
             gc.fillRect(m_x + m_corner_radius.bottom_left,
                         m_start_draw_y + m_available_draw_height - 2,
                         m_width - m_corner_radius.bottom_left - m_corner_radius.bottom_right, 2);
@@ -131,7 +133,7 @@ namespace horizon
         {
             Color top1 = c1;
 
-            Color highlight = window_bg;
+            Color highlight = solid_hl;
             Color highlight2 = highlight.with_alpha(0.3f);
             Color text_color = window_fg;
 
@@ -144,7 +146,7 @@ namespace horizon
             gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height - 3, m_corner_radius,
                         1.0f);
 
-            highlight = highlight.lighter(100.0f);
+            highlight = solid_hl2;
             highlight2 = highlight.with_alpha(0.5f);
 
             // Top half: gradient from white to very light gray (creates a glass reflection effect)
@@ -161,7 +163,7 @@ namespace horizon
                 {0, 0, m_corner_radius.bottom_right, m_corner_radius.bottom_left});
 
             // Borde inferior
-            gc.setColor(border_color.lighter(80.f));
+            gc.setColor(solid_hl);
             gc.fillRect(m_x + m_corner_radius.bottom_left,
                         m_start_draw_y + m_available_draw_height - 2,
                         m_width - m_corner_radius.bottom_left - m_corner_radius.bottom_right, 2);
@@ -170,7 +172,7 @@ namespace horizon
         {
             Color top1 = c1;
 
-            Color highlight = window_bg;
+            Color highlight = solid_hl;
             Color highlight2 = highlight.with_alpha(0.3f);
             Color text_color = window_fg;
 
