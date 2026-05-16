@@ -24,6 +24,11 @@ namespace horizon
     {
         m_corner_radius = radius;
     }
+    
+    void Panel::set_bottom_alpha(float alpha)
+    {
+        m_bottom_alpha = alpha;
+    }
 
     void Panel::draw(GraphicsContext &gc)
     {
@@ -33,6 +38,8 @@ namespace horizon
         m_bg1 = tm->get_color("panel_bg1");
         m_bg2 = tm->get_color("panel_bg2");
         m_border_color = tm->get_color("panel_border");
+
+        m_bg1.a *= m_bottom_alpha;
 
         // Dibujamos un fondo con degradado y un borde inferior
         gc.fillLinearGradientRect(m_start_draw_x, m_start_draw_y, m_available_draw_width,

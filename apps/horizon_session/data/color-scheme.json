@@ -40,10 +40,10 @@
             "sidebar_border": "#3a3a3c",
             "sidebar_item_fg": "#98989d",
             "sidebar_item_fg2": "#ffffff",
+            "solid_border": "#262626",
             "solid_default": "#3a3a3c",
             "solid_highlight": "#35353a",
             "solid_highlight2": "#636366",
-            "solid_border": "#262626",
             "solid_primary": "#007aff",
             "success1": "#34c759",
             "success2": "#30d158",
@@ -113,10 +113,10 @@
             "sidebar_border": "#787878",
             "sidebar_item_fg": "#333333",
             "sidebar_item_fg2": "#ffffff",
+            "solid_border": "#f3f3f3",
             "solid_default": "#ffffff",
             "solid_highlight": "#f3f3f3",
             "solid_highlight2": "#ffffff",
-            "solid_border": "#f3f3f3",
             "solid_primary": "#1e4ce1",
             "success1": "#1ee176",
             "success2": "#61f5a3",
@@ -159,5 +159,5 @@
             "weight": "bold"
         }
     },
-    "variant": "dark"
+    "variant": "light"
 }

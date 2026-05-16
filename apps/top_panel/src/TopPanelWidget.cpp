@@ -1,18 +1,19 @@
 #include "TopPanelWidget.hpp"
-#include "TopPanelMenuBar.hpp"
 #include "IndicatorsContainer.hpp"
-#include <horizon/Panel.hpp>
+#include "TopPanelMenuBar.hpp"
 #include <horizon/GraphicsContext.hpp>
+#include <horizon/Panel.hpp>
 #include <horizon/Spacer.hpp>
 
 using namespace horizon;
 
-TopPanelWidget::TopPanelWidget(TopPanelApplication* app)
+TopPanelWidget::TopPanelWidget(TopPanelApplication *app)
 {
     set_corner_radius(CornerRadius(0));
     set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
     set_spacing(0);
-    
+    set_bottom_alpha(0.8f);
+
     // 1. Menu Bar (Left)
     auto menubar = std::make_unique<TopPanelMenuBar>(app);
     m_menubar = menubar.get();
@@ -29,7 +30,7 @@ TopPanelWidget::TopPanelWidget(TopPanelApplication* app)
     add_child(std::move(indicators));
 }
 
-void TopPanelWidget::handle_message(const std::string& msg)
+void TopPanelWidget::handle_message(const std::string &msg)
 {
     m_menubar->handle_message(msg);
 }
