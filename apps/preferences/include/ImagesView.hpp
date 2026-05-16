@@ -63,6 +63,7 @@ namespace horizon::preferences
         };
         std::vector<PendingThumbnail> m_pending_thumbnails;
         std::mutex m_pending_mutex;
+        std::shared_ptr<std::atomic<bool>> m_alive{std::make_shared<std::atomic<bool>>(true)};
     };
 
     /**

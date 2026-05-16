@@ -1,4 +1,5 @@
 #include "horizon/Widget.hpp"
+#include <horizon/WaylandWindow.hpp>
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Combo.hpp>
@@ -23,8 +24,38 @@ namespace horizon::preferences
         setup_ui();
         refresh_devices();
 
-        network::NetworkManager::instance().when_state_changed.connect(
-            [this](EventContext &) { this->refresh_devices(); });
+        m_state_changed_connection_id = network::NetworkManager::instance().when_state_changed.connect(
+            [this, alive = m_alive](EventContext &)
+            {
+                // IMPORTANT: This lambda runs on a background thread.
+                // Do NOT dereference 'this' here — NetworkView may have been
+                // destroyed concurrently on the main thread (m_app would be garbage).
+                // Check the alive flag first, then use the static window getter.
+                if (!alive->load())
+                    return;
+
+                if (auto *app = WaylandWindow::get_active_window())
+                {
+                    // post_task runs on the main thread, serialized with the destructor.
+                    // It is safe to use 'this' inside the lambda only there.
+                    app->post_task([this, alive]()
+                    {
+                        if (alive->load())
+                            refresh_devices();
+                    });
+                }
+            });
+    }
+
+    NetworkView::~NetworkView()
+    {
+        // Mark as dead first so any pending post_task callbacks are no-ops.
+        m_alive->store(false);
+
+        if (m_state_changed_connection_id != 0)
+        {
+            network::NetworkManager::instance().when_state_changed.disconnect(m_state_changed_connection_id);
+        }
     }
 
     void NetworkView::setup_ui()

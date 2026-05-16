@@ -6,6 +6,8 @@
 #include <horizon/Label.hpp>
 #include <horizon/TableView.hpp>
 #include <horizon/Widget.hpp>
+#include <atomic>
+#include <memory>
 
 namespace horizon::preferences
 {
@@ -13,7 +15,7 @@ namespace horizon::preferences
     {
     public:
         NetworkView();
-        ~NetworkView() override = default;
+        ~NetworkView() override;
 
         EventsManager<network::DeviceDetails> when_advanced_click;
         EventsManager<std::string> when_selection_changed;
@@ -39,5 +41,9 @@ namespace horizon::preferences
         Label *m_dns_label{nullptr};
 
         network::DeviceDetails m_selected_device;
+        size_t m_state_changed_connection_id{0};
+
+        // Shared flag to cancel pending post_task callbacks after destruction
+        std::shared_ptr<std::atomic<bool>> m_alive{std::make_shared<std::atomic<bool>>(true)};
     };
 } // namespace horizon::preferences

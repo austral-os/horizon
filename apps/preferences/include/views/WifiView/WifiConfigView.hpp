@@ -10,6 +10,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <atomic>
 
 namespace horizon::preferences
 {
@@ -36,7 +37,9 @@ namespace horizon::preferences
         std::shared_ptr<network::WirelessDevice> m_device;
         network::WifiNetwork m_selected_network;
         size_t m_refresh_timer_id{0};
+        size_t m_state_changed_connection_id{0};
         bool m_initialized{false};
         bool m_dialog_open{false};
+        std::shared_ptr<std::atomic<bool>> m_alive{std::make_shared<std::atomic<bool>>(true)};
     };
 }

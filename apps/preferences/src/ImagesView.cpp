@@ -84,6 +84,12 @@ namespace horizon::preferences
         set_border_color(Color(0.8f, 0.8f, 0.8f, 1.0f));
         set_border_width(1);
 
+        if (application())
+        {
+            set_background_color(application()->theme_manager->get_color("textbox_bg"));
+            set_border_color(application()->theme_manager->get_color("window_border"));
+        }
+
         auto scroll = std::make_unique<ScrollArea>();
         m_scroll_area = scroll.get();
 
@@ -97,6 +103,7 @@ namespace horizon::preferences
     ImagesView::~ImagesView()
     {
         LOG_INFO << "[ImagesView] Destructor called, stopping loading thread...";
+        m_alive->store(false);
         stop_loading();
     }
 
@@ -182,14 +189,17 @@ namespace horizon::preferences
     void ImagesView::add_thumbnail_safe(const std::string &original_path,
                                         const std::string &thumbnail_path)
     {
-        auto *app = application();
+        if (!m_alive->load())
+            return;
+
+        auto *app = WaylandWindow::get_active_window();
         if (app)
         {
             LOG_INFO << "[ImagesView] add_thumbnail_safe: Posting task for " << original_path;
             app->post_task(
-                [this, original_path, thumbnail_path]()
+                [this, original_path, thumbnail_path, alive = m_alive]()
                 {
-                    if (m_stop_requested)
+                    if (!alive->load() || m_stop_requested)
                         return;
                     LOG_INFO << "[ImagesView] Task executing for " << original_path;
 
@@ -227,6 +237,9 @@ namespace horizon::preferences
         horizon::Widget::set_application_recursive(app);
         if (app)
         {
+            set_background_color(app->theme_manager->get_color("textbox_bg"));
+            set_border_color(app->theme_manager->get_color("window_border"));
+
             std::lock_guard<std::mutex> lock(m_pending_mutex);
             for (const auto &pending : m_pending_thumbnails)
             {

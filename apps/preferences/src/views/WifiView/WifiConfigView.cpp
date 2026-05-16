@@ -41,24 +41,38 @@ namespace horizon::preferences
             });
 
         // Listen for network changes from the library
-        network::NetworkManager::instance().when_state_changed.connect(
-            [this](EventContext &)
+        m_state_changed_connection_id = network::NetworkManager::instance().when_state_changed.connect(
+            [this, alive = m_alive](EventContext &)
             {
-                if (auto *app = application())
+                if (!alive->load())
+                    return;
+
+                if (auto *app = WaylandWindow::get_active_window())
                 {
-                    app->post_task([this]() { this->refresh_networks(); });
+                    app->post_task([this, alive]()
+                    {
+                        if (alive->load())
+                            this->refresh_networks();
+                    });
                 }
             });
     }
 
     WifiConfigView::~WifiConfigView()
     {
+        m_alive->store(false);
+
         if (m_refresh_timer_id != 0)
         {
             if (auto *app = application())
             {
                 app->stop_timer(m_refresh_timer_id);
             }
+        }
+
+        if (m_state_changed_connection_id != 0)
+        {
+            network::NetworkManager::instance().when_state_changed.disconnect(m_state_changed_connection_id);
         }
     }
 
@@ -216,10 +230,13 @@ namespace horizon::preferences
             auto dialog = std::make_unique<WifiConnectDialog>(m_device, m_selected_network);
             dialog->when_close.connect([this](EventContext &) { m_dialog_open = false; });
 
-            std::thread([this, app, d = std::move(dialog)]() mutable {
+            std::thread([this, app, d = std::move(dialog), alive = m_alive]() mutable {
                 d->initialize();
                 d->run();
-                app->post_task([this]() { m_dialog_open = false; });
+                app->post_task([this, alive]() {
+                    if (alive->load())
+                        m_dialog_open = false;
+                });
             }).detach();
         }
     }
