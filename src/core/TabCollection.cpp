@@ -34,6 +34,7 @@ namespace horizon
             close_icon->set_margin(5);
 
             m_close_button = close_icon.get();
+            m_close_button->set_use_theme_colors(true);
 
             m_close_button->when_click.connect([this](MouseButtonEventContext &ctx)
                                                { m_owner->when_tab_close_requested.run(m_index); });
@@ -82,7 +83,7 @@ namespace horizon
         ctx.setDrawFont(font.family.c_str(), font.size, FONT_SLANT_NORMAL,
                         m_active ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
 
-        ctx.setColor(Color(0.2f, 0.2f, 0.2f, 1.0f));
+        ctx.setColor(tm->get_color("window_fg"));
 
         std::string display_title = m_title;
         int max_text_width = width() - 20; // 10px padding on each side
