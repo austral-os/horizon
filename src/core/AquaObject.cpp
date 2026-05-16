@@ -151,20 +151,23 @@ namespace horizon
                                       m_height - 4 - halfHeight, bot1, bot2, true, bot_radius);
 
             // Inner top highlight (simulates strong light reflection on top of the glass)
-            int h_radius_val = std::min(m_corner_radius.top_left, m_corner_radius.top_right);
-            int h_margin_x =
-                h_radius_val / 4; // Margen a los lados para que el brillo sea más chico
-            int h_width = m_width - (h_margin_x * 2);
+            int h_margin_left = m_corner_radius.top_left > 0 ? m_corner_radius.top_left / 4 : 1;
+            int h_margin_right = m_corner_radius.top_right > 0 ? m_corner_radius.top_right / 4 : 1;
+            int h_width = m_width - h_margin_left - h_margin_right;
             int h_height = halfHeight * 0.8; // Un poco más chico que la altura de la mitad superior
-            int h_radius_top =
-                std::max(0, h_radius_val - 2);   // El radio superior se adapta al botón
-            int h_radius_bot = h_radius_top / 2; // El radio inferior es mucho más curvo/chico
+            
+            CornerRadius h_radius(
+                std::max(0, m_corner_radius.top_left - 2),
+                std::max(0, m_corner_radius.top_right - 2),
+                std::max(0, m_corner_radius.top_right - 2) / 2,
+                std::max(0, m_corner_radius.top_left - 2) / 2
+            );
 
             gc.fillLinearGradientRect(
-                m_start_draw_x + h_margin_x, m_start_draw_y + 2, h_width, h_height,
+                m_start_draw_x + h_margin_left, m_start_draw_y + 2, h_width, h_height,
                 highlight,  // Blanco sólido arriba
                 highlight2, // Blanco casi transparente abajo
-                true, {h_radius_top, m_corner_radius.top_right, h_radius_bot, h_radius_bot});
+                true, h_radius);
         }
         else if (m_draw_state == WidgetDrawState::HOVERED)
         {
@@ -207,20 +210,23 @@ namespace horizon
                                       m_height - 4 - halfHeight, bot1, bot2, true, bot_radius);
 
             // Inner top highlight (simulates strong light reflection on top of the glass)
-            int h_radius_val = std::min(m_corner_radius.top_left, m_corner_radius.top_right);
-            int h_margin_x =
-                h_radius_val / 4; // Margen a los lados para que el brillo sea más chico
-            int h_width = m_width - (h_margin_x * 2);
+            int h_margin_left = m_corner_radius.top_left > 0 ? m_corner_radius.top_left / 4 : 1;
+            int h_margin_right = m_corner_radius.top_right > 0 ? m_corner_radius.top_right / 4 : 1;
+            int h_width = m_width - h_margin_left - h_margin_right;
             int h_height = halfHeight * 0.8; // Un poco más chico que la altura de la mitad superior
-            int h_radius_top =
-                std::max(0, h_radius_val - 2);   // El radio superior se adapta al botón
-            int h_radius_bot = h_radius_top / 2; // El radio inferior es mucho más curvo/chico
+            
+            CornerRadius h_radius(
+                std::max(0, m_corner_radius.top_left - 2),
+                std::max(0, m_corner_radius.top_right - 2),
+                std::max(0, m_corner_radius.top_right - 2) / 2,
+                std::max(0, m_corner_radius.top_left - 2) / 2
+            );
 
             gc.fillLinearGradientRect(
-                m_start_draw_x + h_margin_x, m_start_draw_y + 2, h_width, h_height,
+                m_start_draw_x + h_margin_left, m_start_draw_y + 2, h_width, h_height,
                 highlight,  // Blanco sólido arriba
                 highlight2, // Blanco casi transparente abajo
-                true, {h_radius_top, m_corner_radius.top_right, h_radius_bot, h_radius_bot});
+                true, h_radius);
         }
         else if (m_draw_state == WidgetDrawState::PRESSED)
         {
@@ -264,20 +270,23 @@ namespace horizon
                                       bot_radius);
 
             // Inner top highlight (simulates strong light reflection on top of the glass)
-            int h_radius_val = std::min(m_corner_radius.top_left, m_corner_radius.top_right);
-            int h_margin_x =
-                h_radius_val / 4; // Margen a los lados para que el brillo sea más chico
-            int h_width = m_width - (h_margin_x * 2);
+            int h_margin_left = m_corner_radius.top_left > 0 ? m_corner_radius.top_left / 4 : 1;
+            int h_margin_right = m_corner_radius.top_right > 0 ? m_corner_radius.top_right / 4 : 1;
+            int h_width = m_width - h_margin_left - h_margin_right;
             int h_height = halfHeight * 0.8; // Un poco más chico que la altura de la mitad superior
-            int h_radius_top =
-                std::max(0, h_radius_val - 2);   // El radio superior se adapta al botón
-            int h_radius_bot = h_radius_top / 2; // El radio inferior es mucho más curvo/chico
+            
+            CornerRadius h_radius(
+                std::max(0, m_corner_radius.top_left - 2),
+                std::max(0, m_corner_radius.top_right - 2),
+                std::max(0, m_corner_radius.top_right - 2) / 2,
+                std::max(0, m_corner_radius.top_left - 2) / 2
+            );
 
             gc.fillLinearGradientRect(
-                m_start_draw_x + h_margin_x, m_start_draw_y + 2, h_width, h_height,
+                m_start_draw_x + h_margin_left, m_start_draw_y + 2, h_width, h_height,
                 highlight,  // Blanco sólido arriba
                 highlight2, // Blanco casi transparente abajo
-                true, {h_radius_top, m_corner_radius.top_right, h_radius_bot, h_radius_bot});
+                true, h_radius);
         }
     }
 
