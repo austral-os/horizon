@@ -6,6 +6,7 @@
 #include <vector>
 #include <map>
 #include <type_traits>
+#include <mutex>
 
 namespace horizon
 {
@@ -163,6 +164,7 @@ namespace horizon
          */
         size_t connect(Callback callback)
         {
+            std::lock_guard<std::mutex> lock(m_mutex);
             size_t id = m_next_id++;
             m_handlers.push_back({id, std::move(callback)});
             return id;
@@ -174,6 +176,7 @@ namespace horizon
          */
         void disconnect(size_t id)
         {
+            std::lock_guard<std::mutex> lock(m_mutex);
             for (auto it = m_handlers.begin(); it != m_handlers.end(); ++it)
             {
                 if (it->id == id)
@@ -189,6 +192,7 @@ namespace horizon
          */
         void disconnect_all()
         {
+            std::lock_guard<std::mutex> lock(m_mutex);
             m_handlers.clear();
         }
 
@@ -199,7 +203,12 @@ namespace horizon
         void run(EventT &context)
         {
             // We use a copy of the handlers to allow disconnection during execution.
-            auto current_handlers = m_handlers;
+            std::vector<Handler> current_handlers;
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                current_handlers = m_handlers;
+            }
+
             for (auto &handler : current_handlers)
             {
                 if (handler.callback)
@@ -226,6 +235,8 @@ namespace horizon
 
         std::vector<Handler> m_handlers;
         size_t m_next_id{0};
+        mutable std::mutex m_mutex;
     };
 
 } // namespace horizon
+

@@ -39,6 +39,17 @@ namespace horizon
         return get_system_config_path();
     }
 
+    ThemeManager& ThemeManager::instance()
+    {
+        static ThemeManager inst;
+        return inst;
+    }
+
+    ThemeManager* theme_manager()
+    {
+        return &ThemeManager::instance();
+    }
+
     ThemeManager::ThemeManager()
     {
         config_path = get_active_config_path();

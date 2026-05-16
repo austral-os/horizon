@@ -10,7 +10,7 @@ namespace horizon
     void Frame::draw(GraphicsContext &gc)
     {
 
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
 
         int radius = 10;
 

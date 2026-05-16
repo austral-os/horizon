@@ -16,10 +16,10 @@ namespace horizon
     {
         if (m_text.empty())
             return 0;
-        if (!application() || !application()->theme_manager)
+        if (!theme_manager())
             return 0;
 
-        auto theme_font = application()->theme_manager->get_font("window");
+        auto theme_font = theme_manager()->get_font("window");
         int size = (m_font_size > 0) ? m_font_size : theme_font.size;
 
         uint32_t tmp_pixel = 0;
@@ -32,10 +32,10 @@ namespace horizon
 
     int Label::preferred_height() const
     {
-        if (!application() || !application()->theme_manager)
+        if (!theme_manager())
             return 20;
 
-        auto theme_font = application()->theme_manager->get_font("window");
+        auto theme_font = theme_manager()->get_font("window");
         int size = (m_font_size > 0) ? m_font_size : theme_font.size;
         return size + 4;
     }
@@ -45,10 +45,10 @@ namespace horizon
         if (m_text.empty() || width <= 0)
             return 0;
 
-        if (!application() || !application()->theme_manager)
+        if (!theme_manager())
             return 20;
 
-        auto theme_font = application()->theme_manager->get_font("window");
+        auto theme_font = theme_manager()->get_font("window");
         int size = (m_font_size > 0) ? m_font_size : theme_font.size;
         int line_height = size + 4;
 
@@ -72,7 +72,7 @@ namespace horizon
              LOG_ERROR << "[ERROR] Label::draw application is NULL for " << (void*)this;
              return;
         }
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         if (!tm) {
              LOG_ERROR << "[ERROR] Label::draw ThemeManager is NULL";
              return;
@@ -259,7 +259,7 @@ namespace horizon
             return {};
 
         std::vector<std::string> lines;
-        auto theme_font = application()->theme_manager->get_font("window");
+        auto theme_font = theme_manager()->get_font("window");
         int font_size = (m_font_size > 0) ? m_font_size : theme_font.size;
         std::string family = m_font_family.empty() ? theme_font.family : m_font_family;
         const char *font_family = family.c_str();

@@ -25,7 +25,8 @@ namespace horizon
     public:
         using theme_changed_callback = std::function<void()>;
 
-        ThemeManager();
+        static ThemeManager& instance();
+
         ~ThemeManager();
 
         bool load();
@@ -42,6 +43,8 @@ namespace horizon
         EventsManager<ThemeEventContext> when_change;
 
     private:
+        ThemeManager();
+
         std::string config_path;
 
         // scheme_name -> (role -> color)
@@ -71,4 +74,10 @@ namespace horizon
         static Color parse_hex(const std::string &hex);
         static std::string to_hex(const Color &c);
     };
+
+    /**
+     * @brief Global helper to access the system theme.
+     */
+    ThemeManager* theme_manager();
+
 } // namespace horizon

@@ -260,7 +260,7 @@ namespace horizon
         std::vector<LineInfo> lines;
         int current_y = 0;
 
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         auto font = tm->get_font("window");
         int font_size = font.size * 0.8;
         int line_height = font_size + m_line_spacing;
@@ -380,7 +380,7 @@ namespace horizon
 
     void Textarea::draw(GraphicsContext &gc)
     {
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         auto font = tm->get_font("window");
 
         Color bg_color = tm->get_color("textbox_bg");
@@ -549,7 +549,7 @@ namespace horizon
     void Textarea::update_cursor_from_pending_click(const std::vector<LineInfo> &lines,
                                                     GraphicsContext &gc)
     {
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         auto font = tm->get_font("window");
         int font_size = font.size * 0.8;
         int line_height = font_size + m_line_spacing;
@@ -589,7 +589,7 @@ namespace horizon
 
     void Textarea::ensure_cursor_visible(const std::vector<LineInfo> &lines, int visible_height)
     {
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         auto font = tm->get_font("window");
         int font_size = font.size * 0.8;
         int line_height = font_size + m_line_spacing;

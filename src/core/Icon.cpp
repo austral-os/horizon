@@ -203,9 +203,9 @@ namespace horizon
         Color paint_color = m_icon_color;
         bool has_color = m_icon_color.a > 0.001f;
 
-        if (m_use_theme_colors && application() && application()->theme_manager)
+        if (m_use_theme_colors && theme_manager())
         {
-            paint_color = application()->theme_manager->get_color("icon_fg");
+            paint_color = theme_manager()->get_color("icon_fg");
             has_color = true;
         }
 

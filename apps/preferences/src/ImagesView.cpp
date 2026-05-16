@@ -86,8 +86,8 @@ namespace horizon::preferences
 
         if (application())
         {
-            set_background_color(application()->theme_manager->get_color("textbox_bg"));
-            set_border_color(application()->theme_manager->get_color("window_border"));
+            set_background_color(theme_manager()->get_color("textbox_bg"));
+            set_border_color(theme_manager()->get_color("window_border"));
         }
 
         auto scroll = std::make_unique<ScrollArea>();
@@ -237,8 +237,8 @@ namespace horizon::preferences
         horizon::Widget::set_application_recursive(app);
         if (app)
         {
-            set_background_color(app->theme_manager->get_color("textbox_bg"));
-            set_border_color(app->theme_manager->get_color("window_border"));
+            set_background_color(theme_manager()->get_color("textbox_bg"));
+            set_border_color(theme_manager()->get_color("window_border"));
 
             std::lock_guard<std::mutex> lock(m_pending_mutex);
             for (const auto &pending : m_pending_thumbnails)

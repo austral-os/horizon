@@ -44,9 +44,9 @@ namespace horizon
         {
             set_background_color(Color(0.0f, 0.0f, 0.0f, 0.0f));
         }
-        else if (application() && application()->theme_manager)
+        else if (theme_manager())
         {
-            set_background_color(application()->theme_manager->get_color("textbox_bg"));
+            set_background_color(theme_manager()->get_color("textbox_bg"));
         }
         else
         {
@@ -57,9 +57,9 @@ namespace horizon
     void IconViewBase::set_application_recursive(WaylandWindow *app)
     {
         Widget::set_application_recursive(app);
-        if (app && app->theme_manager && !m_transparent)
+        if (theme_manager() && !m_transparent)
         {
-            set_background_color(app->theme_manager->get_color("textbox_bg"));
+            set_background_color(theme_manager()->get_color("textbox_bg"));
         }
     }
 
@@ -110,15 +110,15 @@ namespace horizon
 
     int IconViewBase::get_theme_font_size(const std::string &role) const
     {
-        if (!application() || !application()->theme_manager)
+        if (!theme_manager())
             return 12;
 
-        auto fd = application()->theme_manager->get_font(role);
+        auto fd = theme_manager()->get_font(role);
         if (fd.size > 0)
             return fd.size;
 
         // Fallback to window role
-        fd = application()->theme_manager->get_font("window");
+        fd = theme_manager()->get_font("window");
         if (fd.size > 0)
             return fd.size;
 

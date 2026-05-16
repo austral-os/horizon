@@ -98,10 +98,10 @@ namespace horizon
     void TreeView::set_application_recursive(WaylandWindow *app)
     {
         Widget::set_application_recursive(app);
-        if (app && app->theme_manager)
+        if (theme_manager())
         {
-            set_background_color(app->theme_manager->get_color("textbox_bg"));
-            set_border_color(app->theme_manager->get_color("window_border"));
+            set_background_color(theme_manager()->get_color("textbox_bg"));
+            set_border_color(theme_manager()->get_color("window_border"));
         }
     }
 } // namespace horizon

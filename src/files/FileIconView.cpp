@@ -131,7 +131,7 @@ namespace horizon::files
 
         void draw(GraphicsContext &gc) override
         {
-            auto *tm = application()->theme_manager.get();
+            auto *tm = theme_manager();
 
             if (m_selected)
             {

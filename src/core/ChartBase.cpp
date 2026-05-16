@@ -139,7 +139,7 @@ namespace horizon
     {
         if (!m_show_grid) return;
 
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         ctx.setColor(tm->get_color("window_fg").with_alpha(0.1f));
 
         int num_ticks = 5;
@@ -154,7 +154,7 @@ namespace horizon
     {
         if (!m_show_axes) return;
         
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         auto theme_font = tm->get_font("window");
         
         ctx.setColor(tm->get_color("window_fg").with_alpha(0.6f));
@@ -195,7 +195,7 @@ namespace horizon
     {
         if (!m_show_legend || m_series.empty()) return 0;
 
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         auto theme_font = tm->get_font("window");
         
         m_legend_items.clear();
@@ -241,7 +241,7 @@ namespace horizon
     {
         if (!m_show_tooltip || series_idx < 0 || series_idx >= (int)m_series.size()) return;
         
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         auto theme_font = tm->get_font("window");
         const auto &s = m_series[series_idx];
         

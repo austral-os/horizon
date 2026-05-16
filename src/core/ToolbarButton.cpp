@@ -105,7 +105,7 @@ namespace horizon
 
     void ToolbarButton::draw(GraphicsContext &gc)
     {
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
 
         if (is_enabled() && (m_active || m_is_hovered))
         {

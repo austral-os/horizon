@@ -68,7 +68,7 @@ namespace horizon
         if (m_categories.empty())
             return;
 
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         auto theme_font = tm->get_font("window");
 
         // Calculate total

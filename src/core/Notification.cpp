@@ -125,9 +125,9 @@ namespace horizon
 
     void Notification::draw(GraphicsContext &ctx)
     {
-        if (application() && application()->theme_manager)
+        if (theme_manager())
         {
-            auto *tm = application()->theme_manager.get();
+            auto *tm = theme_manager();
             Color bg = tm->get_color("notification_bg");
             bg.a = 0.8f;
             set_background_color(bg);

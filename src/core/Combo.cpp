@@ -169,7 +169,7 @@ namespace horizon
         // 1. Draw the base AirObject appearance
         AirObject::draw(gc);
 
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         auto theme_font = tm->get_font("window");
 
         // 2. Draw selected item text/icon

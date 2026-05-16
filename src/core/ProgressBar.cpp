@@ -72,7 +72,7 @@ namespace horizon
 
     void ProgressBar::draw(GraphicsContext &gc)
     {
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         Color bg = tm->get_color("window_bg");
 
         // Resolve accent colors

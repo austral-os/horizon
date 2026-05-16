@@ -74,7 +74,7 @@ namespace horizon
     {
         bool selected = m_selected;
 
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         Color sidebar_item_fg = tm->get_color("sidebar_item_fg");
         Color sidebar_item_fg2 = tm->get_color("sidebar_item_fg2");
 

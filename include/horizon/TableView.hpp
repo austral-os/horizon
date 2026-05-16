@@ -242,7 +242,7 @@ namespace horizon
 
             if (should_draw)
             {
-                auto *tm = application()->theme_manager.get();
+                auto *tm = theme_manager();
                 Color border_color = tm->get_color("window_border");
                 gc.setColor(border_color);
                 gc.drawRect(m_x, m_y, m_width, m_height, 0);
@@ -255,7 +255,7 @@ namespace horizon
     protected:
         void draw(GraphicsContext &gc) override
         {
-            auto *tm = application()->theme_manager.get();
+            auto *tm = theme_manager();
             Color bg_color = tm->get_color("table_row");
 
             // Table background (Square)

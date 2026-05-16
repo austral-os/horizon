@@ -20,9 +20,9 @@ namespace horizon
             int mid_y = m_start_draw_y + m_height / 2;
             Color line_color(0.85f, 0.85f, 0.85f, 1.0f); // Light gray line
 
-            if (application() && application()->theme_manager)
+            if (theme_manager())
             {
-                line_color = application()->theme_manager->get_color("menu_separator");
+                line_color = theme_manager()->get_color("menu_separator");
             }
 
             gc.setColor(line_color);

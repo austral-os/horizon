@@ -109,9 +109,7 @@ namespace horizon
             m_compositor_context = std::make_unique<LabwcCompositorContext>(this);
         }
 
-        theme_manager = std::make_unique<ThemeManager>();
-
-        theme_manager->when_change.connect(
+        theme_manager()->when_change.connect(
             [this](ThemeEventContext &p)
             {
                 LOG_INFO << "Theme changed";

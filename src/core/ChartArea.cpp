@@ -231,7 +231,7 @@ namespace horizon
             int tx = plot_x + (m_hovered_data_idx * plot_w / (num_points - 1));
             
             // Vertical indicator line
-            ctx.setColor(application()->theme_manager->get_color("window_fg").with_alpha(0.2f));
+            ctx.setColor(theme_manager()->get_color("window_fg").with_alpha(0.2f));
             ctx.drawLine(tx, plot_y, tx, plot_y + plot_h, 1.0f);
             
             // Draw indicators on each series

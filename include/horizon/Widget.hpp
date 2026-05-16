@@ -3,6 +3,7 @@
 #include "horizon/ClipboardProvider.hpp"
 #include "horizon/Color.hpp"
 #include "horizon/EventsManager.hpp"
+#include "horizon/ThemeManager.hpp"
 #include <chrono>
 #include <map>
 #include <memory>

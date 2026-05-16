@@ -31,7 +31,7 @@ namespace horizon
     void Statusbar::draw(GraphicsContext &gc)
     {
         // Dibujarmos una barra de titulo como la de mac os mountain lion.
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
 
         set_background_colors(tm->get_color("titlebar_bg1"), tm->get_color("titlebar_bg2"));
         set_border_color(tm->get_color("titlebar_border"));

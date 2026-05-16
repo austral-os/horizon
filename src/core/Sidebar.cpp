@@ -190,7 +190,7 @@ namespace horizon
 
     void Sidebar::draw(GraphicsContext &gc)
     {
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
 
         Color bg_color = tm->get_color("sidebar_bg");
         Color border_color = tm->get_color("sidebar_border");

@@ -39,7 +39,7 @@ namespace horizon
     protected:
         void draw(GraphicsContext &gc) override
         {
-            auto *tm = application()->theme_manager.get();
+            auto *tm = theme_manager();
             Color bg;
             Color fg;
 

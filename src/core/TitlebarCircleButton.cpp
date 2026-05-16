@@ -16,7 +16,7 @@ namespace horizon
     {
         // std::cout << "TitlebarCircleButton::draw" << std::endl;
 
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         auto variant = tm->get_variant();
 
         Color border = variant == "dark" ? tm->get_color("titlebar_border").darker(20.0f)

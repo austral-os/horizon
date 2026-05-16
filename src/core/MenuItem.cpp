@@ -166,10 +166,10 @@ namespace horizon
 
     int MenuItem::preferred_width() const
     {
-        if (!application() || !application()->theme_manager)
+        if (!theme_manager())
             return 200; // Fallback
 
-        auto font = application()->theme_manager->get_font("window");
+        auto font = theme_manager()->get_font("window");
 
         // Create a temporary context just for measuring text (4 bytes for 1x1 ARGB pixel)
         uint32_t tmp_pixel = 0;
@@ -216,9 +216,9 @@ namespace horizon
 
         // Calculate dynamic shortcut width
         int shortcut_width = 0;
-        if (!m_shortcut_text.empty() && application() && application()->theme_manager)
+        if (!m_shortcut_text.empty() && theme_manager())
         {
-            auto font = application()->theme_manager->get_font("window");
+            auto font = theme_manager()->get_font("window");
             uint32_t tmp_pixel = 0;
             CairoGraphicContext measure_ctx(nullptr, &tmp_pixel, 1, 1);
             auto metrics =
@@ -278,13 +278,13 @@ namespace horizon
         Color item_fg(0.0f, 0.0f, 0.0f, 1.0f);
         Color shortcut_fg(0.4f, 0.4f, 0.4f, 1.0f);
 
-        if (application() && application()->theme_manager)
+        if (theme_manager())
         {
-            sel_bg1 = application()->theme_manager->get_color("menu_item_selected_bg1");
-            sel_bg2 = application()->theme_manager->get_color("menu_item_selected_bg2");
-            sel_fg = application()->theme_manager->get_color("menu_item_selected_fg");
-            item_fg = application()->theme_manager->get_color("menu_item_fg");
-            shortcut_fg = application()->theme_manager->get_color("menu_item_shortcut_fg");
+            sel_bg1 = theme_manager()->get_color("menu_item_selected_bg1");
+            sel_bg2 = theme_manager()->get_color("menu_item_selected_bg2");
+            sel_fg = theme_manager()->get_color("menu_item_selected_fg");
+            item_fg = theme_manager()->get_color("menu_item_fg");
+            shortcut_fg = theme_manager()->get_color("menu_item_shortcut_fg");
         }
 
         if (m_selected)

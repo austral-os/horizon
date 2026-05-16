@@ -132,7 +132,7 @@ namespace horizon
     void VPanel::draw(GraphicsContext &gc)
     {
 
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
 
         Color bg_color = tm->get_color("window_bg");
 

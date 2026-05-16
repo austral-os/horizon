@@ -54,7 +54,7 @@ namespace horizon
 
     void LoadingBar::draw(GraphicsContext &gc)
     {
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
 
         // Classic Mac OS X "Tiger" blue colors (revised for even lighter light parts)
         Color c1 = Color(0.65f, 0.85f, 1.0f); // Very light blue (almost white)

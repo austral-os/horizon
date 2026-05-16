@@ -77,7 +77,7 @@ namespace horizon
         if (m_points.empty())
             return;
 
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
 
         Color window_bg = tm->get_color("window_bg");
         Color c1 = tm->get_color("default1");

@@ -62,9 +62,9 @@ namespace horizon
     {
         CornerRadius corners = get_window_corners();
 
-        Color bg = application()->theme_manager->get_color("window_bg");
-        Color bg2 = application()->theme_manager->get_color("window_bg_alt");
-        Color brd = application()->theme_manager->get_color("window_border");
+        Color bg = theme_manager()->get_color("window_bg");
+        Color bg2 = theme_manager()->get_color("window_bg_alt");
+        Color brd = theme_manager()->get_color("window_border");
 
         if (m_draw_background)
         {

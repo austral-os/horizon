@@ -185,7 +185,7 @@ namespace horizon
 
         // Draw image or icon
         if (m_selected_avatar.empty() || m_selected_avatar == "avatar-default") {
-            if (application() && application()->theme_manager) {
+            if (theme_manager()) {
                 std::string path = IconThemeLookup::find_icon("user-identity", size);
                 if (path.empty()) path = IconThemeLookup::find_icon("avatar-default", size);
                 

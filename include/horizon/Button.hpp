@@ -48,7 +48,7 @@ namespace horizon
 
         void draw(GraphicsContext &gc) override
         {
-            auto *tm = T::application()->theme_manager.get();
+            auto *tm = theme_manager();
             auto theme_font = tm->get_font("window");
 
             std::string family = theme_font.family;

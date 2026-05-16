@@ -58,7 +58,7 @@ namespace horizon
     void TabCollection::TabButton::draw(GraphicsContext &ctx)
     {
 
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
 
         Color c1 = tm->get_color("tab_button_1");
         Color c2 = tm->get_color("tab_button_2");
@@ -124,7 +124,7 @@ namespace horizon
 
     int TabCollection::TabButton::preferred_width() const
     {
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         auto font = tm->get_font("window");
         // Get text width from application's graphics context or a temporary one
         // For now, let's assume a reasonable width or provide a way to calculate it
@@ -320,7 +320,7 @@ namespace horizon
     void TabCollection::draw(GraphicsContext &ctx)
     {
 
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
 
         Color c1 = tm->get_color("tab_header_1");
         Color c2 = tm->get_color("tab_header_2");

@@ -33,7 +33,7 @@ namespace horizon
     void Panel::draw(GraphicsContext &gc)
     {
 
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
 
         m_bg1 = tm->get_color("panel_bg1");
         m_bg2 = tm->get_color("panel_bg2");

@@ -74,7 +74,7 @@ namespace horizon::installer
         {
             if (m_selected)
             {
-                auto *tm = application()->theme_manager.get();
+                auto *tm = theme_manager();
                 Color bg = tm->get_color("table_row_selected");
                 Color hbg = bg;
                 hbg.a = 0.3f; // Subtler selection

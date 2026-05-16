@@ -48,7 +48,7 @@ namespace horizon
 
             Widget::draw(gc);
 
-            auto *tm = this->application()->theme_manager.get();
+            auto *tm = theme_manager();
             Color window_fg = tm->get_color("window_fg");
 
             int marker_size = 22;

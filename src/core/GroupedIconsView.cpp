@@ -131,7 +131,7 @@ namespace horizon
 
     void GroupSeparator::draw(GraphicsContext &gc)
     {
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
 
         Color c1 = tm->get_color("group_separator");
 
@@ -154,9 +154,9 @@ namespace horizon
     void GroupContainer::draw(GraphicsContext &gc)
     {
         Color bg = background_color();
-        if (bg.a < 0.001f && application() && application()->theme_manager)
+        if (bg.a < 0.001f && theme_manager())
         {
-            auto *tm = application()->theme_manager.get();
+            auto *tm = theme_manager();
             Color theme_bg = (m_index % 2 == 0) ? tm->get_color("group_alt_1") : tm->get_color("group_alt_2");
             if (theme_bg.a > 0.001f)
             {
@@ -208,9 +208,9 @@ namespace horizon
     void GroupedIconsView::draw(GraphicsContext &gc)
     {
         Color bg = background_color();
-        if (bg.a < 0.001f && application() && application()->theme_manager)
+        if (bg.a < 0.001f && theme_manager())
         {
-            auto *tm = application()->theme_manager.get();
+            auto *tm = theme_manager();
             Color theme_bg = tm->get_color("window_bg");
             if (theme_bg.a > 0.001f)
             {

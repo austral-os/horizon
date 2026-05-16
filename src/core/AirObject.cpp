@@ -55,7 +55,7 @@ namespace horizon
 
     void AirObject::draw(GraphicsContext &gc)
     {
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
 
         Color c1 = tm->get_color("air_default1");
         Color c2 = tm->get_color("air_default2");

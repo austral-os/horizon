@@ -98,7 +98,7 @@ namespace horizon
             // Update text color for label and disclosure icon
             if (m_selected) {
                 if (auto *app = application()) {
-                    auto *tm = app->theme_manager.get();
+                    auto *tm = theme_manager();
                     Color fg = tm->get_color("table_row_selected_fg");
                     if (m_label) m_label->set_text_color(fg);
                     if (m_disclosure_icon) m_disclosure_icon->set_icon_color(fg);
@@ -106,7 +106,7 @@ namespace horizon
             } else {
                 Color fg = Color(0.0f, 0.0f, 0.0f, 1.0f); // Default fallback
                 if (auto *app = application()) {
-                    if (auto *tm = app->theme_manager.get()) {
+                    if (auto *tm = theme_manager()) {
                         fg = tm->get_color("window_fg");
                     }
                 }
@@ -211,8 +211,8 @@ namespace horizon
         Widget::set_application_recursive(app);
         if (!m_selected) {
             Color fg = Color(0.0f, 0.0f, 0.0f, 1.0f);
-            if (app && app->theme_manager) {
-                fg = app->theme_manager->get_color("window_fg");
+            if (theme_manager()) {
+                fg = theme_manager()->get_color("window_fg");
             }
             if (m_label) m_label->set_text_color(fg);
             if (m_disclosure_icon) m_disclosure_icon->set_icon_color(fg);

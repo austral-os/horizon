@@ -74,7 +74,7 @@ namespace horizon
 
     void Toolbar::draw(GraphicsContext &gc)
     {
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         Color title_brd = tm->get_color("titlebar_border");
         Color title_bg1 = tm->get_color("titlebar_bg1");
         Color title_bg2 = tm->get_color("titlebar_bg2");

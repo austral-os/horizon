@@ -343,9 +343,9 @@ namespace horizon
         Color bg2 = bg_color;
         Color border_color(0.7f, 0.7f, 0.7f, 0.8f);
 
-        if (application() && application()->theme_manager)
+        if (theme_manager())
         {
-            auto *tm = application()->theme_manager.get();
+            auto *tm = theme_manager();
             bg_color = tm->get_color("menu_bg");
             bg1 = tm->get_color("menu_bg1");
             bg2 = tm->get_color("menu_bg2");

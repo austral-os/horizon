@@ -181,7 +181,7 @@ namespace horizon
 
     void TextBoxBase::draw(GraphicsContext &gc)
     {
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         auto theme_font = tm->get_font("window");
         std::string family = m_font_family.empty() ? theme_font.family : m_font_family;
 

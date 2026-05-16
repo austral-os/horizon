@@ -55,7 +55,7 @@ namespace horizon
     void SolidObject::draw(GraphicsContext &gc)
     {
 
-        auto *tm = application()->theme_manager.get();
+        auto *tm = theme_manager();
         auto font = tm->get_font("window");
 
         Color window_bg = tm->get_color("window_bg");

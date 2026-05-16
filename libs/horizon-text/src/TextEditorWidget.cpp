@@ -66,7 +66,7 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
     if (!cr) return;
 
     if (!application()) return;
-    auto* tm = application()->theme_manager.get();
+    auto* tm = theme_manager();
 
     // 1. Snapshot: Acquire lock and copy all necessary data for consistent drawing
     std::u32string u32_text;

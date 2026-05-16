@@ -80,8 +80,6 @@ namespace horizon
             CAPSLOCK = (1 << 3)
         };
 
-        std::unique_ptr<ThemeManager> theme_manager;
-
         EventsManager<AppEventContext> when_activated;
         EventsManager<AppEventContext> when_deactivated;
         EventsManager<AppEventContext> when_close;
