@@ -1,5 +1,5 @@
-#include <horizon/I18n.hpp>
 #include <horizon/Frame.hpp>
+#include <horizon/I18n.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Spacer.hpp>
 #include <utils/ConfigUtils.hpp>
@@ -39,9 +39,10 @@ namespace horizon::preferences
         auto appearance_row = std::make_unique<Widget>();
         appearance_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         appearance_row->set_spacing(20);
-        appearance_row->set_fixed_size(180);
+        appearance_row->set_fixed_size(120);
 
-        auto appearance_label = std::make_unique<Label>(i18n().tr("preferences.appearance.title") + ":");
+        auto appearance_label =
+            std::make_unique<Label>(i18n().tr("preferences.appearance.title") + ":");
         appearance_label->set_fixed_size(150);
         appearance_row->add_child(std::move(appearance_label));
 
@@ -50,13 +51,13 @@ namespace horizon::preferences
         light_box->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         light_box->set_spacing(10);
         light_box->set_margin(10);
-        light_box->set_width(120);
+        light_box->set_width(100);
         light_box->set_border_radius(8);
         light_box->set_cursor_type(CursorType::Pointer);
-        
+
         auto light_icon = std::make_unique<Icon>();
         light_icon->set_icon_name("theme-variant-light");
-        light_icon->set_icon_size(100);
+        light_icon->set_icon_size(80);
         light_icon->set_position_type(WidgetPositionTypes::FILL);
         light_box->add_child(std::move(light_icon));
 
@@ -65,11 +66,13 @@ namespace horizon::preferences
         light_label->set_fixed_size(20);
         light_box->add_child(std::move(light_label));
 
-        light_box->when_click.connect([this](MouseButtonEventContext &) {
-            m_variant = "light";
-            save_config();
-            update_selection_visuals();
-        });
+        light_box->when_click.connect(
+            [this](MouseButtonEventContext &)
+            {
+                m_variant = "light";
+                save_config();
+                update_selection_visuals();
+            });
         m_light_box = light_box.get();
         appearance_row->add_child(std::move(light_box));
 
@@ -78,13 +81,13 @@ namespace horizon::preferences
         dark_box->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         dark_box->set_spacing(10);
         dark_box->set_margin(10);
-        dark_box->set_width(120);
+        dark_box->set_width(100);
         dark_box->set_border_radius(8);
         dark_box->set_cursor_type(CursorType::Pointer);
 
         auto dark_icon = std::make_unique<Icon>();
         dark_icon->set_icon_name("theme-variant-dark");
-        dark_icon->set_icon_size(100);
+        dark_icon->set_icon_size(80);
         dark_icon->set_position_type(WidgetPositionTypes::FILL);
         dark_box->add_child(std::move(dark_icon));
 
@@ -93,34 +96,41 @@ namespace horizon::preferences
         dark_label->set_fixed_size(20);
         dark_box->add_child(std::move(dark_label));
 
-        dark_box->when_click.connect([this](MouseButtonEventContext &) {
-            m_variant = "dark";
-            save_config();
-            update_selection_visuals();
-        });
+        dark_box->when_click.connect(
+            [this](MouseButtonEventContext &)
+            {
+                m_variant = "dark";
+                save_config();
+                update_selection_visuals();
+            });
         m_dark_box = dark_box.get();
         appearance_row->add_child(std::move(dark_box));
 
         add_child(std::move(appearance_row));
-        
+
         update_selection_visuals();
     }
 
     void AppearanceView::update_selection_visuals()
     {
-        if (m_light_box) {
+        if (m_light_box)
+        {
             m_light_box->set_border_width(m_variant == "light" ? 3 : 1);
-            m_light_box->set_border_color(m_variant == "light" ? Color(0.12f, 0.3f, 0.88f) : Color(0.5f, 0.5f, 0.5f, 0.3f));
+            m_light_box->set_border_color(m_variant == "light" ? Color(0.12f, 0.3f, 0.88f)
+                                                               : Color(0.5f, 0.5f, 0.5f, 0.3f));
         }
-        if (m_dark_box) {
+        if (m_dark_box)
+        {
             m_dark_box->set_border_width(m_variant == "dark" ? 3 : 1);
-            m_dark_box->set_border_color(m_variant == "dark" ? Color(0.12f, 0.3f, 0.88f) : Color(0.5f, 0.5f, 0.5f, 0.3f));
+            m_dark_box->set_border_color(m_variant == "dark" ? Color(0.12f, 0.3f, 0.88f)
+                                                             : Color(0.5f, 0.5f, 0.5f, 0.3f));
         }
     }
 
     void AppearanceView::from_json(const nlohmann::json &j)
     {
-        if (j.is_string()) {
+        if (j.is_string())
+        {
             m_variant = j.get<std::string>();
         }
     }
@@ -132,7 +142,8 @@ namespace horizon::preferences
 
     void AppearanceView::save_config()
     {
-        if (m_is_loading) return;
+        if (m_is_loading)
+            return;
         m_config->set_section("variant", to_json());
         m_config->save();
     }

@@ -141,7 +141,7 @@ namespace horizon
 
     int GroupSeparator::preferred_height(int width) const
     {
-        return 10;
+        return 1;
     }
 
     // --- GroupContainer ---
@@ -197,6 +197,8 @@ namespace horizon
         auto content_pane = std::make_unique<Widget>();
         content_pane->set_position_type(FREE);
         content_pane->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        content_pane->set_margin(0);
+        content_pane->set_spacing(0);
         m_content_pane = content_pane.get();
 
         m_scroll_area->set_content(std::move(content_pane));
@@ -251,8 +253,8 @@ namespace horizon
 
             auto group_container = std::make_unique<GroupContainer>();
             group_container->set_index((int)i);
-            group_container->set_margin(15);
-            group_container->set_spacing(10);
+            group_container->set_margin(8);
+            group_container->set_spacing(8);
 
             if (m_has_alt_colors)
             {
@@ -263,7 +265,7 @@ namespace horizon
             auto header = std::make_unique<Label>(group.title);
             header->set_font_weight(FONT_WEIGHT_BOLD);
             header->set_font_size(14);
-            header->set_margin(5);
+            header->set_margin(0);
             group_container->add_child(std::move(header));
 
             // Grid
@@ -274,13 +276,13 @@ namespace horizon
             }
             group_container->add_child(std::move(grid));
 
+            m_content_pane->add_child(std::move(group_container));
+
             // Separator (except for the last group)
             if (i < m_groups.size() - 1 && !m_has_alt_colors)
             {
-                group_container->add_child(std::make_unique<GroupSeparator>());
+                m_content_pane->add_child(std::make_unique<GroupSeparator>());
             }
-
-            m_content_pane->add_child(std::move(group_container));
         }
 
         invalidate();
@@ -306,7 +308,7 @@ namespace horizon
 
             for (auto &child : m_content_pane->children())
             {
-                // Recursively update fixed sizes for the group container and its sub-widgets
+                // Recursively update fixed sizes for children
                 auto gc = dynamic_cast<GroupContainer *>(child.get());
                 if (gc)
                 {
@@ -314,7 +316,11 @@ namespace horizon
                     {
                         sub->set_fixed_size(sub->preferred_height(avail_width));
                     }
-                    gc->set_fixed_size(gc->preferred_height(avail_width));
+                    child->set_fixed_size(gc->preferred_height(avail_width));
+                }
+                else
+                {
+                    child->set_fixed_size(child->preferred_height(avail_width));
                 }
                 total_height += child->fixed_size() + m_content_pane->spacing();
             }
