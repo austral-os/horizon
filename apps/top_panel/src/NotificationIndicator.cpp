@@ -13,6 +13,7 @@ namespace horizon
         icon->set_icon_name("notification-symbolic");
         m_icon = icon.get();
         m_icon->set_fixed_size(20);
+        m_icon->set_use_theme_colors(true);
         m_icon->set_vertical_alignment(VerticalAlignment::Middle);
         add_child(std::move(icon));
 

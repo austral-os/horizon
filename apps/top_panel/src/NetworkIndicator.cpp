@@ -12,6 +12,7 @@ NetworkIndicator::NetworkIndicator() : ITopPanelWidget()
     auto icon = std::make_unique<Icon>();
     m_icon = icon.get();
     m_icon->set_icon_size(24);
+    m_icon->set_use_theme_colors(true);
 
     {
         std::lock_guard<std::mutex> lock(m_state_mutex);

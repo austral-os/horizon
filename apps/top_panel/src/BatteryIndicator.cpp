@@ -19,7 +19,7 @@ BatteryIndicator::BatteryIndicator() : ITopPanelWidget()
     m_icon->set_icon_size(20);
     m_icon->set_fixed_size(24);
     m_icon->set_vertical_alignment(VerticalAlignment::Middle);
-    m_icon->set_icon_color(Color(0.2f, 0.2f, 0.2f, 1.0f)); // Emerald green for battery
+    m_icon->set_use_theme_colors(true);
     add_child(std::move(icon));
 
     // Label for percentage
