@@ -1,6 +1,8 @@
 #include "horizon/Icon.hpp"
 #include "horizon/IconThemeLookup.hpp"
 #include <horizon/Logger.hpp>
+#include <horizon/WaylandWindow.hpp>
+#include <horizon/ThemeManager.hpp>
 
 namespace horizon
 {
@@ -155,6 +157,20 @@ namespace horizon
         return m_icon_color;
     }
 
+    void Icon::set_use_theme_colors(bool use)
+    {
+        if (m_use_theme_colors == use)
+            return;
+
+        m_use_theme_colors = use;
+        invalidate();
+    }
+
+    bool Icon::use_theme_colors() const
+    {
+        return m_use_theme_colors;
+    }
+
     void Icon::draw(GraphicsContext &ctx)
     {
         if (m_resolved_path.empty())
@@ -184,9 +200,18 @@ namespace horizon
         }
 
         float alpha = m_opacity * (is_enabled() ? 1.0f : 0.4f);
-        if (m_icon_color.a > 0.001f)
+        Color paint_color = m_icon_color;
+        bool has_color = m_icon_color.a > 0.001f;
+
+        if (m_use_theme_colors && application() && application()->theme_manager)
         {
-            ctx.drawImage(m_resolved_path, icon_x, icon_y, draw_size, draw_size, m_icon_color, alpha);
+            paint_color = application()->theme_manager->get_color("icon_fg");
+            has_color = true;
+        }
+
+        if (has_color)
+        {
+            ctx.drawImage(m_resolved_path, icon_x, icon_y, draw_size, draw_size, paint_color, alpha);
         }
         else
         {

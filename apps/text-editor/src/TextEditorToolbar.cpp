@@ -1,9 +1,9 @@
 #include "TextEditorToolbar.hpp"
 #include <horizon/GroupButton.hpp>
-#include <horizon/Icon.hpp>
-#include <horizon/Spacer.hpp>
 #include <horizon/I18n.hpp>
+#include <horizon/Icon.hpp>
 #include <horizon/Notification.hpp>
+#include <horizon/Spacer.hpp>
 #include <memory>
 
 namespace horizon
@@ -23,6 +23,7 @@ namespace horizon
                 auto icon = std::make_unique<horizon::Icon>();
                 icon->set_icon_name(name);
                 icon->set_icon_size(16);
+                icon->set_use_theme_colors(true);
                 if (!tr_key.empty())
                 {
                     auto tooltip = std::make_unique<horizon::Notification>();
@@ -80,8 +81,10 @@ namespace horizon
             m_settings_group = settings_group.get();
             m_settings_group->set_fixed_size(100);
 
-            m_settings_group->add_item(create_icon("view-fullscreen", "text_editor.toolbar.fullscreen"));
-            m_settings_group->add_item(create_icon("emblem-system", "text_editor.toolbar.preferences"));
+            m_settings_group->add_item(
+                create_icon("view-fullscreen", "text_editor.toolbar.fullscreen"));
+            m_settings_group->add_item(
+                create_icon("emblem-system", "text_editor.toolbar.preferences"));
 
             m_settings_group->when_button_clicked.connect(
                 [this](horizon::GroupButtonClickEvent &ctx)

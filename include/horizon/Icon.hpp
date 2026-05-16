@@ -73,6 +73,13 @@ namespace horizon
         void set_icon_color(Color color);
         Color icon_color() const;
 
+        /**
+         * @brief Enable or disable the use of theme-specific colors for the icon.
+         * If enabled, the icon will be tinted with the "icon_fg" color from the theme.
+         */
+        void set_use_theme_colors(bool use);
+        bool use_theme_colors() const;
+
     protected:
         void draw(GraphicsContext &ctx) override;
 
@@ -84,6 +91,7 @@ namespace horizon
         std::string m_resolved_path;
         float m_opacity{1.0f};
         Color m_icon_color{0.0f, 0.0f, 0.0f, 0.0f};
+        bool m_use_theme_colors{false};
 
         void resolve_icon();
     };

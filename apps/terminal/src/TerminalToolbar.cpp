@@ -1,9 +1,9 @@
 #include "TerminalToolbar.hpp"
-#include <memory>
 #include <horizon/GroupButton.hpp>
+#include <horizon/I18n.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Spacer.hpp>
-#include <horizon/I18n.hpp>
+#include <memory>
 
 namespace horizon::terminal
 {
@@ -23,6 +23,7 @@ namespace horizon::terminal
         auto add_icon = std::make_unique<horizon::Icon>();
         add_icon->set_icon_name("list-add");
         add_icon->set_icon_size(16);
+        add_icon->set_use_theme_colors(true);
         m_new_tab_group->add_item(std::move(add_icon));
 
         m_new_tab_group->when_button_clicked.connect(
@@ -45,11 +46,13 @@ namespace horizon::terminal
         auto fullscreen_icon = std::make_unique<horizon::Icon>();
         fullscreen_icon->set_icon_name("view-fullscreen");
         fullscreen_icon->set_icon_size(16);
+        fullscreen_icon->set_use_theme_colors(true);
         m_settings_group->add_item(std::move(fullscreen_icon));
 
         auto preferences_icon = std::make_unique<horizon::Icon>();
         preferences_icon->set_icon_name("emblem-system");
         preferences_icon->set_icon_size(16);
+        preferences_icon->set_use_theme_colors(true);
         m_settings_group->add_item(std::move(preferences_icon));
 
         m_settings_group->when_button_clicked.connect(
