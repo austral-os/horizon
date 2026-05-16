@@ -22,6 +22,7 @@ namespace horizon
 
         void calculate_layout() override;
         void draw(GraphicsContext &gc) override;
+        void set_application_recursive(WaylandWindow *app) override;
 
         EventsManager<TreeViewItem *> when_item_selected;
 

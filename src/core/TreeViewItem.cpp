@@ -95,15 +95,23 @@ namespace horizon
         {
             m_selected = selected;
             
-            // Update text color for label
+            // Update text color for label and disclosure icon
             if (m_selected) {
                 if (auto *app = application()) {
                     auto *tm = app->theme_manager.get();
                     Color fg = tm->get_color("table_row_selected_fg");
                     if (m_label) m_label->set_text_color(fg);
+                    if (m_disclosure_icon) m_disclosure_icon->set_icon_color(fg);
                 }
             } else {
-                if (m_label) m_label->set_text_color(Color(0.0f, 0.0f, 0.0f, 1.0f)); // Default black for now or use theme
+                Color fg = Color(0.0f, 0.0f, 0.0f, 1.0f); // Default fallback
+                if (auto *app = application()) {
+                    if (auto *tm = app->theme_manager.get()) {
+                        fg = tm->get_color("window_fg");
+                    }
+                }
+                if (m_label) m_label->set_text_color(fg);
+                if (m_disclosure_icon) m_disclosure_icon->set_icon_color(fg);
             }
             
             invalidate();
@@ -196,6 +204,19 @@ namespace horizon
     {
         if (!m_visible || !m_enabled) return nullptr;
         return Widget::hit_test(x, y);
+    }
+
+    void TreeViewItem::set_application_recursive(WaylandWindow *app)
+    {
+        Widget::set_application_recursive(app);
+        if (!m_selected) {
+            Color fg = Color(0.0f, 0.0f, 0.0f, 1.0f);
+            if (app && app->theme_manager) {
+                fg = app->theme_manager->get_color("window_fg");
+            }
+            if (m_label) m_label->set_text_color(fg);
+            if (m_disclosure_icon) m_disclosure_icon->set_icon_color(fg);
+        }
     }
 
     int TreeViewItem::total_height() const
