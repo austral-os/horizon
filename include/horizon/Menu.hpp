@@ -65,6 +65,11 @@ namespace horizon
         {
             return m_max_width;
         }
+        
+        void set_bottom_alpha(float alpha)
+        {
+            m_bottom_alpha = alpha;
+        }
 
         void set_max_menu_height(int max_height)
         {
@@ -116,6 +121,7 @@ namespace horizon
         std::string m_id;
         bool m_bold = false;
         std::string m_icon_name;
+        float m_bottom_alpha = 0.8f;
     };
 
 } // namespace horizon

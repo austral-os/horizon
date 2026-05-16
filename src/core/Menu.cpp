@@ -339,21 +339,28 @@ namespace horizon
         CornerRadius radius(0, 0, 10, 10);
 
         Color bg_color = background_color();
+        Color bg1 = bg_color;
+        Color bg2 = bg_color;
         Color border_color(0.7f, 0.7f, 0.7f, 0.8f);
 
         if (application() && application()->theme_manager)
         {
-            bg_color = application()->theme_manager->get_color("menu_bg");
-            border_color = application()->theme_manager->get_color("menu_border");
+            auto *tm = application()->theme_manager.get();
+            bg_color = tm->get_color("menu_bg");
+            bg1 = tm->get_color("menu_bg1");
+            bg2 = tm->get_color("menu_bg2");
+            border_color = tm->get_color("menu_border");
         }
+
+        bg1.a *= m_bottom_alpha;
 
         // Shadow/Border
         gc.setColor(border_color);
         gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height, radius, 1.0f);
 
-        // Fill background
-        gc.setColor(bg_color);
-        gc.fillRect(m_start_draw_x + 1, m_start_draw_y + 1, m_width - 2, m_height - 2, radius);
+        // Fill background with gradient
+        gc.fillLinearGradientRect(m_start_draw_x + 1, m_start_draw_y + 1, m_width - 2, m_height - 2,
+                                  bg2, bg1, true, radius);
     }
 
 } // namespace horizon
