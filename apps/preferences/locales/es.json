@@ -33,7 +33,12 @@
         },
         "toolbar": {
             "show_all": "Mostrar todo",
-            "search_placeholder": "Buscar en ajustes"
+            "search_placeholder": "Buscar en los ajustes"
+        },
+        "appearance": {
+            "title": "Apariencia",
+            "light": "Claro",
+            "dark": "Oscuro"
         },
         "applications": {
             "tabs": {

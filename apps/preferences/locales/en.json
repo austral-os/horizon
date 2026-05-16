@@ -35,6 +35,11 @@
             "show_all": "Show All",
             "search_placeholder": "Search in settings"
         },
+        "appearance": {
+            "title": "Appearance",
+            "light": "Light",
+            "dark": "Dark"
+        },
         "applications": {
             "tabs": {
                 "startup": "Startup",
