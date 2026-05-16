@@ -25,7 +25,7 @@ horizon_install_app(text-editor
     NAME "Text Editor"
     COMMENT "Standard text editor"
     ICON "text-editor"
-    VERSION "0.1.0"
+    VERSION "0.1.1"
     CATEGORIES "Utility;TextEditor;"
     MIMETYPE "text/plain;text/markdown;application/x-zerosize;"
     EXEC_ARGS "%F"

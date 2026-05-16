@@ -90,7 +90,8 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
     }
     
     // 2. Clear background
-    gc.setColor(1.0, 1.0, 1.0, 1.0);
+    Color bg_color = tm->get_color("textbox_bg");
+    gc.setColor(bg_color.r, bg_color.g, bg_color.b, bg_color.a);
     gc.fillRect(m_x, m_y, m_width, m_height);
 
     // 3. Setup Pango Layout via unified helper
@@ -177,16 +178,20 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
     }
 
     // 6. Draw the actual text
-    cairo_set_source_rgb(cr, 0.1, 0.1, 0.1);
+    Color fg_color = tm->get_color("window_fg");
+    cairo_set_source_rgba(cr, fg_color.r, fg_color.g, fg_color.b, fg_color.a);
     cairo_move_to(cr, tx, ty);
     pango_cairo_show_layout(cr, m_layout);
 
     // 6. Draw Margin Background & Line Numbers
     if (m_show_line_numbers) {
-        cairo_set_source_rgb(cr, 0.96, 0.96, 0.96);
+        Color margin_bg = tm->get_color("window_bg");
+        cairo_set_source_rgba(cr, margin_bg.r, margin_bg.g, margin_bg.b, margin_bg.a);
         cairo_rectangle(cr, m_x, m_y, m_line_number_margin, m_height);
         cairo_fill(cr);
-        cairo_set_source_rgb(cr, 0.8, 0.8, 0.8);
+
+        Color margin_border = tm->get_color("group_separator");
+        cairo_set_source_rgba(cr, margin_border.r, margin_border.g, margin_border.b, margin_border.a);
         cairo_move_to(cr, m_x + m_line_number_margin, m_y);
         cairo_line_to(cr, m_x + m_line_number_margin, m_y + m_height);
         cairo_stroke(cr);
@@ -231,7 +236,8 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
                 pango_layout_set_text(num_layout, num_str.c_str(), -1);
                 int nw, nh;
                 pango_layout_get_pixel_size(num_layout, &nw, &nh);
-                cairo_set_source_rgb(cr, 0.5, 0.5, 0.5);
+                Color num_fg = fg_color.with_alpha(0.5);
+                cairo_set_source_rgba(cr, num_fg.r, num_fg.g, num_fg.b, num_fg.a);
                 cairo_move_to(cr, m_x + m_line_number_margin - nw - 5, ly + (PANGO_PIXELS(line_rect.height) - nh) / 2);
                 pango_cairo_show_layout(cr, num_layout);
             }
@@ -244,7 +250,8 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
 
     // 6. Draw Cursor
     if (has_focus() && m_cursor_visible) {
-        cairo_set_source_rgb(cr, 0.1, 0.1, 0.1);
+        Color cursor_color = tm->get_color("window_fg");
+        cairo_set_source_rgba(cr, cursor_color.r, cursor_color.g, cursor_color.b, cursor_color.a);
         cairo_rectangle(cr, tx + cursor_pixel_x, ty + cursor_pixel_y, 2, cursor_pixel_h);
         cairo_fill(cr);
     }
