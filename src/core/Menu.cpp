@@ -4,6 +4,7 @@
 #include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/SystemInfo.hpp>
+#include <horizon/ThemeManager.hpp>
 #include <cmath>
 
 namespace horizon
@@ -337,12 +338,21 @@ namespace horizon
         // Straight top corners, rounded bottom corners
         CornerRadius radius(0, 0, 10, 10);
 
+        Color bg_color = background_color();
+        Color border_color(0.7f, 0.7f, 0.7f, 0.8f);
+
+        if (application() && application()->theme_manager)
+        {
+            bg_color = application()->theme_manager->get_color("menu_bg");
+            border_color = application()->theme_manager->get_color("menu_border");
+        }
+
         // Shadow/Border
-        gc.setColor(Color(0.7f, 0.7f, 0.7f, 0.8f));
+        gc.setColor(border_color);
         gc.drawRect(m_start_draw_x, m_start_draw_y, m_width, m_height, radius, 1.0f);
 
         // Fill background
-        gc.setColor(background_color());
+        gc.setColor(bg_color);
         gc.fillRect(m_start_draw_x + 1, m_start_draw_y + 1, m_width - 2, m_height - 2, radius);
     }
 

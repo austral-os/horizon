@@ -272,23 +272,37 @@ namespace horizon
 
     void MenuItem::draw(GraphicsContext &gc)
     {
+        Color sel_bg1(0.2f, 0.45f, 0.9f, 1.0f);
+        Color sel_bg2(0.1f, 0.35f, 0.85f, 1.0f);
+        Color sel_fg(1.0f, 1.0f, 1.0f, 1.0f);
+        Color item_fg(0.0f, 0.0f, 0.0f, 1.0f);
+        Color shortcut_fg(0.4f, 0.4f, 0.4f, 1.0f);
+
+        if (application() && application()->theme_manager)
+        {
+            sel_bg1 = application()->theme_manager->get_color("menu_item_selected_bg1");
+            sel_bg2 = application()->theme_manager->get_color("menu_item_selected_bg2");
+            sel_fg = application()->theme_manager->get_color("menu_item_selected_fg");
+            item_fg = application()->theme_manager->get_color("menu_item_fg");
+            shortcut_fg = application()->theme_manager->get_color("menu_item_shortcut_fg");
+        }
 
         if (m_selected)
         {
-            // macOS selection gradient (Blue)
-            Color c1(0.2f, 0.45f, 0.9f, 1.0f);
-            Color c2(0.1f, 0.35f, 0.85f, 1.0f);
-            gc.fillLinearGradientRect(m_start_draw_x, m_start_draw_y, m_width, m_height, c1, c2,
-                                      true);
+            // Selection gradient
+            gc.fillLinearGradientRect(m_start_draw_x, m_start_draw_y, m_width, m_height, sel_bg1,
+                                      sel_bg2, true);
 
-            // White text for selected items
+            // Text for selected items
             if (auto *label = dynamic_cast<Label *>(m_content))
             {
-                label->set_text_color({1.0f, 1.0f, 1.0f, 1.0f});
+                label->set_text_color(sel_fg);
             }
             if (m_shortcut_label)
             {
-                m_shortcut_label->set_text_color({1.0f, 1.0f, 1.0f, 0.8f});
+                Color s_fg = sel_fg;
+                s_fg.a = 0.8f;
+                m_shortcut_label->set_text_color(s_fg);
             }
         }
         else
@@ -297,16 +311,15 @@ namespace horizon
             // Default text color
             if (auto *label = dynamic_cast<Label *>(m_content))
             {
-                label->set_text_color({0.0f, 0.0f, 0.0f, alpha});
+                Color t_fg = item_fg;
+                t_fg.a = alpha;
+                label->set_text_color(t_fg);
             }
             if (m_shortcut_label)
             {
-                m_shortcut_label->set_text_color({0.4f, 0.4f, 0.4f, alpha});
-            }
-            if (m_icon)
-            {
-                // We don't have a specific set_opacity for Icon, but we could if needed.
-                // For now, text already communicates the state.
+                Color s_fg = shortcut_fg;
+                s_fg.a = alpha;
+                m_shortcut_label->set_text_color(s_fg);
             }
         }
 
@@ -320,7 +333,8 @@ namespace horizon
             int ax = m_start_draw_x + m_width - 15;
             int ay = m_start_draw_y + (m_height - arrow_size * 2) / 2;
 
-            gc.setColor(m_selected ? Color(1.0f, 1.0f, 1.0f, 1.0f) : Color(0.2f, 0.2f, 0.2f, 1.0f));
+            Color a_fg = m_selected ? sel_fg : item_fg;
+            gc.setColor(a_fg);
             std::vector<PolygonPoint> points;
             points.push_back({ax, ay, 0});
             points.push_back({ax + arrow_size, ay + arrow_size, 0});
