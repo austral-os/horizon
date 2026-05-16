@@ -131,9 +131,10 @@ namespace horizon::files
 
         void draw(GraphicsContext &gc) override
         {
+            auto *tm = application()->theme_manager.get();
+
             if (m_selected)
             {
-                auto *tm = application()->theme_manager.get();
                 Color bg = tm->get_color("table_row_selected");
                 Color fg = tm->get_color("table_row_selected_fg");
 
@@ -152,7 +153,7 @@ namespace horizon::files
             }
             else
             {
-                m_label_ptr->set_text_color(Color(0.0f, 0.0f, 0.0f, 1.0f));
+                m_label_ptr->set_text_color(tm->get_color("window_fg"));
             }
         }
 

@@ -65,6 +65,7 @@ namespace horizon
         Color shadow_color = tm->get_color("window_border");
         Color border_color = shadow_color.darker(40.0f);
         Color solid_hl = tm->get_color("solid_highlight");
+        Color solid_border = tm->get_color("solid_border");
         Color solid_hl2 = tm->get_color("solid_highlight2");
 
         switch (m_accent_color)
@@ -124,7 +125,7 @@ namespace horizon
                 {0, 0, m_corner_radius.bottom_right, m_corner_radius.bottom_left});
 
             // Borde inferior
-            gc.setColor(solid_hl);
+            gc.setColor(solid_border);
             gc.fillRect(m_x + m_corner_radius.bottom_left,
                         m_start_draw_y + m_available_draw_height - 2,
                         m_width - m_corner_radius.bottom_left - m_corner_radius.bottom_right, 2);
@@ -163,7 +164,7 @@ namespace horizon
                 {0, 0, m_corner_radius.bottom_right, m_corner_radius.bottom_left});
 
             // Borde inferior
-            gc.setColor(solid_hl);
+            gc.setColor(solid_border);
             gc.fillRect(m_x + m_corner_radius.bottom_left,
                         m_start_draw_y + m_available_draw_height - 2,
                         m_width - m_corner_radius.bottom_left - m_corner_radius.bottom_right, 2);
