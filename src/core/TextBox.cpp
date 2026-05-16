@@ -192,7 +192,7 @@ namespace horizon
 
         Color bg_color = tm->get_color("textbox_bg");
         Color border_color = tm->get_color("textbox_brd");
-        Color focus_color = tm->get_color("textbox_focus");
+        Color focus_color = tm->get_color("textbox_focus").with_alpha(80.0f);
         Color invalid_color = tm->get_color("textbox_invalid");
 
         Color text_color = tm->get_color("textbox_fg");

@@ -83,6 +83,11 @@ namespace horizon
         ctx.setDrawFont(font.family.c_str(), font.size, FONT_SLANT_NORMAL,
                         m_active ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
 
+        if (!m_active)
+        {
+            font.size -= 4;
+        }
+
         ctx.setColor(tm->get_color("window_fg"));
 
         std::string display_title = m_title;
