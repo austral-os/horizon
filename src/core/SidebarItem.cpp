@@ -60,7 +60,7 @@ namespace horizon
             return nullptr;
 
         // Check if any child (like an eject button) was hit first
-        Widget* child_hit = Widget::hit_test(x, y);
+        Widget *child_hit = Widget::hit_test(x, y);
         if (child_hit && child_hit != this)
             return child_hit;
 
@@ -73,6 +73,10 @@ namespace horizon
     void SidebarItem::draw(GraphicsContext &gc)
     {
         bool selected = m_selected;
+
+        auto *tm = application()->theme_manager.get();
+        Color sidebar_item_fg = tm->get_color("sidebar_item_fg");
+        Color sidebar_item_fg2 = tm->get_color("sidebar_item_fg2");
 
         if (is_hovered() && !selected)
         {
@@ -88,12 +92,12 @@ namespace horizon
             gc.fillLinearGradientRect(m_x, m_y, m_width, m_height, c1, c2, true);
 
             if (m_label_ptr)
-                m_label_ptr->set_text_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+                m_label_ptr->set_text_color(sidebar_item_fg2);
         }
         else
         {
             if (m_label_ptr)
-                m_label_ptr->set_text_color(Color(0.2f, 0.2f, 0.2f, 1.0f));
+                m_label_ptr->set_text_color(sidebar_item_fg);
         }
 
         // Children (Icon, Label) are drawn by Widget::render
