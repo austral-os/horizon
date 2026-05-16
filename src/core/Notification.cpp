@@ -1,5 +1,7 @@
 #include <horizon/Notification.hpp>
 #include <horizon/GraphicsContext.hpp>
+#include <horizon/Application.hpp>
+#include <horizon/ThemeManager.hpp>
 #include <algorithm>
 
 namespace horizon
@@ -8,7 +10,7 @@ namespace horizon
     Notification::Notification()
     {
         // 1. Configure the notification container
-        set_background_color(Color{0.0f, 0.0f, 0.0f, 0.8f}); // 80% transparency
+        // 1. Configure the notification container
         set_border_radius(10);
         set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         set_spacing(10);
@@ -19,6 +21,7 @@ namespace horizon
         m_icon_widget = icon.get();
         m_icon_widget->set_icon_size(m_icon_size);
         m_icon_widget->set_fixed_size(m_icon_size);
+        m_icon_widget->set_use_theme_colors(true);
         m_icon_widget->set_vertical_alignment(VerticalAlignment::Top);
         m_icon_widget->set_visible(false); // Initially hidden
         add_child(std::move(icon));
@@ -26,7 +29,6 @@ namespace horizon
         // 3. Create the message label
         auto label = std::make_unique<Label>();
         m_label_widget = label.get();
-        m_label_widget->set_text_color(Color{1.0f, 1.0f, 1.0f, 1.0f}); // White text
         m_label_widget->set_alignment(TextAlignment::Left);
         m_label_widget->set_vertical_alignment(VerticalAlignment::Top);
         add_child(std::move(label));
@@ -123,6 +125,17 @@ namespace horizon
 
     void Notification::draw(GraphicsContext &ctx)
     {
+        if (application() && application()->theme_manager)
+        {
+            auto *tm = application()->theme_manager.get();
+            Color bg = tm->get_color("notification_bg");
+            bg.a = 0.8f;
+            set_background_color(bg);
+
+            Color fg = tm->get_color("notification_fg");
+            m_label_widget->set_text_color(fg);
+        }
+
         // Simple rectangular background with transparency and rounded corners
         // Widget::draw already does this if background_color and border_radius are set.
         Widget::draw(ctx);
