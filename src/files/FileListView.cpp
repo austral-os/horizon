@@ -1,18 +1,17 @@
 #include "horizon/files/FileListView.hpp"
-#include "horizon/files/FileIconProvider.hpp"
 #include "horizon/Logger.hpp"
+#include "horizon/arkutils/FileOperations.hpp"
+#include "horizon/files/FileIconProvider.hpp"
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
+#include <horizon/Application.hpp>
+#include <horizon/FormatUtils.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Menu.hpp>
-#include <horizon/Application.hpp>
-#include <thread>
 #include <set>
-#include "horizon/arkutils/FileOperations.hpp"
-#include <horizon/FormatUtils.hpp>
-
+#include <thread>
 
 namespace horizon::files
 {
@@ -43,6 +42,7 @@ namespace horizon::files
         col_name.cell_factory = [](const arkutils::FileInfo &f)
         {
             auto lbl = std::make_unique<Label>(FileIconProvider::get_display_name(f));
+            lbl->set_font_size(14);
             if (f.type == arkutils::FileType::Directory)
             {
                 lbl->set_font_weight(FONT_WEIGHT_BOLD);
@@ -56,8 +56,10 @@ namespace horizon::files
         col_type.width = 100;
         col_type.cell_factory = [](const arkutils::FileInfo &f)
         {
-            return std::make_unique<Label>(f.type == arkutils::FileType::Directory ? "Folder"
-                                                                                   : "File");
+            auto lbl = std::make_unique<Label>(f.type == arkutils::FileType::Directory ? "Folder"
+                                                                                       : "File");
+            lbl->set_font_size(14);
+            return lbl;
         };
 
         TableColumn<arkutils::FileInfo> col_size;
@@ -68,11 +70,14 @@ namespace horizon::files
         {
             if (f.type == arkutils::FileType::Directory)
             {
-                return std::make_unique<Label>("---");
+                auto lbl = std::make_unique<Label>("---");
+                lbl->set_font_size(11);
+                return lbl;
             }
-            return std::make_unique<Label>(horizon::format_bytes(f.size));
+            auto lbl = std::make_unique<Label>(horizon::format_bytes(f.size));
+            lbl->set_font_size(11);
+            return lbl;
         };
-
 
         TableColumn<arkutils::FileInfo> col_mod;
         col_mod.id = "modified";
@@ -87,7 +92,9 @@ namespace horizon::files
             {
                 time_str[24] = '\0'; // Remove newline
             }
-            return std::make_unique<Label>(std::string(time_str));
+            auto lbl = std::make_unique<Label>(std::string(time_str));
+            lbl->set_font_size(11);
+            return lbl;
         };
 
         add_column(col_icon);
@@ -106,94 +113,111 @@ namespace horizon::files
                                                  }
                                              });
 
+        set_row_setup_callback(
+            [this](TableRow *row, const arkutils::FileInfo &f)
+            {
+                row->set_draggable(true);
+                row->when_drag_start.connect(
+                    [this, f, row](DragEventContext &ctx)
+                    {
+                        if (application())
+                        {
+                            std::vector<std::string> mimes = {"text/uri-list", "text/plain"};
+                            application()->start_drag(
+                                mimes,
+                                [f](const std::string &mime) -> std::vector<uint8_t>
+                                {
+                                    if (mime == "text/uri-list")
+                                    {
+                                        std::string uri = "file://" + f.path + "\r\n";
+                                        return std::vector<uint8_t>(uri.begin(), uri.end());
+                                    }
+                                    return std::vector<uint8_t>(f.path.begin(), f.path.end());
+                                },
+                                row);
+                        }
+                    });
 
+                if (f.type == arkutils::FileType::Directory)
+                {
+                    row->set_accept_drops(true);
+                    row->when_drop.connect(
+                        [this, f](DropEventContext &ctx)
+                        {
+                            auto data = ctx.get_data("text/uri-list");
+                            if (data.empty())
+                                return;
 
-        set_row_setup_callback([this](TableRow *row, const arkutils::FileInfo &f)
-                               {
-                                   row->set_draggable(true);
-                                   row->when_drag_start.connect([this, f, row](DragEventContext &ctx)
-                                                               {
-                                                                   if (application())
-                                                                   {
-                                                                       std::vector<std::string> mimes = {"text/uri-list", "text/plain"};
-                                                                       application()->start_drag(mimes, [f](const std::string &mime) -> std::vector<uint8_t>
-                                                                                                 {
-                                                                                                     if (mime == "text/uri-list")
-                                                                                                     {
-                                                                                                         std::string uri = "file://" + f.path + "\r\n";
-                                                                                                         return std::vector<uint8_t>(uri.begin(), uri.end());
-                                                                                                     }
-                                                                                                     return std::vector<uint8_t>(f.path.begin(), f.path.end());
-                                                                                                 },
-                                                                                                 row);
-                                                                   }
-                                                               });
+                            std::string uris(data.begin(), data.end());
 
-                                   if (f.type == arkutils::FileType::Directory)
-                                   {
-                                       row->set_accept_drops(true);
-                                       row->when_drop.connect([this, f](DropEventContext &ctx)
-                                                              {
-                                                                  auto data = ctx.get_data("text/uri-list");
-                                                                  if (data.empty())
-                                                                      return;
+                            size_t start = 0;
+                            while (start < uris.length())
+                            {
+                                size_t pos = uris.find("file://", start);
+                                if (pos == std::string::npos)
+                                    break;
 
-                                                                  std::string uris(data.begin(), data.end());
+                                size_t end = uris.find("\r\n", pos);
+                                std::string src = uris.substr(pos + 7, (end == std::string::npos)
+                                                                           ? std::string::npos
+                                                                           : end - (pos + 7));
 
-                                                                  size_t start = 0;
-                                                                  while (start < uris.length())
-                                                                  {
-                                                                      size_t pos = uris.find("file://", start);
-                                                                      if (pos == std::string::npos)
-                                                                          break;
+                                if (!src.empty())
+                                {
+                                    std::filesystem::path p(src);
+                                    std::string dest = f.path + "/" + p.filename().string();
 
-                                                                      size_t end = uris.find("\r\n", pos);
-                                                                      std::string src = uris.substr(pos + 7, (end == std::string::npos) ? std::string::npos : end - (pos + 7));
+                                    if (src != dest)
+                                    {
+                                        auto future = arkutils::FileOperations::copy(
+                                            src, dest,
+                                            [this](double progress)
+                                            {
+                                                if (application())
+                                                {
+                                                    application()->post_task(
+                                                        [this, progress]()
+                                                        {
+                                                            OperationProgressEvent ev;
+                                                            ev.progress = progress;
+                                                            ev.finished = (progress >= 1.0);
+                                                            this->when_operation_progress.run(ev);
+                                                        });
+                                                }
+                                            });
 
-                                                                      if (!src.empty())
-                                                                      {
-                                                                          std::filesystem::path p(src);
-                                                                          std::string dest = f.path + "/" + p.filename().string();
+                                        std::thread(
+                                            [f_future = std::move(future), this]() mutable
+                                            {
+                                                auto result = f_future.get();
+                                                if (application())
+                                                {
+                                                    application()->post_task(
+                                                        [this, result]()
+                                                        {
+                                                            if (result == arkutils::FileOperations::
+                                                                              Result::Success)
+                                                            {
+                                                                OperationProgressEvent ev;
+                                                                ev.progress = 1.0;
+                                                                ev.finished = true;
+                                                                this->when_operation_progress.run(
+                                                                    ev);
+                                                            }
+                                                        });
+                                                }
+                                            })
+                                            .detach();
+                                    }
+                                }
 
-                                                                          if (src != dest)
-                                                                          {
-                                                                              auto future = arkutils::FileOperations::copy(src, dest, [this](double progress) {
-                                                                                  if (application()) {
-                                                                                      application()->post_task([this, progress]() {
-                                                                                          OperationProgressEvent ev;
-                                                                                          ev.progress = progress;
-                                                                                          ev.finished = (progress >= 1.0);
-                                                                                          this->when_operation_progress.run(ev);
-                                                                                      });
-                                                                                  }
-                                                                              });
-
-                                                                              std::thread([f_future = std::move(future), this]() mutable
-                                                                                          { 
-                                                                                              auto result = f_future.get();
-                                                                                              if (application()) {
-                                                                                                  application()->post_task([this, result]() {
-                                                                                                      if (result == arkutils::FileOperations::Result::Success) {
-                                                                                                          OperationProgressEvent ev;
-                                                                                                          ev.progress = 1.0;
-                                                                                                          ev.finished = true;
-                                                                                                          this->when_operation_progress.run(ev);
-                                                                                                      }
-                                                                                                  });
-                                                                                              }
-                                                                                          })
-                                                                                  .detach();
-
-                                                                          }
-                                                                      }
-
-                                                                      if (end == std::string::npos)
-                                                                          break;
-                                                                      start = end + 2;
-                                                                  }
-                                                              });
-                                   }
-                               });
+                                if (end == std::string::npos)
+                                    break;
+                                start = end + 2;
+                            }
+                        });
+                }
+            });
     }
 
     void FileListView::set_application_recursive(WaylandWindow *app)
@@ -265,8 +289,9 @@ namespace horizon::files
                 }
             }
 
-            LOG_INFO << "FileListView [" << (void *)this << "]: Updating table with " << unique_files.size()
-                     << " unique items (discarded " << (files.size() - unique_files.size()) << "). Path: " << m_current_path;
+            LOG_INFO << "FileListView [" << (void *)this << "]: Updating table with "
+                     << unique_files.size() << " unique items (discarded "
+                     << (files.size() - unique_files.size()) << "). Path: " << m_current_path;
 
             this->set_data(std::move(unique_files));
         }
