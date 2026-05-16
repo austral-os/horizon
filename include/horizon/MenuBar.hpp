@@ -1,6 +1,7 @@
 #pragma once
 
 #include <horizon/EventsManager.hpp>
+#include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/Widget.hpp>
@@ -75,6 +76,7 @@ namespace horizon
         }
 
         void draw(GraphicsContext &gc) override;
+        void calculate_layout() override;
         int preferred_width() const override;
 
         Menu *menu() const
@@ -88,5 +90,6 @@ namespace horizon
         bool m_bold = false;
         std::string m_icon_name;
         std::string m_resolved_icon_path;
+        Icon *m_icon = nullptr;
     };
 } // namespace horizon

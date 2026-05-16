@@ -236,6 +236,7 @@ namespace horizon
     MenuBarItem::MenuBarItem(const std::string &title, Menu *menu) : Label(title), m_menu(menu)
     {
         set_alignment(TextAlignment::Center);
+        m_icon = nullptr;
     }
 
     void MenuBarItem::set_icon_name(const std::string &name)
@@ -246,20 +247,21 @@ namespace horizon
         m_icon_name = name;
         if (!m_icon_name.empty())
         {
-            m_resolved_icon_path = IconThemeLookup::find_icon(m_icon_name, 18);
-            if (m_resolved_icon_path.empty())
+            if (!m_icon)
             {
-                LOG_ERROR << "[MenuBarItem] Failed to resolve icon: " << m_icon_name;
+                auto icon = std::make_unique<Icon>();
+                m_icon = icon.get();
+                m_icon->set_position_type(FREE);
+                m_icon->set_use_theme_colors(true);
+                add_child(std::move(icon));
             }
-            else
-            {
-                LOG_INFO << "[MenuBarItem] Resolved icon " << m_icon_name << " to "
-                         << m_resolved_icon_path;
-            }
+            m_icon->set_icon_name(m_icon_name);
+            m_icon->set_icon_size(18);
+            m_icon->set_visible(true);
         }
-        else
+        else if (m_icon)
         {
-            m_resolved_icon_path.clear();
+            m_icon->set_visible(false);
         }
         invalidate();
     }
@@ -281,8 +283,45 @@ namespace horizon
 
     void MenuBarItem::set_selected(bool selected)
     {
+        if (m_selected == selected)
+            return;
+
         m_selected = selected;
+        if (m_icon)
+        {
+            if (m_selected)
+            {
+                m_icon->set_use_theme_colors(false);
+                m_icon->set_icon_color({1.0f, 1.0f, 1.0f, 1.0f});
+            }
+            else
+            {
+                m_icon->set_use_theme_colors(true);
+            }
+        }
         invalidate();
+    }
+
+    void MenuBarItem::calculate_layout()
+    {
+        Widget::calculate_layout();
+
+        if (m_icon && !m_icon_name.empty() && m_icon->is_visible())
+        {
+            int icon_size = 18;
+            int total_content_width = icon_size;
+            if (!text().empty())
+            {
+                total_content_width += 5 + Label::preferred_width();
+            }
+
+            int start_x = (m_width - total_content_width) / 2;
+            int icon_y = (m_height - icon_size) / 2;
+
+            m_icon->set_position(m_start_draw_x + start_x, m_start_draw_y + icon_y);
+            m_icon->set_size(icon_size, icon_size);
+            m_icon->calculate_layout();
+        }
     }
 
     void MenuBarItem::draw(GraphicsContext &gc)
@@ -291,7 +330,7 @@ namespace horizon
         {
             // Selected: Blueish background, white text
             gc.setColor(Color(0.2f, 0.45f, 0.9f, 1.0f));
-            gc.fillRect(m_x, m_y, m_width, m_height);
+            gc.fillRect(m_start_draw_x, m_start_draw_y, m_width, m_height);
             set_text_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
         }
         else
@@ -309,39 +348,29 @@ namespace horizon
             set_font_weight(FONT_WEIGHT_NORMAL);
         }
 
-        if (!m_icon_name.empty())
+        // Draw children (Icon)
+        Widget::draw(gc);
+
+        if (!m_icon_name.empty() && !text().empty())
         {
             int icon_size = 18;
-            int total_content_width = icon_size;
-            if (!text().empty())
-            {
-                total_content_width += 5 + Label::preferred_width();
-            }
+            int total_content_width = icon_size + 5 + Label::preferred_width();
 
-            int start_x = m_x + (m_width - total_content_width) / 2;
-            int icon_y = m_y + (m_height - icon_size) / 2;
+            int start_x = (m_width - total_content_width) / 2;
 
-            if (!m_resolved_icon_path.empty())
-            {
-                gc.drawImage(m_resolved_icon_path, start_x, icon_y, icon_size, icon_size);
-            }
+            gc.setDrawFont(nullptr, font_size() > 0 ? font_size() : 13, FONT_SLANT_NORMAL,
+                           m_bold ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
 
-            if (!text().empty())
-            {
-                gc.setDrawFont(nullptr, font_size() > 0 ? font_size() : 13, FONT_SLANT_NORMAL,
-                               m_bold ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
+            TextMetrics tm = gc.getTextMetrics(
+                text().c_str(), nullptr, font_size() > 0 ? font_size() : 13, FONT_SLANT_NORMAL,
+                m_bold ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
 
-                TextMetrics tm = gc.getTextMetrics(
-                    text().c_str(), nullptr, font_size() > 0 ? font_size() : 13, FONT_SLANT_NORMAL,
-                    m_bold ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
+            int text_x = m_start_draw_x + start_x + icon_size + 5;
+            int text_y = m_start_draw_y + (m_height + tm.height) / 2 - 2; // -2 for baseline adjustment
 
-                int text_x = start_x + icon_size + 5;
-                int text_y = m_y + (m_height + tm.height) / 2 - 2; // -2 for baseline adjustment
-
-                gc.drawText(text_x, text_y, text().c_str());
-            }
+            gc.drawText(text_x, text_y, text().c_str());
         }
-        else
+        else if (m_icon_name.empty())
         {
             Label::draw(gc);
         }
