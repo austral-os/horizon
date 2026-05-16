@@ -43,7 +43,9 @@ namespace horizon::preferences
 
         auto appearance_label =
             std::make_unique<Label>(i18n().tr("preferences.appearance.title") + ":");
-        appearance_label->set_fixed_size(150);
+        appearance_label->set_fixed_size(200);
+        appearance_label->set_alignment(TextAlignment::Right);
+        appearance_label->set_vertical_alignment(VerticalAlignment::Top);
         appearance_row->add_child(std::move(appearance_label));
 
         // Light Theme Box
@@ -51,7 +53,7 @@ namespace horizon::preferences
         light_box->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         light_box->set_spacing(10);
         light_box->set_margin(10);
-        light_box->set_width(100);
+        light_box->set_fixed_size(120);
         light_box->set_border_radius(8);
         light_box->set_cursor_type(CursorType::Pointer);
 
@@ -81,7 +83,7 @@ namespace horizon::preferences
         dark_box->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         dark_box->set_spacing(10);
         dark_box->set_margin(10);
-        dark_box->set_width(100);
+        dark_box->set_fixed_size(120);
         dark_box->set_border_radius(8);
         dark_box->set_cursor_type(CursorType::Pointer);
 
@@ -105,6 +107,8 @@ namespace horizon::preferences
             });
         m_dark_box = dark_box.get();
         appearance_row->add_child(std::move(dark_box));
+
+        appearance_row->add_child(Spacer());
 
         add_child(std::move(appearance_row));
 
