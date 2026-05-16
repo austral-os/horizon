@@ -14,6 +14,7 @@ namespace horizon
         auto search_icon = std::make_unique<Icon>();
         search_icon->set_icon_name("system-search");
         search_icon->set_icon_size(16);
+        search_icon->set_use_theme_colors(true);
         search_icon->set_position_type(FREE);
         m_search_ptr = search_icon.get();
         add_child(std::move(search_icon));
@@ -21,6 +22,7 @@ namespace horizon
         auto clear_icon = std::make_unique<Icon>();
         clear_icon->set_icon_name("edit-clear");
         clear_icon->set_icon_size(16);
+        clear_icon->set_use_theme_colors(true);
         clear_icon->set_position_type(FREE);
         clear_icon->set_visible(false);
         m_clear_ptr = clear_icon.get();

@@ -23,11 +23,13 @@ namespace horizon::files
         auto back_icon = std::make_unique<horizon::Icon>();
         back_icon->set_icon_name("go-previous");
         back_icon->set_icon_size(16);
+        back_icon->set_use_theme_colors(true);
         m_navigation->add_item(std::move(back_icon));
 
         auto forward_icon = std::make_unique<horizon::Icon>();
         forward_icon->set_icon_name("go-next");
         forward_icon->set_icon_size(16);
+        forward_icon->set_use_theme_colors(true);
         m_navigation->add_item(std::move(forward_icon));
 
         auto view_modes = std::make_unique<horizon::ToggleGroupButton>();
@@ -39,21 +41,25 @@ namespace horizon::files
         auto icon_view = std::make_unique<horizon::Icon>();
         icon_view->set_icon_name("view-grid");
         icon_view->set_icon_size(16);
+        icon_view->set_use_theme_colors(true);
         m_view_modes->add_item(std::move(icon_view));
 
         auto list_view = std::make_unique<horizon::Icon>();
         list_view->set_icon_name("view-filter");
         list_view->set_icon_size(16);
+        list_view->set_use_theme_colors(true);
         m_view_modes->add_item(std::move(list_view));
 
         auto column_view = std::make_unique<horizon::Icon>();
         column_view->set_icon_name("view-column");
         column_view->set_icon_size(16);
+        column_view->set_use_theme_colors(true);
         m_view_modes->add_item(std::move(column_view));
 
         auto cover_flow = std::make_unique<horizon::Icon>();
         cover_flow->set_icon_name("view-coverflow");
         cover_flow->set_icon_size(16);
+        cover_flow->set_use_theme_colors(true);
         m_view_modes->add_item(std::move(cover_flow));
 
         m_navigation->when_button_clicked.connect(
