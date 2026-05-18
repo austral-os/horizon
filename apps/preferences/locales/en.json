@@ -38,7 +38,11 @@
         "appearance": {
             "title": "Variant",
             "light": "Light",
-            "dark": "Dark"
+            "dark": "Dark",
+            "compositor": "Compositor",
+            "compositor_labwc": "Labwc (Stable)",
+            "compositor_wayfire": "Wayfire (Effects)",
+            "compositor_restart_hint": "Changes will take effect upon the next login."
         },
         "applications": {
             "tabs": {

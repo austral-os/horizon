@@ -2,6 +2,22 @@
 export XDG_SESSION_TYPE=wayland
 export XDG_CURRENT_DESKTOP=HZN-LABWC
 
+# Limpiar sockets y locks huérfanos antes de iniciar el compositor para asegurar que use wayland-0
+rm -f "$XDG_RUNTIME_DIR/wayland-[0-9]"
+rm -f "$XDG_RUNTIME_DIR/wayland-[0-9].lock"
+
 labwc &
 export LABWC_PID=$!
+
+# Esperar a que el socket del compositor esté disponible y exportar WAYLAND_DISPLAY
+for i in {1..50}; do
+    for socket in "$XDG_RUNTIME_DIR"/wayland-[0-9]; do
+        if [ -S "$socket" ]; then
+            export WAYLAND_DISPLAY=$(basename "$socket")
+            break 2
+        fi
+    done
+    sleep 0.1
+done
+
 @CMAKE_INSTALL_FULL_BINDIR@/horizon_session --compositor labwc

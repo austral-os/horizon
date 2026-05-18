@@ -38,7 +38,11 @@
         "appearance": {
             "title": "Variante",
             "light": "Claro",
-            "dark": "Oscuro"
+            "dark": "Oscuro",
+            "compositor": "Compositor",
+            "compositor_labwc": "Labwc (Estable)",
+            "compositor_wayfire": "Wayfire (Efectos)",
+            "compositor_restart_hint": "Los cambios se aplicarán en el próximo inicio de sesión."
         },
         "applications": {
             "tabs": {

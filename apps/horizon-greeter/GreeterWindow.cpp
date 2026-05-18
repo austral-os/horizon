@@ -250,6 +250,17 @@ namespace horizon::greeter
         bg->set_size(width(), height());
         bg->set_mode(ImageMode::Stretch);
         m_background_image = bg.get();
+
+        // Registrar un handler para redimensionar el fondo dinámicamente
+        add_on_resize(
+            [this](int w, int h)
+            {
+                if (m_background_image)
+                {
+                    m_background_image->set_size(w, h);
+                }
+            });
+
         root->add_child(std::move(bg));
 
         // 2. Main Content Container
@@ -379,9 +390,23 @@ namespace horizon::greeter
         if (!m_sessions.empty())
         {
             int selected_idx = 0;
+            std::string default_session = "Horizon";
+
+            // Leer el compositor activo de la configuración del sistema
+            std::ifstream f("/etc/horizon/compositor.conf");
+            if (f.is_open())
+            {
+                std::string comp;
+                f >> comp;
+                if (comp == "wayfire")
+                {
+                    default_session = "Horizon (with FX)";
+                }
+            }
+
             for (int i = 0; i < (int)m_sessions.size(); ++i)
             {
-                if (m_sessions[i].name == "Horizon")
+                if (m_sessions[i].name == default_session)
                 {
                     selected_idx = i;
                     break;
