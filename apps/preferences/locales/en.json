@@ -46,8 +46,7 @@
             "use_graphic_effects": "Use graphic effects",
             "opacity_title": "Element Opacity",
             "panel_opacity": "Panel opacity:",
-            "menu_opacity": "Menu opacity:",
-            "application_opacity": "Application opacity:"
+            "menu_opacity": "Menu opacity:"
         },
         "applications": {
             "tabs": {

@@ -233,11 +233,7 @@ namespace horizon
         return menu_opacity;
     }
 
-    float ThemeManager::get_application_opacity() const
-    {
-        std::lock_guard<std::recursive_mutex> lock(mutex);
-        return application_opacity;
-    }
+
 
     bool ThemeManager::parse_json(const json &j)
     {
@@ -297,14 +293,7 @@ namespace horizon
             menu_opacity = 1.0f;
         }
 
-        if (j.contains("application_opacity") && j["application_opacity"].is_number())
-        {
-            application_opacity = j["application_opacity"].get<float>();
-        }
-        else
-        {
-            application_opacity = 1.0f;
-        }
+
 
         ThemeEventContext ev;
         ev.sender = this;
@@ -347,7 +336,6 @@ namespace horizon
 
         j["panel_opacity"] = panel_opacity;
         j["menu_opacity"] = menu_opacity;
-        j["application_opacity"] = application_opacity;
 
         return j;
     }

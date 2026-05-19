@@ -1,11 +1,12 @@
+#include "horizon/Widget.hpp"
+#include <cstdlib>
+#include <fstream>
 #include <horizon/Frame.hpp>
 #include <horizon/I18n.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Spacer.hpp>
 #include <utils/ConfigUtils.hpp>
 #include <views/AppearanceView/AppearanceView.hpp>
-#include <fstream>
-#include <cstdlib>
 
 namespace horizon::preferences
 {
@@ -23,24 +24,23 @@ namespace horizon::preferences
         from_json(m_config->get_section("variant"));
 
         auto panel_sec = m_config->get_section("panel_opacity");
-        if (panel_sec.is_number()) {
+        if (panel_sec.is_number())
+        {
             m_panel_opacity = panel_sec.get<float>();
-        } else {
+        }
+        else
+        {
             m_panel_opacity = 1.0f;
         }
 
         auto menu_sec = m_config->get_section("menu_opacity");
-        if (menu_sec.is_number()) {
+        if (menu_sec.is_number())
+        {
             m_menu_opacity = menu_sec.get<float>();
-        } else {
-            m_menu_opacity = 1.0f;
         }
-
-        auto app_sec = m_config->get_section("application_opacity");
-        if (app_sec.is_number()) {
-            m_application_opacity = app_sec.get<float>();
-        } else {
-            m_application_opacity = 1.0f;
+        else
+        {
+            m_menu_opacity = 1.0f;
         }
 
         load_compositor_config();
@@ -51,6 +51,8 @@ namespace horizon::preferences
     void AppearanceView::setup_ui()
     {
         clear_children();
+
+        const int LEFT_LABELS_WIDTH = 300;
 
         // Title
         auto title = std::make_unique<Label>(i18n().tr("preferences.sections.appearance"));
@@ -68,7 +70,7 @@ namespace horizon::preferences
 
         auto appearance_label =
             std::make_unique<Label>(i18n().tr("preferences.appearance.title") + ":");
-        appearance_label->set_fixed_size(200);
+        appearance_label->set_fixed_size(LEFT_LABELS_WIDTH);
         appearance_label->set_alignment(TextAlignment::Right);
         appearance_label->set_vertical_alignment(VerticalAlignment::Top);
         appearance_row->add_child(std::move(appearance_label));
@@ -145,7 +147,7 @@ namespace horizon::preferences
 
         auto compositor_label =
             std::make_unique<Label>(i18n().tr("preferences.appearance.compositor") + ":");
-        compositor_label->set_fixed_size(200);
+        compositor_label->set_fixed_size(LEFT_LABELS_WIDTH);
         compositor_label->set_alignment(TextAlignment::Right);
         compositor_label->set_vertical_alignment(VerticalAlignment::Middle);
         compositor_row->add_child(std::move(compositor_label));
@@ -154,80 +156,43 @@ namespace horizon::preferences
         checkbox->set_text(i18n().tr("preferences.appearance.use_graphic_effects"));
         checkbox->set_fixed_size(300);
         checkbox->set_checked(m_compositor == "wayfire");
-        checkbox->when_toggle.connect(
-            [this](ToggleEventContext &ctx)
-            {
-                set_compositor(ctx.checked ? "wayfire" : "labwc");
-            });
+        checkbox->when_toggle.connect([this](ToggleEventContext &ctx)
+                                      { set_compositor(ctx.checked ? "wayfire" : "labwc"); });
         m_compositor_checkbox = checkbox.get();
         compositor_row->add_child(std::move(checkbox));
 
         compositor_row->add_child(Spacer());
         add_child(std::move(compositor_row));
 
-        // Restart Hint Label Row (UX improvement)
-        auto hint_row = std::make_unique<Widget>();
-        hint_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        hint_row->set_fixed_size(30);
-
-        auto hint_spacer = std::make_unique<Label>("");
-        hint_spacer->set_fixed_size(200);
-        hint_row->add_child(std::move(hint_spacer));
-
-        auto hint_label = std::make_unique<Label>("");
-        hint_label->set_font_size(11);
-        hint_label->set_font_weight(FONT_WEIGHT_NORMAL);
-        hint_label->set_alignment(TextAlignment::Left);
-        hint_label->set_text_color(Color(0.5f, 0.5f, 0.5f));
-        m_restart_hint_label = hint_label.get();
-        hint_row->add_child(std::move(hint_label));
-
-        hint_row->add_child(Spacer());
-        add_child(std::move(hint_row));
-
-        // Separator/Spacer for Opacity section
-        auto opacity_spacer = Spacer();
-        opacity_spacer->set_fixed_size(10);
-        add_child(std::move(opacity_spacer));
-
-        // Opacity Section Title Row
-        auto opacity_title_row = std::make_unique<Widget>();
-        opacity_title_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        opacity_title_row->set_fixed_size(30);
-
-        auto opacity_title_spacer = std::make_unique<Label>("");
-        opacity_title_spacer->set_fixed_size(200);
-        opacity_title_row->add_child(std::move(opacity_title_spacer));
-
-        auto opacity_title = std::make_unique<Label>(i18n().tr("preferences.appearance.opacity_title"));
-        opacity_title->set_font_size(14);
-        opacity_title->set_font_weight(FONT_WEIGHT_BOLD);
-        opacity_title->set_vertical_alignment(VerticalAlignment::Middle);
-        opacity_title_row->add_child(std::move(opacity_title));
-        opacity_title_row->add_child(Spacer());
-        add_child(std::move(opacity_title_row));
-
         // Slider rows helper
-        auto create_slider_row = [this](const std::string &label_text, float init_val, Slider** slider_out, Label** label_out) {
+        auto create_slider_row = [this](const std::string &label_text, float init_val,
+                                        Slider **slider_out, Label **label_out)
+        {
             auto row = std::make_unique<Widget>();
             row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
             row->set_spacing(20);
             row->set_fixed_size(40);
 
             auto lbl = std::make_unique<Label>(label_text);
-            lbl->set_fixed_size(200);
+            lbl->set_fixed_size(LEFT_LABELS_WIDTH);
             lbl->set_alignment(TextAlignment::Right);
             lbl->set_vertical_alignment(VerticalAlignment::Middle);
             row->add_child(std::move(lbl));
+
+            auto sl_container = std::make_unique<Widget>();
+            sl_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+            sl_container->set_fixed_size(300);
+            sl_container->set_spacing(10);
 
             auto sl = std::make_unique<Slider>();
             sl->set_min(50.0f);
             sl->set_max(100.0f);
             sl->set_value(init_val * 100.0f);
-            sl->set_fixed_size(300);
+            sl->set_fixed_size(230);
             *slider_out = sl.get();
 
-            auto val_lbl = std::make_unique<Label>(std::to_string(static_cast<int>(init_val * 100.0f)) + "%");
+            auto val_lbl =
+                std::make_unique<Label>(std::to_string(static_cast<int>(init_val * 100.0f)) + "%");
             val_lbl->set_fixed_size(60);
             val_lbl->set_alignment(TextAlignment::Left);
             val_lbl->set_vertical_alignment(VerticalAlignment::Middle);
@@ -240,27 +205,25 @@ namespace horizon::preferences
                     val_lbl_ptr->set_text(std::to_string(static_cast<int>(val)) + "%");
                 });
 
-            sl->when_changed.connect(
-                [this](EventContext &)
-                {
-                    this->save_config();
-                });
+            sl->when_changed.connect([this](EventContext &) { this->save_config(); });
 
-            row->add_child(std::move(sl));
-            row->add_child(std::move(val_lbl));
+            sl_container->add_child(std::move(sl));
+            sl_container->add_child(std::move(val_lbl));
+
+            row->add_child(std::move(sl_container));
             row->add_child(Spacer());
 
             return row;
         };
 
         // Panel Opacity Row
-        add_child(create_slider_row(i18n().tr("preferences.appearance.panel_opacity"), m_panel_opacity, &m_panel_opacity_slider, &m_panel_opacity_label));
+        add_child(create_slider_row(i18n().tr("preferences.appearance.panel_opacity"),
+                                    m_panel_opacity, &m_panel_opacity_slider,
+                                    &m_panel_opacity_label));
 
         // Menu Opacity Row
-        add_child(create_slider_row(i18n().tr("preferences.appearance.menu_opacity"), m_menu_opacity, &m_menu_opacity_slider, &m_menu_opacity_label));
-
-        // Application Opacity Row
-        add_child(create_slider_row(i18n().tr("preferences.appearance.application_opacity"), m_application_opacity, &m_application_opacity_slider, &m_application_opacity_label));
+        add_child(create_slider_row(i18n().tr("preferences.appearance.menu_opacity"),
+                                    m_menu_opacity, &m_menu_opacity_slider, &m_menu_opacity_label));
 
         update_selection_visuals();
     }
@@ -313,7 +276,8 @@ namespace horizon::preferences
             update_selection_visuals();
             if (m_restart_hint_label)
             {
-                m_restart_hint_label->set_text(i18n().tr("preferences.appearance.compositor_restart_hint"));
+                m_restart_hint_label->set_text(
+                    i18n().tr("preferences.appearance.compositor_restart_hint"));
             }
         }
     }
@@ -335,7 +299,7 @@ namespace horizon::preferences
     {
         if (m_is_loading)
             return;
-        
+
         m_config->set_section("variant", to_json());
 
         if (m_panel_opacity_slider)
@@ -348,12 +312,6 @@ namespace horizon::preferences
         {
             m_menu_opacity = m_menu_opacity_slider->value() / 100.0f;
             m_config->set_section("menu_opacity", m_menu_opacity);
-        }
-
-        if (m_application_opacity_slider)
-        {
-            m_application_opacity = m_application_opacity_slider->value() / 100.0f;
-            m_config->set_section("application_opacity", m_application_opacity);
         }
 
         m_config->save();

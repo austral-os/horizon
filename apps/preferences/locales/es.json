@@ -46,8 +46,7 @@
             "use_graphic_effects": "Utilizar efectos gráficos",
             "opacity_title": "Opacidad de Elementos",
             "panel_opacity": "Opacidad del panel:",
-            "menu_opacity": "Opacidad del menú:",
-            "application_opacity": "Opacidad de aplicaciones:"
+            "menu_opacity": "Opacidad del menú:"
         },
         "applications": {
             "tabs": {

@@ -38,15 +38,12 @@ namespace horizon::preferences
         Label* m_panel_opacity_label{nullptr};
         Slider* m_menu_opacity_slider{nullptr};
         Label* m_menu_opacity_label{nullptr};
-        Slider* m_application_opacity_slider{nullptr};
-        Label* m_application_opacity_label{nullptr};
 
         std::unique_ptr<ConfigManager> m_config;
         std::string m_variant{"dark"};
         std::string m_compositor{"labwc"};
         float m_panel_opacity{1.0f};
         float m_menu_opacity{1.0f};
-        float m_application_opacity{1.0f};
         bool m_is_loading{false};
     };
 }

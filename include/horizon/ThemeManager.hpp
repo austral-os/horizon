@@ -42,7 +42,6 @@ namespace horizon
 
         float get_panel_opacity() const;
         float get_menu_opacity() const;
-        float get_application_opacity() const;
 
         EventsManager<ThemeEventContext> when_change;
 
@@ -61,7 +60,6 @@ namespace horizon
 
         float panel_opacity = 1.0f;
         float menu_opacity = 1.0f;
-        float application_opacity = 1.0f;
 
         int inotify_fd = -1;
         int watch_fd = -1;
