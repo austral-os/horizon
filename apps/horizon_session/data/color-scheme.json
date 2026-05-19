@@ -164,7 +164,7 @@
             "weight": "bold"
         }
     },
-    "menu_opacity": 0.875,
+    "menu_opacity": 1.0,
     "panel_opacity": 0.6340579390525818,
     "variant": "light"
 }

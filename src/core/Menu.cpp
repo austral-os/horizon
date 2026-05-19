@@ -350,9 +350,11 @@ namespace horizon
             bg1 = tm->get_color("menu_bg1");
             bg2 = tm->get_color("menu_bg2");
             border_color = tm->get_color("menu_border");
+            m_bottom_alpha = tm->get_menu_opacity();
         }
 
         bg1.a *= m_bottom_alpha;
+        bg2.a *= m_bottom_alpha;
 
         // Shadow/Border
         gc.setColor(border_color);
