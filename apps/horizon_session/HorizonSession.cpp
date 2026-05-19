@@ -454,12 +454,21 @@ void HorizonSession::start()
     }
 
     run_startup_services();
+
+    m_running = true;
+    m_monitoring_thread = std::thread(&HorizonSession::monitor_services_loop, this);
 }
 
 void HorizonSession::stop()
 {
     m_running = false;
     m_server->stop();
+
+    if (m_monitoring_thread.joinable())
+    {
+        m_monitoring_thread.join();
+    }
+
     terminate_all_apps();
 }
 
@@ -763,6 +772,18 @@ void HorizonSession::run_startup_services()
         }
         else
         {
+            if (pid > 0 && is_monitored_service(svc_path))
+            {
+                std::lock_guard<std::mutex> lock(m_monitoring_mutex);
+                MonitoredService svc;
+                svc.path = svc_path;
+                svc.pid = pid;
+                svc.restart_count = 0;
+                svc.last_restart = std::chrono::steady_clock::now();
+                m_monitored_services.push_back(svc);
+                LOG_INFO << "[HorizonSession] Registered " << svc_path << " (PID " << pid << ") for monitoring." << std::endl;
+            }
+
             std::this_thread::sleep_for(
                 std::chrono::milliseconds(100)); // Space out apps to reduce concurrent congestion
         }
@@ -1233,4 +1254,137 @@ void HorizonSession::apply_display_config()
     {
         LOG_ERROR << "[HorizonSession] Error applying display configuration: " << e.what();
     }
+}
+
+bool HorizonSession::is_monitored_service(const std::string &path)
+{
+    std::string bin_name = path;
+    size_t last_slash = path.find_last_of('/');
+    if (last_slash != std::string::npos)
+    {
+        bin_name = path.substr(last_slash + 1);
+    }
+
+    static const std::set<std::string> critical_services = {
+        "horizon-polkit-agent",
+        "horizon-powerd",
+        "horizon_wall",
+        "top_panel",
+        "dock",
+        "horizon-notifications"
+    };
+
+    return critical_services.find(bin_name) != critical_services.end();
+}
+
+void HorizonSession::monitor_services_loop()
+{
+    LOG_INFO << "[HorizonSession] Started monitoring background loop." << std::endl;
+    while (m_running)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+        if (!m_running)
+            break;
+
+        int status;
+        pid_t exited_pid;
+        while ((exited_pid = waitpid(-1, &status, WNOHANG)) > 0)
+        {
+            if (WIFEXITED(status))
+            {
+                LOG_INFO << "[HorizonSession] Child process with PID " << exited_pid 
+                         << " exited with status " << WEXITSTATUS(status) << std::endl;
+            }
+            else if (WIFSIGNALED(status))
+            {
+                LOG_INFO << "[HorizonSession] Child process with PID " << exited_pid 
+                         << " terminated by signal " << WTERMSIG(status) << std::endl;
+            }
+            else
+            {
+                LOG_INFO << "[HorizonSession] Child process with PID " << exited_pid 
+                         << " terminated." << std::endl;
+            }
+
+            // Clean up dead processes from standard session tracking
+            {
+                std::lock_guard<std::mutex> state_lock(m_state_mutex);
+                auto it = std::find(m_spawned_pids.begin(), m_spawned_pids.end(), exited_pid);
+                if (it != m_spawned_pids.end())
+                {
+                    m_spawned_pids.erase(it);
+                }
+            }
+            remove_app(exited_pid);
+
+            // Check if this PID is one of our monitored services
+            std::string service_path_to_restart;
+            bool should_restart = false;
+            MonitoredService* target_svc = nullptr;
+
+            {
+                std::lock_guard<std::mutex> monitor_lock(m_monitoring_mutex);
+                for (auto &svc : m_monitored_services)
+                {
+                    if (svc.pid == exited_pid)
+                    {
+                        target_svc = &svc;
+                        should_restart = true;
+                        break;
+                    }
+                }
+
+                if (should_restart && target_svc)
+                {
+                    auto now = std::chrono::steady_clock::now();
+                    auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - target_svc->last_restart).count();
+
+                    if (elapsed > 10)
+                    {
+                        target_svc->restart_count = 0;
+                    }
+
+                    if (target_svc->restart_count >= 5)
+                    {
+                        LOG_ERROR << "[HorizonSession] Service " << target_svc->path 
+                                  << " has restarted too many times recently. Disabling auto-restart." << std::endl;
+                        should_restart = false;
+                    }
+                    else
+                    {
+                        target_svc->restart_count++;
+                        target_svc->last_restart = now;
+                        service_path_to_restart = target_svc->path;
+                    }
+                }
+            }
+
+            if (should_restart && !service_path_to_restart.empty() && m_running)
+            {
+                LOG_INFO << "[HorizonSession] Restarting critical service: " << service_path_to_restart << std::endl;
+
+                pid_t new_pid = run_service(service_path_to_restart, true);
+                if (new_pid > 0)
+                {
+                    std::lock_guard<std::mutex> monitor_lock(m_monitoring_mutex);
+                    for (auto &svc : m_monitored_services)
+                    {
+                        if (svc.path == service_path_to_restart)
+                        {
+                            svc.pid = new_pid;
+                            break;
+                        }
+                    }
+                    LOG_INFO << "[HorizonSession] Service " << service_path_to_restart 
+                             << " successfully restarted with new PID " << new_pid << std::endl;
+                }
+                else
+                {
+                    LOG_ERROR << "[HorizonSession] Failed to restart service: " << service_path_to_restart << std::endl;
+                }
+            }
+        }
+    }
+    LOG_INFO << "[HorizonSession] Stopped monitoring background loop." << std::endl;
 }

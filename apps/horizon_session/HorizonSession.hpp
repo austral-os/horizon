@@ -4,6 +4,9 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <thread>
+#include <chrono>
+#include <set>
 
 struct HznSessionMessage
 {
@@ -123,4 +126,19 @@ private:
      * @brief Lista de PIDs de procesos hijos para terminarlos al cerrar la sesión
      */
     std::vector<int> m_spawned_pids;
+
+    struct MonitoredService
+    {
+        std::string path;
+        pid_t pid;
+        int restart_count = 0;
+        std::chrono::steady_clock::time_point last_restart;
+    };
+
+    void monitor_services_loop();
+    bool is_monitored_service(const std::string &path);
+
+    std::vector<MonitoredService> m_monitored_services;
+    std::thread m_monitoring_thread;
+    std::mutex m_monitoring_mutex;
 };
