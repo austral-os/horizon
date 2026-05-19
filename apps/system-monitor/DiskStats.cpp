@@ -16,8 +16,17 @@ namespace horizon
         auto container = std::make_unique<AquaObject>();
         container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         container->set_accent_color(WidgetAccentColor::Custom);
-        container->set_color1(Color(0.8f, 0.9f, 0.4f, 1.0f));
-        container->set_color2(Color(0.8f, 0.8f, 0.4f, 1.0f));
+        Color col1 = Color(0.8f, 0.9f, 0.4f, 1.0f);
+        Color col2 = Color(0.8f, 0.8f, 0.4f, 1.0f);
+
+        if (theme_manager()->get_variant() == "dark")
+        {
+            col1 = Color(0.22f, 0.26f, 0.16f, 1.0f);
+            col2 = Color(0.13f, 0.16f, 0.10f, 1.0f);
+        }
+
+        container->set_color1(col1);
+        container->set_color2(col2);
         container->set_border_width(1);
         container->set_corner_radius(15);
 
@@ -74,6 +83,13 @@ namespace horizon
     std::unique_ptr<Widget> DiskStats::create_stat_row(const std::string &name,
                                                        Label **value_label_out)
     {
+        Color lbl_color = Color(0.2f, 0.3f, 0.1f, 1.0f);
+
+        if (theme_manager()->get_variant() == "dark")
+        {
+            lbl_color = Color(0.8f, 0.9f, 0.4f, 1.0f);
+        }
+
         auto row = std::make_unique<Widget>();
         row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         row->set_fixed_size(25);
@@ -82,12 +98,12 @@ namespace horizon
         name_lbl->set_alignment(TextAlignment::Left);
         name_lbl->set_position_type(FILL);
         name_lbl->set_font_weight(FontWeight::FONT_WEIGHT_BOLD);
-        name_lbl->set_text_color(Color(0.2f, 0.3f, 0.1f, 1.0f));
+        name_lbl->set_text_color(lbl_color);
         name_lbl->set_font_size(16);
 
         auto value_lbl = std::make_unique<Label>("-");
         value_lbl->set_alignment(TextAlignment::Right);
-        value_lbl->set_text_color(Color(0.2f, 0.3f, 0.1f, 1.0f));
+        value_lbl->set_text_color(lbl_color);
         value_lbl->set_font_size(16);
 
         *value_label_out = value_lbl.get();
