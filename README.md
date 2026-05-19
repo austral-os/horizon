@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="images/screenshot1.png" alt="Horizon Dashboard" width="700" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+  <img src="images/demo-sd.gif" alt="Horizon Dashboard" width="700" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
 </p>
 
 <p align="center">
