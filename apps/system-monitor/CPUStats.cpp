@@ -20,19 +20,28 @@ namespace horizon
         //  container->set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
         //  container->set_border_color(Color(0.5f, 0.5f, 0.5f, 1.0f));
 
-        Color col1 = Color(0.8f, 0.9f, 0.4f, 1.0f);
-        Color col2 = Color(0.8f, 0.8f, 0.4f, 1.0f);
-
-        if (theme_manager()->get_variant() == "dark")
-        {
-            // Sleek deep sage/olive gradient optimized for dark mode
-            col1 = Color(0.22f, 0.26f, 0.16f, 1.0f);
-            col2 = Color(0.13f, 0.16f, 0.10f, 1.0f);
-        }
-
         container->set_accent_color(WidgetAccentColor::Custom);
-        container->set_color1(col1);
-        container->set_color2(col2);
+        auto update_container_colors = [container_ptr = container.get()]() {
+            Color col1 = Color(0.8f, 0.9f, 0.4f, 1.0f);
+            Color col2 = Color(0.8f, 0.8f, 0.4f, 1.0f);
+
+            if (theme_manager()->get_variant() == "dark")
+            {
+                col1 = Color(0.22f, 0.26f, 0.16f, 1.0f);
+                col2 = Color(0.13f, 0.16f, 0.10f, 1.0f);
+            }
+
+            container_ptr->set_color1(col1);
+            container_ptr->set_color2(col2);
+            container_ptr->invalidate();
+        };
+        update_container_colors();
+
+        theme_manager()->when_change.connect(
+            [update_container_colors](ThemeEventContext &) {
+                update_container_colors();
+            });
+
         container->set_border_width(1);
         container->set_corner_radius(15);
 
@@ -78,10 +87,26 @@ namespace horizon
         right_panel->add_child(create_stat_row("Threads:", &m_lbl_threads));
         right_panel->add_child(create_stat_row("Processes:", &m_lbl_processes));
 
-        m_core_colors = {Color(0.2f, 0.3f, 0.1f),    Color(0.3f, 0.4f, 0.15f),
-                         Color(0.4f, 0.5f, 0.2f),    Color(0.15f, 0.25f, 0.05f),
-                         Color(0.25f, 0.35f, 0.12f), Color(0.35f, 0.45f, 0.18f),
-                         Color(0.1f, 0.2f, 0.05f),   Color(0.45f, 0.55f, 0.22f)};
+        auto update_core_colors = [this]() {
+            if (theme_manager()->get_variant() == "dark")
+            {
+                m_core_colors = {Color(0.8f, 0.9f, 0.4f), Color(0.7f, 0.85f, 0.35f),
+                                 Color(0.9f, 0.95f, 0.5f), Color(0.6f, 0.8f, 0.3f),
+                                 Color(0.85f, 0.9f, 0.45f), Color(0.75f, 0.9f, 0.4f)};
+            }
+            else
+            {
+                m_core_colors = {Color(0.2f, 0.3f, 0.1f),    Color(0.3f, 0.4f, 0.15f),
+                                 Color(0.4f, 0.5f, 0.2f),    Color(0.15f, 0.25f, 0.05f),
+                                 Color(0.25f, 0.35f, 0.12f), Color(0.35f, 0.45f, 0.18f),
+                                 Color(0.1f, 0.2f, 0.05f),   Color(0.45f, 0.55f, 0.22f)};
+            }
+        };
+        update_core_colors();
+        theme_manager()->when_change.connect(
+            [update_core_colors](ThemeEventContext &) {
+                update_core_colors();
+            });
 
         container->add_child(std::move(left_panel));
         container->add_child(std::move(chart_wrapper));
@@ -91,16 +116,8 @@ namespace horizon
     }
 
     std::unique_ptr<Widget> CPUStats::create_stat_row(const std::string &name,
-                                                      Label **value_label_out)
+                                                       Label **value_label_out)
     {
-
-        Color lbl_color = Color(0.2f, 0.3f, 0.1f, 1.0f);
-
-        if (theme_manager()->get_variant() == "dark")
-        {
-            lbl_color = Color(0.8f, 0.9f, 0.4f, 1.0f);
-        }
-
         auto row = std::make_unique<Widget>();
         row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         row->set_fixed_size(25);
@@ -109,15 +126,31 @@ namespace horizon
         name_lbl->set_alignment(TextAlignment::Left);
         name_lbl->set_position_type(FILL);
         name_lbl->set_font_weight(FontWeight::FONT_WEIGHT_BOLD);
-        name_lbl->set_text_color(lbl_color);
         name_lbl->set_font_size(16);
 
         auto value_lbl = std::make_unique<Label>("0.00%");
         value_lbl->set_alignment(TextAlignment::Right);
-        value_lbl->set_text_color(lbl_color);
         value_lbl->set_font_size(16);
 
         *value_label_out = value_lbl.get();
+
+        auto update_label_colors = [name_lbl_ptr = name_lbl.get(), value_lbl_ptr = value_lbl.get()]() {
+            Color lbl_color = Color(0.2f, 0.3f, 0.1f, 1.0f);
+            if (theme_manager()->get_variant() == "dark")
+            {
+                lbl_color = Color(0.8f, 0.9f, 0.4f, 1.0f);
+            }
+            name_lbl_ptr->set_text_color(lbl_color);
+            value_lbl_ptr->set_text_color(lbl_color);
+            name_lbl_ptr->invalidate();
+            value_lbl_ptr->invalidate();
+        };
+        update_label_colors();
+
+        theme_manager()->when_change.connect(
+            [update_label_colors](ThemeEventContext &) {
+                update_label_colors();
+            });
 
         row->add_child(std::move(name_lbl));
         row->add_child(std::move(value_lbl));

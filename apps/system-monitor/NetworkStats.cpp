@@ -16,17 +16,27 @@ namespace horizon
         auto container = std::make_unique<AquaObject>();
         container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         container->set_accent_color(WidgetAccentColor::Custom);
-        Color col1 = Color(0.8f, 0.9f, 0.4f, 1.0f);
-        Color col2 = Color(0.8f, 0.8f, 0.4f, 1.0f);
+        auto update_container_colors = [container_ptr = container.get()]() {
+            Color col1 = Color(0.8f, 0.9f, 0.4f, 1.0f);
+            Color col2 = Color(0.8f, 0.8f, 0.4f, 1.0f);
 
-        if (theme_manager()->get_variant() == "dark")
-        {
-            col1 = Color(0.22f, 0.26f, 0.16f, 1.0f);
-            col2 = Color(0.13f, 0.16f, 0.10f, 1.0f);
-        }
+            if (theme_manager()->get_variant() == "dark")
+            {
+                col1 = Color(0.22f, 0.26f, 0.16f, 1.0f);
+                col2 = Color(0.13f, 0.16f, 0.10f, 1.0f);
+            }
 
-        container->set_color1(col1);
-        container->set_color2(col2);
+            container_ptr->set_color1(col1);
+            container_ptr->set_color2(col2);
+            container_ptr->invalidate();
+        };
+        update_container_colors();
+
+        theme_manager()->when_change.connect(
+            [update_container_colors](ThemeEventContext &) {
+                update_container_colors();
+            });
+
         container->set_border_width(1);
         container->set_corner_radius(15);
 
@@ -83,13 +93,6 @@ namespace horizon
     std::unique_ptr<Widget> NetworkStats::create_stat_row(const std::string &name,
                                                            Label **value_label_out)
     {
-        Color lbl_color = Color(0.2f, 0.3f, 0.1f, 1.0f);
-
-        if (theme_manager()->get_variant() == "dark")
-        {
-            lbl_color = Color(0.8f, 0.9f, 0.4f, 1.0f);
-        }
-
         auto row = std::make_unique<Widget>();
         row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         row->set_fixed_size(25);
@@ -98,15 +101,31 @@ namespace horizon
         name_lbl->set_alignment(TextAlignment::Left);
         name_lbl->set_position_type(FILL);
         name_lbl->set_font_weight(FontWeight::FONT_WEIGHT_BOLD);
-        name_lbl->set_text_color(lbl_color);
         name_lbl->set_font_size(16);
 
         auto value_lbl = std::make_unique<Label>("-");
         value_lbl->set_alignment(TextAlignment::Right);
-        value_lbl->set_text_color(lbl_color);
         value_lbl->set_font_size(16);
 
         *value_label_out = value_lbl.get();
+
+        auto update_label_colors = [name_lbl_ptr = name_lbl.get(), value_lbl_ptr = value_lbl.get()]() {
+            Color lbl_color = Color(0.2f, 0.3f, 0.1f, 1.0f);
+            if (theme_manager()->get_variant() == "dark")
+            {
+                lbl_color = Color(0.8f, 0.9f, 0.4f, 1.0f);
+            }
+            name_lbl_ptr->set_text_color(lbl_color);
+            value_lbl_ptr->set_text_color(lbl_color);
+            name_lbl_ptr->invalidate();
+            value_lbl_ptr->invalidate();
+        };
+        update_label_colors();
+
+        theme_manager()->when_change.connect(
+            [update_label_colors](ThemeEventContext &) {
+                update_label_colors();
+            });
 
         row->add_child(std::move(name_lbl));
         row->add_child(std::move(value_lbl));
@@ -182,9 +201,17 @@ namespace horizon
         if (m_tx_history.size() > m_max_history)
             m_tx_history.erase(m_tx_history.begin());
 
+        Color rx_color = Color(0.2f, 0.3f, 0.1f);
+        Color tx_color = Color(0.4f, 0.5f, 0.2f);
+        if (theme_manager()->get_variant() == "dark")
+        {
+            rx_color = Color(0.8f, 0.9f, 0.4f);
+            tx_color = Color(0.6f, 0.8f, 0.3f);
+        }
+
         m_chart->clear_series();
-        m_chart->add_series("RX Packets/s", Color(0.2f, 0.3f, 0.1f), m_rx_history);
-        m_chart->add_series("TX Packets/s", Color(0.4f, 0.5f, 0.2f), m_tx_history);
+        m_chart->add_series("RX Packets/s", rx_color, m_rx_history);
+        m_chart->add_series("TX Packets/s", tx_color, m_tx_history);
         m_chart->invalidate();
     }
 } // namespace horizon
