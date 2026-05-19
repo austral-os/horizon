@@ -12,7 +12,7 @@ TopPanelWidget::TopPanelWidget(TopPanelApplication *app)
     set_corner_radius(CornerRadius(0));
     set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
     set_spacing(0);
-    set_bottom_alpha(0.8f);
+    set_bottom_alpha(theme_manager()->get_panel_opacity());
 
     // 1. Menu Bar (Left)
     auto menubar = std::make_unique<TopPanelMenuBar>(app);
@@ -33,4 +33,10 @@ TopPanelWidget::TopPanelWidget(TopPanelApplication *app)
 void TopPanelWidget::handle_message(const std::string &msg)
 {
     m_menubar->handle_message(msg);
+}
+
+void TopPanelWidget::draw(GraphicsContext &gc)
+{
+    set_bottom_alpha(theme_manager()->get_panel_opacity());
+    Panel::draw(gc);
 }

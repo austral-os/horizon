@@ -15,6 +15,7 @@ public:
     virtual ~TopPanelWidget() = default;
 
     void handle_message(const std::string& msg);
+    void draw(horizon::GraphicsContext& gc) override;
     
     IndicatorsContainer* indicators() const { return m_indicators; }
 

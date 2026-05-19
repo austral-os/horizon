@@ -39,6 +39,20 @@ namespace horizon
         return get_system_config_path();
     }
 
+    static void debug_log(const std::string &msg)
+    {
+        std::ofstream f("/tmp/theme_debug.log", std::ios::app);
+        if (f.is_open())
+        {
+            auto now = std::chrono::system_clock::now();
+            auto time = std::chrono::system_clock::to_time_t(now);
+            std::string time_str = std::ctime(&time);
+            if (!time_str.empty() && time_str.back() == '\n')
+                time_str.pop_back();
+            f << time_str << " [ThemeManager] " << msg << "\n";
+        }
+    }
+
     ThemeManager& ThemeManager::instance()
     {
         static ThemeManager inst;
@@ -53,32 +67,46 @@ namespace horizon
     ThemeManager::ThemeManager()
     {
         config_path = get_active_config_path();
+        debug_log("ThemeManager constructor. config_path resolved to: " + config_path);
         load();
         start_watcher();
     }
 
     ThemeManager::~ThemeManager()
     {
+        debug_log("ThemeManager destructor.");
         stop_watcher();
     }
 
     bool ThemeManager::load()
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        debug_log("load() called. config_path: " + config_path);
 
         std::ifstream file(config_path);
         if (!file.is_open())
+        {
+            debug_log("load() failed: could not open file: " + config_path);
             return false;
+        }
 
         json j;
 
         try
         {
             file >> j;
-            return parse_json(j);
+            bool ok = parse_json(j);
+            debug_log("load() parsed JSON success: " + std::string(ok ? "true" : "false") + ", variant: " + active_variant + ", opacity: " + std::to_string(panel_opacity));
+            return ok;
+        }
+        catch (const std::exception &e)
+        {
+            debug_log("load() threw exception: " + std::string(e.what()));
+            return false;
         }
         catch (...)
         {
+            debug_log("load() threw unknown exception!");
             return false;
         }
     }
@@ -89,7 +117,7 @@ namespace horizon
         std::string user_path = get_user_config_path();
 
         {
-            std::lock_guard<std::mutex> lock(mutex);
+            std::lock_guard<std::recursive_mutex> lock(mutex);
             json_data = to_json().dump(4);
         }
         
@@ -111,13 +139,20 @@ namespace horizon
         file.close();
         
         // If we were using the system path, switch to the user path and restart watcher
-        // Note: we don't strictly need the mutex here for config_path if we assume
-        // only one thread calls save/load, but it's safer to guard it if needed.
-        // However, config_path is used by start_watcher/stop_watcher.
-        
-        if (config_path != user_path) {
+        bool path_changed = false;
+        {
+            std::lock_guard<std::recursive_mutex> lock(mutex);
+            if (config_path != user_path) {
+                path_changed = true;
+            }
+        }
+
+        if (path_changed) {
             stop_watcher();
-            config_path = user_path;
+            {
+                std::lock_guard<std::recursive_mutex> lock(mutex);
+                config_path = user_path;
+            }
             start_watcher();
         }
         
@@ -126,7 +161,7 @@ namespace horizon
 
     Color ThemeManager::get_color(const std::string &role) const
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<std::recursive_mutex> lock(mutex);
 
         auto scheme_it = color_schemes.find(active_variant);
         if (scheme_it == color_schemes.end())
@@ -142,7 +177,7 @@ namespace horizon
     void ThemeManager::set_color(const std::string &role, const Color &value)
     {
         {
-            std::lock_guard<std::mutex> lock(mutex);
+            std::lock_guard<std::recursive_mutex> lock(mutex);
             color_schemes[active_variant][role] = value;
         }
 
@@ -156,14 +191,14 @@ namespace horizon
 
     std::string ThemeManager::get_variant() const
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<std::recursive_mutex> lock(mutex);
         return active_variant;
     }
 
     void ThemeManager::set_variant(const std::string &variant_name)
     {
         {
-            std::lock_guard<std::mutex> lock(mutex);
+            std::lock_guard<std::recursive_mutex> lock(mutex);
             active_variant = variant_name;
         }
 
@@ -177,13 +212,31 @@ namespace horizon
 
     font_definition ThemeManager::get_font(const std::string &role) const
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<std::recursive_mutex> lock(mutex);
 
         auto it = fonts.find(role);
         if (it != fonts.end())
             return it->second;
 
         return font_definition{};
+    }
+
+    float ThemeManager::get_panel_opacity() const
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return panel_opacity;
+    }
+
+    float ThemeManager::get_menu_opacity() const
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return menu_opacity;
+    }
+
+    float ThemeManager::get_application_opacity() const
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return application_opacity;
     }
 
     bool ThemeManager::parse_json(const json &j)
@@ -225,6 +278,34 @@ namespace horizon
             }
         }
 
+        // parse opacities (optional)
+        if (j.contains("panel_opacity") && j["panel_opacity"].is_number())
+        {
+            panel_opacity = j["panel_opacity"].get<float>();
+        }
+        else
+        {
+            panel_opacity = 1.0f;
+        }
+
+        if (j.contains("menu_opacity") && j["menu_opacity"].is_number())
+        {
+            menu_opacity = j["menu_opacity"].get<float>();
+        }
+        else
+        {
+            menu_opacity = 1.0f;
+        }
+
+        if (j.contains("application_opacity") && j["application_opacity"].is_number())
+        {
+            application_opacity = j["application_opacity"].get<float>();
+        }
+        else
+        {
+            application_opacity = 1.0f;
+        }
+
         ThemeEventContext ev;
         ev.sender = this;
 
@@ -264,6 +345,10 @@ namespace horizon
 
         j["fonts"] = fonts_json;
 
+        j["panel_opacity"] = panel_opacity;
+        j["menu_opacity"] = menu_opacity;
+        j["application_opacity"] = application_opacity;
+
         return j;
     }
 
@@ -298,10 +383,55 @@ namespace horizon
     {
         inotify_fd = inotify_init();
         if (inotify_fd < 0)
+        {
+            debug_log("start_watcher() failed to init inotify.");
             return;
+        }
 
-        watch_fd = inotify_add_watch(inotify_fd, config_path.c_str(),
-                                     IN_CLOSE_WRITE | IN_MOVED_TO | IN_DELETE_SELF);
+        // Get the active configuration path
+        std::string active_path = get_active_config_path();
+        
+        // Resolve canonical path to support symlinks
+        std::string real_path = active_path;
+        try {
+            if (fs::exists(active_path)) {
+                real_path = fs::canonical(active_path).string();
+            }
+        } catch (...) {}
+
+        std::string real_dir = fs::path(real_path).parent_path().string();
+        std::string real_filename = fs::path(real_path).filename().string();
+
+        debug_log("start_watcher() active_path: " + active_path + ", real_path: " + real_path + ", real_dir: " + real_dir + ", filename: " + real_filename);
+
+        try {
+            fs::create_directories(real_dir);
+        } catch (...) {}
+
+        // Watch the resolved canonical parent directory
+        watch_fd = inotify_add_watch(inotify_fd, real_dir.c_str(),
+                                     IN_CLOSE_WRITE | IN_MOVED_TO | IN_CREATE);
+        debug_log("start_watcher() added watch on: " + real_dir + " (watch_fd: " + std::to_string(watch_fd) + ")");
+
+        // If we are currently not using the user config path directly, also watch the user config directory in case it gets created/modified later
+        std::string user_path = get_user_config_path();
+        std::string real_user_path = user_path;
+        try {
+            if (fs::exists(user_path)) {
+                real_user_path = fs::canonical(user_path).string();
+            }
+        } catch (...) {}
+
+        std::string real_user_dir = fs::path(real_user_path).parent_path().string();
+        
+        if (real_user_dir != real_dir) {
+            try {
+                fs::create_directories(real_user_dir);
+            } catch (...) {}
+            int user_wd = inotify_add_watch(inotify_fd, real_user_dir.c_str(),
+                                            IN_CLOSE_WRITE | IN_MOVED_TO | IN_CREATE);
+            debug_log("start_watcher() also added watch on user_dir: " + real_user_dir + " (wd: " + std::to_string(user_wd) + ")");
+        }
 
         running = true;
 
@@ -324,8 +454,10 @@ namespace horizon
 
     void ThemeManager::watch_loop()
     {
-        char buffer[1024];
+        char buffer[4096] __attribute__ ((aligned(__alignof__(struct inotify_event))));
         struct pollfd pfd = {inotify_fd, POLLIN, 0};
+
+        debug_log("watch_loop() started.");
 
         while (running)
         {
@@ -337,11 +469,53 @@ namespace horizon
 
                 if (length > 0)
                 {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+                    bool should_reload = false;
 
-                    load();
+                    // Dynamically figure out target canonical filename
+                    std::string target_filename = "color-scheme.json";
+                    std::string active_path = get_active_config_path();
+                    try {
+                        if (fs::exists(active_path)) {
+                            target_filename = fs::canonical(active_path).filename().string();
+                        }
+                    } catch (...) {}
+
+                    for (char *ptr = buffer; ptr < buffer + length; )
+                    {
+                        struct inotify_event *event = reinterpret_cast<struct inotify_event *>(ptr);
+                        if (event->len > 0)
+                        {
+                            std::string filename(event->name);
+                            debug_log("watch_loop() inotify event on file: " + filename + ", mask: " + std::to_string(event->mask));
+                            if (filename == "color-scheme.json" || filename == target_filename)
+                            {
+                                should_reload = true;
+                            }
+                        }
+                        else
+                        {
+                            debug_log("watch_loop() direct inotify event, mask: " + std::to_string(event->mask));
+                            should_reload = true;
+                        }
+                        ptr += sizeof(struct inotify_event) + event->len;
+                    }
+
+                    if (should_reload)
+                    {
+                        debug_log("watch_loop() triggering reload in 150ms...");
+                        std::this_thread::sleep_for(std::chrono::milliseconds(150));
+
+                        {
+                            std::lock_guard<std::recursive_mutex> lock(mutex);
+                            config_path = get_active_config_path();
+                        }
+
+                        debug_log("watch_loop() config_path updated to: " + config_path);
+                        load();
+                    }
                 }
             }
         }
+        debug_log("watch_loop() exited.");
     }
 } // namespace horizon

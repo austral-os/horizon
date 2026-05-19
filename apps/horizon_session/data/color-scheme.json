@@ -1,4 +1,5 @@
 {
+    "application_opacity": 0.8949275016784668,
     "colors": {
         "dark": {
             "air_border": "#1c1c1e",
@@ -163,5 +164,7 @@
             "weight": "bold"
         }
     },
+    "menu_opacity": 0.875,
+    "panel_opacity": 0.6340579390525818,
     "variant": "light"
 }

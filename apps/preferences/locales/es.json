@@ -42,7 +42,12 @@
             "compositor": "Compositor",
             "compositor_labwc": "Labwc (Estable)",
             "compositor_wayfire": "Wayfire (Efectos)",
-            "compositor_restart_hint": "Los cambios se aplicarán en el próximo inicio de sesión."
+            "compositor_restart_hint": "Los cambios se aplicarán en el próximo inicio de sesión.",
+            "use_graphic_effects": "Utilizar efectos gráficos",
+            "opacity_title": "Opacidad de Elementos",
+            "panel_opacity": "Opacidad del panel:",
+            "menu_opacity": "Opacidad del menú:",
+            "application_opacity": "Opacidad de aplicaciones:"
         },
         "applications": {
             "tabs": {

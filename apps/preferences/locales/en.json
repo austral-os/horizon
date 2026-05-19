@@ -42,7 +42,12 @@
             "compositor": "Compositor",
             "compositor_labwc": "Labwc (Stable)",
             "compositor_wayfire": "Wayfire (Effects)",
-            "compositor_restart_hint": "Changes will take effect upon the next login."
+            "compositor_restart_hint": "Changes will take effect upon the next login.",
+            "use_graphic_effects": "Use graphic effects",
+            "opacity_title": "Element Opacity",
+            "panel_opacity": "Panel opacity:",
+            "menu_opacity": "Menu opacity:",
+            "application_opacity": "Application opacity:"
         },
         "applications": {
             "tabs": {

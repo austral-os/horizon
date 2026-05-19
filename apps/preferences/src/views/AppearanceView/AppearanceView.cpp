@@ -21,6 +21,28 @@ namespace horizon::preferences
         set_spacing(20);
 
         from_json(m_config->get_section("variant"));
+
+        auto panel_sec = m_config->get_section("panel_opacity");
+        if (panel_sec.is_number()) {
+            m_panel_opacity = panel_sec.get<float>();
+        } else {
+            m_panel_opacity = 1.0f;
+        }
+
+        auto menu_sec = m_config->get_section("menu_opacity");
+        if (menu_sec.is_number()) {
+            m_menu_opacity = menu_sec.get<float>();
+        } else {
+            m_menu_opacity = 1.0f;
+        }
+
+        auto app_sec = m_config->get_section("application_opacity");
+        if (app_sec.is_number()) {
+            m_application_opacity = app_sec.get<float>();
+        } else {
+            m_application_opacity = 1.0f;
+        }
+
         load_compositor_config();
         setup_ui();
         m_is_loading = false;
@@ -119,70 +141,26 @@ namespace horizon::preferences
         auto compositor_row = std::make_unique<Widget>();
         compositor_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         compositor_row->set_spacing(20);
-        compositor_row->set_fixed_size(120);
+        compositor_row->set_fixed_size(40);
 
         auto compositor_label =
             std::make_unique<Label>(i18n().tr("preferences.appearance.compositor") + ":");
         compositor_label->set_fixed_size(200);
         compositor_label->set_alignment(TextAlignment::Right);
-        compositor_label->set_vertical_alignment(VerticalAlignment::Top);
+        compositor_label->set_vertical_alignment(VerticalAlignment::Middle);
         compositor_row->add_child(std::move(compositor_label));
 
-        // Labwc Card
-        auto labwc_box = std::make_unique<Widget>();
-        labwc_box->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        labwc_box->set_spacing(10);
-        labwc_box->set_margin(10);
-        labwc_box->set_fixed_size(120);
-        labwc_box->set_border_radius(8);
-        labwc_box->set_cursor_type(CursorType::Pointer);
-
-        auto labwc_icon = std::make_unique<Icon>();
-        labwc_icon->set_icon_name("window-manager");
-        labwc_icon->set_icon_size(80);
-        labwc_icon->set_position_type(WidgetPositionTypes::FILL);
-        labwc_box->add_child(std::move(labwc_icon));
-
-        auto labwc_label = std::make_unique<Label>(i18n().tr("preferences.appearance.compositor_labwc"));
-        labwc_label->set_alignment(TextAlignment::Center);
-        labwc_label->set_fixed_size(20);
-        labwc_box->add_child(std::move(labwc_label));
-
-        labwc_box->when_click.connect(
-            [this](MouseButtonEventContext &)
+        auto checkbox = std::make_unique<Checkbox<AquaObject>>();
+        checkbox->set_text(i18n().tr("preferences.appearance.use_graphic_effects"));
+        checkbox->set_fixed_size(300);
+        checkbox->set_checked(m_compositor == "wayfire");
+        checkbox->when_toggle.connect(
+            [this](ToggleEventContext &ctx)
             {
-                set_compositor("labwc");
+                set_compositor(ctx.checked ? "wayfire" : "labwc");
             });
-        m_labwc_box = labwc_box.get();
-        compositor_row->add_child(std::move(labwc_box));
-
-        // Wayfire Card
-        auto wayfire_box = std::make_unique<Widget>();
-        wayfire_box->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        wayfire_box->set_spacing(10);
-        wayfire_box->set_margin(10);
-        wayfire_box->set_fixed_size(120);
-        wayfire_box->set_border_radius(8);
-        wayfire_box->set_cursor_type(CursorType::Pointer);
-
-        auto wayfire_icon = std::make_unique<Icon>();
-        wayfire_icon->set_icon_name("preferences-desktop");
-        wayfire_icon->set_icon_size(80);
-        wayfire_icon->set_position_type(WidgetPositionTypes::FILL);
-        wayfire_box->add_child(std::move(wayfire_icon));
-
-        auto wayfire_label = std::make_unique<Label>(i18n().tr("preferences.appearance.compositor_wayfire"));
-        wayfire_label->set_alignment(TextAlignment::Center);
-        wayfire_label->set_fixed_size(20);
-        wayfire_box->add_child(std::move(wayfire_label));
-
-        wayfire_box->when_click.connect(
-            [this](MouseButtonEventContext &)
-            {
-                set_compositor("wayfire");
-            });
-        m_wayfire_box = wayfire_box.get();
-        compositor_row->add_child(std::move(wayfire_box));
+        m_compositor_checkbox = checkbox.get();
+        compositor_row->add_child(std::move(checkbox));
 
         compositor_row->add_child(Spacer());
         add_child(std::move(compositor_row));
@@ -207,6 +185,83 @@ namespace horizon::preferences
         hint_row->add_child(Spacer());
         add_child(std::move(hint_row));
 
+        // Separator/Spacer for Opacity section
+        auto opacity_spacer = Spacer();
+        opacity_spacer->set_fixed_size(10);
+        add_child(std::move(opacity_spacer));
+
+        // Opacity Section Title Row
+        auto opacity_title_row = std::make_unique<Widget>();
+        opacity_title_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        opacity_title_row->set_fixed_size(30);
+
+        auto opacity_title_spacer = std::make_unique<Label>("");
+        opacity_title_spacer->set_fixed_size(200);
+        opacity_title_row->add_child(std::move(opacity_title_spacer));
+
+        auto opacity_title = std::make_unique<Label>(i18n().tr("preferences.appearance.opacity_title"));
+        opacity_title->set_font_size(14);
+        opacity_title->set_font_weight(FONT_WEIGHT_BOLD);
+        opacity_title->set_vertical_alignment(VerticalAlignment::Middle);
+        opacity_title_row->add_child(std::move(opacity_title));
+        opacity_title_row->add_child(Spacer());
+        add_child(std::move(opacity_title_row));
+
+        // Slider rows helper
+        auto create_slider_row = [this](const std::string &label_text, float init_val, Slider** slider_out, Label** label_out) {
+            auto row = std::make_unique<Widget>();
+            row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+            row->set_spacing(20);
+            row->set_fixed_size(40);
+
+            auto lbl = std::make_unique<Label>(label_text);
+            lbl->set_fixed_size(200);
+            lbl->set_alignment(TextAlignment::Right);
+            lbl->set_vertical_alignment(VerticalAlignment::Middle);
+            row->add_child(std::move(lbl));
+
+            auto sl = std::make_unique<Slider>();
+            sl->set_min(50.0f);
+            sl->set_max(100.0f);
+            sl->set_value(init_val * 100.0f);
+            sl->set_fixed_size(300);
+            *slider_out = sl.get();
+
+            auto val_lbl = std::make_unique<Label>(std::to_string(static_cast<int>(init_val * 100.0f)) + "%");
+            val_lbl->set_fixed_size(60);
+            val_lbl->set_alignment(TextAlignment::Left);
+            val_lbl->set_vertical_alignment(VerticalAlignment::Middle);
+            *label_out = val_lbl.get();
+
+            sl->when_value_changed.connect(
+                [val_lbl_ptr = val_lbl.get(), sl_ptr = sl.get()](EventContext &)
+                {
+                    float val = sl_ptr->value();
+                    val_lbl_ptr->set_text(std::to_string(static_cast<int>(val)) + "%");
+                });
+
+            sl->when_changed.connect(
+                [this](EventContext &)
+                {
+                    this->save_config();
+                });
+
+            row->add_child(std::move(sl));
+            row->add_child(std::move(val_lbl));
+            row->add_child(Spacer());
+
+            return row;
+        };
+
+        // Panel Opacity Row
+        add_child(create_slider_row(i18n().tr("preferences.appearance.panel_opacity"), m_panel_opacity, &m_panel_opacity_slider, &m_panel_opacity_label));
+
+        // Menu Opacity Row
+        add_child(create_slider_row(i18n().tr("preferences.appearance.menu_opacity"), m_menu_opacity, &m_menu_opacity_slider, &m_menu_opacity_label));
+
+        // Application Opacity Row
+        add_child(create_slider_row(i18n().tr("preferences.appearance.application_opacity"), m_application_opacity, &m_application_opacity_slider, &m_application_opacity_label));
+
         update_selection_visuals();
     }
 
@@ -224,17 +279,9 @@ namespace horizon::preferences
             m_dark_box->set_border_color(m_variant == "dark" ? Color(0.12f, 0.3f, 0.88f)
                                                              : Color(0.5f, 0.5f, 0.5f, 0.3f));
         }
-        if (m_labwc_box)
+        if (m_compositor_checkbox)
         {
-            m_labwc_box->set_border_width(m_compositor == "labwc" ? 3 : 1);
-            m_labwc_box->set_border_color(m_compositor == "labwc" ? Color(0.12f, 0.3f, 0.88f)
-                                                                 : Color(0.5f, 0.5f, 0.5f, 0.3f));
-        }
-        if (m_wayfire_box)
-        {
-            m_wayfire_box->set_border_width(m_compositor == "wayfire" ? 3 : 1);
-            m_wayfire_box->set_border_color(m_compositor == "wayfire" ? Color(0.12f, 0.3f, 0.88f)
-                                                                     : Color(0.5f, 0.5f, 0.5f, 0.3f));
+            m_compositor_checkbox->set_checked(m_compositor == "wayfire");
         }
     }
 
@@ -288,7 +335,27 @@ namespace horizon::preferences
     {
         if (m_is_loading)
             return;
+        
         m_config->set_section("variant", to_json());
+
+        if (m_panel_opacity_slider)
+        {
+            m_panel_opacity = m_panel_opacity_slider->value() / 100.0f;
+            m_config->set_section("panel_opacity", m_panel_opacity);
+        }
+
+        if (m_menu_opacity_slider)
+        {
+            m_menu_opacity = m_menu_opacity_slider->value() / 100.0f;
+            m_config->set_section("menu_opacity", m_menu_opacity);
+        }
+
+        if (m_application_opacity_slider)
+        {
+            m_application_opacity = m_application_opacity_slider->value() / 100.0f;
+            m_config->set_section("application_opacity", m_application_opacity);
+        }
+
         m_config->save();
     }
 } // namespace horizon::preferences

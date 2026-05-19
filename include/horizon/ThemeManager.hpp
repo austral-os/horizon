@@ -40,6 +40,10 @@ namespace horizon
 
         font_definition get_font(const std::string &role) const;
 
+        float get_panel_opacity() const;
+        float get_menu_opacity() const;
+        float get_application_opacity() const;
+
         EventsManager<ThemeEventContext> when_change;
 
     private:
@@ -55,13 +59,17 @@ namespace horizon
 
         std::string active_variant;
 
+        float panel_opacity = 1.0f;
+        float menu_opacity = 1.0f;
+        float application_opacity = 1.0f;
+
         int inotify_fd = -1;
         int watch_fd = -1;
 
         std::thread watcher_thread;
         std::atomic<bool> running{false};
 
-        mutable std::mutex mutex;
+        mutable std::recursive_mutex mutex;
 
     private:
         void start_watcher();
