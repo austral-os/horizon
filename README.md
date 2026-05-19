@@ -168,10 +168,13 @@ sudo apt install build-essential g++ pkg-config \
                  libharfbuzz-dev uuid-dev \
                  libwpe-1.0-dev libwpebackend-fdo-1.0-dev \
                  libwpewebkit-2.0-dev libpoppler-glib-dev \
-                 libpango1.0-dev libmount-dev \
+                 libpango1.0-dev libmount-dev libglib2.0-dev \
                  nlohmann-json3-dev wayland-utils \
                  wlr-randr xdg-utils shared-mime-info \
-                 desktop-file-utils libmpv-dev libproc2-dev
+                 desktop-file-utils libmpv-dev libproc2-dev \
+                 libsecret-1-dev libpam0g-dev libssl-dev \
+                 libsoup-3.0-dev libavcodec-dev libavformat-dev \
+                 libavutil-dev libswscale-dev libswresample-dev
 ```
 
 _Note: For applications like Nova (web browser), you may also need multimedia plugins:_
