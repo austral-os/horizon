@@ -24,7 +24,7 @@ namespace horizon
         m_scroll_area->when_mouse_press.connect([this](MouseButtonEventContext &ctx) {
             if (ctx.button == 0x110 || ctx.button == 0x111)
             {
-                set_selected_index(-1);
+                clear_selection();
             }
         });
     }
@@ -70,22 +70,51 @@ namespace horizon
         }
     }
 
-    void IconViewBase::set_selected_index(int index)
+    void IconViewBase::set_selected_index(int index, bool ctrl)
     {
-        if (m_selected_index != index)
+        if (ctrl)
         {
-            m_selected_index = index;
-
-            // Defer rebuild to avoid destroying the widget tree during event handling
-            if (application())
-            {
-                application()->add_timer(0, [this]() { rebuild_items(); });
-            }
+            // Toggle selection
+            if (m_selected_indices.count(index))
+                m_selected_indices.erase(index);
             else
-            {
-                rebuild_items();
-            }
+                m_selected_indices.insert(index);
+
+            // Keep m_selected_index pointing to the last-toggled index
+            m_selected_index = m_selected_indices.empty() ? -1 : *m_selected_indices.rbegin();
         }
+        else
+        {
+            if (m_selected_indices.size() == 1 && m_selected_indices.count(index))
+                return; // Already exclusively selected, nothing to do
+
+            m_selected_indices.clear();
+            if (index >= 0)
+                m_selected_indices.insert(index);
+            m_selected_index = index;
+        }
+
+        // Defer rebuild to avoid destroying the widget tree during event handling
+        if (application())
+        {
+            application()->add_timer(0, [this]() { rebuild_items(); });
+        }
+        else
+        {
+            rebuild_items();
+        }
+    }
+
+    void IconViewBase::clear_selection()
+    {
+        if (m_selected_indices.empty())
+            return;
+        m_selected_indices.clear();
+        m_selected_index = -1;
+        if (application())
+            application()->add_timer(0, [this]() { rebuild_items(); });
+        else
+            rebuild_items();
     }
 
     int IconViewBase::selected_index() const

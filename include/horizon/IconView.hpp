@@ -6,6 +6,7 @@
 #include <horizon/Widget.hpp>
 #include <horizon/Menu.hpp>
 #include <memory>
+#include <set>
 #include <vector>
 
 namespace horizon
@@ -25,8 +26,9 @@ namespace horizon
 
         void set_transparent(bool transparent);
 
-        void set_selected_index(int index);
+        void set_selected_index(int index, bool ctrl = false);
         int selected_index() const;
+        void clear_selection();
 
         void set_side_margin(int margin);
         int side_margin() const;
@@ -45,7 +47,8 @@ namespace horizon
         Widget *m_content_pane{nullptr};
 
         float m_zoom{1.0f};
-        int m_selected_index{-1};
+        int m_selected_index{-1}; // kept for backward-compat (first in set)
+        std::set<int> m_selected_indices;
 
         int m_item_width{80};
         int m_item_height{90};
@@ -95,6 +98,7 @@ namespace horizon
         {
             m_data = std::move(data);
             m_selected_index = -1;
+            m_selected_indices.clear();
             // Increment generation so any pending async rebuild is cancelled
             ++m_rebuild_generation;
             rebuild_items();
@@ -112,9 +116,10 @@ namespace horizon
         std::vector<T> get_selected_items() const
         {
             std::vector<T> selected_items;
-            if (m_selected_index >= 0 && (size_t)m_selected_index < m_data.size())
+            for (int idx : m_selected_indices)
             {
-                selected_items.push_back(m_data[m_selected_index]);
+                if (idx >= 0 && (size_t)idx < m_data.size())
+                    selected_items.push_back(m_data[idx]);
             }
             return selected_items;
         }
@@ -149,7 +154,7 @@ namespace horizon
 
             for (int i = 0; i < (int)m_data.size(); ++i)
             {
-                bool is_selected = (i == m_selected_index);
+                bool is_selected = (m_selected_indices.count(i) > 0);
                 auto item_widget = m_item_factory(m_data[i], m_zoom, is_selected);
                 if (item_widget)
                 {
@@ -158,13 +163,16 @@ namespace horizon
                         {
                             if (ctx.button == 0x110) // Left click
                             {
+                                bool ctrl_pressed = (ctx.modifiers & WaylandWindow::Modifier::CTRL);
+
                                 auto now = std::chrono::steady_clock::now();
                                 auto duration =
                                     std::chrono::duration_cast<std::chrono::milliseconds>(
                                         now - m_last_item_click_time)
                                         .count();
 
-                                if (m_last_item_click_index == i &&
+                                if (!ctrl_pressed &&
+                                    m_last_item_click_index == i &&
                                     m_last_item_click_button == ctx.button && duration < 500)
                                 {
                                     IconViewItemMouseClickContext<T> click_ctx;
@@ -175,7 +183,7 @@ namespace horizon
                                 }
                                 else
                                 {
-                                    set_selected_index(i);
+                                    set_selected_index(i, ctrl_pressed);
 
                                     IconViewItemMouseClickContext<T> click_ctx;
                                     click_ctx.item_index = i;
@@ -192,7 +200,9 @@ namespace horizon
                             }
                             else if (ctx.button == 0x111) // Right click
                             {
-                                set_selected_index(i);
+                                // Only change selection if item not already selected
+                                if (m_selected_indices.count(i) == 0)
+                                    set_selected_index(i, false);
                             }
                             ctx.stop_propagation = true;
                         });
