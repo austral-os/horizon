@@ -43,6 +43,11 @@ namespace horizon::arkfm
         m_mnu_edit->set_title(i18n().tr("arkfm.menu.edit"));
         m_mnu_edit->set_id("edit");
 
+        auto m_mnu_view = std::make_unique<horizon::Menu>();
+        m_mnu_view->set_title(i18n().tr("arkfm.menu.view"));
+        m_mnu_view->set_id("view");
+        m_mnu_view->add_item(i18n().tr("arkfm.menu.show_hidden"), "Ctrl+H", "toggle-hidden");
+
         auto m_mnu_go = std::make_unique<horizon::Menu>();
         m_mnu_go->set_title(i18n().tr("arkfm.menu.go"));
         m_mnu_go->set_id("go");
@@ -68,6 +73,7 @@ namespace horizon::arkfm
 
         add_menu(std::move(m_mnu_file));
         add_menu(std::move(m_mnu_edit));
+        add_menu(std::move(m_mnu_view));
         add_menu(std::move(m_mnu_go));
         add_menu(std::move(mnu_help));
     }

@@ -23,12 +23,15 @@ namespace horizon::files
             set_item_menu_factory(factory);
         }
 
+        void set_show_hidden_files(bool show) { m_show_hidden_files = show; }
+
         EventsManager<OperationProgressEvent> when_operation_progress;
 
     private:
         void update_icons(const std::vector<arkutils::FileInfo> &files);
 
         std::string m_current_path;
+        bool m_show_hidden_files = false;
         std::unique_ptr<arkutils::FileSystemModel> m_fs_model;
     };
 } // namespace horizon::files

@@ -36,6 +36,7 @@ namespace horizon::files
         if (m_view_mode == ViewMode::List)
         {
             auto view = std::make_unique<FileListView>(m_current_path);
+            view->set_show_hidden_files(m_show_hidden_files);
             view->when_row_dbl_click.connect(
                 [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
                 {
@@ -56,6 +57,7 @@ namespace horizon::files
         else if (m_view_mode == ViewMode::Grid)
         {
             auto view = std::make_unique<FileIconView>(m_current_path);
+            view->set_show_hidden_files(m_show_hidden_files);
             view->when_item_dbl_click.connect(
                 [this](horizon::IconViewItemMouseClickContext<arkutils::FileInfo> &ctx)
                 {
@@ -75,6 +77,7 @@ namespace horizon::files
         else if (m_view_mode == ViewMode::CoverFlow)
         {
             auto view = std::make_unique<FileCoverFlowView>(m_current_path);
+            view->set_show_hidden_files(m_show_hidden_files);
             view->when_row_dbl_click.connect(
                 [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
                 {
@@ -97,6 +100,28 @@ namespace horizon::files
         if (!m_search_query.empty())
         {
             set_search_query(m_search_query);
+        }
+    }
+
+    void FileView::set_show_hidden_files(bool show)
+    {
+        m_show_hidden_files = show;
+        if (m_children.empty()) return;
+
+        if (auto *child = dynamic_cast<FileListView *>(m_children.back().get()))
+        {
+            child->set_show_hidden_files(show);
+            child->refresh(m_current_path, m_search_query);
+        }
+        else if (auto *child = dynamic_cast<FileIconView *>(m_children.back().get()))
+        {
+            child->set_show_hidden_files(show);
+            child->refresh(m_current_path, m_search_query);
+        }
+        else if (auto *child = dynamic_cast<FileCoverFlowView *>(m_children.back().get()))
+        {
+            child->set_show_hidden_files(show);
+            child->refresh(m_current_path, m_search_query);
         }
     }
 

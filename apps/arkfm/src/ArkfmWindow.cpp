@@ -250,6 +250,12 @@ namespace horizon::arkfm
             item_connect->when_click.connect([this](auto&) {
                 application()->signal_manager.emit("go-connect");
             });
+
+            menu->add_separator();
+            auto item_show_hidden = menu->add_item(i18n().tr("arkfm.menu.show_hidden"), "Ctrl+H");
+            item_show_hidden->when_click.connect([this](auto&) {
+                this->handle_toggle_hidden();
+            });
             
             return menu;
         });
@@ -266,6 +272,10 @@ namespace horizon::arkfm
                     application()->signal_manager.connect(
                         "new-folder", [this](SignalContext &)
                         { this->handle_new_folder(); });
+
+                    application()->signal_manager.connect(
+                        "toggle-hidden", [this](SignalContext &)
+                        { this->handle_toggle_hidden(); });
 
                     application()->signal_manager.connect(
                         "delete", [this](SignalContext &)
@@ -359,6 +369,13 @@ namespace horizon::arkfm
                                     application()->signal_manager.emit("go-connect");
                                 });
 
+                                m_active_context_menu->add_separator();
+
+                                auto item_show_hidden = m_active_context_menu->add_item(i18n().tr("arkfm.menu.show_hidden"), "Ctrl+H");
+                                item_show_hidden->when_click.connect([this](auto &) {
+                                    this->handle_toggle_hidden();
+                                });
+
                                 application()->show_context_menu(m_active_context_menu.get(), -1, -1, ctx.serial,
                                                                  this->m_view_ptr);
                                 ctx.stop_propagation = true;
@@ -373,6 +390,14 @@ namespace horizon::arkfm
     }
     
     ArkfmWindow::~ArkfmWindow() = default;
+
+    void ArkfmWindow::handle_toggle_hidden()
+    {
+        if (m_view_ptr)
+        {
+            m_view_ptr->set_show_hidden_files(!m_view_ptr->show_hidden_files());
+        }
+    }
 
 
     void ArkfmWindow::handle_new_folder()

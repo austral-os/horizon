@@ -245,7 +245,7 @@ namespace horizon::files
 
             for (const auto &f : files)
             {
-                if (f.is_hidden)
+                if (f.is_hidden && !m_show_hidden_files)
                     continue;
 
                 if (!filter.empty())

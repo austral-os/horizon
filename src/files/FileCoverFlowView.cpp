@@ -78,6 +78,7 @@ namespace horizon::files
 
         auto list_view = std::make_unique<FileListView>(m_current_path);
         m_list_view = list_view.get();
+        m_list_view->set_show_hidden_files(m_show_hidden_files);
 
         m_list_view->when_row_click.connect(
             [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
@@ -107,6 +108,15 @@ namespace horizon::files
 
     FileCoverFlowView::~FileCoverFlowView() = default;
 
+    void FileCoverFlowView::set_show_hidden_files(bool show)
+    {
+        m_show_hidden_files = show;
+        if (m_list_view)
+        {
+            m_list_view->set_show_hidden_files(show);
+        }
+    }
+
     void FileCoverFlowView::refresh(const std::string &path, const std::string &filter)
     {
         m_current_path = path;
@@ -121,7 +131,7 @@ namespace horizon::files
 
             for (const auto &f : files)
             {
-                if (f.is_hidden) continue;
+                if (f.is_hidden && !m_show_hidden_files) continue;
                 if (!filter.empty())
                 {
                     std::string display_name = FileIconProvider::get_display_name(f);

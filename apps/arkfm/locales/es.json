@@ -4,6 +4,8 @@
     "menu": {
       "file": "Archivo",
       "edit": "Edición",
+      "view": "Ver",
+      "show_hidden": "Mostrar/Ocultar archivos ocultos",
       "help": "Ayuda",
       "open": "Abrir",
       "new_folder": "Nueva Carpeta",

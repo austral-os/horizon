@@ -38,6 +38,8 @@ namespace horizon::files
         EventsManager<horizon::TableViewRowMouseClickContext<arkutils::FileInfo>>
             when_row_dbl_click;
         
+        void set_show_hidden_files(bool show);
+
         EventsManager<OperationProgressEvent> when_operation_progress;
 
         // Clipboard state
@@ -48,6 +50,7 @@ namespace horizon::files
 
     private:
         std::string m_current_path;
+        bool m_show_hidden_files = false;
         horizon::CoverFlow<arkutils::FileInfo> *m_cover_flow{nullptr};
         horizon::Label *m_navigation_label{nullptr};
         FileListView *m_list_view{nullptr};

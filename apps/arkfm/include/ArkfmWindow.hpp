@@ -39,6 +39,7 @@ namespace horizon::arkfm
         void handle_mount_remote(const std::string &uri, storage::RemoteCredentials creds = {}, storage::MountPasswordDialog* dlg = nullptr);
 
 
+        void handle_toggle_hidden();
         void show_status_message(const std::string &msg, int timeout_ms = 3000);
 
         void handle_extract(const std::string &path);
