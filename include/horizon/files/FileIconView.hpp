@@ -13,7 +13,7 @@ namespace horizon::files
     {
     public:
         FileIconView(std::string path);
-        ~FileIconView() override = default;
+        ~FileIconView() override;
 
         void set_application_recursive(WaylandWindow *app) override;
         void refresh(const std::string &path, const std::string &filter = "");
@@ -29,9 +29,12 @@ namespace horizon::files
 
     private:
         void update_icons(const std::vector<arkutils::FileInfo> &files);
+        void start_thumbnail_watch();
+        void check_thumbnails();
 
         std::string m_current_path;
         bool m_show_hidden_files = false;
         std::unique_ptr<arkutils::FileSystemModel> m_fs_model;
+        uint64_t m_thumbnail_timer_id{0};
     };
 } // namespace horizon::files

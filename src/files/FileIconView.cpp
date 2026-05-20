@@ -3,6 +3,7 @@
 #include "horizon/Application.hpp"
 #include "horizon/Icon.hpp"
 #include "horizon/Label.hpp"
+#include "horizon/lens/ThumbnailCache.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/Menu.hpp"
 #include "horizon/ThemeManager.hpp"
@@ -88,10 +89,27 @@ namespace horizon::files
             m_selected = selected;
             m_label_ptr->set_text(FileIconProvider::get_display_name(f));
 
-            std::string icon_name = FileIconProvider::get_icon_name(f);
-
             m_icon_size = static_cast<int>(48 * m_zoom);
-            m_icon_ptr->set_icon_name(icon_name);
+
+            // Use cached thumbnail if available, otherwise request generation
+            std::string thumb_path = lens::ThumbnailCache::get_thumbnail(f.path,
+                lens::ThumbnailSize::Large);
+            if (!thumb_path.empty())
+            {
+                m_icon_ptr->set_icon_path(thumb_path);
+            }
+            else
+            {
+                std::string icon_name = FileIconProvider::get_icon_name(f);
+                m_icon_ptr->set_icon_name(icon_name);
+
+                if (lens::ThumbnailCache::is_supported(f.path))
+                {
+                    lens::ThumbnailCache::request_thumbnail(f.path,
+                        lens::ThumbnailSize::Large);
+                }
+            }
+
             m_icon_ptr->set_icon_size(m_icon_size);
 
             m_label_ptr->set_font_size(10 * m_zoom);
@@ -165,6 +183,15 @@ namespace horizon::files
         int m_icon_size{48};
         bool m_selected{false};
     };
+
+    FileIconView::~FileIconView()
+    {
+        if (m_thumbnail_timer_id != 0 && application())
+        {
+            application()->stop_timer(m_thumbnail_timer_id);
+            m_thumbnail_timer_id = 0;
+        }
+    }
 
     FileIconView::FileIconView(std::string path) : IconView<arkutils::FileInfo>()
     {
@@ -267,5 +294,83 @@ namespace horizon::files
                  << " unique items (discarded " << (files.size() - unique_files.size()) << "). Path: " << m_current_path;
 
         set_data(unique_files);
+        start_thumbnail_watch();
+    }
+
+    void FileIconView::start_thumbnail_watch()
+    {
+        if (!application())
+            return;
+
+        // Cancel any existing watch timer
+        if (m_thumbnail_timer_id != 0)
+        {
+            application()->stop_timer(m_thumbnail_timer_id);
+            m_thumbnail_timer_id = 0;
+        }
+
+        // Check if any files in the current view could use a thumbnail
+        for (const auto &f : data())
+        {
+            if (lens::ThumbnailCache::is_supported(f.path) &&
+                lens::ThumbnailCache::get_thumbnail(f.path, lens::ThumbnailSize::Large).empty())
+            {
+                m_thumbnail_timer_id = application()->add_timer(3000,
+                    [this]()
+                    {
+                        m_thumbnail_timer_id = 0;
+                        check_thumbnails();
+                    });
+                break;
+            }
+        }
+    }
+
+    void FileIconView::check_thumbnails()
+    {
+        if (!application())
+            return;
+
+        // Look for any file that now has a valid thumbnail
+        bool has_new = false;
+        for (const auto &f : data())
+        {
+            if (!lens::ThumbnailCache::is_supported(f.path))
+                continue;
+
+            if (!lens::ThumbnailCache::get_thumbnail(f.path, lens::ThumbnailSize::Large).empty())
+            {
+                has_new = true;
+                break;
+            }
+        }
+
+        if (has_new)
+        {
+            rebuild_items();
+            return;
+        }
+
+        // Still pending — reschedule
+        bool any_pending = false;
+        for (const auto &f : data())
+        {
+            if (lens::ThumbnailCache::is_supported(f.path) &&
+                lens::ThumbnailCache::get_thumbnail(f.path, lens::ThumbnailSize::Large).empty())
+            {
+                any_pending = true;
+                break;
+            }
+        }
+
+        if (any_pending)
+        {
+            m_thumbnail_timer_id = application()->add_timer(3000,
+                [this]()
+                {
+                    m_thumbnail_timer_id = 0;
+                    check_thumbnails();
+                });
+        }
     }
 } // namespace horizon::files

@@ -15,6 +15,16 @@ namespace horizon
 
     Icon::~Icon() = default;
 
+    void Icon::set_icon_path(const std::string &path)
+    {
+        if (m_resolved_path == path)
+            return;
+
+        m_icon_name = "";
+        m_resolved_path = path;
+        invalidate();
+    }
+
     void Icon::set_icon_name(const std::string &name)
     {
         if (m_icon_name == name)
@@ -108,7 +118,6 @@ namespace horizon
     {
         if (m_icon_name.empty())
         {
-            m_resolved_path = "";
             return;
         }
 

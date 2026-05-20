@@ -29,6 +29,12 @@ namespace horizon
         const std::string &icon_name() const;
 
         /**
+         * @brief Set a direct image path to render, bypassing theme lookup.
+         * Clears any previously set icon name.
+         */
+        void set_icon_path(const std::string &path);
+
+        /**
          * @brief Set desired icon size in pixels (e.g. 16, 24, 32, 48).
          * Triggers icon re-resolution and repaint.
          */
