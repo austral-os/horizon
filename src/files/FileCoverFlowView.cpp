@@ -6,6 +6,7 @@
 #include "horizon/EventsManager.hpp"
 #include "horizon/Icon.hpp"
 #include "horizon/Label.hpp"
+#include "horizon/lens/ThumbnailCache.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/arkutils/FileSystemModel.hpp"
 #include <algorithm>
@@ -28,7 +29,22 @@ namespace horizon::files
 
         void set_data(const arkutils::FileInfo &f)
         {
-            m_icon->set_icon_name(FileIconProvider::get_icon_name(f));
+            std::string thumb = lens::ThumbnailCache::get_thumbnail(f.path,
+                lens::ThumbnailSize::XLarge);
+            if (!thumb.empty())
+            {
+                m_icon->set_icon_path(thumb);
+            }
+            else
+            {
+                m_icon->set_icon_name(FileIconProvider::get_icon_name(f));
+
+                if (lens::ThumbnailCache::is_supported(f.path))
+                {
+                    lens::ThumbnailCache::request_thumbnail(f.path,
+                        lens::ThumbnailSize::XLarge);
+                }
+            }
         }
 
     private:
