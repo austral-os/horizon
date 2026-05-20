@@ -525,7 +525,6 @@ namespace horizon
                             m_selected_rows.insert((int)row_idx);
                             update_selection_visuals();
                         }
-                        ctx.stop_propagation = true;
                     });
 
                 row_widget->when_dbl_click.connect(

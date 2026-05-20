@@ -215,7 +215,6 @@ namespace horizon
                             if (m_item_menu_factory && !item_ptr->context_menu()) {
                                 item_ptr->set_context_menu(m_item_menu_factory(item_data));
                             }
-                            ctx.stop_propagation = true;
                         });
                     }
 
