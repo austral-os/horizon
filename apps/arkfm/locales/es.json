@@ -26,7 +26,8 @@
       "images": "Imágenes",
       "applications": "Aplicaciones",
       "go_to_folder": "Ir a la carpeta...",
-      "connect_to_server": "Conectarse al servidor..."
+      "connect_to_server": "Conectarse al servidor...",
+      "open_terminal": "Abrir en la terminal"
     },
     "dialog": {
       "properties": "Propiedades",

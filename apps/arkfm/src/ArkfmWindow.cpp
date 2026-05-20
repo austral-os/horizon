@@ -247,6 +247,13 @@ namespace horizon::arkfm
             });
 
             menu->add_separator();
+            auto item_terminal = menu->add_item(i18n().tr("arkfm.menu.open_terminal"));
+            item_terminal->when_click.connect([this, f](auto&) {
+                std::string term_path = (f.type == horizon::arkutils::FileType::Directory) ? f.path : m_view_ptr->current_path();
+                ApplicationLauncher::launch_binary("terminal", {}, term_path);
+            });
+
+            menu->add_separator();
             auto item_connect = menu->add_item("Conectar al servidor...");
             item_connect->when_click.connect([this](auto&) {
                 application()->signal_manager.emit("go-connect");
@@ -363,6 +370,12 @@ namespace horizon::arkfm
                                 auto item_props = m_active_context_menu->add_item("Propiedades");
                                 item_props->when_click.connect([this](auto &)
                                                                { this->handle_properties(); });
+
+                                 m_active_context_menu->add_separator();
+                                 auto item_terminal = m_active_context_menu->add_item(i18n().tr("arkfm.menu.open_terminal"));
+                                 item_terminal->when_click.connect([this](auto &) {
+                                     ApplicationLauncher::launch_binary("terminal", {}, m_view_ptr->current_path());
+                                 });
 
                                 m_active_context_menu->add_separator();
 
