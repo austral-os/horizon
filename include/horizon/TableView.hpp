@@ -67,6 +67,14 @@ namespace horizon
             // Synchronize horizontal scroll
             m_scroll_area->when_scroll.connect([this](EventContext &) { sync_header_scroll(); });
 
+            m_scroll_area->when_mouse_press.connect([this](MouseButtonEventContext &ctx) {
+                if (ctx.button == 0x110 || ctx.button == 0x111)
+                {
+                    m_selected_rows.clear();
+                    update_selection_visuals();
+                }
+            });
+
             // Internal construction
             m_scroll_area->set_content(std::move(m_content_container));
 
@@ -465,6 +473,12 @@ namespace horizon
                     row_widget->set_alternate(row_idx % 2 != 0);
                 }
 
+                row_widget->when_mouse_press.connect(
+                    [](MouseButtonEventContext &ctx)
+                    {
+                        ctx.stop_propagation = true;
+                    });
+
                 if (m_selected_rows.count((int)row_idx) > 0)
                 {
                     row_widget->set_selected(true);
@@ -497,6 +511,8 @@ namespace horizon
                         click_ctx.row_index = (int)row_idx;
                         click_ctx.row_data = row_data;
                         when_row_click.run(click_ctx);
+
+                        ctx.stop_propagation = true;
                     });
 
                 row_widget->when_right_click.connect(
@@ -509,7 +525,7 @@ namespace horizon
                             m_selected_rows.insert((int)row_idx);
                             update_selection_visuals();
                         }
-                        ctx.stop_propagation = false;
+                        ctx.stop_propagation = true;
                     });
 
                 row_widget->when_dbl_click.connect(

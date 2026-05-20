@@ -194,16 +194,18 @@ namespace horizon
                             {
                                 set_selected_index(i);
                             }
+                            ctx.stop_propagation = true;
                         });
 
                     if (m_item_menu_factory)
                     {
                         auto *item_ptr = item_widget.get();
                         T item_data = m_data[i];
-                        item_widget->when_right_click.connect([this, item_ptr, item_data](auto&) {
+                        item_widget->when_right_click.connect([this, item_ptr, item_data](auto &ctx) {
                             if (m_item_menu_factory && !item_ptr->context_menu()) {
                                 item_ptr->set_context_menu(m_item_menu_factory(item_data));
                             }
+                            ctx.stop_propagation = true;
                         });
                     }
 

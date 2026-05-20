@@ -20,6 +20,13 @@ namespace horizon
 
         m_scroll_area->set_content(std::move(content_pane));
         add_child(std::move(scroll_area));
+
+        m_scroll_area->when_mouse_press.connect([this](MouseButtonEventContext &ctx) {
+            if (ctx.button == 0x110 || ctx.button == 0x111)
+            {
+                set_selected_index(-1);
+            }
+        });
     }
 
     void IconViewBase::set_zoom(float zoom)
