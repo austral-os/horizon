@@ -77,6 +77,9 @@ bool HorizonSession::is_dev_mode()
 
 void HorizonSession::init(const std::string &compositor)
 {
+    // Set DISPLAY for the entire session
+    setenv("DISPLAY", ":0", 1);
+
     // Ensure GTK icon theme is set to austral
     const char *home = std::getenv("HOME");
     if (home)

@@ -1,4 +1,5 @@
 #!/bin/bash
+export DISPLAY=:0
 export XDG_SESSION_TYPE=wayland
 export XDG_CURRENT_DESKTOP=HZN-LABWC
 
