@@ -20,4 +20,16 @@ for i in {1..50}; do
     sleep 0.1
 done
 
+# Esperar a que el socket de XWayland esté disponible y exportar DISPLAY
+for i in {1..50}; do
+    DISPLAY_NUM=$(pgrep -af Xwayland | sed -n 's/.*Xwayland \(:[0-9]\+\).*/\1/p' | head -n1)
+
+    if [ -n "$DISPLAY_NUM" ]; then
+        export DISPLAY="$DISPLAY_NUM"
+        break
+    fi
+
+    sleep 0.1
+done
+
 @CMAKE_INSTALL_FULL_BINDIR@/horizon_session --compositor wayfire
