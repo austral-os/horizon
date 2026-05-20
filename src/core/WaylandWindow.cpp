@@ -993,6 +993,14 @@ namespace horizon
         return nullptr;
     }
 
+    void WaylandWindow::update_global_menu()
+    {
+        if (m_client_menu && m_is_activated)
+        {
+            m_client_menu->set_global_menu(m_global_menus);
+        }
+    }
+
     void WaylandWindow::init_global_menu()
     {
         if (!m_use_global_menu)

@@ -23,6 +23,7 @@
 #include "horizon/ApplicationLauncher.hpp"
 #include "horizon/compression/CompressionManager.hpp"
 #include "horizon/Menu.hpp"
+#include <horizon/MenuItem.hpp>
 #include "horizon/DesktopManager.hpp"
 #include "horizon/dialogs/AppPickerDialog.hpp"
 #include <algorithm>
@@ -252,7 +253,8 @@ namespace horizon::arkfm
             });
 
             menu->add_separator();
-            auto item_show_hidden = menu->add_item(i18n().tr("arkfm.menu.show_hidden"), "Ctrl+H");
+            std::string hidden_text = m_view_ptr->show_hidden_files() ? i18n().tr("arkfm.menu.hide_hidden") : i18n().tr("arkfm.menu.show_hidden");
+            auto item_show_hidden = menu->add_item(hidden_text, "Ctrl+H");
             item_show_hidden->when_click.connect([this](auto&) {
                 this->handle_toggle_hidden();
             });
@@ -371,7 +373,7 @@ namespace horizon::arkfm
 
                                 m_active_context_menu->add_separator();
 
-                                auto item_show_hidden = m_active_context_menu->add_item(i18n().tr("arkfm.menu.show_hidden"), "Ctrl+H");
+                                auto item_show_hidden = m_active_context_menu->add_item(m_view_ptr->show_hidden_files() ? i18n().tr("arkfm.menu.hide_hidden") : i18n().tr("arkfm.menu.show_hidden"), "Ctrl+H");
                                 item_show_hidden->when_click.connect([this](auto &) {
                                     this->handle_toggle_hidden();
                                 });
@@ -396,6 +398,26 @@ namespace horizon::arkfm
         if (m_view_ptr)
         {
             m_view_ptr->set_show_hidden_files(!m_view_ptr->show_hidden_files());
+
+            // Update the global View menu item text dynamically
+            if (application())
+            {
+                if (auto *view_menu = application()->get_menu("view"))
+                {
+                    for (auto &child : view_menu->children())
+                    {
+                        if (auto *item = dynamic_cast<horizon::MenuItem *>(child.get()))
+                        {
+                            if (item->id() == "toggle-hidden")
+                            {
+                                item->set_text(m_view_ptr->show_hidden_files() ? i18n().tr("arkfm.menu.hide_hidden") : i18n().tr("arkfm.menu.show_hidden"));
+                                break;
+                            }
+                        }
+                    }
+                    application()->update_global_menu();
+                }
+            }
         }
     }
 

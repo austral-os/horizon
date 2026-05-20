@@ -458,6 +458,7 @@ namespace horizon
          */
         void set_global_menu(const std::vector<Menu *> &menus);
         void init_global_menu();
+        void update_global_menu();
 
         /**
          * @brief Adds a menu to the window's collection.
