@@ -2,6 +2,7 @@
 #include "horizon/files/FileIconProvider.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/Icon.hpp"
+#include "horizon/IconThemeLookup.hpp"
 #include "horizon/Label.hpp"
 #include "horizon/lens/ThumbnailCache.hpp"
 #include "horizon/Logger.hpp"
@@ -9,13 +10,171 @@
 #include "horizon/ThemeManager.hpp"
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <filesystem>
 #include <set>
 #include <thread>
 #include "horizon/arkutils/FileOperations.hpp"
 
+namespace fs = std::filesystem;
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 namespace horizon::files
 {
+    // -----------------------------------------------------------------------
+    // FolderPreviewWidget — composites a folder icon with up to 4 rotated
+    // thumbnail previews of images inside the folder.
+    // -----------------------------------------------------------------------
+    class FolderPreviewWidget : public Widget
+    {
+    public:
+        FolderPreviewWidget() : Widget() {}
+
+        void set_folder(const std::string &folder_path, int icon_size)
+        {
+            m_icon_size = icon_size;
+
+            if (m_folder_path != folder_path)
+            {
+                m_folder_path = folder_path;
+                m_folder_icon.clear();
+                m_thumbnails.clear();
+                scan_images();
+            }
+
+            if (m_folder_icon.empty())
+            {
+                m_folder_icon = IconThemeLookup::find_icon("folder", m_icon_size);
+            }
+
+            invalidate();
+        }
+
+    protected:
+        void draw(GraphicsContext &ctx) override
+        {
+            // Center the folder icon in our area
+            int icon_x = m_x + (m_width - m_icon_size) / 2;
+            int icon_y = m_y + (m_height - m_icon_size) / 2;
+
+            // Draw folder icon as background
+            if (!m_folder_icon.empty())
+            {
+                ctx.drawImage(m_folder_icon, icon_x, icon_y, m_icon_size, m_icon_size, 1.0f);
+            }
+
+            // Draw thumbnail overlays on top
+            draw_thumbnails(ctx, icon_x, icon_y);
+        }
+
+    private:
+        void scan_images()
+        {
+            m_thumbnails.clear();
+            try
+            {
+                int count = 0;
+                for (const auto &entry : fs::directory_iterator(m_folder_path))
+                {
+                    if (!entry.is_regular_file())
+                        continue;
+                    if (count >= 4)
+                        break;
+
+                    std::string entry_path = entry.path().string();
+                    if (!lens::ThumbnailCache::is_supported(entry_path))
+                        continue;
+
+                    // Try Normal first (128×128, ideal size for small previews),
+                    // fall back to Large (256×256) if Normal not available yet.
+                    std::string thumb = lens::ThumbnailCache::get_thumbnail(
+                        entry_path, lens::ThumbnailSize::Normal);
+                    if (thumb.empty())
+                    {
+                        thumb = lens::ThumbnailCache::get_thumbnail(
+                            entry_path, lens::ThumbnailSize::Large);
+                    }
+
+                    if (!thumb.empty())
+                    {
+                        m_thumbnails.push_back(thumb);
+                        count++;
+                    }
+                    else
+                    {
+                        lens::ThumbnailCache::request_thumbnail(
+                            entry_path, lens::ThumbnailSize::Normal);
+                    }
+                }
+            }
+            catch (...)
+            {
+                // Permission denied, broken symlink, etc. — silently skip
+            }
+        }
+
+        void draw_thumbnails(GraphicsContext &ctx, int icon_x, int icon_y)
+        {
+            int n = (int)m_thumbnails.size();
+            if (n == 0)
+                return;
+
+            int thumb_size = std::max(8, (int)(m_icon_size * 0.40f));
+            int padding  = std::max(1, (int)(m_icon_size * 0.08f));
+
+            int left   = icon_x + padding + thumb_size / 2;
+            int right  = icon_x + m_icon_size - padding - thumb_size / 2;
+            int top    = icon_y + padding + thumb_size / 2;
+            int bottom = icon_y + m_icon_size - padding - thumb_size / 2;
+            int cx     = icon_x + m_icon_size / 2;
+            int cy     = icon_y + m_icon_size / 2;
+            int half_gap = padding / 2;
+
+            struct { int px, py; float rot; } pos[4];
+
+            switch (n)
+            {
+            case 1:
+                pos[0] = {cx, cy, 0.0f};
+                break;
+            case 2:
+                pos[0] = {cx - thumb_size / 2 - half_gap, cy, -8.0f};
+                pos[1] = {cx + thumb_size / 2 + half_gap, cy,  8.0f};
+                break;
+            case 3:
+                pos[0] = {left,  top,    -8.0f};
+                pos[1] = {right, top,     8.0f};
+                pos[2] = {cx,    bottom,  5.0f};
+                break;
+            default:
+                pos[0] = {left,  top,    -8.0f};
+                pos[1] = {right, top,     8.0f};
+                pos[2] = {left,  bottom,  5.0f};
+                pos[3] = {right, bottom, -5.0f};
+                break;
+            }
+
+            float alpha = 0.92f;
+            for (int i = 0; i < n && i < (int)m_thumbnails.size(); i++)
+            {
+                ctx.save();
+                ctx.translate((float)pos[i].px, (float)pos[i].py);
+                ctx.rotate(pos[i].rot * (float)(M_PI / 180.0f));
+                ctx.drawImage(m_thumbnails[i], -thumb_size / 2, -thumb_size / 2,
+                              thumb_size, thumb_size, alpha);
+                ctx.restore();
+            }
+        }
+
+        std::string m_folder_path;
+        std::string m_folder_icon;
+        int m_icon_size{48};
+        std::vector<std::string> m_thumbnails;
+    };
+
     class FileIconItem : public Widget
     {
     public:
@@ -25,6 +184,12 @@ namespace horizon::files
             icon->set_position_type(FREE);
             m_icon_ptr = icon.get();
             add_child(std::move(icon));
+
+            auto preview = std::make_unique<FolderPreviewWidget>();
+            preview->set_position_type(FREE);
+            m_preview_ptr = preview.get();
+            add_child(std::move(preview));
+            m_preview_ptr->set_visible(false);
 
             auto label = std::make_unique<Label>();
             label->set_position_type(FREE);
@@ -91,37 +256,42 @@ namespace horizon::files
 
             m_icon_size = static_cast<int>(48 * m_zoom);
 
-            // Use cached thumbnail if available, otherwise request generation
-            std::string thumb_path = lens::ThumbnailCache::get_thumbnail(f.path,
-                lens::ThumbnailSize::Large);
-            if (!thumb_path.empty())
-            {
-                m_icon_ptr->set_icon_path(thumb_path);
-            }
-            else
-            {
-                std::string icon_name = FileIconProvider::get_icon_name(f);
-                m_icon_ptr->set_icon_name(icon_name);
-
-                if (lens::ThumbnailCache::is_supported(f.path))
-                {
-                    lens::ThumbnailCache::request_thumbnail(f.path,
-                        lens::ThumbnailSize::Large);
-                }
-            }
-
-            m_icon_ptr->set_icon_size(m_icon_size);
-
-            m_label_ptr->set_font_size(10 * m_zoom);
-
             if (f.type == arkutils::FileType::Directory)
             {
                 set_accept_drops(true);
+                m_icon_ptr->set_visible(false);
+                m_preview_ptr->set_visible(true);
+                m_preview_ptr->set_folder(f.path, m_icon_size);
             }
             else
             {
                 set_accept_drops(false);
+                m_icon_ptr->set_visible(true);
+                m_preview_ptr->set_visible(false);
+
+                // Use cached thumbnail if available, otherwise request generation
+                std::string thumb_path = lens::ThumbnailCache::get_thumbnail(f.path,
+                    lens::ThumbnailSize::Large);
+                if (!thumb_path.empty())
+                {
+                    m_icon_ptr->set_icon_path(thumb_path);
+                }
+                else
+                {
+                    std::string icon_name = FileIconProvider::get_icon_name(f);
+                    m_icon_ptr->set_icon_name(icon_name);
+
+                    if (lens::ThumbnailCache::is_supported(f.path))
+                    {
+                        lens::ThumbnailCache::request_thumbnail(f.path,
+                            lens::ThumbnailSize::Large);
+                    }
+                }
+
+                m_icon_ptr->set_icon_size(m_icon_size);
             }
+
+            m_label_ptr->set_font_size(10 * m_zoom);
 
             invalidate();
         }
@@ -138,9 +308,13 @@ namespace horizon::files
         {
             int padding = static_cast<int>(4 * m_zoom);
             int icon_y = padding;
+            int icon_x = m_x + (m_width - m_icon_size) / 2;
 
-            m_icon_ptr->set_position(m_x + (m_width - m_icon_size) / 2, m_y + icon_y);
+            m_icon_ptr->set_position(icon_x, m_y + icon_y);
             m_icon_ptr->set_size(m_icon_size, m_icon_size);
+
+            m_preview_ptr->set_position(icon_x, m_y + icon_y);
+            m_preview_ptr->set_size(m_icon_size, m_icon_size);
 
             int label_y = icon_y + m_icon_size + 4;
             m_label_ptr->set_position(m_x + 2, m_y + label_y);
@@ -177,6 +351,7 @@ namespace horizon::files
 
     private:
         Icon *m_icon_ptr{nullptr};
+        FolderPreviewWidget *m_preview_ptr{nullptr};
         Label *m_label_ptr{nullptr};
         arkutils::FileInfo m_file_info;
         float m_zoom{1.5f};

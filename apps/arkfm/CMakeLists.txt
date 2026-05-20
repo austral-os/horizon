@@ -18,6 +18,7 @@ target_include_directories(arkfm
 target_link_libraries(arkfm
     PRIVATE
         horizon
+        horizon-image
         horizon-network-storage
         horizon-compression-tools
 )
