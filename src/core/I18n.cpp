@@ -148,6 +148,47 @@ std::string I18n::get_language_name(const std::string& code) const {
     return code;
 }
 
+std::string I18n::get_valid_system_locale(const std::string& lang_code, const std::string& country_code) {
+    std::string upper_country = country_code;
+    for (auto & c: upper_country) c = toupper(c);
+    
+    std::string target_locale = lang_code + "_" + upper_country + ".UTF-8";
+    
+    std::ifstream supported_file("/usr/share/i18n/SUPPORTED");
+    if (!supported_file.is_open()) {
+        return target_locale;
+    }
+
+    std::string line;
+    bool found_target = false;
+    std::string fallback_locale = "";
+    std::string lang_prefix = lang_code + "_";
+    
+    while (std::getline(supported_file, line)) {
+        if (line.find(target_locale) != std::string::npos) {
+            found_target = true;
+            break;
+        }
+        if (fallback_locale.empty() && line.find(lang_prefix) == 0 && line.find(".UTF-8") != std::string::npos) {
+            size_t space_pos = line.find(' ');
+            if (space_pos != std::string::npos) {
+                fallback_locale = line.substr(0, space_pos);
+            }
+        }
+    }
+
+    if (found_target) {
+        return target_locale;
+    }
+    
+    if (!fallback_locale.empty()) {
+        LOG_WARNING << "Locale " << target_locale << " not supported. Falling back to " << fallback_locale;
+        return fallback_locale;
+    }
+    
+    return target_locale;
+}
+
 I18n& i18n() {
     static I18n instance;
     if (!instance.get_backend()) {

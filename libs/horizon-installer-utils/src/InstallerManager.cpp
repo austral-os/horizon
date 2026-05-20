@@ -7,6 +7,7 @@
 #include <sstream>
 #include <thread>
 #include <unistd.h>
+#include <horizon/I18n.hpp>
 
 namespace horizon::installer
 {
@@ -141,11 +142,7 @@ namespace horizon::installer
             country_code = (lang_code == "es") ? "ES" : "US";
         }
         
-        // Convert country to uppercase for the locale string (e.g., es_AR)
-        std::string upper_country = country_code;
-        for (auto & c: upper_country) c = toupper(c);
-        
-        std::string full_locale = lang_code + "_" + upper_country + ".UTF-8";
+        std::string full_locale = I18n::get_valid_system_locale(lang_code, country_code);
         LOG_INFO << "Using locale " << full_locale << " for system and XDG configuration";
 
         // 1. Generate system locale

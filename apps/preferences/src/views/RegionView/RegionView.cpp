@@ -200,10 +200,7 @@ namespace horizon::preferences
             if (j.contains("language")) lang = j["language"].get<std::string>();
             if (j.contains("country")) country = j["country"].get<std::string>();
             
-            std::string upper_country = country;
-            for (auto & c: upper_country) c = toupper(c);
-            
-            std::string full_locale = lang + "_" + upper_country + ".UTF-8";
+            std::string full_locale = I18n::get_valid_system_locale(lang, country);
             
             // Store the full locale in the config so the session manager sees it
             j["language"] = full_locale;

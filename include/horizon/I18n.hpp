@@ -95,6 +95,12 @@ public:
      */
     std::string get_language_name(const std::string& code) const;
 
+    /**
+     * @brief Checks if a locale is supported by the system and returns a valid fallback if not.
+     */
+    static std::string get_valid_system_locale(const std::string& lang_code, const std::string& country_code);
+
+
 private:
     static std::vector<std::string> s_search_paths;
     std::unique_ptr<I18nBackend> m_backend;
