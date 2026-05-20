@@ -45,6 +45,7 @@ file(GLOB_RECURSE SOURCES
     "src/core/ConfigManager.cpp"
     "src/core/MouseSettings.cpp"
     "src/core/FileWatcher.cpp"
+    "src/core/lens/*.cpp"
     "src/files/disks/*.cpp"
     "src/protocols/*.c"
 )
@@ -161,6 +162,7 @@ add_subdirectory(apps/system-monitor)
 add_subdirectory(apps/horizon-keyring)
 add_subdirectory(apps/horizon-keyring-manager)
 add_subdirectory(apps/pkg-installer)
+add_subdirectory(apps/horizon-lens)
 
 
 # --- Examples and Demos ---

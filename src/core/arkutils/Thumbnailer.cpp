@@ -35,9 +35,25 @@ namespace horizon::arkutils
 
     std::string Thumbnailer::get_thumbnail_path(const std::string &source_path, int width, int height)
     {
+        // Determine XDG-compatible size subdirectory
+        std::string size_dir;
+        int max_dim = std::max(width, height);
+        if (max_dim <= 128)       size_dir = "normal";
+        else if (max_dim <= 256)  size_dir = "large";
+        else                      size_dir = "x-large";
+
+        // Build persistent cache directory: ~/.cache/horizon/thumbnails/<size>/
+        const char* home = std::getenv("HOME");
+        fs::path cache_base = home
+            ? fs::path(home) / ".cache" / "horizon" / "thumbnails" / size_dir
+            : fs::temp_directory_path() / "horizon" / "thumbnails" / size_dir;
+
+        std::error_code ec;
+        fs::create_directories(cache_base, ec);
+
         std::string hash = calculate_hash(source_path);
         std::string thumb_name = "horizon-thumb-" + hash + "-" + std::to_string(width) + "x" + std::to_string(height) + ".png";
-        return (fs::temp_directory_path() / thumb_name).string();
+        return (cache_base / thumb_name).string();
     }
 
     std::string Thumbnailer::generate(const std::string &path, int width, int height)
