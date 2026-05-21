@@ -496,7 +496,11 @@ namespace horizon
                         
                         // Force local synchronization of root widget size to ensure hit-testing
                         // works correctly before the compositor responds with a configure event.
-                        m_window->on_resize(m_window->width(), m_total_height);
+                        if (m_position == "left" || m_position == "right") {
+                            m_window->on_resize(m_total_height, m_window->height());
+                        } else {
+                            m_window->on_resize(m_window->width(), m_total_height);
+                        }
                     }
 
                     // Recreate all dock icons at the new size to get fresh rendering state
