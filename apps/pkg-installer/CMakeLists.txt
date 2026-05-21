@@ -24,7 +24,7 @@ horizon_install_app(pkg-installer
     NAME "Package Installer"
     COMMENT "Install .deb packages easily"
     ICON "pkg-installer"
-    VERSION "0.1.0"
+    VERSION "0.1.1"
     CATEGORIES "System;Utility;"
     MIMETYPE "application/vnd.debian.binary-package;application/x-debian-package;"
     EXEC_ARGS "%f"

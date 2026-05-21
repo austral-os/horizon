@@ -257,6 +257,7 @@ namespace horizon
 
     void InstallerWindow::update_status(const std::string &message, WidgetAccentColor accent)
     {
+        auto *tm = theme_manager();
         m_feedback_label->set_text(message);
 
         if (accent == WidgetAccentColor::Success)
@@ -269,7 +270,8 @@ namespace horizon
         }
         else
         {
-            m_feedback_label->set_text_color(Color(0.0f, 0.0f, 0.0f, 1.0f)); // Negro
+            Color lbl_default = tm->get_color("window_fg");
+            m_feedback_label->set_text_color(lbl_default);
         }
     }
 
