@@ -3460,7 +3460,7 @@ namespace horizon
 
     Widget *WaylandWindow::find_fullscreen_target(Widget *root)
     {
-        if (!root)
+        if (!root || !root->is_visible())
             return nullptr;
 
         if (root->supports_fullscreen())
@@ -3478,7 +3478,7 @@ namespace horizon
 
     Window *WaylandWindow::find_window_target(Widget *root)
     {
-        if (!root)
+        if (!root || !root->is_visible())
             return nullptr;
 
         if (Window *win = dynamic_cast<Window *>(root))
