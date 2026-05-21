@@ -6,6 +6,7 @@
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/WaylandWindow.hpp>
+#include <horizon/ThemeManager.hpp>
 #include <vector>
 
 namespace horizon
@@ -183,30 +184,36 @@ namespace horizon
             {static_cast<int>(x()), static_cast<int>(y() + tray_bottom_y), 0}      // Bottom Left
         };
 
-        // Soft white translucent gradient for the glass shelf
-        gc.fillLinearGradientPolygon(surface_points, Color(1.0f, 1.0f, 1.0f, 0.2f),
-                                     Color(1.0f, 1.0f, 1.0f, 0.6f),
-                                     true // vertical
-        );
+        auto& theme = ThemeManager::instance();
+        
+        Color surface_top = theme.get_color("dock_surface1").with_alpha(0.2f);
+        Color surface_bottom = theme.get_color("dock_surface2").with_alpha(0.6f);
+
+        // Soft translucent gradient for the glass shelf
+        gc.fillLinearGradientPolygon(surface_points, surface_top, surface_bottom, true);
 
         // 2. Draw the front lip (Edge)
+        Color lip_top = theme.get_color("dock_lip1").with_alpha(0.9f);
+        Color lip_bottom = theme.get_color("dock_lip2").with_alpha(0.8f);
+        
         gc.fillLinearGradientRect(x(), y() + tray_bottom_y, w, lip_height,
-                                  Color(0.8f, 0.8f, 0.8f, 0.9f), Color(0.4f, 0.4f, 0.4f, 0.8f),
-                                  true, // vertical
-                                  CornerRadius(0, 0, 4, 4));
+                                  lip_top, lip_bottom, true, CornerRadius(0, 0, 4, 4));
 
         // 3. Glare/Shine effects
         // Top edge of the lip shine
-        gc.setColor(Color(1.0f, 1.0f, 1.0f, 0.8f));
+        Color glare = theme.get_color("dock_glare").with_alpha(0.8f);
+        gc.setColor(glare);
         gc.drawLine(x(), y() + tray_bottom_y + 1, x() + w, y() + tray_bottom_y + 1, 1.0f);
 
         // Bottom edge of the lip shadow
-        gc.setColor(Color(0.1f, 0.1f, 0.1f, 0.5f));
+        Color shadow = theme.get_color("dock_shadow").with_alpha(0.5f);
+        gc.setColor(shadow);
         gc.drawLine(x() + 4, y() + tray_bottom_y + lip_height, x() + w - 4,
                     y() + tray_bottom_y + lip_height, 1.0f);
 
         // Separating line acting as the back wall intersection
-        gc.setColor(Color(1.0f, 1.0f, 1.0f, 0.3f));
+        Color separator = theme.get_color("dock_glare").with_alpha(0.3f);
+        gc.setColor(separator);
         gc.drawLine(x() + perspective_offset, y() + tray_top_y, x() + w - perspective_offset,
                     y() + tray_top_y, 1.0f);
 
