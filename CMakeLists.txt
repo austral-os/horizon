@@ -163,6 +163,7 @@ add_subdirectory(apps/horizon-keyring)
 add_subdirectory(apps/horizon-keyring-manager)
 add_subdirectory(apps/pkg-installer)
 add_subdirectory(apps/horizon-lens)
+add_subdirectory(apps/xdg-desktop-portal-horizon)
 
 
 # --- Examples and Demos ---

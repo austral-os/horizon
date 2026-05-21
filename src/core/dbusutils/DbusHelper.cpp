@@ -904,4 +904,27 @@ namespace horizon::dbusutils
         dbus_connection_send(m_connection, sig, nullptr);
         dbus_message_unref(sig);
     }
+
+    void DbusHelper::emit_signal_custom(const std::string& path, const std::string& interface, const std::string& signal, const std::vector<std::pair<bool, DbusVariant>>& args)
+    {
+        DBusMessage* sig = dbus_message_new_signal(path.c_str(), interface.c_str(), signal.c_str());
+        if (!sig) return;
+
+        if (!args.empty())
+        {
+            DBusMessageIter iter;
+            dbus_message_iter_init_append(sig, &iter);
+            for (const auto& [as_variant, arg] : args)
+            {
+                if (as_variant) {
+                    append_variant_to_iter(&iter, arg);
+                } else {
+                    append_basic_to_iter(&iter, arg);
+                }
+            }
+        }
+
+        dbus_connection_send(m_connection, sig, nullptr);
+        dbus_message_unref(sig);
+    }
 }

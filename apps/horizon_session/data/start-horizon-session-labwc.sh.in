@@ -1,6 +1,6 @@
 #!/bin/bash
 export XDG_SESSION_TYPE=wayland
-export XDG_CURRENT_DESKTOP=HZN-LABWC
+export XDG_CURRENT_DESKTOP=horizon:HZN-LABWC
 
 # Limpiar sockets y locks huérfanos antes de iniciar el compositor para asegurar que use wayland-0
 rm -f "$XDG_RUNTIME_DIR/wayland-[0-9]"
@@ -34,6 +34,7 @@ done
 
 # Import environment for user services and start audio daemons
 systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE
+dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE
 systemctl --user start pipewire pipewire-pulse wireplumber
 
 @CMAKE_INSTALL_FULL_BINDIR@/horizon_session --compositor labwc

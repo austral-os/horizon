@@ -226,6 +226,7 @@ namespace horizon::dbusutils
          * @brief Emits a signal from the specified path.
          */
         void emit_signal(const std::string& path, const std::string& interface, const std::string& signal, const std::vector<DbusVariant>& args = {});
+        void emit_signal_custom(const std::string& path, const std::string& interface, const std::string& signal, const std::vector<std::pair<bool, DbusVariant>>& args);
 
     private:
         DBusConnection* m_connection{nullptr};

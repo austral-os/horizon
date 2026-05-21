@@ -217,11 +217,11 @@ void HorizonSession::init(const std::string &compositor)
 
         if (compositor == "labwc")
         {
-            setenv("XDG_CURRENT_DESKTOP", "HZN-LABWC", 1);
+            setenv("XDG_CURRENT_DESKTOP", "horizon:HZN-LABWC", 1);
         }
         else if (compositor == "wayfire")
         {
-            setenv("XDG_CURRENT_DESKTOP", "HZN-WAYFIRE", 1);
+            setenv("XDG_CURRENT_DESKTOP", "horizon:HZN-WAYFIRE", 1);
         }
 
         LOG_INFO << "[HorizonSession] Set XDG_CURRENT_DESKTOP to: "

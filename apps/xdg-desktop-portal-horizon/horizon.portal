@@ -1,0 +1,3 @@
+[portal]
+DBusName=org.freedesktop.impl.portal.desktop.horizon
+Interfaces=org.freedesktop.impl.portal.Settings
