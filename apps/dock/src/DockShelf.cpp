@@ -55,8 +55,9 @@ namespace horizon
     {
         const float radius = 120.0f;
 
-        int total_children_width = 0;
+        int total_children_length = 0;
         int count = 0;
+        bool is_vertical = (m_position == "left" || m_position == "right");
 
         for (const auto &child : children())
         {
@@ -71,88 +72,136 @@ namespace horizon
                 // If this is the target index for the dragged item, leave a gap
                 if (count == m_drag_target_index)
                 {
-                    total_children_width += m_base_size + spacing();
+                    total_children_length += m_base_size + spacing();
                 }
 
                 Icon *icon_child = dynamic_cast<Icon *>(child.get());
-                int current_width = child->fixed_size();
-                int current_height = child->fixed_size();
+                int current_size = child->fixed_size();
+                float current_width = current_size;
+                float current_height = current_size;
+                float length_to_add = current_size;
 
                 if (icon_child)
                 {
                     int current_icon_size = m_base_size;
                     if (m_magnification_enabled && m_mouse_over && !m_dragged_item)
                     {
-                        // 1. Calculate horizontal distance
-                        float child_center_x =
-                            (float)total_children_width + child->fixed_size() / 2.0f;
-                        float dist_x = std::abs((child_center_x + margin()) - m_mouse_x);
+                        float child_center = (float)total_children_length + child->fixed_size() / 2.0f;
+                        float dist_primary = std::abs((child_center + margin()) - (is_vertical ? m_mouse_y : m_mouse_x));
 
-                        // 2. Calculate vertical distance from the 'active strip'
-                        float total_h = m_base_size * 2.5f;
-                        float lip_height = 10.0f;
-                        float active_y = (total_h - lip_height - 9) - (m_base_size / 2.0f);
-                        float dist_y = std::abs(active_y - m_mouse_y);
+                        float total_thickness = m_base_size * 2.5f;
+                        float active_secondary;
+                        if (m_position == "left") {
+                            active_secondary = 19.0f + m_base_size / 2.0f;
+                        } else if (m_position == "right") {
+                            active_secondary = total_thickness - 19.0f - m_base_size / 2.0f;
+                        } else {
+                            float lip_height = 10.0f;
+                            active_secondary = (total_thickness - lip_height - 9) - (m_base_size / 2.0f);
+                        }
+                        
+                        float dist_secondary = std::abs(active_secondary - (is_vertical ? m_mouse_x : m_mouse_y));
 
-                        // 3. Combined 2D Gaussian Scale
-                        float radius_y = 80.0f;
-                        float scale_x = std::exp(-(dist_x * dist_x) / (2 * radius * radius));
-                        float scale_y = std::exp(-(dist_y * dist_y) / (2 * radius_y * radius_y));
-                        float scale = scale_x * scale_y;
+                        float radius_secondary = 80.0f;
+                        float scale_primary = std::exp(-(dist_primary * dist_primary) / (2 * radius * radius));
+                        float scale_secondary = std::exp(-(dist_secondary * dist_secondary) / (2 * radius_secondary * radius_secondary));
+                        float scale = scale_primary * scale_secondary;
 
                         current_icon_size = m_base_size + (int)(m_max_extra_size * scale);
                     }
 
                     child->set_fixed_size(current_icon_size + child->margin() * 2);
                     icon_child->set_icon_size(current_icon_size);
-                    current_width = current_height = child->fixed_size();
+                    current_size = child->fixed_size();
+                    current_width = current_size;
+                    current_height = current_size;
+                    length_to_add = current_size;
                 }
                 else
                 {
-                    // For non-icons (like separators), we use their fixed width but height of
-                    // m_base_size
-                    current_width = child->fixed_size();
-                    current_height = m_base_size;
+                    if (is_vertical) {
+                        current_width = m_base_size * 0.6f;
+                        current_height = child->fixed_size(); // 2
+                        length_to_add = current_height;
+                    } else {
+                        current_width = child->fixed_size(); // 2
+                        current_height = m_base_size * 0.6f;
+                        length_to_add = current_width;
+                    }
                 }
 
-                // MANUALLY SET ABSOLUTE POSITION AND SIZE:
-                float lip_height = 10.0f;
-                float total_h = m_base_size * 2.5f;
-                int icon_bottom_y = total_h - lip_height - 9;
-
-                // Add spacing before each child (except the first one)
                 if (count > 0)
-                    total_children_width += spacing();
+                    total_children_length += spacing();
 
-                child->set_position(x() + margin() + total_children_width,
-                                    y() + icon_bottom_y - current_height);
-                child->set_size(current_width, current_height);
+                float total_thickness = m_base_size * 2.5f;
+
+                if (m_position == "left")
+                {
+                    float wall_offset = 19.0f; // 10px lip + 9px padding
+                    if (icon_child) {
+                        child->set_position(x() + wall_offset, y() + margin() + total_children_length);
+                    } else {
+                        float center_x = wall_offset + m_base_size / 2.0f;
+                        child->set_position(x() + center_x - current_width / 2.0f, y() + margin() + total_children_length);
+                    }
+                    child->set_size(current_width, current_height);
+                }
+                else if (m_position == "right")
+                {
+                    float wall_offset = 19.0f;
+                    int icon_right_x = total_thickness - wall_offset;
+                    if (icon_child) {
+                        child->set_position(x() + icon_right_x - current_width, y() + margin() + total_children_length);
+                    } else {
+                        float center_x = icon_right_x - m_base_size / 2.0f;
+                        child->set_position(x() + center_x - current_width / 2.0f, y() + margin() + total_children_length);
+                    }
+                    child->set_size(current_width, current_height);
+                }
+                else
+                {
+                    float lip_height = 10.0f;
+                    int icon_bottom_y = total_thickness - lip_height - 9;
+                    if (icon_child) {
+                        child->set_position(x() + margin() + total_children_length, y() + icon_bottom_y - current_height);
+                    } else {
+                        float center_y = icon_bottom_y - m_base_size / 2.0f;
+                        child->set_position(x() + margin() + total_children_length, y() + center_y - current_height / 2.0f);
+                    }
+                    child->set_size(current_width, current_height);
+                }
+                
                 child->calculate_layout();
-
-                total_children_width += child->fixed_size();
+                total_children_length += length_to_add;
                 count++;
             }
         }
 
-        // Final check for gap at the end
         if (m_dragged_item && m_drag_target_index >= count)
         {
-            total_children_width += m_base_size + spacing();
+            total_children_length += m_base_size + spacing();
         }
 
         if (m_dragged_item)
         {
-            // Position the dragged item at the mouse cursor
-            m_dragged_item->set_position(m_drag_mouse_x - m_dragged_item->width() / 2,
-                                         m_drag_mouse_y - m_dragged_item->height() / 2);
+            m_dragged_item->set_position(m_drag_mouse_x - m_dragged_item->width() / 2, m_drag_mouse_y - m_dragged_item->height() / 2);
         }
 
-        // 2. Update size: content width + margins on both sides
-        int content_width = total_children_width + (margin() * 2);
-        float total_height = m_base_size * 2.5f;
-        set_size(content_width, total_height);
-        set_width(content_width);
-        set_fixed_size(content_width);
+        int content_length = total_children_length + (margin() * 2);
+        float total_thickness = m_base_size * 2.5f;
+        
+        if (is_vertical)
+        {
+            set_size(total_thickness, content_length);
+            set_height(content_length);
+            set_fixed_size(content_length);
+        }
+        else
+        {
+            set_size(content_length, total_thickness);
+            set_width(content_length);
+            set_fixed_size(content_length);
+        }
 
         Widget::calculate_layout();
     }
@@ -161,8 +210,80 @@ namespace horizon
     {
         // Clear the widget area to prevent redrawing artifacts over old frames
         gc.clearRect(x(), y(), width(), height());
+        auto& theme = ThemeManager::instance();
 
-        // Draw the 3D OS X Mountain Lion Shelf
+        if (m_position == "left" || m_position == "right")
+        {
+            float w = width();
+            float h = height();
+            float lip_size = 10.0f;
+            float tray_depth = m_base_size * 1.5625f;
+            float perspective_offset = 20.0f;
+
+            Color surface_top = theme.get_color("dock_surface1").with_alpha(0.2f);
+            Color surface_bottom = theme.get_color("dock_surface2").with_alpha(0.6f);
+            Color lip_top = theme.get_color("dock_lip1").with_alpha(0.9f);
+            Color lip_bottom = theme.get_color("dock_lip2").with_alpha(0.8f);
+            Color glare = theme.get_color("dock_glare").with_alpha(0.8f);
+            Color shadow = theme.get_color("dock_shadow").with_alpha(0.5f);
+            Color separator = theme.get_color("dock_glare").with_alpha(0.3f);
+
+            if (m_position == "left")
+            {
+                float lip_start_x = 0;
+                float tray_front_x = lip_size;
+                float tray_back_x = tray_depth;
+
+                std::vector<PolygonPoint> surface_points = {
+                    {static_cast<int>(x() + tray_front_x), static_cast<int>(y()), 0},
+                    {static_cast<int>(x() + tray_back_x), static_cast<int>(y() + perspective_offset), 0},
+                    {static_cast<int>(x() + tray_back_x), static_cast<int>(y() + h - perspective_offset), 0},
+                    {static_cast<int>(x() + tray_front_x), static_cast<int>(y() + h), 0}
+                };
+
+                gc.fillLinearGradientPolygon(surface_points, surface_bottom, surface_top, false);
+                gc.fillLinearGradientRect(x() + lip_start_x, y(), lip_size, h, lip_bottom, lip_top, false, CornerRadius(4, 0, 0, 4));
+
+                gc.setColor(glare);
+                gc.drawLine(x() + tray_front_x - 1, y(), x() + tray_front_x - 1, y() + h, 1.0f);
+
+                gc.setColor(shadow);
+                gc.drawLine(x() + lip_start_x + 1, y() + 4, x() + lip_start_x + 1, y() + h - 4, 1.0f);
+
+                gc.setColor(separator);
+                gc.drawLine(x() + tray_back_x - 1, y() + perspective_offset, x() + tray_back_x - 1, y() + h - perspective_offset, 1.0f);
+            }
+            else // right
+            {
+                float tray_front_x = w - lip_size;
+                float tray_back_x = w - tray_depth;
+                float lip_start_x = w - lip_size;
+
+                std::vector<PolygonPoint> surface_points = {
+                    {static_cast<int>(x() + tray_back_x), static_cast<int>(y() + perspective_offset), 0},
+                    {static_cast<int>(x() + tray_front_x), static_cast<int>(y()), 0},
+                    {static_cast<int>(x() + tray_front_x), static_cast<int>(y() + h), 0},
+                    {static_cast<int>(x() + tray_back_x), static_cast<int>(y() + h - perspective_offset), 0}
+                };
+
+                gc.fillLinearGradientPolygon(surface_points, surface_top, surface_bottom, false);
+                gc.fillLinearGradientRect(x() + lip_start_x, y(), lip_size, h, lip_top, lip_bottom, false, CornerRadius(0, 4, 4, 0));
+
+                gc.setColor(glare);
+                gc.drawLine(x() + tray_front_x + 1, y(), x() + tray_front_x + 1, y() + h, 1.0f);
+
+                gc.setColor(shadow);
+                gc.drawLine(x() + w - 1, y() + 4, x() + w - 1, y() + h - 4, 1.0f);
+
+                gc.setColor(separator);
+                gc.drawLine(x() + tray_back_x, y() + perspective_offset, x() + tray_back_x, y() + h - perspective_offset, 1.0f);
+            }
+            
+            gc.setColor(Color(1.0f, 1.0f, 1.0f, 1.0f));
+            return;
+        }
+
+        // Original horizontal 3D drawing for "bottom"
         float w = width();
         float h = height(); // 160
 
@@ -183,8 +304,6 @@ namespace horizon
             {static_cast<int>(x() + w), static_cast<int>(y() + tray_bottom_y), 0}, // Bottom Right
             {static_cast<int>(x()), static_cast<int>(y() + tray_bottom_y), 0}      // Bottom Left
         };
-
-        auto& theme = ThemeManager::instance();
         
         Color surface_top = theme.get_color("dock_surface1").with_alpha(0.2f);
         Color surface_bottom = theme.get_color("dock_surface2").with_alpha(0.6f);

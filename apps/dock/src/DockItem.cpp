@@ -225,30 +225,52 @@ namespace horizon
             // For now, let's keep it simple.
         }
 
-        // 3. Draw Reflection (below)
+        std::string position = "bottom";
+        DockShelf* shelf = dynamic_cast<DockShelf*>(parent());
+        if (shelf) {
+            position = shelf->dock_position();
+        }
+
+        // 3. Draw Reflection
         float refl_mvp[16];
         std::memcpy(refl_mvp, mvp, 16 * sizeof(float));
         
-        float refl_height = m_available_draw_height * 0.4f; // 40% height for reflection
-        
-        // Reflection should meet main icon at its bottom
-        Matrix::translate(refl_mvp, window_x + m_available_draw_width / 2.0f, 
-                          window_y + m_available_draw_height + refl_height / 2.0f, 0);
-        // Scale is positive to flip relative to the main icon's negative scale
-        Matrix::scale(refl_mvp, m_available_draw_width / 2.0f, refl_height / 2.0f, 1);
-        
-        // Queue reflected draw with gradient
-        // In our flipped quad, v_texcoord.y=1 is the 'top' (connected to original)
-        // and v_texcoord.y=0 is the 'bottom' (farthest away).
         WaylandWindow::GLDrawCall refl_call;
         refl_call.texture_id = tex_id;
-        std::memcpy(refl_call.mvp, refl_mvp, 16 * sizeof(float));
         refl_call.opacity = 0.5f;
-        refl_call.delete_texture = true; // Delete after the last draw of this texture
+        refl_call.delete_texture = true;
         refl_call.use_scissor = false;
-        refl_call.gradient_start = 0.0f; // Fade out at distant edge
-        refl_call.gradient_end = 1.0f;   // Full at junction edge
         
+        if (position == "left") {
+            float refl_size = m_available_draw_width * 0.4f;
+            Matrix::translate(refl_mvp, window_x - refl_size / 2.0f, 
+                              window_y + m_available_draw_height / 2.0f, 0);
+            Matrix::scale(refl_mvp, -refl_size / 2.0f, -m_available_draw_height / 2.0f, 1);
+            
+            refl_call.gradient_horizontal = true;
+            refl_call.gradient_start = 1.0f; // Near icon
+            refl_call.gradient_end = 0.0f;   // Far edge
+        } else if (position == "right") {
+            float refl_size = m_available_draw_width * 0.4f;
+            Matrix::translate(refl_mvp, window_x + m_available_draw_width + refl_size / 2.0f, 
+                              window_y + m_available_draw_height / 2.0f, 0);
+            Matrix::scale(refl_mvp, -refl_size / 2.0f, -m_available_draw_height / 2.0f, 1);
+            
+            refl_call.gradient_horizontal = true;
+            refl_call.gradient_start = 0.0f; // Far edge
+            refl_call.gradient_end = 1.0f;   // Near icon
+        } else {
+            float refl_height = m_available_draw_height * 0.4f;
+            Matrix::translate(refl_mvp, window_x + m_available_draw_width / 2.0f, 
+                              window_y + m_available_draw_height + refl_height / 2.0f, 0);
+            Matrix::scale(refl_mvp, m_available_draw_width / 2.0f, refl_height / 2.0f, 1);
+            
+            refl_call.gradient_horizontal = false;
+            refl_call.gradient_start = 0.0f;
+            refl_call.gradient_end = 1.0f;
+        }
+        
+        std::memcpy(refl_call.mvp, refl_mvp, 16 * sizeof(float));
         _app->queue_gl_draw(refl_call);
     }
 

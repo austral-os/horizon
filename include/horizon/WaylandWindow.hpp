@@ -238,6 +238,12 @@ namespace horizon
             int scissor_x, scissor_y, scissor_w, scissor_h;
             float gradient_start;
             float gradient_end;
+            bool gradient_horizontal;
+            
+            GLDrawCall() : texture_id(0), opacity(1.0f), delete_texture(false), 
+                           use_scissor(false), scissor_x(0), scissor_y(0), 
+                           scissor_w(0), scissor_h(0), gradient_start(1.0f), 
+                           gradient_end(1.0f), gradient_horizontal(false) {}
         };
 
         void queue_gl_draw(const GLDrawCall &call) const;

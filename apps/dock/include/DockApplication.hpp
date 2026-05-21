@@ -73,6 +73,7 @@ namespace horizon
         size_t m_autohide_show_timer = 0;
         int m_autohide_time = 0;
         int m_total_height = 160;
+        std::string m_position = "bottom";
 
     };
 

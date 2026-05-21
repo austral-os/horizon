@@ -459,11 +459,13 @@ namespace horizon
                 bool magnification_enabled = dock_config.value("magnification_enabled", true);
                 m_autohide_enabled = dock_config.value("autohide", false);
                 m_autohide_time = dock_config.value("autohide-time", 0);
+                m_position = dock_config.value("position", "bottom");
 
                 if (_shelf_ptr)
                 {
                     _shelf_ptr->set_base_size(icon_size);
                     _shelf_ptr->set_magnification_enabled(magnification_enabled);
+                    _shelf_ptr->set_dock_position(m_position);
                     // Proportional sizing
                     m_total_height = static_cast<int>(icon_size * 2.5f);
                     int exclusive_zone = m_autohide_enabled ? 0 : static_cast<int>(icon_size * 1.5625f);
@@ -471,7 +473,19 @@ namespace horizon
                     
                     if (m_window)
                     {
-                        m_window->set_size(0, m_total_height);
+                        if (m_position == "left") {
+                            m_window->set_anchor(4 | 1 | 2); // LEFT | TOP | BOTTOM
+                            m_window->set_size(m_total_height, 0);
+                            m_window->root()->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+                        } else if (m_position == "right") {
+                            m_window->set_anchor(8 | 1 | 2); // RIGHT | TOP | BOTTOM
+                            m_window->set_size(m_total_height, 0);
+                            m_window->root()->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+                        } else {
+                            m_window->set_anchor(2 | 4 | 8); // BOTTOM | LEFT | RIGHT
+                            m_window->set_size(0, m_total_height);
+                            m_window->root()->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+                        }
                         m_window->set_exclusive_zone(exclusive_zone);
                         
                         // Default to hidden when autohide is just enabled
@@ -659,16 +673,15 @@ namespace horizon
     {
         if (!m_window) return;
 
-        if (!m_autohide_enabled)
+        if (m_autohide_enabled && m_is_hidden)
         {
-            m_window->set_margin(0, 0, 0, 0);
-            return;
-        }
-
-        if (m_is_hidden)
-        {
-            // Leave 1 pixel visible to catch the mouse pointer at the bottom of the screen
-            m_window->set_margin(0, 0, -m_total_height + 1, 0);
+            if (m_position == "left") {
+                m_window->set_margin(0, 0, 0, -(m_total_height - 1));
+            } else if (m_position == "right") {
+                m_window->set_margin(0, -(m_total_height - 1), 0, 0);
+            } else {
+                m_window->set_margin(0, 0, -(m_total_height - 1), 0);
+            }
         }
         else
         {

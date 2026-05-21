@@ -29,6 +29,8 @@ namespace horizon
         void reset_magnification() { m_mouse_over = false; calculate_layout(); invalidate(); }
         int base_size() const { return m_base_size; }
         void set_dock_app(DockApplication* app) { m_dock_app = app; }
+        void set_dock_position(const std::string& pos) { m_position = pos; invalidate(); }
+        const std::string& dock_position() const { return m_position; }
 
     private:
         bool m_magnification_enabled = true;
@@ -44,6 +46,8 @@ namespace horizon
         int m_drag_mouse_y = -1;
         int m_drag_target_index = -1;
         int m_drag_start_index = -1;
+
+        std::string m_position = "bottom";
 
     public:
         void start_drag(DockItem* item, int mouse_x, int mouse_y);

@@ -53,8 +53,10 @@ namespace horizon
         "uniform float u_opacity;\n"
         "uniform float u_gradient_start;\n"
         "uniform float u_gradient_end;\n"
+        "uniform float u_gradient_horizontal;\n"
         "void main() {\n"
-        "    float gradient = mix(u_gradient_start, u_gradient_end, v_texcoord.y);\n"
+        "    float mix_val = mix(v_texcoord.y, v_texcoord.x, u_gradient_horizontal);\n"
+        "    float gradient = mix(u_gradient_start, u_gradient_end, mix_val);\n"
         "    vec4 tex = texture2D(u_texture, v_texcoord);\n"
         "    gl_FragColor = vec4(tex.b, tex.g, tex.r, tex.a) * u_opacity * gradient;\n"
         "}\n";
@@ -2428,6 +2430,8 @@ namespace horizon
         glUniform1f(grad_start_loc, 1.0f);
         GLint grad_end_loc = glGetUniformLocation(m_gl_program, "u_gradient_end");
         glUniform1f(grad_end_loc, 1.0f);
+        GLint grad_horiz_loc = glGetUniformLocation(m_gl_program, "u_gradient_horizontal");
+        glUniform1f(grad_horiz_loc, 0.0f);
 
         // Upload Cairo buffer to texture
         glActiveTexture(GL_TEXTURE0);
@@ -2466,6 +2470,7 @@ namespace horizon
             glUniform1f(opacity_loc, draw.opacity);
             glUniform1f(grad_start_loc, draw.gradient_start);
             glUniform1f(grad_end_loc, draw.gradient_end);
+            glUniform1f(grad_horiz_loc, draw.gradient_horizontal ? 1.0f : 0.0f);
             glBindTexture(GL_TEXTURE_2D, draw.texture_id);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -2508,6 +2513,8 @@ namespace horizon
         glUniform1f(grad_start_loc, 1.0f);
         GLint grad_end_loc = glGetUniformLocation(m_gl_program, "u_gradient_end");
         glUniform1f(grad_end_loc, 1.0f);
+        GLint grad_horiz_loc = glGetUniformLocation(m_gl_program, "u_gradient_horizontal");
+        glUniform1f(grad_horiz_loc, 0.0f);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_gl_texture);
@@ -2560,6 +2567,8 @@ namespace horizon
         glUniform1f(grad_start_loc, 1.0f);
         GLint grad_end_loc = glGetUniformLocation(m_gl_program, "u_gradient_end");
         glUniform1f(grad_end_loc, 1.0f);
+        GLint grad_horiz_loc = glGetUniformLocation(m_gl_program, "u_gradient_horizontal");
+        glUniform1f(grad_horiz_loc, 0.0f);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_gl_texture);
@@ -2612,6 +2621,8 @@ namespace horizon
         glUniform1f(grad_start_loc, 1.0f);
         GLint grad_end_loc = glGetUniformLocation(m_gl_program, "u_gradient_end");
         glUniform1f(grad_end_loc, 1.0f);
+        GLint grad_horiz_loc = glGetUniformLocation(m_gl_program, "u_gradient_horizontal");
+        glUniform1f(grad_horiz_loc, 0.0f);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_gl_texture);
