@@ -41,6 +41,16 @@ namespace horizon
          * @param interactivity Bitmask of zwlr_layer_surface_v1_keyboard_interactivity values.
          */
         void set_keyboard_interactivity(uint32_t interactivity);
+        
+        /**
+         * @brief Sets the margins for the layer surface.
+         * @param top Top margin in pixels.
+         * @param right Right margin in pixels.
+         * @param bottom Bottom margin in pixels.
+         * @param left Left margin in pixels.
+         */
+        void set_margin(int32_t top, int32_t right, int32_t bottom, int32_t left);
+
         void set_size(uint32_t width, uint32_t height);
 
         int get_monitor_count() const;

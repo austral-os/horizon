@@ -72,6 +72,21 @@ namespace horizon::preferences
         size_container->add_child(std::move(mag_check));
         size_container->add_child(horizon::Spacer());
 
+        auto autohide_check = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
+        autohide_check->set_text(i18n().tr("preferences.desktop.autohide_dock"));
+        autohide_check->set_fixed_size(25);
+        m_autohide_check = autohide_check.get();
+
+        m_autohide_check->when_toggle.connect(
+            [this](const ToggleEventContext &ctx)
+            {
+                m_autohide_enabled = ctx.checked;
+                save_config();
+            });
+
+        size_container->add_child(std::move(autohide_check));
+        size_container->add_child(horizon::Spacer());
+
         add_child(std::move(size_container));
 
         add_child(horizon::Spacer());
@@ -88,6 +103,7 @@ namespace horizon::preferences
         m_config_data = j;
         m_icon_size = j.value("icon_size", 64);
         m_magnification_enabled = j.value("magnification_enabled", j.value("magnification", true));
+        m_autohide_enabled = j.value("autohide", false);
 
         if (m_size_slider)
             m_size_slider->set_value(static_cast<float>(m_icon_size));
@@ -97,6 +113,9 @@ namespace horizon::preferences
 
         if (m_magnification_check)
             m_magnification_check->set_checked(m_magnification_enabled);
+            
+        if (m_autohide_check)
+            m_autohide_check->set_checked(m_autohide_enabled);
     }
 
     nlohmann::json DockView::to_json() const
@@ -107,6 +126,10 @@ namespace horizon::preferences
 
         j["icon_size"] = m_icon_size;
         j["magnification_enabled"] = m_magnification_enabled;
+        j["autohide"] = m_autohide_enabled;
+        if (!j.contains("autohide-time")) {
+            j["autohide-time"] = 500;
+        }
         return j;
     }
 

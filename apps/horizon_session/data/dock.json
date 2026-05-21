@@ -2,6 +2,8 @@
     "dock": {
         "icon_size": 48,
         "magnification_enabled": false,
+        "autohide": false,
+        "autohide-time": 500,
         "pinned": [
             {
                 "app_id": "org.horizon.launchpad",

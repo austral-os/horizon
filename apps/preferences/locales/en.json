@@ -129,7 +129,8 @@
             "random_order": "Random order",
             "translucent_bar": "Translucent menu bar",
             "icon_size": "Icon Size",
-            "use_magnification": "Use Magnification"
+            "use_magnification": "Use Magnification",
+            "autohide_dock": "Automatically hide dock"
         },
         "display": {
             "resolution": "Resolution",

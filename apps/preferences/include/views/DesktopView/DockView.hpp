@@ -30,9 +30,11 @@ namespace horizon::preferences
         horizon::Slider *m_size_slider{nullptr};
         horizon::Label *m_size_label{nullptr};
         horizon::Checkbox<horizon::AquaObject> *m_magnification_check{nullptr};
+        horizon::Checkbox<horizon::AquaObject> *m_autohide_check{nullptr};
 
         int m_icon_size{64};
         bool m_magnification_enabled{true};
+        bool m_autohide_enabled{false};
         nlohmann::json m_config_data;
 
         std::unique_ptr<ConfigManager> m_config;

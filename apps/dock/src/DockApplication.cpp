@@ -105,6 +105,56 @@ namespace horizon
         root->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         root->set_background_color({0.0f, 0.0f, 0.0f, 0.0f});
 
+        root->when_mouse_enter.connect([this](auto &) {
+            if (!m_autohide_enabled) return;
+            LOG_INFO << "[DOCK] Mouse entered dock area. m_is_hidden=" << m_is_hidden << ", time=" << m_autohide_time;
+            if (m_autohide_timer != 0)
+            {
+                m_window->stop_timer(m_autohide_timer);
+                m_autohide_timer = 0;
+            }
+            if (m_is_hidden && m_autohide_show_timer == 0)
+            {
+                if (m_autohide_time > 0)
+                {
+                    LOG_INFO << "[DOCK] Starting show timer for " << m_autohide_time << " ms";
+                    m_autohide_show_timer = m_window->add_timer(m_autohide_time, [this]() {
+                        LOG_INFO << "[DOCK] Show timer triggered!";
+                        m_is_hidden = false;
+                        apply_autohide_state();
+                        m_autohide_show_timer = 0;
+                    });
+                }
+                else
+                {
+                    m_is_hidden = false;
+                    apply_autohide_state();
+                }
+            }
+        });
+
+        root->when_mouse_leave.connect([this](auto &) {
+            if (!m_autohide_enabled) return;
+            
+            if (m_autohide_show_timer != 0)
+            {
+                LOG_INFO << "[DOCK] Mouse left dock area before show timer completed. Cancelling show timer.";
+                m_window->stop_timer(m_autohide_show_timer);
+                m_autohide_show_timer = 0;
+            }
+            
+            if (m_autohide_timer == 0 && !m_is_hidden)
+            {
+                LOG_INFO << "[DOCK] Mouse left dock area. Starting hide timer (300 ms).";
+                m_autohide_timer = m_window->add_timer(300, [this]() {
+                    LOG_INFO << "[DOCK] Hide timer triggered!";
+                    m_is_hidden = true;
+                    apply_autohide_state();
+                    m_autohide_timer = 0;
+                });
+            }
+        });
+
         auto left_spacer = std::make_unique<Widget>();
         auto right_spacer = std::make_unique<Widget>();
 
@@ -407,24 +457,32 @@ namespace horizon
                 const auto &dock_config = j["dock"];
                 int icon_size = dock_config.value("icon_size", 64);
                 bool magnification_enabled = dock_config.value("magnification_enabled", true);
+                m_autohide_enabled = dock_config.value("autohide", false);
+                m_autohide_time = dock_config.value("autohide-time", 0);
 
                 if (_shelf_ptr)
                 {
                     _shelf_ptr->set_base_size(icon_size);
                     _shelf_ptr->set_magnification_enabled(magnification_enabled);
                     // Proportional sizing
-                    int total_height = static_cast<int>(icon_size * 2.5f);
-                    int exclusive_zone = static_cast<int>(icon_size * 1.5625f);
-                    LOG_INFO << "[DOCK] Configuration reloaded. New total_height: " << total_height << ", window width: " << m_window->width();
+                    m_total_height = static_cast<int>(icon_size * 2.5f);
+                    int exclusive_zone = m_autohide_enabled ? 0 : static_cast<int>(icon_size * 1.5625f);
+                    LOG_INFO << "[DOCK] Configuration reloaded. New total_height: " << m_total_height << ", window width: " << m_window->width();
                     
                     if (m_window)
                     {
-                        m_window->set_size(0, total_height);
+                        m_window->set_size(0, m_total_height);
                         m_window->set_exclusive_zone(exclusive_zone);
+                        
+                        // Default to hidden when autohide is just enabled
+                        if (m_autohide_enabled && !m_is_hidden && m_autohide_timer == 0) {
+                            m_is_hidden = true;
+                        }
+                        apply_autohide_state();
                         
                         // Force local synchronization of root widget size to ensure hit-testing
                         // works correctly before the compositor responds with a configure event.
-                        m_window->on_resize(m_window->width(), total_height);
+                        m_window->on_resize(m_window->width(), m_total_height);
                     }
 
                     // Recreate all dock icons at the new size to get fresh rendering state
@@ -596,5 +654,26 @@ namespace horizon
         }
     }
 
+
+    void DockApplication::apply_autohide_state()
+    {
+        if (!m_window) return;
+
+        if (!m_autohide_enabled)
+        {
+            m_window->set_margin(0, 0, 0, 0);
+            return;
+        }
+
+        if (m_is_hidden)
+        {
+            // Leave 1 pixel visible to catch the mouse pointer at the bottom of the screen
+            m_window->set_margin(0, 0, -m_total_height + 1, 0);
+        }
+        else
+        {
+            m_window->set_margin(0, 0, 0, 0);
+        }
+    }
 
 } // namespace horizon

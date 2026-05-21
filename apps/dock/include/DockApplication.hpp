@@ -54,6 +54,8 @@ namespace horizon
         void on_file_changed() override;
         void post_watcher_task(std::function<void()> task) override;
 
+        void apply_autohide_state();
+
         bool _is_wayfire = false;
         WaylandLayerWindow *m_window = nullptr;
         DockShelf *_shelf_ptr = nullptr;
@@ -64,6 +66,13 @@ namespace horizon
 
         // Last known app list — used to rebuild icons after a config change
         std::vector<ApplicationInfo> m_last_apps;
+        
+        bool m_autohide_enabled = false;
+        bool m_is_hidden = false;
+        size_t m_autohide_timer = 0;
+        size_t m_autohide_show_timer = 0;
+        int m_autohide_time = 0;
+        int m_total_height = 160;
 
     };
 

@@ -67,6 +67,12 @@ namespace horizon
         w_surface()->commit();
     }
 
+    void WaylandLayerWindow::set_margin(int32_t top, int32_t right, int32_t bottom, int32_t left)
+    {
+        w_surface()->set_layer_margin(top, right, bottom, left);
+        w_surface()->commit();
+    }
+
     void WaylandLayerWindow::set_size(uint32_t width, uint32_t height)
     {
         w_surface()->set_layer_size(width, height);

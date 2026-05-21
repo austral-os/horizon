@@ -129,7 +129,8 @@
             "random_order": "Orden aleatorio",
             "translucent_bar": "Barra de menú translúcida",
             "icon_size": "Tamaño de Iconos",
-            "use_magnification": "Usar Magnificación"
+            "use_magnification": "Usar Magnificación",
+            "autohide_dock": "Ocultar dock automáticamente"
         },
         "display": {
             "resolution": "Resolución",
