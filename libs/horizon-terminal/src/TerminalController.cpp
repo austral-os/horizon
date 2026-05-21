@@ -72,6 +72,7 @@ TerminalController::~TerminalController() {
 void TerminalController::push_data(const char* data, size_t len) {
     std::lock_guard<std::mutex> lock(m_mutex);
     vterm_input_write(m_vt, data, len);
+    vterm_screen_flush_damage(m_screen);
 }
 
 void TerminalController::write_to_pty(const char* data, size_t len) {
@@ -91,16 +92,18 @@ int TerminalController::screen_damage(VTermRect rect, void *user) {
     if (self->m_damage_cb) {
         self->m_damage_cb(rect);
     }
-    return 0;
+    return 1;
 }
 
 int TerminalController::screen_moverect(VTermRect dest, VTermRect src, void *user) {
     auto self = static_cast<TerminalController*>(user);
-    // For now, we simple damage the whole dest area
     if (self->m_damage_cb) {
-        self->m_damage_cb(dest);
+        int rows, cols;
+        vterm_get_size(self->m_vt, &rows, &cols);
+        VTermRect full_rect = {0, rows, 0, cols};
+        self->m_damage_cb(full_rect);
     }
-    return 0;
+    return 1;
 }
 
 int TerminalController::screen_movecursor(VTermPos pos, VTermPos oldpos, int visible, void *user) {
@@ -108,7 +111,7 @@ int TerminalController::screen_movecursor(VTermPos pos, VTermPos oldpos, int vis
     if (self->m_move_cursor_cb) {
         self->m_move_cursor_cb(pos);
     }
-    return 0;
+    return 1;
 }
 
 int TerminalController::screen_settermprop(VTermProp prop, VTermValue *val, void *user) {
@@ -123,15 +126,15 @@ int TerminalController::screen_settermprop(VTermProp prop, VTermValue *val, void
             self->m_damage_cb(rect);
         }
     }
-    return 0;
+    return 1;
 }
 
 int TerminalController::screen_bell(void *user) {
-    return 0;
+    return 1;
 }
 
 int TerminalController::screen_resize(int rows, int cols, void *user) {
-    return 0;
+    return 1;
 }
 
 int TerminalController::screen_sb_pushline(int cols, const VTermScreenCell *cells, void *user) {
