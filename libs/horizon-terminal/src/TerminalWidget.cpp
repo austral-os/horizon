@@ -473,10 +473,12 @@ void TerminalWidget::handle_key_press(KeyEventContext &ctx) {
         
         if (ctx.key == KEY_C) {
             copy_selection();
+            ctx.stop_propagation = true;
             return;
         }
         if (ctx.key == KEY_V) {
             perform(horizon::ClipboardAction::Paste);
+            ctx.stop_propagation = true;
             return;
         }
     }
