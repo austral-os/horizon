@@ -32,9 +32,9 @@ for i in {1..50}; do
     sleep 0.1
 done
 
-# Import environment for user services and start audio daemons
-systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE
-dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE
-systemctl --user start pipewire pipewire-pulse wireplumber
+# Import environment for user services and start audio daemons (with timeout to prevent hanging)
+timeout 2 systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE || true
+timeout 2 dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE || true
+timeout 2 systemctl --user start pipewire pipewire-pulse wireplumber || true
 
 @CMAKE_INSTALL_FULL_BINDIR@/horizon_session --compositor labwc
