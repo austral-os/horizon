@@ -4,6 +4,7 @@
         "magnification_enabled": false,
         "autohide": false,
         "autohide-time": 500,
+        "position": "bottom",
         "pinned": [
             {
                 "app_id": "org.horizon.launchpad",
