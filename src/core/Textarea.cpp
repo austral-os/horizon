@@ -683,17 +683,22 @@ namespace horizon
             {
                 if (application())
                 {
-                    application()->set_clipboard_owner(this);
-                    if (action == ClipboardAction::Cut)
+                    int start = std::min(m_selection_anchor, m_cursor_pos);
+                    int end = std::max(m_selection_anchor, m_cursor_pos);
+                    m_clipboard_buffer = m_text.substr(start, end - start);
+                    
+                    if (!m_clipboard_buffer.empty())
                     {
-                        int start = std::min(m_selection_anchor, m_cursor_pos);
-                        int end = std::max(m_selection_anchor, m_cursor_pos);
-                        m_text.erase(start, end - start);
-                        m_cursor_pos = start;
-                        m_selection_anchor = -1;
-                        invalidate();
-                        KeyEventContext ev;
-                        when_text_changed.run(ev);
+                        application()->set_clipboard_owner(this);
+                        if (action == ClipboardAction::Cut)
+                        {
+                            m_text.erase(start, end - start);
+                            m_cursor_pos = start;
+                            m_selection_anchor = -1;
+                            invalidate();
+                            KeyEventContext ev;
+                            when_text_changed.run(ev);
+                        }
                     }
                 }
             }
@@ -711,15 +716,20 @@ namespace horizon
     {
         if (mime == "text/plain")
         {
-            if (m_selection_anchor != -1 && m_selection_anchor != m_cursor_pos)
+            if (!m_clipboard_buffer.empty())
             {
-                int start = std::min(m_selection_anchor, m_cursor_pos);
-                int end = std::max(m_selection_anchor, m_cursor_pos);
-                std::string sel = m_text.substr(start, end - start);
-                std::vector<uint8_t> data(sel.begin(), sel.end());
+                std::vector<uint8_t> data(m_clipboard_buffer.begin(), m_clipboard_buffer.end());
                 sink.write(data);
                 sink.done();
             }
+            else
+            {
+                sink.error();
+            }
+        }
+        else
+        {
+            sink.error();
         }
     }
 

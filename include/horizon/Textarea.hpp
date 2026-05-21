@@ -67,6 +67,7 @@ namespace horizon
         int m_pending_click_x{-1};
         int m_pending_click_y{-1};
         bool m_has_pending_click{false};
+        std::string m_clipboard_buffer{""};
 
         std::vector<LineInfo> m_cached_lines;
         int m_last_width_limit{-1};

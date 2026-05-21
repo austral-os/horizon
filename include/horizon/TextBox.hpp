@@ -55,6 +55,7 @@ namespace horizon
         std::chrono::steady_clock::time_point m_last_blink_time;
         int m_pending_click_x{-1};
         bool m_has_pending_click{false};
+        std::string m_clipboard_buffer{""};
 
         // UI Customization
         int m_padding_left{8};
