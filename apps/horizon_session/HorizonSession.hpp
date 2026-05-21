@@ -68,6 +68,7 @@ public:
     pid_t run_service(const std::string &service_path, bool use_setsid = true);
     void run_startup_services();
     void apply_display_config();
+    void apply_sound_config();
 
     std::string handle_ipc_message(const std::string &msg);
 

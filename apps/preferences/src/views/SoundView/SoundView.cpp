@@ -6,9 +6,9 @@
 #include <horizon/Icon.hpp>
 #include <horizon/ThemeManager.hpp>
 #include <horizon/VPanel.hpp>
-#include <utils/PipeWireManager.hpp>
 #include <views/SoundView/SoundView.hpp>
 #include <horizon/I18n.hpp>
+#include <utils/ConfigUtils.hpp>
 
 namespace horizon::preferences
 {
@@ -17,6 +17,9 @@ namespace horizon::preferences
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_position_type(WidgetPositionTypes::FILL);
         set_margin(0);
+
+        m_config = std::make_unique<ConfigManager>(get_config_path("sound.json"));
+        m_config->load();
 
         setup_ui();
 
@@ -122,6 +125,8 @@ namespace horizon::preferences
                                                                    ctx.row_data.profile_index);
                 else
                     PipeWireManager::instance().set_default_node(ctx.row_data.node_id);
+                
+                save_sound_config();
             });
 
         container->add_child(std::move(table));
@@ -391,6 +396,7 @@ namespace horizon::preferences
                 PipeWireManager::instance().set_volume(sink.node_id, value);
             }
         }
+        save_sound_config();
     }
 
     void SoundView::on_balance_slider_changed(float value)
@@ -407,5 +413,20 @@ namespace horizon::preferences
     void SoundView::test_speakers()
     {
         std::system("pw-play /usr/share/sounds/alsa/Front_Center.wav &");
+    }
+
+    void SoundView::save_sound_config()
+    {
+        nlohmann::json j;
+        std::string sink = PipeWireManager::instance().get_default_sink_name();
+        float vol = m_output_volume_slider ? m_output_volume_slider->value() : 0.5f;
+
+        if (!sink.empty()) {
+            j["default_sink"] = sink;
+        }
+        j["volume"] = vol;
+
+        m_config->set_section("output", j);
+        m_config->save();
     }
 } // namespace horizon::preferences

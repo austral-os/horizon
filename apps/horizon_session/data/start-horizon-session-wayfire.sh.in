@@ -32,4 +32,8 @@ for i in {1..50}; do
     sleep 0.1
 done
 
+# Import environment for user services and start audio daemons
+systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE
+systemctl --user start pipewire pipewire-pulse wireplumber
+
 @CMAKE_INSTALL_FULL_BINDIR@/horizon_session --compositor wayfire

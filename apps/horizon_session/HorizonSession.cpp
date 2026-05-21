@@ -460,6 +460,9 @@ void HorizonSession::start()
 
     run_startup_services();
 
+    LOG_INFO << "[HorizonSession] Applying sound configuration...";
+    apply_sound_config();
+
     m_running = true;
     m_monitoring_thread = std::thread(&HorizonSession::monitor_services_loop, this);
 }
@@ -1392,4 +1395,52 @@ void HorizonSession::monitor_services_loop()
         }
     }
     LOG_INFO << "[HorizonSession] Stopped monitoring background loop." << std::endl;
+}
+
+void HorizonSession::apply_sound_config()
+{
+    const char *home = std::getenv("HOME");
+    if (!home) return;
+
+    std::string config_path = std::string(home) + "/.config/horizon/sound.json";
+    if (!fs::exists(config_path)) return;
+
+    try
+    {
+        std::ifstream f(config_path);
+        nlohmann::json data = nlohmann::json::parse(f);
+
+        if (data.contains("output"))
+        {
+            std::string sink = "";
+            float vol = -1.0f;
+
+            if (data["output"].contains("default_sink"))
+            {
+                sink = data["output"]["default_sink"].get<std::string>();
+            }
+            if (data["output"].contains("volume"))
+            {
+                vol = data["output"]["volume"].get<float>();
+            }
+
+            if (!sink.empty() || vol >= 0.0f)
+            {
+                std::string script = "for i in {1..50}; do if pactl info >/dev/null 2>&1; then ";
+                if (!sink.empty()) {
+                    script += "pactl set-default-sink '" + sink + "'; ";
+                }
+                if (vol >= 0.0f) {
+                    script += "pactl set-sink-volume @DEFAULT_SINK@ " + std::to_string(static_cast<int>(vol * 100)) + "%; ";
+                }
+                script += "break; fi; sleep 0.1; done &";
+                
+                std::system(script.c_str());
+            }
+        }
+    }
+    catch (const std::exception &e)
+    {
+        LOG_ERROR << "[HorizonSession] Error reading sound.json: " << e.what();
+    }
 }

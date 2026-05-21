@@ -83,6 +83,9 @@ namespace horizon::preferences
         std::vector<AudioItem> get_sources();
         std::vector<AudioItem> get_app_streams();
 
+        std::string get_default_sink_name() const { return m_default_sink_name; }
+        std::string get_default_source_name() const { return m_default_source_name; }
+
         // Node Configuration
         void set_volume(uint32_t node_id, float volume);
         void set_mute(uint32_t node_id, bool mute);

@@ -6,6 +6,8 @@
 #include <horizon/Slider.hpp>
 #include <horizon/TableView.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/ConfigManager.hpp>
+#include <memory>
 #include <utils/PipeWireManager.hpp>
 
 namespace horizon::preferences
@@ -24,6 +26,7 @@ namespace horizon::preferences
         void on_volume_slider_changed(float value);
         void on_balance_slider_changed(float value);
         void test_speakers();
+        void save_sound_config();
 
         Notebook *m_notebook{nullptr};
 
@@ -42,5 +45,6 @@ namespace horizon::preferences
         TableView<AudioItem> *m_apps_table{nullptr};
 
         Label *m_title_label{nullptr};
+        std::unique_ptr<ConfigManager> m_config;
     };
 } // namespace horizon::preferences
