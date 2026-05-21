@@ -6,6 +6,7 @@
 #include <horizon/Label.hpp>
 #include <horizon/Slider.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/Combo.hpp>
 
 namespace horizon::preferences
 {
@@ -31,10 +32,12 @@ namespace horizon::preferences
         horizon::Label *m_size_label{nullptr};
         horizon::Checkbox<horizon::AquaObject> *m_magnification_check{nullptr};
         horizon::Checkbox<horizon::AquaObject> *m_autohide_check{nullptr};
+        horizon::Combo *m_position_combo{nullptr};
 
         int m_icon_size{64};
         bool m_magnification_enabled{true};
         bool m_autohide_enabled{false};
+        std::string m_position{"bottom"};
         nlohmann::json m_config_data;
 
         std::unique_ptr<ConfigManager> m_config;

@@ -130,7 +130,11 @@
             "translucent_bar": "Translucent menu bar",
             "icon_size": "Icon Size",
             "use_magnification": "Use Magnification",
-            "autohide_dock": "Automatically hide dock"
+            "autohide_dock": "Automatically hide dock",
+            "dock_position": "Position",
+            "dock_position_left": "Left",
+            "dock_position_bottom": "Bottom",
+            "dock_position_right": "Right"
         },
         "display": {
             "resolution": "Resolution",

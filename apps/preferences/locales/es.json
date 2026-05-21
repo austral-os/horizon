@@ -130,7 +130,11 @@
             "translucent_bar": "Barra de menú translúcida",
             "icon_size": "Tamaño de Iconos",
             "use_magnification": "Usar Magnificación",
-            "autohide_dock": "Ocultar dock automáticamente"
+            "autohide_dock": "Ocultar dock automáticamente",
+            "dock_position": "Posición",
+            "dock_position_left": "Izquierda",
+            "dock_position_bottom": "Abajo",
+            "dock_position_right": "Derecha"
         },
         "display": {
             "resolution": "Resolución",
