@@ -11,6 +11,7 @@
     <name></name>
     <cornerRadius>8</cornerRadius>
     <font name="sans" size="10" />
+    <dropShadows>yes</dropShadows>
   </theme>
 
   <keyboard>
@@ -44,10 +45,37 @@
     <keybind key="XF86AudioPrev">
       <action name="Execute" command="playerctl previous" />
     </keybind>
+
+    <!-- Cambiar de ventana (Alt+Tab) -->
+    <keybind key="A-Tab">
+      <action name="NextWindow" />
+    </keybind>
+    <keybind key="A-S-Tab">
+      <action name="PreviousWindow" />
+    </keybind>
   </keyboard>
 
   <mouse>
     <default />
+    <context name="Frame">
+      <!-- Desvinculamos Alt -->
+      <mousebind button="A-Left" action="Press" />
+      <mousebind button="A-Left" action="Drag" />
+      <mousebind button="A-Right" action="Press" />
+      <mousebind button="A-Right" action="Drag" />
+
+      <!-- Usamos la tecla Super (W) -->
+      <mousebind button="W-Left" action="Drag">
+        <action name="Move" />
+      </mousebind>
+      <mousebind button="W-Right" action="Drag">
+        <action name="Resize" />
+      </mousebind>
+    </context>
   </mouse>
+
+  <windowSwitcher preview="yes" outlines="yes">
+    <osd show="yes" style="thumbnail" output="all" thumbnailLabelFormat="%T" />
+  </windowSwitcher>
 
 </labwc_config>
