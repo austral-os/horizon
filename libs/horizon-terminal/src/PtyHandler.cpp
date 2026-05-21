@@ -33,7 +33,13 @@ bool PtyHandler::spawn(const std::string& command, const std::vector<std::string
         setenv("TERM", "xterm-256color", 1);
         
         std::vector<char*> argv;
-        argv.push_back(strdup(command.c_str()));
+        std::string shell_name = command;
+        size_t last_slash = shell_name.find_last_of('/');
+        if (last_slash != std::string::npos) {
+            shell_name = shell_name.substr(last_slash + 1);
+        }
+        std::string argv0 = "-" + shell_name;
+        argv.push_back(strdup(argv0.c_str()));
         for (const auto& arg : args) {
             argv.push_back(strdup(arg.c_str()));
         }
@@ -63,7 +69,7 @@ void PtyHandler::close() {
 
     // Terminate the child process shell
     if (m_child_pid != -1) {
-        kill(m_child_pid, SIGTERM);
+        kill(m_child_pid, SIGHUP);
         
         // Wait a bit or use non-blocking wait
         int status;
