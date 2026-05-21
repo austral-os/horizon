@@ -23,6 +23,7 @@
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/dialogs/DialogPreferences.hpp>
 #include <horizon/dialogs/FileDialog.hpp>
+#include <xkbcommon/xkbcommon-keysyms.h>
 #include <horizon/dialogs/MessageDialog.hpp>
 #include <horizon/dialogs/PreferencesContent.hpp>
 #include <horizon/xdg-shell-client-protocol.h>
@@ -1590,24 +1591,23 @@ namespace horizon
         // Standard shortcuts for clipboard: automatically dispatch if widget hierarchy supports it
         if ((m_modifiers & CTRL))
         {
-            auto *clipboard_target = find_clipboard_target();
-            if (clipboard_target)
+            if (event.keysym == XKB_KEY_c || event.keysym == XKB_KEY_C)
             {
-                if (event.key == KEY_C)
-                {
-                    clipboard_target->perform(ClipboardAction::Copy);
-                    return;
-                }
-                else if (event.key == KEY_X)
-                {
-                    clipboard_target->perform(ClipboardAction::Cut);
-                    return;
-                }
-                else if (event.key == KEY_V)
-                {
-                    clipboard_target->perform(ClipboardAction::Paste);
-                    return;
-                }
+                SignalContext ctx;
+                signal_manager.emit("copy", ctx);
+                return;
+            }
+            else if (event.keysym == XKB_KEY_x || event.keysym == XKB_KEY_X)
+            {
+                SignalContext ctx;
+                signal_manager.emit("cut", ctx);
+                return;
+            }
+            else if (event.keysym == XKB_KEY_v || event.keysym == XKB_KEY_V)
+            {
+                SignalContext ctx;
+                signal_manager.emit("paste", ctx);
+                return;
             }
         }
 

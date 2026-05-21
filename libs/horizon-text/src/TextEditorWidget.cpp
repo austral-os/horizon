@@ -267,7 +267,7 @@ void TextEditorWidget::handle_key_event(KeyEventContext& ev) {
 
     int key = 0;
     bool shift = ev.modifiers & 0x1;
-    bool ctrl = ev.modifiers & 0x4; // Assumption for now
+    bool ctrl = ev.modifiers & 0x2; // Fixed CTRL modifier from 0x4 to 0x2
 
     switch (ev.keysym) {
         case XKB_KEY_Left: key = (int)EditorKey::Left; break;
@@ -299,11 +299,17 @@ void TextEditorWidget::handle_key_event(KeyEventContext& ev) {
         invalidate();
         ev.stop_propagation = true;
     } else if (!ev.text.empty()) {
-        m_doc->insert_text(ev.text);
-        m_cursor_visible = true;
-        m_last_blink = std::chrono::steady_clock::now();
-        invalidate();
-        ev.stop_propagation = true;
+        if ((unsigned char)ev.text[0] >= 32) {
+            m_doc->insert_text(ev.text);
+            m_cursor_visible = true;
+            m_last_blink = std::chrono::steady_clock::now();
+            invalidate();
+            ev.stop_propagation = true;
+        } else {
+            return; // Let control characters bubble up for shortcuts
+        }
+    } else {
+        return; // Nothing to process, let it bubble up
     }
     
     m_needs_ensure_visible = true;
