@@ -111,6 +111,7 @@ private:
     bool m_is_selecting = false;
     BufferPos m_normalized_start = {-1, -1};
     BufferPos m_normalized_end = {-1, -1};
+    bool m_keyboard_selecting = false;
     std::string m_clipboard_content;
 
     // Scrollbar visuals
