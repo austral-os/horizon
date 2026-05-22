@@ -31,8 +31,7 @@ namespace horizon
         m_window = create_layer_window("org.horizon.dock", 2); // ZWLR_LAYER_SHELL_V1_LAYER_TOP
 
         m_window->set_name(i18n().tr("dock.title"));
-        m_window->set_anchor(2 | 4 | 8); // BOTTOM | LEFT | RIGHT
-        m_window->set_size(0, 160);
+        m_window->set_anchor_and_size(2 | 4 | 8, 0, 160); // BOTTOM | LEFT | RIGHT
         m_window->set_exclusive_zone(100);
         m_window->set_show_in_dock(false);
         m_window->set_show_in_system_tray(false);
@@ -474,16 +473,13 @@ namespace horizon
                     if (m_window)
                     {
                         if (m_position == "left") {
-                            m_window->set_anchor(4 | 1 | 2); // LEFT | TOP | BOTTOM
-                            m_window->set_size(m_total_height, 0);
+                            m_window->set_anchor_and_size(4 | 1 | 2, m_total_height, 0); // LEFT | TOP | BOTTOM
                             m_window->root()->set_layout_type(WIDGET_LAYOUT_VERTICAL);
                         } else if (m_position == "right") {
-                            m_window->set_anchor(8 | 1 | 2); // RIGHT | TOP | BOTTOM
-                            m_window->set_size(m_total_height, 0);
+                            m_window->set_anchor_and_size(8 | 1 | 2, m_total_height, 0); // RIGHT | TOP | BOTTOM
                             m_window->root()->set_layout_type(WIDGET_LAYOUT_VERTICAL);
                         } else {
-                            m_window->set_anchor(2 | 4 | 8); // BOTTOM | LEFT | RIGHT
-                            m_window->set_size(0, m_total_height);
+                            m_window->set_anchor_and_size(2 | 4 | 8, 0, m_total_height); // BOTTOM | LEFT | RIGHT
                             m_window->root()->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
                         }
                         m_window->set_exclusive_zone(exclusive_zone);

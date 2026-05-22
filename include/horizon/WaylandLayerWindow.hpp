@@ -52,6 +52,11 @@ namespace horizon
         void set_margin(int32_t top, int32_t right, int32_t bottom, int32_t left);
 
         void set_size(uint32_t width, uint32_t height);
+        
+        /**
+         * @brief Sets both the anchor and size, and commits once to avoid invalid intermediate states.
+         */
+        void set_anchor_and_size(uint32_t anchor, uint32_t width, uint32_t height);
 
         int get_monitor_count() const;
         void move_to_monitor(int index);

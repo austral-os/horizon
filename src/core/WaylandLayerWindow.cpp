@@ -79,6 +79,13 @@ namespace horizon
         w_surface()->commit();
     }
 
+    void WaylandLayerWindow::set_anchor_and_size(uint32_t anchor, uint32_t width, uint32_t height)
+    {
+        w_surface()->set_layer_anchor(anchor);
+        w_surface()->set_layer_size(width, height);
+        w_surface()->commit();
+    }
+
     void WaylandLayerWindow::set_visible(bool visible)
     {
         m_visible = visible;

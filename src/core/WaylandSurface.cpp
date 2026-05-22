@@ -456,7 +456,7 @@ namespace horizon
     void WaylandSurface::set_layer_exclusive_zone(int32_t zone) { m_exclusive_zone = zone; if (m_layer_surface) zwlr_layer_surface_v1_set_exclusive_zone(m_layer_surface, zone); }
     void WaylandSurface::set_layer_keyboard_interactivity(uint32_t interactivity) { m_interactivity = interactivity; if (m_layer_surface) zwlr_layer_surface_v1_set_keyboard_interactivity(m_layer_surface, interactivity); }
     void WaylandSurface::set_layer_margin(int32_t top, int32_t right, int32_t bottom, int32_t left) { if (m_layer_surface) zwlr_layer_surface_v1_set_margin(m_layer_surface, top, right, bottom, left); }
-    void WaylandSurface::set_layer_size(uint32_t width, uint32_t height) { if (m_data == nullptr) { if (width > 0) m_width = (int)width; if (height > 0) m_height = (int)height; } if (m_layer_surface) zwlr_layer_surface_v1_set_size(m_layer_surface, width, height); }
+    void WaylandSurface::set_layer_size(uint32_t width, uint32_t height) { if (m_data == nullptr) { m_width = (int)width; m_height = (int)height; } if (m_layer_surface) zwlr_layer_surface_v1_set_size(m_layer_surface, width, height); }
 
     void WaylandSurface::set_input_region(int x, int y, int w, int h) {
         if (!m_surface || !m_compositor) return;
