@@ -1,8 +1,8 @@
 #include "NetworkIndicator.hpp"
 #include <dbus/dbus.h>
 #include <horizon/Logger.hpp>
-#include <horizon/WaylandWindow.hpp>
 #include <horizon/Notification.hpp>
+#include <horizon/WaylandWindow.hpp>
 
 using namespace horizon;
 using namespace horizon::dbusutils;
@@ -16,7 +16,7 @@ NetworkIndicator::NetworkIndicator() : ITopPanelWidget()
 
     {
         std::lock_guard<std::mutex> lock(m_state_mutex);
-        m_current_icon_name = "network-offline";
+        m_current_icon_name = "network-error-symbolic";
         m_icon->set_icon_name(m_current_icon_name);
     }
 
@@ -99,7 +99,8 @@ void NetworkIndicator::monitor_loop()
         bool changed = false;
         {
             std::lock_guard<std::mutex> lock(m_state_mutex);
-            if (status.icon_name != m_current_icon_name || status.status_text != m_current_status_text)
+            if (status.icon_name != m_current_icon_name ||
+                status.status_text != m_current_status_text)
             {
                 changed = true;
                 // m_current_status_text will be updated in update_ui
@@ -108,7 +109,8 @@ void NetworkIndicator::monitor_loop()
 
         if (changed && application())
         {
-            application()->post_task([this, status]() { this->update_ui(status.icon_name, status.status_text); });
+            application()->post_task([this, status]()
+                                     { this->update_ui(status.icon_name, status.status_text); });
         }
     }
 
@@ -162,10 +164,12 @@ NetworkIndicator::NetworkStatus NetworkIndicator::calculate_current_info()
             if (state != 2)
                 continue; // Only process fully activated connections
 
-            auto id_var = local_dbus->get_property(
-                "org.freedesktop.NetworkManager", path,
-                "org.freedesktop.NetworkManager.Connection.Active", "Id");
-            std::string conn_name = std::holds_alternative<std::string>(id_var) ? std::get<std::string>(id_var) : "Desconocido";
+            auto id_var =
+                local_dbus->get_property("org.freedesktop.NetworkManager", path,
+                                         "org.freedesktop.NetworkManager.Connection.Active", "Id");
+            std::string conn_name = std::holds_alternative<std::string>(id_var)
+                                        ? std::get<std::string>(id_var)
+                                        : "Desconocido";
 
             auto type_var = local_dbus->get_property(
                 "org.freedesktop.NetworkManager", path,
@@ -216,11 +220,14 @@ NetworkIndicator::NetworkStatus NetworkIndicator::calculate_current_info()
             }
         }
 
-        if (!best_wifi_icon.empty()) {
+        if (!best_wifi_icon.empty())
+        {
             info.icon_name = best_wifi_icon;
             info.status_text = "WiFi: " + best_wifi_ssid;
-        } else if (ethernet_found) {
-            info.icon_name = "network-wired";
+        }
+        else if (ethernet_found)
+        {
+            info.icon_name = "am-network-symbolic";
             // status_text already set above
         }
     }
@@ -232,7 +239,7 @@ void NetworkIndicator::update_ui(const std::string &icon_name, const std::string
 {
     // This runs on the UI thread
     std::lock_guard<std::mutex> lock(m_state_mutex);
-    
+
     // Safety: check if anything actually changed to avoid unnecessary re-layouts
     if (m_current_icon_name == icon_name && m_current_status_text == status_text)
     {
@@ -242,7 +249,7 @@ void NetworkIndicator::update_ui(const std::string &icon_name, const std::string
     m_current_icon_name = icon_name;
     m_current_status_text = status_text;
     m_icon->set_icon_name(icon_name);
-    
+
     // Update tooltip with current status
     auto tip = std::make_unique<Notification>();
     tip->set_notification(icon_name, status_text);
