@@ -369,16 +369,22 @@ namespace horizon
 
         // Calculate target index
         int new_target_index = 0;
-        int current_x = x() + margin();
+        bool is_vertical = (m_position == "left" || m_position == "right");
+        int current_pos = is_vertical ? (y() + margin()) : (x() + margin());
+        int mouse_pos = is_vertical ? m_drag_mouse_y : m_drag_mouse_x;
+
         for (const auto &child : children())
         {
             if (child.get() == m_dragged_item)
                 continue;
-            if (m_drag_mouse_x < current_x + child->width() / 2)
+                
+            int child_size = is_vertical ? child->height() : child->width();
+            
+            if (mouse_pos < current_pos + child_size / 2)
             {
                 break;
             }
-            current_x += child->width() + spacing();
+            current_pos += child_size + spacing();
             new_target_index++;
         }
 
