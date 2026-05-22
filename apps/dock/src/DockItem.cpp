@@ -85,6 +85,9 @@ namespace horizon
         when_click.connect(
             [this](MouseButtonEventContext &ctx)
             {
+                if (std::abs(ctx.x - _press_x) > 10 || std::abs(ctx.y - _press_y) > 10)
+                    return;
+
                 if (!_compositor_apps || _instances.empty())
                     return;
 
@@ -124,6 +127,9 @@ namespace horizon
         when_click.connect(
             [this](MouseButtonEventContext &ctx)
             {
+                if (std::abs(ctx.x - _press_x) > 10 || std::abs(ctx.y - _press_y) > 10)
+                    return;
+
                 LOG_INFO << "[DOCK] Requesting to run app: " << _run_id;
                 ApplicationLauncher::launch(_run_id);
             });
@@ -164,9 +170,11 @@ namespace horizon
                 DockShelf* shelf = dynamic_cast<DockShelf*>(parent());
                 if (shelf) {
                     shelf->end_drag();
+                    // Do NOT access `this` or call `invalidate()` here, 
+                    // because `end_drag()` may recreate the dock and delete this item.
+                } else {
+                    invalidate();
                 }
-                
-                invalidate();
             }
         });
     }
