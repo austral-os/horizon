@@ -12,6 +12,7 @@
 #include <cctype>
 #include <cmath>
 #include <filesystem>
+#include <random>
 #include <set>
 #include <thread>
 #include "horizon/arkutils/FileOperations.hpp"
@@ -74,6 +75,12 @@ namespace horizon::files
         void scan_images()
         {
             m_thumbnails.clear();
+            m_angles.clear();
+            
+            static std::random_device rd;
+            static std::mt19937 gen(rd());
+            std::uniform_real_distribution<float> dis(-20.0f, 20.0f);
+
             try
             {
                 int count = 0;
@@ -101,6 +108,7 @@ namespace horizon::files
                     if (!thumb.empty())
                     {
                         m_thumbnails.push_back(thumb);
+                        m_angles.push_back(dis(gen));
                         count++;
                     }
                     else
@@ -122,49 +130,54 @@ namespace horizon::files
             if (n == 0)
                 return;
 
-            int thumb_size = std::max(8, (int)(m_icon_size * 0.40f));
-            int padding  = std::max(1, (int)(m_icon_size * 0.08f));
-
-            int left   = icon_x + padding + thumb_size / 2;
-            int right  = icon_x + m_icon_size - padding - thumb_size / 2;
-            int top    = icon_y + padding + thumb_size / 2;
-            int bottom = icon_y + m_icon_size - padding - thumb_size / 2;
-            int cx     = icon_x + m_icon_size / 2;
-            int cy     = icon_y + m_icon_size / 2;
-            int half_gap = padding / 2;
-
-            struct { int px, py; float rot; } pos[4];
-
-            switch (n)
-            {
-            case 1:
-                pos[0] = {cx, cy, 0.0f};
-                break;
-            case 2:
-                pos[0] = {cx - thumb_size / 2 - half_gap, cy, -8.0f};
-                pos[1] = {cx + thumb_size / 2 + half_gap, cy,  8.0f};
-                break;
-            case 3:
-                pos[0] = {left,  top,    -8.0f};
-                pos[1] = {right, top,     8.0f};
-                pos[2] = {cx,    bottom,  5.0f};
-                break;
-            default:
-                pos[0] = {left,  top,    -8.0f};
-                pos[1] = {right, top,     8.0f};
-                pos[2] = {left,  bottom,  5.0f};
-                pos[3] = {right, bottom, -5.0f};
-                break;
-            }
-
+            int cx = icon_x + m_icon_size / 2;
+            int cy = icon_y + m_icon_size / 2;
             float alpha = 0.92f;
+            
+            int base_thumb_size = std::max(8, (int)(m_icon_size * 0.40f));
+            int single_thumb_size = std::max(12, (int)(m_icon_size * 0.60f));
+
             for (int i = 0; i < n && i < (int)m_thumbnails.size(); i++)
             {
                 ctx.save();
-                ctx.translate((float)pos[i].px, (float)pos[i].py);
-                ctx.rotate(pos[i].rot * (float)(M_PI / 180.0f));
-                ctx.drawImage(m_thumbnails[i], -thumb_size / 2, -thumb_size / 2,
-                              thumb_size, thumb_size, alpha);
+                ctx.translate((float)cx, (float)cy);
+                ctx.rotate(m_angles[i] * (float)(M_PI / 180.0f));
+                
+                if (n == 1) {
+                    ctx.drawImage(m_thumbnails[i], -single_thumb_size / 2, -single_thumb_size / 2,
+                                  single_thumb_size, single_thumb_size, alpha);
+                } else if (n == 2) {
+                    int w = base_thumb_size;
+                    int h = single_thumb_size;
+                    int gap = 3;
+                    int x_offset = (i == 0) ? -w - gap : gap;
+                    int y_offset = -h / 2;
+                    ctx.drawImage(m_thumbnails[i], x_offset, y_offset, w, h, alpha);
+                } else {
+                    int thumb_size = std::max(5, base_thumb_size - 3);
+                    int x_offset = 0;
+                    int y_offset = 0;
+                    int gap = 3;
+                    
+                    int overlap_y = thumb_size / 4;
+                    
+                    if (i == 0) { // Top Left
+                        x_offset = -thumb_size - gap;
+                        y_offset = -thumb_size + overlap_y - gap;
+                    } else if (i == 1) { // Top Right
+                        x_offset = gap;
+                        y_offset = -thumb_size + overlap_y - gap;
+                    } else if (i == 2) { // Bottom Left
+                        x_offset = -thumb_size - gap;
+                        y_offset = -overlap_y + gap;
+                    } else if (i == 3) { // Bottom Right
+                        x_offset = gap;
+                        y_offset = -overlap_y + gap;
+                    }
+                    
+                    ctx.drawImage(m_thumbnails[i], x_offset, y_offset,
+                                  thumb_size, thumb_size, alpha);
+                }
                 ctx.restore();
             }
         }
@@ -173,6 +186,7 @@ namespace horizon::files
         std::string m_folder_icon;
         int m_icon_size{48};
         std::vector<std::string> m_thumbnails;
+        std::vector<float> m_angles;
     };
 
     class FileIconItem : public Widget
