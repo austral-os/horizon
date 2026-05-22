@@ -97,7 +97,7 @@ namespace horizon
             view_group->add_item(std::move(fs_icon));
 
             auto settings_icon = std::make_unique<horizon::Icon>();
-            settings_icon->set_icon_name("emblem-system");
+            settings_icon->set_icon_name("configure");
             settings_icon->set_icon_size(18);
             settings_icon->set_use_theme_colors(true);
             view_group->add_item(std::move(settings_icon));

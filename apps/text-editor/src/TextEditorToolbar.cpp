@@ -83,8 +83,7 @@ namespace horizon
 
             m_settings_group->add_item(
                 create_icon("view-fullscreen", "text_editor.toolbar.fullscreen"));
-            m_settings_group->add_item(
-                create_icon("emblem-system", "text_editor.toolbar.preferences"));
+            m_settings_group->add_item(create_icon("configure", "text_editor.toolbar.preferences"));
 
             m_settings_group->when_button_clicked.connect(
                 [this](horizon::GroupButtonClickEvent &ctx)

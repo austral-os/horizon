@@ -50,7 +50,7 @@ namespace horizon::terminal
         m_settings_group->add_item(std::move(fullscreen_icon));
 
         auto preferences_icon = std::make_unique<horizon::Icon>();
-        preferences_icon->set_icon_name("emblem-system");
+        preferences_icon->set_icon_name("configure");
         preferences_icon->set_icon_size(16);
         preferences_icon->set_use_theme_colors(true);
         m_settings_group->add_item(std::move(preferences_icon));

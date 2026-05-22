@@ -1,11 +1,11 @@
 #include "NovaToolbar.hpp"
 #include <horizon/GroupButton.hpp>
+#include <horizon/I18n.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/SearchBox.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/WaylandWindow.hpp>
-#include <horizon/I18n.hpp>
 
 namespace horizon::nova
 {
@@ -104,7 +104,7 @@ namespace horizon::nova
         m_actions_group->add_item(std::move(downloads_icon));
 
         auto options_icon = std::make_unique<horizon::Icon>();
-        options_icon->set_icon_name("emblem-system");
+        options_icon->set_icon_name("configure");
         options_icon->set_icon_size(16);
         m_actions_group->add_item(std::move(options_icon));
 
@@ -167,7 +167,7 @@ namespace horizon::nova
             invalidate();
         }
     }
-    
+
     void NovaToolbar::focus_address_bar()
     {
         if (m_search_box)
