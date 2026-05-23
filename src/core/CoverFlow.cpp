@@ -436,8 +436,15 @@ namespace horizon
             float scene_x = norm_x * screen_to_scene_x;
             float scene_y = norm_y * screen_to_scene_y;
 
-            float scene_scale_x = (float)child->width() / m_width * screen_to_scene_x;
-            float scene_scale_y = (float)capture_h / m_height * screen_to_scene_y;
+            // Make the center item visually larger
+            float scale_boost = 1.0f;
+            if (std::abs(dist) < 1.0f)
+            {
+                scale_boost = 1.0f + (1.0f - std::abs((float)dist)) * 0.18f; // Up to 18% larger
+            }
+
+            float scene_scale_x = (float)child->width() / m_width * screen_to_scene_x * scale_boost;
+            float scene_scale_y = (float)capture_h / m_height * screen_to_scene_y * scale_boost;
 
             Matrix::translate(mvp, scene_x, scene_y, z_pos);
             if (rotation != 0.0f)
@@ -451,7 +458,8 @@ namespace horizon
             Matrix::multiply(mvp, proj, mvp);
             Matrix::multiply(mvp, portal, mvp);
 
-            float opacity = 1.0f - std::min(0.7f, (float)std::abs(dist) * 0.15f);
+            // Solid 1.0 opacity for selected, smoothly fades to transparent for unselected
+            float opacity = 1.0f - std::min(0.8f, (float)std::abs(dist) * 0.25f);
             gc.drawTexture3D(tex_id, tex_w, tex_h, mvp, opacity, false);
         }
 

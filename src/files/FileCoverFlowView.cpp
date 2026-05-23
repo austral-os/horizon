@@ -20,9 +20,9 @@ namespace horizon::files
         FileCoverFlowItem() : Widget()
         {
             set_layout_type(WIDGET_LAYOUT_VERTICAL);
+            
             auto icon = std::make_unique<Icon>();
             icon->set_icon_size(128);
-            icon->set_enabled(false);
             m_icon = icon.get();
             add_child(std::move(icon));
         }
