@@ -2,27 +2,35 @@
 #include "horizon/GraphicsContext.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 #include "horizon/external/stb_image.h"
+#include <map>
+#include <memory>
+#include <mutex>
+#include <string>
 
 namespace horizon
 {
-    struct StbImageDriver::Impl
+    struct SharedImageData
     {
+        int width{0};
+        int height{0};
         int channels{0};
         unsigned char *data{nullptr};
 
-        ~Impl()
-        {
-            cleanup();
-        }
-
-        void cleanup()
+        ~SharedImageData()
         {
             if (data)
             {
                 stbi_image_free(data);
-                data = nullptr;
             }
         }
+    };
+
+    static std::map<std::string, std::weak_ptr<SharedImageData>> g_image_cache;
+    static std::mutex g_cache_mutex;
+
+    struct StbImageDriver::Impl
+    {
+        std::shared_ptr<SharedImageData> shared_data;
     };
 
     StbImageDriver::StbImageDriver() : m_impl(std::make_unique<Impl>()) {}
@@ -31,30 +39,51 @@ namespace horizon
 
     bool StbImageDriver::load(const std::string &path)
     {
-        m_impl->cleanup();
+        m_impl->shared_data.reset();
 
-        m_impl->data = stbi_load(path.c_str(), &m_width, &m_height, &m_impl->channels, 4);
-        if (!m_impl->data)
+        std::lock_guard<std::mutex> lock(g_cache_mutex);
+        
+        auto it = g_image_cache.find(path);
+        if (it != g_image_cache.end())
+        {
+            auto shared = it->second.lock();
+            if (shared)
+            {
+                m_impl->shared_data = shared;
+                m_width = shared->width;
+                m_height = shared->height;
+                return true;
+            }
+        }
+
+        auto shared = std::make_shared<SharedImageData>();
+        shared->data = stbi_load(path.c_str(), &shared->width, &shared->height, &shared->channels, 4);
+        if (!shared->data)
         {
             return false;
         }
 
         // Cairo CAIRO_FORMAT_ARGB32 on Little-Endian expects BGRA byte order.
         // STB loads as RGBA. We swap R and B.
-        for (int i = 0; i < m_width * m_height * 4; i += 4)
+        for (int i = 0; i < shared->width * shared->height * 4; i += 4)
         {
-            std::swap(m_impl->data[i], m_impl->data[i + 2]);
+            std::swap(shared->data[i], shared->data[i + 2]);
         }
+
+        m_width = shared->width;
+        m_height = shared->height;
+        m_impl->shared_data = shared;
+        g_image_cache[path] = shared;
 
         return true;
     }
 
     void StbImageDriver::draw(GraphicsContext &ctx, int x, int y, int w, int h)
     {
-        if (!m_impl->data)
+        if (!m_impl->shared_data || !m_impl->shared_data->data)
             return;
 
-        ctx.drawPixels(m_impl->data, m_width, m_height, x, y, w, h, m_impl->channels);
+        ctx.drawPixels(m_impl->shared_data->data, m_width, m_height, x, y, w, h, m_impl->shared_data->channels);
     }
 
 } // namespace horizon
