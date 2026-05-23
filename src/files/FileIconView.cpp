@@ -398,6 +398,10 @@ namespace horizon::files
             {
                 auto item = std::make_unique<FileIconItem>();
                 item->set_data(f, zoom, selected);
+                auto* item_ptr = item.get();
+                item_ptr->when_mouse_press.connect([this](MouseButtonEventContext& ctx) {
+                    this->set_focus(true);
+                });
                 return item;
             });
 
@@ -411,7 +415,78 @@ namespace horizon::files
                                                  }
                                              });
 
+        when_key_press.connect([this](KeyEventContext &ev) {
+            if (data().empty()) return;
 
+            int current_idx = selected_index();
+            int new_idx = current_idx;
+            int cols = std::max(1, m_columns_count);
+
+            bool is_arrow = false;
+
+            if (ev.keysym == 0xff51) // Left arrow
+            {
+                new_idx = (current_idx <= 0) ? 0 : current_idx - 1;
+                ev.stop_propagation = true;
+                is_arrow = true;
+            }
+            else if (ev.keysym == 0xff53) // Right arrow
+            {
+                new_idx = (current_idx < 0) ? 0 : std::min((int)data().size() - 1, current_idx + 1);
+                ev.stop_propagation = true;
+                is_arrow = true;
+            }
+            else if (ev.keysym == 0xff52) // Up arrow
+            {
+                if (current_idx < 0) new_idx = 0;
+                else new_idx = std::max(0, current_idx - cols);
+                ev.stop_propagation = true;
+                is_arrow = true;
+            }
+            else if (ev.keysym == 0xff54) // Down arrow
+            {
+                if (current_idx < 0) new_idx = 0;
+                else new_idx = std::min((int)data().size() - 1, current_idx + cols);
+                ev.stop_propagation = true;
+                is_arrow = true;
+            }
+
+            if (new_idx != current_idx && new_idx >= 0 && new_idx < (int)data().size())
+            {
+                set_selected_index(new_idx, false);
+                
+                IconViewItemMouseClickContext<arkutils::FileInfo> click_ctx;
+                click_ctx.item_index = new_idx;
+                click_ctx.item_data = data()[new_idx];
+                when_item_click.run(click_ctx);
+
+                if (on_item_selected)
+                    on_item_selected(new_idx, data()[new_idx]);
+
+                if (m_scroll_area && m_content_pane && new_idx < (int)m_content_pane->children().size()) {
+                    Widget* item = m_content_pane->children()[new_idx].get();
+                    int item_y = item->y() - m_y + m_scroll_area->scroll_y();
+                    int item_h = item->height();
+                    int current_scroll_y = m_scroll_area->scroll_y();
+                    int viewport_h = m_scroll_area->height();
+
+                    if (item_y < current_scroll_y) {
+                        m_scroll_area->set_scroll_position(m_scroll_area->scroll_x(), item_y);
+                    } else if (item_y + item_h > current_scroll_y + viewport_h) {
+                        m_scroll_area->set_scroll_position(m_scroll_area->scroll_x(), item_y + item_h - viewport_h);
+                    }
+                }
+            }
+        });
+
+        // Ensure we grab focus when clicked in empty space
+        m_scroll_area->when_mouse_press.connect([this](MouseButtonEventContext &ctx) {
+            set_focus(true);
+            if (ctx.button == 0x110 || ctx.button == 0x111)
+            {
+                clear_selection();
+            }
+        });
     }
 
     void FileIconView::set_application_recursive(WaylandWindow *app)

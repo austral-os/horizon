@@ -202,6 +202,8 @@ namespace horizon
             if (columns < 1)
                 columns = 1;
         }
+        
+        m_columns_count = columns;
 
         // Center the grid horizontally
         int grid_width = columns * (m_item_width + m_grid_spacing) - m_grid_spacing;

@@ -8,7 +8,6 @@
 #include <memory>
 #include <set>
 #include <vector>
-
 namespace horizon
 {
     /**
@@ -59,6 +58,8 @@ namespace horizon
         int BASE_ITEM_HEIGHT{80};
         int BASE_GRID_SPACING{12};
 
+        int m_columns_count{1};
+
         std::chrono::steady_clock::time_point m_last_item_click_time;
         int m_last_item_click_index{-1};
         uint32_t m_last_item_click_button{0};
@@ -86,7 +87,74 @@ namespace horizon
         using ItemFactory =
             std::function<std::unique_ptr<Widget>(const T &, float zoom, bool selected)>;
 
-        IconView() : IconViewBase() {}
+        IconView() : IconViewBase() {
+            set_focusable(true);
+
+            when_key_press.connect([this](KeyEventContext &ev) {
+                if (m_data.empty()) return;
+
+                int current_idx = selected_index();
+                int new_idx = current_idx;
+                int cols = std::max(1, m_columns_count);
+
+                bool is_arrow = false;
+
+                if (ev.keysym == 0xff51) // Left arrow
+                {
+                    new_idx = (current_idx <= 0) ? 0 : current_idx - 1;
+                    ev.stop_propagation = true;
+                    is_arrow = true;
+                }
+                else if (ev.keysym == 0xff53) // Right arrow
+                {
+                    new_idx = (current_idx < 0) ? 0 : std::min((int)m_data.size() - 1, current_idx + 1);
+                    ev.stop_propagation = true;
+                    is_arrow = true;
+                }
+                else if (ev.keysym == 0xff52) // Up arrow
+                {
+                    if (current_idx < 0) new_idx = 0;
+                    else new_idx = std::max(0, current_idx - cols);
+                    ev.stop_propagation = true;
+                    is_arrow = true;
+                }
+                else if (ev.keysym == 0xff54) // Down arrow
+                {
+                    if (current_idx < 0) new_idx = 0;
+                    else new_idx = std::min((int)m_data.size() - 1, current_idx + cols);
+                    ev.stop_propagation = true;
+                    is_arrow = true;
+                }
+
+                if (new_idx != current_idx && new_idx >= 0 && new_idx < (int)m_data.size())
+                {
+                    set_selected_index(new_idx, false);
+                    
+                    IconViewItemMouseClickContext<T> click_ctx;
+                    click_ctx.item_index = new_idx;
+                    click_ctx.item_data = m_data[new_idx];
+                    when_item_click.run(click_ctx);
+
+                    if (on_item_selected)
+                        on_item_selected(new_idx, m_data[new_idx]);
+
+                    // Auto-scroll logic:
+                    if (m_scroll_area && m_content_pane && new_idx < (int)m_content_pane->children().size()) {
+                        Widget* item = m_content_pane->children()[new_idx].get();
+                        int item_y = item->y() - m_y + m_scroll_area->scroll_y();
+                        int item_h = item->height();
+                        int current_scroll_y = m_scroll_area->scroll_y();
+                        int viewport_h = m_scroll_area->height();
+
+                        if (item_y < current_scroll_y) {
+                            m_scroll_area->set_scroll_position(m_scroll_area->scroll_x(), item_y);
+                        } else if (item_y + item_h > current_scroll_y + viewport_h) {
+                            m_scroll_area->set_scroll_position(m_scroll_area->scroll_x(), item_y + item_h - viewport_h);
+                        }
+                    }
+                }
+            });
+        }
         ~IconView() override = default;
 
         EventsManager<IconViewItemMouseClickContext<T>> when_item_click;
