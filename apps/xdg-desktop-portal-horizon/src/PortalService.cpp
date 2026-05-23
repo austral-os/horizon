@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <pwd.h>
+#include <horizon/dialogs/FileDialog.hpp>
 
 using namespace horizon::dbusutils;
 
@@ -89,6 +90,138 @@ namespace horizon::portal
         } else if (dbus_message_is_method_call(msg, "org.freedesktop.impl.portal.Settings", "ReadAll")) {
             handle_read_all(conn, msg);
             return DBUS_HANDLER_RESULT_HANDLED;
+        } else if (dbus_message_is_method_call(msg, "org.freedesktop.impl.portal.FileChooser", "OpenFile")) {
+            handle_file_chooser(conn, msg, 0); // 0 = Open
+            return DBUS_HANDLER_RESULT_HANDLED;
+        } else if (dbus_message_is_method_call(msg, "org.freedesktop.impl.portal.FileChooser", "SaveFile")) {
+            handle_file_chooser(conn, msg, 1); // 1 = Save
+            return DBUS_HANDLER_RESULT_HANDLED;
+        } else if (dbus_message_is_method_call(msg, "org.freedesktop.impl.portal.FileChooser", "SaveFiles")) {
+            handle_file_chooser(conn, msg, 2); // 2 = SaveFiles (unsupported by horizon, fallback to Save)
+            return DBUS_HANDLER_RESULT_HANDLED;
+        } else if (dbus_message_is_method_call(msg, "org.freedesktop.DBus.Properties", "Get")) {
+            DBusError error;
+            dbus_error_init(&error);
+            char* interface_name;
+            char* property_name;
+            if (dbus_message_get_args(msg, &error, DBUS_TYPE_STRING, &interface_name, DBUS_TYPE_STRING, &property_name, DBUS_TYPE_INVALID)) {
+                if (std::string(property_name) == "version") {
+                    uint32_t version = 1;
+                    DBusMessage* reply = dbus_message_new_method_return(msg);
+                    if (reply) {
+                        DBusMessageIter r_iter, var_iter;
+                        dbus_message_iter_init_append(reply, &r_iter);
+                        dbus_message_iter_open_container(&r_iter, DBUS_TYPE_VARIANT, "u", &var_iter);
+                        dbus_message_iter_append_basic(&var_iter, DBUS_TYPE_UINT32, &version);
+                        dbus_message_iter_close_container(&r_iter, &var_iter);
+                        dbus_connection_send(conn, reply, nullptr);
+                        dbus_message_unref(reply);
+                    }
+                    return DBUS_HANDLER_RESULT_HANDLED;
+                }
+            }
+        } else if (dbus_message_is_method_call(msg, "org.freedesktop.DBus.Properties", "GetAll")) {
+            uint32_t version = 1;
+            DBusMessage* reply = dbus_message_new_method_return(msg);
+            if (reply) {
+                DBusMessageIter r_iter, array_iter, dict_iter, var_iter;
+                dbus_message_iter_init_append(reply, &r_iter);
+                dbus_message_iter_open_container(&r_iter, DBUS_TYPE_ARRAY, "{sv}", &array_iter);
+                
+                dbus_message_iter_open_container(&array_iter, DBUS_TYPE_DICT_ENTRY, nullptr, &dict_iter);
+                const char* key = "version";
+                dbus_message_iter_append_basic(&dict_iter, DBUS_TYPE_STRING, &key);
+                dbus_message_iter_open_container(&dict_iter, DBUS_TYPE_VARIANT, "u", &var_iter);
+                dbus_message_iter_append_basic(&var_iter, DBUS_TYPE_UINT32, &version);
+                dbus_message_iter_close_container(&dict_iter, &var_iter);
+                dbus_message_iter_close_container(&array_iter, &dict_iter);
+                
+                dbus_message_iter_close_container(&r_iter, &array_iter);
+                dbus_connection_send(conn, reply, nullptr);
+                dbus_message_unref(reply);
+            }
+            return DBUS_HANDLER_RESULT_HANDLED;
+        }
+
+        if (dbus_message_is_method_call(msg, "org.freedesktop.DBus.Introspectable", "Introspect")) {
+            std::string xml = 
+                "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"\n"
+                "\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n"
+                "<node>\n"
+                "  <interface name=\"org.freedesktop.DBus.Introspectable\">\n"
+                "    <method name=\"Introspect\">\n"
+                "      <arg name=\"xml_data\" type=\"s\" direction=\"out\"/>\n"
+                "    </method>\n"
+                "  </interface>\n"
+                "  <interface name=\"org.freedesktop.DBus.Properties\">\n"
+                "    <method name=\"Get\">\n"
+                "      <arg name=\"interface_name\" type=\"s\" direction=\"in\"/>\n"
+                "      <arg name=\"property_name\" type=\"s\" direction=\"in\"/>\n"
+                "      <arg name=\"value\" type=\"v\" direction=\"out\"/>\n"
+                "    </method>\n"
+                "    <method name=\"GetAll\">\n"
+                "      <arg name=\"interface_name\" type=\"s\" direction=\"in\"/>\n"
+                "      <arg name=\"properties\" type=\"a{sv}\" direction=\"out\"/>\n"
+                "    </method>\n"
+                "  </interface>\n"
+                "  <interface name=\"org.freedesktop.impl.portal.Settings\">\n"
+                "    <property name=\"version\" type=\"u\" access=\"read\"/>\n"
+                "    <method name=\"Read\">\n"
+                "      <arg name=\"namespace\" type=\"s\" direction=\"in\"/>\n"
+                "      <arg name=\"key\" type=\"s\" direction=\"in\"/>\n"
+                "      <arg name=\"value\" type=\"v\" direction=\"out\"/>\n"
+                "    </method>\n"
+                "    <method name=\"ReadAll\">\n"
+                "      <arg name=\"namespaces\" type=\"as\" direction=\"in\"/>\n"
+                "      <arg name=\"value\" type=\"a{sa{sv}}\" direction=\"out\"/>\n"
+                "    </method>\n"
+                "    <signal name=\"SettingChanged\">\n"
+                "      <arg name=\"namespace\" type=\"s\"/>\n"
+                "      <arg name=\"key\" type=\"s\"/>\n"
+                "      <arg name=\"value\" type=\"v\"/>\n"
+                "    </signal>\n"
+                "  </interface>\n"
+                "  <interface name=\"org.freedesktop.impl.portal.FileChooser\">\n"
+                "    <property name=\"version\" type=\"u\" access=\"read\"/>\n"
+                "    <method name=\"OpenFile\">\n"
+                "      <arg name=\"handle\" type=\"o\" direction=\"in\"/>\n"
+                "      <arg name=\"app_id\" type=\"s\" direction=\"in\"/>\n"
+                "      <arg name=\"parent_window\" type=\"s\" direction=\"in\"/>\n"
+                "      <arg name=\"title\" type=\"s\" direction=\"in\"/>\n"
+                "      <arg name=\"options\" type=\"a{sv}\" direction=\"in\"/>\n"
+                "      <arg name=\"response\" type=\"u\" direction=\"out\"/>\n"
+                "      <arg name=\"results\" type=\"a{sv}\" direction=\"out\"/>\n"
+                "    </method>\n"
+                "    <method name=\"SaveFile\">\n"
+                "      <arg name=\"handle\" type=\"o\" direction=\"in\"/>\n"
+                "      <arg name=\"app_id\" type=\"s\" direction=\"in\"/>\n"
+                "      <arg name=\"parent_window\" type=\"s\" direction=\"in\"/>\n"
+                "      <arg name=\"title\" type=\"s\" direction=\"in\"/>\n"
+                "      <arg name=\"options\" type=\"a{sv}\" direction=\"in\"/>\n"
+                "      <arg name=\"response\" type=\"u\" direction=\"out\"/>\n"
+                "      <arg name=\"results\" type=\"a{sv}\" direction=\"out\"/>\n"
+                "    </method>\n"
+                "    <method name=\"SaveFiles\">\n"
+                "      <arg name=\"handle\" type=\"o\" direction=\"in\"/>\n"
+                "      <arg name=\"app_id\" type=\"s\" direction=\"in\"/>\n"
+                "      <arg name=\"parent_window\" type=\"s\" direction=\"in\"/>\n"
+                "      <arg name=\"title\" type=\"s\" direction=\"in\"/>\n"
+                "      <arg name=\"options\" type=\"a{sv}\" direction=\"in\"/>\n"
+                "      <arg name=\"response\" type=\"u\" direction=\"out\"/>\n"
+                "      <arg name=\"results\" type=\"a{sv}\" direction=\"out\"/>\n"
+                "    </method>\n"
+                "  </interface>\n"
+                "</node>\n";
+            DBusMessage* reply = dbus_message_new_method_return(msg);
+            if (reply) {
+                DBusMessageIter r_iter;
+                dbus_message_iter_init_append(reply, &r_iter);
+                const char* xml_c = xml.c_str();
+                dbus_message_iter_append_basic(&r_iter, DBUS_TYPE_STRING, &xml_c);
+                dbus_connection_send(conn, reply, nullptr);
+                dbus_message_unref(reply);
+            }
+            return DBUS_HANDLER_RESULT_HANDLED;
         }
 
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
@@ -170,5 +303,189 @@ namespace horizon::portal
         
         dbus_connection_send(conn, reply, nullptr);
         dbus_message_unref(reply);
+    }
+
+    void PortalService::handle_file_chooser(DBusConnection* conn, DBusMessage* msg, int mode)
+    {
+        DBusMessageIter iter;
+        dbus_message_iter_init(msg, &iter);
+
+        const char *handle = nullptr, *app_id = nullptr, *parent_window = nullptr, *title = nullptr;
+        if (dbus_message_iter_get_arg_type(&iter) == DBUS_TYPE_OBJECT_PATH) {
+            dbus_message_iter_get_basic(&iter, &handle);
+            dbus_message_iter_next(&iter);
+        }
+        if (dbus_message_iter_get_arg_type(&iter) == DBUS_TYPE_STRING) {
+            dbus_message_iter_get_basic(&iter, &app_id);
+            dbus_message_iter_next(&iter);
+        }
+        if (dbus_message_iter_get_arg_type(&iter) == DBUS_TYPE_STRING) {
+            dbus_message_iter_get_basic(&iter, &parent_window);
+            dbus_message_iter_next(&iter);
+        }
+        if (dbus_message_iter_get_arg_type(&iter) == DBUS_TYPE_STRING) {
+            dbus_message_iter_get_basic(&iter, &title);
+            dbus_message_iter_next(&iter);
+        }
+
+        // We could parse options dict here, but for now we default to what the mode specifies.
+        bool directory = false;
+        // Parse options (a{sv})
+        if (dbus_message_iter_get_arg_type(&iter) == DBUS_TYPE_ARRAY) {
+            DBusMessageIter dict_iter;
+            dbus_message_iter_recurse(&iter, &dict_iter);
+            while (dbus_message_iter_get_arg_type(&dict_iter) == DBUS_TYPE_DICT_ENTRY) {
+                DBusMessageIter entry_iter;
+                dbus_message_iter_recurse(&dict_iter, &entry_iter);
+                const char* key;
+                dbus_message_iter_get_basic(&entry_iter, &key);
+                dbus_message_iter_next(&entry_iter);
+                if (std::string(key) == "directory") {
+                    DBusMessageIter var_iter;
+                    dbus_message_iter_recurse(&entry_iter, &var_iter);
+                    dbus_bool_t val;
+                    if (dbus_message_iter_get_arg_type(&var_iter) == DBUS_TYPE_BOOLEAN) {
+                        dbus_message_iter_get_basic(&var_iter, &val);
+                        directory = val;
+                    }
+                }
+                dbus_message_iter_next(&dict_iter);
+            }
+        }
+
+        std::string handle_path = handle ? handle : "";
+        std::string s_title = title ? title : "";
+
+        // Register the Request object
+        auto request_obj = new RequestObject(m_dbus, handle_path);
+        if (!handle_path.empty()) {
+            m_dbus.register_object(handle_path, request_obj);
+        }
+
+        dbus_message_ref(msg);
+
+        // Run dialog in a new thread
+        std::thread([this, conn, msg, request_obj, mode, directory, s_title, handle_path]() {
+            FileDialogMode dialog_mode = FileDialogMode::Open;
+            if (mode == 1 || mode == 2) dialog_mode = FileDialogMode::Save;
+            if (directory) dialog_mode = FileDialogMode::SelectFolder;
+
+            auto dialog = std::make_unique<horizon::FileDialog>(dialog_mode, s_title);
+            
+            uint32_t response_code = 1; // Default to cancel
+            std::vector<std::string> uris;
+
+            bool done = false;
+
+            dialog->when_accepted.connect([&](horizon::FileDialogAcceptedContext& ctx) {
+                response_code = 0; // Success
+                uris.push_back("file://" + ctx.selected_path);
+                done = true;
+                dialog->quit();
+            });
+
+            dialog->when_cancelled.connect([&](horizon::FileDialogCancelledContext&) {
+                response_code = 1; // Cancel
+                done = true;
+                dialog->quit();
+            });
+
+            // Initialize and block
+            dialog->initialize();
+            dialog->run();
+
+            // After dialog finishes, if request was closed by portal, we might not need to reply,
+            // but we'll reply anyway or portal ignores it.
+            if (request_obj->is_closed()) {
+                response_code = 2; // Aborted
+            }
+
+            // Create DBus reply: (u response, a{sv} results)
+            DBusMessage* reply = dbus_message_new_method_return(msg);
+            if (reply) {
+                DBusMessageIter r_iter;
+                dbus_message_iter_init_append(reply, &r_iter);
+                dbus_message_iter_append_basic(&r_iter, DBUS_TYPE_UINT32, &response_code);
+                
+                // a{sv}
+                DBusMessageIter array_iter;
+                dbus_message_iter_open_container(&r_iter, DBUS_TYPE_ARRAY, "{sv}", &array_iter);
+                
+                if (response_code == 0 && !uris.empty()) {
+                    DBusMessageIter dict_entry_iter;
+                    dbus_message_iter_open_container(&array_iter, DBUS_TYPE_DICT_ENTRY, nullptr, &dict_entry_iter);
+                    
+                    const char* key = "uris";
+                    dbus_message_iter_append_basic(&dict_entry_iter, DBUS_TYPE_STRING, &key);
+                    
+                    DBusMessageIter var_iter;
+                    dbus_message_iter_open_container(&dict_entry_iter, DBUS_TYPE_VARIANT, "as", &var_iter);
+                    
+                    DBusMessageIter as_iter;
+                    dbus_message_iter_open_container(&var_iter, DBUS_TYPE_ARRAY, "s", &as_iter);
+                    for (const auto& uri : uris) {
+                        const char* uri_c = uri.c_str();
+                        dbus_message_iter_append_basic(&as_iter, DBUS_TYPE_STRING, &uri_c);
+                    }
+                    dbus_message_iter_close_container(&var_iter, &as_iter);
+                    dbus_message_iter_close_container(&dict_entry_iter, &var_iter);
+                    dbus_message_iter_close_container(&array_iter, &dict_entry_iter);
+                }
+                
+                dbus_message_iter_close_container(&r_iter, &array_iter);
+                
+                dbus_connection_send(conn, reply, nullptr);
+                dbus_message_unref(reply);
+            }
+
+            if (!handle_path.empty()) {
+                m_dbus.unregister_object(handle_path);
+            }
+            delete request_obj;
+
+            dbus_message_unref(msg);
+        }).detach();
+    }
+
+    DBusHandlerResult RequestObject::handle_message(DBusConnection* conn, DBusMessage* msg)
+    {
+        if (dbus_message_is_method_call(msg, "org.freedesktop.impl.portal.Request", "Close")) {
+            m_closed = true;
+            // The dialog thread will check this, but ideally we should signal it to close.
+            // For simplicity, we just mark it.
+
+            DBusMessage* reply = dbus_message_new_method_return(msg);
+            if (reply) {
+                dbus_connection_send(conn, reply, nullptr);
+                dbus_message_unref(reply);
+            }
+            return DBUS_HANDLER_RESULT_HANDLED;
+        } else if (dbus_message_is_method_call(msg, "org.freedesktop.DBus.Introspectable", "Introspect")) {
+            std::string xml = 
+                "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\"\n"
+                "\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n"
+                "<node>\n"
+                "  <interface name=\"org.freedesktop.DBus.Introspectable\">\n"
+                "    <method name=\"Introspect\">\n"
+                "      <arg name=\"xml_data\" type=\"s\" direction=\"out\"/>\n"
+                "    </method>\n"
+                "  </interface>\n"
+                "  <interface name=\"org.freedesktop.impl.portal.Request\">\n"
+                "    <method name=\"Close\">\n"
+                "    </method>\n"
+                "  </interface>\n"
+                "</node>\n";
+            DBusMessage* reply = dbus_message_new_method_return(msg);
+            if (reply) {
+                DBusMessageIter r_iter;
+                dbus_message_iter_init_append(reply, &r_iter);
+                const char* xml_c = xml.c_str();
+                dbus_message_iter_append_basic(&r_iter, DBUS_TYPE_STRING, &xml_c);
+                dbus_connection_send(conn, reply, nullptr);
+                dbus_message_unref(reply);
+            }
+            return DBUS_HANDLER_RESULT_HANDLED;
+        }
+        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
     }
 }

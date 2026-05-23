@@ -2,6 +2,10 @@
 export XDG_SESSION_TYPE=wayland
 export XDG_CURRENT_DESKTOP=HZN-LABWC
 
+# Forzar a GTK, Qt y Electron a usar los portales XDG para los diálogos
+export GTK_USE_PORTAL=1
+export QT_QPA_PLATFORMTHEME=xdgdesktopportal
+
 labwc &
 export LABWC_PID=$!
 

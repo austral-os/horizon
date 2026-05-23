@@ -2,6 +2,10 @@
 export XDG_SESSION_TYPE=wayland
 export XDG_CURRENT_DESKTOP=horizon:HZN-LABWC
 
+# Forzar a GTK, Qt y Electron a usar los portales XDG para los diálogos
+export GTK_USE_PORTAL=1
+export QT_QPA_PLATFORMTHEME=xdgdesktopportal
+
 # Limpiar sockets y locks huérfanos antes de iniciar el compositor para asegurar que use wayland-0
 rm -f "$XDG_RUNTIME_DIR/wayland-[0-9]"
 rm -f "$XDG_RUNTIME_DIR/wayland-[0-9].lock"

@@ -9,6 +9,7 @@
 #include <memory>
 #include <mutex>
 #include <functional>
+#include <thread>
 
 namespace horizon::portal
 {
@@ -50,5 +51,23 @@ namespace horizon::portal
 
         uint32_t get_current_color_scheme();
         time_t get_config_mtime();
+
+        void handle_file_chooser(DBusConnection* conn, DBusMessage* msg, int mode);
+    };
+
+    class RequestObject : public dbusutils::DbusObject
+    {
+    public:
+        RequestObject(dbusutils::DbusHelper& dbus, const std::string& path) 
+            : m_dbus(dbus), m_path(path) {}
+            
+        DBusHandlerResult handle_message(DBusConnection* conn, DBusMessage* msg) override;
+        
+        bool is_closed() const { return m_closed; }
+
+    private:
+        dbusutils::DbusHelper& m_dbus;
+        std::string m_path;
+        bool m_closed{false};
     };
 }

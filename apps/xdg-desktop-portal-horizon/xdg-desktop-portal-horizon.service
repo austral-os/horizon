@@ -1,0 +1,15 @@
+[Unit]
+Description=Portal service (Horizon OS)
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+Type=dbus
+BusName=org.freedesktop.impl.portal.desktop.horizon
+ExecStart=/usr/bin/xdg-desktop-portal-horizon
+Restart=on-failure
+Slice=session.slice
+
+[Install]
+WantedBy=xdg-desktop-portal.service

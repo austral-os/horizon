@@ -34,6 +34,12 @@ install(FILES org.freedesktop.impl.portal.desktop.horizon.service
     COMPONENT portal
 )
 
+# Install systemd user service file
+install(FILES xdg-desktop-portal-horizon.service
+    DESTINATION lib/systemd/user
+    COMPONENT portal
+)
+
 # Install portal configuration file
 install(FILES horizon.portal
     DESTINATION share/xdg-desktop-portal/portals

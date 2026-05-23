@@ -1,3 +1,5 @@
 [portal]
 DBusName=org.freedesktop.impl.portal.desktop.horizon
-Interfaces=org.freedesktop.impl.portal.Settings
+Interfaces=org.freedesktop.impl.portal.Settings;org.freedesktop.impl.portal.FileChooser;
+UseIn=horizon
+
