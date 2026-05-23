@@ -33,6 +33,8 @@ namespace horizon::files
         clear_children();
         LOG_INFO << "FileView [" << (void*)this << "]: Children cleared. Remaining: " << m_children.size() << ". Mode: " << (int)vm;
 
+        Widget* new_view_ptr = nullptr;
+
         if (m_view_mode == ViewMode::List)
         {
             auto view = std::make_unique<FileListView>(m_current_path);
@@ -52,6 +54,7 @@ namespace horizon::files
             {
                 view->set_context_menu_factory(m_context_menu_factory);
             }
+            new_view_ptr = view.get();
             add_child(std::move(view));
         }
         else if (m_view_mode == ViewMode::Grid)
@@ -72,6 +75,7 @@ namespace horizon::files
             {
                 view->set_context_menu_factory(m_context_menu_factory);
             }
+            new_view_ptr = view.get();
             add_child(std::move(view));
         }
         else if (m_view_mode == ViewMode::CoverFlow)
@@ -93,6 +97,7 @@ namespace horizon::files
             {
                 view->set_context_menu_factory(m_context_menu_factory);
             }
+            new_view_ptr = view.get();
             add_child(std::move(view));
         }
 
@@ -100,6 +105,11 @@ namespace horizon::files
         if (!m_search_query.empty())
         {
             set_search_query(m_search_query);
+        }
+
+        if (new_view_ptr)
+        {
+            new_view_ptr->set_focus(true);
         }
     }
 
