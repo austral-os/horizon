@@ -42,3 +42,7 @@ timeout 2 dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRE
 timeout 2 systemctl --user start pipewire pipewire-pulse wireplumber || true
 
 @CMAKE_INSTALL_FULL_BINDIR@/horizon_session --compositor wayfire
+
+# Terminate the compositor gracefully and wait for it to release resources
+kill -TERM $WAYFIRE_PID 2>/dev/null || true
+wait $WAYFIRE_PID 2>/dev/null || true

@@ -114,6 +114,7 @@ std::unique_ptr<Menu> TopPanelMenuBar::create_system_menu()
 {
     auto menu = std::make_unique<Menu>();
     menu->set_title("");
+    menu->set_icon_theme_color_key("window_fg");
     menu->set_icon_name("start-here-symbolic");
     if (menu->icon_name().empty() || IconThemeLookup::find_icon(menu->icon_name(), 18).empty())
     {

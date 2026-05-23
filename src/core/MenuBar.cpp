@@ -44,6 +44,7 @@ namespace horizon
     {
         auto item = std::make_unique<MenuBarItem>(menu->title(), menu.get());
         item->set_bold(menu->bold());
+        item->set_icon_theme_color_key(menu->icon_theme_color_key());
         item->set_icon_name(menu->icon_name());
         item->set_position_type(FREE);
         
@@ -74,6 +75,7 @@ namespace horizon
     {
         auto item = std::make_unique<MenuBarItem>(menu->title(), menu.get());
         item->set_bold(menu->bold());
+        item->set_icon_theme_color_key(menu->icon_theme_color_key());
         item->set_icon_name(menu->icon_name());
         item->set_position_type(FREE);
         
@@ -239,6 +241,18 @@ namespace horizon
         m_icon = nullptr;
     }
 
+    void MenuBarItem::set_icon_theme_color_key(const std::string &key)
+    {
+        if (m_icon_theme_color_key == key)
+            return;
+
+        m_icon_theme_color_key = key;
+        if (m_icon)
+        {
+            m_icon->set_theme_color_key(m_icon_theme_color_key);
+        }
+    }
+
     void MenuBarItem::set_icon_name(const std::string &name)
     {
         if (m_icon_name == name)
@@ -253,6 +267,7 @@ namespace horizon
                 m_icon = icon.get();
                 m_icon->set_position_type(FREE);
                 m_icon->set_use_theme_colors(true);
+                m_icon->set_theme_color_key(m_icon_theme_color_key);
                 add_child(std::move(icon));
             }
             m_icon->set_icon_name(m_icon_name);

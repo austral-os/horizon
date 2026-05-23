@@ -180,6 +180,21 @@ namespace horizon
         return m_use_theme_colors;
     }
 
+    void Icon::set_theme_color_key(const std::string &key)
+    {
+        if (m_theme_color_key == key)
+            return;
+
+        m_theme_color_key = key;
+        if (m_use_theme_colors)
+            invalidate();
+    }
+
+    const std::string &Icon::theme_color_key() const
+    {
+        return m_theme_color_key;
+    }
+
     void Icon::draw(GraphicsContext &ctx)
     {
         if (m_resolved_path.empty())
@@ -214,7 +229,7 @@ namespace horizon
 
         if (m_use_theme_colors && theme_manager())
         {
-            paint_color = theme_manager()->get_color("icon_fg");
+            paint_color = theme_manager()->get_color(m_theme_color_key);
             has_color = true;
         }
 

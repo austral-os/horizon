@@ -20,6 +20,7 @@ BatteryIndicator::BatteryIndicator() : ITopPanelWidget()
     m_icon->set_fixed_size(24);
     m_icon->set_vertical_alignment(VerticalAlignment::Middle);
     m_icon->set_use_theme_colors(true);
+    m_icon->set_theme_color_key("window_fg");
     add_child(std::move(icon));
 
     // Label for percentage

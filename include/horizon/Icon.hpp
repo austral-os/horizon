@@ -86,6 +86,13 @@ namespace horizon
         void set_use_theme_colors(bool use);
         bool use_theme_colors() const;
 
+        /**
+         * @brief Set the theme color key to use when use_theme_colors is true.
+         * Default is "icon_fg".
+         */
+        void set_theme_color_key(const std::string &key);
+        const std::string &theme_color_key() const;
+
     protected:
         void draw(GraphicsContext &ctx) override;
 
@@ -98,6 +105,7 @@ namespace horizon
         float m_opacity{1.0f};
         Color m_icon_color{0.0f, 0.0f, 0.0f, 0.0f};
         bool m_use_theme_colors{false};
+        std::string m_theme_color_key{"icon_fg"};
 
         void resolve_icon();
     };

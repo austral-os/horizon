@@ -13,6 +13,7 @@ NetworkIndicator::NetworkIndicator() : ITopPanelWidget()
     m_icon = icon.get();
     m_icon->set_icon_size(24);
     m_icon->set_use_theme_colors(true);
+    m_icon->set_theme_color_key("window_fg");
 
     {
         std::lock_guard<std::mutex> lock(m_state_mutex);

@@ -47,6 +47,15 @@ namespace horizon
             return m_icon_name;
         }
 
+        void set_icon_theme_color_key(const std::string &key)
+        {
+            m_icon_theme_color_key = key;
+        }
+        const std::string &icon_theme_color_key() const
+        {
+            return m_icon_theme_color_key;
+        }
+
         // Helper to add a text item directly
         MenuItem *add_item(const std::string &text, const std::string &shortcut = "",
                            const std::string &item_id = "");
@@ -121,6 +130,7 @@ namespace horizon
         std::string m_id;
         bool m_bold = false;
         std::string m_icon_name;
+        std::string m_icon_theme_color_key{"icon_fg"};
         float m_bottom_alpha = 0.8f;
     };
 

@@ -64,6 +64,12 @@ namespace horizon
             return m_icon_name;
         }
 
+        void set_icon_theme_color_key(const std::string &key);
+        const std::string &icon_theme_color_key() const
+        {
+            return m_icon_theme_color_key;
+        }
+
         const std::string &resolved_icon_path() const
         {
             return m_resolved_icon_path;
@@ -89,6 +95,7 @@ namespace horizon
         Menu *m_menu;
         bool m_bold = false;
         std::string m_icon_name;
+        std::string m_icon_theme_color_key{"icon_fg"};
         std::string m_resolved_icon_path;
         Icon *m_icon = nullptr;
     };

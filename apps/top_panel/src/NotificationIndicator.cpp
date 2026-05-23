@@ -14,6 +14,7 @@ namespace horizon
         m_icon = icon.get();
         m_icon->set_fixed_size(20);
         m_icon->set_use_theme_colors(true);
+        m_icon->set_theme_color_key("window_fg");
         m_icon->set_vertical_alignment(VerticalAlignment::Middle);
         add_child(std::move(icon));
 
