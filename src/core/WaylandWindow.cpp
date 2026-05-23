@@ -1646,7 +1646,14 @@ namespace horizon
         new_ev.modifiers = event.modifiers;
         new_ev.keysym = event.keysym;
         new_ev.text = event.text;
-        target->when_key_release.run(new_ev);
+        Widget *current = target;
+        while (current)
+        {
+            current->when_key_release.run(new_ev);
+            if (new_ev.stop_propagation)
+                return;
+            current = current->parent();
+        }
     }
 
     void WaylandWindow::PopupEventListener::on_pointer_event(const PointerEvent &event)

@@ -54,7 +54,7 @@ namespace horizon::arkfm
         std::unique_ptr<storage::RemoteManager> m_remote_manager;
         std::shared_ptr<storage::MountPasswordDialog> m_mount_dialog;
         std::vector<std::shared_ptr<compression::CompressionTask>> m_active_tasks;
-
+        bool m_is_deleting{false};
     };
 
 } // namespace horizon::arkfm

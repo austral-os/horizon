@@ -166,6 +166,29 @@ namespace horizon::arkfm
                 }
             });
 
+        m_view_ptr->when_key_release.connect(
+            [this](KeyEventContext &ctx)
+            {
+                if (ctx.keysym == 0xffff) // Delete key
+                {
+                    auto sel = m_view_ptr->get_selection();
+                    if (!sel.empty() && !m_is_deleting)
+                    {
+                        this->handle_delete(sel[0].path);
+                        ctx.stop_propagation = true;
+                    }
+                }
+                else if (ctx.keysym == 0xff0d) // Enter/Return key
+                {
+                    auto sel = m_view_ptr->get_selection();
+                    if (!sel.empty())
+                    {
+                        this->m_view_ptr->open_item(sel[0]);
+                        ctx.stop_propagation = true;
+                    }
+                }
+            });
+
         m_view_ptr->set_context_menu_factory([this](const arkutils::FileInfo &f) {
             auto menu = std::make_unique<horizon::Menu>();
             
@@ -514,6 +537,9 @@ namespace horizon::arkfm
 
     void ArkfmWindow::handle_delete(const std::string &path)
     {
+        if (m_is_deleting) return;
+        m_is_deleting = true;
+
         application()->set_override_cursor(CursorType::Wait);
         std::string filename = std::filesystem::path(path).filename().string();
         if (application()->confirm("¿Está seguro que desea eliminar '" + filename + "'?", "Confirmar eliminación"))
@@ -540,6 +566,7 @@ namespace horizon::arkfm
             }).detach();
         }
         application()->clear_override_cursor();
+        m_is_deleting = false;
     }
 
     void ArkfmWindow::handle_open()
