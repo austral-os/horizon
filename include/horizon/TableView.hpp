@@ -46,6 +46,49 @@ namespace horizon
         {
             m_layout_type = WIDGET_LAYOUT_VERTICAL;
             m_position_type = FILL;
+            set_focusable(true);
+
+            when_key_press.connect([this](KeyEventContext &ev) {
+                if (m_data.empty()) return;
+
+                int current_idx = selected_index();
+                int new_idx = current_idx;
+
+                if (ev.keysym == 0xff52) // Up arrow
+                {
+                    new_idx = (current_idx < 0) ? 0 : std::max(0, current_idx - 1);
+                    ev.stop_propagation = true;
+                }
+                else if (ev.keysym == 0xff54) // Down arrow
+                {
+                    new_idx = (current_idx < 0) ? 0 : std::min((int)m_data.size() - 1, current_idx + 1);
+                    ev.stop_propagation = true;
+                }
+
+                if (new_idx != current_idx && new_idx >= 0 && new_idx < (int)m_data.size())
+                {
+                    set_selected_index(new_idx);
+                    
+                    // Fire row click event so external components update
+                    TableViewRowMouseClickContext<T> click_ctx;
+                    click_ctx.row_index = new_idx;
+                    click_ctx.row_data = m_data[new_idx];
+                    when_row_click.run(click_ctx);
+
+                    // Auto-scroll to make the row visible
+                    if (m_scroll_area) {
+                        int row_y = new_idx * m_row_height;
+                        int current_scroll_y = m_scroll_area->scroll_y();
+                        int viewport_h = m_scroll_area->height();
+
+                        if (row_y < current_scroll_y) {
+                            m_scroll_area->set_scroll_position(m_scroll_area->scroll_x(), row_y);
+                        } else if (row_y + m_row_height > current_scroll_y + viewport_h) {
+                            m_scroll_area->set_scroll_position(m_scroll_area->scroll_x(), row_y + m_row_height - viewport_h);
+                        }
+                    }
+                }
+            });
 
             // Header Area
             m_header_container = std::make_unique<Widget>();
