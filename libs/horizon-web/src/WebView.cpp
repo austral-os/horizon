@@ -2,6 +2,7 @@
 #include "horizon/GraphicsContext.hpp"
 #include "horizon/Logger.hpp"
 #include "horizon/WaylandWindow.hpp"
+#include "horizon/ThemeManager.hpp"
 #include <cstring>
 #include <wayland-server-core.h>
 #include "horizon/Menu.hpp"
@@ -81,7 +82,7 @@ namespace horizon
         WebView::WebView()
         {
             set_focusable(true);
-            set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+            set_background_color(theme_manager()->get_color("textbox_bg"));
             m_show_v_scroll = false;
             m_show_h_scroll = false;
             m_is_dragging_v = false;
@@ -1311,10 +1312,11 @@ namespace horizon
                 wpe_view_backend_add_activity_state(self->m_backend, 7);
             }
             
-            // DEFAULT BACKGROUND: Ensure a solid white background
+            // DEFAULT BACKGROUND: Ensure background matches textbox_bg
+            Color theme_bg = theme_manager()->get_color("textbox_bg");
             WebKitColor background_color;
-            background_color.red = 1; background_color.green = 1;
-            background_color.blue = 1; background_color.alpha = 1;
+            background_color.red = theme_bg.r; background_color.green = theme_bg.g;
+            background_color.blue = theme_bg.b; background_color.alpha = theme_bg.a;
             webkit_web_view_set_background_color(self->m_web_view, &background_color);
 
             webkit_policy_decision_use((WebKitPolicyDecision*)decision);
