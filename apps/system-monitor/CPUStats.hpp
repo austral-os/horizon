@@ -57,5 +57,6 @@ namespace horizon
         size_t m_max_history{60};
 
         std::vector<Color> m_core_colors;
+        Color m_total_color;
     };
 } // namespace horizon

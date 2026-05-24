@@ -90,12 +90,14 @@ namespace horizon
         auto update_core_colors = [this]() {
             if (theme_manager()->get_variant() == "dark")
             {
+                m_total_color = Color(0.8f, 0.9f, 0.4f, 1.0f);
                 m_core_colors = {Color(0.8f, 0.9f, 0.4f), Color(0.7f, 0.85f, 0.35f),
                                  Color(0.9f, 0.95f, 0.5f), Color(0.6f, 0.8f, 0.3f),
                                  Color(0.85f, 0.9f, 0.45f), Color(0.75f, 0.9f, 0.4f)};
             }
             else
             {
+                m_total_color = Color(0.2f, 0.3f, 0.1f, 1.0f);
                 m_core_colors = {Color(0.2f, 0.3f, 0.1f),    Color(0.3f, 0.4f, 0.15f),
                                  Color(0.4f, 0.5f, 0.2f),    Color(0.15f, 0.25f, 0.05f),
                                  Color(0.25f, 0.35f, 0.12f), Color(0.35f, 0.45f, 0.18f),
@@ -219,7 +221,7 @@ namespace horizon
 
         if (!m_show_cores)
         {
-            m_chart->add_series("CPU Total", Color(0.2f, 0.3f, 0.1f), m_history[0]);
+            m_chart->add_series("CPU Total", m_total_color, m_history[0]);
         }
         else
         {
