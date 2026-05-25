@@ -65,6 +65,20 @@ install(DIRECTORY include/horizon/
     COMPONENT libhorizon-dev
 )
 
+# Install Protocol Headers
+install(DIRECTORY src/protocols/
+    DESTINATION include/horizon/protocols
+    COMPONENT libhorizon-dev
+    FILES_MATCHING PATTERN "*.h"
+)
+
+# Configure and Install pkg-config file
+configure_file(cmake/horizon.pc.in ${CMAKE_BINARY_DIR}/horizon.pc @ONLY)
+install(FILES ${CMAKE_BINARY_DIR}/horizon.pc
+    DESTINATION lib/pkgconfig
+    COMPONENT libhorizon-dev
+)
+
 # Install Core Locales
 install(DIRECTORY share/locales/
     DESTINATION share/horizon/locales
