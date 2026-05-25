@@ -68,7 +68,12 @@ if(HORIZON_PACKAGING_COMPONENTS)
         endif()
         list(APPEND META_DEPENDS "${deb_name}")
     endforeach()
-    list(APPEND META_DEPENDS "libhorizon")
+    # Also handle libraries that were previously in package-libs
+    set(LIB_COMPONENTS "libhorizon;libhorizon-dev;libhorizon-capture;libhorizon-capture-dev;libhorizon-compression-tools;libhorizon-compression-tools-dev;libhorizon-disk-utilities;libhorizon-disk-utilities-dev;libhorizon-download;libhorizon-download-dev;libhorizon-image;libhorizon-image-dev;libhorizon-installer-utils;libhorizon-installer-utils-dev;libhorizon-network;libhorizon-network-dev;libhorizon-network-storage;libhorizon-network-storage-dev;libhorizon-overview;libhorizon-overview-dev;libhorizon-pdf;libhorizon-pdf-dev;libhorizon-terminal;libhorizon-terminal-dev;libhorizon-text;libhorizon-text-dev;libhorizon-video;libhorizon-video-dev;libhorizon-web;libhorizon-web-dev")
+    
+    foreach(lib ${LIB_COMPONENTS})
+        list(APPEND META_DEPENDS "${lib}")
+    endforeach()
     string(REPLACE ";" ", " META_DEPENDS_STR "${META_DEPENDS}")
     
     set(CPACK_DEBIAN_HORIZON_DESKTOP_META_PACKAGE_NAME "horizon-desktop")
@@ -106,8 +111,6 @@ if(HORIZON_PACKAGING_COMPONENTS)
         endif()
     endforeach()
 
-    # Also handle libraries that were previously in package-libs
-    set(LIB_COMPONENTS "libhorizon;libhorizon-dev;libhorizon-capture;libhorizon-capture-dev;libhorizon-compression-tools;libhorizon-compression-tools-dev;libhorizon-disk-utilities;libhorizon-disk-utilities-dev;libhorizon-download;libhorizon-download-dev;libhorizon-image;libhorizon-image-dev;libhorizon-installer-utils;libhorizon-installer-utils-dev;libhorizon-network;libhorizon-network-dev;libhorizon-network-storage;libhorizon-network-storage-dev;libhorizon-overview;libhorizon-overview-dev;libhorizon-pdf;libhorizon-pdf-dev;libhorizon-terminal;libhorizon-terminal-dev;libhorizon-text;libhorizon-text-dev;libhorizon-video;libhorizon-video-dev;libhorizon-web;libhorizon-web-dev")
     foreach(comp ${LIB_COMPONENTS})
         string(TOUPPER "${comp}" comp_upper)
         string(REPLACE "-" "_" comp_upper "${comp_upper}")
