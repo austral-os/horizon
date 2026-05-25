@@ -119,24 +119,7 @@ macro(horizon_install_app TARGET_NAME)
         COMPONENT ${APP_APP_ID}
     )
 
-    if(COMMAND cpack_add_component)
-        # Inter-component dependencies (using component names)
-        set(COMPONENT_DEPS "core") 
-        
-        cpack_add_component(${APP_APP_ID}
-            DISPLAY_NAME "${APP_NAME}"
-            DESCRIPTION "${APP_COMMENT}"
-            DEPENDS ${COMPONENT_DEPS}
-        )
+    # Track all app components globally so we can build a metapackage later
+    set_property(GLOBAL APPEND PROPERTY HORIZON_APP_COMPONENTS ${APP_APP_ID})
 
-        # External Debian dependencies for this specific component
-        if("${APP_APP_ID}" STREQUAL "session")
-            set(CPACK_DEBIAN_SESSION_PACKAGE_DEPENDS "${HORIZON_RUNTIME_DEPENDS}")
-        endif()
-        if("${APP_APP_ID}" STREQUAL "keyring")
-            set(CPACK_DEBIAN_KEYRING_PACKAGE_CONFLICTS "gnome-keyring")
-            set(CPACK_DEBIAN_KEYRING_PACKAGE_REPLACES "gnome-keyring")
-            set(CPACK_DEBIAN_KEYRING_PACKAGE_PROVIDES "secret-service, gnome-keyring")
-        endif()
-    endif()
 endmacro()

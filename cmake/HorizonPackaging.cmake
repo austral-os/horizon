@@ -37,21 +37,93 @@ set(CPACK_DEBIAN_PACKAGE_DEPENDS "${HORIZON_RUNTIME_DEPENDS}")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_BINARY_DIR}/postinst;${CMAKE_BINARY_DIR}/prerm")
 
 # Allow switching between monolithic and component-based packaging
-# Default to monolithic unless HORIZON_PACKAGING_COMPONENTS is ON
-option(HORIZON_PACKAGING_COMPONENTS "Generate separate .deb for each component" OFF)
+# Default to component-based now
+option(HORIZON_PACKAGING_COMPONENTS "Generate separate .deb for each component" ON)
 
 if(HORIZON_PACKAGING_COMPONENTS)
     set(CPACK_DEB_COMPONENT_INSTALL ON)
     set(CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE OFF)
     set(CPACK_COMPONENTS_GROUPING "IGNORE")
     set(CPACK_PACKAGE_FILE_NAME "horizon")
+    
+    include(CPack)
+    include(CPackComponent)
+    
+    # Meta-package generation
+    get_property(APP_COMPONENTS GLOBAL PROPERTY HORIZON_APP_COMPONENTS)
+    message(STATUS "APP_COMPONENTS length: ${APP_COMPONENTS}")
+    file(WRITE ${CMAKE_BINARY_DIR}/horizon-desktop-meta.txt "Horizon Desktop Metapackage\n")
+    install(FILES ${CMAKE_BINARY_DIR}/horizon-desktop-meta.txt DESTINATION share/horizon COMPONENT horizon_desktop_meta)
+    
+    cpack_add_component(horizon_desktop_meta
+        DISPLAY_NAME "Horizon Desktop Environment"
+        DESCRIPTION "Meta-package installing all Horizon Desktop components"
+    )
+    
+    set(META_DEPENDS "")
+    foreach(comp ${APP_COMPONENTS})
+        string(REPLACE "_" "-" deb_name "${comp}")
+        if(NOT deb_name MATCHES "^horizon-")
+            set(deb_name "horizon-${deb_name}")
+        endif()
+        list(APPEND META_DEPENDS "${deb_name}")
+    endforeach()
+    list(APPEND META_DEPENDS "libhorizon")
+    string(REPLACE ";" ", " META_DEPENDS_STR "${META_DEPENDS}")
+    
+    set(CPACK_DEBIAN_HORIZON_DESKTOP_META_PACKAGE_NAME "horizon-desktop")
+    set(CPACK_DEBIAN_HORIZON_DESKTOP_META_PACKAGE_DEPENDS "${META_DEPENDS_STR}")
+    # Clear the global dependencies for the metapackage so it doesn't double-depend on wayfire etc,
+    # as the individual apps will depend on them (if configured) or the apps will depend on libhorizon.
+    # We will keep the runtime depends for the metapackage just in case.
+    set(CPACK_DEBIAN_HORIZON_DESKTOP_META_PACKAGE_DEPENDS "${META_DEPENDS_STR}, ${HORIZON_RUNTIME_DEPENDS}")
+
+    # Set individual debian package names properly based on component
+    foreach(comp ${APP_COMPONENTS})
+        string(REPLACE "_" "-" deb_name "${comp}")
+        if(NOT deb_name MATCHES "^horizon-")
+            set(deb_name "horizon-${deb_name}")
+        endif()
+        string(TOUPPER "${comp}" comp_upper)
+        set(CPACK_DEBIAN_${comp_upper}_PACKAGE_NAME "${deb_name}")
+        
+        # All individual apps depend on libhorizon
+        set(CPACK_DEBIAN_${comp_upper}_PACKAGE_DEPENDS "libhorizon (>= ${HORIZON_VERSION})")
+
+        cpack_add_component(${comp}
+            DISPLAY_NAME "Horizon ${deb_name}"
+            DESCRIPTION "Horizon Desktop component: ${deb_name}"
+            DEPENDS libhorizon
+        )
+
+        if("${comp}" STREQUAL "session")
+            set(CPACK_DEBIAN_${comp_upper}_PACKAGE_DEPENDS "${CPACK_DEBIAN_${comp_upper}_PACKAGE_DEPENDS}, ${HORIZON_RUNTIME_DEPENDS}")
+        endif()
+        if("${comp}" STREQUAL "keyring")
+            set(CPACK_DEBIAN_${comp_upper}_PACKAGE_CONFLICTS "gnome-keyring")
+            set(CPACK_DEBIAN_${comp_upper}_PACKAGE_REPLACES "gnome-keyring")
+            set(CPACK_DEBIAN_${comp_upper}_PACKAGE_PROVIDES "secret-service, gnome-keyring")
+        endif()
+    endforeach()
+
+    # Also handle libraries that were previously in package-libs
+    set(LIB_COMPONENTS "libhorizon;libhorizon-dev;libhorizon-capture;libhorizon-capture-dev;libhorizon-compression-tools;libhorizon-compression-tools-dev;libhorizon-disk-utilities;libhorizon-disk-utilities-dev;libhorizon-download;libhorizon-download-dev;libhorizon-image;libhorizon-image-dev;libhorizon-installer-utils;libhorizon-installer-utils-dev;libhorizon-network;libhorizon-network-dev;libhorizon-network-storage;libhorizon-network-storage-dev;libhorizon-overview;libhorizon-overview-dev;libhorizon-pdf;libhorizon-pdf-dev;libhorizon-terminal;libhorizon-terminal-dev;libhorizon-text;libhorizon-text-dev;libhorizon-video;libhorizon-video-dev;libhorizon-web;libhorizon-web-dev")
+    foreach(comp ${LIB_COMPONENTS})
+        string(TOUPPER "${comp}" comp_upper)
+        string(REPLACE "-" "_" comp_upper "${comp_upper}")
+        set(CPACK_DEBIAN_${comp_upper}_PACKAGE_NAME "${comp}")
+        # Unset gnome-keyring conflicts for libraries
+        set(CPACK_DEBIAN_${comp_upper}_PACKAGE_CONFLICTS "")
+        set(CPACK_DEBIAN_${comp_upper}_PACKAGE_REPLACES "")
+        set(CPACK_DEBIAN_${comp_upper}_PACKAGE_PROVIDES "")
+        set(CPACK_DEBIAN_${comp_upper}_PACKAGE_CONTROL_EXTRA "")
+    endforeach()
 else()
     set(CPACK_DEB_COMPONENT_INSTALL OFF)
     set(CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE ON)
     set(CPACK_PACKAGE_FILE_NAME "horizon-desktop")
+    include(CPack)
 endif()
-
-include(CPack)
 
 # Native Ninja/Make targets for easy packaging
 add_custom_target(package-monolithic

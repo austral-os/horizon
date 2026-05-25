@@ -213,20 +213,20 @@ Horizon supports generating `.deb` packages for Debian-based systems.
 
 ### 1. Using Ninja (Recommended)
 
-Three targets are available for easy packaging from the `build` directory:
+Horizon defaults to a component-based packaging model. This generates individual `.deb` packages for every library and application, along with a meta-package (`horizon-desktop.deb`) that depends on all of them to install the complete environment.
 
-- **Monolithic Package** (All applications + libraries in one `.deb`):
-    ```bash
-    ninja package-monolithic
-    ```
-- **Individual Packages** (One `.deb` per application + library):
-    ```bash
-    ninja package-components
-    ```
-- **Standard Package** (Default configuration):
-    ```bash
-    ninja package
-    ```
+From the `build` directory, simply run:
+
+```bash
+ninja package-components
+```
+
+This single command will output:
+- **Core Library Packages**: `libhorizon_*.deb`, `libhorizon-dev_*.deb`, and other library submodules.
+- **Application Packages**: `horizon-nova_*.deb`, `horizon-dock_*.deb`, `horizon-session_*.deb`, etc.
+- **The Meta-Package**: `horizon-desktop_*.deb`, which acts as an installer for the entire suite.
+
+_Note: If you need the old monolithic package (one giant `.deb` with everything inside), you must configure CMake with `-DHORIZON_PACKAGING_COMPONENTS=OFF` and then run `ninja package-monolithic`._
 
 ### 2. Runtime Requirements
 
