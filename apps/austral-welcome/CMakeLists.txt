@@ -14,10 +14,10 @@ target_link_libraries(austral-welcome
         horizon
 )
 
-install(TARGETS austral-welcome
-    DESTINATION bin
-)
-
-install(DIRECTORY locales/
-    DESTINATION share/horizon/apps/austral-welcome/locales
+horizon_install_app(austral-welcome
+    APP_ID "austral_welcome"
+    NAME "Austral Welcome"
+    COMMENT "Welcome to Austral OS"
+    ICON "system-help"
+    CATEGORIES "Utility;"
 )

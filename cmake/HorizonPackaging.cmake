@@ -26,9 +26,7 @@ set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 
 # Conflict and replace gnome-keyring to avoid file conflicts
-set(CPACK_DEBIAN_PACKAGE_CONFLICTS "gnome-keyring")
-set(CPACK_DEBIAN_PACKAGE_REPLACES "gnome-keyring")
-set(CPACK_DEBIAN_PACKAGE_PROVIDES "secret-service, gnome-keyring")
+# (Now handled per-component in the packaging loop)
 
 # Merging manual dependencies with shlibdeps for monolithic package
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "${HORIZON_RUNTIME_DEPENDS}")
@@ -45,6 +43,9 @@ if(HORIZON_PACKAGING_COMPONENTS)
     set(CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE OFF)
     set(CPACK_COMPONENTS_GROUPING "IGNORE")
     set(CPACK_PACKAGE_FILE_NAME "horizon")
+    
+    # Force CPack to use the exact package name for the .deb file name
+    set(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
     
     include(CPack)
     include(CPackComponent)
@@ -115,11 +116,6 @@ if(HORIZON_PACKAGING_COMPONENTS)
         string(TOUPPER "${comp}" comp_upper)
         string(REPLACE "-" "_" comp_upper "${comp_upper}")
         set(CPACK_DEBIAN_${comp_upper}_PACKAGE_NAME "${comp}")
-        # Unset gnome-keyring conflicts for libraries
-        set(CPACK_DEBIAN_${comp_upper}_PACKAGE_CONFLICTS "")
-        set(CPACK_DEBIAN_${comp_upper}_PACKAGE_REPLACES "")
-        set(CPACK_DEBIAN_${comp_upper}_PACKAGE_PROVIDES "")
-        set(CPACK_DEBIAN_${comp_upper}_PACKAGE_CONTROL_EXTRA "")
     endforeach()
 else()
     set(CPACK_DEB_COMPONENT_INSTALL OFF)

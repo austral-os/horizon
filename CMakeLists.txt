@@ -68,7 +68,7 @@ install(DIRECTORY include/horizon/
 # Install Core Locales
 install(DIRECTORY share/locales/
     DESTINATION share/horizon/locales
-    COMPONENT core
+    COMPONENT libhorizon
 )
 
 
