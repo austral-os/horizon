@@ -22,4 +22,9 @@ target_link_libraries(horizon-download
         ${SOUP_LIBRARIES}
 )
 
-install(TARGETS horizon-download DESTINATION lib COMPONENT core)
+install(TARGETS horizon-download DESTINATION lib COMPONENT libhorizon-download)
+
+install(DIRECTORY include/
+    DESTINATION include
+    COMPONENT libhorizon-download-dev
+)

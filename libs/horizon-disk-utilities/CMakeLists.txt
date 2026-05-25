@@ -18,3 +18,8 @@ target_link_libraries(horizon-disk-utilities
 )
 
 # No installation needed for an interface library that is just a proxy to horizon
+
+install(DIRECTORY include/
+    DESTINATION include
+    COMPONENT libhorizon-disk-utilities-dev
+)

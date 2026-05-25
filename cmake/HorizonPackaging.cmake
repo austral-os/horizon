@@ -65,3 +65,34 @@ add_custom_target(package-components
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Generating individual .deb packages for each application..."
 )
+
+set(LIB_COMPONENTS "libhorizon;libhorizon-dev;libhorizon-capture;libhorizon-capture-dev;libhorizon-compression-tools;libhorizon-compression-tools-dev;libhorizon-disk-utilities;libhorizon-disk-utilities-dev;libhorizon-download;libhorizon-download-dev;libhorizon-image;libhorizon-image-dev;libhorizon-installer-utils;libhorizon-installer-utils-dev;libhorizon-network;libhorizon-network-dev;libhorizon-network-storage;libhorizon-network-storage-dev;libhorizon-overview;libhorizon-overview-dev;libhorizon-pdf;libhorizon-pdf-dev;libhorizon-terminal;libhorizon-terminal-dev;libhorizon-text;libhorizon-text-dev;libhorizon-video;libhorizon-video-dev;libhorizon-web;libhorizon-web-dev")
+
+file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/CPackConfigLibs.cmake
+    CONTENT "
+include(\"${CMAKE_BINARY_DIR}/CPackConfig.cmake\")
+set(CPACK_COMPONENTS_ALL \"${LIB_COMPONENTS}\")
+set(CPACK_DEB_COMPONENT_INSTALL ON)
+set(CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE OFF)
+set(CPACK_COMPONENTS_GROUPING \"IGNORE\")
+set(CPACK_DEBIAN_FILE_NAME \"DEB-DEFAULT\")
+
+# Unset gnome-keyring conflicts for libraries to avoid self-conflicts
+set(CPACK_DEBIAN_PACKAGE_CONFLICTS \"\")
+set(CPACK_DEBIAN_PACKAGE_REPLACES \"\")
+set(CPACK_DEBIAN_PACKAGE_PROVIDES \"\")
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA \"\")
+
+foreach(comp \${CPACK_COMPONENTS_ALL})
+    string(TOUPPER \"\${comp}\" comp_upper)
+    set(CPACK_DEBIAN_\${comp_upper}_PACKAGE_NAME \"\${comp}\")
+    set(CPACK_DEBIAN_\${comp_upper}_FILE_NAME \"\${comp}_\${CPACK_PACKAGE_VERSION}.deb\")
+endforeach()
+"
+)
+
+add_custom_target(package-libs
+    COMMAND ${CMAKE_CPACK_COMMAND} --config ${CMAKE_BINARY_DIR}/CPackConfigLibs.cmake
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Generating individual .deb packages for libraries (runtime and -dev)..."
+)

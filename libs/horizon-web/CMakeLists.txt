@@ -29,4 +29,9 @@ target_link_libraries(horizon-web
         ${CAIRO_LIBRARIES}
 )
 
-install(TARGETS horizon-web DESTINATION lib COMPONENT core)
+install(TARGETS horizon-web DESTINATION lib COMPONENT libhorizon-web)
+
+install(DIRECTORY include/
+    DESTINATION include
+    COMPONENT libhorizon-web-dev
+)

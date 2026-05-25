@@ -26,4 +26,9 @@ target_link_libraries(${LIBRARY_NAME}
         ${MPV_LIBRARIES}
 )
 
-install(TARGETS horizon-video DESTINATION lib COMPONENT core)
+install(TARGETS horizon-video DESTINATION lib COMPONENT libhorizon-video)
+
+install(DIRECTORY include/
+    DESTINATION include
+    COMPONENT libhorizon-video-dev
+)

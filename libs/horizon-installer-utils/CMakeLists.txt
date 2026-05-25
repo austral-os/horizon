@@ -32,7 +32,7 @@ target_link_libraries(horizon-installer-utils
 
 install(TARGETS horizon-installer-utils
     DESTINATION lib
-    COMPONENT core
+    COMPONENT libhorizon-installer-utils
 )
 
 install(DIRECTORY include/horizon-installer-utils

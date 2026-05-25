@@ -48,4 +48,9 @@ target_link_libraries(horizon-capture
         ${PIPEWIRE_LIBRARIES}
 )
 
-install(TARGETS horizon-capture DESTINATION lib COMPONENT core)
+install(TARGETS horizon-capture DESTINATION lib COMPONENT libhorizon-capture)
+
+install(DIRECTORY include/
+    DESTINATION include
+    COMPONENT libhorizon-capture-dev
+)

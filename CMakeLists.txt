@@ -56,7 +56,13 @@ set_target_properties(horizon PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # Install Core Library
 install(TARGETS horizon
     DESTINATION lib
-    COMPONENT core
+    COMPONENT libhorizon
+)
+
+# Install Core Headers
+install(DIRECTORY include/horizon/
+    DESTINATION include/horizon
+    COMPONENT libhorizon-dev
 )
 
 # Install Core Locales

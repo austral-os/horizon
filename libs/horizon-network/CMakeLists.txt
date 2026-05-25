@@ -27,4 +27,9 @@ target_link_libraries(horizon-network
 
 set_target_properties(horizon-network PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-install(TARGETS horizon-network DESTINATION lib COMPONENT core)
+install(TARGETS horizon-network DESTINATION lib COMPONENT libhorizon-network)
+
+install(DIRECTORY include/
+    DESTINATION include
+    COMPONENT libhorizon-network-dev
+)

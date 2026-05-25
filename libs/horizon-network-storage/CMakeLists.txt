@@ -31,4 +31,9 @@ target_link_libraries(horizon-network-storage
 
 set_target_properties(horizon-network-storage PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-install(TARGETS horizon-network-storage DESTINATION lib COMPONENT core)
+install(TARGETS horizon-network-storage DESTINATION lib COMPONENT libhorizon-network-storage)
+
+install(DIRECTORY include/
+    DESTINATION include
+    COMPONENT libhorizon-network-storage-dev
+)

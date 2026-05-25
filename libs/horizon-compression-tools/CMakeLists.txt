@@ -15,4 +15,9 @@ target_link_libraries(horizon-compression-tools
         horizon
 )
 
-install(TARGETS horizon-compression-tools DESTINATION lib COMPONENT core)
+install(TARGETS horizon-compression-tools DESTINATION lib COMPONENT libhorizon-compression-tools)
+
+install(DIRECTORY include/
+    DESTINATION include
+    COMPONENT libhorizon-compression-tools-dev
+)

@@ -17,4 +17,9 @@ target_link_libraries(${LIBRARY_NAME}
         horizon
 )
 
-install(TARGETS horizon-image DESTINATION lib COMPONENT core)
+install(TARGETS horizon-image DESTINATION lib COMPONENT libhorizon-image)
+
+install(DIRECTORY include/
+    DESTINATION include
+    COMPONENT libhorizon-image-dev
+)

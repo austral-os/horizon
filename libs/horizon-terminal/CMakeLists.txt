@@ -37,4 +37,9 @@ target_link_libraries(horizon-terminal
 
 set_target_properties(horizon-terminal PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-install(TARGETS horizon-terminal DESTINATION lib COMPONENT core)
+install(TARGETS horizon-terminal DESTINATION lib COMPONENT libhorizon-terminal)
+
+install(DIRECTORY include/
+    DESTINATION include
+    COMPONENT libhorizon-terminal-dev
+)
