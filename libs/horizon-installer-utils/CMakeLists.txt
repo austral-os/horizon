@@ -37,5 +37,5 @@ install(TARGETS horizon-installer-utils
 
 install(DIRECTORY include/horizon-installer-utils
     DESTINATION include
-    COMPONENT dev
+    COMPONENT libhorizon-installer-utils-dev
 )

@@ -45,21 +45,15 @@ if(HORIZON_PACKAGING_COMPONENTS)
     set(CPACK_PACKAGE_FILE_NAME "horizon")
     
     # Force CPack to use the exact package name for the .deb file name
-    set(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
-    
-    include(CPack)
-    include(CPackComponent)
-    
+    # set(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
+
     # Meta-package generation
     get_property(APP_COMPONENTS GLOBAL PROPERTY HORIZON_APP_COMPONENTS)
     message(STATUS "APP_COMPONENTS length: ${APP_COMPONENTS}")
     file(WRITE ${CMAKE_BINARY_DIR}/horizon-desktop-meta.txt "Horizon Desktop Metapackage\n")
     install(FILES ${CMAKE_BINARY_DIR}/horizon-desktop-meta.txt DESTINATION share/horizon COMPONENT horizon_desktop_meta)
     
-    cpack_add_component(horizon_desktop_meta
-        DISPLAY_NAME "Horizon Desktop Environment"
-        DESCRIPTION "Meta-package installing all Horizon Desktop components"
-    )
+
     
     set(META_DEPENDS "")
     foreach(comp ${APP_COMPONENTS})
@@ -78,6 +72,7 @@ if(HORIZON_PACKAGING_COMPONENTS)
     string(REPLACE ";" ", " META_DEPENDS_STR "${META_DEPENDS}")
     
     set(CPACK_DEBIAN_HORIZON_DESKTOP_META_PACKAGE_NAME "horizon-desktop")
+    set(CPACK_DEBIAN_HORIZON_DESKTOP_META_FILE_NAME "horizon-desktop_${HORIZON_VERSION}_amd64.deb")
     set(CPACK_DEBIAN_HORIZON_DESKTOP_META_PACKAGE_DEPENDS "${META_DEPENDS_STR}")
     # Clear the global dependencies for the metapackage so it doesn't double-depend on wayfire etc,
     # as the individual apps will depend on them (if configured) or the apps will depend on libhorizon.
@@ -92,15 +87,12 @@ if(HORIZON_PACKAGING_COMPONENTS)
         endif()
         string(TOUPPER "${comp}" comp_upper)
         set(CPACK_DEBIAN_${comp_upper}_PACKAGE_NAME "${deb_name}")
+        set(CPACK_DEBIAN_${comp_upper}_FILE_NAME "${deb_name}_${HORIZON_VERSION}_amd64.deb")
         
         # All individual apps depend on libhorizon
         set(CPACK_DEBIAN_${comp_upper}_PACKAGE_DEPENDS "libhorizon (>= ${HORIZON_VERSION})")
 
-        cpack_add_component(${comp}
-            DISPLAY_NAME "Horizon ${deb_name}"
-            DESCRIPTION "Horizon Desktop component: ${deb_name}"
-            DEPENDS libhorizon
-        )
+
 
         if("${comp}" STREQUAL "session")
             set(CPACK_DEBIAN_${comp_upper}_PACKAGE_DEPENDS "${CPACK_DEBIAN_${comp_upper}_PACKAGE_DEPENDS}, ${HORIZON_RUNTIME_DEPENDS}")
@@ -114,9 +106,30 @@ if(HORIZON_PACKAGING_COMPONENTS)
 
     foreach(comp ${LIB_COMPONENTS})
         string(TOUPPER "${comp}" comp_upper)
-        string(REPLACE "-" "_" comp_upper "${comp_upper}")
         set(CPACK_DEBIAN_${comp_upper}_PACKAGE_NAME "${comp}")
+        set(CPACK_DEBIAN_${comp_upper}_FILE_NAME "${comp}_${HORIZON_VERSION}_amd64.deb")
     endforeach()
+    
+    include(CPack)
+    include(CPackComponent)
+    
+    # We must call cpack_add_component AFTER include(CPack)
+    cpack_add_component(horizon_desktop_meta
+        DISPLAY_NAME "Horizon Desktop Environment"
+        DESCRIPTION "Meta-package installing all Horizon Desktop components"
+    )
+    foreach(comp ${APP_COMPONENTS})
+        string(REPLACE "_" "-" deb_name "${comp}")
+        if(NOT deb_name MATCHES "^horizon-")
+            set(deb_name "horizon-${deb_name}")
+        endif()
+        cpack_add_component(${comp}
+            DISPLAY_NAME "Horizon ${deb_name}"
+            DESCRIPTION "Horizon Desktop component: ${deb_name}"
+            DEPENDS libhorizon
+        )
+    endforeach()
+
 else()
     set(CPACK_DEB_COMPONENT_INSTALL OFF)
     set(CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE ON)
@@ -146,7 +159,7 @@ set(CPACK_COMPONENTS_ALL \"${LIB_COMPONENTS}\")
 set(CPACK_DEB_COMPONENT_INSTALL ON)
 set(CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE OFF)
 set(CPACK_COMPONENTS_GROUPING \"IGNORE\")
-set(CPACK_DEBIAN_FILE_NAME \"DEB-DEFAULT\")
+# set(CPACK_DEBIAN_FILE_NAME \"DEB-DEFAULT\")
 
 # Unset gnome-keyring conflicts for libraries to avoid self-conflicts
 set(CPACK_DEBIAN_PACKAGE_CONFLICTS \"\")
