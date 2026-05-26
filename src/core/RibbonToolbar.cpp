@@ -158,8 +158,18 @@ namespace horizon
     RibbonToolbar::RibbonToolbar() : Widget()
     {
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        set_spacing(0);
-        set_margin(5);
+
+        auto container = std::make_unique<Widget>();
+        container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        container->set_spacing(5);
+        container->set_margin(5);
+        container->set_background_color(theme_manager()->get_color("sidebar_bg"));
+
+        auto frame_container = std::make_unique<Widget>();
+        frame_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        frame_container->set_background_color(theme_manager()->get_color("window_bg"));
+        frame_container->set_border_radius(6);
+        // container->set_debug_mode(true);
 
         m_header = new Widget();
         m_header->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
@@ -170,8 +180,12 @@ namespace horizon
 
         m_content_frame = new Frame();
         m_content_frame->set_position_type(FILL);
-        add_child(Spacer(5));
-        add_child(std::unique_ptr<Widget>(m_content_frame));
+        frame_container->add_child(std::unique_ptr<Widget>(m_content_frame));
+
+        container->add_child(std::move(frame_container));
+
+        add_child(std::move(container));
+
         // add_child(Spacer(5));
 
         when_mouse_wheel.connect([this](MouseWheelEventContext &ev) { handle_mouse_wheel(ev); });
@@ -390,7 +404,8 @@ namespace horizon
         if (m_active_tab_index >= 0 && m_active_tab_index < (int)m_tabs.size())
         {
             Widget *btn = m_tabs[m_active_tab_index].button;
-            Color active_bg = theme_manager()->get_color("ribbon_tab_active_title_bg").lighter(15.0f);
+            Color active_bg =
+                theme_manager()->get_color("ribbon_tab_active_title_bg").lighter(15.0f);
             ctx.setColor(active_bg);
             ctx.fillRect(btn->x(), m_y, btn->width(), header_total_h);
         }
