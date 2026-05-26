@@ -174,7 +174,9 @@ namespace horizon::arkfm
                     auto sel = m_view_ptr->get_selection();
                     if (!sel.empty() && !m_is_deleting)
                     {
-                        this->handle_delete(sel[0].path);
+                        std::vector<std::string> paths;
+                        for (const auto& item : sel) paths.push_back(item.path);
+                        this->handle_delete(paths);
                         ctx.stop_propagation = true;
                     }
                 }
@@ -258,7 +260,20 @@ namespace horizon::arkfm
             
             auto item_delete = menu->add_item("Eliminar");
             item_delete->when_click.connect([this, f](auto&) {
-                this->application()->post_task([this, f]() { this->handle_delete(f.path); });
+                this->application()->post_task([this, f]() {
+                    auto sel = this->m_view_ptr->get_selection();
+                    bool in_selection = false;
+                    std::vector<std::string> paths;
+                    for (const auto& item : sel) {
+                        paths.push_back(item.path);
+                        if (item.path == f.path) in_selection = true;
+                    }
+                    if (in_selection && paths.size() > 1) {
+                        this->handle_delete(paths);
+                    } else {
+                        this->handle_delete({f.path});
+                    }
+                });
             });
             
             menu->add_separator();
@@ -313,8 +328,11 @@ namespace horizon::arkfm
                         "delete", [this](SignalContext &)
                         {
                             auto sel = m_view_ptr->get_selection();
-                            if (!sel.empty())
-                                handle_delete(sel[0].path);
+                            if (!sel.empty()) {
+                                std::vector<std::string> paths;
+                                for (const auto& item : sel) paths.push_back(item.path);
+                                handle_delete(paths);
+                            }
                         });
                     application()->signal_manager.connect(
                         "properties", [this](SignalContext &)
@@ -535,32 +553,47 @@ namespace horizon::arkfm
         application()->clear_override_cursor();
     }
 
-    void ArkfmWindow::handle_delete(const std::string &path)
+    void ArkfmWindow::handle_delete(const std::vector<std::string> &paths)
     {
-        if (m_is_deleting) return;
+        if (m_is_deleting || paths.empty()) return;
         m_is_deleting = true;
 
         application()->set_override_cursor(CursorType::Wait);
-        std::string filename = std::filesystem::path(path).filename().string();
-        if (application()->confirm("¿Está seguro que desea eliminar '" + filename + "'?", "Confirmar eliminación"))
+        
+        std::string prompt_msg;
+        if (paths.size() == 1) {
+            std::string filename = std::filesystem::path(paths[0]).filename().string();
+            prompt_msg = "¿Está seguro que desea eliminar '" + filename + "'?";
+        } else {
+            prompt_msg = "¿Está seguro que desea eliminar los " + std::to_string(paths.size()) + " elementos seleccionados?";
+        }
+
+        if (application()->confirm(prompt_msg, "Confirmar eliminación"))
         {
             show_status_message("Eliminando...");
-            auto future = arkutils::FileOperations::remove(path);
-            std::thread([this, f = std::move(future)]() mutable {
-                auto result = f.get();
+            std::thread([this, paths]() mutable {
+                bool all_success = true;
+                for (const auto& path : paths) {
+                    auto future = arkutils::FileOperations::remove(path);
+                    auto result = future.get();
+                    if (result != arkutils::FileOperations::Result::Success) {
+                        all_success = false;
+                    }
+                }
+
                 if (application())
                 {
-                    application()->post_task([this, result]() {
-                        if (result == arkutils::FileOperations::Result::Success)
+                    application()->post_task([this, all_success]() {
+                        if (all_success)
                         {
                             show_status_message("Eliminado con éxito");
-                            if (m_view_ptr)
-                                m_view_ptr->navigate_to(m_view_ptr->current_path());
                         }
                         else
                         {
-                            application()->alert("Error al intentar eliminar el archivo o carpeta.", "Error", MessageType::Error);
+                            application()->alert("Error al intentar eliminar algunos archivos o carpetas.", "Error", MessageType::Error);
                         }
+                        if (m_view_ptr)
+                            m_view_ptr->navigate_to(m_view_ptr->current_path());
                     });
                 }
             }).detach();

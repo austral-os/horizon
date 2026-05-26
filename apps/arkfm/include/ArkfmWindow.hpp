@@ -32,7 +32,7 @@ namespace horizon::arkfm
         ~ArkfmWindow() override;
 
         void handle_rename(const std::string &path);
-        void handle_delete(const std::string &path);
+        void handle_delete(const std::vector<std::string> &paths);
         void handle_open();
         void handle_properties();
         void handle_new_folder();
