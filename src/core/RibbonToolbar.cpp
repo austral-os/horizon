@@ -46,7 +46,6 @@ namespace horizon
         {
             Color fg = theme_manager()->get_color(m_active ? "window_fg" : "sidebar_fg");
 
-
             ctx.setColor(fg);
             auto font = theme_manager()->get_font("ui");
             ctx.setDrawFont(font.family.c_str(), font.size, FONT_SLANT_NORMAL,
@@ -57,19 +56,20 @@ namespace horizon
                 m_active ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
 
             // Usar siempre métricas de peso normal para Y → mismo nivel en todos los tabs
-            TextMetrics ref_metrics = ctx.getTextMetrics(
-                m_title.c_str(), font.family.c_str(), font.size, FONT_SLANT_NORMAL,
-                FONT_WEIGHT_NORMAL);
+            TextMetrics ref_metrics =
+                ctx.getTextMetrics(m_title.c_str(), font.family.c_str(), font.size,
+                                   FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
 
             int text_x = m_start_draw_x + (m_width - metrics.width) / 2;
             int text_y = m_y + (m_height + ref_metrics.height) / 2 - 2;
 
             ctx.drawText(text_x, text_y, m_title.c_str());
 
-            int needed_w = metrics.width + 30;
+            int needed_w = metrics.width + 60;
             if (needed_w != m_cached_width)
             {
                 m_cached_width = needed_w;
+                set_fixed_size(m_cached_width);
             }
         }
 
@@ -165,12 +165,12 @@ namespace horizon
         m_header->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         m_header->set_spacing(2);
         m_header->set_margin(0);
-        m_header->set_fixed_size(30);
+        m_header->set_fixed_size(20);
         add_child(std::unique_ptr<Widget>(m_header));
 
         m_content_frame = new Frame();
         m_content_frame->set_position_type(FILL);
-        // add_child(Spacer(5));
+        add_child(Spacer(5));
         add_child(std::unique_ptr<Widget>(m_content_frame));
         // add_child(Spacer(5));
 
@@ -377,24 +377,46 @@ namespace horizon
         if (!theme_manager())
             return;
 
-        Color title_bg      = theme_manager()->get_color("ribbon_tab_title_bg");
+        Color title_bg = theme_manager()->get_color("ribbon_tab_title_bg");
         Color title_bg_dark = title_bg.darker(20.0f);
-        int header_bottom   = m_header->y() + m_header->height();
-        int header_total_h  = header_bottom - m_y;
+        int header_bottom = m_header->y() + m_header->height();
+        int header_total_h = header_bottom - m_y;
 
         // Gradiente de fondo del header completo (desde el tope del toolbar)
-        ctx.fillLinearGradientRect(m_x, m_y, m_width, header_total_h,
-                                   title_bg, title_bg_dark,
+        ctx.fillLinearGradientRect(m_x, m_y, m_width, header_total_h, title_bg, title_bg_dark,
                                    /*vertical=*/true);
 
-        // Fondo del tab activo: ocupa el alto completo del header (incluye margin)
+        // Fondo del tab activo: más claro que ribbon_tab_active_title_bg base
         if (m_active_tab_index >= 0 && m_active_tab_index < (int)m_tabs.size())
         {
             Widget *btn = m_tabs[m_active_tab_index].button;
-            Color active_bg = theme_manager()->get_color("ribbon_tab_active_title_bg");
-            CornerRadius cr(6, 6, 0, 0);
+            Color active_bg = theme_manager()->get_color("ribbon_tab_active_title_bg").lighter(15.0f);
             ctx.setColor(active_bg);
-            ctx.fillRect(btn->x(), m_y, btn->width(), header_total_h, cr);
+            ctx.fillRect(btn->x(), m_y, btn->width(), header_total_h);
+        }
+
+        // Bordes verticales de los tabs (0.5f para que sean finos)
+        Color brd = theme_manager()->get_color("window_brd");
+        ctx.setColor(brd);
+        for (int i = 0; i < (int)m_tabs.size(); ++i)
+        {
+            Widget *btn = m_tabs[i].button;
+            int bx = btn->x();
+            int bw = btn->width();
+
+            // Borde derecho: se omite si el siguiente tab es el activo,
+            // ya que el activo dibujará su propio borde izquierdo en ese borde
+            bool next_is_active = (i + 1 == m_active_tab_index);
+            if (!next_is_active)
+            {
+                ctx.drawLine(bx + bw - 1, m_y, bx + bw - 1, header_bottom, 0.5f);
+            }
+
+            // El tab activo además tiene borde izquierdo
+            if (i == m_active_tab_index)
+            {
+                ctx.drawLine(bx, m_y, bx, header_bottom, 0.5f);
+            }
         }
     }
 
