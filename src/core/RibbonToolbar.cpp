@@ -4,9 +4,9 @@
 #include <horizon/EventsManager.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/Logger.hpp>
 #include <horizon/RibbonToolbar.hpp>
 #include <horizon/ThemeManager.hpp>
-#include <horizon/Logger.hpp>
 
 namespace horizon
 {
@@ -18,8 +18,8 @@ namespace horizon
         RibbonTabButton(const std::string &title, int index, RibbonToolbar *toolbar)
             : m_title(title), m_index(index), m_toolbar(toolbar)
         {
-            when_click.connect(
-                [this](MouseButtonEventContext &) { m_toolbar->set_active_tab(m_index); });
+            when_click.connect([this](MouseButtonEventContext &)
+                               { m_toolbar->set_active_tab(m_index); });
         }
 
         void set_active(bool active)
@@ -41,7 +41,8 @@ namespace horizon
             Color fg = theme_manager()->get_color(m_active ? "window_fg" : "sidebar_fg");
 
             ctx.setColor(fg);
-            auto font = theme_manager()->get_font("ui");
+            auto font = theme_manager()->get_font("titlebar");
+            font.size = font.size -= 4;
             ctx.setDrawFont(font.family.c_str(), font.size, FONT_SLANT_NORMAL,
                             m_active ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
 
@@ -130,7 +131,9 @@ namespace horizon
     void RibbonSection::draw(GraphicsContext &ctx)
     {
         Color fg = theme_manager()->get_color("window_fg");
-        auto font = theme_manager()->get_font("ui");
+        auto font = theme_manager()->get_font("titlebar");
+
+        font.size -= 4;
 
         ctx.setColor(fg);
         ctx.setDrawFont(font.family.c_str(), font.size, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
@@ -157,13 +160,17 @@ namespace horizon
         container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         container->set_spacing(5);
         container->set_margin(5);
-        container->set_background_color(theme_manager()->get_color("sidebar_bg"));
+        container->set_background_color(
+            theme_manager()->get_color("ribbon_tab_active_title_bg").lighter((30.0f)));
 
-        auto frame_container = std::make_unique<Widget>();
-        frame_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        frame_container->set_background_color(theme_manager()->get_color("window_bg"));
-        frame_container->set_border_radius(6);
-        // container->set_debug_mode(true);
+        m_container = container.get();
+
+        theme_manager()->when_change.connect(
+            [this](ThemeEventContext &)
+            {
+                m_container->set_background_color(
+                    theme_manager()->get_color("ribbon_tab_active_title_bg").lighter((30.0f)));
+            });
 
         m_header = new Widget();
         m_header->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
@@ -174,9 +181,7 @@ namespace horizon
 
         m_content_frame = new Frame();
         m_content_frame->set_position_type(FILL);
-        frame_container->add_child(std::unique_ptr<Widget>(m_content_frame));
-
-        container->add_child(std::move(frame_container));
+        container->add_child(std::unique_ptr<Widget>(m_content_frame));
 
         add_child(std::move(container));
 
@@ -200,8 +205,8 @@ namespace horizon
 
         // Reenviar rueda del ratón al toolbar para que el scroll horizontal funcione
         // aunque el evento llegue desde un widget hijo de la sección.
-        container->when_mouse_wheel.connect(
-            [this](MouseWheelEventContext &ev) { handle_mouse_wheel(ev); });
+        container->when_mouse_wheel.connect([this](MouseWheelEventContext &ev)
+                                            { handle_mouse_wheel(ev); });
 
         if (application())
         {
@@ -419,7 +424,7 @@ namespace horizon
         {
             Widget *btn = m_tabs[m_active_tab_index].button;
             Color active_bg =
-                theme_manager()->get_color("ribbon_tab_active_title_bg").lighter(15.0f);
+                theme_manager()->get_color("ribbon_tab_active_title_bg").darker(15.0f);
             ctx.setColor(active_bg);
             ctx.fillRect(btn->x(), m_y, btn->width(), header_total_h);
         }

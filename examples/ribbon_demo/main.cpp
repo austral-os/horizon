@@ -23,7 +23,7 @@ int main(int argc, char **argv)
     container->set_position_type(FILL);
 
     auto ribbon = std::make_unique<RibbonToolbar>();
-    ribbon->set_fixed_size(150);
+    ribbon->set_fixed_size(130);
 
     // Tab 1: Home
     int t1 = ribbon->add_tab("Home");
