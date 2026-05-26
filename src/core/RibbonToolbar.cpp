@@ -17,15 +17,8 @@ namespace horizon
         RibbonTabButton(const std::string &title, int index, RibbonToolbar *toolbar)
             : m_title(title), m_index(index), m_toolbar(toolbar)
         {
-
-            when_mouse_press.connect(
-                [this](MouseButtonEventContext &ev)
-                {
-                    if (ev.button == 0x110)
-                    {
-                        m_toolbar->set_active_tab(m_index);
-                    }
-                });
+            when_click.connect(
+                [this](MouseButtonEventContext &) { m_toolbar->set_active_tab(m_index); });
         }
 
         void set_active(bool active)
