@@ -79,7 +79,9 @@
             "window_bg": "#1c1c1e",
             "window_bg_alt": "#1f1f1f",
             "window_border": "#3a3a3c",
-            "window_fg": "#dfdfdf"
+            "window_fg": "#dfdfdf",
+            "ribbon_tab_title_bg": "#36363c",
+            "ribbon_tab_active_title_bg": "#26262c"
         },
         "light": {
             "air_border": "#666666",
@@ -160,7 +162,9 @@
             "window_bg": "#f2f2f2",
             "window_bg_alt": "#f4f4f4",
             "window_border": "#787878",
-            "window_fg": "#212121"
+            "window_fg": "#212121",
+            "ribbon_tab_title_bg": "#dfe6ee",
+            "ribbon_tab_active_title_bg": "#cfd6de"
         }
     },
     "fonts": {

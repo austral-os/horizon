@@ -46,12 +46,6 @@ namespace horizon
         {
             Color fg = theme_manager()->get_color(m_active ? "window_fg" : "sidebar_fg");
 
-            if (m_active)
-            {
-                ctx.setColor(theme_manager()->get_color("window_bg"));
-                CornerRadius cr(6, 6, 0, 0);
-                ctx.fillRect(m_start_draw_x, m_start_draw_y, m_width, m_height, cr);
-            }
 
             ctx.setColor(fg);
             auto font = theme_manager()->get_font("ui");
@@ -62,8 +56,13 @@ namespace horizon
                 m_title.c_str(), font.family.c_str(), font.size, FONT_SLANT_NORMAL,
                 m_active ? FONT_WEIGHT_BOLD : FONT_WEIGHT_NORMAL);
 
+            // Usar siempre métricas de peso normal para Y → mismo nivel en todos los tabs
+            TextMetrics ref_metrics = ctx.getTextMetrics(
+                m_title.c_str(), font.family.c_str(), font.size, FONT_SLANT_NORMAL,
+                FONT_WEIGHT_NORMAL);
+
             int text_x = m_start_draw_x + (m_width - metrics.width) / 2;
-            int text_y = m_start_draw_y + (m_height + metrics.height) / 2 - 2;
+            int text_y = m_y + (m_height + ref_metrics.height) / 2 - 2;
 
             ctx.drawText(text_x, text_y, m_title.c_str());
 
@@ -375,11 +374,27 @@ namespace horizon
 
     void RibbonToolbar::draw(GraphicsContext &ctx)
     {
-        if (theme_manager())
+        if (!theme_manager())
+            return;
+
+        Color title_bg      = theme_manager()->get_color("ribbon_tab_title_bg");
+        Color title_bg_dark = title_bg.darker(20.0f);
+        int header_bottom   = m_header->y() + m_header->height();
+        int header_total_h  = header_bottom - m_y;
+
+        // Gradiente de fondo del header completo (desde el tope del toolbar)
+        ctx.fillLinearGradientRect(m_x, m_y, m_width, header_total_h,
+                                   title_bg, title_bg_dark,
+                                   /*vertical=*/true);
+
+        // Fondo del tab activo: ocupa el alto completo del header (incluye margin)
+        if (m_active_tab_index >= 0 && m_active_tab_index < (int)m_tabs.size())
         {
-            Color sidebar_bg = theme_manager()->get_color("sidebar_bg");
-            ctx.setColor(sidebar_bg);
-            ctx.fillRect(m_x, m_y, m_width, m_header->height());
+            Widget *btn = m_tabs[m_active_tab_index].button;
+            Color active_bg = theme_manager()->get_color("ribbon_tab_active_title_bg");
+            CornerRadius cr(6, 6, 0, 0);
+            ctx.setColor(active_bg);
+            ctx.fillRect(btn->x(), m_y, btn->width(), header_total_h, cr);
         }
     }
 
