@@ -240,14 +240,28 @@ namespace horizon::arkfm
                 auto item_compress = menu->add_item("Comprimir...");
                 auto sub = std::make_unique<horizon::Menu>();
                 
+                auto get_paths_to_compress = [this, f]() {
+                    auto sel = this->m_view_ptr->get_selection();
+                    bool in_selection = false;
+                    std::vector<std::string> paths;
+                    for (const auto& item : sel) {
+                        paths.push_back(item.path);
+                        if (item.path == f.path) in_selection = true;
+                    }
+                    if (in_selection && paths.size() > 1) {
+                        return paths;
+                    }
+                    return std::vector<std::string>{f.path};
+                };
+
                 auto zip = sub->add_item(".zip");
-                zip->when_click.connect([this, f](auto&) { this->handle_compress({f.path}, ".zip"); });
+                zip->when_click.connect([this, get_paths_to_compress](auto&) { this->handle_compress(get_paths_to_compress(), ".zip"); });
                 
                 auto targz = sub->add_item(".tar.gz");
-                targz->when_click.connect([this, f](auto&) { this->handle_compress({f.path}, ".tar.gz"); });
+                targz->when_click.connect([this, get_paths_to_compress](auto&) { this->handle_compress(get_paths_to_compress(), ".tar.gz"); });
                 
                 auto sevenz = sub->add_item(".7z");
-                sevenz->when_click.connect([this, f](auto&) { this->handle_compress({f.path}, ".7z"); });
+                sevenz->when_click.connect([this, get_paths_to_compress](auto&) { this->handle_compress(get_paths_to_compress(), ".7z"); });
                 
                 item_compress->set_submenu(std::move(sub));
                 menu->add_separator();
@@ -865,7 +879,22 @@ namespace horizon::arkfm
         if (paths.empty()) return;
         
         std::filesystem::path first(paths[0]);
-        std::string out_path = (first.parent_path() / (first.stem().string() + format_ext)).string();
+        std::string base_name;
+        std::string out_path;
+        
+        if (paths.size() > 1) {
+            base_name = first.parent_path().filename().string();
+            if (base_name.empty() || base_name == "/") base_name = "Archive";
+        } else {
+            base_name = first.stem().string();
+        }
+        
+        out_path = (first.parent_path() / (base_name + format_ext)).string();
+        int counter = 1;
+        while (std::filesystem::exists(out_path)) {
+            out_path = (first.parent_path() / (base_name + "_" + std::to_string(counter) + format_ext)).string();
+            counter++;
+        }
         
         show_status_message("Comprimiendo...");
         
