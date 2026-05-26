@@ -1,33 +1,33 @@
 #include "ArkfmWindow.hpp"
-#include <horizon/files/FileSidebar.hpp>
-#include <horizon/files/FileToolbar.hpp>
-#include <horizon/files/FileView.hpp>
-#include "dialogs/NewFolderDialog.hpp"
-#include "dialogs/RenameDialog.hpp"
-#include "dialogs/PropertiesDialog.hpp"
-#include "dialogs/GoToFolderDialog.hpp"
 #include "dialogs/ConnectToServerDialog.hpp"
-#include <horizon/storage/MountPasswordDialog.hpp>
-#include <horizon/storage/RemoteManager.hpp>
-#include <horizon/I18n.hpp>
-#include <horizon/NotificationSender.hpp>
+#include "dialogs/GoToFolderDialog.hpp"
+#include "dialogs/NewFolderDialog.hpp"
+#include "dialogs/PropertiesDialog.hpp"
+#include "dialogs/RenameDialog.hpp"
+#include "horizon/ApplicationLauncher.hpp"
 #include "horizon/ApplicationWindow.hpp"
-#include <horizon/DialogTypes.hpp>
+#include "horizon/DesktopManager.hpp"
 #include "horizon/Label.hpp"
 #include "horizon/Logger.hpp"
+#include "horizon/Menu.hpp"
 #include "horizon/ProgressBar.hpp"
 #include "horizon/Spacer.hpp"
 #include "horizon/VPanel.hpp"
 #include "horizon/Widget.hpp"
 #include "horizon/arkutils/FileOperations.hpp"
-#include "horizon/ApplicationLauncher.hpp"
 #include "horizon/compression/CompressionManager.hpp"
-#include "horizon/Menu.hpp"
-#include <horizon/MenuItem.hpp>
-#include "horizon/DesktopManager.hpp"
 #include "horizon/dialogs/AppPickerDialog.hpp"
 #include <algorithm>
 #include <filesystem>
+#include <horizon/DialogTypes.hpp>
+#include <horizon/I18n.hpp>
+#include <horizon/MenuItem.hpp>
+#include <horizon/NotificationSender.hpp>
+#include <horizon/files/FileSidebar.hpp>
+#include <horizon/files/FileToolbar.hpp>
+#include <horizon/files/FileView.hpp>
+#include <horizon/storage/MountPasswordDialog.hpp>
+#include <horizon/storage/RemoteManager.hpp>
 #include <memory>
 #include <thread>
 
@@ -68,27 +68,39 @@ namespace horizon::arkfm
         std::string home_path = getenv("HOME") ? getenv("HOME") : "/";
         m_sidebar_ptr->select_item_by_path(home_path);
 
-        m_view_ptr->when_path_changed.connect([this](files::PathChangedEvent &ctx) {
-            if (m_sidebar_ptr) m_sidebar_ptr->select_item_by_path(ctx.path);
-        });
-        
-        m_view_ptr->when_operation_progress.connect([this](files::OperationProgressEvent &ctx) {
-            if (m_progress_bar) {
-                m_progress_bar->set_visible(!ctx.finished);
-                m_progress_bar->set_progress(static_cast<float>(ctx.progress));
-            }
-        });
+        m_view_ptr->when_path_changed.connect(
+            [this](files::PathChangedEvent &ctx)
+            {
+                if (m_sidebar_ptr)
+                    m_sidebar_ptr->select_item_by_path(ctx.path);
+            });
 
-        m_sidebar_ptr->when_resource_unmounted.connect([this](horizon::files::UnmountEventContext& ctx) {
-            if (m_view_ptr) {
-                std::string current_path = m_view_ptr->current_path();
-                if (!ctx.mount_path.empty() && current_path.find(ctx.mount_path) == 0) {
-                    std::string home = getenv("HOME") ? getenv("HOME") : "/";
-                    LOG_INFO << "ArkfmWindow: El recurso en " << ctx.mount_path << " ha sido desmontado. Redirigiendo de " << current_path << " a " << home;
-                    m_view_ptr->navigate_to(home);
+        m_view_ptr->when_operation_progress.connect(
+            [this](files::OperationProgressEvent &ctx)
+            {
+                if (m_progress_bar)
+                {
+                    m_progress_bar->set_visible(!ctx.finished);
+                    m_progress_bar->set_progress(static_cast<float>(ctx.progress));
                 }
-            }
-        });
+            });
+
+        m_sidebar_ptr->when_resource_unmounted.connect(
+            [this](horizon::files::UnmountEventContext &ctx)
+            {
+                if (m_view_ptr)
+                {
+                    std::string current_path = m_view_ptr->current_path();
+                    if (!ctx.mount_path.empty() && current_path.find(ctx.mount_path) == 0)
+                    {
+                        std::string home = getenv("HOME") ? getenv("HOME") : "/";
+                        LOG_INFO << "ArkfmWindow: El recurso en " << ctx.mount_path
+                                 << " ha sido desmontado. Redirigiendo de " << current_path << " a "
+                                 << home;
+                        m_view_ptr->navigate_to(home);
+                    }
+                }
+            });
 
         show_status_bar();
         auto *sb = statusbar();
@@ -144,11 +156,8 @@ namespace horizon::arkfm
                 }
             });
 
-        ark_toolbar_ptr->when_search_changed.connect(
-            [view_ptr](files::SearchChangedEvent &ctx)
-            {
-                view_ptr->set_search_query(ctx.query);
-            });
+        ark_toolbar_ptr->when_search_changed.connect([view_ptr](files::SearchChangedEvent &ctx)
+                                                     { view_ptr->set_search_query(ctx.query); });
 
         m_view_ptr->when_item_opened.connect(
             [this](const arkutils::FileInfo &f)
@@ -175,7 +184,8 @@ namespace horizon::arkfm
                     if (!sel.empty() && !m_is_deleting)
                     {
                         std::vector<std::string> paths;
-                        for (const auto& item : sel) paths.push_back(item.path);
+                        for (const auto &item : sel)
+                            paths.push_back(item.path);
                         this->handle_delete(paths);
                         ctx.stop_propagation = true;
                     }
@@ -191,174 +201,238 @@ namespace horizon::arkfm
                 }
             });
 
-        m_view_ptr->set_context_menu_factory([this](const arkutils::FileInfo &f) {
-            auto menu = std::make_unique<horizon::Menu>();
-            
-            auto item_open = menu->add_item("Abrir");
-            item_open->when_click.connect([this, f](auto&) { this->m_view_ptr->open_item(f); });
-            
-            auto item_open_with = menu->add_item("Abrir con...");
-            auto sub_open_with = std::make_unique<horizon::Menu>();
-            
-            std::string mime = DesktopManager::get_mime_type(f.path);
-            auto apps = DesktopManager::get_apps_for_mime(mime);
-            
-            for (const auto& app : apps) {
-                auto app_item = sub_open_with->add_item(app.name);
-                if (!app.icon.empty()) app_item->set_icon(app.icon);
-                app_item->when_click.connect([this, f, app](auto&) {
-                    ApplicationLauncher::launch_from_desktop_file(app.path, {f.path});
-                });
-            }
-            
-            if (!apps.empty()) sub_open_with->add_separator();
-            
-            auto item_other = sub_open_with->add_item("Elegir otra aplicación...");
-            item_other->when_click.connect([this, f](auto&) {
-                this->application()->post_task([this, f]() {
-                    auto dialog = std::make_unique<AppPickerDialog>();
-                    dialog->when_accepted.connect([this, f](const DesktopEntry& entry) {
-                        ApplicationLauncher::launch_from_desktop_file(entry.path, {f.path});
+        m_view_ptr->set_context_menu_factory(
+            [this](const arkutils::FileInfo &f)
+            {
+                auto menu = std::make_unique<horizon::Menu>();
+
+                auto item_open = menu->add_item("Abrir");
+                item_open->when_click.connect([this, f](auto &)
+                                              { this->m_view_ptr->open_item(f); });
+
+                auto item_open_with = menu->add_item("Abrir con...");
+                auto sub_open_with = std::make_unique<horizon::Menu>();
+
+                std::string mime = DesktopManager::get_mime_type(f.path);
+                auto apps = DesktopManager::get_apps_for_mime(mime);
+
+                for (const auto &app : apps)
+                {
+                    auto app_item = sub_open_with->add_item(app.name);
+                    if (!app.icon.empty())
+                        app_item->set_icon(app.icon);
+                    app_item->when_click.connect(
+                        [this, f, app](auto &)
+                        { ApplicationLauncher::launch_from_desktop_file(app.path, {f.path}); });
+                }
+
+                if (!apps.empty())
+                    sub_open_with->add_separator();
+
+                auto item_other = sub_open_with->add_item("Elegir otra aplicación...");
+                item_other->when_click.connect(
+                    [this, f](auto &)
+                    {
+                        this->application()->post_task(
+                            [this, f]()
+                            {
+                                auto dialog = std::make_unique<AppPickerDialog>();
+                                dialog->when_accepted.connect(
+                                    [this, f](const DesktopEntry &entry)
+                                    {
+                                        ApplicationLauncher::launch_from_desktop_file(entry.path,
+                                                                                      {f.path});
+                                    });
+                                dialog->initialize();
+                                dialog->run();
+                            });
                     });
-                    dialog->initialize();
-                    dialog->run();
-                });
-            });
-            
-            item_open_with->set_submenu(std::move(sub_open_with));
-            
-            menu->add_separator();
 
-            if (compression::CompressionManager::is_supported_archive(f.path))
-            {
-                auto item_extract = menu->add_item("Descomprimir aquí");
-                item_extract->when_click.connect([this, f](auto&) { this->handle_extract(f.path); });
-                menu->add_separator();
-            }
-            else
-            {
-                auto item_compress = menu->add_item("Comprimir...");
-                auto sub = std::make_unique<horizon::Menu>();
-                
-                auto get_paths_to_compress = [this, f]() {
-                    auto sel = this->m_view_ptr->get_selection();
-                    bool in_selection = false;
-                    std::vector<std::string> paths;
-                    for (const auto& item : sel) {
-                        paths.push_back(item.path);
-                        if (item.path == f.path) in_selection = true;
-                    }
-                    if (in_selection && paths.size() > 1) {
-                        return paths;
-                    }
-                    return std::vector<std::string>{f.path};
-                };
+                item_open_with->set_submenu(std::move(sub_open_with));
 
-                auto zip = sub->add_item(".zip");
-                zip->when_click.connect([this, get_paths_to_compress](auto&) { this->handle_compress(get_paths_to_compress(), ".zip"); });
-                
-                auto targz = sub->add_item(".tar.gz");
-                targz->when_click.connect([this, get_paths_to_compress](auto&) { this->handle_compress(get_paths_to_compress(), ".tar.gz"); });
-                
-                auto sevenz = sub->add_item(".7z");
-                sevenz->when_click.connect([this, get_paths_to_compress](auto&) { this->handle_compress(get_paths_to_compress(), ".7z"); });
-                
-                item_compress->set_submenu(std::move(sub));
                 menu->add_separator();
-            }
-            
-            auto item_rename = menu->add_item("Renombrar");
-            item_rename->when_click.connect([this, f](auto&) {
-                this->application()->post_task([this, f]() { this->handle_rename(f.path); });
-            });
-            
-            bool is_in_trash = m_view_ptr->current_path().find("/.local/share/Trash") != std::string::npos;
-            if (!is_in_trash) {
-                auto item_trash = menu->add_item("Mover a la papelera", "user-trash");
-                item_trash->when_click.connect([this, f](auto&) {
-                    this->application()->post_task([this, f]() {
+
+                if (compression::CompressionManager::is_supported_archive(f.path))
+                {
+                    auto item_extract = menu->add_item("Descomprimir aquí");
+                    item_extract->when_click.connect([this, f](auto &)
+                                                     { this->handle_extract(f.path); });
+                    menu->add_separator();
+                }
+                else
+                {
+                    auto item_compress = menu->add_item("Comprimir...");
+                    auto sub = std::make_unique<horizon::Menu>();
+
+                    auto get_paths_to_compress = [this, f]()
+                    {
                         auto sel = this->m_view_ptr->get_selection();
                         bool in_selection = false;
                         std::vector<std::string> paths;
-                        for (const auto& item : sel) {
+                        for (const auto &item : sel)
+                        {
                             paths.push_back(item.path);
-                            if (item.path == f.path) in_selection = true;
+                            if (item.path == f.path)
+                                in_selection = true;
                         }
-                        if (in_selection && paths.size() > 1) {
-                            this->handle_trash(paths);
-                        } else {
-                            this->handle_trash({f.path});
+                        if (in_selection && paths.size() > 1)
+                        {
+                            return paths;
                         }
+                        return std::vector<std::string>{f.path};
+                    };
+
+                    auto zip = sub->add_item(".zip");
+                    zip->when_click.connect(
+                        [this, get_paths_to_compress](auto &)
+                        { this->handle_compress(get_paths_to_compress(), ".zip"); });
+
+                    auto targz = sub->add_item(".tar.gz");
+                    targz->when_click.connect(
+                        [this, get_paths_to_compress](auto &)
+                        { this->handle_compress(get_paths_to_compress(), ".tar.gz"); });
+
+                    auto sevenz = sub->add_item(".7z");
+                    sevenz->when_click.connect(
+                        [this, get_paths_to_compress](auto &)
+                        { this->handle_compress(get_paths_to_compress(), ".7z"); });
+
+                    item_compress->set_submenu(std::move(sub));
+                    menu->add_separator();
+                }
+
+                auto item_rename = menu->add_item("Renombrar");
+                item_rename->when_click.connect(
+                    [this, f](auto &)
+                    {
+                        this->application()->post_task([this, f]()
+                                                       { this->handle_rename(f.path); });
                     });
-                });
-            } else {
-                auto item_restore = menu->add_item("Restaurar", "edit-undo");
-                item_restore->when_click.connect([this, f](auto&) {
-                    this->application()->post_task([this, f]() {
-                        auto sel = this->m_view_ptr->get_selection();
-                        bool in_selection = false;
-                        std::vector<std::string> paths;
-                        for (const auto& item : sel) {
-                            paths.push_back(item.path);
-                            if (item.path == f.path) in_selection = true;
-                        }
-                        if (in_selection && paths.size() > 1) {
-                            this->handle_restore(paths);
-                        } else {
-                            this->handle_restore({f.path});
-                        }
+
+                bool is_in_trash =
+                    m_view_ptr->current_path().find("/.local/share/Trash") != std::string::npos;
+                if (!is_in_trash)
+                {
+                    auto item_trash = menu->add_item("Mover a la papelera");
+                    item_trash->when_click.connect(
+                        [this, f](auto &)
+                        {
+                            this->application()->post_task(
+                                [this, f]()
+                                {
+                                    auto sel = this->m_view_ptr->get_selection();
+                                    bool in_selection = false;
+                                    std::vector<std::string> paths;
+                                    for (const auto &item : sel)
+                                    {
+                                        paths.push_back(item.path);
+                                        if (item.path == f.path)
+                                            in_selection = true;
+                                    }
+                                    if (in_selection && paths.size() > 1)
+                                    {
+                                        this->handle_trash(paths);
+                                    }
+                                    else
+                                    {
+                                        this->handle_trash({f.path});
+                                    }
+                                });
+                        });
+                }
+                else
+                {
+                    auto item_restore = menu->add_item("Restaurar");
+                    item_restore->when_click.connect(
+                        [this, f](auto &)
+                        {
+                            this->application()->post_task(
+                                [this, f]()
+                                {
+                                    auto sel = this->m_view_ptr->get_selection();
+                                    bool in_selection = false;
+                                    std::vector<std::string> paths;
+                                    for (const auto &item : sel)
+                                    {
+                                        paths.push_back(item.path);
+                                        if (item.path == f.path)
+                                            in_selection = true;
+                                    }
+                                    if (in_selection && paths.size() > 1)
+                                    {
+                                        this->handle_restore(paths);
+                                    }
+                                    else
+                                    {
+                                        this->handle_restore({f.path});
+                                    }
+                                });
+                        });
+                }
+
+                auto item_delete = menu->add_item("Eliminar");
+                item_delete->when_click.connect(
+                    [this, f](auto &)
+                    {
+                        this->application()->post_task(
+                            [this, f]()
+                            {
+                                auto sel = this->m_view_ptr->get_selection();
+                                bool in_selection = false;
+                                std::vector<std::string> paths;
+                                for (const auto &item : sel)
+                                {
+                                    paths.push_back(item.path);
+                                    if (item.path == f.path)
+                                        in_selection = true;
+                                }
+                                if (in_selection && paths.size() > 1)
+                                {
+                                    this->handle_delete(paths);
+                                }
+                                else
+                                {
+                                    this->handle_delete({f.path});
+                                }
+                            });
                     });
-                });
-            }
 
-            auto item_delete = menu->add_item("Eliminar", "edit-delete");
-            item_delete->when_click.connect([this, f](auto&) {
-                this->application()->post_task([this, f]() {
-                    auto sel = this->m_view_ptr->get_selection();
-                    bool in_selection = false;
-                    std::vector<std::string> paths;
-                    for (const auto& item : sel) {
-                        paths.push_back(item.path);
-                        if (item.path == f.path) in_selection = true;
-                    }
-                    if (in_selection && paths.size() > 1) {
-                        this->handle_delete(paths);
-                    } else {
-                        this->handle_delete({f.path});
-                    }
-                });
-            });
-            
-            menu->add_separator();
-            
-            auto item_props = menu->add_item("Propiedades");
-            item_props->when_click.connect([this, f](auto&) { 
-                auto dialog = std::make_unique<PropertiesDialog>(f);
-                dialog->run();
-            });
+                menu->add_separator();
 
-            menu->add_separator();
-            auto item_terminal = menu->add_item(i18n().tr("arkfm.menu.open_terminal"));
-            item_terminal->when_click.connect([this, f](auto&) {
-                std::string term_path = (f.type == horizon::arkutils::FileType::Directory) ? f.path : m_view_ptr->current_path();
-                ApplicationLauncher::launch_binary("terminal", {}, term_path);
-            });
+                auto item_props = menu->add_item("Propiedades");
+                item_props->when_click.connect(
+                    [this, f](auto &)
+                    {
+                        auto dialog = std::make_unique<PropertiesDialog>(f);
+                        dialog->run();
+                    });
 
-            menu->add_separator();
-            auto item_connect = menu->add_item("Conectar al servidor...");
-            item_connect->when_click.connect([this](auto&) {
-                application()->signal_manager.emit("go-connect");
-            });
+                menu->add_separator();
+                auto item_terminal = menu->add_item(i18n().tr("arkfm.menu.open_terminal"));
+                item_terminal->when_click.connect(
+                    [this, f](auto &)
+                    {
+                        std::string term_path = (f.type == horizon::arkutils::FileType::Directory)
+                                                    ? f.path
+                                                    : m_view_ptr->current_path();
+                        ApplicationLauncher::launch_binary("terminal", {}, term_path);
+                    });
 
-            menu->add_separator();
-            std::string hidden_text = m_view_ptr->show_hidden_files() ? i18n().tr("arkfm.menu.hide_hidden") : i18n().tr("arkfm.menu.show_hidden");
-            auto item_show_hidden = menu->add_item(hidden_text, "Ctrl+H");
-            item_show_hidden->when_click.connect([this](auto&) {
-                this->handle_toggle_hidden();
+                menu->add_separator();
+                auto item_connect = menu->add_item("Conectar al servidor...");
+                item_connect->when_click.connect(
+                    [this](auto &) { application()->signal_manager.emit("go-connect"); });
+
+                menu->add_separator();
+                std::string hidden_text = m_view_ptr->show_hidden_files()
+                                              ? i18n().tr("arkfm.menu.hide_hidden")
+                                              : i18n().tr("arkfm.menu.show_hidden");
+                auto item_show_hidden = menu->add_item(hidden_text, "Ctrl+H");
+                item_show_hidden->when_click.connect([this](auto &)
+                                                     { this->handle_toggle_hidden(); });
+
+                return menu;
             });
-            
-            return menu;
-        });
 
         vpanel->add_child(std::move(sidebar));
         vpanel->add_child(std::move(view));
@@ -369,85 +443,144 @@ namespace horizon::arkfm
             {
                 if (application())
                 {
-                    application()->signal_manager.connect(
-                        "new-folder", [this](SignalContext &)
-                        { this->handle_new_folder(); });
+                    application()->signal_manager.connect("new-folder", [this](SignalContext &)
+                                                          { this->handle_new_folder(); });
 
-                    application()->signal_manager.connect(
-                        "toggle-hidden", [this](SignalContext &)
-                        { this->handle_toggle_hidden(); });
+                    application()->signal_manager.connect("toggle-hidden", [this](SignalContext &)
+                                                          { this->handle_toggle_hidden(); });
 
+                    application()->signal_manager.connect("delete",
+                                                          [this](SignalContext &)
+                                                          {
+                                                              auto sel =
+                                                                  m_view_ptr->get_selection();
+                                                              if (!sel.empty())
+                                                              {
+                                                                  std::vector<std::string> paths;
+                                                                  for (const auto &item : sel)
+                                                                      paths.push_back(item.path);
+                                                                  handle_delete(paths);
+                                                              }
+                                                          });
+                    application()->signal_manager.connect("properties", [this](SignalContext &)
+                                                          { handle_properties(); });
+
+                    // Go Menu Handlers
+                    application()->signal_manager.connect("go-back",
+                                                          [this](SignalContext &)
+                                                          {
+                                                              if (m_view_ptr)
+                                                                  m_view_ptr->navigate_back();
+                                                          });
+                    application()->signal_manager.connect("go-forward",
+                                                          [this](SignalContext &)
+                                                          {
+                                                              if (m_view_ptr)
+                                                                  m_view_ptr->navigate_forward();
+                                                          });
                     application()->signal_manager.connect(
-                        "delete", [this](SignalContext &)
+                        "go-parent",
+                        [this](SignalContext &)
                         {
-                            auto sel = m_view_ptr->get_selection();
-                            if (!sel.empty()) {
-                                std::vector<std::string> paths;
-                                for (const auto& item : sel) paths.push_back(item.path);
-                                handle_delete(paths);
+                            if (m_view_ptr)
+                            {
+                                std::filesystem::path p(m_view_ptr->current_path());
+                                m_view_ptr->navigate_to(p.parent_path().string());
                             }
                         });
                     application()->signal_manager.connect(
-                        "properties", [this](SignalContext &)
-                        { handle_properties(); });
-
-                    // Go Menu Handlers
-                    application()->signal_manager.connect("go-back", [this](SignalContext&) { 
-                        if (m_view_ptr) m_view_ptr->navigate_back(); 
-                    });
-                    application()->signal_manager.connect("go-forward", [this](SignalContext&) { 
-                        if (m_view_ptr) m_view_ptr->navigate_forward(); 
-                    });
-                    application()->signal_manager.connect("go-parent", [this](SignalContext&) {
-                        if (m_view_ptr) {
-                            std::filesystem::path p(m_view_ptr->current_path());
-                            m_view_ptr->navigate_to(p.parent_path().string());
-                        }
-                    });
-                    application()->signal_manager.connect("go-home", [this](SignalContext&) { 
-                        if (m_view_ptr) m_view_ptr->navigate_to(getenv("HOME") ? getenv("HOME") : "/"); 
-                    });
-                    application()->signal_manager.connect("go-documents", [this](SignalContext&) { 
-                        if (m_view_ptr) m_view_ptr->navigate_to(std::string(getenv("HOME") ? getenv("HOME") : "/") + "/Documents"); 
-                    });
-                    application()->signal_manager.connect("go-desktop", [this](SignalContext&) { 
-                        if (m_view_ptr) m_view_ptr->navigate_to(std::string(getenv("HOME") ? getenv("HOME") : "/") + "/Desktop"); 
-                    });
-                    application()->signal_manager.connect("go-downloads", [this](SignalContext&) { 
-                        if (m_view_ptr) m_view_ptr->navigate_to(std::string(getenv("HOME") ? getenv("HOME") : "/") + "/Downloads"); 
-                    });
-                    application()->signal_manager.connect("go-videos", [this](SignalContext&) { 
-                        if (m_view_ptr) m_view_ptr->navigate_to(std::string(getenv("HOME") ? getenv("HOME") : "/") + "/Videos"); 
-                    });
-                    application()->signal_manager.connect("go-images", [this](SignalContext&) { 
-                        if (m_view_ptr) m_view_ptr->navigate_to(std::string(getenv("HOME") ? getenv("HOME") : "/") + "/Images"); 
-                    });
-                    application()->signal_manager.connect("go-applications", [this](SignalContext&) { 
-                        if (m_view_ptr) m_view_ptr->navigate_to("/usr/share/applications"); 
-                    });
-                    application()->signal_manager.connect("go-to-folder", [this](SignalContext&) {
-                        application()->post_task([this]() {
-                            application()->set_override_cursor(CursorType::Wait);
-                            auto dialog = std::make_unique<GoToFolderDialog>();
-                            dialog->when_accepted.connect([this](GoToFolderEvent& ev) {
-                                if (m_view_ptr) m_view_ptr->navigate_to(ev.path);
-                            });
-                            dialog->run();
-                            application()->clear_override_cursor();
+                        "go-home",
+                        [this](SignalContext &)
+                        {
+                            if (m_view_ptr)
+                                m_view_ptr->navigate_to(getenv("HOME") ? getenv("HOME") : "/");
                         });
-                    });
-
-                    application()->signal_manager.connect("go-connect", [this](SignalContext&) {
-                        application()->post_task([this]() {
-                            application()->set_override_cursor(CursorType::Wait);
-                            auto dialog = std::make_unique<ConnectToServerDialog>();
-                            dialog->when_accepted.connect([this](ConnectToServerEvent& ev) {
-                                this->handle_mount_remote(ev.uri);
-                            });
-                            dialog->run();
-                            application()->clear_override_cursor();
+                    application()->signal_manager.connect(
+                        "go-documents",
+                        [this](SignalContext &)
+                        {
+                            if (m_view_ptr)
+                                m_view_ptr->navigate_to(
+                                    std::string(getenv("HOME") ? getenv("HOME") : "/") +
+                                    "/Documents");
                         });
-                    });
+                    application()->signal_manager.connect(
+                        "go-desktop",
+                        [this](SignalContext &)
+                        {
+                            if (m_view_ptr)
+                                m_view_ptr->navigate_to(
+                                    std::string(getenv("HOME") ? getenv("HOME") : "/") +
+                                    "/Desktop");
+                        });
+                    application()->signal_manager.connect(
+                        "go-downloads",
+                        [this](SignalContext &)
+                        {
+                            if (m_view_ptr)
+                                m_view_ptr->navigate_to(
+                                    std::string(getenv("HOME") ? getenv("HOME") : "/") +
+                                    "/Downloads");
+                        });
+                    application()->signal_manager.connect(
+                        "go-videos",
+                        [this](SignalContext &)
+                        {
+                            if (m_view_ptr)
+                                m_view_ptr->navigate_to(
+                                    std::string(getenv("HOME") ? getenv("HOME") : "/") + "/Videos");
+                        });
+                    application()->signal_manager.connect(
+                        "go-images",
+                        [this](SignalContext &)
+                        {
+                            if (m_view_ptr)
+                                m_view_ptr->navigate_to(
+                                    std::string(getenv("HOME") ? getenv("HOME") : "/") + "/Images");
+                        });
+                    application()->signal_manager.connect("go-applications",
+                                                          [this](SignalContext &)
+                                                          {
+                                                              if (m_view_ptr)
+                                                                  m_view_ptr->navigate_to(
+                                                                      "/usr/share/applications");
+                                                          });
+                    application()->signal_manager.connect(
+                        "go-to-folder",
+                        [this](SignalContext &)
+                        {
+                            application()->post_task(
+                                [this]()
+                                {
+                                    application()->set_override_cursor(CursorType::Wait);
+                                    auto dialog = std::make_unique<GoToFolderDialog>();
+                                    dialog->when_accepted.connect(
+                                        [this](GoToFolderEvent &ev)
+                                        {
+                                            if (m_view_ptr)
+                                                m_view_ptr->navigate_to(ev.path);
+                                        });
+                                    dialog->run();
+                                    application()->clear_override_cursor();
+                                });
+                        });
+
+                    application()->signal_manager.connect(
+                        "go-connect",
+                        [this](SignalContext &)
+                        {
+                            application()->post_task(
+                                [this]()
+                                {
+                                    application()->set_override_cursor(CursorType::Wait);
+                                    auto dialog = std::make_unique<ConnectToServerDialog>();
+                                    dialog->when_accepted.connect(
+                                        [this](ConnectToServerEvent &ev)
+                                        { this->handle_mount_remote(ev.uri); });
+                                    dialog->run();
+                                    application()->clear_override_cursor();
+                                });
+                        });
 
                     m_view_ptr->when_right_click.connect(
                         [this](MouseButtonEventContext &ctx)
@@ -455,21 +588,25 @@ namespace horizon::arkfm
                             if (!ctx.stop_propagation)
                             {
                                 m_active_context_menu = std::make_unique<horizon::Menu>();
-                                
-                                bool is_in_trash = m_view_ptr->current_path().find("/.local/share/Trash") != std::string::npos;
-                                if (is_in_trash) {
-                                    auto item_empty_trash = m_active_context_menu->add_item("Vaciar papelera", "edit-delete");
-                                    item_empty_trash->when_click.connect([this](auto &) {
-                                        this->application()->post_task([this]() {
-                                            this->handle_empty_trash();
+
+                                bool is_in_trash = m_view_ptr->current_path().find(
+                                                       "/.local/share/Trash") != std::string::npos;
+                                if (is_in_trash)
+                                {
+                                    auto item_empty_trash = m_active_context_menu->add_item(
+                                        "Vaciar papelera", "edit-delete");
+                                    item_empty_trash->when_click.connect(
+                                        [this](auto &)
+                                        {
+                                            this->application()->post_task(
+                                                [this]() { this->handle_empty_trash(); });
                                         });
-                                    });
                                     m_active_context_menu->add_separator();
                                 }
-                                
+
                                 auto item_new = m_active_context_menu->add_item("Nueva carpeta");
                                 item_new->when_click.connect([this](auto &)
-                                                               { this->handle_new_folder(); });
+                                                             { this->handle_new_folder(); });
 
                                 m_active_context_menu->add_separator();
 
@@ -477,39 +614,46 @@ namespace horizon::arkfm
                                 item_props->when_click.connect([this](auto &)
                                                                { this->handle_properties(); });
 
-                                 m_active_context_menu->add_separator();
-                                 auto item_terminal = m_active_context_menu->add_item(i18n().tr("arkfm.menu.open_terminal"));
-                                 item_terminal->when_click.connect([this](auto &) {
-                                     ApplicationLauncher::launch_binary("terminal", {}, m_view_ptr->current_path());
-                                 });
+                                m_active_context_menu->add_separator();
+                                auto item_terminal = m_active_context_menu->add_item(
+                                    i18n().tr("arkfm.menu.open_terminal"));
+                                item_terminal->when_click.connect(
+                                    [this](auto &)
+                                    {
+                                        ApplicationLauncher::launch_binary(
+                                            "terminal", {}, m_view_ptr->current_path());
+                                    });
 
                                 m_active_context_menu->add_separator();
 
-                                auto item_connect = m_active_context_menu->add_item("Conectar al servidor...");
-                                item_connect->when_click.connect([this](auto &) {
-                                    application()->signal_manager.emit("go-connect");
-                                });
+                                auto item_connect =
+                                    m_active_context_menu->add_item("Conectar al servidor...");
+                                item_connect->when_click.connect(
+                                    [this](auto &)
+                                    { application()->signal_manager.emit("go-connect"); });
 
                                 m_active_context_menu->add_separator();
 
-                                auto item_show_hidden = m_active_context_menu->add_item(m_view_ptr->show_hidden_files() ? i18n().tr("arkfm.menu.hide_hidden") : i18n().tr("arkfm.menu.show_hidden"), "Ctrl+H");
-                                item_show_hidden->when_click.connect([this](auto &) {
-                                    this->handle_toggle_hidden();
-                                });
+                                auto item_show_hidden = m_active_context_menu->add_item(
+                                    m_view_ptr->show_hidden_files()
+                                        ? i18n().tr("arkfm.menu.hide_hidden")
+                                        : i18n().tr("arkfm.menu.show_hidden"),
+                                    "Ctrl+H");
+                                item_show_hidden->when_click.connect(
+                                    [this](auto &) { this->handle_toggle_hidden(); });
 
-                                application()->show_context_menu(m_active_context_menu.get(), -1, -1, ctx.serial,
-                                                                 this->m_view_ptr);
+                                application()->show_context_menu(m_active_context_menu.get(), -1,
+                                                                 -1, ctx.serial, this->m_view_ptr);
                                 ctx.stop_propagation = true;
                             }
                         });
 
-                    application()->when_popup_dismissed.connect([this](PopupDismissedContext &) {
-                        m_active_context_menu.reset();
-                    });
+                    application()->when_popup_dismissed.connect([this](PopupDismissedContext &)
+                                                                { m_active_context_menu.reset(); });
                 }
             });
     }
-    
+
     ArkfmWindow::~ArkfmWindow() = default;
 
     void ArkfmWindow::handle_toggle_hidden()
@@ -529,7 +673,9 @@ namespace horizon::arkfm
                         {
                             if (item->id() == "toggle-hidden")
                             {
-                                item->set_text(m_view_ptr->show_hidden_files() ? i18n().tr("arkfm.menu.hide_hidden") : i18n().tr("arkfm.menu.show_hidden"));
+                                item->set_text(m_view_ptr->show_hidden_files()
+                                                   ? i18n().tr("arkfm.menu.hide_hidden")
+                                                   : i18n().tr("arkfm.menu.show_hidden"));
                                 break;
                             }
                         }
@@ -540,44 +686,50 @@ namespace horizon::arkfm
         }
     }
 
-
     void ArkfmWindow::handle_new_folder()
     {
         if (!m_view_ptr)
             return;
 
-        application()->post_task([this]() {
-            application()->set_override_cursor(CursorType::Wait);
-            auto dialog = std::make_unique<NewFolderDialog>();
-            dialog->when_accepted.connect(
-            [this](NewFolderEvent &ctx)
+        application()->post_task(
+            [this]()
             {
-                std::string full_path = m_view_ptr->current_path() + "/" + ctx.folder_name;
-                show_status_message("Creando carpeta...");
-                auto future = arkutils::FileOperations::create_directory(full_path);
-                std::thread([this, f = std::move(future)]() mutable {
-                    auto result = f.get();
-                    if (application())
+                application()->set_override_cursor(CursorType::Wait);
+                auto dialog = std::make_unique<NewFolderDialog>();
+                dialog->when_accepted.connect(
+                    [this](NewFolderEvent &ctx)
                     {
-                        application()->post_task([this, result]() {
-                            if (result == arkutils::FileOperations::Result::Success)
+                        std::string full_path = m_view_ptr->current_path() + "/" + ctx.folder_name;
+                        show_status_message("Creando carpeta...");
+                        auto future = arkutils::FileOperations::create_directory(full_path);
+                        std::thread(
+                            [this, f = std::move(future)]() mutable
                             {
-                                show_status_message("Carpeta creada");
-                                if (m_view_ptr)
-                                    m_view_ptr->navigate_to(m_view_ptr->current_path());
-                            }
-                            else
-                            {
-                                application()->alert("No se pudo crear la carpeta.", "Error",
-                                                   MessageType::Error);
-                            }
-                        });
-                    }
-                }).detach();
+                                auto result = f.get();
+                                if (application())
+                                {
+                                    application()->post_task(
+                                        [this, result]()
+                                        {
+                                            if (result == arkutils::FileOperations::Result::Success)
+                                            {
+                                                show_status_message("Carpeta creada");
+                                                if (m_view_ptr)
+                                                    m_view_ptr->refresh();
+                                            }
+                                            else
+                                            {
+                                                application()->alert("No se pudo crear la carpeta.",
+                                                                     "Error", MessageType::Error);
+                                            }
+                                        });
+                                }
+                            })
+                            .detach();
+                    });
+                dialog->run();
+                application()->clear_override_cursor();
             });
-            dialog->run();
-            application()->clear_override_cursor();
-        });
     }
 
     void ArkfmWindow::handle_rename(const std::string &path)
@@ -585,83 +737,108 @@ namespace horizon::arkfm
         application()->set_override_cursor(CursorType::Wait);
         std::filesystem::path p(path);
         auto dialog = std::make_unique<RenameDialog>(p.filename().string());
-        dialog->when_accepted.connect([this, path, p](RenameEvent &ctx) {
-            std::filesystem::path new_path = p.parent_path() / ctx.new_name;
-
-            if (std::filesystem::exists(new_path))
+        dialog->when_accepted.connect(
+            [this, path, p](RenameEvent &ctx)
             {
-                application()->alert("Ya existe un archivo o carpeta con el nombre '" + ctx.new_name + "' en esta ubicación.", "Error al renombrar", MessageType::Error);
-                return;
-            }
+                std::filesystem::path new_path = p.parent_path() / ctx.new_name;
 
-            auto future = arkutils::FileOperations::rename(path, new_path.string());
-            std::thread([this, f = std::move(future)]() mutable {
-                auto result = f.get();
-                if (application())
+                if (std::filesystem::exists(new_path))
                 {
-                    application()->post_task([this, result]() {
-                        if (result == arkutils::FileOperations::Result::Success)
-                        {
-                            show_status_message("Renombrado con éxito");
-                            if (m_view_ptr)
-                                m_view_ptr->navigate_to(m_view_ptr->current_path());
-                        }
-                        else
-                        {
-                            application()->alert("No se pudo renombrar el archivo o carpeta.", "Error", MessageType::Error);
-                        }
-                    });
+                    application()->alert("Ya existe un archivo o carpeta con el nombre '" +
+                                             ctx.new_name + "' en esta ubicación.",
+                                         "Error al renombrar", MessageType::Error);
+                    return;
                 }
-            }).detach();
-        });
+
+                auto future = arkutils::FileOperations::rename(path, new_path.string());
+                std::thread(
+                    [this, f = std::move(future)]() mutable
+                    {
+                        auto result = f.get();
+                        if (application())
+                        {
+                            application()->post_task(
+                                [this, result]()
+                                {
+                                    if (result == arkutils::FileOperations::Result::Success)
+                                    {
+                                        show_status_message("Renombrado con éxito");
+                                        if (m_view_ptr)
+                                            m_view_ptr->refresh();
+                                    }
+                                    else
+                                    {
+                                        application()->alert(
+                                            "No se pudo renombrar el archivo o carpeta.", "Error",
+                                            MessageType::Error);
+                                    }
+                                });
+                        }
+                    })
+                    .detach();
+            });
         dialog->run();
         application()->clear_override_cursor();
     }
 
     void ArkfmWindow::handle_delete(const std::vector<std::string> &paths)
     {
-        if (m_is_deleting || paths.empty()) return;
+        if (m_is_deleting || paths.empty())
+            return;
         m_is_deleting = true;
 
         application()->set_override_cursor(CursorType::Wait);
-        
+
         std::string prompt_msg;
-        if (paths.size() == 1) {
+        if (paths.size() == 1)
+        {
             std::string filename = std::filesystem::path(paths[0]).filename().string();
             prompt_msg = "¿Está seguro que desea eliminar '" + filename + "'?";
-        } else {
-            prompt_msg = "¿Está seguro que desea eliminar los " + std::to_string(paths.size()) + " elementos seleccionados?";
+        }
+        else
+        {
+            prompt_msg = "¿Está seguro que desea eliminar los " + std::to_string(paths.size()) +
+                         " elementos seleccionados?";
         }
 
         if (application()->confirm(prompt_msg, "Confirmar eliminación"))
         {
             show_status_message("Eliminando...");
-            std::thread([this, paths]() mutable {
-                bool all_success = true;
-                for (const auto& path : paths) {
-                    auto future = arkutils::FileOperations::remove(path);
-                    auto result = future.get();
-                    if (result != arkutils::FileOperations::Result::Success) {
-                        all_success = false;
-                    }
-                }
-
-                if (application())
+            std::thread(
+                [this, paths]() mutable
                 {
-                    application()->post_task([this, all_success]() {
-                        if (all_success)
+                    bool all_success = true;
+                    for (const auto &path : paths)
+                    {
+                        auto future = arkutils::FileOperations::remove(path);
+                        auto result = future.get();
+                        if (result != arkutils::FileOperations::Result::Success)
                         {
-                            show_status_message("Eliminado con éxito");
+                            all_success = false;
                         }
-                        else
-                        {
-                            application()->alert("Error al intentar eliminar algunos archivos o carpetas.", "Error", MessageType::Error);
-                        }
-                        if (m_view_ptr)
-                            m_view_ptr->navigate_to(m_view_ptr->current_path());
-                    });
-                }
-            }).detach();
+                    }
+
+                    if (application())
+                    {
+                        application()->post_task(
+                            [this, all_success]()
+                            {
+                                if (all_success)
+                                {
+                                    show_status_message("Eliminado con éxito");
+                                }
+                                else
+                                {
+                                    application()->alert(
+                                        "Error al intentar eliminar algunos archivos o carpetas.",
+                                        "Error", MessageType::Error);
+                                }
+                                if (m_view_ptr)
+                                    m_view_ptr->refresh();
+                            });
+                    }
+                })
+                .detach();
         }
         application()->clear_override_cursor();
         m_is_deleting = false;
@@ -669,115 +846,145 @@ namespace horizon::arkfm
 
     void ArkfmWindow::handle_trash(const std::vector<std::string> &paths)
     {
-        if (m_is_deleting || paths.empty()) return;
+        if (m_is_deleting || paths.empty())
+            return;
         m_is_deleting = true;
 
         application()->set_override_cursor(CursorType::Wait);
-        
-        show_status_message("Moviendo a la papelera...");
-        std::thread([this, paths]() mutable {
-            bool all_success = true;
-            for (const auto& path : paths) {
-                // Ejecutar gio trash para mover a la papelera
-                std::string cmd = "gio trash \"" + path + "\"";
-                int result = system(cmd.c_str());
-                if (result != 0) {
-                    all_success = false;
-                }
-            }
 
-            if (application())
+        show_status_message("Moviendo a la papelera...");
+        std::thread(
+            [this, paths]() mutable
             {
-                application()->post_task([this, all_success]() {
-                    if (all_success)
+                bool all_success = true;
+                for (const auto &path : paths)
+                {
+                    // Ejecutar gio trash para mover a la papelera
+                    std::string cmd = "gio trash \"" + path + "\"";
+                    int result = system(cmd.c_str());
+                    if (result != 0)
                     {
-                        show_status_message("Movido a la papelera con éxito");
+                        all_success = false;
                     }
-                    else
-                    {
-                        application()->alert("Error al intentar mover algunos elementos a la papelera.", "Error", MessageType::Error);
-                    }
-                    if (m_view_ptr)
-                        m_view_ptr->navigate_to(m_view_ptr->current_path());
-                });
-            }
-        }).detach();
-        
+                }
+
+                if (application())
+                {
+                    application()->post_task(
+                        [this, all_success]()
+                        {
+                            if (all_success)
+                            {
+                                show_status_message("Movido a la papelera con éxito");
+                            }
+                            else
+                            {
+                                application()->alert(
+                                    "Error al intentar mover algunos elementos a la papelera.",
+                                    "Error", MessageType::Error);
+                            }
+                            if (m_view_ptr)
+                                m_view_ptr->refresh();
+                        });
+                }
+            })
+            .detach();
+
         application()->clear_override_cursor();
         m_is_deleting = false;
     }
 
     void ArkfmWindow::handle_restore(const std::vector<std::string> &paths)
     {
-        if (m_is_deleting || paths.empty()) return;
+        if (m_is_deleting || paths.empty())
+            return;
         m_is_deleting = true;
 
         application()->set_override_cursor(CursorType::Wait);
-        
-        show_status_message("Restaurando de la papelera...");
-        std::thread([this, paths]() mutable {
-            bool all_success = true;
-            for (const auto& path : paths) {
-                std::filesystem::path p(path);
-                std::string filename = p.filename().string();
-                std::string cmd = "gio trash --restore \"trash:///" + filename + "\"";
-                int result = system(cmd.c_str());
-                if (result != 0) {
-                    all_success = false;
-                }
-            }
 
-            if (application())
+        show_status_message("Restaurando de la papelera...");
+        std::thread(
+            [this, paths]() mutable
             {
-                application()->post_task([this, all_success]() {
-                    if (all_success)
+                bool all_success = true;
+                for (const auto &path : paths)
+                {
+                    std::filesystem::path p(path);
+                    std::string filename = p.filename().string();
+                    std::string cmd = "gio trash --restore \"trash:///" + filename + "\"";
+                    int result = system(cmd.c_str());
+                    if (result != 0)
                     {
-                        show_status_message("Restaurado con éxito");
+                        all_success = false;
                     }
-                    else
-                    {
-                        application()->alert("Error al intentar restaurar algunos elementos de la papelera.", "Error", MessageType::Error);
-                    }
-                    if (m_view_ptr)
-                        m_view_ptr->navigate_to(m_view_ptr->current_path());
-                });
-            }
-        }).detach();
-        
+                }
+
+                if (application())
+                {
+                    application()->post_task(
+                        [this, all_success]()
+                        {
+                            if (all_success)
+                            {
+                                show_status_message("Restaurado con éxito");
+                            }
+                            else
+                            {
+                                application()->alert(
+                                    "Error al intentar restaurar algunos elementos de la papelera.",
+                                    "Error", MessageType::Error);
+                            }
+                            if (m_view_ptr)
+                                m_view_ptr->refresh();
+                        });
+                }
+            })
+            .detach();
+
         application()->clear_override_cursor();
         m_is_deleting = false;
     }
 
     void ArkfmWindow::handle_empty_trash()
     {
-        if (m_is_deleting) return;
-        
-        if (application()->confirm("¿Está seguro que desea vaciar la papelera? Esta acción no se puede deshacer.", "Confirmar vaciar papelera")) {
+        if (m_is_deleting)
+            return;
+
+        if (application()->confirm(
+                "¿Está seguro que desea vaciar la papelera? Esta acción no se puede deshacer.",
+                "Confirmar vaciar papelera"))
+        {
             m_is_deleting = true;
             application()->set_override_cursor(CursorType::Wait);
-            
+
             show_status_message("Vaciando papelera...");
-            std::thread([this]() mutable {
-                std::string cmd = "gio trash --empty";
-                int result = system(cmd.c_str());
-                
-                if (application())
+            std::thread(
+                [this]() mutable
                 {
-                    application()->post_task([this, result]() {
-                        if (result == 0)
-                        {
-                            show_status_message("Papelera vaciada con éxito");
-                        }
-                        else
-                        {
-                            application()->alert("Error al intentar vaciar la papelera.", "Error", MessageType::Error);
-                        }
-                        if (m_view_ptr)
-                            m_view_ptr->navigate_to(m_view_ptr->current_path());
-                    });
-                }
-            }).detach();
-            
+                    std::string cmd = "gio trash --empty";
+                    int result = system(cmd.c_str());
+
+                    if (application())
+                    {
+                        application()->post_task(
+                            [this, result]()
+                            {
+                                if (result == 0)
+                                {
+                                    show_status_message("Papelera vaciada con éxito");
+                                }
+                                else
+                                {
+                                    application()->alert("Error al intentar vaciar la papelera.",
+                                                         "Error", MessageType::Error);
+                                }
+                                if (m_view_ptr)
+                                    m_view_ptr->refresh();
+                            });
+                    }
+                })
+                .detach();
+
             application()->clear_override_cursor();
             m_is_deleting = false;
         }
@@ -809,15 +1016,15 @@ namespace horizon::arkfm
             f = sel[0];
         }
 
-        application()->post_task([this, f]() {
-            application()->set_override_cursor(CursorType::Wait);
-            auto dialog = std::make_unique<PropertiesDialog>(f);
-            dialog->run();
-            application()->clear_override_cursor();
-        });
+        application()->post_task(
+            [this, f]()
+            {
+                application()->set_override_cursor(CursorType::Wait);
+                auto dialog = std::make_unique<PropertiesDialog>(f);
+                dialog->run();
+                application()->clear_override_cursor();
+            });
     }
-
-
 
     void ArkfmWindow::show_status_message(const std::string &msg, int timeout_ms)
     {
@@ -838,11 +1045,13 @@ namespace horizon::arkfm
         }
     }
 
-    void ArkfmWindow::handle_mount_remote(const std::string &uri, storage::RemoteCredentials creds, storage::MountPasswordDialog* dlg)
+    void ArkfmWindow::handle_mount_remote(const std::string &uri, storage::RemoteCredentials creds,
+                                          storage::MountPasswordDialog *dlg)
     {
         application()->set_override_cursor(CursorType::Wait);
         LOG_INFO << "ArkFM: Intentando montar " << uri;
-        if (!m_remote_manager) {
+        if (!m_remote_manager)
+        {
             m_remote_manager = std::make_unique<storage::RemoteManager>();
             m_sidebar_ptr->set_remote_storage(m_remote_manager.get());
         }
@@ -851,31 +1060,43 @@ namespace horizon::arkfm
         auto active_mounts = m_remote_manager->get_active_mounts();
 
         // Check if we have saved credentials for this URI
-        if (creds.username.empty() && !creds.is_guest) {
+        if (creds.username.empty() && !creds.is_guest)
+        {
             storage::RemoteCredentials saved;
-            if (m_remote_manager->get_credentials(uri, saved)) {
+            if (m_remote_manager->get_credentials(uri, saved))
+            {
                 LOG_INFO << "ArkfmWindow: Utilizando credenciales guardadas para " << uri;
                 creds = saved;
             }
         }
 
-        for (const auto& mount : active_mounts) {
+        for (const auto &mount : active_mounts)
+        {
             std::string n_uri = uri;
-            if (!n_uri.empty() && n_uri.back() == '/') n_uri.pop_back();
+            if (!n_uri.empty() && n_uri.back() == '/')
+                n_uri.pop_back();
             std::string m_uri = mount.uri;
-            if (!m_uri.empty() && m_uri.back() == '/') m_uri.pop_back();
+            if (!m_uri.empty() && m_uri.back() == '/')
+                m_uri.pop_back();
 
-            if (n_uri == m_uri) {
+            if (n_uri == m_uri)
+            {
                 LOG_INFO << "ArkfmWindow: URI ya montada en " << mount.mount_path;
                 application()->clear_override_cursor();
-                if (!mount.mount_path.empty()) {
-                    if (m_view_ptr) m_view_ptr->navigate_to(mount.mount_path);
-                    if (m_sidebar_ptr) m_sidebar_ptr->select_item_by_path(mount.mount_path);
-                } else {
+                if (!mount.mount_path.empty())
+                {
+                    if (m_view_ptr)
+                        m_view_ptr->navigate_to(mount.mount_path);
+                    if (m_sidebar_ptr)
+                        m_sidebar_ptr->select_item_by_path(mount.mount_path);
+                }
+                else
+                {
                     LOG_WARNING << "ArkfmWindow: URI montada pero sin ruta FUSE.";
                 }
-                
-                if (application()) {
+
+                if (application())
+                {
                     application()->alert(i18n().tr("arkfm.messages.already_mounted"));
                 }
                 return;
@@ -885,215 +1106,316 @@ namespace horizon::arkfm
         // Capturamos un weak_ptr para saber si el diálogo sigue vivo de forma segura
         std::weak_ptr<storage::MountPasswordDialog> weak_dlg = m_mount_dialog;
 
-        m_remote_manager->when_mount(uri, creds, [this, uri, weak_dlg, creds](storage::RemoteMountResult res) {
-            auto shared_dlg = weak_dlg.lock();
-            
-            // ¡ESTO ES LO IMPORTANTE!
-            // Si hay diálogo, enviamos la tarea a SU cola. Si no, a la de la App.
-            auto task_launcher = [this, shared_dlg](std::function<void()> task) {
-                if (shared_dlg) shared_dlg->post_task(task);
-                else application()->post_task(task);
-            };
+        m_remote_manager->when_mount(
+            uri, creds,
+            [this, uri, weak_dlg, creds](storage::RemoteMountResult res)
+            {
+                auto shared_dlg = weak_dlg.lock();
 
-            task_launcher([this, uri, res, shared_dlg, creds]() {
-                application()->clear_override_cursor();
-                if (res.success) {
-                    LOG_INFO << "ArkFM: Montado exitoso de " << uri << ". Cerrando diálogo...";
-                    if (shared_dlg) {
-                        shared_dlg->quit();
-                        shared_dlg->wakeup();
-                    }
-                    // NO reseteamos aquí para evitar destruir el objeto mientras su loop corre
+                // ¡ESTO ES LO IMPORTANTE!
+                // Si hay diálogo, enviamos la tarea a SU cola. Si no, a la de la App.
+                auto task_launcher = [this, shared_dlg](std::function<void()> task)
+                {
+                    if (shared_dlg)
+                        shared_dlg->post_task(task);
+                    else
+                        application()->post_task(task);
+                };
 
-                    // IMPORTANTE: La navegación la hace la ventana principal, no el diálogo.
-                    application()->post_task([this, res, uri, creds]() {
-                        if (!res.mount_path.empty()) {
-                            // If successfully mounted and 'remember' was checked, save credentials
-                            if (creds.remember) {
-                                m_remote_manager->save_credentials(uri, creds);
+                task_launcher(
+                    [this, uri, res, shared_dlg, creds]()
+                    {
+                        application()->clear_override_cursor();
+                        if (res.success)
+                        {
+                            LOG_INFO << "ArkFM: Montado exitoso de " << uri
+                                     << ". Cerrando diálogo...";
+                            if (shared_dlg)
+                            {
+                                shared_dlg->quit();
+                                shared_dlg->wakeup();
                             }
+                            // NO reseteamos aquí para evitar destruir el objeto mientras su loop
+                            // corre
 
-                            if (m_view_ptr) m_view_ptr->navigate_to(res.mount_path);
-                            if (m_sidebar_ptr) {
-                                application()->add_timer(1000, [this, path = res.mount_path]() {
-                                    if (m_sidebar_ptr) {
-                                        m_sidebar_ptr->refresh_devices();
-                                        m_sidebar_ptr->select_item_by_path(path);
+                            // IMPORTANTE: La navegación la hace la ventana principal, no el
+                            // diálogo.
+                            application()->post_task(
+                                [this, res, uri, creds]()
+                                {
+                                    if (!res.mount_path.empty())
+                                    {
+                                        // If successfully mounted and 'remember' was checked, save
+                                        // credentials
+                                        if (creds.remember)
+                                        {
+                                            m_remote_manager->save_credentials(uri, creds);
+                                        }
+
+                                        if (m_view_ptr)
+                                            m_view_ptr->navigate_to(res.mount_path);
+                                        if (m_sidebar_ptr)
+                                        {
+                                            application()->add_timer(
+                                                1000,
+                                                [this, path = res.mount_path]()
+                                                {
+                                                    if (m_sidebar_ptr)
+                                                    {
+                                                        m_sidebar_ptr->refresh_devices();
+                                                        m_sidebar_ptr->select_item_by_path(path);
+                                                    }
+                                                },
+                                                false);
+                                        }
+                                        show_status_message("Conectado a " + res.mount_path);
                                     }
-                                }, false);
+                                    else
+                                    {
+                                        LOG_WARNING << "ArkfmWindow: Montaje exitoso pero sin ruta "
+                                                       "FUSE para "
+                                                    << uri;
+                                        application()->alert(
+                                            "Conectado con éxito, pero no se encontró un punto de "
+                                            "montaje local. Verifique que la ubicación sea un "
+                                            "recurso compartido válido.",
+                                            "Aviso");
+                                    }
+                                });
+                        }
+                        else
+                        {
+                            LOG_ERROR << "ArkFM: Fallo al montar " << uri << ": " << res.message;
+
+                            std::string msg = res.message;
+                            std::string raw_msg = msg;
+                            std::transform(msg.begin(), msg.end(), msg.begin(), ::tolower);
+
+                            bool needs_auth = (msg.find("not authorized") != std::string::npos ||
+                                               msg.find("password") != std::string::npos ||
+                                               msg.find("contrase") != std::string::npos ||
+                                               msg.find("access denied") != std::string::npos ||
+                                               msg.find("permission denied") != std::string::npos ||
+                                               msg.find("authentication") != std::string::npos ||
+                                               msg.find("autentica") != std::string::npos ||
+                                               msg.find("soportada") != std::string::npos ||
+                                               msg.find("supported") != std::string::npos ||
+                                               msg.find("handshake") != std::string::npos ||
+                                               msg.find("refused") != std::string::npos);
+
+                            if (needs_auth)
+                            {
+                                if (shared_dlg)
+                                {
+                                    LOG_INFO << "ArkFM: Informando error al diálogo existente.";
+
+                                    std::string display_msg = raw_msg;
+                                    // Si el error es "cancelado" o "no soportada", usamos nuestro
+                                    // mensaje genérico amigable
+                                    if (msg.find("cancel") != std::string::npos ||
+                                        msg.find("soportada") != std::string::npos ||
+                                        msg.find("supported") != std::string::npos)
+                                    {
+                                        display_msg = horizon::i18n().tr(
+                                            "core.storage.mount_dialog.auth_error");
+                                    }
+
+                                    shared_dlg->show_error(display_msg);
+                                }
+                                else
+                                {
+                                    LOG_INFO << "ArkFM: Creando nuevo diálogo de contraseña.";
+                                    m_mount_dialog =
+                                        std::make_shared<storage::MountPasswordDialog>(uri);
+                                    m_mount_dialog->set_initial_credentials(creds);
+
+                                    // Capturamos un weak_ptr para evitar una referencia circular
+                                    std::weak_ptr<storage::MountPasswordDialog> weak_dlg_signal =
+                                        m_mount_dialog;
+
+                                    m_mount_dialog->when_accepted.connect(
+                                        [this, uri,
+                                         weak_dlg_signal](storage::MountPasswordEvent &ev)
+                                        {
+                                            if (auto shared_dlg_signal = weak_dlg_signal.lock())
+                                            {
+                                                this->handle_mount_remote(uri, ev.credentials,
+                                                                          shared_dlg_signal.get());
+                                            }
+                                        });
+
+                                    m_mount_dialog->run();
+                                    m_mount_dialog.reset();
+                                    LOG_INFO << "ArkFM: El bucle del diálogo ha finalizado.";
+                                }
                             }
-                            show_status_message("Conectado a " + res.mount_path);
-                        } else {
-                            LOG_WARNING << "ArkfmWindow: Montaje exitoso pero sin ruta FUSE para " << uri;
-                            application()->alert("Conectado con éxito, pero no se encontró un punto de montaje local. Verifique que la ubicación sea un recurso compartido válido.", "Aviso");
+                            else
+                            {
+                                std::string display_msg = raw_msg;
+                                if (msg.find("cancel") != std::string::npos ||
+                                    msg.find("soportada") != std::string::npos ||
+                                    msg.find("supported") != std::string::npos)
+                                {
+                                    display_msg =
+                                        horizon::i18n().tr("core.storage.mount_dialog.auth_error");
+                                }
+
+                                if (shared_dlg)
+                                    shared_dlg->show_error(display_msg);
+                                show_status_message("Error: " + display_msg, 5000);
+
+                                // Show alert for real errors (excluding cancellations by user)
+                                if (msg.find("cancel") == std::string::npos && application())
+                                {
+                                    application()->alert(display_msg,
+                                                         i18n().tr("arkfm.dialog.error") !=
+                                                                 "arkfm.dialog.error"
+                                                             ? i18n().tr("arkfm.dialog.error")
+                                                             : "Error");
+                                }
+                            }
                         }
                     });
-                } else {
-                    LOG_ERROR << "ArkFM: Fallo al montar " << uri << ": " << res.message;
-                    
-                    std::string msg = res.message;
-                    std::string raw_msg = msg;
-                    std::transform(msg.begin(), msg.end(), msg.begin(), ::tolower);
 
-                    bool needs_auth = (msg.find("not authorized") != std::string::npos || 
-                                       msg.find("password") != std::string::npos ||
-                                       msg.find("contrase") != std::string::npos ||
-                                       msg.find("access denied") != std::string::npos ||
-                                       msg.find("permission denied") != std::string::npos ||
-                                       msg.find("authentication") != std::string::npos ||
-                                       msg.find("autentica") != std::string::npos ||
-                                       msg.find("soportada") != std::string::npos || 
-                                       msg.find("supported") != std::string::npos ||
-                                       msg.find("handshake") != std::string::npos ||
-                                       msg.find("refused") != std::string::npos);
-
-                    if (needs_auth) {
-                        if (shared_dlg) {
-                            LOG_INFO << "ArkFM: Informando error al diálogo existente.";
-                            
-                            std::string display_msg = raw_msg;
-                            // Si el error es "cancelado" o "no soportada", usamos nuestro mensaje genérico amigable
-                            if (msg.find("cancel") != std::string::npos || 
-                                msg.find("soportada") != std::string::npos || 
-                                msg.find("supported") != std::string::npos) 
-                            {
-                                display_msg = horizon::i18n().tr("core.storage.mount_dialog.auth_error");
-                            }
-                            
-                            shared_dlg->show_error(display_msg);
-                        } else {
-                            LOG_INFO << "ArkFM: Creando nuevo diálogo de contraseña.";
-                            m_mount_dialog = std::make_shared<storage::MountPasswordDialog>(uri);
-                            m_mount_dialog->set_initial_credentials(creds);
-                            
-                            // Capturamos un weak_ptr para evitar una referencia circular
-                            std::weak_ptr<storage::MountPasswordDialog> weak_dlg_signal = m_mount_dialog;
-                            
-                            m_mount_dialog->when_accepted.connect([this, uri, weak_dlg_signal](storage::MountPasswordEvent& ev) {
-                                if (auto shared_dlg_signal = weak_dlg_signal.lock()) {
-                                    this->handle_mount_remote(uri, ev.credentials, shared_dlg_signal.get());
-                                }
-                            });
-                            
-                            m_mount_dialog->run();
-                            m_mount_dialog.reset();
-                            LOG_INFO << "ArkFM: El bucle del diálogo ha finalizado.";
-                        }
-                    } else {
-                        std::string display_msg = raw_msg;
-                        if (msg.find("cancel") != std::string::npos || 
-                            msg.find("soportada") != std::string::npos || 
-                            msg.find("supported") != std::string::npos) 
-                        {
-                            display_msg = horizon::i18n().tr("core.storage.mount_dialog.auth_error");
-                        }
-                        
-                        if (shared_dlg) shared_dlg->show_error(display_msg);
-                        show_status_message("Error: " + display_msg, 5000);
-                        
-                        // Show alert for real errors (excluding cancellations by user)
-                        if (msg.find("cancel") == std::string::npos && application()) {
-                            application()->alert(display_msg, i18n().tr("arkfm.dialog.error") != "arkfm.dialog.error" ? i18n().tr("arkfm.dialog.error") : "Error");
-                        }
-                    }
-                }
+                if (shared_dlg)
+                    shared_dlg->wakeup();
             });
-            
-            if (shared_dlg) shared_dlg->wakeup();
-        });
     }
 
     void ArkfmWindow::handle_extract(const std::string &path)
     {
         std::string dest = m_view_ptr->current_path();
         show_status_message("Extrayendo archivo...");
-        
+
         auto task = compression::CompressionManager::extract_smart(path, dest);
         m_active_tasks.push_back(task);
-        
-        task->when_progress.connect([this](compression::CompressionProgressEvent& ev) {
-            if (m_progress_bar) {
-                m_progress_bar->set_visible(true);
-                m_progress_bar->set_progress(static_cast<float>(ev.progress));
-            }
-            if (!ev.status_message.empty()) show_status_message(ev.status_message);
-        });
 
-        task->when_finished.connect([this, path, task](compression::CompressionFinishedEvent& ev) {
-            application()->post_task([this, ev, path, task]() {
-                if (m_progress_bar) m_progress_bar->set_visible(false);
-                
-                if (ev.success) {
-                    show_status_message("Extracción finalizada");
-                    NotificationSender::send("Extracción completada", "El archivo se ha extraído correctamente.", "package-x-generic");
-                    if (m_view_ptr) m_view_ptr->navigate_to(m_view_ptr->current_path());
-                } else {
-                    show_status_message("Error al extraer");
-                    application()->alert("Error al extraer el archivo: " + ev.error_message, "Error", MessageType::Error);
+        task->when_progress.connect(
+            [this](compression::CompressionProgressEvent &ev)
+            {
+                if (m_progress_bar)
+                {
+                    m_progress_bar->set_visible(true);
+                    m_progress_bar->set_progress(static_cast<float>(ev.progress));
                 }
-
-                // Remove from active tasks
-                auto it = std::find(m_active_tasks.begin(), m_active_tasks.end(), task);
-                if (it != m_active_tasks.end()) m_active_tasks.erase(it);
+                if (!ev.status_message.empty())
+                    show_status_message(ev.status_message);
             });
-        });
+
+        task->when_finished.connect(
+            [this, path, task](compression::CompressionFinishedEvent &ev)
+            {
+                application()->post_task(
+                    [this, ev, path, task]()
+                    {
+                        if (m_progress_bar)
+                            m_progress_bar->set_visible(false);
+
+                        if (ev.success)
+                        {
+                            show_status_message("Extracción finalizada");
+                            NotificationSender::send("Extracción completada",
+                                                     "El archivo se ha extraído correctamente.",
+                                                     "package-x-generic");
+                            if (m_view_ptr)
+                                m_view_ptr->refresh();
+                        }
+                        else
+                        {
+                            show_status_message("Error al extraer");
+                            application()->alert("Error al extraer el archivo: " + ev.error_message,
+                                                 "Error", MessageType::Error);
+                        }
+
+                        // Remove from active tasks
+                        auto it = std::find(m_active_tasks.begin(), m_active_tasks.end(), task);
+                        if (it != m_active_tasks.end())
+                            m_active_tasks.erase(it);
+                    });
+            });
 
         task->start();
     }
 
-    void ArkfmWindow::handle_compress(const std::vector<std::string> &paths, const std::string &format_ext)
+    void ArkfmWindow::handle_compress(const std::vector<std::string> &paths,
+                                      const std::string &format_ext)
     {
-        if (paths.empty()) return;
-        
+        if (paths.empty())
+            return;
+
         std::filesystem::path first(paths[0]);
         std::string base_name;
         std::string out_path;
-        
-        if (paths.size() > 1) {
+
+        if (paths.size() > 1)
+        {
             base_name = first.parent_path().filename().string();
-            if (base_name.empty() || base_name == "/") base_name = "Archive";
-        } else {
+            if (base_name.empty() || base_name == "/")
+                base_name = "Archive";
+        }
+        else
+        {
             base_name = first.stem().string();
         }
-        
+
         out_path = (first.parent_path() / (base_name + format_ext)).string();
         int counter = 1;
-        while (std::filesystem::exists(out_path)) {
-            out_path = (first.parent_path() / (base_name + "_" + std::to_string(counter) + format_ext)).string();
+        while (std::filesystem::exists(out_path))
+        {
+            out_path =
+                (first.parent_path() / (base_name + "_" + std::to_string(counter) + format_ext))
+                    .string();
             counter++;
         }
-        
+
         show_status_message("Comprimiendo...");
-        
-        compression::ArchiveFormat fmt = compression::CompressionManager::format_from_extension(format_ext);
+
+        compression::ArchiveFormat fmt =
+            compression::CompressionManager::format_from_extension(format_ext);
         auto task = compression::CompressionManager::compress(paths, out_path, fmt);
         m_active_tasks.push_back(task);
-        
-        task->when_progress.connect([this](compression::CompressionProgressEvent& ev) {
-            if (m_progress_bar) {
-                m_progress_bar->set_visible(true);
-                m_progress_bar->set_progress(static_cast<float>(ev.progress));
-            }
-        });
 
-        task->when_finished.connect([this, out_path, task](compression::CompressionFinishedEvent& ev) {
-            application()->post_task([this, ev, out_path, task]() {
-                if (m_progress_bar) m_progress_bar->set_visible(false);
-                
-                if (ev.success) {
-                    show_status_message("Compresión finalizada");
-                    NotificationSender::send("Compresión completada", "El archivo se ha creado correctamente.", "package-x-generic");
-                    if (m_view_ptr) m_view_ptr->navigate_to(m_view_ptr->current_path());
-                } else {
-                    show_status_message("Error al comprimir");
-                    application()->alert("Error al comprimir: " + ev.error_message, "Error", MessageType::Error);
+        task->when_progress.connect(
+            [this](compression::CompressionProgressEvent &ev)
+            {
+                if (m_progress_bar)
+                {
+                    m_progress_bar->set_visible(true);
+                    m_progress_bar->set_progress(static_cast<float>(ev.progress));
                 }
-
-                // Remove from active tasks
-                auto it = std::find(m_active_tasks.begin(), m_active_tasks.end(), task);
-                if (it != m_active_tasks.end()) m_active_tasks.erase(it);
             });
-        });
+
+        task->when_finished.connect(
+            [this, out_path, task](compression::CompressionFinishedEvent &ev)
+            {
+                application()->post_task(
+                    [this, ev, out_path, task]()
+                    {
+                        if (m_progress_bar)
+                            m_progress_bar->set_visible(false);
+
+                        if (ev.success)
+                        {
+                            show_status_message("Compresión finalizada");
+                            NotificationSender::send("Compresión completada",
+                                                     "El archivo se ha creado correctamente.",
+                                                     "package-x-generic");
+                            if (m_view_ptr)
+                                m_view_ptr->refresh();
+                        }
+                        else
+                        {
+                            show_status_message("Error al comprimir");
+                            application()->alert("Error al comprimir: " + ev.error_message, "Error",
+                                                 MessageType::Error);
+                        }
+
+                        // Remove from active tasks
+                        auto it = std::find(m_active_tasks.begin(), m_active_tasks.end(), task);
+                        if (it != m_active_tasks.end())
+                            m_active_tasks.erase(it);
+                    });
+            });
 
         task->start();
     }

@@ -27,6 +27,11 @@ namespace horizon::files
 
     FileView::~FileView() = default;
 
+    void FileView::refresh()
+    {
+        set_view_mode(m_view_mode);
+    }
+
     void FileView::set_view_mode(ViewMode vm)
     {
         m_view_mode = vm;

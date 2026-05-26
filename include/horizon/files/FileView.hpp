@@ -24,6 +24,7 @@ namespace horizon::files
         ~FileView() override;
 
         void set_view_mode(ViewMode mode);
+        void refresh();
 
         void navigate_to(const std::string &path, bool record_history = true);
         void navigate_back();
