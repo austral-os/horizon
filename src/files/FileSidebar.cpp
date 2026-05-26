@@ -229,6 +229,11 @@ namespace horizon::files
         item_downloads->set_path(horizon::XdgUserDirs::get_download());
         add_item("Favorites", std::move(item_downloads));
 
+        auto item_trash = std::make_unique<horizon::SidebarItem>("user-trash", "Papelera");
+        std::string trash_path = std::string(home) + "/.local/share/Trash/files";
+        item_trash->set_path(trash_path);
+        add_item("Favorites", std::move(item_trash));
+
         m_disk_manager.scan();
         bool has_devices = false;
 

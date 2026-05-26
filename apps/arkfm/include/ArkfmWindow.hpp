@@ -33,6 +33,9 @@ namespace horizon::arkfm
 
         void handle_rename(const std::string &path);
         void handle_delete(const std::vector<std::string> &paths);
+        void handle_trash(const std::vector<std::string> &paths);
+        void handle_restore(const std::vector<std::string> &paths);
+        void handle_empty_trash();
         void handle_open();
         void handle_properties();
         void handle_new_folder();

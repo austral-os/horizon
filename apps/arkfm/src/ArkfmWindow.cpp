@@ -272,7 +272,46 @@ namespace horizon::arkfm
                 this->application()->post_task([this, f]() { this->handle_rename(f.path); });
             });
             
-            auto item_delete = menu->add_item("Eliminar");
+            bool is_in_trash = m_view_ptr->current_path().find("/.local/share/Trash") != std::string::npos;
+            if (!is_in_trash) {
+                auto item_trash = menu->add_item("Mover a la papelera", "user-trash");
+                item_trash->when_click.connect([this, f](auto&) {
+                    this->application()->post_task([this, f]() {
+                        auto sel = this->m_view_ptr->get_selection();
+                        bool in_selection = false;
+                        std::vector<std::string> paths;
+                        for (const auto& item : sel) {
+                            paths.push_back(item.path);
+                            if (item.path == f.path) in_selection = true;
+                        }
+                        if (in_selection && paths.size() > 1) {
+                            this->handle_trash(paths);
+                        } else {
+                            this->handle_trash({f.path});
+                        }
+                    });
+                });
+            } else {
+                auto item_restore = menu->add_item("Restaurar", "edit-undo");
+                item_restore->when_click.connect([this, f](auto&) {
+                    this->application()->post_task([this, f]() {
+                        auto sel = this->m_view_ptr->get_selection();
+                        bool in_selection = false;
+                        std::vector<std::string> paths;
+                        for (const auto& item : sel) {
+                            paths.push_back(item.path);
+                            if (item.path == f.path) in_selection = true;
+                        }
+                        if (in_selection && paths.size() > 1) {
+                            this->handle_restore(paths);
+                        } else {
+                            this->handle_restore({f.path});
+                        }
+                    });
+                });
+            }
+
+            auto item_delete = menu->add_item("Eliminar", "edit-delete");
             item_delete->when_click.connect([this, f](auto&) {
                 this->application()->post_task([this, f]() {
                     auto sel = this->m_view_ptr->get_selection();
@@ -416,6 +455,18 @@ namespace horizon::arkfm
                             if (!ctx.stop_propagation)
                             {
                                 m_active_context_menu = std::make_unique<horizon::Menu>();
+                                
+                                bool is_in_trash = m_view_ptr->current_path().find("/.local/share/Trash") != std::string::npos;
+                                if (is_in_trash) {
+                                    auto item_empty_trash = m_active_context_menu->add_item("Vaciar papelera", "edit-delete");
+                                    item_empty_trash->when_click.connect([this](auto &) {
+                                        this->application()->post_task([this]() {
+                                            this->handle_empty_trash();
+                                        });
+                                    });
+                                    m_active_context_menu->add_separator();
+                                }
+                                
                                 auto item_new = m_active_context_menu->add_item("Nueva carpeta");
                                 item_new->when_click.connect([this](auto &)
                                                                { this->handle_new_folder(); });
@@ -614,6 +665,122 @@ namespace horizon::arkfm
         }
         application()->clear_override_cursor();
         m_is_deleting = false;
+    }
+
+    void ArkfmWindow::handle_trash(const std::vector<std::string> &paths)
+    {
+        if (m_is_deleting || paths.empty()) return;
+        m_is_deleting = true;
+
+        application()->set_override_cursor(CursorType::Wait);
+        
+        show_status_message("Moviendo a la papelera...");
+        std::thread([this, paths]() mutable {
+            bool all_success = true;
+            for (const auto& path : paths) {
+                // Ejecutar gio trash para mover a la papelera
+                std::string cmd = "gio trash \"" + path + "\"";
+                int result = system(cmd.c_str());
+                if (result != 0) {
+                    all_success = false;
+                }
+            }
+
+            if (application())
+            {
+                application()->post_task([this, all_success]() {
+                    if (all_success)
+                    {
+                        show_status_message("Movido a la papelera con éxito");
+                    }
+                    else
+                    {
+                        application()->alert("Error al intentar mover algunos elementos a la papelera.", "Error", MessageType::Error);
+                    }
+                    if (m_view_ptr)
+                        m_view_ptr->navigate_to(m_view_ptr->current_path());
+                });
+            }
+        }).detach();
+        
+        application()->clear_override_cursor();
+        m_is_deleting = false;
+    }
+
+    void ArkfmWindow::handle_restore(const std::vector<std::string> &paths)
+    {
+        if (m_is_deleting || paths.empty()) return;
+        m_is_deleting = true;
+
+        application()->set_override_cursor(CursorType::Wait);
+        
+        show_status_message("Restaurando de la papelera...");
+        std::thread([this, paths]() mutable {
+            bool all_success = true;
+            for (const auto& path : paths) {
+                std::filesystem::path p(path);
+                std::string filename = p.filename().string();
+                std::string cmd = "gio trash --restore \"trash:///" + filename + "\"";
+                int result = system(cmd.c_str());
+                if (result != 0) {
+                    all_success = false;
+                }
+            }
+
+            if (application())
+            {
+                application()->post_task([this, all_success]() {
+                    if (all_success)
+                    {
+                        show_status_message("Restaurado con éxito");
+                    }
+                    else
+                    {
+                        application()->alert("Error al intentar restaurar algunos elementos de la papelera.", "Error", MessageType::Error);
+                    }
+                    if (m_view_ptr)
+                        m_view_ptr->navigate_to(m_view_ptr->current_path());
+                });
+            }
+        }).detach();
+        
+        application()->clear_override_cursor();
+        m_is_deleting = false;
+    }
+
+    void ArkfmWindow::handle_empty_trash()
+    {
+        if (m_is_deleting) return;
+        
+        if (application()->confirm("¿Está seguro que desea vaciar la papelera? Esta acción no se puede deshacer.", "Confirmar vaciar papelera")) {
+            m_is_deleting = true;
+            application()->set_override_cursor(CursorType::Wait);
+            
+            show_status_message("Vaciando papelera...");
+            std::thread([this]() mutable {
+                std::string cmd = "gio trash --empty";
+                int result = system(cmd.c_str());
+                
+                if (application())
+                {
+                    application()->post_task([this, result]() {
+                        if (result == 0)
+                        {
+                            show_status_message("Papelera vaciada con éxito");
+                        }
+                        else
+                        {
+                            application()->alert("Error al intentar vaciar la papelera.", "Error", MessageType::Error);
+                        }
+                        if (m_view_ptr)
+                            m_view_ptr->navigate_to(m_view_ptr->current_path());
+                    });
+                }
+            }).detach();
+            
+            application()->clear_override_cursor();
+            m_is_deleting = false;
+        }
     }
 
     void ArkfmWindow::handle_open()
