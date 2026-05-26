@@ -6,6 +6,7 @@
 #include <horizon/Label.hpp>
 #include <horizon/RibbonToolbar.hpp>
 #include <horizon/ThemeManager.hpp>
+#include <horizon/Logger.hpp>
 
 namespace horizon
 {
@@ -197,6 +198,11 @@ namespace horizon
         container->set_spacing(10);
         container->set_margin(4);
 
+        // Reenviar rueda del ratón al toolbar para que el scroll horizontal funcione
+        // aunque el evento llegue desde un widget hijo de la sección.
+        container->when_mouse_wheel.connect(
+            [this](MouseWheelEventContext &ev) { handle_mouse_wheel(ev); });
+
         if (application())
         {
             container->set_application_recursive(application());
@@ -260,10 +266,12 @@ namespace horizon
         if (m_active_tab_index == -1)
             return;
 
-        double delta = ev.dy * 40.0;
+        // ev.dy/ev.dx ya vienen en píxeles desde Wayland (~10-15px por notch).
+        // Multiplicar por un factor grande causa saltos enormes.
+        double delta = ev.dy;
         if (std::abs(ev.dx) > 0)
         {
-            delta = ev.dx * 40.0;
+            delta = ev.dx;
         }
 
         double old_scroll = m_scroll_x;
@@ -284,6 +292,18 @@ namespace horizon
     void RibbonToolbar::calculate_layout()
     {
         Widget::calculate_layout();
+
+        // Widget::calculate_layout() solo posiciona hijos directos.
+        // m_content_frame está anidado (container → frame_container → m_content_frame),
+        // así que forzamos el layout de esos niveles para que sus dimensiones sean correctas.
+        for (auto &child : m_children)
+        {
+            if (child.get() == m_header)
+                continue;
+            child->calculate_layout();
+            for (auto &grandchild : child->children())
+                grandchild->calculate_layout();
+        }
 
         if (m_active_tab_index != -1)
         {
@@ -313,6 +333,7 @@ namespace horizon
             }
 
             m_max_scroll_x = std::max(0.0, (double)(needed_w - m_content_frame->width()));
+
             if (m_scroll_x > m_max_scroll_x)
                 m_scroll_x = m_max_scroll_x;
         }
