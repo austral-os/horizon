@@ -1,6 +1,8 @@
 #include "horizon/files/FileToolbar.hpp"
+#include "horizon/Spacer.hpp"
 #include <horizon/GroupButton.hpp>
 #include <horizon/Icon.hpp>
+#include <horizon/Notification.hpp>
 #include <horizon/SearchBox.hpp>
 #include <horizon/ToggleGroupButton.hpp>
 
@@ -16,6 +18,21 @@ namespace horizon::files
         m_navigation = navigation.get();
         m_navigation->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         m_navigation->set_fixed_size(80);
+
+        auto path_button = std::make_unique<horizon::GroupButton>();
+        path_button->set_fixed_size(200);
+        m_path_button = path_button.get();
+        m_path_button->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+
+        m_path_button->when_button_clicked.connect(
+            [this](horizon::GroupButtonClickEvent &ctx)
+            {
+                if (ctx.button_index == 0)
+                {
+                    horizon::EventContext ev;
+                    this->when_go_up_clicked.run(ev);
+                }
+            });
 
         auto mini_spacer1 = std::make_unique<Widget>();
         mini_spacer1->set_fixed_size(20);
@@ -95,9 +112,15 @@ namespace horizon::files
         spacer->set_position_type(FILL);
 
         add_child(std::move(navigation));
-        add_child(std::move(mini_spacer1));
+
+        auto mini_spacer_path = std::make_unique<Widget>();
+        mini_spacer_path->set_fixed_size(10);
+        add_child(std::move(mini_spacer_path));
+
         add_child(std::move(view_modes));
-        add_child(std::move(spacer));
+        add_child(Spacer());
+        add_child(std::move(path_button));
+        add_child(Spacer());
         add_child(std::move(search_box));
     }
 
@@ -105,5 +128,33 @@ namespace horizon::files
     {
         // For now, GroupButton doesn't support individual item enabling easily via public API,
         // but it's part of the plan to improve it.
+    }
+
+    void FileToolbar::update_path(const std::string &path)
+    {
+        std::filesystem::path p(path);
+        std::string folder_name = p.filename().string();
+        if (path == "/" || folder_name.empty())
+        {
+            folder_name = "/";
+        }
+
+        m_path_button->clear_children();
+
+        auto up_icon = std::make_unique<horizon::Icon>();
+        up_icon->set_icon_name("go-up");
+        up_icon->set_icon_size(16);
+        up_icon->set_fixed_size(32);
+        up_icon->set_use_theme_colors(true);
+        m_path_button->add_item(std::move(up_icon));
+
+        m_path_button->add_item(folder_name);
+
+        if (m_path_button->children().size() >= 2)
+        {
+            auto tooltip = std::make_unique<horizon::Notification>();
+            tooltip->set_message(path);
+            m_path_button->children()[1]->set_tooltip(std::move(tooltip));
+        }
     }
 } // namespace horizon::files

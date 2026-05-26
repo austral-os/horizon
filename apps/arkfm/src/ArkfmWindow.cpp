@@ -69,10 +69,12 @@ namespace horizon::arkfm
         m_sidebar_ptr->select_item_by_path(home_path);
 
         m_view_ptr->when_path_changed.connect(
-            [this](files::PathChangedEvent &ctx)
+            [this, ark_toolbar_ptr](files::PathChangedEvent &ctx)
             {
                 if (m_sidebar_ptr)
                     m_sidebar_ptr->select_item_by_path(ctx.path);
+                if (ark_toolbar_ptr)
+                    ark_toolbar_ptr->update_path(ctx.path);
             });
 
         m_view_ptr->when_operation_progress.connect(
@@ -158,6 +160,15 @@ namespace horizon::arkfm
 
         ark_toolbar_ptr->when_search_changed.connect([view_ptr](files::SearchChangedEvent &ctx)
                                                      { view_ptr->set_search_query(ctx.query); });
+
+        ark_toolbar_ptr->when_go_up_clicked.connect(
+            [view_ptr](horizon::EventContext &)
+            {
+                if (view_ptr) {
+                    std::filesystem::path p(view_ptr->current_path());
+                    view_ptr->navigate_to(p.parent_path().string());
+                }
+            });
 
         m_view_ptr->when_item_opened.connect(
             [this](const arkutils::FileInfo &f)

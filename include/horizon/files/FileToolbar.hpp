@@ -34,13 +34,16 @@ namespace horizon::files
         ~FileToolbar() override = default;
 
         EventsManager<NavigationButtonClickEvent> when_navigation_clicked;
+        EventsManager<EventContext> when_go_up_clicked;
         EventsManager<ViewModeChangeEvent> when_view_mode_changed;
         EventsManager<SearchChangedEvent> when_search_changed;
 
         void update_navigation_state(bool can_back, bool can_forward);
+        void update_path(const std::string &path);
 
     private:
         horizon::GroupButton *m_navigation;
+        horizon::GroupButton *m_path_button;
         horizon::ToggleGroupButton *m_view_modes;
         horizon::SearchBox *m_search_box;
     };
