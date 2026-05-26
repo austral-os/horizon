@@ -342,51 +342,53 @@ namespace horizon
                                                       const std::string &theme_name,
                                                       const std::vector<std::string> &base_dirs)
     {
-        // Find the theme directory
-        std::string theme_dir;
+        // A theme can be split across multiple base directories.
+        // We must check all of them before giving up.
+        std::string best_path_overall;
+        int min_distance_overall = INT_MAX;
+        ThemeInfo last_valid_info;
+        bool found_theme = false;
+
         for (const auto &base : base_dirs)
         {
-            std::string candidate = base + "/" + theme_name;
-            if (fs::is_directory(candidate))
+            std::string theme_dir = base + "/" + theme_name;
+            if (!fs::is_directory(theme_dir))
+                continue;
+
+            found_theme = true;
+            ThemeInfo info = parse_index_theme(theme_dir);
+            if (!info.parents.empty()) {
+                last_valid_info = info; // Save parents from the most complete index.theme
+            }
+
+            for (const auto &dir : info.directories)
             {
-                theme_dir = candidate;
-                break;
+                std::string base_path = theme_dir + "/" + dir.path + "/" + icon_name;
+                std::string result = try_file_extensions(base_path);
+                if (!result.empty())
+                {
+                    int dist = directory_size_distance(dir, size);
+                    if (dist < min_distance_overall)
+                    {
+                        min_distance_overall = dist;
+                        best_path_overall = result;
+                    }
+
+                    // If we found a perfect match (distance 0), we can stop early
+                    if (min_distance_overall == 0)
+                        return best_path_overall;
+                }
             }
         }
 
-        if (theme_dir.empty())
+        if (!best_path_overall.empty())
+            return best_path_overall;
+
+        if (!found_theme)
             return "";
 
-        ThemeInfo info = parse_index_theme(theme_dir);
-
-        // Step 1: Find the directory with the minimum distance
-        int min_distance = INT_MAX;
-        std::string best_path;
-
-        for (const auto &dir : info.directories)
-        {
-            std::string base_path = theme_dir + "/" + dir.path + "/" + icon_name;
-            std::string result = try_file_extensions(base_path);
-            if (!result.empty())
-            {
-                int dist = directory_size_distance(dir, size);
-                if (dist < min_distance)
-                {
-                    min_distance = dist;
-                    best_path = result;
-                }
-
-                // If we found a perfect match (distance 0), we can stop
-                if (min_distance == 0)
-                    return best_path;
-            }
-        }
-
-        if (!best_path.empty())
-            return best_path;
-
-        // Step 3: Try parent themes (Inherits)
-        for (const auto &parent : info.parents)
+        // Try parent themes (Inherits) using the parents found in the index.theme
+        for (const auto &parent : last_valid_info.parents)
         {
             if (parent == theme_name)
                 continue; // avoid infinite loop
