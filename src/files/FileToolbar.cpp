@@ -146,7 +146,7 @@ namespace horizon::files
         up_icon->set_icon_size(16);
         up_icon->set_fixed_size(32);
         up_icon->set_use_theme_colors(true);
-        m_path_button->add_item(std::move(up_icon));
+        m_path_button->add_item(std::move(up_icon), 40);
 
         m_path_button->add_item(folder_name);
 

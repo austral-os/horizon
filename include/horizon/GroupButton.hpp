@@ -27,8 +27,8 @@ namespace horizon
                             bool force = false) override;
         virtual void draw(GraphicsContext &ctx) override;
 
-        virtual void add_item(std::string text);
-        virtual void add_item(std::unique_ptr<Icon> icon);
+        virtual void add_item(std::string text, int width = -1);
+        virtual void add_item(std::unique_ptr<Icon> icon, int width = -1);
 
         EventsManager<GroupButtonClickEvent> when_button_clicked;
 

@@ -43,10 +43,10 @@ namespace horizon
         }
     }
 
-    void ToggleGroupButton::add_item(std::string text)
+    void ToggleGroupButton::add_item(std::string text, int width)
     {
         int index = children().size();
-        GroupButton::add_item(text);
+        GroupButton::add_item(text, width);
 
         auto &btn_ptr = children().back();
         if (auto button = dynamic_cast<Button<SolidObject> *>(btn_ptr.get()))
@@ -70,10 +70,10 @@ namespace horizon
         }
     }
 
-    void ToggleGroupButton::add_item(std::unique_ptr<Icon> icon)
+    void ToggleGroupButton::add_item(std::unique_ptr<Icon> icon, int width)
     {
         int index = children().size();
-        GroupButton::add_item(std::move(icon));
+        GroupButton::add_item(std::move(icon), width);
 
         auto &btn_ptr = children().back();
         if (auto button = dynamic_cast<Button<SolidObject> *>(btn_ptr.get()))

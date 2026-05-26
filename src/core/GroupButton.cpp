@@ -66,11 +66,15 @@ namespace horizon
         }
     }
 
-    void GroupButton::add_item(std::string text)
+    void GroupButton::add_item(std::string text, int width)
     {
 
         auto button = std::make_unique<Button<SolidObject>>();
         button->set_text(text);
+        if (width > 0)
+        {
+            button->set_fixed_size(width);
+        }
 
         auto ptr_button = button.get();
 
@@ -88,13 +92,17 @@ namespace horizon
         add_child(std::move(button));
     }
 
-    void GroupButton::add_item(std::unique_ptr<Icon> icon)
+    void GroupButton::add_item(std::unique_ptr<Icon> icon, int width)
     {
 
         auto button = std::make_unique<Button<SolidObject>>();
         icon->set_fixed_size(m_available_draw_height);
         icon->set_vertical_alignment(VerticalAlignment::Middle);
         button->add_child(std::move(icon));
+        if (width > 0)
+        {
+            button->set_fixed_size(width);
+        }
         auto ptr_button = button.get();
 
         int index = children().size();

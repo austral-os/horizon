@@ -13,8 +13,8 @@ namespace horizon
         void set_current_item(int index);
         int current_item() const;
 
-        void add_item(std::string text) override;
-        void add_item(std::unique_ptr<Icon> icon) override;
+        void add_item(std::string text, int width = -1) override;
+        void add_item(std::unique_ptr<Icon> icon, int width = -1) override;
 
     protected:
         void configure() override;
