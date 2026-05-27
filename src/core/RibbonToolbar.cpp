@@ -1,4 +1,3 @@
-#include "horizon/Spacer.hpp"
 #include <algorithm>
 #include <cmath>
 #include <horizon/EventsManager.hpp>
@@ -10,6 +9,23 @@
 
 namespace horizon
 {
+
+    RibbonFrame::RibbonFrame() : Frame()
+    {
+        set_position_type(FREE);
+    }
+
+    void RibbonFrame::draw(GraphicsContext &ctx)
+    {
+        int radius = 10;
+        Color bg = theme_manager()->get_color("window_bg");
+
+        ctx.setColor(bg);
+        ctx.fillRect(m_start_draw_x, m_start_draw_y, m_available_draw_width,
+                     m_available_draw_height - 2, {radius});
+
+        Frame::draw(ctx);
+    }
 
     // --- RibbonTabButton ---
     class RibbonTabButton : public Widget
@@ -53,10 +69,10 @@ namespace horizon
             // Usar siempre métricas de peso normal para Y → mismo nivel en todos los tabs
             TextMetrics ref_metrics =
                 ctx.getTextMetrics(m_title.c_str(), font.family.c_str(), font.size,
-                                   FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+                                   FONT_SLANT_NORMAL, FONT_WEIGHT_BOLD);
 
             int text_x = m_start_draw_x + (m_width - metrics.width) / 2;
-            int text_y = m_y + (m_height + ref_metrics.height) / 2 - 2;
+            int text_y = m_y + (m_height + ref_metrics.height) / 2;
 
             ctx.drawText(text_x, text_y, m_title.c_str());
 
@@ -133,13 +149,13 @@ namespace horizon
         Color fg = theme_manager()->get_color("window_fg");
         auto font = theme_manager()->get_font("titlebar");
 
-        font.size -= 4;
+        font.size -= 6;
 
         ctx.setColor(fg);
-        ctx.setDrawFont(font.family.c_str(), font.size, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+        ctx.setDrawFont(font.family.c_str(), font.size, FONT_SLANT_NORMAL, FONT_WEIGHT_BOLD);
 
         TextMetrics metrics = ctx.getTextMetrics(m_title.c_str(), font.family.c_str(), font.size,
-                                                 FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+                                                 FONT_SLANT_NORMAL, FONT_WEIGHT_BOLD);
         int text_x = m_start_draw_x + (m_width - metrics.width) / 2;
         int text_y = m_start_draw_y + m_height - m_margin - 4;
 
@@ -158,10 +174,9 @@ namespace horizon
 
         auto container = std::make_unique<Widget>();
         container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        container->set_spacing(5);
-        container->set_margin(5);
-        container->set_background_color(
-            theme_manager()->get_color("ribbon_tab_active_title_bg").lighter((30.0f)));
+        container->set_spacing(2);
+        container->set_margin(2);
+        container->set_background_color(theme_manager()->get_color("ribbon_tab_active_title_bg"));
 
         m_container = container.get();
 
@@ -169,7 +184,7 @@ namespace horizon
             [this](ThemeEventContext &)
             {
                 m_container->set_background_color(
-                    theme_manager()->get_color("ribbon_tab_active_title_bg").lighter((30.0f)));
+                    theme_manager()->get_color("ribbon_tab_active_title_bg"));
             });
 
         m_header = new Widget();
@@ -179,7 +194,7 @@ namespace horizon
         m_header->set_fixed_size(20);
         add_child(std::unique_ptr<Widget>(m_header));
 
-        m_content_frame = new Frame();
+        m_content_frame = new RibbonFrame();
         m_content_frame->set_position_type(FILL);
         container->add_child(std::unique_ptr<Widget>(m_content_frame));
 
@@ -423,8 +438,7 @@ namespace horizon
         if (m_active_tab_index >= 0 && m_active_tab_index < (int)m_tabs.size())
         {
             Widget *btn = m_tabs[m_active_tab_index].button;
-            Color active_bg =
-                theme_manager()->get_color("ribbon_tab_active_title_bg").darker(15.0f);
+            Color active_bg = theme_manager()->get_color("ribbon_tab_active_title_bg");
             ctx.setColor(active_bg);
             ctx.fillRect(btn->x(), m_y, btn->width(), header_total_h);
         }

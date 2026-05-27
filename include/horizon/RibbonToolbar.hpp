@@ -9,6 +9,13 @@
 namespace horizon
 {
 
+    class RibbonFrame : public Frame
+    {
+    public:
+        RibbonFrame();
+        void draw(GraphicsContext &ctx) override;
+    };
+
     class RibbonSection : public Widget
     {
     public:
@@ -54,8 +61,8 @@ namespace horizon
         void set_application_recursive(WaylandWindow *app) override;
 
     private:
-        Widget *m_header;       // Container for tab titles (sidebar_bg)
-        Frame *m_content_frame; // Content frame (window_bg)
+        Widget *m_header;             // Container for tab titles (sidebar_bg)
+        RibbonFrame *m_content_frame; // Content frame (window_bg)
         Widget *m_container;
 
         struct TabData

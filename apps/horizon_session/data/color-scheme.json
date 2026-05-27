@@ -11,12 +11,12 @@
             "aqua_primary2": "#0a84ff",
             "default1": "#1c1c1e",
             "default2": "#2c2c2e",
-            "dock_surface1": "#2c2c2e",
-            "dock_surface2": "#1c1c1e",
+            "dock_glare": "#4a4a4c",
             "dock_lip1": "#3a3a3c",
             "dock_lip2": "#1c1c1e",
-            "dock_glare": "#4a4a4c",
             "dock_shadow": "#000000",
+            "dock_surface1": "#2c2c2e",
+            "dock_surface2": "#1c1c1e",
             "error1": "#ff453a",
             "error2": "#ff6961",
             "group_alt_1": "#2c2c2e",
@@ -42,6 +42,8 @@
             "panel_border": "#3a3a3c",
             "primary1": "#007aff",
             "primary2": "#0a84ff",
+            "ribbon_tab_active_title_bg": "#26262c",
+            "ribbon_tab_title_bg": "#36363c",
             "secondary1": "#0a84ff",
             "secondary2": "#007aff",
             "sidebar_bg": "#36363c",
@@ -79,9 +81,7 @@
             "window_bg": "#1c1c1e",
             "window_bg_alt": "#1f1f1f",
             "window_border": "#3a3a3c",
-            "window_fg": "#dfdfdf",
-            "ribbon_tab_title_bg": "#36363c",
-            "ribbon_tab_active_title_bg": "#26262c"
+            "window_fg": "#dfdfdf"
         },
         "light": {
             "air_border": "#666666",
@@ -94,12 +94,12 @@
             "aqua_primary2": "#61aff5",
             "default1": "#616161",
             "default2": "#dddddd",
-            "dock_surface1": "#ffffff",
-            "dock_surface2": "#ffffff",
+            "dock_glare": "#ffffff",
             "dock_lip1": "#cccccc",
             "dock_lip2": "#666666",
-            "dock_glare": "#ffffff",
             "dock_shadow": "#191919",
+            "dock_surface1": "#ffffff",
+            "dock_surface2": "#ffffff",
             "error1": "#e11e41",
             "error2": "#f5617f",
             "group_alt_1": "#f5f5f5",
@@ -125,6 +125,8 @@
             "panel_border": "#b3b3b3",
             "primary1": "#1e4ce1",
             "primary2": "#61aff5",
+            "ribbon_tab_active_title_bg": "#bdc6db",
+            "ribbon_tab_title_bg": "#adb7cc",
             "secondary1": "#61aff5",
             "secondary2": "#1e4ce1",
             "sidebar_bg": "#dfe6ee",
@@ -162,9 +164,7 @@
             "window_bg": "#f2f2f2",
             "window_bg_alt": "#f4f4f4",
             "window_border": "#787878",
-            "window_fg": "#212121",
-            "ribbon_tab_title_bg": "#dfe6ee",
-            "ribbon_tab_active_title_bg": "#cfd6de"
+            "window_fg": "#212121"
         }
     },
     "fonts": {
@@ -179,7 +179,7 @@
             "weight": "bold"
         }
     },
-    "menu_opacity": 1.0,
+    "menu_opacity": 0.803398072719574,
     "panel_opacity": 0.6340579390525818,
     "variant": "light"
 }
