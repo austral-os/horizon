@@ -1,81 +1,101 @@
-# Documentación de `FileDialog`
+# `FileDialog` Documentation
 
-El framework Horizon proporciona la clase `FileDialog` para facilitar la selección de archivos y carpetas dentro de las aplicaciones. Esta componente hereda de `WaylandWindow` y ofrece una interfaz estandarizada que incluye una barra lateral de lugares, vista de archivos (rejilla o lista), barra de herramientas con búsqueda y controles de navegación.
+The Horizon framework provides the `FileDialog` class to facilitate the selection of files and folders within applications. This component inherits from `WaylandWindow` and offers a standardized interface that includes a places sidebar, a file view (grid or list), a toolbar with search, and navigation controls.
 
-## 1. Modos de Operación
+## 1. Operating Modes
 
-Al instanciar un `FileDialog`, se debe especificar el modo de operación mediante el enumerado `FileDialogMode`. Los modos disponibles son:
+When instantiating a `FileDialog`, you must specify the operating mode using the `FileDialogMode` enum. The available modes are:
 
-| Modo | Comportamiento |
+| Mode | Behavior |
 | :--- | :--- |
-| `FileDialogMode::Open` | Optimizado para abrir archivos existentes. El botón principal muestra "Open". Al hacer doble clic sobre un archivo, se acepta la selección inmediatamente. |
-| `FileDialogMode::Save` | Optimizado para guardar archivos. El botón principal muestra "Save" y la etiqueta del campo de texto cambia a "Save as:". |
-| `FileDialogMode::SaveAs` | Similar a `Save`. (Actualmente comparte la mayoría de la lógica visual con `Save`). |
-| `FileDialogMode::SelectFolder` | Diseñado para seleccionar directorios. |
-| `FileDialogMode::New` | Utilizado para la creación de nuevos archivos o proyectos. |
+| `FileDialogMode::Open` | Optimized for opening existing files. The main button displays "Open". Double-clicking a file accepts the selection immediately. |
+| `FileDialogMode::Save` | Optimized for saving files. The main button displays "Save" and the text field label changes to "Save as:". |
+| `FileDialogMode::SaveAs` | Similar to `Save`. (Currently shares most of the visual logic with `Save`). |
+| `FileDialogMode::SelectFolder` | Designed for selecting directories. |
+| `FileDialogMode::New` | Used for creating new files or projects. |
 
-## 2. Uso Básico
+## 2. Basic Usage
 
-Para utilizar un diálogo de archivos, se debe crear una instancia, configurar los callbacks de respuesta y mostrar la ventana.
+To use a file dialog, you must create an instance, set up the response callbacks, and display the window.
 
-### Ejemplo: Abrir un archivo
+### Example: Opening a file
 
 ```cpp
 #include <horizon/dialogs/FileDialog/FileDialog.hpp>
 
-// ... dentro de algún método de tu aplicación
+// ... inside a method of your application
 
 auto dialog = std::make_unique<horizon::FileDialog>(
     horizon::FileDialogMode::Open, 
-    "Abrir Documento"
+    "Open Document"
 );
 
-// Configurar qué hacer cuando el usuario selecciona un archivo
+// Configure what to do when the user selects a file
 dialog->when_accepted.connect([](horizon::FileDialogAcceptedContext &ctx) {
-    LOG_INFO("Archivo seleccionado: {}", ctx.selected_path);
-    // Lógica para abrir el archivo
+    LOG_INFO("Selected file: {}", ctx.selected_path);
+    // Logic to open the file
 });
 
-// Configurar qué hacer si el usuario cancela
+// Configure what to do if the user cancels
 dialog->when_cancelled.connect([](horizon::FileDialogCancelledContext &ctx) {
-    LOG_INFO("Selección cancelada");
+    LOG_INFO("Selection cancelled");
 });
 
-// Establecer la ruta inicial (opcional)
+// Set the initial path (optional)
 dialog->set_current_path("/home/user/Documents");
 
-// El diálogo se muestra automáticamente al ser manejado por el sistema de ventanas
-// o puede ser añadido a la aplicación.
+// The dialog is automatically displayed as it is handled by the window system,
+// or it can be added to the application.
 ```
 
-## 3. API Pública
+## 3. Public API
 
 ### Constructor
 ```cpp
 FileDialog(FileDialogMode mode, const std::string &title = "");
 ```
-*   `mode`: El modo de operación (`Open`, `Save`, `SaveAs`, `SelectFolder` o `New`).
-*   `title`: El título que se mostrará en la barra de la ventana. Si se deja vacío, se usará un valor por defecto según el modo.
+*   `mode`: The operating mode (`Open`, `Save`, `SaveAs`, `SelectFolder` or `New`).
+*   `title`: The title to be displayed in the window's title bar. If left empty, a default value based on the mode will be used.
 
-### Métodos
-*   `void set_current_path(const std::string &path)`: Cambia el directorio actual que muestra el diálogo.
-*   `std::string selected_path() const`: Retorna la ruta completa actualmente ingresada o seleccionada en el diálogo.
+### Methods
+*   `void set_current_path(const std::string &path)`: Changes the current directory shown in the dialog.
+*   `std::string selected_path() const`: Returns the full path currently entered or selected in the dialog.
 
-### Señales (EventsManager)
-*   `when_accepted`: `EventsManager<FileDialogAcceptedContext>`. Se ejecuta cuando el usuario confirma la acción (clic en Open/Save o Enter en el campo de texto). El contexto contiene la propiedad `selected_path`.
-*   `when_cancelled`: `EventsManager<FileDialogCancelledContext>`. Se ejecuta cuando el usuario cierra el diálogo o presiona "Cancel".
+### Signals (EventsManager)
+*   `when_accepted`: `EventsManager<FileDialogAcceptedContext>`. Executed when the user confirms the action (clicking Open/Save or pressing Enter in the text field). The context contains the `selected_path` property.
+*   `when_cancelled`: `EventsManager<FileDialogCancelledContext>`. Executed when the user closes the dialog or clicks "Cancel".
 
-## 4. Detalles de Implementación y Navegación
+## 4. File Filtering (FileFilters)
 
-*   **Barra Lateral (Sidebar)**: Permite accesos rápidos a carpetas del sistema como **All My Files**, **Aplicaciones**, **Desktop**, **Documents**, **Downloads** e **iCloud Drive**.
-*   **Búsqueda**: La barra de herramientas incluye un campo de búsqueda filtrada en tiempo real.
-*   **Modos de Vista**: El usuario puede alternar entre vista de **Iconos (Grid)**, **Lista (List)** y **CoverFlow** a través de los controles en la barra de herramientas.
-*   **Navegación**: Soporta navegación hacia atrás y hacia adelante, similar a un navegador web.
+The selection dialog allows you to restrict file visibility (except for directories, which are always shown) by defining filters based on extensions or patterns.
 
-## 5. Consideraciones para el modo de Guardado
+To enable this feature, you need to declare an array of `horizon::FileFilter` structures and pass it to the dialog:
 
-En el modo `Save` o `SaveAs`, el diálogo permite al usuario escribir un nombre de archivo que aún no existe en el directorio actual. La señal `when_accepted` devolverá la ruta completa construida a partir del directorio actual y el nombre ingresado.
+```cpp
+std::vector<horizon::FileFilter> filters = {
+    {"Images", {"*.png", "*.jpg", "*.jpeg"}},
+    {"PDF Documents", {"*.pdf"}},
+    {"All Supported Files", {"*.png", "*.jpg", "*.jpeg", "*.pdf"}},
+    {"All Files", {"*"}}
+};
+
+// You must inject the list of filters before running the dialog
+dialog->set_filters(filters);
+```
+
+When filters are injected, the dialog interface will automatically display a drop-down menu (Combo box) at the bottom. By selecting an option from the menu, the current view will dynamically refresh, hiding all files that do not match the `glob` patterns or extensions of the active filter.
+
+## 5. Implementation Details and Navigation
+
+*   **Sidebar**: Provides quick access to system folders like **All My Files**, **Applications**, **Desktop**, **Documents**, **Downloads**, and **iCloud Drive**.
+*   **Search**: The toolbar includes a real-time filtered search field.
+*   **View Modes**: The user can toggle between **Icon (Grid)**, **List**, and **CoverFlow** views using the toolbar controls.
+*   **Navigation**: Supports backward and forward navigation, similar to a web browser.
+
+## 6. Considerations for Save Mode
+
+In `Save` or `SaveAs` mode, the dialog allows the user to type a file name that does not yet exist in the current directory. The `when_accepted` signal will return the full path constructed from the current directory and the entered name.
 
 ---
 > [!TIP]
-> Dado que `FileDialog` es una `WaylandWindow`, se comporta como una ventana independiente. Asegúrate de gestionar correctamente el ciclo de vida del objeto (por ejemplo, manteniéndolo en un `std::unique_ptr` dentro de tu clase principal) para evitar que se destruya antes de recibir la respuesta.
+> Since `FileDialog` is a `WaylandWindow`, it behaves like an independent window. Ensure you properly manage the object's lifecycle (for example, keeping it in a `std::unique_ptr` within your main class) to prevent it from being destroyed before receiving the response.
