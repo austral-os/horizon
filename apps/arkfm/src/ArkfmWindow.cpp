@@ -219,11 +219,11 @@ namespace horizon::arkfm
             {
                 auto menu = std::make_unique<horizon::Menu>();
 
-                auto item_open = menu->add_item("Abrir");
+                auto item_open = menu->add_item(i18n().tr("arkfm.menu.open"));
                 item_open->when_click.connect([this, f](auto &)
                                               { this->m_view_ptr->open_item(f); });
 
-                auto item_open_with = menu->add_item("Abrir con...");
+                auto item_open_with = menu->add_item(i18n().tr("arkfm.menu.open_with"));
                 auto sub_open_with = std::make_unique<horizon::Menu>();
 
                 std::string mime = DesktopManager::get_mime_type(f.path);
@@ -242,7 +242,7 @@ namespace horizon::arkfm
                 if (!apps.empty())
                     sub_open_with->add_separator();
 
-                auto item_other = sub_open_with->add_item("Elegir otra aplicación...");
+                auto item_other = sub_open_with->add_item(i18n().tr("arkfm.menu.choose_app"));
                 item_other->when_click.connect(
                     [this, f](auto &)
                     {
@@ -267,14 +267,14 @@ namespace horizon::arkfm
 
                 if (compression::CompressionManager::is_supported_archive(f.path))
                 {
-                    auto item_extract = menu->add_item("Descomprimir aquí");
+                    auto item_extract = menu->add_item(i18n().tr("arkfm.menu.extract_here"));
                     item_extract->when_click.connect([this, f](auto &)
                                                      { this->handle_extract(f.path); });
                     menu->add_separator();
                 }
                 else
                 {
-                    auto item_compress = menu->add_item("Comprimir...");
+                    auto item_compress = menu->add_item(i18n().tr("arkfm.menu.compress"));
                     auto sub = std::make_unique<horizon::Menu>();
 
                     auto get_paths_to_compress = [this, f]()
@@ -314,7 +314,7 @@ namespace horizon::arkfm
                     menu->add_separator();
                 }
 
-                auto item_rename = menu->add_item("Renombrar");
+                auto item_rename = menu->add_item(i18n().tr("arkfm.menu.rename"));
                 item_rename->when_click.connect(
                     [this, f](auto &)
                     {
@@ -325,7 +325,7 @@ namespace horizon::arkfm
                 if (f.type == horizon::arkutils::FileType::Directory)
                 {
                     menu->add_separator();
-                    auto item_fav = menu->add_item("Añadir a marcadores");
+                    auto item_fav = menu->add_item(i18n().tr("arkfm.menu.add_bookmark"));
                     item_fav->when_click.connect([this, f](auto &)
                                                  {
                                                      this->application()->post_task([this, f]()
@@ -337,7 +337,7 @@ namespace horizon::arkfm
                     m_view_ptr->current_path().find("/.local/share/Trash") != std::string::npos;
                 if (!is_in_trash)
                 {
-                    auto item_trash = menu->add_item("Mover a la papelera");
+                    auto item_trash = menu->add_item(i18n().tr("arkfm.menu.move_to_trash"));
                     item_trash->when_click.connect(
                         [this, f](auto &)
                         {
@@ -366,7 +366,7 @@ namespace horizon::arkfm
                 }
                 else
                 {
-                    auto item_restore = menu->add_item("Restaurar");
+                    auto item_restore = menu->add_item(i18n().tr("arkfm.menu.restore"));
                     item_restore->when_click.connect(
                         [this, f](auto &)
                         {
@@ -394,7 +394,7 @@ namespace horizon::arkfm
                         });
                 }
 
-                auto item_delete = menu->add_item("Eliminar");
+                auto item_delete = menu->add_item(i18n().tr("arkfm.menu.delete"));
                 item_delete->when_click.connect(
                     [this, f](auto &)
                     {
@@ -423,7 +423,7 @@ namespace horizon::arkfm
 
                 menu->add_separator();
 
-                auto item_props = menu->add_item("Propiedades");
+                auto item_props = menu->add_item(i18n().tr("arkfm.menu.properties"));
                 item_props->when_click.connect(
                     [this, f](auto &)
                     {
@@ -443,7 +443,7 @@ namespace horizon::arkfm
                     });
 
                 menu->add_separator();
-                auto item_connect = menu->add_item("Conectar al servidor...");
+                auto item_connect = menu->add_item(i18n().tr("arkfm.menu.connect_to_server"));
                 item_connect->when_click.connect(
                     [this](auto &) { application()->signal_manager.emit("go-connect"); });
 
@@ -628,13 +628,13 @@ namespace horizon::arkfm
                                     m_active_context_menu->add_separator();
                                 }
 
-                                auto item_new = m_active_context_menu->add_item("Nueva carpeta");
+                                auto item_new = m_active_context_menu->add_item(i18n().tr("arkfm.menu.new_folder"));
                                 item_new->when_click.connect([this](auto &)
                                                              { this->handle_new_folder(); });
 
                                 m_active_context_menu->add_separator();
 
-                                auto item_props = m_active_context_menu->add_item("Propiedades");
+                                auto item_props = m_active_context_menu->add_item(i18n().tr("arkfm.menu.properties"));
                                 item_props->when_click.connect([this](auto &)
                                                                { this->handle_properties(); });
 
@@ -651,7 +651,7 @@ namespace horizon::arkfm
                                 m_active_context_menu->add_separator();
 
                                 auto item_connect =
-                                    m_active_context_menu->add_item("Conectar al servidor...");
+                                    m_active_context_menu->add_item(i18n().tr("arkfm.menu.connect_to_server"));
                                 item_connect->when_click.connect(
                                     [this](auto &)
                                     { application()->signal_manager.emit("go-connect"); });
@@ -724,7 +724,7 @@ namespace horizon::arkfm
                     [this](NewFolderEvent &ctx)
                     {
                         std::string full_path = m_view_ptr->current_path() + "/" + ctx.folder_name;
-                        show_status_message("Creando carpeta...");
+                        show_status_message(i18n().tr("arkfm.messages.creating_folder"));
                         auto future = arkutils::FileOperations::create_directory(full_path);
                         std::thread(
                             [this, f = std::move(future)]() mutable
@@ -737,7 +737,7 @@ namespace horizon::arkfm
                                         {
                                             if (result == arkutils::FileOperations::Result::Success)
                                             {
-                                                show_status_message("Carpeta creada");
+                                                show_status_message(i18n().tr("arkfm.messages.folder_created"));
                                                 if (m_view_ptr)
                                                     m_view_ptr->refresh();
                                             }
@@ -784,7 +784,7 @@ namespace horizon::arkfm
             file << encoded_uri << "\n";
             file.close();
             
-            show_status_message("Añadido a marcadores");
+            show_status_message(i18n().tr("arkfm.messages.added_to_bookmarks"));
             
             if (m_sidebar_ptr)
                 m_sidebar_ptr->refresh_devices();
@@ -805,7 +805,7 @@ namespace horizon::arkfm
                 {
                     application()->alert("Ya existe un archivo o carpeta con el nombre '" +
                                              ctx.new_name + "' en esta ubicación.",
-                                         "Error al renombrar", MessageType::Error);
+                                         i18n().tr("arkfm.messages.rename_error"), MessageType::Error);
                     return;
                 }
 
@@ -821,7 +821,7 @@ namespace horizon::arkfm
                                 {
                                     if (result == arkutils::FileOperations::Result::Success)
                                     {
-                                        show_status_message("Renombrado con éxito");
+                                        show_status_message(i18n().tr("arkfm.messages.rename_success"));
                                         if (m_view_ptr)
                                             m_view_ptr->refresh();
                                     }
@@ -852,17 +852,20 @@ namespace horizon::arkfm
         if (paths.size() == 1)
         {
             std::string filename = std::filesystem::path(paths[0]).filename().string();
-            prompt_msg = "¿Está seguro que desea eliminar '" + filename + "'?";
+            prompt_msg = i18n().tr("arkfm.messages.delete_prompt_single");
+            size_t pos = prompt_msg.find("%1");
+            if (pos != std::string::npos) prompt_msg.replace(pos, 2, filename);
         }
         else
         {
-            prompt_msg = "¿Está seguro que desea eliminar los " + std::to_string(paths.size()) +
-                         " elementos seleccionados?";
+            prompt_msg = i18n().tr("arkfm.messages.delete_prompt_multiple");
+            size_t pos = prompt_msg.find("%1");
+            if (pos != std::string::npos) prompt_msg.replace(pos, 2, std::to_string(paths.size()));
         }
 
         if (application()->confirm(prompt_msg, "Confirmar eliminación"))
         {
-            show_status_message("Eliminando...");
+            show_status_message(i18n().tr("arkfm.messages.deleting"));
             std::thread(
                 [this, paths]() mutable
                 {
@@ -884,12 +887,12 @@ namespace horizon::arkfm
                             {
                                 if (all_success)
                                 {
-                                    show_status_message("Eliminado con éxito");
+                                    show_status_message(i18n().tr("arkfm.messages.delete_success"));
                                 }
                                 else
                                 {
                                     application()->alert(
-                                        "Error al intentar eliminar algunos archivos o carpetas.",
+                                        i18n().tr("arkfm.messages.delete_error_multi"),
                                         "Error", MessageType::Error);
                                 }
                                 if (m_view_ptr)
@@ -911,7 +914,7 @@ namespace horizon::arkfm
 
         application()->set_override_cursor(CursorType::Wait);
 
-        show_status_message("Moviendo a la papelera...");
+        show_status_message(i18n().tr("arkfm.messages.moving_to_trash"));
         std::thread(
             [this, paths]() mutable
             {
@@ -934,12 +937,12 @@ namespace horizon::arkfm
                         {
                             if (all_success)
                             {
-                                show_status_message("Movido a la papelera con éxito");
+                                show_status_message(i18n().tr("arkfm.messages.moved_to_trash_success"));
                             }
                             else
                             {
                                 application()->alert(
-                                    "Error al intentar mover algunos elementos a la papelera.",
+                                    i18n().tr("arkfm.messages.trash_error_multi"),
                                     "Error", MessageType::Error);
                             }
                             if (m_view_ptr)
@@ -961,7 +964,7 @@ namespace horizon::arkfm
 
         application()->set_override_cursor(CursorType::Wait);
 
-        show_status_message("Restaurando de la papelera...");
+        show_status_message(i18n().tr("arkfm.messages.restoring_from_trash"));
         std::thread(
             [this, paths]() mutable
             {
@@ -985,12 +988,12 @@ namespace horizon::arkfm
                         {
                             if (all_success)
                             {
-                                show_status_message("Restaurado con éxito");
+                                show_status_message(i18n().tr("arkfm.messages.restore_success"));
                             }
                             else
                             {
                                 application()->alert(
-                                    "Error al intentar restaurar algunos elementos de la papelera.",
+                                    i18n().tr("arkfm.messages.restore_error_multi"),
                                     "Error", MessageType::Error);
                             }
                             if (m_view_ptr)
@@ -1016,7 +1019,7 @@ namespace horizon::arkfm
             m_is_deleting = true;
             application()->set_override_cursor(CursorType::Wait);
 
-            show_status_message("Vaciando papelera...");
+            show_status_message(i18n().tr("arkfm.messages.emptying_trash"));
             std::thread(
                 [this]() mutable
                 {
@@ -1030,11 +1033,11 @@ namespace horizon::arkfm
                             {
                                 if (result == 0)
                                 {
-                                    show_status_message("Papelera vaciada con éxito");
+                                    show_status_message(i18n().tr("arkfm.messages.empty_trash_success"));
                                 }
                                 else
                                 {
-                                    application()->alert("Error al intentar vaciar la papelera.",
+                                    application()->alert(i18n().tr("arkfm.messages.empty_trash_error"),
                                                          "Error", MessageType::Error);
                                 }
                                 if (m_view_ptr)
@@ -1344,7 +1347,7 @@ namespace horizon::arkfm
     void ArkfmWindow::handle_extract(const std::string &path)
     {
         std::string dest = m_view_ptr->current_path();
-        show_status_message("Extrayendo archivo...");
+        show_status_message(i18n().tr("arkfm.messages.extracting"));
 
         auto task = compression::CompressionManager::extract_smart(path, dest);
         m_active_tasks.push_back(task);
@@ -1372,7 +1375,7 @@ namespace horizon::arkfm
 
                         if (ev.success)
                         {
-                            show_status_message("Extracción finalizada");
+                            show_status_message(i18n().tr("arkfm.messages.extract_success"));
                             NotificationSender::send("Extracción completada",
                                                      "El archivo se ha extraído correctamente.",
                                                      "package-x-generic");
@@ -1381,8 +1384,8 @@ namespace horizon::arkfm
                         }
                         else
                         {
-                            show_status_message("Error al extraer");
-                            application()->alert("Error al extraer el archivo: " + ev.error_message,
+                            show_status_message(i18n().tr("arkfm.messages.extract_error"));
+                            application()->alert(i18n().tr("arkfm.messages.extract_error") + ": " + ev.error_message,
                                                  "Error", MessageType::Error);
                         }
 
@@ -1427,7 +1430,7 @@ namespace horizon::arkfm
             counter++;
         }
 
-        show_status_message("Comprimiendo...");
+        show_status_message(i18n().tr("arkfm.messages.compressing"));
 
         compression::ArchiveFormat fmt =
             compression::CompressionManager::format_from_extension(format_ext);
@@ -1455,7 +1458,7 @@ namespace horizon::arkfm
 
                         if (ev.success)
                         {
-                            show_status_message("Compresión finalizada");
+                            show_status_message(i18n().tr("arkfm.messages.compress_success"));
                             NotificationSender::send("Compresión completada",
                                                      "El archivo se ha creado correctamente.",
                                                      "package-x-generic");
@@ -1464,8 +1467,8 @@ namespace horizon::arkfm
                         }
                         else
                         {
-                            show_status_message("Error al comprimir");
-                            application()->alert("Error al comprimir: " + ev.error_message, "Error",
+                            show_status_message(i18n().tr("arkfm.messages.compress_error"));
+                            application()->alert(i18n().tr("arkfm.messages.compress_error") + ": " + ev.error_message, "Error",
                                                  MessageType::Error);
                         }
 

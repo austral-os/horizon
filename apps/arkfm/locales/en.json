@@ -27,7 +27,15 @@
       "applications": "Applications",
       "go_to_folder": "Go to Folder...",
       "connect_to_server": "Connect to Server...",
-      "open_terminal": "Open in Terminal"
+      "open_terminal": "Open in Terminal",
+      "open_with": "Open with...",
+      "choose_app": "Choose another application...",
+      "extract_here": "Extract here",
+      "compress": "Compress...",
+      "add_bookmark": "Add to Bookmarks",
+      "move_to_trash": "Move to Trash",
+      "restore": "Restore",
+      "empty_trash": "Empty Trash"
     },
     "dialog": {
       "properties": "Properties",
@@ -59,7 +67,32 @@
       "read_write": "Read & Write"
     },
     "messages": {
-      "already_mounted": "The location is already mounted."
+      "already_mounted": "The location is already mounted.",
+      "creating_folder": "Creating folder...",
+      "folder_created": "Folder created",
+      "added_to_bookmarks": "Added to bookmarks",
+      "rename_success": "Renamed successfully",
+      "deleting": "Deleting...",
+      "delete_success": "Deleted successfully",
+      "moving_to_trash": "Moving to Trash...",
+      "moved_to_trash_success": "Moved to Trash successfully",
+      "restoring_from_trash": "Restoring from Trash...",
+      "restore_success": "Restored successfully",
+      "emptying_trash": "Emptying Trash...",
+      "empty_trash_success": "Trash emptied successfully",
+      "extracting": "Extracting file...",
+      "extract_success": "Extraction finished",
+      "extract_error": "Error extracting",
+      "compressing": "Compressing...",
+      "compress_success": "Compression finished",
+      "compress_error": "Error compressing",
+      "delete_prompt_single": "Are you sure you want to delete '%1'?",
+      "delete_prompt_multiple": "Are you sure you want to delete the %1 selected items?",
+      "delete_error_multi": "Error attempting to delete some files or folders.",
+      "trash_error_multi": "Error attempting to move some items to the Trash.",
+      "restore_error_multi": "Error attempting to restore some items from the Trash.",
+      "empty_trash_error": "Error attempting to empty the Trash.",
+      "rename_error": "Error renaming"
     }
   }
 }
