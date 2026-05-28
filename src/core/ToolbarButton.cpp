@@ -1,13 +1,14 @@
-#include <horizon/ToolbarButton.hpp>
+#include <horizon/Application.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Label.hpp>
-#include <horizon/Application.hpp>
 #include <horizon/ThemeManager.hpp>
+#include <horizon/ToolbarButton.hpp>
 
 namespace horizon
 {
-    ToolbarButton::ToolbarButton(const std::string &title, const std::string &icon_name)
-        : m_title(title), m_icon_name(icon_name)
+    ToolbarButton::ToolbarButton(const std::string &title, const std::string &icon_name,
+                                 int icon_size)
+        : m_title(title), m_icon_name(icon_name), m_icon_size(icon_size)
     {
         set_fixed_size(64);
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
@@ -15,7 +16,11 @@ namespace horizon
 
         auto icon_widget = std::make_unique<Icon>();
         icon_widget->set_icon_name(m_icon_name);
-        icon_widget->set_icon_size(32);
+        if (m_icon_size > 0)
+        {
+            icon_widget->set_icon_size(m_icon_size);
+        }
+
         icon_widget->set_margin(4);
         add_child(std::move(icon_widget));
 
@@ -42,8 +47,8 @@ namespace horizon
     {
         bool was_empty = m_title.empty();
         m_title = title;
-        
-        Label* label = nullptr;
+
+        Label *label = nullptr;
         for (auto &child : children())
         {
             if (auto l = dynamic_cast<Label *>(child.get()))
@@ -55,7 +60,8 @@ namespace horizon
 
         if (m_title.empty())
         {
-            if (label) remove_child(label);
+            if (label)
+                remove_child(label);
         }
         else
         {
@@ -90,6 +96,23 @@ namespace horizon
         invalidate();
     }
 
+    void ToolbarButton::set_icon_size(int size)
+    {
+        m_icon_size = size;
+        if (m_icon_size > 0)
+        {
+            for (auto &child : children())
+            {
+                if (auto icon = dynamic_cast<Icon *>(child.get()))
+                {
+                    icon->set_icon_size(size);
+                    break;
+                }
+            }
+            invalidate();
+        }
+    }
+
     void ToolbarButton::set_text_color(Color color)
     {
         m_text_color = color;
@@ -110,9 +133,12 @@ namespace horizon
         if (is_enabled() && (m_active || m_is_hovered))
         {
             Color highlight = tm->get_color("titlebar_bg2");
-            if (m_active) {
+            if (m_active)
+            {
                 highlight.a = 0.4f;
-            } else {
+            }
+            else
+            {
                 highlight.a = 0.2f;
             }
             gc.setColor(highlight);
