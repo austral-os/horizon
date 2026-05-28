@@ -294,6 +294,41 @@ namespace horizon::files
                         }
                         auto item = std::make_unique<horizon::SidebarItem>("folder", name);
                         item->set_path(path);
+                        
+                        item->when_right_click.connect([this, uri, bookmarks_path](horizon::MouseButtonEventContext& ctx) {
+                            ctx.stop_propagation = true;
+                            m_context_menu = std::make_unique<horizon::Menu>();
+                            auto r_item = m_context_menu->add_item("Eliminar de marcadores");
+                            r_item->when_click.connect([this, uri, bookmarks_path](auto&) {
+                                application()->post_task([this, uri, bookmarks_path]() {
+                                    std::vector<std::string> lines;
+                                    std::ifstream in(bookmarks_path);
+                                    if (in.is_open()) {
+                                        std::string line;
+                                        while (std::getline(in, line)) {
+                                            if (line.empty()) continue;
+                                            std::istringstream iss(line);
+                                            std::string current_uri;
+                                            iss >> current_uri;
+                                            if (current_uri != uri) {
+                                                lines.push_back(line);
+                                            }
+                                        }
+                                        in.close();
+                                    }
+                                    std::ofstream out(bookmarks_path);
+                                    if (out.is_open()) {
+                                        for (const auto& l : lines) {
+                                            out << l << "\n";
+                                        }
+                                        out.close();
+                                    }
+                                    refresh_devices();
+                                });
+                            });
+                            application()->show_context_menu(m_context_menu.get(), -1, -1, ctx.serial, this);
+                        });
+                        
                         add_item("Marcadores", std::move(item));
                     }
                 }

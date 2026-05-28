@@ -2,6 +2,7 @@
 #include "horizon/Sidebar.hpp"
 #include <horizon/disks/DiskManager.hpp>
 #include <horizon/storage/RemoteManagerBase.hpp>
+#include <horizon/Menu.hpp>
 #include <memory>
 
 namespace horizon::files
@@ -29,5 +30,6 @@ namespace horizon::files
         
         disks::DiskManager m_disk_manager;
         storage::RemoteManagerBase* m_remote_manager{nullptr};
+        std::unique_ptr<Menu> m_context_menu;
     };
 } // namespace horizon::files
