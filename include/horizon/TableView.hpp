@@ -428,6 +428,7 @@ namespace horizon
                 btn->set_corner_radius({0, 0, 0, 0});
                 btn->set_fixed_size(m_columns[i].width);
                 btn->set_font_weight(FONT_WEIGHT_BOLD);
+                btn->set_font_size_delta(-2);
 
                 if (m_sort_column == (int)i)
                 {

@@ -79,11 +79,11 @@ namespace horizon
 
             if (T::m_draw_state == WidgetDrawState::PRESSED)
             {
-                m_label->set_font_size(size - 1);
+                m_label->set_font_size(size - 1 + m_font_size_delta);
             }
             else
             {
-                m_label->set_font_size(size);
+                m_label->set_font_size(size + m_font_size_delta);
             }
 
             m_label->draw(gc);
@@ -109,8 +109,14 @@ namespace horizon
             m_label->set_text_color(color);
         }
 
+        void set_font_size_delta(int delta)
+        {
+            m_font_size_delta = delta;
+        }
+
     private:
         std::unique_ptr<Label> m_label;
+        int m_font_size_delta = 0;
     };
 
 } // namespace horizon
