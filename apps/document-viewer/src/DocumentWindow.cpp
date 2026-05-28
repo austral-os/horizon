@@ -115,7 +115,27 @@ void DocumentWindow::build_toolbar() {
     
     dtb->when_open_clicked.connect([this](const horizon::EventContext&) {
         if (application()) {
-            application()->signal_manager.emit("file.open");
+            std::thread([this]() {
+                auto dialog = std::make_unique<horizon::FileDialog>(
+                    horizon::FileDialogMode::Open, horizon::i18n().tr("core.global_menu.file_open"));
+                
+                std::vector<horizon::FileFilter> filters = {
+                    {"PDF Documents", {"*.pdf"}},
+                    {"All Files", {"*"}}
+                };
+                dialog->set_filters(filters);
+
+                dialog->when_accepted.connect(
+                    [this](horizon::FileDialogAcceptedContext &ctx) {
+                        if (application()) {
+                            application()->post_task([this, path = ctx.selected_path]() {
+                                this->open_file(path);
+                            });
+                        }
+                    });
+
+                dialog->run();
+            }).detach();
         }
     });
 
@@ -151,7 +171,27 @@ void DocumentWindow::build_content() {
     // Botón "+" para abrir nuevos archivos
     m_tabs->when_add_tab_clicked.connect([this](horizon::EventContext&) {
         if (application()) {
-            application()->signal_manager.emit("file.open");
+            std::thread([this]() {
+                auto dialog = std::make_unique<horizon::FileDialog>(
+                    horizon::FileDialogMode::Open, horizon::i18n().tr("core.global_menu.file_open"));
+                
+                std::vector<horizon::FileFilter> filters = {
+                    {"PDF Documents", {"*.pdf"}},
+                    {"All Files", {"*"}}
+                };
+                dialog->set_filters(filters);
+
+                dialog->when_accepted.connect(
+                    [this](horizon::FileDialogAcceptedContext &ctx) {
+                        if (application()) {
+                            application()->post_task([this, path = ctx.selected_path]() {
+                                this->open_file(path);
+                            });
+                        }
+                    });
+
+                dialog->run();
+            }).detach();
         }
     });
 

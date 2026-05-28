@@ -38,11 +38,18 @@ namespace horizon
         New
     };
 
+    struct FileFilter {
+        std::string name;
+        std::vector<std::string> patterns;
+    };
+
     class FileDialog : public WaylandWindow
     {
     public:
         FileDialog(FileDialogMode mode, const std::string &title = "");
         ~FileDialog() override;
+
+        void set_filters(const std::vector<FileFilter>& filters);
 
         void set_current_path(const std::string &path);
         std::string selected_path() const;
@@ -61,5 +68,6 @@ namespace horizon
         
         TextBoxBase *m_filename_input{nullptr};
         Combo *m_filter_combo{nullptr};
+        std::vector<FileFilter> m_filters;
     };
 } // namespace horizon

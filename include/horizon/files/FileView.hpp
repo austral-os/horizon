@@ -40,6 +40,8 @@ namespace horizon::files
         void set_show_hidden_files(bool show);
         bool show_hidden_files() const { return m_show_hidden_files; }
 
+        void set_file_filter(const std::vector<std::string>& patterns);
+
         bool can_back() const;
         bool can_forward() const;
 
@@ -63,6 +65,7 @@ namespace horizon::files
         std::string m_current_path;
         std::string m_search_query;
         bool m_show_hidden_files = false;
+        std::vector<std::string> m_file_filter;
         std::unique_ptr<FileHistory> m_history;
 
         // Clipboard state

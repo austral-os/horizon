@@ -44,6 +44,7 @@ namespace horizon::files
         {
             auto view = std::make_unique<FileListView>(m_current_path);
             view->set_show_hidden_files(m_show_hidden_files);
+            view->set_file_filter(m_file_filter);
             view->when_row_dbl_click.connect(
                 [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
                 {
@@ -66,6 +67,7 @@ namespace horizon::files
         {
             auto view = std::make_unique<FileIconView>(m_current_path);
             view->set_show_hidden_files(m_show_hidden_files);
+            view->set_file_filter(m_file_filter);
             view->when_item_dbl_click.connect(
                 [this](horizon::IconViewItemMouseClickContext<arkutils::FileInfo> &ctx)
                 {
@@ -87,6 +89,7 @@ namespace horizon::files
         {
             auto view = std::make_unique<FileCoverFlowView>(m_current_path);
             view->set_show_hidden_files(m_show_hidden_files);
+            view->set_file_filter(m_file_filter);
             view->when_row_dbl_click.connect(
                 [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
                 {
@@ -114,6 +117,9 @@ namespace horizon::files
 
         if (new_view_ptr)
         {
+            if (auto *child = dynamic_cast<FileListView *>(new_view_ptr)) child->set_file_filter(m_file_filter);
+            else if (auto *child = dynamic_cast<FileIconView *>(new_view_ptr)) child->set_file_filter(m_file_filter);
+            else if (auto *child = dynamic_cast<FileCoverFlowView *>(new_view_ptr)) child->set_file_filter(m_file_filter);
             new_view_ptr->set_focus(true);
         }
     }
@@ -136,6 +142,25 @@ namespace horizon::files
         else if (auto *child = dynamic_cast<FileCoverFlowView *>(m_children.back().get()))
         {
             child->set_show_hidden_files(show);
+            child->refresh(m_current_path, m_search_query);
+        }
+    }
+
+    void FileView::set_file_filter(const std::vector<std::string>& patterns)
+    {
+        m_file_filter = patterns;
+        if (m_children.empty()) return;
+
+        if (auto *child = dynamic_cast<FileListView *>(m_children.back().get())) {
+            child->set_file_filter(patterns);
+            child->refresh(m_current_path, m_search_query);
+        }
+        else if (auto *child = dynamic_cast<FileIconView *>(m_children.back().get())) {
+            child->set_file_filter(patterns);
+            child->refresh(m_current_path, m_search_query);
+        }
+        else if (auto *child = dynamic_cast<FileCoverFlowView *>(m_children.back().get())) {
+            child->set_file_filter(patterns);
             child->refresh(m_current_path, m_search_query);
         }
     }

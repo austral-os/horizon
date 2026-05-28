@@ -234,4 +234,31 @@ namespace horizon
         return std::filesystem::path(m_view->current_path()) / m_filename_input->text();
     }
 
+    void FileDialog::set_filters(const std::vector<FileFilter>& filters)
+    {
+        m_filters = filters;
+        if (m_filter_combo) {
+            m_filter_combo->clear_items();
+            for (size_t i = 0; i < filters.size(); ++i) {
+                m_filter_combo->add_item(std::to_string(i), filters[i].name);
+            }
+            if (!filters.empty()) {
+                m_filter_combo->set_selected_item_index(0);
+                if (m_view) {
+                    m_view->set_file_filter(filters[0].patterns);
+                }
+            }
+
+            m_filter_combo->when_item_selected.connect([this](horizon::ComboItemSelectedContext& ctx) {
+                int idx = m_filter_combo->selected_item_index();
+                if (idx >= 0 && idx < (int)m_filters.size()) {
+                    if (m_view) {
+                        m_view->set_file_filter(m_filters[idx].patterns);
+                        m_view->refresh();
+                    }
+                }
+            });
+        }
+    }
+
 } // namespace horizon

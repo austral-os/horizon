@@ -24,6 +24,7 @@ namespace horizon::files
         }
 
         void set_show_hidden_files(bool show) { m_show_hidden_files = show; }
+        void set_file_filter(const std::vector<std::string>& filter) { m_file_filter = filter; }
 
         EventsManager<OperationProgressEvent> when_operation_progress;
 
@@ -34,6 +35,7 @@ namespace horizon::files
 
         std::string m_current_path;
         bool m_show_hidden_files = false;
+        std::vector<std::string> m_file_filter;
         std::unique_ptr<arkutils::FileSystemModel> m_fs_model;
         uint64_t m_thumbnail_timer_id{0};
     };

@@ -148,6 +148,27 @@ namespace horizon::files
             for (const auto &f : files)
             {
                 if (f.is_hidden && !m_show_hidden_files) continue;
+
+                // Apply file filter for non-directories
+                if (f.type != arkutils::FileType::Directory && !m_file_filter.empty()) {
+                    bool matched = false;
+                    for (const auto& pat : m_file_filter) {
+                        if (pat == "*" || pat == "*.*") {
+                            matched = true;
+                            break;
+                        }
+                        
+                        std::string ext = pat;
+                        if (ext.find("*.") == 0) ext = ext.substr(1);
+                        if (f.name.length() >= ext.length() && 
+                            f.name.compare(f.name.length() - ext.length(), ext.length(), ext) == 0) {
+                            matched = true;
+                            break;
+                        }
+                    }
+                    if (!matched) continue;
+                }
+
                 if (!filter.empty())
                 {
                     std::string display_name = FileIconProvider::get_display_name(f);

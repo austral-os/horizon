@@ -39,6 +39,7 @@ namespace horizon::files
             when_row_dbl_click;
         
         void set_show_hidden_files(bool show);
+        void set_file_filter(const std::vector<std::string>& filter) { m_file_filter = filter; }
 
         EventsManager<OperationProgressEvent> when_operation_progress;
 
@@ -51,6 +52,7 @@ namespace horizon::files
     private:
         std::string m_current_path;
         bool m_show_hidden_files = false;
+        std::vector<std::string> m_file_filter;
         horizon::CoverFlow<arkutils::FileInfo> *m_cover_flow{nullptr};
         horizon::Label *m_navigation_label{nullptr};
         FileListView *m_list_view{nullptr};

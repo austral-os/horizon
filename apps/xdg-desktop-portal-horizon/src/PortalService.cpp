@@ -330,6 +330,8 @@ namespace horizon::portal
 
         // We could parse options dict here, but for now we default to what the mode specifies.
         bool directory = false;
+        std::vector<horizon::FileFilter> file_filters;
+
         // Parse options (a{sv})
         if (dbus_message_iter_get_arg_type(&iter) == DBUS_TYPE_ARRAY) {
             DBusMessageIter dict_iter;
@@ -340,6 +342,7 @@ namespace horizon::portal
                 const char* key;
                 dbus_message_iter_get_basic(&entry_iter, &key);
                 dbus_message_iter_next(&entry_iter);
+
                 if (std::string(key) == "directory") {
                     DBusMessageIter var_iter;
                     dbus_message_iter_recurse(&entry_iter, &var_iter);
@@ -347,6 +350,70 @@ namespace horizon::portal
                     if (dbus_message_iter_get_arg_type(&var_iter) == DBUS_TYPE_BOOLEAN) {
                         dbus_message_iter_get_basic(&var_iter, &val);
                         directory = val;
+                    }
+                } else if (std::string(key) == "filters") {
+                    DBusMessageIter var_iter;
+                    dbus_message_iter_recurse(&entry_iter, &var_iter);
+                    if (dbus_message_iter_get_arg_type(&var_iter) == DBUS_TYPE_ARRAY) {
+                        DBusMessageIter array_iter;
+                        dbus_message_iter_recurse(&var_iter, &array_iter);
+                        
+                        std::vector<std::string> all_patterns;
+
+                        while (dbus_message_iter_get_arg_type(&array_iter) == DBUS_TYPE_STRUCT) {
+                            DBusMessageIter struct_iter;
+                            dbus_message_iter_recurse(&array_iter, &struct_iter);
+                            
+                            const char* filter_name = nullptr;
+                            if (dbus_message_iter_get_arg_type(&struct_iter) == DBUS_TYPE_STRING) {
+                                dbus_message_iter_get_basic(&struct_iter, &filter_name);
+                            }
+                            dbus_message_iter_next(&struct_iter);
+                            
+                            horizon::FileFilter filter;
+                            if (filter_name) filter.name = filter_name;
+                            
+                            if (dbus_message_iter_get_arg_type(&struct_iter) == DBUS_TYPE_ARRAY) {
+                                DBusMessageIter filter_array_iter;
+                                dbus_message_iter_recurse(&struct_iter, &filter_array_iter);
+                                while (dbus_message_iter_get_arg_type(&filter_array_iter) == DBUS_TYPE_STRUCT) {
+                                    DBusMessageIter filter_item_iter;
+                                    dbus_message_iter_recurse(&filter_array_iter, &filter_item_iter);
+                                    
+                                    uint32_t type = 0;
+                                    if (dbus_message_iter_get_arg_type(&filter_item_iter) == DBUS_TYPE_UINT32) {
+                                        dbus_message_iter_get_basic(&filter_item_iter, &type);
+                                    }
+                                    dbus_message_iter_next(&filter_item_iter);
+                                    
+                                    const char* pattern = nullptr;
+                                    if (dbus_message_iter_get_arg_type(&filter_item_iter) == DBUS_TYPE_STRING) {
+                                        dbus_message_iter_get_basic(&filter_item_iter, &pattern);
+                                    }
+                                    
+                                    if (pattern) {
+                                        // For mime types (type=1), map roughly to extension.
+                                        // In a real scenario we'd query a mime-db. Here we just take the sub-type if it's not glob.
+                                        std::string pat_str = pattern;
+                                        if (type == 1 && pat_str.find('/') != std::string::npos) {
+                                            pat_str = "*." + pat_str.substr(pat_str.find('/') + 1);
+                                        }
+                                        filter.patterns.push_back(pat_str);
+                                        all_patterns.push_back(pat_str);
+                                    }
+                                    dbus_message_iter_next(&filter_array_iter);
+                                }
+                            }
+                            file_filters.push_back(filter);
+                            dbus_message_iter_next(&array_iter);
+                        }
+                        
+                        if (file_filters.size() > 1) {
+                            horizon::FileFilter all_filter;
+                            all_filter.name = "All Supported Files";
+                            all_filter.patterns = all_patterns;
+                            file_filters.insert(file_filters.begin(), all_filter);
+                        }
                     }
                 }
                 dbus_message_iter_next(&dict_iter);
@@ -365,12 +432,16 @@ namespace horizon::portal
         dbus_message_ref(msg);
 
         // Run dialog in a new thread
-        std::thread([this, conn, msg, request_obj, mode, directory, s_title, handle_path]() {
+        std::thread([this, conn, msg, request_obj, mode, directory, s_title, handle_path, file_filters]() {
             FileDialogMode dialog_mode = FileDialogMode::Open;
             if (mode == 1 || mode == 2) dialog_mode = FileDialogMode::Save;
             if (directory) dialog_mode = FileDialogMode::SelectFolder;
 
             auto dialog = std::make_unique<horizon::FileDialog>(dialog_mode, s_title);
+            
+            if (!file_filters.empty()) {
+                dialog->set_filters(file_filters);
+            }
             
             uint32_t response_code = 1; // Default to cancel
             std::vector<std::string> uris;
