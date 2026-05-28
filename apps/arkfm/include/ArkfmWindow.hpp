@@ -39,6 +39,7 @@ namespace horizon::arkfm
         void handle_open();
         void handle_properties();
         void handle_new_folder();
+        void handle_add_bookmark(const std::string &path);
         void handle_mount_remote(const std::string &uri, storage::RemoteCredentials creds = {}, storage::MountPasswordDialog* dlg = nullptr);
 
 

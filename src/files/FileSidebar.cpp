@@ -9,6 +9,31 @@
 #include <horizon/Spacer.hpp>
 #include <horizon/XdgUserDirs.hpp>
 #include <horizon/storage/RemoteManagerBase.hpp>
+#include <fstream>
+#include <sstream>
+#include <filesystem>
+
+namespace
+{
+    std::string uri_decode(const std::string& encoded) {
+        std::string res;
+        for (size_t i = 0; i < encoded.length(); ++i) {
+            if (encoded[i] == '%') {
+                if (i + 2 < encoded.length()) {
+                    int value;
+                    std::istringstream is(encoded.substr(i + 1, 2));
+                    if (is >> std::hex >> value) {
+                        res += static_cast<char>(value);
+                        i += 2;
+                    }
+                }
+            } else {
+                res += encoded[i];
+            }
+        }
+        return res;
+    }
+}
 
 namespace horizon::files
 {
@@ -233,6 +258,47 @@ namespace horizon::files
         std::string trash_path = std::string(home) + "/.local/share/Trash/files";
         item_trash->set_path(trash_path);
         add_item("Favorites", std::move(item_trash));
+
+        // --- Add Bookmarks ---
+        std::string bookmarks_path = std::string(home) + "/.config/gtk-3.0/bookmarks";
+        if (std::filesystem::exists(bookmarks_path))
+        {
+            std::ifstream file(bookmarks_path);
+            if (file.is_open())
+            {
+                std::string line;
+                bool has_bookmarks = false;
+                while (std::getline(file, line))
+                {
+                    if (line.empty()) continue;
+                    
+                    std::string uri, name;
+                    std::istringstream iss(line);
+                    iss >> uri;
+                    if (iss >> std::ws)
+                    {
+                        std::getline(iss, name);
+                    }
+                    
+                    if (uri.find("file://") == 0)
+                    {
+                        if (!has_bookmarks)
+                        {
+                            add_group("Marcadores");
+                            has_bookmarks = true;
+                        }
+                        
+                        std::string path = uri_decode(uri.substr(7)); // remove "file://"
+                        if (name.empty()) {
+                            name = std::filesystem::path(path).filename().string();
+                        }
+                        auto item = std::make_unique<horizon::SidebarItem>("folder", name);
+                        item->set_path(path);
+                        add_item("Marcadores", std::move(item));
+                    }
+                }
+            }
+        }
 
         m_disk_manager.scan();
         bool has_devices = false;

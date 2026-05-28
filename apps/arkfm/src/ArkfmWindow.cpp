@@ -30,6 +30,8 @@
 #include <horizon/storage/RemoteManager.hpp>
 #include <memory>
 #include <thread>
+#include <fstream>
+#include <sstream>
 
 namespace horizon::arkfm
 {
@@ -319,6 +321,17 @@ namespace horizon::arkfm
                         this->application()->post_task([this, f]()
                                                        { this->handle_rename(f.path); });
                     });
+                    
+                if (f.type == horizon::arkutils::FileType::Directory)
+                {
+                    menu->add_separator();
+                    auto item_fav = menu->add_item("Añadir a marcadores");
+                    item_fav->when_click.connect([this, f](auto &)
+                                                 {
+                                                     this->application()->post_task([this, f]()
+                                                                                    { this->handle_add_bookmark(f.path); });
+                                                 });
+                }
 
                 bool is_in_trash =
                     m_view_ptr->current_path().find("/.local/share/Trash") != std::string::npos;
@@ -741,6 +754,41 @@ namespace horizon::arkfm
                 dialog->run();
                 application()->clear_override_cursor();
             });
+    }
+    
+    void ArkfmWindow::handle_add_bookmark(const std::string &path)
+    {
+        auto home = getenv("HOME") ? getenv("HOME") : "/home/user";
+        std::string bookmarks_path = std::string(home) + "/.config/gtk-3.0/bookmarks";
+        
+        std::filesystem::path config_dir = std::string(home) + "/.config/gtk-3.0";
+        if (!std::filesystem::exists(config_dir))
+        {
+            std::filesystem::create_directories(config_dir);
+        }
+
+        std::string encoded_uri = "file://";
+        for (char c : path) {
+            if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~' || c == '/') {
+                encoded_uri += c;
+            } else {
+                char buf[4];
+                snprintf(buf, sizeof(buf), "%%%02X", (unsigned char)c);
+                encoded_uri += buf;
+            }
+        }
+        
+        std::ofstream file(bookmarks_path, std::ios_base::app);
+        if (file.is_open())
+        {
+            file << encoded_uri << "\n";
+            file.close();
+            
+            show_status_message("Añadido a marcadores");
+            
+            if (m_sidebar_ptr)
+                m_sidebar_ptr->refresh_devices();
+        }
     }
 
     void ArkfmWindow::handle_rename(const std::string &path)
