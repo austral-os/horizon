@@ -133,6 +133,7 @@ namespace horizon
 
     TabCollection::TabCollection() : Widget()
     {
+        set_focusable(true);
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         set_position_type(FILL);
 
@@ -156,6 +157,32 @@ namespace horizon
                                           { when_add_tab_clicked.run(ctx); });
         m_add_button = add_btn.get();
         m_header->add_child(std::move(add_btn));
+
+        when_key_press.connect([this](KeyEventContext &ctx) {
+            if (m_tabs.empty()) return;
+
+            bool ctrl = ctx.modifiers & WaylandWindow::Modifier::CTRL;
+            bool shift = ctx.modifiers & WaylandWindow::Modifier::SHIFT;
+
+            if (ctrl && (ctx.keysym == 0xff09 || ctx.keysym == 0xfe20)) { // Tab or ISO_Left_Tab keysym
+                if (shift) {
+                    int next = m_current_tab - 1;
+                    if (next < 0) next = (int)m_tabs.size() - 1;
+                    set_current_tab(next);
+                    when_tab_selected.run(next);
+                } else {
+                    int next = (m_current_tab + 1) % m_tabs.size();
+                    set_current_tab(next);
+                    when_tab_selected.run(next);
+                }
+                ctx.stop_propagation = true;
+            } else if (ctrl && (ctx.keysym == 0x77 || ctx.keysym == 0x57)) { // 'w' or 'W'
+                if (m_current_tab >= 0 && m_current_tab < (int)m_tabs.size() && m_closable_tabs) {
+                    when_tab_close_requested.run(m_current_tab);
+                }
+                ctx.stop_propagation = true;
+            }
+        });
     }
 
     int TabCollection::add_tab(const std::string &title, std::unique_ptr<Widget> body)

@@ -468,18 +468,23 @@ void TerminalWidget::handle_key_press(KeyEventContext &ctx) {
     
     // 1. Prioritize Terminal Shortcuts (Ctrl+Shift+C/V)
     // We check this BEFORE sending text to PTY to avoid Ctrl+C cancellation
-    if ((ctx.modifiers & horizon::WaylandWindow::Modifier::CTRL) && 
-        (ctx.modifiers & horizon::WaylandWindow::Modifier::SHIFT)) {
-        
-        if (ctx.key == KEY_C) {
-            copy_selection();
-            ctx.stop_propagation = true;
+    if (ctx.modifiers & horizon::WaylandWindow::Modifier::CTRL) {
+        // Let UI shortcuts bubble up
+        if (ctx.key == KEY_TAB || ctx.keysym == 0xff09 || ctx.keysym == 0xfe20 || ctx.key == KEY_W || ctx.keysym == 0x77 || ctx.keysym == 0x57) {
             return;
         }
-        if (ctx.key == KEY_V) {
-            perform(horizon::ClipboardAction::Paste);
-            ctx.stop_propagation = true;
-            return;
+
+        if (ctx.modifiers & horizon::WaylandWindow::Modifier::SHIFT) {
+            if (ctx.key == KEY_C) {
+                copy_selection();
+                ctx.stop_propagation = true;
+                return;
+            }
+            if (ctx.key == KEY_V) {
+                perform(horizon::ClipboardAction::Paste);
+                ctx.stop_propagation = true;
+                return;
+            }
         }
     }
 

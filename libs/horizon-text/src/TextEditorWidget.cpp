@@ -269,6 +269,13 @@ void TextEditorWidget::handle_key_event(KeyEventContext& ev) {
     bool shift = ev.modifiers & 0x1;
     bool ctrl = ev.modifiers & 0x2; // Fixed CTRL modifier from 0x4 to 0x2
 
+    // Let UI shortcuts bubble up
+    if (ctrl) {
+        if (ev.keysym == XKB_KEY_Tab || ev.keysym == 0xff09 || ev.keysym == 0xfe20 || ev.keysym == XKB_KEY_w || ev.keysym == XKB_KEY_W || ev.keysym == 0x77 || ev.keysym == 0x57) {
+            return;
+        }
+    }
+
     switch (ev.keysym) {
         case XKB_KEY_Left: key = (int)EditorKey::Left; break;
         case XKB_KEY_Right: key = (int)EditorKey::Right; break;
