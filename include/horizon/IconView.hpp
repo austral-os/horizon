@@ -25,7 +25,7 @@ namespace horizon
 
         void set_transparent(bool transparent);
 
-        void set_selected_index(int index, bool ctrl = false);
+        void set_selected_index(int index, bool ctrl = false, bool shift = false);
         int selected_index() const;
         void clear_selection();
 
@@ -128,7 +128,9 @@ namespace horizon
 
                 if (new_idx != current_idx && new_idx >= 0 && new_idx < (int)m_data.size())
                 {
-                    set_selected_index(new_idx, false);
+                    bool shift_pressed = (ev.modifiers & WaylandWindow::Modifier::SHIFT);
+                    bool ctrl_pressed = (ev.modifiers & WaylandWindow::Modifier::CTRL);
+                    set_selected_index(new_idx, ctrl_pressed, shift_pressed);
                     
                     IconViewItemMouseClickContext<T> click_ctx;
                     click_ctx.item_index = new_idx;
@@ -251,7 +253,8 @@ namespace horizon
                                 }
                                 else
                                 {
-                                    set_selected_index(i, ctrl_pressed);
+                                    bool shift_pressed = (ctx.modifiers & WaylandWindow::Modifier::SHIFT);
+                                    set_selected_index(i, ctrl_pressed, shift_pressed);
 
                                     IconViewItemMouseClickContext<T> click_ctx;
                                     click_ctx.item_index = i;
@@ -270,7 +273,7 @@ namespace horizon
                             {
                                 // Only change selection if item not already selected
                                 if (m_selected_indices.count(i) == 0)
-                                    set_selected_index(i, false);
+                                    set_selected_index(i, false, false);
                             }
                             ctx.stop_propagation = true;
                         });

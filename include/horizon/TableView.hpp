@@ -67,7 +67,9 @@ namespace horizon
 
                 if (new_idx != current_idx && new_idx >= 0 && new_idx < (int)m_data.size())
                 {
-                    set_selected_index(new_idx);
+                    bool shift_pressed = (ev.modifiers & WaylandWindow::Modifier::SHIFT);
+                    bool ctrl_pressed = (ev.modifiers & WaylandWindow::Modifier::CTRL);
+                    set_selected_index(new_idx, ctrl_pressed, shift_pressed);
                     
                     // Fire row click event so external components update
                     TableViewRowMouseClickContext<T> click_ctx;
@@ -200,12 +202,42 @@ namespace horizon
          * @brief Programmatically sets the selected row by index.
          * @param index The index of the row to select.
          */
-        void set_selected_index(int index)
+        void set_selected_index(int index, bool ctrl = false, bool shift = false)
         {
-            m_selected_rows.clear();
-            if (index >= 0 && (size_t)index < m_data.size())
+            if (shift && m_selection_anchor != -1)
             {
-                m_selected_rows.insert(index);
+                int start = std::min(m_selection_anchor, index);
+                int end = std::max(m_selection_anchor, index);
+                
+                if (!ctrl)
+                {
+                    m_selected_rows.clear();
+                }
+                
+                for (int i = start; i <= end; ++i)
+                {
+                    if (i >= 0 && i < (int)m_data.size())
+                    {
+                        m_selected_rows.insert(i);
+                    }
+                }
+            }
+            else if (ctrl)
+            {
+                if (m_selected_rows.count(index))
+                    m_selected_rows.erase(index);
+                else
+                    m_selected_rows.insert(index);
+                m_selection_anchor = index;
+            }
+            else
+            {
+                m_selected_rows.clear();
+                if (index >= 0 && (size_t)index < m_data.size())
+                {
+                    m_selected_rows.insert(index);
+                }
+                m_selection_anchor = index;
             }
             update_selection_visuals();
         }
@@ -222,7 +254,7 @@ namespace horizon
         }
 
         const std::vector<T>& data() const { return m_data; }
-        int selected_index() const { return m_selected_rows.empty() ? -1 : *m_selected_rows.begin(); }
+        int selected_index() const { return m_selection_anchor != -1 ? m_selection_anchor : (m_selected_rows.empty() ? -1 : *m_selected_rows.begin()); }
 
         int sort_column() const { return m_sort_column; }
         bool sort_ascending() const { return m_sort_ascending; }
@@ -534,21 +566,9 @@ namespace horizon
                     [this, row_idx, row_data](MouseButtonEventContext &ctx)
                     {
                         bool ctrl_pressed = (ctx.modifiers & WaylandWindow::Modifier::CTRL);
+                        bool shift_pressed = (ctx.modifiers & WaylandWindow::Modifier::SHIFT);
 
-                        if (ctrl_pressed)
-                        {
-                            if (m_selected_rows.count((int)row_idx))
-                                m_selected_rows.erase((int)row_idx);
-                            else
-                                m_selected_rows.insert((int)row_idx);
-                        }
-                        else
-                        {
-                            m_selected_rows.clear();
-                            m_selected_rows.insert((int)row_idx);
-                        }
-
-                        update_selection_visuals();
+                        set_selected_index((int)row_idx, ctrl_pressed, shift_pressed);
 
                         TableViewRowMouseClickContext<T> click_ctx;
                         click_ctx.row_index = (int)row_idx;
@@ -564,9 +584,7 @@ namespace horizon
                         // If row not already selected, select it exclusively
                         if (m_selected_rows.count((int)row_idx) == 0)
                         {
-                            m_selected_rows.clear();
-                            m_selected_rows.insert((int)row_idx);
-                            update_selection_visuals();
+                            set_selected_index((int)row_idx, false, false);
                         }
                     });
 
@@ -717,6 +735,7 @@ namespace horizon
         bool m_use_alternate_colors{true};
 
         std::set<int> m_selected_rows;
+        int m_selection_anchor{-1};
         std::function<std::unique_ptr<Menu>(const T &)> m_row_menu_factory;
         std::function<void(TableRow *, const T &)> m_row_setup_callback;
 

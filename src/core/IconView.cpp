@@ -70,9 +70,25 @@ namespace horizon
         }
     }
 
-    void IconViewBase::set_selected_index(int index, bool ctrl)
+    void IconViewBase::set_selected_index(int index, bool ctrl, bool shift)
     {
-        if (ctrl)
+        if (shift && m_selected_index != -1)
+        {
+            int start = std::min(m_selected_index, index);
+            int end = std::max(m_selected_index, index);
+            
+            if (!ctrl)
+            {
+                m_selected_indices.clear();
+            }
+            
+            for (int i = start; i <= end; ++i)
+            {
+                m_selected_indices.insert(i);
+            }
+            // In shift selection, the anchor (m_selected_index) remains the same.
+        }
+        else if (ctrl)
         {
             // Toggle selection
             if (m_selected_indices.count(index))
@@ -80,8 +96,8 @@ namespace horizon
             else
                 m_selected_indices.insert(index);
 
-            // Keep m_selected_index pointing to the last-toggled index
-            m_selected_index = m_selected_indices.empty() ? -1 : *m_selected_indices.rbegin();
+            // Update anchor to the last-toggled index
+            m_selected_index = index;
         }
         else
         {
