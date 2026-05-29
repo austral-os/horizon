@@ -2,6 +2,7 @@
 #include "horizon/Widget.hpp"
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Window.hpp>
+#include <horizon/WaylandWindow.hpp>
 
 namespace horizon
 {
@@ -20,6 +21,11 @@ namespace horizon
         m_titlebar = titlebar.get(); // guardas puntero no propietario
 
         add_child(std::move(titlebar));
+
+        when_click.connect([this](auto &) {
+            if (auto app = application())
+                app->update_global_menu();
+        });
     }
 
     Window::Window(std::unique_ptr<Titlebar> custom_titlebar)
@@ -27,6 +33,11 @@ namespace horizon
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
         m_titlebar = custom_titlebar.get();
         add_child(std::move(custom_titlebar));
+
+        when_click.connect([this](auto &) {
+            if (auto app = application())
+                app->update_global_menu();
+        });
     }
 
     void Window::set_size(int width, int height)
