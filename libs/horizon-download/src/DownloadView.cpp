@@ -44,13 +44,12 @@ public:
         m_pb->set_progress((float)m_task->progress().progress);
         add_child(std::move(pb));
         
-        m_conn_id = m_task->when_progress_changed.connect([this](DownloadProgress& p) {
+        m_conn_id = m_task->when_progress_changed.connect([this, alive = m_alive](DownloadProgress& p) {
             auto* app = application();
             if (app) {
-                app->post_task([this, app, p]() {
-                    if (app->is_widget_alive(this)) {
-                        m_pb->set_progress((float)p.progress);
-                    }
+                app->post_task([this, p, alive]() {
+                    if (!*alive) return;
+                    m_pb->set_progress((float)p.progress);
                 });
             }
         });
@@ -61,6 +60,7 @@ public:
     }
 
     ~TaskProgressCell() override {
+        *m_alive = false;
         if (m_task && m_conn_id != 0) {
             m_task->when_progress_changed.disconnect(m_conn_id);
         }
@@ -70,6 +70,7 @@ private:
     std::shared_ptr<DownloadTask> m_task;
     horizon::ProgressBar* m_pb;
     size_t m_conn_id = 0;
+    std::shared_ptr<bool> m_alive = std::make_shared<bool>(true);
 };
 
 // Internal cell widget for various text details
@@ -86,11 +87,11 @@ public:
         m_lbl->set_alignment(horizon::TextAlignment::Left);
         add_child(std::move(lbl));
         
-        auto update_fn = [this]() {
+        auto update_fn = [this, alive = m_alive]() {
             auto* app = application();
             if (app) {
-                app->post_task([this, app]() {
-                    if (!app->is_widget_alive(this)) return;
+                app->post_task([this, alive]() {
+                    if (!*alive) return;
                     
                     auto p = m_task->progress();
                     std::string text;
@@ -135,6 +136,7 @@ public:
     }
 
     ~TaskDetailCell() override {
+        *m_alive = false;
         if (m_task) {
             m_task->when_state_changed.disconnect(m_conn_state);
             m_task->when_progress_changed.disconnect(m_conn_prog);
@@ -147,11 +149,21 @@ private:
     horizon::Label* m_lbl;
     size_t m_conn_state = 0;
     size_t m_conn_prog = 0;
+    std::shared_ptr<bool> m_alive = std::make_shared<bool>(true);
 };
 
 DownloadView::DownloadView() {
     set_layout_type(WidgetLayoutTypes::WIDGET_LAYOUT_VERTICAL);
     setup_ui();
+}
+
+DownloadView::~DownloadView() {
+    *m_alive = false;
+    DownloadManager::instance().when_task_added.disconnect(m_conn_added);
+    DownloadManager::instance().when_task_removed.disconnect(m_conn_removed);
+    for (auto& pair : m_task_conns) {
+        pair.first->when_state_changed.disconnect(pair.second);
+    }
 }
 
 void DownloadView::setup_ui() {
@@ -320,42 +332,44 @@ void DownloadView::setup_ui() {
 
     add_child(std::move(table));
 
-    auto refresh_fn = [this](DownloadState) {
+    auto refresh_fn = [this, alive = m_alive](DownloadState) {
         auto* app = application();
         if (app) {
-            app->post_task([this, app]() {
-                if (app->is_widget_alive(this)) {
-                    this->refresh();
-                }
+            app->post_task([this, alive]() {
+                if (!*alive) return;
+                this->refresh();
             });
         }
     };
 
     // Connect to existing tasks
     for (auto& task : DownloadManager::instance().tasks()) {
-        task->when_state_changed.connect(refresh_fn);
+        size_t id = task->when_state_changed.connect(refresh_fn);
+        m_task_conns.push_back({task, id});
     }
 
     // Connect to future tasks
-    DownloadManager::instance().when_task_added.connect([this, refresh_fn](std::shared_ptr<DownloadTask> task) {
-        task->when_state_changed.connect(refresh_fn);
+    m_conn_added = DownloadManager::instance().when_task_added.connect([this, refresh_fn, alive = m_alive](std::shared_ptr<DownloadTask> task) {
+        if (!*alive) return;
+        size_t id = task->when_state_changed.connect(refresh_fn);
+        m_task_conns.push_back({task, id});
+        
         auto* app = application();
         if (app) {
-            app->post_task([this, app]() {
-                if (app->is_widget_alive(this)) {
-                    this->refresh();
-                }
+            app->post_task([this, alive]() {
+                if (!*alive) return;
+                this->refresh();
             });
         }
     });
 
-    DownloadManager::instance().when_task_removed.connect([this](std::shared_ptr<DownloadTask>) {
+    m_conn_removed = DownloadManager::instance().when_task_removed.connect([this, alive = m_alive](std::shared_ptr<DownloadTask>) {
+        if (!*alive) return;
         auto* app = application();
         if (app) {
-            app->post_task([this, app]() {
-                if (app->is_widget_alive(this)) {
-                    this->refresh();
-                }
+            app->post_task([this, alive]() {
+                if (!*alive) return;
+                this->refresh();
             });
         }
     });
