@@ -1,5 +1,7 @@
 #include <horizon/lens/ThumbnailCache.hpp>
 #include <horizon/Logger.hpp>
+#include <horizon/dbusutils/DbusHelper.hpp>
+#include <dbus/dbus.h>
 
 #include <algorithm>
 #include <array>
@@ -344,23 +346,40 @@ void ThumbnailCache::request_thumbnail(const std::string& file_path, ThumbnailSi
     if (file_path.empty()) return;
 
     try {
-        fs::path queue_dir = fs::path(home_dir()) / ".cache" / "horizon" / "thumbnails" / "queue";
-        fs::create_directories(queue_dir);
-
         std::string md5 = compute_uri_md5(file_path);
-        fs::path req_file = queue_dir / (md5 + ".req");
+        fs::path fail_path = fs::path(cache_dir(size)) / (md5 + ".failed");
+        
+        struct stat st_file;
+        if (stat(file_path.c_str(), &st_file) == 0) {
+            struct stat st_fail;
+            if (stat(fail_path.string().c_str(), &st_fail) == 0) {
+                if (st_fail.st_mtime >= st_file.st_mtime) {
+                    // Ya intentamos y fallamos para esta versión del archivo, no reintentar
+                    return;
+                }
+            }
+        }
 
-        // Write a simple JSON-ish request file
-        std::ofstream f(req_file.string());
-        if (f) {
-            f << "{\n";
-            f << "  \"path\": \"" << file_path << "\",\n";
-            f << "  \"size\": \"" << size_subdir(size) << "\",\n";
-            f << "  \"priority\": \"high\"\n";
-            f << "}\n";
+        // Enviar la petición por D-Bus a horizon-lens de forma asíncrona
+        dbusutils::DbusHelper dbus(DBUS_BUS_SESSION);
+        DBusMessage* msg = dbus_message_new_method_call(
+            "org.horizon.Lens",
+            "/org/horizon/Lens",
+            "org.horizon.Lens.Thumbnailer",
+            "RequestThumbnail"
+        );
+        
+        if (msg) {
+            const char* path_cstr = file_path.c_str();
+            dbus_message_append_args(msg, DBUS_TYPE_STRING, &path_cstr, DBUS_TYPE_INVALID);
+            
+            // Enviar sin esperar respuesta (fire and forget)
+            dbus_connection_send(dbus.get_connection(), msg, nullptr);
+            dbus_connection_flush(dbus.get_connection());
+            dbus_message_unref(msg);
         }
     } catch (const std::exception& e) {
-        LOG_WARNING << "ThumbnailCache::request_thumbnail: " << e.what();
+        LOG_WARNING << "ThumbnailCache::request_thumbnail D-Bus failed: " << e.what();
     }
 }
 

@@ -1,6 +1,7 @@
 add_executable(horizon-lens
     src/main.cpp
     src/LensService.cpp
+    src/LensDbusService.cpp
     src/DirectoryScanner.cpp
     src/ThumbWorker.cpp
     src/ThumbGenerator.cpp
@@ -42,7 +43,7 @@ horizon_install_app(horizon-lens
     NAME    "Horizon Lens"
     COMMENT "Background thumbnail generation service for Horizon OS"
     ICON    "image-x-generic"
-    VERSION "0.1.0"
+    VERSION "0.1.1"
     CATEGORIES "System;"
     EXTRA_DESKTOP "NoDisplay=true;X-GNOME-Autostart-enabled=true"
 )

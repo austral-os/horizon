@@ -1,4 +1,5 @@
 #include "LensService.hpp"
+#include "LensDbusService.hpp"
 #include <horizon/Logger.hpp>
 
 #include <csignal>
@@ -43,6 +44,20 @@ LensService::LensService()
         // Enqueue for all sizes (worker will skip already-cached ones)
         m_worker->enqueue(path, ThumbnailSize::Large, false);
     });
+
+    // Initialize D-Bus
+    try {
+        m_dbus = std::make_unique<dbusutils::DbusHelper>(DBUS_BUS_SESSION);
+        if (m_dbus->request_name("org.horizon.Lens")) {
+            m_dbus_service = std::make_unique<LensDbusService>(*m_dbus, *m_worker);
+            m_dbus->register_fallback("/org/horizon/Lens", m_dbus_service.get());
+            LOG_INFO << "horizon-lens: D-Bus service registered at org.horizon.Lens";
+        } else {
+            LOG_ERROR << "horizon-lens: Failed to acquire D-Bus name org.horizon.Lens";
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR << "horizon-lens: Failed to initialize D-Bus: " << e.what();
+    }
 }
 
 LensService::~LensService()
@@ -65,9 +80,13 @@ void LensService::run()
 
     LOG_INFO << "horizon-lens: Service running. Queue is processed in background.";
 
-    // Main thread just waits; all work happens in scanner/worker threads
+    // Main thread event loop
     while (m_running) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        if (m_dbus) {
+            m_dbus->process_events(100); // 100ms timeout
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
     }
 
     LOG_INFO << "horizon-lens: Stopping service...";

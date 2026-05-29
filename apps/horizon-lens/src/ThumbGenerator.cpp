@@ -303,7 +303,16 @@ bool ThumbGenerator::generate(const std::string& file_path, ThumbnailSize size)
     else
         ok = generate_image(file_path, out_png, width, height, mtime);
 
-    if (!ok) fs::remove(out_png, ec);
+    if (!ok) {
+        fs::remove(out_png, ec);
+        std::string fail_path = out_png.substr(0, out_png.find_last_of('.')) + ".failed";
+        std::ofstream f(fail_path);
+        f << mtime;
+    } else {
+        std::string fail_path = out_png.substr(0, out_png.find_last_of('.')) + ".failed";
+        fs::remove(fail_path, ec);
+    }
+    
     return ok;
 }
 

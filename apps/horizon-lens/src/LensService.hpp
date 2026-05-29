@@ -2,12 +2,15 @@
 
 #include "DirectoryScanner.hpp"
 #include "ThumbWorker.hpp"
+#include <horizon/dbusutils/DbusHelper.hpp>
 #include <atomic>
 #include <memory>
 #include <string>
 
 namespace horizon::lens
 {
+    class LensDbusService;
+
     /**
      * @class LensService
      * @brief Orchestrates the background thumbnail generation service.
@@ -35,6 +38,10 @@ namespace horizon::lens
     private:
         std::unique_ptr<DirectoryScanner> m_scanner;
         std::unique_ptr<ThumbWorker>      m_worker;
+        
+        std::unique_ptr<dbusutils::DbusHelper> m_dbus;
+        std::unique_ptr<LensDbusService>       m_dbus_service;
+
         std::atomic<bool>                 m_running{false};
 
         void setup_signal_handlers();
