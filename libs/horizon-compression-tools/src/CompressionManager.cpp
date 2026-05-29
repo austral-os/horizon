@@ -70,7 +70,13 @@ namespace horizon::compression
                 else if (src.find(".tar") != std::string::npos) list_cmd = "tar -tf \"" + src + "\"";
                 else if (src.find(".7z") != std::string::npos || src.find(".rar") != std::string::npos) list_cmd = "7z l -ba -slt \"" + src + "\" | grep '^Path =' | cut -d' ' -f3-";
                 
-                auto files = exec_list(list_cmd);
+                std::vector<std::string> files;
+                if (!list_cmd.empty()) {
+                    files = exec_list(list_cmd);
+                } else if (src.find(".gz") != std::string::npos && src.find(".tar") == std::string::npos) {
+                    files.push_back(fs::path(src).stem().string());
+                }
+
                 if (files.empty()) {
                     report_finished(false, "No se pudo leer el contenido del archivo o el archivo está vacío.");
                     return;
@@ -103,6 +109,10 @@ namespace horizon::compression
                 if (src.find(".zip") != std::string::npos) extract_cmd = "unzip -o \"" + src + "\" -d \"" + final_dest + "\"";
                 else if (src.find(".tar") != std::string::npos) extract_cmd = "tar -xf \"" + src + "\" -C \"" + final_dest + "\"";
                 else if (src.find(".7z") != std::string::npos || src.find(".rar") != std::string::npos) extract_cmd = "7z x \"" + src + "\" -o\"" + final_dest + "\" -y";
+                else if (src.find(".gz") != std::string::npos) {
+                    std::string out_file = (fs::path(final_dest) / fs::path(src).stem()).string();
+                    extract_cmd = "gzip -dc \"" + src + "\" > \"" + out_file + "\"";
+                }
 
                 auto [res, output] = exec_with_output(extract_cmd);
                 if (res == 0) {
@@ -139,6 +149,7 @@ namespace horizon::compression
             else if (m_format == ArchiveFormat::TarGz) cmd = cd_cmd + "tar -czf \"" + abs_output.string() + "\" " + relative_sources;
             else if (m_format == ArchiveFormat::TarXz) cmd = cd_cmd + "tar -cJf \"" + abs_output.string() + "\" " + relative_sources;
             else if (m_format == ArchiveFormat::SevenZip) cmd = cd_cmd + "7z a \"" + abs_output.string() + "\" " + relative_sources;
+            else if (m_format == ArchiveFormat::Gz) cmd = cd_cmd + "gzip -c " + relative_sources + " > \"" + abs_output.string() + "\"";
 
             auto [res, output] = exec_with_output(cmd);
             if (res == 0) {
@@ -172,7 +183,8 @@ namespace horizon::compression
         return (p.find(".zip") != std::string::npos || 
                 p.find(".tar") != std::string::npos || 
                 p.find(".7z") != std::string::npos || 
-                p.find(".rar") != std::string::npos);
+                p.find(".rar") != std::string::npos ||
+                p.find(".gz") != std::string::npos);
     }
 
     ArchiveFormat CompressionManager::format_from_extension(const std::string& path)
@@ -183,6 +195,7 @@ namespace horizon::compression
         if (p.find(".tar.gz") != std::string::npos) return ArchiveFormat::TarGz;
         if (p.find(".tar.xz") != std::string::npos) return ArchiveFormat::TarXz;
         if (p.find(".7z") != std::string::npos) return ArchiveFormat::SevenZip;
+        if (p.find(".gz") != std::string::npos) return ArchiveFormat::Gz;
         return ArchiveFormat::Zip;
     }
 

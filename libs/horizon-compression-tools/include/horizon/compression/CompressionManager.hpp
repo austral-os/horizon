@@ -13,7 +13,8 @@ namespace horizon::compression
         TarGz,
         TarXz,
         SevenZip,
-        Rar // Extraction only usually
+        Rar, // Extraction only usually
+        Gz
     };
 
     class CompressionManager

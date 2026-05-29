@@ -109,7 +109,14 @@ namespace horizon::files
                                                  std::string *path = (std::string *)ctx.data;
                                                  if (path && *path == m_current_path)
                                                  {
-                                                     this->refresh(*path);
+                                                     if (application()) {
+                                                         std::string p = *path;
+                                                         application()->post_task([this, p]() {
+                                                             this->refresh(p);
+                                                         });
+                                                     } else {
+                                                         this->refresh(*path);
+                                                     }
                                                  }
                                              });
 
