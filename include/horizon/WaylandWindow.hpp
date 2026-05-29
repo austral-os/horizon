@@ -542,6 +542,9 @@ namespace horizon
         bool detect_undo_support(Widget *root);
         Widget *find_undo_target();
 
+        bool detect_zoom_support(Widget *root);
+        Widget *find_zoom_target();
+
         class Window *find_window_target(Widget *root);
 
     protected:

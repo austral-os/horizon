@@ -45,7 +45,9 @@
             "paste": "Pegar",
             "undo": "Deshacer",
             "redo": "Rehacer",
-            "fullscreen": "Pantalla completa"
+            "fullscreen": "Pantalla completa",
+            "zoom_in": "Acercar",
+            "zoom_out": "Alejar"
         },
         "color_picker": {
             "html_notation": "Notación HTML:"

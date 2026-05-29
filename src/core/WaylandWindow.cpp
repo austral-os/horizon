@@ -494,6 +494,42 @@ namespace horizon
                 }
             });
 
+        signal_manager.connect(
+            "zoom_in",
+            [this](SignalContext &)
+            {
+                LOG_INFO << "WaylandWindow: Received 'zoom_in' signal from menu/IPC";
+                auto *target = find_zoom_target();
+                if (target)
+                {
+                    EventContext ctx;
+                    ctx.sender = target;
+                    target->when_zoom_in.run(ctx);
+                }
+                else
+                {
+                    LOG_INFO << "WaylandWindow: No zoom_in target found";
+                }
+            });
+
+        signal_manager.connect(
+            "zoom_out",
+            [this](SignalContext &)
+            {
+                LOG_INFO << "WaylandWindow: Received 'zoom_out' signal from menu/IPC";
+                auto *target = find_zoom_target();
+                if (target)
+                {
+                    EventContext ctx;
+                    ctx.sender = target;
+                    target->when_zoom_out.run(ctx);
+                }
+                else
+                {
+                    LOG_INFO << "WaylandWindow: No zoom_out target found";
+                }
+            });
+
         signal_manager.connect("file.open",
                                [this](SignalContext &)
                                {
@@ -1166,7 +1202,10 @@ namespace horizon
         }
 
         // Automatic Visualization Menu detection & merging
-        if (detect_fullscreen_support(m_root.get()))
+        bool has_fullscreen = detect_fullscreen_support(m_root.get());
+        bool has_zoom = detect_zoom_support(m_root.get());
+
+        if (has_fullscreen || has_zoom)
         {
             Menu *vis_menu = get_menu("view");
             bool is_new = false;
@@ -1180,27 +1219,27 @@ namespace horizon
                 m_menues.push_back(std::move(new_menu));
                 is_new = true;
             }
-
-            // Check if fullscreen is already there
-            bool has_fullscreen = false;
-            for (auto const &child : vis_menu->children())
-            {
-                if (auto *item = dynamic_cast<MenuItem *>(child.get()))
-                {
-                    if (item->id() == "fullscreen")
-                    {
-                        has_fullscreen = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!has_fullscreen)
+            else
             {
                 if (!vis_menu->children().empty())
                 {
                     vis_menu->add_separator();
                 }
+            }
+
+            if (has_zoom)
+            {
+                vis_menu->add_item(i18n().tr("core.global_menu.zoom_in"), "Ctrl++", "zoom_in");
+                vis_menu->add_item(i18n().tr("core.global_menu.zoom_out"), "Ctrl+-", "zoom_out");
+                
+                if (has_fullscreen)
+                {
+                    vis_menu->add_separator();
+                }
+            }
+
+            if (has_fullscreen)
+            {
                 auto *item = vis_menu->add_item(i18n().tr("core.global_menu.fullscreen"), "F11");
                 item->set_id("fullscreen");
             }
@@ -1681,6 +1720,18 @@ namespace horizon
             {
                 SignalContext ctx;
                 signal_manager.emit("redo", ctx);
+                return;
+            }
+            else if (event.keysym == XKB_KEY_plus || event.keysym == XKB_KEY_equal || event.keysym == XKB_KEY_KP_Add)
+            {
+                SignalContext ctx;
+                signal_manager.emit("zoom_in", ctx);
+                return;
+            }
+            else if (event.keysym == XKB_KEY_minus || event.keysym == XKB_KEY_KP_Subtract)
+            {
+                SignalContext ctx;
+                signal_manager.emit("zoom_out", ctx);
                 return;
             }
         }
@@ -3494,6 +3545,50 @@ namespace horizon
         std::function<Widget*(Widget*)> search_top_down = [&](Widget *w) -> Widget* {
             if (!w) return nullptr;
             if (w->supports_undo()) return w;
+            for (const auto &child : w->children()) {
+                if (auto *found = search_top_down(child.get())) return found;
+            }
+            return nullptr;
+        };
+
+        if (m_root)
+        {
+            return search_top_down(m_root.get());
+        }
+
+        return nullptr;
+    }
+
+    bool WaylandWindow::detect_zoom_support(Widget *root)
+    {
+        if (!root)
+            return false;
+        if (root->supports_zoom())
+            return true;
+        for (const auto &child : root->children())
+        {
+            if (detect_zoom_support(child.get()))
+                return true;
+        }
+        return false;
+    }
+
+    Widget *WaylandWindow::find_zoom_target()
+    {
+        if (m_focused)
+        {
+            Widget *temp = m_focused;
+            while (temp)
+            {
+                if (temp->supports_zoom())
+                    return temp;
+                temp = temp->parent();
+            }
+        }
+
+        std::function<Widget*(Widget*)> search_top_down = [&](Widget *w) -> Widget* {
+            if (!w) return nullptr;
+            if (w->supports_zoom()) return w;
             for (const auto &child : w->children()) {
                 if (auto *found = search_top_down(child.get())) return found;
             }

@@ -221,6 +221,10 @@ namespace horizon
         {
             return false;
         }
+        virtual bool supports_zoom() const
+        {
+            return false;
+        }
         virtual bool supports_fullscreen() const
         {
             return false;
@@ -342,6 +346,8 @@ namespace horizon
         EventsManager<FullscreenEventContext> when_leave_fullscreen;
         EventsManager<EventContext> when_undo;
         EventsManager<EventContext> when_redo;
+        EventsManager<EventContext> when_zoom_in;
+        EventsManager<EventContext> when_zoom_out;
 
         virtual void set_application_recursive(WaylandWindow *app);
 

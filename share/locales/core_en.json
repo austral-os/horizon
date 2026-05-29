@@ -44,7 +44,9 @@
             "paste": "Paste",
             "undo": "Undo",
             "redo": "Redo",
-            "fullscreen": "Fullscreen"
+            "fullscreen": "Fullscreen",
+            "zoom_in": "Zoom In",
+            "zoom_out": "Zoom Out"
         },
         "color_picker": {
             "html_notation": "HTML Notation:"
