@@ -188,33 +188,48 @@ namespace horizon::preferences
     void MimeTypesView::load_mime_types()
     {
         m_mime_data.clear();
-        std::string mime_path = "/usr/share/mime/";
-        if (!fs::exists(mime_path)) return;
-
+        
         std::vector<std::string> skip_dirs = {
             "packages", "aliases", "subclasses", "generic-icons", 
             "icons", "treemagic", "types", "XMLnamespaces", 
             "globs", "globs2", "magic", "version", "mime.cache"
         };
 
-        for (const auto& entry : fs::directory_iterator(mime_path)) {
-            if (entry.is_directory()) {
-                std::string category = entry.path().filename().string();
-                if (std::find(skip_dirs.begin(), skip_dirs.end(), category) != skip_dirs.end()) continue;
+        auto load_from_dir = [&](const std::string& mime_path) {
+            if (!fs::exists(mime_path)) return;
 
-                std::vector<std::string> mimes;
-                for (const auto& mime_entry : fs::directory_iterator(entry.path())) {
-                    if (mime_entry.is_regular_file() && mime_entry.path().extension() == ".xml") {
-                        mimes.push_back(mime_entry.path().stem().string());
+            for (const auto& entry : fs::directory_iterator(mime_path)) {
+                if (entry.is_directory()) {
+                    std::string category = entry.path().filename().string();
+                    if (std::find(skip_dirs.begin(), skip_dirs.end(), category) != skip_dirs.end()) continue;
+
+                    std::vector<std::string> mimes;
+                    for (const auto& mime_entry : fs::directory_iterator(entry.path())) {
+                        if (mime_entry.is_regular_file() && mime_entry.path().extension() == ".xml") {
+                            mimes.push_back(mime_entry.path().stem().string());
+                        }
+                    }
+                    
+                    if (!mimes.empty()) {
+                        auto& existing = m_mime_data[category];
+                        for (const auto& m : mimes) {
+                            if (std::find(existing.begin(), existing.end(), m) == existing.end()) {
+                                existing.push_back(m);
+                            }
+                        }
+                        std::sort(existing.begin(), existing.end());
                     }
                 }
-                
-                if (!mimes.empty()) {
-                    std::sort(mimes.begin(), mimes.end());
-                    m_mime_data[category] = mimes;
-                }
             }
+        };
+
+        load_from_dir("/usr/share/mime/");
+
+        const char* home = std::getenv("HOME");
+        if (home) {
+            load_from_dir(std::string(home) + "/.local/share/mime/");
         }
+
         update_tree();
     }
 
