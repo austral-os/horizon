@@ -217,6 +217,10 @@ namespace horizon
         bool debug_mode() const;
 
         // --- Clipboard ---
+        virtual bool supports_undo() const
+        {
+            return false;
+        }
         virtual bool supports_fullscreen() const
         {
             return false;
@@ -336,6 +340,8 @@ namespace horizon
         EventsManager<EventContext> when_application_load;
         EventsManager<FullscreenEventContext> when_enter_fullscreen;
         EventsManager<FullscreenEventContext> when_leave_fullscreen;
+        EventsManager<EventContext> when_undo;
+        EventsManager<EventContext> when_redo;
 
         virtual void set_application_recursive(WaylandWindow *app);
 

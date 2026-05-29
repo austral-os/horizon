@@ -539,6 +539,9 @@ namespace horizon
         bool detect_fullscreen_support(Widget *root);
         Widget *find_fullscreen_target(Widget *root);
 
+        bool detect_undo_support(Widget *root);
+        Widget *find_undo_target();
+
         class Window *find_window_target(Widget *root);
 
     protected:

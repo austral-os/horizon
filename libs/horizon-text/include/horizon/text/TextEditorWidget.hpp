@@ -41,6 +41,7 @@ public:
     // Feature support
     bool supports_fullscreen() const override { return true; }
     bool supports_clipboard() const override { return true; }
+    bool supports_undo() const override { return true; }
     bool can_perform(ClipboardAction action) const override;
     void perform(ClipboardAction action) override;
 

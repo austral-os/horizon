@@ -458,6 +458,41 @@ namespace horizon
                 else
                     LOG_INFO << "WaylandWindow: No clipboard target found for 'paste'";
             });
+        signal_manager.connect(
+            "undo",
+            [this](SignalContext &)
+            {
+                LOG_INFO << "WaylandWindow: Received 'undo' signal from menu/IPC";
+                auto *target = find_undo_target();
+                if (target)
+                {
+                    EventContext ctx;
+                    ctx.sender = target;
+                    target->when_undo.run(ctx);
+                }
+                else
+                {
+                    LOG_INFO << "WaylandWindow: No undo target found";
+                }
+            });
+
+        signal_manager.connect(
+            "redo",
+            [this](SignalContext &)
+            {
+                LOG_INFO << "WaylandWindow: Received 'redo' signal from menu/IPC";
+                auto *target = find_undo_target();
+                if (target)
+                {
+                    EventContext ctx;
+                    ctx.sender = target;
+                    target->when_redo.run(ctx);
+                }
+                else
+                {
+                    LOG_INFO << "WaylandWindow: No redo target found";
+                }
+            });
 
         signal_manager.connect("file.open",
                                [this](SignalContext &)
@@ -1080,7 +1115,10 @@ namespace horizon
         }
 
         // Automatic Edit Menu detection & merging
-        if (detect_clipboard_target(m_root.get()))
+        bool has_clipboard = detect_clipboard_target(m_root.get());
+        bool has_undo = detect_undo_support(m_root.get());
+
+        if (has_clipboard || has_undo)
         {
             Menu *edit_menu = get_menu("edit");
             bool is_new = false;
@@ -1096,16 +1134,30 @@ namespace horizon
             }
             else
             {
-                // If it already has items, add a separator before clipboard actions
+                // If it already has items, add a separator before we insert more
                 if (!edit_menu->children().empty())
                 {
                     edit_menu->add_separator();
                 }
             }
 
-            edit_menu->add_item(i18n().tr("core.global_menu.copy"), "Ctrl+C", "copy");
-            edit_menu->add_item(i18n().tr("core.global_menu.cut"), "Ctrl+X", "cut");
-            edit_menu->add_item(i18n().tr("core.global_menu.paste"), "Ctrl+V", "paste");
+            if (has_undo)
+            {
+                edit_menu->add_item(i18n().tr("core.global_menu.undo"), "Ctrl+Z", "undo");
+                edit_menu->add_item(i18n().tr("core.global_menu.redo"), "Ctrl+Shift+Z", "redo");
+                
+                if (has_clipboard)
+                {
+                    edit_menu->add_separator();
+                }
+            }
+
+            if (has_clipboard)
+            {
+                edit_menu->add_item(i18n().tr("core.global_menu.copy"), "Ctrl+C", "copy");
+                edit_menu->add_item(i18n().tr("core.global_menu.cut"), "Ctrl+X", "cut");
+                edit_menu->add_item(i18n().tr("core.global_menu.paste"), "Ctrl+V", "paste");
+            }
 
             if (is_new)
             {
@@ -1609,6 +1661,26 @@ namespace horizon
             {
                 SignalContext ctx;
                 signal_manager.emit("paste", ctx);
+                return;
+            }
+            else if (event.keysym == XKB_KEY_z || event.keysym == XKB_KEY_Z)
+            {
+                if (m_modifiers & SHIFT)
+                {
+                    SignalContext ctx;
+                    signal_manager.emit("redo", ctx);
+                }
+                else
+                {
+                    SignalContext ctx;
+                    signal_manager.emit("undo", ctx);
+                }
+                return;
+            }
+            else if (event.keysym == XKB_KEY_y || event.keysym == XKB_KEY_Y)
+            {
+                SignalContext ctx;
+                signal_manager.emit("redo", ctx);
                 return;
             }
         }
@@ -3391,6 +3463,51 @@ namespace horizon
         LOG_INFO << "WaylandWindow: find_clipboard_target returned NULL";
         return nullptr;
     }
+
+    bool WaylandWindow::detect_undo_support(Widget *root)
+    {
+        if (!root)
+            return false;
+        if (root->supports_undo())
+            return true;
+        for (const auto &child : root->children())
+        {
+            if (detect_undo_support(child.get()))
+                return true;
+        }
+        return false;
+    }
+
+    Widget *WaylandWindow::find_undo_target()
+    {
+        if (m_focused)
+        {
+            Widget *temp = m_focused;
+            while (temp)
+            {
+                if (temp->supports_undo())
+                    return temp;
+                temp = temp->parent();
+            }
+        }
+
+        std::function<Widget*(Widget*)> search_top_down = [&](Widget *w) -> Widget* {
+            if (!w) return nullptr;
+            if (w->supports_undo()) return w;
+            for (const auto &child : w->children()) {
+                if (auto *found = search_top_down(child.get())) return found;
+            }
+            return nullptr;
+        };
+
+        if (m_root)
+        {
+            return search_top_down(m_root.get());
+        }
+
+        return nullptr;
+    }
+
 
     std::vector<std::string> WaylandWindow::get_clipboard_mime_types() const
     {

@@ -43,6 +43,8 @@
             "copy": "Copiar",
             "cut": "Cortar",
             "paste": "Pegar",
+            "undo": "Deshacer",
+            "redo": "Rehacer",
             "fullscreen": "Pantalla completa"
         },
         "color_picker": {

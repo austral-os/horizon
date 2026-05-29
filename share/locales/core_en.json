@@ -42,6 +42,8 @@
             "copy": "Copy",
             "cut": "Cut",
             "paste": "Paste",
+            "undo": "Undo",
+            "redo": "Redo",
             "fullscreen": "Fullscreen"
         },
         "color_picker": {

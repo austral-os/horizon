@@ -26,6 +26,26 @@ TextEditorWidget::TextEditorWidget() : Widget() {
     when_mouse_press.connect([this](MouseButtonEventContext& ev) { this->handle_mouse_event(ev); });
     when_mouse_drag.connect([this](MouseMoveEventContext& ev) { this->handle_mouse_drag(ev); });
     
+    when_undo.connect([this](EventContext&) {
+        if (m_doc) {
+            m_doc->undo();
+            invalidate();
+            m_needs_ensure_visible = true;
+            m_cursor_visible = true;
+            m_last_blink = std::chrono::steady_clock::now();
+        }
+    });
+
+    when_redo.connect([this](EventContext&) {
+        if (m_doc) {
+            m_doc->redo();
+            invalidate();
+            m_needs_ensure_visible = true;
+            m_cursor_visible = true;
+            m_last_blink = std::chrono::steady_clock::now();
+        }
+    });
+    
     when_application_load.connect([this](EventContext&) {
         // No manual timer needed, WaylandWindow handles cursor blink 
         // by invalidating the focused widget every 500ms.
