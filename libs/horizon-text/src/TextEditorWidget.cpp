@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <codecvt>
 #include <locale>
+#include <cairo/cairo-pdf.h>
 
 
 namespace horizon {
@@ -735,6 +736,82 @@ void TextEditorWidget::set_show_line_numbers(bool show) {
 void TextEditorWidget::set_highlight_current_line(bool highlight) {
     m_highlight_current_line = highlight;
     invalidate();
+}
+
+static cairo_status_t cairo_pdf_write_func(void *closure, const unsigned char *data, unsigned int length) {
+    auto* vec = static_cast<std::vector<uint8_t>*>(closure);
+    vec->insert(vec->end(), data, data + length);
+    return CAIRO_STATUS_SUCCESS;
+}
+
+horizon::print::PrintDocument TextEditorWidget::generate_print_document(const horizon::print::PrintConfig& config) {
+    horizon::print::PrintDocument doc;
+    doc.mime_type = "application/pdf";
+    doc.filename = "document.pdf";
+    doc.title = "Text Document";
+
+    std::vector<uint8_t> pdf_data;
+
+    // A4 default
+    double pt_width = config.paper_width_mm > 0 ? (config.paper_width_mm * 72.0 / 25.4) : 595.0;
+    double pt_height = config.paper_height_mm > 0 ? (config.paper_height_mm * 72.0 / 25.4) : 842.0;
+
+    double margin = 36.0; // half inch
+
+    cairo_surface_t* surface = cairo_pdf_surface_create_for_stream(cairo_pdf_write_func, &pdf_data, pt_width, pt_height);
+    cairo_t* cr = cairo_create(surface);
+
+    cairo_set_source_rgb(cr, 0, 0, 0); // black text
+
+    PangoLayout* print_layout = pango_cairo_create_layout(cr);
+    PangoFontDescription* desc = pango_font_description_new();
+    pango_font_description_set_family(desc, m_font_family.c_str());
+    pango_font_description_set_size(desc, m_font_size * PANGO_SCALE);
+    pango_font_description_set_weight(desc, static_cast<PangoWeight>(m_font_weight == 0 ? PANGO_WEIGHT_NORMAL : m_font_weight));
+    pango_layout_set_font_description(print_layout, desc);
+    pango_font_description_free(desc);
+
+    pango_layout_set_width(print_layout, (pt_width - 2 * margin) * PANGO_SCALE);
+    pango_layout_set_wrap(print_layout, PANGO_WRAP_WORD_CHAR);
+    
+    if (m_doc) {
+        std::string full_text = m_doc->get_text();
+        pango_layout_set_text(print_layout, full_text.c_str(), -1);
+    }
+
+    PangoLayoutIter* iter = pango_layout_get_iter(print_layout);
+    
+    double current_y = margin;
+    
+    do {
+        PangoRectangle extents;
+        pango_layout_iter_get_line_extents(iter, nullptr, &extents);
+        
+        double line_height = PANGO_PIXELS(extents.height) + m_line_spacing;
+        
+        if (current_y + line_height > pt_height - margin) {
+            cairo_show_page(cr);
+            current_y = margin;
+        }
+        
+        PangoLayoutLine* line = pango_layout_iter_get_line_readonly(iter);
+        
+        cairo_move_to(cr, margin, current_y);
+        pango_cairo_show_layout_line(cr, line);
+        
+        current_y += line_height;
+        
+    } while (pango_layout_iter_next_line(iter));
+    
+    pango_layout_iter_free(iter);
+    g_object_unref(print_layout);
+    
+    cairo_destroy(cr);
+    cairo_surface_finish(surface);
+    cairo_surface_destroy(surface);
+
+    doc.data = pdf_data;
+    return doc;
 }
 
 } // namespace text

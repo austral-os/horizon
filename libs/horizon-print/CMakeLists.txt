@@ -17,7 +17,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(CUPS REQUIRED cups)
 
 target_include_directories(horizon-print PRIVATE ${CUPS_INCLUDE_DIRS})
-target_link_libraries(horizon-print PUBLIC horizon ${CUPS_LIBRARIES})
+target_link_libraries(horizon-print PUBLIC ${CUPS_LIBRARIES})
 
 install(TARGETS horizon-print DESTINATION lib COMPONENT libhorizon-print)
 

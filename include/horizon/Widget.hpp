@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <horizon/print/Models.h>
 
 namespace horizon
 {
@@ -228,6 +229,14 @@ namespace horizon
         virtual bool supports_fullscreen() const
         {
             return false;
+        }
+        virtual bool supports_printing() const
+        {
+            return false;
+        }
+        virtual horizon::print::PrintDocument generate_print_document(const horizon::print::PrintConfig& config)
+        {
+            return {};
         }
         virtual bool supports_clipboard() const
         {

@@ -42,6 +42,9 @@ public:
     bool supports_fullscreen() const override { return true; }
     bool supports_clipboard() const override { return true; }
     bool supports_undo() const override { return true; }
+    bool supports_printing() const override { return true; }
+    horizon::print::PrintDocument generate_print_document(const horizon::print::PrintConfig& config) override;
+
     bool can_perform(ClipboardAction action) const override;
     void perform(ClipboardAction action) override;
 

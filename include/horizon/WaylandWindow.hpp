@@ -545,6 +545,9 @@ namespace horizon
         bool detect_zoom_support(Widget *root);
         Widget *find_zoom_target();
 
+        bool detect_print_support(Widget *root);
+        Widget *find_print_target();
+
         class Window *find_window_target(Widget *root);
 
     protected:

@@ -49,6 +49,7 @@ file(GLOB_RECURSE SOURCES
     "src/files/disks/*.cpp"
     "src/protocols/*.c"
 )
+add_subdirectory(libs/horizon-print)
 
 add_library(horizon SHARED ${SOURCES})
 set_target_properties(horizon PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -118,6 +119,7 @@ target_compile_definitions(horizon
 target_link_libraries(horizon
     PUBLIC
         ${DBUS_LIBRARIES}
+        horizon-print
         ${UUID_LIBRARIES}
     PRIVATE
         ${WAYLAND_LIBRARIES}
@@ -151,7 +153,6 @@ add_subdirectory(libs/horizon-network)
 add_subdirectory(libs/horizon-network-storage)
 add_subdirectory(libs/horizon-compression-tools)
 add_subdirectory(libs/horizon-capture)
-add_subdirectory(libs/horizon-print)
 
 
 # --- Core Applications ---

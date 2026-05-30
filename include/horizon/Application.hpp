@@ -111,6 +111,11 @@ namespace horizon
         void show_preferences();
 
         /**
+         * @brief Shows the print dialog for a specific target widget.
+         */
+        void show_print_dialog(Widget* target);
+
+        /**
          * @brief Gets the application about manager.
          */
         AboutManager &about_manager();

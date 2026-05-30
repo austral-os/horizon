@@ -42,12 +42,17 @@ struct PrintConfig {
     std::string ppdPath;
     std::optional<int> copies;
     std::optional<bool> duplex;
+    double paper_width_mm{0.0};
+    double paper_height_mm{0.0};
     // Keys defined strongly to avoid typos
     std::unordered_map<PrintOption, std::string> extra;
 };
 
 struct PrintDocument {
     std::vector<uint8_t> data;
+    std::string mime_type;
+    std::string filename;
+    std::string title;
 
     // Minimal validation to prevent passing completely broken buffers
     bool isValid() const {

@@ -9,6 +9,7 @@
 #include <horizon/I18n.hpp>
 #include <horizon/IpcClient.hpp>
 #include <horizon/JsonBackend.hpp>
+#include <horizon/dialogs/PrintDialog.hpp>
 #include <horizon/LabwcCompositorContext.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
@@ -407,6 +408,43 @@ namespace horizon
         if (!m_managed_windows.empty())
         {
             m_managed_windows[0].window->show_preferences();
+        }
+    }
+
+    void Application::show_print_dialog(Widget* target)
+    {
+        auto dialog = std::make_unique<horizon::PrintDialog>(target);
+        WaylandWindow *ptr = dialog.get();
+
+        {
+            std::lock_guard<std::mutex> lock(m_windows_mutex);
+            m_managed_windows.push_back({std::move(dialog), nullptr, {}});
+        }
+
+        if (m_is_running)
+        {
+            std::lock_guard<std::mutex> lock(m_windows_mutex);
+            auto &mw = m_managed_windows.back();
+            mw.thread = std::thread(
+                [this, ptr]()
+                {
+                    ptr->initialize();
+                    ptr->run();
+
+                    std::lock_guard<std::mutex> lock(m_windows_mutex);
+                    if (m_managed_windows.empty())
+                        return;
+
+                    for (auto it = m_managed_windows.begin(); it != m_managed_windows.end(); ++it)
+                    {
+                        if (it->window.get() == ptr)
+                        {
+                            it->thread.detach();
+                            m_managed_windows.erase(it);
+                            break;
+                        }
+                    }
+                });
         }
     }
 

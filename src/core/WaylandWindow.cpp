@@ -8,6 +8,7 @@
 #include "horizon/Vault.hpp"
 #include "horizon/WayfireCompositorContext.hpp"
 #include "horizon/Window.hpp"
+#include <horizon/dialogs/PrintDialog.hpp>
 #include "horizon/SystemInfo.hpp"
 #include "horizon/dialogs/AboutUsDialog.hpp"
 #include <GLES2/gl2.h>
@@ -473,6 +474,24 @@ namespace horizon
                 else
                 {
                     LOG_INFO << "WaylandWindow: No undo target found";
+                }
+            });
+        signal_manager.connect(
+            "print",
+            [this](SignalContext &)
+            {
+                LOG_INFO << "WaylandWindow: Received 'print' signal from menu/IPC";
+                auto *target = find_print_target();
+                if (target)
+                {
+                    std::thread([target]() {
+                        auto dialog = std::make_unique<horizon::PrintDialog>(target);
+                        dialog->run();
+                    }).detach();
+                }
+                else
+                {
+                    LOG_INFO << "WaylandWindow: No print target found";
                 }
             });
 
@@ -1100,9 +1119,11 @@ namespace horizon
 
         // Automatic File Menu detection
         Window *file_win = find_window_target(m_root.get());
-        if (file_win)
+        bool has_print = detect_print_support(m_root.get()); LOG_INFO << "WaylandWindow: has_print = " << has_print;
+
+        if (file_win || has_print)
         {
-            uint32_t caps = file_win->file_capabilities();
+            uint32_t caps = file_win ? file_win->file_capabilities() : 0;
             Menu *file_menu = get_menu("file");
             bool is_new = false;
 
@@ -1140,6 +1161,12 @@ namespace horizon
             {
                 file_menu->add_item(i18n().tr("core.global_menu.file_save_as"), "Ctrl+Shift+S",
                                     "file.save_as");
+            }
+
+            if (has_print)
+            {
+                if (caps != 0) file_menu->add_separator();
+                file_menu->add_item(i18n().tr("core.global_menu.print"), "Ctrl+P", "print");
             }
 
             if (is_new)
@@ -1732,6 +1759,12 @@ namespace horizon
             {
                 SignalContext ctx;
                 signal_manager.emit("zoom_out", ctx);
+                return;
+            }
+            else if (event.keysym == XKB_KEY_p || event.keysym == XKB_KEY_P)
+            {
+                SignalContext ctx;
+                signal_manager.emit("print", ctx);
                 return;
             }
         }
@@ -3589,6 +3622,50 @@ namespace horizon
         std::function<Widget*(Widget*)> search_top_down = [&](Widget *w) -> Widget* {
             if (!w) return nullptr;
             if (w->supports_zoom()) return w;
+            for (const auto &child : w->children()) {
+                if (auto *found = search_top_down(child.get())) return found;
+            }
+            return nullptr;
+        };
+
+        if (m_root)
+        {
+            return search_top_down(m_root.get());
+        }
+
+        return nullptr;
+    }
+
+    bool WaylandWindow::detect_print_support(Widget *root)
+    {
+        if (!root)
+            return false;
+        if (root->supports_printing())
+            return true;
+        for (const auto &child : root->children())
+        {
+            if (detect_print_support(child.get()))
+                return true;
+        }
+        return false;
+    }
+
+    Widget *WaylandWindow::find_print_target()
+    {
+        if (m_focused)
+        {
+            Widget *temp = m_focused;
+            while (temp)
+            {
+                if (temp->supports_printing())
+                    return temp;
+                temp = temp->parent();
+            }
+        }
+
+        std::function<Widget*(Widget*)> search_top_down = [&](Widget *w) -> Widget* {
+            if (!w) return nullptr;
+            if (w->supports_printing()) return w;
             for (const auto &child : w->children()) {
                 if (auto *found = search_top_down(child.get())) return found;
             }
