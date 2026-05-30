@@ -151,6 +151,7 @@ add_subdirectory(libs/horizon-network)
 add_subdirectory(libs/horizon-network-storage)
 add_subdirectory(libs/horizon-compression-tools)
 add_subdirectory(libs/horizon-capture)
+add_subdirectory(libs/horizon-print)
 
 
 # --- Core Applications ---

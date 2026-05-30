@@ -174,7 +174,8 @@ sudo apt install build-essential g++ pkg-config \
                  desktop-file-utils libmpv-dev libproc2-dev \
                  libsecret-1-dev libpam0g-dev libssl-dev \
                  libsoup-3.0-dev libavcodec-dev libavformat-dev \
-                 libavutil-dev libswscale-dev libswresample-dev
+                 libavutil-dev libswscale-dev libswresample-dev \
+                 libcups2-dev libavahi-client-dev libavahi-common-dev
 ```
 
 _Note: For applications like Nova (web browser), you may also need multimedia plugins:_
@@ -240,6 +241,7 @@ To run Horizon-based applications, ensure these core runtime libraries are prese
 | `libwf-utils0t64`         | `libwpewebkit-2.0-1` | `xdg-dbus-proxy` | `libfreerdp-server3-3` |
 | `libturbojpeg0`           | `libwinpr3-3`        | `libxcb-errors0` | `libfreerdp3-3`        |
 | `liburiparser1`           | `libwlroots-0.18`    | `libxcb-ewmh2`   |                        |
+| `cups`                    | `cups-filters`       | `avahi-daemon`   | `ipp-usb`              |
 
 ---
 
