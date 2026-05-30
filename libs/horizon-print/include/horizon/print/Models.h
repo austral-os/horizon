@@ -38,10 +38,28 @@ enum class PrintOption {
     PageRanges
 };
 
+enum class Orientation {
+    Portrait,
+    Landscape
+};
+
+enum class PrintQuality {
+    Draft,
+    Normal,
+    High
+};
+
 struct PrintConfig {
     std::string ppdPath;
     std::optional<int> copies;
     std::optional<bool> duplex;
+    
+    std::string paper_size{"A4"};
+    Orientation orientation{Orientation::Portrait};
+    PrintQuality quality{PrintQuality::Normal};
+    std::string page_ranges;
+    std::string page_set{"all"}; // "all", "even", "odd"
+    
     double paper_width_mm{0.0};
     double paper_height_mm{0.0};
     // Keys defined strongly to avoid typos

@@ -752,9 +752,24 @@ horizon::print::PrintDocument TextEditorWidget::generate_print_document(const ho
 
     std::vector<uint8_t> pdf_data;
 
-    // A4 default
-    double pt_width = config.paper_width_mm > 0 ? (config.paper_width_mm * 72.0 / 25.4) : 595.0;
-    double pt_height = config.paper_height_mm > 0 ? (config.paper_height_mm * 72.0 / 25.4) : 842.0;
+    // Parse paper size to points
+    double pt_width = 595.0;  // A4 default
+    double pt_height = 842.0;
+
+    if (config.paper_size == "Letter") {
+        pt_width = 612.0; pt_height = 792.0;
+    } else if (config.paper_size == "Legal") {
+        pt_width = 612.0; pt_height = 1008.0;
+    } else if (config.paper_size == "Executive") {
+        pt_width = 522.0; pt_height = 756.0;
+    } else if (config.paper_width_mm > 0 && config.paper_height_mm > 0) {
+        pt_width = config.paper_width_mm * 72.0 / 25.4;
+        pt_height = config.paper_height_mm * 72.0 / 25.4;
+    }
+
+    if (config.orientation == horizon::print::Orientation::Landscape) {
+        std::swap(pt_width, pt_height);
+    }
 
     double margin = 36.0; // half inch
 

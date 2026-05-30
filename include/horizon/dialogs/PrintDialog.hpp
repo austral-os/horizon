@@ -9,6 +9,9 @@
 #include <horizon/print/backends/CUPSBackend.h>
 #include <memory>
 
+#include <horizon/Combo.hpp>
+#include <horizon/TextBox.hpp>
+
 namespace horizon {
 
 class PrintDialog : public WaylandWindow {
@@ -28,8 +31,15 @@ private:
     std::optional<horizon::print::Printer> m_selected_printer;
 
     TableView<horizon::print::Printer>* m_printer_list{nullptr};
-    Button<SolidObject>* m_print_btn{nullptr};
-    Button<SolidObject>* m_cancel_btn{nullptr};
+    
+    Combo* m_paper_size_combo{nullptr};
+    Combo* m_orientation_combo{nullptr};
+    Combo* m_quality_combo{nullptr};
+    Combo* m_page_range_combo{nullptr};
+    TextBox<>* m_page_range_text{nullptr};
+
+    Button<AquaObject>* m_print_btn{nullptr};
+    Button<AquaObject>* m_cancel_btn{nullptr};
 };
 
 } // namespace horizon
