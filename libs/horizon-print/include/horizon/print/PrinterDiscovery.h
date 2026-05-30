@@ -16,52 +16,77 @@ private:
     std::atomic<bool> m_scanning{false};
     std::thread m_scanThread;
 
-    static int cupsEnumDestsCallback(void *user_data, unsigned flags, cups_dest_t *dest) {
-        auto* discovery = static_cast<PrinterDiscovery*>(user_data);
-        if (!discovery->m_scanning) return 0; // Stop enumeration
-
-        Printer p;
-        p.id = dest->name;
-        p.name = dest->name;
-        
-        const char* uri = cupsGetOption("device-uri", dest->num_options, dest->options);
-        if (uri) {
-            p.uri = uri;
-        } else {
-            p.uri = "ipp://localhost/printers/" + p.id; // fallback
+    static std::string urlDecode(const std::string& str) {
+        std::string ret;
+        char ch;
+        int i, ii;
+        for (i=0; i<str.length(); i++) {
+            if (str[i] != '%') {
+                if(str[i] == '+')
+                    ret += ' ';
+                else
+                    ret += str[i];
+            } else {
+                sscanf(str.substr(i + 1, 2).c_str(), "%x", &ii);
+                ch = static_cast<char>(ii);
+                ret += ch;
+                i = i + 2;
+            }
         }
-        
-        const char* info = cupsGetOption("printer-info", dest->num_options, dest->options);
-        if (info && info[0] != '\0') {
-            p.name = info;
-        }
-
-        p.source = PrinterSource::Discovered;
-
-        if (discovery->when_printer_found) {
-            discovery->when_printer_found(p);
-        }
-
-        return 1; // Continue enumeration
+        return ret;
     }
 
     void scanLoop() {
-        // 1. Enviar una impresora mock para desarrollo/pruebas
-        Printer discoveredPrinter;
-        discoveredPrinter.id = "discovered_mock_1";
-        discoveredPrinter.name = "Mock Network Printer";
-        discoveredPrinter.uri = "ipp://192.168.1.100/ipp/print";
-        discoveredPrinter.source = PrinterSource::Discovered;
+        FILE* pipe = popen("/usr/sbin/lpinfo -v", "r");
+        if (pipe) {
+            char buffer[512];
+            while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
+                if (!m_scanning) break;
+                
+                std::string line(buffer);
+                if (!line.empty() && line.back() == '\n') line.pop_back();
 
-        if (when_printer_found) {
-            when_printer_found(discoveredPrinter);
+                if (line.find("network ") == 0) {
+                    std::string uri = line.substr(8);
+                    
+                    // Solo agregamos URIs que parezcan endpoints concretos
+                    if (uri.find("://") != std::string::npos) {
+                        Printer p;
+                        p.uri = uri;
+                        p.source = PrinterSource::Discovered;
+                        
+                        // Extraer un nombre amigable del URI
+                        std::string name = uri;
+                        auto scheme_pos = name.find("://");
+                        if (scheme_pos != std::string::npos) {
+                            name = name.substr(scheme_pos + 3);
+                            auto slash_pos = name.find("/");
+                            if (slash_pos != std::string::npos) {
+                                name = name.substr(0, slash_pos);
+                            }
+                            auto dot_pos = name.find("._");
+                            if (dot_pos != std::string::npos) {
+                                name = name.substr(0, dot_pos);
+                            }
+                            name = urlDecode(name);
+                        }
+                        
+                        p.name = name;
+                        p.id = name; // Guardamos el nombre decodeado como ID base
+                        
+                        // Limpiar ID para que sea seguro
+                        for (char& c : p.id) {
+                            if (c == ' ' || c == '/' || c == '#') c = '_';
+                        }
+                        
+                        if (when_printer_found) {
+                            when_printer_found(p);
+                        }
+                    }
+                }
+            }
+            pclose(pipe);
         }
-
-        // 2. Ejecutar escaneo real vía CUPS (DNS-SD, mDNS, USB, etc.)
-        // cupsEnumDests bloquea hasta que termine el tiempo especificado.
-        // Usamos un timeout de 5000ms (5 segundos).
-        cupsEnumDests(CUPS_DEST_FLAGS_UNCONNECTED | CUPS_DEST_FLAGS_CANCELED, 
-                      5000, NULL, 0, 0, cupsEnumDestsCallback, this);
 
         while (m_scanning) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));

@@ -43,17 +43,21 @@ PrinterId CUPSBackend::addPrinter(const std::string& name, const std::string& ur
         if (c == ' ' || c == '/' || c == '#') c = '_';
     }
 
-    // Intentar agregar usando IPP Everywhere (automático)
-    std::string cmd = "pkexec /usr/sbin/lpadmin -p \"" + safe_id + "\" -v \"" + uri + "\" -m everywhere -E";
+    // Combinamos ambos intentos en un solo script bash ejecutado vía pkexec.
+    // Esto evita que Polkit pida la contraseña dos veces.
+    // Además, usamos `timeout 5` para evitar que lpadmin se cuelgue 60 segundos si 
+    // la impresora no soporta IPP Everywhere (muy común en impresoras LPD/antiguas).
+    std::string script = 
+        "if ! timeout 5 /usr/sbin/lpadmin -p '" + safe_id + "' -v '" + uri + "' -m everywhere -E 2>/dev/null; then "
+        "  /usr/sbin/lpadmin -p '" + safe_id + "' -v '" + uri + "' -E; "
+        "fi";
+    
+    std::string cmd = "pkexec bash -c \"" + script + "\"";
     int ret = system(cmd.c_str());
     if (ret != 0) {
-        // Fallback: Si la impresora no responde a IPP Everywhere (ej: mock o genérica), forzar a cruda (raw)
-        std::string fallback_cmd = "pkexec /usr/sbin/lpadmin -p \"" + safe_id + "\" -v \"" + uri + "\" -E";
-        int ret2 = system(fallback_cmd.c_str());
-        if (ret2 != 0) {
-            throw std::runtime_error("No se pudo agregar la impresora. Asegúrate de tener permisos (polkit/sudo).");
-        }
+        throw std::runtime_error("No se pudo agregar la impresora. Asegúrate de tener permisos (polkit/sudo).");
     }
+    
     return safe_id;
 }
 

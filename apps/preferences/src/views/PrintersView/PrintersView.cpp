@@ -109,15 +109,25 @@ namespace horizon::preferences
             auto dialog = std::make_unique<AddPrinterDialog>();
             dialog->when_accepted.connect([this](horizon::print::Printer& ev) {
                 if (auto* app = this->application()) {
-                    app->post_task([this, ev]() {
+                    // Executing CUPS logic in a background thread because pkexec/lpadmin 
+                    // blocks while waiting for the user's password in polkit.
+                    std::thread([this, app, ev]() {
                         try {
                             horizon::print::PrintConfig config;
                             this->m_printer_service->addPrinter(ev.name, ev.uri, config);
-                            this->refresh_printers();
+                            
+                            // CUPS a veces tarda unos milisegundos en reflejar la nueva impresora
+                            // en cupsGetDests después de que lpadmin termina.
+                            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+                            app->post_task([this]() {
+                                this->refresh_printers();
+                                this->invalidate();
+                            });
                         } catch (const std::exception& e) {
                             std::cerr << "Error adding printer: " << e.what() << "\n";
                         }
-                    });
+                    }).detach();
                 }
             });
             // Show the dialog in a detached thread to prevent blocking the main window
