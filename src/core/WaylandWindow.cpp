@@ -1137,6 +1137,9 @@ namespace horizon
                 is_new = true;
             }
 
+            bool has_open = (caps & FileOpen) || (caps & FileOpenFolder);
+            bool has_save_close = (caps & FileClose) || (caps & FileSave) || (caps & FileSaveAs);
+
             if (caps & FileOpen)
             {
                 file_menu->add_item(i18n().tr("core.global_menu.file_open"), "Ctrl+O", "file.open");
@@ -1146,6 +1149,18 @@ namespace horizon
                 file_menu->add_item(i18n().tr("core.global_menu.file_open_folder"), "Ctrl+Shift+O",
                                     "file.open_folder");
             }
+
+            if (has_print)
+            {
+                if (has_open) file_menu->add_separator();
+                file_menu->add_item(i18n().tr("core.global_menu.print"), "Ctrl+P", "print");
+            }
+
+            if (has_save_close && (has_open || has_print))
+            {
+                file_menu->add_separator();
+            }
+
             if (caps & FileClose)
             {
                 file_menu->add_item(i18n().tr("core.global_menu.file_close"), "Ctrl+W",
@@ -1161,12 +1176,6 @@ namespace horizon
             {
                 file_menu->add_item(i18n().tr("core.global_menu.file_save_as"), "Ctrl+Shift+S",
                                     "file.save_as");
-            }
-
-            if (has_print)
-            {
-                if (caps != 0) file_menu->add_separator();
-                file_menu->add_item(i18n().tr("core.global_menu.print"), "Ctrl+P", "print");
             }
 
             if (is_new)
