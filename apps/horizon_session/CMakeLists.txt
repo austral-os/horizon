@@ -244,3 +244,11 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/wayfire.ini")
         COMPONENT session
     )
 endif()
+
+# --- Printer Test Page ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/printer-test-page.pdf")
+    install(FILES data/printer-test-page.pdf
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()

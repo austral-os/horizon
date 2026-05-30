@@ -1,3 +1,4 @@
+#include <fstream>
 #include "views/PrintersView/DriverSearchDialog.hpp"
 #include <views/PrintersView/PrintersView.hpp>
 #include <horizon/WaylandWindow.hpp>
@@ -250,10 +251,20 @@ namespace horizon::preferences
         test_btn->when_click.connect([this](MouseButtonEventContext &) {
             if (this->m_selected_printer.has_value()) {
                 try {
-                    // Generar un PDF mínimo válido para la prueba
                     horizon::print::PrintDocument doc;
-                    std::string minimal_pdf = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n4 0 obj\n<< /Length 53 >>\nstream\nBT\n/F1 24 Tf\n100 700 Td\n(Horizon Test Page) Tj\nET\nendstream\nendobj\n5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\nxref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000228 00000 n \n0000000332 00000 n \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n420\n%%EOF\n";
-                    doc.data = std::vector<uint8_t>(minimal_pdf.begin(), minimal_pdf.end());
+                    
+                    std::ifstream file("/usr/share/horizon/printer-test-page.pdf", std::ios::binary | std::ios::ate);
+                    if (file.is_open()) {
+                        std::streamsize size = file.tellg();
+                        file.seekg(0, std::ios::beg);
+                        doc.data.resize(size);
+                        file.read(reinterpret_cast<char*>(doc.data.data()), size);
+                        file.close();
+                    } else {
+                        // Fallback a PDF mínimo en memoria
+                        std::string minimal_pdf = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n4 0 obj\n<< /Length 53 >>\nstream\nBT\n/F1 24 Tf\n100 700 Td\n(Horizon Test Page) Tj\nET\nendstream\nendobj\n5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\nxref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000228 00000 n \n0000000332 00000 n \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n420\n%%EOF\n";
+                        doc.data = std::vector<uint8_t>(minimal_pdf.begin(), minimal_pdf.end());
+                    }
                     
                     horizon::print::PrintConfig config;
                     // Enviar directo al backend

@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
+   sodipodi:docname="printer-test-page.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.63874717"
+     inkscape:cx="493.15287"
+     inkscape:cy="588.65231"
+     inkscape:window-width="2226"
+     inkscape:window-height="1223"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g1" />
+  <defs
+     id="defs1">
+    <linearGradient
+       id="linearGradient17"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#808080;stop-opacity:1"
+         offset="0"
+         id="stop17" />
+      <stop
+         style="stop-color:#ffffff;stop-opacity:1"
+         offset="1"
+         id="stop18" />
+    </linearGradient>
+    <rect
+       x="-398.5277"
+       y="735.0622"
+       width="389.67153"
+       height="172.69534"
+       id="rect1" />
+    <rect
+       x="-398.52771"
+       y="735.06219"
+       width="389.67154"
+       height="172.69534"
+       id="rect1-5" />
+    <rect
+       x="-398.52771"
+       y="735.06219"
+       width="389.67154"
+       height="172.69534"
+       id="rect1-5-0" />
+    <rect
+       x="-398.52771"
+       y="735.06219"
+       width="389.67154"
+       height="172.69534"
+       id="rect1-5-0-3" />
+    <rect
+       x="-398.52771"
+       y="735.06219"
+       width="389.67154"
+       height="172.69534"
+       id="rect1-5-0-3-9" />
+    <rect
+       x="-398.52771"
+       y="735.06219"
+       width="389.67154"
+       height="172.69534"
+       id="rect1-5-0-3-9-4" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient17"
+       id="linearGradient18"
+       x1="82.46122"
+       y1="71.330185"
+       x2="82.46122"
+       y2="117.88911"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <g
+     inkscape:label="Capa 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g1"
+       transform="matrix(1.6281023,0,0,1.6281023,-5.4321566,-48.614603)">
+      <path
+         id="path3"
+         d="M 127.9846,112.72097 H 41.681044 V 43.656608 H 127.9846 Z"
+         style="fill:url(#linearGradient18);fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352778" />
+      <path
+         id="path4"
+         d="M 31.096653,198.48406 H 7.6729156 V 43.656256 H 31.096653 Z"
+         style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352778" />
+      <path
+         id="path5"
+         d="M 88.710028,86.791831 68.601696,106.90052 H 41.680872 v 7.0552 H 71.524459 L 91.632792,93.847739 h 36.351628 v -7.055908 z"
+         style="fill:#0072e9;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352778" />
+      <path
+         id="path6"
+         d="M 91.632933,93.847633 71.524248,113.95597 H 41.681013 v 7.0552 h 32.766351 l 20.108333,-20.10798 h 33.428863 v -7.055557 z"
+         style="fill:#00cd55;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352778" />
+      <path
+         id="path7"
+         d="M 94.555521,100.90312 74.447189,121.01145 H 41.680838 v 7.05556 h 35.689467 l 20.10798,-20.10833 h 30.506105 v -7.05556 z"
+         style="fill:#fd9700;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352778" />
+      <path
+         id="path8"
+         d="M 97.478426,107.9586 77.370094,128.06729 H 41.680979 v 7.0552 h 38.611878 l 20.108333,-20.10833 h 27.58334 v -7.05556 z"
+         style="fill:#ff4143;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352778" />
+      <path
+         id="path9"
+         d="M 100.40133,115.01409 80.292645,135.12278 H 41.681119 v 7.0552 H 83.215761 L 103.32409,122.07 h 24.66023 v -7.05591 z"
+         style="fill:#1a1a1a;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352778" />
+      <path
+         id="path11"
+         d="M 7.6729156,113.9564 H 31.096653 v -7.11518 H 7.6729156 Z"
+         style="fill:#0072e9;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352778" />
+      <path
+         id="path12"
+         d="M 7.6729156,121.07157 H 31.096653 v -7.11482 H 7.6729156 Z"
+         style="fill:#00cd55;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352778" />
+      <path
+         id="path13"
+         d="M 7.6729156,128.18675 H 31.096653 v -7.11518 H 7.6729156 Z"
+         style="fill:#fd9700;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352778" />
+      <path
+         id="path14"
+         d="M 7.6729156,135.30157 H 31.096653 v -7.11482 H 7.6729156 Z"
+         style="fill:#ff4143;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352778" />
+      <path
+         id="path15"
+         d="M 7.6729156,142.41674 H 31.096653 v -7.11517 H 7.6729156 Z"
+         style="fill:#1a1a1a;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352778" />
+      <text
+         xml:space="preserve"
+         transform="matrix(0.84773541,0,0,0.84773541,388.99949,-560.99301)"
+         id="text1"
+         style="font-size:14.6667px;font-family:Monospace;-inkscape-font-specification:Monospace;text-align:start;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect1);display:inline;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:2.48315"><tspan
+           x="-398.52734"
+           y="748.8534"
+           id="tspan19"><tspan
+             style="font-weight:bold;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold'"
+             id="tspan18">Austral OS</tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         transform="matrix(0.330779,0,0,0.330779,202.46187,-166.3514)"
+         id="text1-4"
+         style="font-size:14.6667px;font-family:Monospace;-inkscape-font-specification:Monospace;text-align:start;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect1-5);display:inline;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:2.48315"><tspan
+           x="-398.52734"
+           y="748.8534"
+           id="tspan21"><tspan
+             style="font-weight:bold;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold'"
+             id="tspan20">Horizon DE</tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         transform="matrix(0,-0.56426978,0.56426978,0,-400.3205,-45.089531)"
+         id="text1-4-6"
+         style="font-size:14.6667px;font-family:Monospace;-inkscape-font-specification:Monospace;text-align:start;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect1-5-0);display:inline;fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.48315"><tspan
+           x="-398.52734"
+           y="748.8534"
+           id="tspan23"><tspan
+             style="font-weight:bold;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold'"
+             id="tspan22">v 0.4.42</tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         transform="matrix(0.56426978,0,0,0.56426978,272.31957,-264.87322)"
+         id="text1-4-6-9"
+         style="font-size:14.6667px;font-family:Monospace;-inkscape-font-specification:Monospace;text-align:start;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect1-5-0-3);display:inline;fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.48315"><tspan
+           x="-398.52734"
+           y="748.8534"
+           id="tspan25"><tspan
+             style="font-weight:bold;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold'"
+             id="tspan24">v 0.4.42</tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         transform="matrix(0.56426978,0,0,0.56426978,272.37015,-255.85016)"
+         id="text1-4-6-9-6"
+         style="font-size:14.6667px;font-family:Monospace;-inkscape-font-specification:Monospace;text-align:start;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect1-5-0-3-9);display:inline;fill:#999999;fill-opacity:1;stroke:none;stroke-width:2.48315"><tspan
+           x="-398.52734"
+           y="748.8534"
+           id="tspan27"><tspan
+             style="font-weight:bold;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold'"
+             id="tspan26">alpha</tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         transform="matrix(0.40229601,0,0,0.40229601,172.26699,-113.07457)"
+         id="text1-4-6-9-6-3"
+         style="font-size:14.6667px;font-family:Monospace;-inkscape-font-specification:Monospace;text-align:start;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect1-5-0-3-9-4);display:inline;fill:#999999;fill-opacity:1;stroke:none;stroke-width:2.48315"><tspan
+           x="-398.52734"
+           y="748.8534"
+           id="tspan29"><tspan
+             style="font-weight:bold;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold'"
+             id="tspan28">alpha</tspan></tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-size:14.6667px;font-family:Monospace;-inkscape-font-specification:Monospace;text-align:start;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:start;white-space:pre;inline-size:124.687;display:inline;fill:#000000;stroke:none;stroke-width:2.48315"
+         x="-171.47728"
+         y="409.67877"
+         id="text29"
+         transform="matrix(0.25659073,0,0,0.25659073,134.47808,49.791874)"><tspan
+           x="-171.47728"
+           y="409.67877"
+           id="tspan31"><tspan
+             style="font-weight:bold;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold';text-align:end;text-anchor:end"
+             id="tspan30">A system with
+</tspan></tspan><tspan
+           x="-171.47728"
+           y="428.82646"
+           id="tspan33"><tspan
+             style="font-weight:bold;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold';text-align:end;text-anchor:end"
+             id="tspan32">
+</tspan></tspan><tspan
+           x="-171.47728"
+           y="447.97413"
+           id="tspan35"><tspan
+             style="font-weight:bold;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold';text-align:end;text-anchor:end"
+             id="tspan34">elegance,
+</tspan></tspan><tspan
+           x="-171.47728"
+           y="467.1218"
+           id="tspan37"><tspan
+             style="font-weight:bold;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold';text-align:end;text-anchor:end"
+             id="tspan36">
+</tspan></tspan><tspan
+           x="-171.47728"
+           y="486.26948"
+           id="tspan39"><tspan
+             style="font-weight:bold;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold';text-align:end;text-anchor:end"
+             id="tspan38">simplicity,
+</tspan></tspan><tspan
+           x="-171.47728"
+           y="505.41715"
+           id="tspan41"><tspan
+             style="font-weight:bold;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold';text-align:end;text-anchor:end"
+             id="tspan40">
+</tspan></tspan><tspan
+           x="-171.47728"
+           y="524.56483"
+           id="tspan43"><tspan
+             style="font-weight:bold;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold';text-align:end;text-anchor:end"
+             id="tspan42">and control.</tspan></tspan></text>
+      <g
+         id="g15"
+         transform="translate(-8.3654587,56.669236)">
+        <path
+           id="path10"
+           d="M 79.163032,126.36065 H 56.494483 v -10.58099 h 22.668549 z"
+           style="fill:none;stroke:#343e3e;stroke-width:0.722706;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:5.5502px;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold';text-align:start;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.939678"
+           x="59.07798"
+           y="123.02547"
+           id="text15"><tspan
+             sodipodi:role="line"
+             id="tspan15"
+             style="fill:#000000;stroke-width:0.939678"
+             x="59.07798"
+             y="123.02547">LINUX</tspan></text>
+      </g>
+      <g
+         id="g15-6"
+         transform="rotate(-90,29.333598,130.72943)">
+        <path
+           id="path10-4"
+           d="M 79.163032,126.36065 H 56.494483 v -10.58099 h 22.668549 z"
+           style="fill:none;stroke:#343e3e;stroke-width:0.722706;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1" />
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:5.5502px;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold';text-align:start;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.939678"
+           x="59.07798"
+           y="123.02547"
+           id="text15-3"><tspan
+             sodipodi:role="line"
+             id="tspan15-0"
+             style="fill:#000000;stroke-width:0.939678"
+             x="59.07798"
+             y="123.02547">LINUX</tspan></text>
+      </g>
+      <g
+         id="g17"
+         transform="matrix(0,-0.81810218,0.81810218,0,-83.258005,-5.5335419)">
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:8.20796px;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold';text-align:start;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.38965"
+           x="-98.383049"
+           y="127.30266"
+           id="text16"><tspan
+             sodipodi:role="line"
+             id="tspan16"
+             style="stroke-width:1.38965"
+             x="-98.383049"
+             y="127.30266">PRINTER</tspan></text>
+        <text
+           xml:space="preserve"
+           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.38349px;font-family:'Lucida Grande';-inkscape-font-specification:'Lucida Grande Bold';text-align:start;letter-spacing:0px;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.403537"
+           x="-97.668373"
+           y="131.11896"
+           id="text17"><tspan
+             sodipodi:role="line"
+             id="tspan17"
+             style="stroke-width:0.403537"
+             x="-97.668373"
+             y="131.11896">AUSTRAL OS - TEST PAGE</tspan></text>
+      </g>
+    </g>
+  </g>
+</svg>
