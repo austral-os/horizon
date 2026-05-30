@@ -21,6 +21,7 @@ add_executable(preferences
     src/views/KeyboardView/KeyboardView.cpp
     src/views/KeyboardView/KeyboardHardwareView.cpp
     src/views/PrintersView/PrintersView.cpp
+    src/views/PrintersView/AddPrinterDialog.cpp
     src/views/PowerView/PowerView.cpp
     src/views/WifiView/WifiView.cpp
     src/views/WifiView/WifiConfigView.cpp
@@ -54,6 +55,7 @@ target_link_libraries(preferences
         horizon
         horizon-overview
         horizon-network
+        horizon-print
         PkgConfig::PIPEWIRE
         nlohmann_json::nlohmann_json
 

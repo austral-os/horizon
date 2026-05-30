@@ -13,7 +13,11 @@ target_include_directories(horizon-print PUBLIC
 
 target_compile_features(horizon-print PUBLIC cxx_std_20)
 
-target_link_libraries(horizon-print PUBLIC horizon)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(CUPS REQUIRED cups)
+
+target_include_directories(horizon-print PRIVATE ${CUPS_INCLUDE_DIRS})
+target_link_libraries(horizon-print PUBLIC horizon ${CUPS_LIBRARIES})
 
 install(TARGETS horizon-print DESTINATION lib COMPONENT libhorizon-print)
 
