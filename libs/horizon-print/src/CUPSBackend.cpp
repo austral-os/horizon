@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <sstream>
 #include <horizon/print/backends/CUPSBackend.h>
 #include <horizon/print/backends/IPPMapper.h>
 #include <cups/cups.h>
@@ -36,6 +38,65 @@ std::vector<Printer> CUPSBackend::listPrinters() {
     return printers;
 }
 
+std::string findBestPPD(const std::string& printerName) {
+    std::string bestPPD = "";
+    int bestScore = 0;
+
+    std::string lowerName = printerName;
+    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+    for (char& c : lowerName) {
+        if (!isalnum(c)) c = ' ';
+    }
+    std::vector<std::string> keywords;
+    std::stringstream ss(lowerName);
+    std::string word;
+    while (ss >> word) {
+        if (word.length() > 1 && word != "series") {
+            keywords.push_back(word);
+        }
+    }
+
+    FILE* pipe = popen("/usr/sbin/lpinfo -m 2>/dev/null", "r");
+    if (!pipe) return "";
+
+    char buffer[1024];
+    while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
+        std::string line(buffer);
+        if (line.back() == '\n') line.pop_back();
+
+        size_t spacePos = line.find(' ');
+        if (spacePos != std::string::npos) {
+            std::string ppd = line.substr(0, spacePos);
+            std::string desc = line.substr(spacePos + 1);
+
+            std::string lowerDesc = desc;
+            std::transform(lowerDesc.begin(), lowerDesc.end(), lowerDesc.begin(), ::tolower);
+            for (char& c : lowerDesc) {
+                if (!isalnum(c)) c = ' ';
+            }
+
+            int score = 0;
+            for (const auto& kw : keywords) {
+                if (lowerDesc.find(kw) != std::string::npos) {
+                    score++;
+                }
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestPPD = ppd;
+            }
+        }
+    }
+    pclose(pipe);
+
+    int threshold = std::min(2, (int)keywords.size());
+    if (bestScore >= threshold && bestScore > 0) {
+        return bestPPD;
+    }
+    return "";
+}
+
 PrinterId CUPSBackend::addPrinter(const std::string& name, const std::string& uri, const PrintConfig& config) {
     // CUPS no permite espacios en el ID de la impresora (-p)
     std::string safe_id = name;
@@ -43,19 +104,27 @@ PrinterId CUPSBackend::addPrinter(const std::string& name, const std::string& ur
         if (c == ' ' || c == '/' || c == '#') c = '_';
     }
 
-    // Combinamos ambos intentos en un solo script bash ejecutado vía pkexec.
-    // Esto evita que Polkit pida la contraseña dos veces.
-    // Además, usamos `timeout 5` para evitar que lpadmin se cuelgue 60 segundos si 
-    // la impresora no soporta IPP Everywhere (muy común en impresoras LPD/antiguas).
-    std::string script = 
-        "if ! timeout 5 /usr/sbin/lpadmin -p '" + safe_id + "' -v '" + uri + "' -m everywhere -E 2>/dev/null; then "
-        "  /usr/sbin/lpadmin -p '" + safe_id + "' -v '" + uri + "' -E; "
-        "fi";
+    std::string bestPPD = findBestPPD(name);
+
+    // Intentamos IPP Everywhere o el PPD exacto si se encontró.
+    // Ya NO hacemos fallback a RAW silencioso, para poder disparar la UI de búsqueda de drivers.
+    std::string script = "";
+    if (!config.ppdPath.empty()) {
+        script = "/usr/sbin/lpadmin -p '" + safe_id + "' -v '" + uri + "' -P '" + config.ppdPath + "' -E";
+    } else if (!bestPPD.empty()) {
+        script = "/usr/sbin/lpadmin -p '" + safe_id + "' -v '" + uri + "' -m '" + bestPPD + "' -E";
+    } else {
+        script = "timeout 5 /usr/sbin/lpadmin -p '" + safe_id + "' -v '" + uri + "' -m everywhere -E 2>/dev/null";
+    }
     
     std::string cmd = "pkexec bash -c \"" + script + "\"";
     int ret = system(cmd.c_str());
     if (ret != 0) {
-        throw std::runtime_error("No se pudo agregar la impresora. Asegúrate de tener permisos (polkit/sudo).");
+        if (config.ppdPath.empty() && bestPPD.empty()) {
+            throw std::runtime_error("DRIVER_MISSING");
+        } else {
+            throw std::runtime_error("No se pudo agregar la impresora. Asegúrate de tener permisos (polkit/sudo).");
+        }
     }
     
     return safe_id;

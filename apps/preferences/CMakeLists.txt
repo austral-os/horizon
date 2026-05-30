@@ -22,6 +22,7 @@ add_executable(preferences
     src/views/KeyboardView/KeyboardHardwareView.cpp
     src/views/PrintersView/PrintersView.cpp
     src/views/PrintersView/AddPrinterDialog.cpp
+    src/views/PrintersView/DriverSearchDialog.cpp
     src/views/PowerView/PowerView.cpp
     src/views/WifiView/WifiView.cpp
     src/views/WifiView/WifiConfigView.cpp

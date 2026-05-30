@@ -1,3 +1,4 @@
+#include "views/PrintersView/DriverSearchDialog.hpp"
 #include <views/PrintersView/PrintersView.hpp>
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/AquaObject.hpp>
@@ -109,15 +110,11 @@ namespace horizon::preferences
             auto dialog = std::make_unique<AddPrinterDialog>();
             dialog->when_accepted.connect([this](horizon::print::Printer& ev) {
                 if (auto* app = this->application()) {
-                    // Executing CUPS logic in a background thread because pkexec/lpadmin 
-                    // blocks while waiting for the user's password in polkit.
                     std::thread([this, app, ev]() {
                         try {
                             horizon::print::PrintConfig config;
                             this->m_printer_service->addPrinter(ev.name, ev.uri, config);
                             
-                            // CUPS a veces tarda unos milisegundos en reflejar la nueva impresora
-                            // en cupsGetDests después de que lpadmin termina.
                             std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
                             app->post_task([this]() {
@@ -125,7 +122,37 @@ namespace horizon::preferences
                                 this->invalidate();
                             });
                         } catch (const std::exception& e) {
-                            std::cerr << "Error adding printer: " << e.what() << "\n";
+                            std::string err_msg = e.what();
+                            if (err_msg == "DRIVER_MISSING") {
+                                app->post_task([this, app, ev]() {
+                                    auto search_dialog = std::make_unique<DriverSearchDialog>(ev.name);
+                                    search_dialog->when_driver_ready.connect([this, app, ev](std::string ppd_path) {
+                                        std::thread([this, app, ev, ppd_path]() {
+                                            try {
+                                                horizon::print::PrintConfig config;
+                                                config.ppdPath = ppd_path;
+                                                this->m_printer_service->addPrinter(ev.name, ev.uri, config);
+                                                
+                                                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                                                app->post_task([this]() {
+                                                    this->refresh_printers();
+                                                    this->invalidate();
+                                                });
+                                            } catch (const std::exception& e2) {
+                                                std::cerr << "Error final adding printer: " << e2.what() << "\n";
+                                            }
+                                        }).detach();
+                                    });
+                                    auto* raw_app = app;
+                                    std::thread([raw_app, d = std::move(search_dialog)]() mutable {
+                                        d->initialize();
+                                        d->run();
+                                        if (raw_app) raw_app->wakeup();
+                                    }).detach();
+                                });
+                            } else {
+                                std::cerr << "Error adding printer: " << err_msg << "\n";
+                            }
                         }
                     }).detach();
                 }
@@ -232,8 +259,30 @@ namespace horizon::preferences
                     // Enviar directo al backend
                     this->m_backend->submitJob(this->m_selected_printer->id, doc, config);
                     
+                    auto original_text = m_test_page_btn->text();
+                    m_test_page_btn->set_text("Enviado!");
+                    m_test_page_btn->set_enabled(false);
+                    m_test_page_btn->invalidate();
+                    
+                    if (auto* app = this->application()) {
+                        std::thread([this, app, original_text]() {
+                            std::this_thread::sleep_for(std::chrono::seconds(2));
+                            app->post_task([this, original_text]() {
+                                if (this->m_test_page_btn) {
+                                    this->m_test_page_btn->set_text(original_text);
+                                    this->m_test_page_btn->set_enabled(true);
+                                    this->m_test_page_btn->invalidate();
+                                }
+                            });
+                        }).detach();
+                    }
+                    
                 } catch (const std::exception& e) {
                     std::cerr << "Error printing test page: " << e.what() << "\n";
+                    if (this->m_test_page_btn) {
+                        this->m_test_page_btn->set_text("Error de Impresión");
+                        this->m_test_page_btn->invalidate();
+                    }
                 }
             }
         });
@@ -278,8 +327,10 @@ namespace horizon::preferences
         if (m_source_label)
             m_source_label->set_text(printer.source == horizon::print::PrinterSource::Installed ? "Installed" : "Discovered");
             
-        if (m_test_page_btn)
+        if (m_test_page_btn) {
             m_test_page_btn->set_enabled(true);
+            m_test_page_btn->invalidate();
+        }
     }
 
 } // namespace horizon::preferences

@@ -39,6 +39,7 @@ enum class PrintOption {
 };
 
 struct PrintConfig {
+    std::string ppdPath;
     std::optional<int> copies;
     std::optional<bool> duplex;
     // Keys defined strongly to avoid typos
