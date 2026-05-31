@@ -26,6 +26,29 @@
                 "size_label": "Tamaño:",
                 "sample_label": "Muestra:",
                 "select": "Seleccionar fuente"
+            },
+            "print": {
+                "title": "Imprimir Documento",
+                "paper": "Papel:",
+                "orientation": "Orientación:",
+                "quality": "Calidad:",
+                "pages": "Páginas:",
+                "range_placeholder": "1,2,3 o 1-3",
+                "portrait": "Vertical",
+                "landscape": "Horizontal",
+                "normal": "Normal",
+                "high": "Alta",
+                "draft": "Borrador",
+                "all": "Todas",
+                "even": "Pares",
+                "odd": "Impares",
+                "specific": "Específicas...",
+                "print_btn": "Imprimir",
+                "select_printer": "Selecciona una impresora:",
+                "name": "Nombre",
+                "paper_letter": "Carta",
+                "paper_legal": "Legal",
+                "paper_exec": "Ejecutivo"
             }
         },
         "global_menu": {

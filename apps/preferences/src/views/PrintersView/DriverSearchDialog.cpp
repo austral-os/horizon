@@ -3,6 +3,7 @@
 #include <horizon/TableColumn.hpp>
 #include <horizon/Application.hpp>
 #include <horizon/Color.hpp>
+#include <horizon/I18n.hpp>
 #include <thread>
 #include <algorithm>
 #include <sstream>
@@ -17,34 +18,38 @@ namespace horizon::preferences
     {
         set_name("DriverSearchDialog");
 
-        auto win = std::make_unique<Window>("Controladores");
-        win->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        win->set_margin(20);
-        win->set_spacing(15);
-        win->set_background_color(Color("#ffffff"));
+        auto win = std::make_unique<Window>(i18n().tr("preferences.printers.drivers"));
+
+        auto content = std::make_unique<Widget>();
+        content->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        content->set_margin(20);
+        content->set_spacing(15);
 
         // Header
         auto header = std::make_unique<Label>();
-        header->set_text("Instalación de Controlador");
+        header->set_text(i18n().tr("preferences.printers.driver_installation"));
         header->set_font_size(24);
         header->set_font_weight(FONT_WEIGHT_BOLD);
-        win->add_child(std::move(header));
+        header->set_fixed_size(30);
+        content->add_child(std::move(header));
 
         auto desc = std::make_unique<Label>();
-        desc->set_text("Buscando controladores compatibles para:\n" + printer_name);
-        win->add_child(std::move(desc));
+        desc->set_text(i18n().tr("preferences.printers.searching_drivers_for") + printer_name);
+        desc->set_fixed_size(40);
+        content->add_child(std::move(desc));
 
         auto status = std::make_unique<Label>();
-        status->set_text("Consultando repositorios de software...");
+        status->set_text(i18n().tr("preferences.printers.querying_repos"));
         status->set_font_size(12);
         status->set_text_color(Color("#666666"));
+        status->set_fixed_size(20);
         m_status_label = status.get();
-        win->add_child(std::move(status));
+        content->add_child(std::move(status));
 
         auto loading = std::make_unique<LoadingBar>();
         loading->set_fixed_size(4); // alto
         m_loading_bar = loading.get();
-        win->add_child(std::move(loading));
+        content->add_child(std::move(loading));
 
         // Table View (oculto inicialmente)
         auto table = std::make_unique<TableView<DriverPackage>>();
@@ -62,11 +67,13 @@ namespace horizon::preferences
             auto title = std::make_unique<Label>();
             title->set_text(data.name);
             title->set_font_weight(FONT_WEIGHT_BOLD);
+            title->set_fixed_size(20);
             
             auto sub = std::make_unique<Label>();
             sub->set_text(data.description);
             sub->set_font_size(12);
             sub->set_text_color(Color("#666666"));
+            sub->set_fixed_size(20);
             
             container->add_child(std::move(title));
             container->add_child(std::move(sub));
@@ -81,19 +88,19 @@ namespace horizon::preferences
         });
         
         m_table_view = table.get();
-        win->add_child(std::move(table));
+        content->add_child(std::move(table));
 
-        win->add_child(Spacer());
+        content->add_child(Spacer());
 
         // Botones
         auto bottom_row = std::make_unique<Widget>();
         bottom_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         bottom_row->set_spacing(10);
-        bottom_row->set_fixed_size(35);
+        bottom_row->set_fixed_size(33);
         bottom_row->add_child(Spacer());
 
         auto manual_btn = std::make_unique<Button<AquaObject>>();
-        manual_btn->set_text("Seleccionar PPD Manual...");
+        manual_btn->set_text(i18n().tr("preferences.printers.manual_ppd"));
         manual_btn->set_fixed_size(180);
         manual_btn->set_visible(false);
         manual_btn->when_click.connect([this](auto&) {
@@ -105,22 +112,24 @@ namespace horizon::preferences
         bottom_row->add_child(std::move(manual_btn));
 
         auto cancel_btn = std::make_unique<Button<AquaObject>>();
-        cancel_btn->set_text("Cancelar");
-        cancel_btn->set_fixed_size(100);
+        cancel_btn->set_text(i18n().tr("preferences.common.cancel"));
+        cancel_btn->set_fixed_size(120);
         cancel_btn->when_click.connect([this](auto&) { this->on_close(); });
         m_cancel_btn = cancel_btn.get();
         bottom_row->add_child(std::move(cancel_btn));
 
         auto install_btn = std::make_unique<Button<AquaObject>>();
-        install_btn->set_text("Instalar");
-        install_btn->set_fixed_size(100);
+        install_btn->set_text(i18n().tr("preferences.printers.install"));
+        install_btn->set_fixed_size(120);
         install_btn->set_enabled(false);
         install_btn->set_visible(false);
+        install_btn->set_accent_color(WidgetAccentColor::Primary);
         install_btn->when_click.connect([this](auto&) { install_selected(); });
         m_install_btn = install_btn.get();
         bottom_row->add_child(std::move(install_btn));
 
-        win->add_child(std::move(bottom_row));
+        content->add_child(std::move(bottom_row));
+        win->add_child(std::move(content));
         set_root(std::move(win));
         
         start_search();
@@ -173,10 +182,10 @@ namespace horizon::preferences
                 if (m_loading_bar) m_loading_bar->set_visible(false);
                 
                 if (m_packages.empty()) {
-                    if (m_status_label) m_status_label->set_text("No se encontraron controladores en el repositorio.");
+                    if (m_status_label) m_status_label->set_text(i18n().tr("preferences.printers.no_drivers_found"));
                     if (m_manual_btn) m_manual_btn->set_visible(true);
                 } else {
-                    if (m_status_label) m_status_label->set_text("Selecciona el paquete de controladores correcto:");
+                    if (m_status_label) m_status_label->set_text(i18n().tr("preferences.printers.select_driver"));
                     if (m_table_view) {
                         m_table_view->set_data(m_packages);
                         m_table_view->set_visible(true);
@@ -194,8 +203,8 @@ namespace horizon::preferences
         if (!m_selected_package.has_value()) return;
         
         m_install_btn->set_enabled(false);
-        m_install_btn->set_text("Instalando...");
-        m_status_label->set_text("Instalando paquete: " + m_selected_package->name);
+        m_install_btn->set_text(i18n().tr("preferences.printers.installing"));
+        m_status_label->set_text(i18n().tr("preferences.printers.installing_package") + m_selected_package->name);
         m_loading_bar->set_visible(true);
         m_table_view->set_enabled(false);
         
@@ -211,8 +220,8 @@ namespace horizon::preferences
                     when_driver_ready.run(empty_str);
                     this->on_close();
                 } else {
-                    m_install_btn->set_text("Falló");
-                    m_status_label->set_text("Error instalando. Intenta manual.");
+                    m_install_btn->set_text(i18n().tr("preferences.printers.failed"));
+                    m_status_label->set_text(i18n().tr("preferences.printers.install_error"));
                     m_loading_bar->set_visible(false);
                 }
             });

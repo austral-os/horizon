@@ -135,6 +135,7 @@ namespace horizon::preferences
         bottom_status->add_child(std::move(refresh_icon));
 
         auto scan_label = std::make_unique<Label>(i18n().tr("preferences.printers.scanning"));
+        scan_label->set_fixed_size(200);
         m_status_label = scan_label.get();
         bottom_status->add_child(std::move(scan_label));
 
@@ -151,20 +152,20 @@ namespace horizon::preferences
         // 5. Buttons
         auto buttons = std::make_unique<Widget>();
         buttons->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-        buttons->set_fixed_size(40);
+        buttons->set_fixed_size(33);
         buttons->set_spacing(10);
         buttons->add_child(Spacer());
 
         auto btn_cancel = std::make_unique<Button<AquaObject>>();
         btn_cancel->set_text(i18n().tr("preferences.common.cancel"));
-        btn_cancel->set_fixed_size(100);
+        btn_cancel->set_fixed_size(120);
         btn_cancel->when_click.connect([this](MouseButtonEventContext &) { this->quit(); });
         m_cancel_btn = btn_cancel.get();
         buttons->add_child(std::move(btn_cancel));
 
         auto btn_add = std::make_unique<Button<AquaObject>>();
         btn_add->set_text(i18n().tr("preferences.printers.add"));
-        btn_add->set_fixed_size(100);
+        btn_add->set_fixed_size(120);
         btn_add->set_accent_color(WidgetAccentColor::Primary);
         btn_add->set_enabled(false);
         btn_add->when_click.connect([this](MouseButtonEventContext &)

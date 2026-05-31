@@ -166,6 +166,23 @@
             "remove": "Quitar",
             "default": "Predeterminado"
         },
+        "printers": {
+            "add_printer": "Añadir Impresora",
+            "scanning": "Explorando...",
+            "add": "Añadir",
+            "drivers": "Controladores",
+            "driver_installation": "Instalación de Controlador",
+            "searching_drivers_for": "Buscando controladores compatibles para:\n",
+            "querying_repos": "Consultando repositorios de software...",
+            "no_drivers_found": "No se encontraron controladores en el repositorio.",
+            "select_driver": "Selecciona el paquete de controladores correcto:",
+            "installing_package": "Instalando paquete: ",
+            "manual_ppd": "Seleccionar PPD Manual...",
+            "install": "Instalar",
+            "installing": "Instalando...",
+            "failed": "Falló",
+            "install_error": "Error instalando. Intenta manual."
+        },
         "sound": {
             "output": "Salida",
             "input": "Entrada",
@@ -217,7 +234,8 @@
             "error": "Error",
             "warning": "Advertencia",
             "accept": "Aceptar",
-            "cancel": "Cancelar"
+            "cancel": "Cancelar",
+            "search": "Buscar..."
         },
         "users": {
             "your_account": "Su cuenta",

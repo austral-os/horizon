@@ -166,6 +166,23 @@
             "remove": "Remove",
             "default": "Default"
         },
+        "printers": {
+            "add_printer": "Add Printer",
+            "scanning": "Scanning...",
+            "add": "Add",
+            "drivers": "Drivers",
+            "driver_installation": "Driver Installation",
+            "searching_drivers_for": "Searching for compatible drivers for:\n",
+            "querying_repos": "Querying software repositories...",
+            "no_drivers_found": "No drivers found in repository.",
+            "select_driver": "Select the correct driver package:",
+            "installing_package": "Installing package: ",
+            "manual_ppd": "Select Manual PPD...",
+            "install": "Install",
+            "installing": "Installing...",
+            "failed": "Failed",
+            "install_error": "Error installing. Try manual."
+        },
         "sound": {
             "output": "Output",
             "input": "Input",
@@ -217,7 +234,8 @@
             "error": "Error",
             "warning": "Warning",
             "accept": "Accept",
-            "cancel": "Cancel"
+            "cancel": "Cancel",
+            "search": "Search..."
         },
         "users": {
             "your_account": "Your account",

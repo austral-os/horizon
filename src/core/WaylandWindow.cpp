@@ -1770,12 +1770,6 @@ namespace horizon
                 signal_manager.emit("zoom_out", ctx);
                 return;
             }
-            else if (event.keysym == XKB_KEY_p || event.keysym == XKB_KEY_P)
-            {
-                SignalContext ctx;
-                signal_manager.emit("print", ctx);
-                return;
-            }
         }
 
         // Global shortcuts
@@ -1801,6 +1795,13 @@ namespace horizon
         {
             m_is_repeating = false;
             m_repeat_key = 0;
+        }
+
+        if ((m_modifiers & CTRL) && (event.keysym == XKB_KEY_p || event.keysym == XKB_KEY_P))
+        {
+            SignalContext ctx;
+            signal_manager.emit("print", ctx);
+            return;
         }
 
         Widget *target = m_focused ? m_focused : m_root.get();
