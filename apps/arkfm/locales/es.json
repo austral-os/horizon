@@ -93,6 +93,18 @@
       "restore_error_multi": "Error al intentar restaurar algunos elementos de la papelera.",
       "empty_trash_error": "Error al intentar vaciar la papelera.",
       "rename_error": "Error al renombrar"
+    },
+    "preferences": {
+      "general": "General",
+      "default_view": "Vista por defecto",
+      "view_icon": "Iconos",
+      "view_table": "Lista",
+      "view_coverflow": "Cover Flow",
+      "click_behavior": "Abrir elementos",
+      "single_click": "Un solo clic",
+      "double_click": "Doble clic",
+      "show_hidden": "Mostrar archivos y carpetas ocultos",
+      "show_extensions": "Mostrar extensiones de archivo"
     }
   }
 }

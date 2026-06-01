@@ -93,6 +93,18 @@
       "restore_error_multi": "Error attempting to restore some items from the Trash.",
       "empty_trash_error": "Error attempting to empty the Trash.",
       "rename_error": "Error renaming"
+    },
+    "preferences": {
+      "general": "General",
+      "default_view": "Default view",
+      "view_icon": "Icon View",
+      "view_table": "List View",
+      "view_coverflow": "Cover Flow",
+      "click_behavior": "Open items",
+      "single_click": "Single click",
+      "double_click": "Double click",
+      "show_hidden": "Show hidden files and folders",
+      "show_extensions": "Show file extensions"
     }
   }
 }

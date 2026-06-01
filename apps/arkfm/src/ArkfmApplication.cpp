@@ -3,6 +3,9 @@
 #include "horizon/EventsManager.hpp"
 #include "horizon/Menu.hpp"
 #include "horizon/I18n.hpp"
+#include "horizon/dialogs/PreferencesContent.hpp"
+#include "ArkfmPreferencesSection.hpp"
+#include <cstdlib>
 
 namespace horizon::arkfm
 {
@@ -18,6 +21,24 @@ namespace horizon::arkfm
 
         set_name(i18n().tr("arkfm.title"));
         set_icon_name("system-file-manager");
+
+        char *home = std::getenv("HOME");
+        std::string config_path = home ? std::string(home) + "/.config/horizon/arkfm.json" : "arkfm.json";
+
+        set_preferences_content(
+            [config_path]()
+            {
+                auto content = std::make_unique<PreferencesContent>(config_path);
+                auto *content_ptr = content.get();
+                auto on_change = [content_ptr]() { content_ptr->save_config(); };
+
+                content->add_section(i18n().tr("arkfm.preferences.general"),
+                                     "preferences-system",
+                                     std::make_unique<ArkfmPreferencesSection>(on_change), "arkfm");
+
+                return content;
+            },
+            600, 500);
 
         // Setup About info
         auto &about = about_manager();
