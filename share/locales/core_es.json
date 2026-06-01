@@ -70,7 +70,8 @@
             "redo": "Rehacer",
             "fullscreen": "Pantalla completa",
             "zoom_in": "Acercar",
-            "zoom_out": "Alejar"
+            "zoom_out": "Alejar",
+            "print": "Imprimir"
         },
         "color_picker": {
             "html_notation": "Notación HTML:"

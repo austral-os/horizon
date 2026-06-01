@@ -69,7 +69,8 @@
             "redo": "Redo",
             "fullscreen": "Fullscreen",
             "zoom_in": "Zoom In",
-            "zoom_out": "Zoom Out"
+            "zoom_out": "Zoom Out",
+            "print": "Print"
         },
         "color_picker": {
             "html_notation": "HTML Notation:"
