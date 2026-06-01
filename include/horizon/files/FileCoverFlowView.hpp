@@ -37,6 +37,9 @@ namespace horizon::files
 
         EventsManager<horizon::TableViewRowMouseClickContext<arkutils::FileInfo>>
             when_row_dbl_click;
+            
+        EventsManager<horizon::TableViewRowMouseClickContext<arkutils::FileInfo>>
+            when_row_click;
         
         void set_show_hidden_files(bool show);
         void set_file_filter(const std::vector<std::string>& filter) { m_file_filter = filter; }

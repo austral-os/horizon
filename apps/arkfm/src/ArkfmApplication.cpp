@@ -26,11 +26,16 @@ namespace horizon::arkfm
         std::string config_path = home ? std::string(home) + "/.config/horizon/arkfm.json" : "arkfm.json";
 
         set_preferences_content(
-            [config_path]()
+            [this, config_path]()
             {
                 auto content = std::make_unique<PreferencesContent>(config_path);
                 auto *content_ptr = content.get();
-                auto on_change = [content_ptr]() { content_ptr->save_config(); };
+                auto on_change = [this, content_ptr]() { 
+                    content_ptr->save_config(); 
+                    if (!this->m_managed_windows.empty() && this->m_managed_windows[0].window) {
+                        this->m_managed_windows[0].window->signal_manager.emit("preferences-changed");
+                    }
+                };
 
                 content->add_section(i18n().tr("arkfm.preferences.general"),
                                      "preferences-system",

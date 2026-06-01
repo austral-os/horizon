@@ -3,6 +3,13 @@
 
 namespace horizon::files
 {
+    static bool g_show_extensions = true;
+
+    void FileIconProvider::set_show_extensions(bool show)
+    {
+        g_show_extensions = show;
+    }
+
     std::string FileIconProvider::get_icon_name(const arkutils::FileInfo &f)
     {
         if (f.type == arkutils::FileType::Directory)
@@ -97,6 +104,19 @@ namespace horizon::files
                 return name;
             }
         }
+
+        if (!g_show_extensions && !f.extension.empty() && f.type != arkutils::FileType::Directory)
+        {
+            std::string ext_suffix = "." + f.extension;
+            if (f.name.length() > ext_suffix.length())
+            {
+                if (f.name.compare(f.name.length() - ext_suffix.length(), ext_suffix.length(), ext_suffix) == 0)
+                {
+                    return f.name.substr(0, f.name.length() - ext_suffix.length());
+                }
+            }
+        }
+
         return f.name;
     }
 } // namespace horizon::files

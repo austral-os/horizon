@@ -45,11 +45,19 @@ namespace horizon::files
             auto view = std::make_unique<FileListView>(m_current_path);
             view->set_show_hidden_files(m_show_hidden_files);
             view->set_file_filter(m_file_filter);
-            view->when_row_dbl_click.connect(
-                [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
-                {
-                    this->open_item(ctx.row_data);
-                });
+            if (m_click_behavior == ClickBehavior::Double) {
+                view->when_row_dbl_click.connect(
+                    [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
+                    {
+                        this->open_item(ctx.row_data);
+                    });
+            } else {
+                view->when_row_click.connect(
+                    [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
+                    {
+                        this->open_item(ctx.row_data);
+                    });
+            }
             view->when_operation_progress.connect(
                 [this](OperationProgressEvent &ctx)
                 {
@@ -68,11 +76,19 @@ namespace horizon::files
             auto view = std::make_unique<FileIconView>(m_current_path);
             view->set_show_hidden_files(m_show_hidden_files);
             view->set_file_filter(m_file_filter);
-            view->when_item_dbl_click.connect(
-                [this](horizon::IconViewItemMouseClickContext<arkutils::FileInfo> &ctx)
-                {
-                    this->open_item(ctx.item_data);
-                });
+            if (m_click_behavior == ClickBehavior::Double) {
+                view->when_item_dbl_click.connect(
+                    [this](horizon::IconViewItemMouseClickContext<arkutils::FileInfo> &ctx)
+                    {
+                        this->open_item(ctx.item_data);
+                    });
+            } else {
+                view->when_item_click.connect(
+                    [this](horizon::IconViewItemMouseClickContext<arkutils::FileInfo> &ctx)
+                    {
+                        this->open_item(ctx.item_data);
+                    });
+            }
             view->when_operation_progress.connect(
                 [this](OperationProgressEvent &ctx)
                 {
@@ -90,11 +106,19 @@ namespace horizon::files
             auto view = std::make_unique<FileCoverFlowView>(m_current_path);
             view->set_show_hidden_files(m_show_hidden_files);
             view->set_file_filter(m_file_filter);
-            view->when_row_dbl_click.connect(
-                [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
-                {
-                    this->open_item(ctx.row_data);
-                });
+            if (m_click_behavior == ClickBehavior::Double) {
+                view->when_row_dbl_click.connect(
+                    [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
+                    {
+                        this->open_item(ctx.row_data);
+                    });
+            } else {
+                view->when_row_click.connect(
+                    [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
+                    {
+                        this->open_item(ctx.row_data);
+                    });
+            }
             view->when_operation_progress.connect(
                 [this](OperationProgressEvent &ctx)
                 {
@@ -143,6 +167,15 @@ namespace horizon::files
         {
             child->set_show_hidden_files(show);
             child->refresh(m_current_path, m_search_query);
+        }
+    }
+
+    void FileView::set_click_behavior(ClickBehavior cb)
+    {
+        if (m_click_behavior != cb) {
+            m_click_behavior = cb;
+            // Force recreation of views to bind to the new click behavior
+            set_view_mode(m_view_mode);
         }
     }
 

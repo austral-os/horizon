@@ -104,6 +104,7 @@ namespace horizon::files
                     m_cover_flow->set_selected_index(ctx.row_index);
                     m_navigation_label->set_text(FileIconProvider::get_display_name(ctx.row_data));
                 }
+                when_row_click.run(ctx);
             });
 
         m_list_view->when_row_dbl_click.connect(

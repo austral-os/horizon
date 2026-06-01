@@ -23,6 +23,8 @@
 #include <horizon/I18n.hpp>
 #include <horizon/MenuItem.hpp>
 #include <horizon/NotificationSender.hpp>
+#include <horizon/files/FileIconProvider.hpp>
+#include <horizon/ConfigManager.hpp>
 #include <horizon/files/FileSidebar.hpp>
 #include <horizon/files/FileToolbar.hpp>
 #include <horizon/files/FileView.hpp>
@@ -54,6 +56,38 @@ namespace horizon::arkfm
         auto view = std::make_unique<files::FileView>(start_path);
         m_view_ptr = view.get();
         auto *view_ptr = m_view_ptr;
+
+        auto apply_preferences = [this]() {
+            std::string home = getenv("HOME") ? getenv("HOME") : "/";
+            std::string config_path = home + "/.config/horizon/arkfm.json";
+            ConfigManager cfg(config_path);
+            if (cfg.load()) {
+                auto prefs = cfg.get_section("arkfm");
+                if (!prefs.is_null()) {
+                    bool show_hidden = prefs.value("show_hidden", false);
+                    if (this->m_view_ptr) this->m_view_ptr->set_show_hidden_files(show_hidden);
+                    
+                    bool show_extensions = prefs.value("show_extensions", true);
+                    files::FileIconProvider::set_show_extensions(show_extensions);
+                    
+                    std::string click_beh = prefs.value("click_behavior", "double");
+                    if (this->m_view_ptr) {
+                        if (click_beh == "single") this->m_view_ptr->set_click_behavior(files::ClickBehavior::Single);
+                        else this->m_view_ptr->set_click_behavior(files::ClickBehavior::Double);
+                    }
+
+                    std::string def_view = prefs.value("default_view", "icon");
+                    if (this->m_view_ptr) {
+                        if (def_view == "table") this->m_view_ptr->set_view_mode(files::ViewMode::List);
+                        else if (def_view == "coverflow") this->m_view_ptr->set_view_mode(files::ViewMode::CoverFlow);
+                        else this->m_view_ptr->set_view_mode(files::ViewMode::Grid);
+                    }
+                    
+                    if (this->m_view_ptr) this->m_view_ptr->refresh();
+                }
+            }
+        };
+        apply_preferences();
 
         sidebar_ptr->when_item_selected.connect(
             [view_ptr](horizon::SidebarItemSelectedContext &ctx)
@@ -464,10 +498,18 @@ namespace horizon::arkfm
         set_content(std::move(vpanel));
 
         this->when_application_load.connect(
-            [this, view_ptr](EventContext &)
+            [this, view_ptr, apply_preferences](EventContext &)
             {
                 if (application())
                 {
+                    application()->signal_manager.connect("preferences-changed", [this, apply_preferences](SignalContext &) {
+                        if (this->application()) {
+                            this->application()->post_task([apply_preferences]() {
+                                apply_preferences();
+                            });
+                        }
+                    });
+
                     application()->signal_manager.connect("new-folder", [this](SignalContext &)
                                                           { this->handle_new_folder(); });
 

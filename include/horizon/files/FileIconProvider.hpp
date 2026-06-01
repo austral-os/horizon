@@ -21,5 +21,10 @@ namespace horizon::files
          * @return The display name (extracted from .desktop if applicable).
          */
         static std::string get_display_name(const arkutils::FileInfo &f);
+
+        /**
+         * Sets whether file extensions should be shown globally in the UI.
+         */
+        static void set_show_extensions(bool show);
     };
 } // namespace horizon::files

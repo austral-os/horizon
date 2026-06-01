@@ -17,6 +17,12 @@ namespace horizon::files
         CoverFlow
     };
 
+    enum class ClickBehavior
+    {
+        Single,
+        Double
+    };
+
     class FileView : public Widget
     {
     public:
@@ -40,6 +46,9 @@ namespace horizon::files
         void set_show_hidden_files(bool show);
         bool show_hidden_files() const { return m_show_hidden_files; }
 
+        void set_click_behavior(ClickBehavior cb);
+        ClickBehavior click_behavior() const { return m_click_behavior; }
+
         void set_file_filter(const std::vector<std::string>& patterns);
 
         bool can_back() const;
@@ -62,6 +71,7 @@ namespace horizon::files
 
     private:
         ViewMode m_view_mode;
+        ClickBehavior m_click_behavior{ClickBehavior::Double};
         std::string m_current_path;
         std::string m_search_query;
         bool m_show_hidden_files = false;
