@@ -15,7 +15,7 @@ target_link_libraries(austral-welcome
 )
 
 horizon_install_app(austral-welcome
-    APP_ID "austral_welcome"
+    APP_ID "austral-welcome"
     NAME "Austral Welcome"
     COMMENT "Welcome to Austral OS"
     ICON "system-help"
