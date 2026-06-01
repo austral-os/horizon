@@ -6,6 +6,7 @@
 #include "horizon/TextBox.hpp"
 #include "horizon/Window.hpp"
 #include "horizon/I18n.hpp"
+#include <xkbcommon/xkbcommon-keysyms.h>
 
 namespace horizon::arkfm
 {
@@ -60,15 +61,29 @@ namespace horizon::arkfm
         accept_btn->set_text("Aceptar");
         accept_btn->set_size(100, 35);
         accept_btn->set_accent_color(WidgetAccentColor::Primary);
+        auto accept_action = [this, text_box_ptr]()
+        {
+            NewFolderEvent ev;
+            ev.sender = this;
+            ev.folder_name = text_box_ptr->text().empty() ? text_box_ptr->placeholder()
+                                                          : text_box_ptr->text();
+            when_accepted.run(ev);
+            this->on_close();
+        };
+
         accept_btn->when_click.connect(
-            [this, text_box_ptr](auto &)
+            [accept_action](auto &)
             {
-                NewFolderEvent ev;
-                ev.sender = this;
-                ev.folder_name = text_box_ptr->text().empty() ? text_box_ptr->placeholder()
-                                                              : text_box_ptr->text();
-                when_accepted.run(ev);
-                this->on_close();
+                accept_action();
+            });
+
+        text_box_ptr->when_key_press.connect(
+            [accept_action](KeyEventContext &ev)
+            {
+                if (ev.keysym == XKB_KEY_Return || ev.keysym == XKB_KEY_KP_Enter)
+                {
+                    accept_action();
+                }
             });
         button_container->add_child(std::move(accept_btn));
 
@@ -77,5 +92,7 @@ namespace horizon::arkfm
 
         window_widget->add_child(std::move(root_panel));
         set_root(std::move(window_widget));
+
+        set_focused_widget(text_box_ptr);
     }
 } // namespace horizon::arkfm
