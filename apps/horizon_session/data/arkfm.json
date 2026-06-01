@@ -1,0 +1,8 @@
+{
+    "arkfm": {
+        "click_behavior": "double",
+        "default_view": "icon",
+        "show_extensions": true,
+        "show_hidden": false
+    }
+}

@@ -158,6 +158,14 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/text-editor.json")
     )
 endif()
 
+# --- ArkFM Config ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/arkfm.json")
+    install(FILES data/arkfm.json
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
+
 # --- Nova Config ---
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/nova.json")
     install(FILES data/nova.json
