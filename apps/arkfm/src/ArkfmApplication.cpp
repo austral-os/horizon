@@ -10,7 +10,7 @@ namespace horizon::arkfm
     const int ARK_APP_DEFAULT_WIDTH = 1000;
     const int ARK_APP_DEFAULT_HEIGHT = 700;
 
-    ArkfmApplication::ArkfmApplication()
+    ArkfmApplication::ArkfmApplication(const std::string& initial_path)
         : Application("org.horizon.arkfm", ARK_APP_DEFAULT_WIDTH, ARK_APP_DEFAULT_HEIGHT)
     {
         // Load translations
@@ -26,7 +26,7 @@ namespace horizon::arkfm
         about.set_app_version(APP_VERSION);
         about.set_app_icon("system-file-manager");
 
-        auto window = std::make_unique<ArkfmWindow>(ARK_APP_DEFAULT_WIDTH, ARK_APP_DEFAULT_HEIGHT);
+        auto window = std::make_unique<ArkfmWindow>(initial_path, ARK_APP_DEFAULT_WIDTH, ARK_APP_DEFAULT_HEIGHT);
         set_root(std::move(window));
 
         auto m_mnu_file = std::make_unique<horizon::Menu>();

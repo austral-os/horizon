@@ -36,7 +36,7 @@
 namespace horizon::arkfm
 {
 
-    ArkfmWindow::ArkfmWindow(int w, int h) : ApplicationWindow("Ark File Manager")
+    ArkfmWindow::ArkfmWindow(const std::string& initial_path, int w, int h) : ApplicationWindow("Ark File Manager")
     {
         set_size(w, h);
         auto ark_toolbar = std::make_unique<files::FileToolbar>();
@@ -50,7 +50,8 @@ namespace horizon::arkfm
         auto sidebar = std::make_unique<files::FileSidebar>();
         m_sidebar_ptr = sidebar.get();
         auto *sidebar_ptr = m_sidebar_ptr;
-        auto view = std::make_unique<files::FileView>(getenv("HOME") ? getenv("HOME") : "~/");
+        std::string start_path = initial_path.empty() ? (getenv("HOME") ? getenv("HOME") : "~/") : initial_path;
+        auto view = std::make_unique<files::FileView>(start_path);
         m_view_ptr = view.get();
         auto *view_ptr = m_view_ptr;
 
@@ -67,8 +68,8 @@ namespace horizon::arkfm
         m_remote_manager = std::make_unique<storage::RemoteManager>();
         m_sidebar_ptr->set_remote_storage(m_remote_manager.get());
 
-        std::string home_path = getenv("HOME") ? getenv("HOME") : "/";
-        m_sidebar_ptr->select_item_by_path(home_path);
+        m_sidebar_ptr->select_item_by_path(start_path);
+        ark_toolbar_ptr->update_path(start_path);
 
         m_view_ptr->when_path_changed.connect(
             [this, ark_toolbar_ptr](files::PathChangedEvent &ctx)

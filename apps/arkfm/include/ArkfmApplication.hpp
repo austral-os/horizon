@@ -8,7 +8,7 @@ namespace horizon::arkfm
     class ArkfmApplication : public Application
     {
     public:
-        ArkfmApplication();
+        ArkfmApplication(const std::string& initial_path = "");
         ~ArkfmApplication() override = default;
     };
 

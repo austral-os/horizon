@@ -28,7 +28,7 @@ namespace horizon::arkfm
     class ArkfmWindow : public ApplicationWindow
     {
     public:
-        ArkfmWindow(int w = 1200, int h = 720);
+        ArkfmWindow(const std::string& initial_path = "", int w = 1200, int h = 720);
         ~ArkfmWindow() override;
 
         void handle_rename(const std::string &path);

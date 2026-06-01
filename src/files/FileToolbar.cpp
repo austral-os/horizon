@@ -132,9 +132,13 @@ namespace horizon::files
 
     void FileToolbar::update_path(const std::string &path)
     {
-        std::filesystem::path p(path);
+        std::string clean_path = path;
+        while (clean_path.length() > 1 && clean_path.back() == '/') {
+            clean_path.pop_back();
+        }
+        std::filesystem::path p(clean_path);
         std::string folder_name = p.filename().string();
-        if (path == "/" || folder_name.empty())
+        if (clean_path == "/" || folder_name.empty())
         {
             folder_name = "/";
         }
