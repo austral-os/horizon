@@ -30,5 +30,5 @@ horizon_install_app(arkfm
     ICON "arkfm"
     CATEGORIES "System;FileVideo;"
     MIMETYPE "inode/directory;"
-    VERSION "0.2.23"
+    VERSION "0.2.25"
 )
