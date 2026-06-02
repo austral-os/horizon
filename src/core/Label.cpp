@@ -156,6 +156,11 @@ namespace horizon
                 }
             }
 
+            if (m_has_shadow) {
+                gc.setColor(Color(0.0f, 0.0f, 0.0f, 0.8f));
+                gc.drawText(text_x + 1, current_y + 1, lines[i].c_str());
+                gc.setColor(text_color);
+            }
             gc.drawText(text_x, current_y, lines[i].c_str());
         }
     }

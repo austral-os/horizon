@@ -359,8 +359,17 @@ namespace horizon::files
             }
             else
             {
-                m_label_ptr->set_text_color(tm->get_color("window_fg"));
+                m_label_ptr->set_text_color(m_default_text_color);
             }
+        }
+
+        void set_default_text_color(Color c) { m_default_text_color = c; }
+        
+        void enable_desktop_mode()
+        {
+            m_label_ptr->set_has_shadow(true);
+            m_label_ptr->set_text_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+            set_default_text_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
         }
 
     private:
@@ -371,6 +380,7 @@ namespace horizon::files
         float m_zoom{1.5f};
         int m_icon_size{48};
         bool m_selected{false};
+        Color m_default_text_color{0.0f, 0.0f, 0.0f, -1.0f};
     };
 
     FileIconView::~FileIconView()
@@ -397,6 +407,9 @@ namespace horizon::files
             [this](const arkutils::FileInfo &f, float zoom, bool selected)
             {
                 auto item = std::make_unique<FileIconItem>();
+                if (m_transparent) {
+                    item->enable_desktop_mode();
+                }
                 item->set_data(f, zoom, selected);
                 auto* item_ptr = item.get();
                 item_ptr->when_mouse_press.connect([this](MouseButtonEventContext& ctx) {

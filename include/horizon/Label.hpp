@@ -66,6 +66,18 @@ namespace horizon
             return m_left_padding;
         }
 
+        void set_has_shadow(bool shadow)
+        {
+            if (m_has_shadow != shadow) {
+                m_has_shadow = shadow;
+                invalidate();
+            }
+        }
+        bool has_shadow() const
+        {
+            return m_has_shadow;
+        }
+
     private:
         std::vector<std::string> calculate_lines(GraphicsContext &gc, int max_width, int max_height,
                                                  int line_height);
@@ -79,6 +91,7 @@ namespace horizon
         std::string m_font_family{""};               // empty means use theme default
         Color m_text_color{0.0f, 0.0f, 0.0f, -1.0f}; // a < 0 means use theme default
         int m_left_padding{0};
+        bool m_has_shadow{false};
 
         // Cache for layout results
         std::vector<std::string> m_cached_lines;
