@@ -10,6 +10,12 @@
 #include <vector>
 namespace horizon
 {
+    enum class IconViewLayoutMode {
+        Horizontal,
+        VerticalLeftToRight,
+        VerticalRightToLeft
+    };
+
     /**
      * @class IconViewBase
      * @brief Base class for IconView to hold non-templated logic and state.
@@ -31,6 +37,9 @@ namespace horizon
 
         void set_side_margin(int margin);
         int side_margin() const;
+
+        void set_layout_mode(IconViewLayoutMode mode);
+        IconViewLayoutMode layout_mode() const;
 
         void set_item_size(int width, int height);
 
@@ -59,12 +68,14 @@ namespace horizon
         int BASE_GRID_SPACING{12};
 
         int m_columns_count{1};
+        int m_rows_count{1};
 
         std::chrono::steady_clock::time_point m_last_item_click_time;
         int m_last_item_click_index{-1};
         uint32_t m_last_item_click_button{0};
 
         bool m_transparent{false};
+        IconViewLayoutMode m_layout_mode{IconViewLayoutMode::Horizontal};
     };
 
     /**
@@ -96,34 +107,72 @@ namespace horizon
                 int current_idx = selected_index();
                 int new_idx = current_idx;
                 int cols = std::max(1, m_columns_count);
+                int rows = std::max(1, m_rows_count);
 
                 bool is_arrow = false;
 
-                if (ev.keysym == 0xff51) // Left arrow
-                {
-                    new_idx = (current_idx <= 0) ? 0 : current_idx - 1;
-                    ev.stop_propagation = true;
-                    is_arrow = true;
-                }
-                else if (ev.keysym == 0xff53) // Right arrow
-                {
-                    new_idx = (current_idx < 0) ? 0 : std::min((int)m_data.size() - 1, current_idx + 1);
-                    ev.stop_propagation = true;
-                    is_arrow = true;
-                }
-                else if (ev.keysym == 0xff52) // Up arrow
-                {
-                    if (current_idx < 0) new_idx = 0;
-                    else new_idx = std::max(0, current_idx - cols);
-                    ev.stop_propagation = true;
-                    is_arrow = true;
-                }
-                else if (ev.keysym == 0xff54) // Down arrow
-                {
-                    if (current_idx < 0) new_idx = 0;
-                    else new_idx = std::min((int)m_data.size() - 1, current_idx + cols);
-                    ev.stop_propagation = true;
-                    is_arrow = true;
+                if (m_layout_mode == IconViewLayoutMode::Horizontal) {
+                    if (ev.keysym == 0xff51) // Left arrow
+                    {
+                        new_idx = (current_idx <= 0) ? 0 : current_idx - 1;
+                        ev.stop_propagation = true;
+                        is_arrow = true;
+                    }
+                    else if (ev.keysym == 0xff53) // Right arrow
+                    {
+                        new_idx = (current_idx < 0) ? 0 : std::min((int)m_data.size() - 1, current_idx + 1);
+                        ev.stop_propagation = true;
+                        is_arrow = true;
+                    }
+                    else if (ev.keysym == 0xff52) // Up arrow
+                    {
+                        if (current_idx < 0) new_idx = 0;
+                        else new_idx = std::max(0, current_idx - cols);
+                        ev.stop_propagation = true;
+                        is_arrow = true;
+                    }
+                    else if (ev.keysym == 0xff54) // Down arrow
+                    {
+                        if (current_idx < 0) new_idx = 0;
+                        else new_idx = std::min((int)m_data.size() - 1, current_idx + cols);
+                        ev.stop_propagation = true;
+                        is_arrow = true;
+                    }
+                } else {
+                    if (ev.keysym == 0xff52) // Up arrow
+                    {
+                        new_idx = (current_idx <= 0) ? 0 : current_idx - 1;
+                        ev.stop_propagation = true;
+                        is_arrow = true;
+                    }
+                    else if (ev.keysym == 0xff54) // Down arrow
+                    {
+                        new_idx = (current_idx < 0) ? 0 : std::min((int)m_data.size() - 1, current_idx + 1);
+                        ev.stop_propagation = true;
+                        is_arrow = true;
+                    }
+                    else if (ev.keysym == 0xff51) // Left arrow
+                    {
+                        if (m_layout_mode == IconViewLayoutMode::VerticalRightToLeft) {
+                            new_idx = (current_idx < 0) ? 0 : std::min((int)m_data.size() - 1, current_idx + rows);
+                        } else {
+                            if (current_idx < 0) new_idx = 0;
+                            else new_idx = std::max(0, current_idx - rows);
+                        }
+                        ev.stop_propagation = true;
+                        is_arrow = true;
+                    }
+                    else if (ev.keysym == 0xff53) // Right arrow
+                    {
+                        if (m_layout_mode == IconViewLayoutMode::VerticalRightToLeft) {
+                            if (current_idx < 0) new_idx = 0;
+                            else new_idx = std::max(0, current_idx - rows);
+                        } else {
+                            new_idx = (current_idx < 0) ? 0 : std::min((int)m_data.size() - 1, current_idx + rows);
+                        }
+                        ev.stop_propagation = true;
+                        is_arrow = true;
+                    }
                 }
 
                 if (new_idx != current_idx && new_idx >= 0 && new_idx < (int)m_data.size())

@@ -61,6 +61,21 @@ namespace horizon
         }
     }
 
+    void IconViewBase::set_layout_mode(IconViewLayoutMode mode)
+    {
+        if (m_layout_mode != mode)
+        {
+            m_layout_mode = mode;
+            invalidate();
+            calculate_layout();
+        }
+    }
+
+    IconViewLayoutMode IconViewBase::layout_mode() const
+    {
+        return m_layout_mode;
+    }
+
     void IconViewBase::set_application_recursive(WaylandWindow *app)
     {
         Widget::set_application_recursive(app);
@@ -210,60 +225,106 @@ namespace horizon
         if (available_width <= 0)
             available_width = m_width;
 
-        int columns = std::max(1, available_width / (m_item_width + m_grid_spacing));
-        if (columns > 1 &&
-            (columns * (m_item_width + m_grid_spacing) - m_grid_spacing) > available_width)
-        {
-            columns--;
-            if (columns < 1)
-                columns = 1;
-        }
-        
-        m_columns_count = columns;
-
-        // Center the grid horizontally
-        int grid_width = columns * (m_item_width + m_grid_spacing) - m_grid_spacing;
-        int start_x = side_margin + (available_width - grid_width) / 2;
+        m_rows_count = std::max(1, (m_height - 2 * side_margin) / (m_item_height + m_grid_spacing));
 
         int scroll_x = m_scroll_area ? m_scroll_area->scroll_x() : 0;
         int scroll_y = m_scroll_area ? m_scroll_area->scroll_y() : 0;
-
-        int actual_spacing = m_grid_spacing;
-        if (columns > 1)
-        {
-            actual_spacing = (available_width - columns * m_item_width) / (columns - 1);
-            start_x = side_margin;
-        }
-
-        int current_y = side_margin;
+        
         auto &children = m_content_pane->children();
 
-        for (int i = 0; i < (int)children.size(); i += columns)
-        {
-            int row_max_height = 0;
-            int row_end = std::min(i + columns, (int)children.size());
-
-            for (int j = i; j < row_end; ++j)
+        if (m_layout_mode == IconViewLayoutMode::Horizontal) {
+            int columns = std::max(1, available_width / (m_item_width + m_grid_spacing));
+            if (columns > 1 &&
+                (columns * (m_item_width + m_grid_spacing) - m_grid_spacing) > available_width)
             {
-                row_max_height =
-                    std::max(row_max_height, children[j]->preferred_height(m_item_width));
+                columns--;
+                if (columns < 1)
+                    columns = 1;
+            }
+            
+            m_columns_count = columns;
+
+            // Center the grid horizontally
+            int grid_width = columns * (m_item_width + m_grid_spacing) - m_grid_spacing;
+            int start_x = side_margin + (available_width - grid_width) / 2;
+
+            int actual_spacing = m_grid_spacing;
+            if (columns > 1)
+            {
+                actual_spacing = (available_width - columns * m_item_width) / (columns - 1);
+                start_x = side_margin;
             }
 
-            for (int j = i; j < row_end; ++j)
+            int current_y = side_margin;
+
+            for (int i = 0; i < (int)children.size(); i += columns)
             {
-                int col = j - i;
-                int x = m_x + start_x + col * (m_item_width + actual_spacing) - scroll_x;
+                int row_max_height = 0;
+                int row_end = std::min(i + columns, (int)children.size());
+
+                for (int j = i; j < row_end; ++j)
+                {
+                    row_max_height =
+                        std::max(row_max_height, children[j]->preferred_height(m_item_width));
+                }
+
+                for (int j = i; j < row_end; ++j)
+                {
+                    int col = j - i;
+                    int x = m_x + start_x + col * (m_item_width + actual_spacing) - scroll_x;
+                    int y = m_y + current_y - scroll_y;
+                    children[j]->set_position(x, y);
+                    children[j]->set_size(m_item_width, row_max_height);
+                }
+
+                current_y += row_max_height + m_grid_spacing;
+            }
+
+            int needed_height = current_y + side_margin - (children.empty() ? 0 : m_grid_spacing);
+            needed_height = std::min(1000000, std::max(m_height, needed_height));
+            m_content_pane->set_size(m_width, needed_height);
+            
+        } else {
+            // Vertical Modes
+            int available_height = m_height - 2 * side_margin;
+            if (available_height <= 0) available_height = m_height;
+
+            int current_y = side_margin;
+            int current_col = 0;
+            int max_y_reached = side_margin;
+            
+            for (int i = 0; i < (int)children.size(); ++i) {
+                int item_h = children[i]->preferred_height(m_item_width);
+                
+                // Check if we need to wrap to the next column
+                if (current_y + item_h > m_height - side_margin && current_y > side_margin) {
+                    current_col++;
+                    current_y = side_margin;
+                }
+                
+                int x = 0;
+                if (m_layout_mode == IconViewLayoutMode::VerticalRightToLeft) {
+                    x = m_x + m_width - side_margin - m_item_width - current_col * (m_item_width + m_grid_spacing) - scroll_x;
+                } else {
+                    x = m_x + side_margin + current_col * (m_item_width + m_grid_spacing) - scroll_x;
+                }
+                
                 int y = m_y + current_y - scroll_y;
-                children[j]->set_position(x, y);
-                children[j]->set_size(m_item_width, row_max_height);
+                
+                children[i]->set_position(x, y);
+                children[i]->set_size(m_item_width, item_h);
+                
+                current_y += item_h + m_grid_spacing;
+                if (current_y > max_y_reached) max_y_reached = current_y;
             }
-
-            current_y += row_max_height + m_grid_spacing;
+            
+            int needed_width = side_margin + (current_col + 1) * (m_item_width + m_grid_spacing);
+            int needed_height = std::max(m_height, max_y_reached + side_margin - m_grid_spacing);
+            
+            m_columns_count = current_col + 1; // Update for generic calculations
+            
+            m_content_pane->set_size(std::max(m_width, needed_width), needed_height);
         }
-
-        int needed_height = current_y + side_margin - (children.empty() ? 0 : m_grid_spacing);
-        needed_height = std::min(1000000, std::max(m_height, needed_height));
-        m_content_pane->set_size(m_width, needed_height);
     }
 
 } // namespace horizon

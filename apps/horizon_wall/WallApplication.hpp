@@ -10,6 +10,9 @@
 namespace horizon
 {
     class Image;
+    namespace files {
+        class FileIconView;
+    }
     class WallApplication : public Application
     {
     public:
@@ -31,6 +34,7 @@ namespace horizon
 
         std::vector<WaylandLayerWindow *> m_windows;
         std::vector<Image *> m_wallpaper_widgets;
+        std::vector<horizon::files::FileIconView*> m_icon_views;
         std::vector<std::unique_ptr<Menu>> m_global_menus_storage;
 
         size_t m_gallery_timer_id{0};

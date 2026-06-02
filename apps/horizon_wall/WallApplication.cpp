@@ -5,7 +5,10 @@
 #include <horizon/Image.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/files/FileIconView.hpp>
+#include <horizon/ApplicationLauncher.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
+#include <horizon/XdgUserDirs.hpp>
 #include <vector>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -85,9 +88,24 @@ namespace horizon
         window->set_exclusive_zone(-1);
     }
 
+    class OverlayWidget : public Widget {
+    public:
+        OverlayWidget() : Widget() {
+            set_layout_type(WIDGET_LAYOUT_VERTICAL);
+        }
+        void calculate_layout() override {
+            for (auto& child : children()) {
+                child->set_position(x(), y());
+                child->set_size(width(), height());
+                child->calculate_layout();
+            }
+        }
+    };
+
     void WallApplication::load_wallpaper(const std::string &wall_path)
     {
         m_wallpaper_widgets.clear();
+        m_icon_views.clear();
         ImageMode mode = ImageMode::Stretch;
 
         std::string final_path = wall_path;
@@ -150,11 +168,12 @@ namespace horizon
         // Apply to all windows
         for (auto* win : m_windows)
         {
-            auto root = std::make_unique<Widget>();
-            root->set_layout_type(WIDGET_LAYOUT_VERTICAL);
+            auto root = std::make_unique<OverlayWidget>();
+            root->set_position_type(FREE);
 
             auto wallpaper = std::make_unique<Image>();
             wallpaper->set_mode(mode);
+            wallpaper->set_position_type(FREE);
             wallpaper->when_mouse_press.connect(
                 [](MouseButtonEventContext &ev)
                 { LOG_INFO << "[HORIZON WALL] Wallpaper clicked with button: " << ev.button; });
@@ -187,6 +206,46 @@ namespace horizon
 
             m_wallpaper_widgets.push_back(wallpaper.get());
             root->add_child(std::move(wallpaper));
+
+            // Create Icon View
+            std::string desktop_path = XdgUserDirs::get_desktop();
+            auto icon_view = std::make_unique<horizon::files::FileIconView>(desktop_path);
+            icon_view->set_position_type(FREE);
+            icon_view->set_transparent(true);
+            icon_view->set_layout_mode(horizon::IconViewLayoutMode::VerticalRightToLeft);
+            
+            // Connect double click to open files
+            icon_view->when_item_dbl_click.connect([](const IconViewItemMouseClickContext<arkutils::FileInfo>& ctx) {
+                if (ctx.item_data.type == arkutils::FileType::Directory) {
+                    std::system(("arkfm \"" + ctx.item_data.path + "\" &").c_str());
+                } else {
+                    ApplicationLauncher::open_file(ctx.item_data.path);
+                }
+            });
+
+            // Recreate context menu for the icon view so empty areas show it
+            auto iv_menu = std::make_unique<Menu>();
+            auto iv_bg_item = std::make_unique<MenuItem>("Cambiar fondo");
+            iv_bg_item->set_icon("preferences-desktop-wallpaper");
+            iv_bg_item->when_click.connect([](EventContext&) {
+                std::system("preferences --desktop &");
+            });
+            iv_menu->add_item(std::move(iv_bg_item));
+            iv_menu->add_separator();
+            auto iv_disp_item = std::make_unique<MenuItem>("Configuración de pantalla");
+            iv_disp_item->set_icon("preferences-desktop-display");
+            iv_disp_item->when_click.connect([](EventContext&) {
+                std::system("preferences --display &");
+            });
+            iv_menu->add_item(std::move(iv_disp_item));
+            icon_view->set_context_menu(std::move(iv_menu));
+
+            // Populate the icon view immediately
+            icon_view->refresh(desktop_path);
+
+            m_icon_views.push_back(icon_view.get());
+            root->add_child(std::move(icon_view));
+
             win->set_root(std::move(root));
         }
 
