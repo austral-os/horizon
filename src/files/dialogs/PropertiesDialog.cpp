@@ -20,16 +20,16 @@
 namespace horizon::files
 {
     PropertiesDialog::PropertiesDialog(const arkutils::FileInfo &file_info)
-        : WaylandWindow("horizon.arkfm.properties", 650, 500, false, true), m_file_info(file_info)
+        : WaylandWindow("horizon.core.properties", 650, 500, false, true), m_file_info(file_info)
     {
-        set_name(i18n().tr("arkfm.dialog.properties") + " - " + horizon::files::FileProvider::get_display_name(m_file_info));
+        set_name(i18n().tr("core.dialog.properties") + " - " + horizon::files::FileProvider::get_display_name(m_file_info));
         setup_ui();
     }
 
     void PropertiesDialog::setup_ui()
     {
         LOG_INFO << "[DIALOG] Setting up PropertiesDialog UI...";
-        auto window_widget = std::make_unique<horizon::Window>(i18n().tr("arkfm.dialog.properties"));
+        auto window_widget = std::make_unique<horizon::Window>(i18n().tr("core.dialog.properties"));
 
         auto root_panel = std::make_unique<horizon::Widget>();
         root_panel->set_layout_type(WIDGET_LAYOUT_VERTICAL);
@@ -82,12 +82,12 @@ namespace horizon::files
         };
 
         std::string type_str =
-            (m_file_info.type == arkutils::FileType::Directory) ? i18n().tr("arkfm.properties.folder") : i18n().tr("arkfm.properties.file");
-        add_info_row(i18n().tr("arkfm.properties.type"), type_str);
+            (m_file_info.type == arkutils::FileType::Directory) ? i18n().tr("core.properties.folder") : i18n().tr("core.properties.file");
+        add_info_row(i18n().tr("core.properties.type"), type_str);
         std::string size_str = (m_file_info.type == arkutils::FileType::Directory) ? "---" : horizon::format_bytes(m_file_info.size);
-        add_info_row(i18n().tr("arkfm.properties.size"), size_str);
+        add_info_row(i18n().tr("core.properties.size"), size_str);
 
-        add_info_row(i18n().tr("arkfm.properties.location"), m_file_info.path);
+        add_info_row(i18n().tr("core.properties.location"), m_file_info.path);
 
         auto t = std::chrono::system_clock::to_time_t(m_file_info.last_modified);
         char time_str[26] = {0};
@@ -96,10 +96,10 @@ namespace horizon::files
         {
             time_str[24] = '\0'; // Remove newline
         }
-        add_info_row(i18n().tr("arkfm.properties.modified"), std::string(time_str));
+        add_info_row(i18n().tr("core.properties.modified"), std::string(time_str));
 
         general_tab->add_child(std::move(info_grid));
-        notebook->add_tab(NotebookPage(i18n().tr("arkfm.properties.general"), std::move(general_tab)));
+        notebook->add_tab(NotebookPage(i18n().tr("core.properties.general"), std::move(general_tab)));
 
         // --- Permissions Tab ---
         auto permissions_tab = std::make_unique<horizon::Widget>();
@@ -107,7 +107,7 @@ namespace horizon::files
         permissions_tab->set_spacing(15);
         permissions_tab->set_margin(30);
 
-        auto section_title = std::make_unique<horizon::Label>(i18n().tr("arkfm.properties.permissions"));
+        auto section_title = std::make_unique<horizon::Label>(i18n().tr("core.properties.permissions"));
         section_title->set_font_weight(FONT_WEIGHT_BOLD);
         section_title->set_alignment(TextAlignment::Center);
         permissions_tab->add_child(std::move(section_title));
@@ -125,9 +125,9 @@ namespace horizon::files
             row->add_child(std::move(lbl));
 
             auto combo = std::make_unique<horizon::Combo>();
-            combo->add_item("none", i18n().tr("arkfm.properties.none"));
-            combo->add_item("read", i18n().tr("arkfm.properties.read_only"));
-            combo->add_item("write", i18n().tr("arkfm.properties.read_write"));
+            combo->add_item("none", i18n().tr("core.properties.none"));
+            combo->add_item("read", i18n().tr("core.properties.read_only"));
+            combo->add_item("write", i18n().tr("core.properties.read_write"));
             combo->set_selected_item_by_id(selected_id);
             row->add_child(std::move(combo));
 
@@ -143,28 +143,28 @@ namespace horizon::files
             return "none";
         };
 
-        add_permission_row(i18n().tr("arkfm.properties.owner"), get_perm_id(m_file_info.permissions, S_IRUSR, S_IWUSR));
-        add_permission_row(i18n().tr("arkfm.properties.group"), get_perm_id(m_file_info.permissions, S_IRGRP, S_IWGRP));
-        add_permission_row(i18n().tr("arkfm.properties.others"), get_perm_id(m_file_info.permissions, S_IROTH, S_IWOTH));
+        add_permission_row(i18n().tr("core.properties.owner"), get_perm_id(m_file_info.permissions, S_IRUSR, S_IWUSR));
+        add_permission_row(i18n().tr("core.properties.group"), get_perm_id(m_file_info.permissions, S_IRGRP, S_IWGRP));
+        add_permission_row(i18n().tr("core.properties.others"), get_perm_id(m_file_info.permissions, S_IROTH, S_IWOTH));
 
         auto exec_row = std::make_unique<horizon::Widget>();
         exec_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         exec_row->set_spacing(15);
         exec_row->set_fixed_size(40);
 
-        auto exec_lbl = std::make_unique<horizon::Label>(i18n().tr("arkfm.properties.execute") + ":");
+        auto exec_lbl = std::make_unique<horizon::Label>(i18n().tr("core.properties.execute") + ":");
         exec_lbl->set_fixed_size(150);
         exec_lbl->set_alignment(TextAlignment::Right);
         exec_row->add_child(std::move(exec_lbl));
 
         auto exec_check = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
-        exec_check->set_text(i18n().tr("arkfm.properties.allow_exec"));
+        exec_check->set_text(i18n().tr("core.properties.allow_exec"));
         exec_check->set_checked(m_file_info.permissions & (S_IXUSR | S_IXGRP | S_IXOTH));
         exec_row->add_child(std::move(exec_check));
 
         permissions_tab->add_child(std::move(exec_row));
 
-        notebook->add_tab(NotebookPage(i18n().tr("arkfm.properties.permissions"), std::move(permissions_tab)));
+        notebook->add_tab(NotebookPage(i18n().tr("core.properties.permissions"), std::move(permissions_tab)));
 
         // --- Details Tab ---
         auto details_tab = std::make_unique<horizon::Widget>();
@@ -172,7 +172,7 @@ namespace horizon::files
         details_tab->set_spacing(10);
         details_tab->set_margin(20);
         details_tab->add_child(std::make_unique<horizon::Label>("..."));
-        notebook->add_tab(NotebookPage(i18n().tr("arkfm.properties.details"), std::move(details_tab)));
+        notebook->add_tab(NotebookPage(i18n().tr("core.properties.details"), std::move(details_tab)));
 
         root_panel->add_child(std::move(notebook));
 

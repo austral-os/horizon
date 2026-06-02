@@ -1,6 +1,5 @@
 {
     "core": {
-
         "dialog": {
             "accept": "Aceptar",
             "cancel": "Cancelar",
@@ -49,7 +48,15 @@
                 "paper_letter": "Carta",
                 "paper_legal": "Legal",
                 "paper_exec": "Ejecutivo"
-            }
+            },
+            "properties": "Propiedades",
+            "new_folder": "Nueva Carpeta",
+            "rename": "Cambiar nombre",
+            "new_name": "Nuevo nombre:",
+            "folder_name": "Nombre de la carpeta:",
+            "go_to_folder": "Ir a la carpeta",
+            "enter_path": "Ingrese la ruta de la carpeta:",
+            "error": "Error"
         },
         "global_menu": {
             "edit": "Edición",
@@ -108,6 +115,89 @@
                 "connect": "Conectar",
                 "auth_error": "Ha ocurrido un error. Por favor intente nuevamente."
             }
+        },
+        "file_menu": {
+            "file": "Archivo",
+            "edit": "Edición",
+            "view": "Ver",
+            "show_hidden": "Mostrar archivos ocultos",
+            "hide_hidden": "Ocultar archivos ocultos",
+            "help": "Ayuda",
+            "open": "Abrir",
+            "new_folder": "Nueva Carpeta",
+            "delete": "Eliminar",
+            "properties": "Propiedades",
+            "about": "Acerca de",
+            "rename": "Renombrar",
+            "go": "Ir",
+            "back": "Atrás",
+            "forward": "Adelante",
+            "parent": "Carpeta superior",
+            "all_files": "Todos mis archivos",
+            "documents": "Documentos",
+            "desktop": "Escritorio",
+            "downloads": "Descargas",
+            "videos": "Videos",
+            "images": "Imágenes",
+            "applications": "Aplicaciones",
+            "go_to_folder": "Ir a la carpeta...",
+            "connect_to_server": "Conectarse al servidor...",
+            "open_terminal": "Abrir en la terminal",
+            "open_with": "Abrir con...",
+            "choose_app": "Elegir otra aplicación...",
+            "extract_here": "Descomprimir aquí",
+            "compress": "Comprimir...",
+            "add_bookmark": "Añadir a marcadores",
+            "move_to_trash": "Mover a la papelera",
+            "restore": "Restaurar",
+            "empty_trash": "Vaciar papelera"
+        },
+        "properties": {
+            "type": "Tipo",
+            "size": "Tamaño",
+            "location": "Ubicación",
+            "modified": "Modificado",
+            "folder": "Carpeta",
+            "file": "Archivo",
+            "general": "General",
+            "permissions": "Permisos",
+            "details": "Detalles",
+            "owner": "Propietario",
+            "group": "Grupo",
+            "others": "Otros",
+            "execute": "Ejecutar",
+            "allow_exec": "Permitir la ejecución del archivo como programa",
+            "none": "Ninguno",
+            "read_only": "Solo puede ver",
+            "read_write": "Puede ver y modificar"
+        },
+        "messages": {
+            "already_mounted": "La ubicación ya se encuentra montada.",
+            "creating_folder": "Creando carpeta...",
+            "folder_created": "Carpeta creada",
+            "added_to_bookmarks": "Añadido a marcadores",
+            "rename_success": "Renombrado con éxito",
+            "deleting": "Eliminando...",
+            "delete_success": "Eliminado con éxito",
+            "moving_to_trash": "Moviendo a la papelera...",
+            "moved_to_trash_success": "Movido a la papelera con éxito",
+            "restoring_from_trash": "Restaurando de la papelera...",
+            "restore_success": "Restaurado con éxito",
+            "emptying_trash": "Vaciando papelera...",
+            "empty_trash_success": "Papelera vaciada con éxito",
+            "extracting": "Extrayendo archivo...",
+            "extract_success": "Extracción finalizada",
+            "extract_error": "Error al extraer",
+            "compressing": "Comprimiendo...",
+            "compress_success": "Compresión finalizada",
+            "compress_error": "Error al comprimir",
+            "delete_prompt_single": "¿Está seguro que desea eliminar '%1'?",
+            "delete_prompt_multiple": "¿Está seguro que desea eliminar los %1 elementos seleccionados?",
+            "delete_error_multi": "Error al intentar eliminar algunos archivos o carpetas.",
+            "trash_error_multi": "Error al intentar mover algunos elementos a la papelera.",
+            "restore_error_multi": "Error al intentar restaurar algunos elementos de la papelera.",
+            "empty_trash_error": "Error al intentar vaciar la papelera.",
+            "rename_error": "Error al renombrar"
         }
     }
 }

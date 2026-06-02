@@ -6,6 +6,7 @@
 #include <horizon/files/dialogs/NewFolderDialog.hpp>
 #include <horizon/ApplicationLauncher.hpp>
 #include <horizon/DesktopManager.hpp>
+#include <horizon/dialogs/AppPickerDialog.hpp>
 #include <filesystem>
 #include <system_error>
 
@@ -17,13 +18,13 @@ namespace horizon::files
     {
         auto menu = std::make_unique<Menu>();
 
-        auto item_open = menu->add_item(i18n().tr("arkfm.menu.open"));
+        auto item_open = menu->add_item(i18n().tr("core.file_menu.open"));
         item_open->when_click.connect([f](auto &) {
             ApplicationLauncher::open_file(f.path);
         });
 
         if (f.type != arkutils::FileType::Directory) {
-            auto item_open_with = menu->add_item(i18n().tr("arkfm.menu.open_with"));
+            auto item_open_with = menu->add_item(i18n().tr("core.file_menu.open_with"));
             auto sub_open_with = std::make_unique<Menu>();
             
             std::string mime = DesktopManager::get_mime_type(f.path);
@@ -39,15 +40,19 @@ namespace horizon::files
             
             if (!apps.empty()) sub_open_with->add_separator();
             
-            auto item_other = sub_open_with->add_item(i18n().tr("arkfm.menu.choose_app"));
+            auto item_other = sub_open_with->add_item(i18n().tr("core.file_menu.choose_app"));
             item_other->when_click.connect([f](auto &) {
-                ApplicationLauncher::launch_binary("app-chooser", {f.path});
+                auto dialog = std::make_unique<AppPickerDialog>();
+                dialog->when_accepted.connect([f](const DesktopEntry& app) {
+                    ApplicationLauncher::launch_from_desktop_file(app.path, {f.path});
+                });
+                dialog->run();
             });
             item_open_with->set_submenu(std::move(sub_open_with));
             menu->add_separator();
         }
 
-        auto item_rename = menu->add_item(i18n().tr("arkfm.menu.rename"));
+        auto item_rename = menu->add_item(i18n().tr("core.file_menu.rename"));
         item_rename->when_click.connect([f, callbacks](auto &) {
             auto dialog = std::make_unique<RenameDialog>(f.name);
             dialog->when_accepted.connect([f, callbacks](auto& ev) {
@@ -64,24 +69,24 @@ namespace horizon::files
 
         if (f.path.find(".local/share/Trash") != std::string::npos) {
             if (callbacks.on_restore) {
-                auto item_restore = menu->add_item(i18n().tr("arkfm.menu.restore"));
+                auto item_restore = menu->add_item(i18n().tr("core.file_menu.restore"));
                 item_restore->when_click.connect([callbacks, f](auto&) { callbacks.on_restore({f.path}); });
             }
         } else {
             if (callbacks.on_trash) {
-                auto item_trash = menu->add_item(i18n().tr("arkfm.menu.move_to_trash"));
+                auto item_trash = menu->add_item(i18n().tr("core.file_menu.move_to_trash"));
                 item_trash->when_click.connect([callbacks, f](auto&) { callbacks.on_trash({f.path}); });
             }
         }
 
         if (callbacks.on_delete) {
-            auto item_delete = menu->add_item(i18n().tr("arkfm.menu.delete"));
+            auto item_delete = menu->add_item(i18n().tr("core.file_menu.delete"));
             item_delete->when_click.connect([callbacks, f](auto&) { callbacks.on_delete({f.path}); });
         }
 
         menu->add_separator();
 
-        auto item_props = menu->add_item(i18n().tr("arkfm.menu.properties"));
+        auto item_props = menu->add_item(i18n().tr("core.file_menu.properties"));
         item_props->when_click.connect([f](auto &) {
             auto dialog = std::make_unique<PropertiesDialog>(f);
             dialog->run();
@@ -89,7 +94,7 @@ namespace horizon::files
 
         if (callbacks.on_open_terminal) {
             menu->add_separator();
-            auto item_terminal = menu->add_item(i18n().tr("arkfm.menu.open_terminal"));
+            auto item_terminal = menu->add_item(i18n().tr("core.file_menu.open_terminal"));
             item_terminal->when_click.connect([callbacks](auto&) { callbacks.on_open_terminal(); });
         }
 
@@ -103,7 +108,7 @@ namespace horizon::files
     {
         auto menu = std::make_unique<Menu>();
 
-        auto item_new = menu->add_item(i18n().tr("arkfm.menu.new_folder"));
+        auto item_new = menu->add_item(i18n().tr("core.file_menu.new_folder"));
         item_new->when_click.connect([current_path, callbacks](auto &) {
             auto dialog = std::make_unique<NewFolderDialog>();
             dialog->when_accepted.connect([current_path, callbacks](auto& ev) {
@@ -118,15 +123,15 @@ namespace horizon::files
         menu->add_separator();
 
         if (callbacks.on_open_terminal) {
-            auto item_terminal = menu->add_item(i18n().tr("arkfm.menu.open_terminal"));
+            auto item_terminal = menu->add_item(i18n().tr("core.file_menu.open_terminal"));
             item_terminal->when_click.connect([callbacks](auto&) { callbacks.on_open_terminal(); });
             menu->add_separator();
         }
 
         if (callbacks.on_toggle_hidden) {
             std::string hidden_text = show_hidden
-                                          ? i18n().tr("arkfm.menu.hide_hidden")
-                                          : i18n().tr("arkfm.menu.show_hidden");
+                                          ? i18n().tr("core.file_menu.hide_hidden")
+                                          : i18n().tr("core.file_menu.show_hidden");
             auto item_show_hidden = menu->add_item(hidden_text, "Ctrl+H");
             item_show_hidden->when_click.connect([callbacks](auto&) { callbacks.on_toggle_hidden(); });
         }

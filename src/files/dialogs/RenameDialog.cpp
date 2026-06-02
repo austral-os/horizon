@@ -13,20 +13,20 @@ namespace horizon::files
         : WaylandWindow("horizon.arkfm.rename", 400, 210, false, false),
           m_current_name(current_name)
     {
-        set_name(i18n().tr("arkfm.dialog.rename"));
+        set_name(i18n().tr("core.dialog.rename"));
         setup_ui();
     }
 
     void RenameDialog::setup_ui()
     {
-        auto window_widget = std::make_unique<horizon::Window>(i18n().tr("arkfm.dialog.rename"));
+        auto window_widget = std::make_unique<horizon::Window>(i18n().tr("core.dialog.rename"));
 
         auto root_panel = std::make_unique<horizon::Widget>();
         root_panel->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         root_panel->set_spacing(15);
         root_panel->set_margin(20);
 
-        auto prompt_label = std::make_unique<horizon::Label>(i18n().tr("arkfm.dialog.new_name"));
+        auto prompt_label = std::make_unique<horizon::Label>(i18n().tr("core.dialog.new_name"));
         prompt_label->set_fixed_size(25);
         root_panel->add_child(std::move(prompt_label));
 

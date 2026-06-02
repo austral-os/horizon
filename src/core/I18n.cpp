@@ -203,6 +203,7 @@ I18n& i18n() {
         I18n::add_search_path(".");
 #ifdef HORIZON_SOURCE_DIR
         I18n::add_search_path(HORIZON_SOURCE_DIR);
+        I18n::add_search_path(std::string(HORIZON_SOURCE_DIR) + "/share");
 #endif
         I18n::add_search_path("/usr/share/horizon");
         
