@@ -18,7 +18,7 @@ horizon_install_app(horizon_wall
     NAME "Horizon Wallpaper"
     COMMENT "System Wallpaper Manager"
     ICON "image-viewer"
-    VERSION "0.1.0"
+    VERSION "0.1.1"
     CATEGORIES "System;"
     EXTRA_DESKTOP "NoDisplay=true"
 )

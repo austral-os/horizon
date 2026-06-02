@@ -5,6 +5,7 @@
 #include <horizon/Image.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/Menu.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <vector>
 #include <fstream>
@@ -163,6 +164,27 @@ namespace horizon
             {
                 wallpaper->set_path(final_path);
             }
+
+            // Create context menu
+            auto menu = std::make_unique<Menu>();
+            
+            auto bg_item = std::make_unique<MenuItem>("Cambiar fondo");
+            bg_item->set_icon("preferences-desktop-wallpaper");
+            bg_item->when_click.connect([](EventContext&) {
+                std::system("preferences --desktop &");
+            });
+            menu->add_item(std::move(bg_item));
+            
+            menu->add_separator();
+            
+            auto disp_item = std::make_unique<MenuItem>("Configuración de pantalla");
+            disp_item->set_icon("preferences-desktop-display");
+            disp_item->when_click.connect([](EventContext&) {
+                std::system("preferences --display &");
+            });
+            menu->add_item(std::move(disp_item));
+            
+            wallpaper->set_context_menu(std::move(menu));
 
             m_wallpaper_widgets.push_back(wallpaper.get());
             root->add_child(std::move(wallpaper));
