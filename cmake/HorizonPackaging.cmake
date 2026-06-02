@@ -87,10 +87,8 @@ if(HORIZON_PACKAGING_COMPONENTS)
         endif()
         string(TOUPPER "${comp}" comp_upper)
         
-        get_property(comp_version GLOBAL PROPERTY HORIZON_APP_VERSION_${comp})
-        if(NOT comp_version)
-            set(comp_version "${HORIZON_VERSION}")
-        endif()
+        # Always use the global Horizon version for packages to avoid Aptly conflicts
+        set(comp_version "${HORIZON_VERSION}")
 
         set(CPACK_DEBIAN_${comp_upper}_PACKAGE_NAME "${deb_name}")
         set(CPACK_DEBIAN_${comp_upper}_PACKAGE_VERSION "${comp_version}")
