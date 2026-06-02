@@ -2,7 +2,10 @@
 
 #include <horizon/Application.hpp>
 #include <horizon/WaylandLayerWindow.hpp>
+#include <horizon/Menu.hpp>
 #include <string>
+#include <vector>
+#include <memory>
 
 namespace horizon
 {
@@ -15,6 +18,7 @@ namespace horizon
 
     private:
         void setup_window(WaylandLayerWindow* window);
+        void setup_global_menu(WaylandLayerWindow* window);
         void load_wallpaper(const std::string &wall_path);
 
         void start_gallery(const std::string &directory, int interval_ms, const std::string &order = "none");
@@ -27,6 +31,7 @@ namespace horizon
 
         std::vector<WaylandLayerWindow *> m_windows;
         std::vector<Image *> m_wallpaper_widgets;
+        std::vector<std::unique_ptr<Menu>> m_global_menus_storage;
 
         size_t m_gallery_timer_id{0};
         std::vector<std::string> m_gallery_images;

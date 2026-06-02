@@ -5,7 +5,6 @@
 #include <horizon/Image.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Widget.hpp>
-#include <horizon/Menu.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <vector>
 #include <fstream>
@@ -32,7 +31,7 @@ namespace horizon
         auto* first = create_layer_window("horizon_wall", 0, 0);
         m_windows.push_back(first);
 
-        first->set_name("Horizon Wallpaper");
+        first->set_name("AustralOS");
         first->set_icon_name("preferences-desktop-wallpaper");
         first->set_show_in_dock(false);
 
@@ -51,7 +50,7 @@ namespace horizon
             LOG_INFO << "[HORIZON WALL] Detected " << count << " monitors";
             for (int i = 1; i < count; ++i) {
                 auto* win = create_layer_window("horizon_wall", 0, i);
-                win->set_name("Horizon Wallpaper");
+                win->set_name("AustralOS");
                 win->set_icon_name("preferences-desktop-wallpaper");
                 win->set_show_in_dock(false);
                 setup_window(win);

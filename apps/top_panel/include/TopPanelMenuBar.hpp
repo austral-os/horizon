@@ -21,6 +21,7 @@ private:
     void setup_system_menu();
     void apply_global_menu(const nlohmann::json& request);
     std::unique_ptr<horizon::Menu> create_system_menu();
+    std::unique_ptr<horizon::Menu> create_fallback_menu();
 
     TopPanelApplication* m_app;
 

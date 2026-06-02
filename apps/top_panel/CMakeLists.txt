@@ -33,7 +33,7 @@ horizon_install_app(top_panel
     NAME "Top Panel"
     COMMENT "System Top Panel"
     ICON "slingscold"
-    VERSION "0.4.0"
+    VERSION "0.4.1"
     CATEGORIES "System;"
     EXTRA_DESKTOP "NoDisplay=true"
 )
