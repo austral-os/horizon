@@ -4,7 +4,7 @@
 #include "horizon/arkutils/FileInfo.hpp"
 #include "horizon/EventsManager.hpp"
 
-namespace horizon::arkfm
+namespace horizon::files
 {
     class PropertiesDialog : public WaylandWindow
     {
@@ -19,4 +19,4 @@ namespace horizon::arkfm
         void setup_ui();
         arkutils::FileInfo m_file_info;
     };
-} // namespace horizon::arkfm
+} // namespace horizon::files

@@ -47,6 +47,9 @@ file(GLOB_RECURSE SOURCES
     "src/core/FileWatcher.cpp"
     "src/core/lens/*.cpp"
     "src/files/disks/*.cpp"
+    "src/files/dialogs/*.cpp"
+    "src/files/FileProvider.cpp"
+    "src/files/FileContextMenuBuilder.cpp"
     "src/protocols/*.c"
 )
 add_subdirectory(libs/horizon-print)

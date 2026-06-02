@@ -3,7 +3,7 @@
 #include "horizon/EventsManager.hpp"
 #include <string>
 
-namespace horizon::arkfm
+namespace horizon::files
 {
     struct RenameEvent : public EventContext
     {
@@ -23,4 +23,4 @@ namespace horizon::arkfm
         void setup_ui();
         std::string m_current_name;
     };
-} // namespace horizon::arkfm
+} // namespace horizon::files

@@ -2,10 +2,6 @@ add_executable(arkfm
     src/main.cpp
     src/ArkfmApplication.cpp
     src/ArkfmWindow.cpp
-    src/ArkfmFileProvider.cpp
-    src/dialogs/NewFolderDialog.cpp
-    src/dialogs/PropertiesDialog.cpp
-    src/dialogs/RenameDialog.cpp
     src/dialogs/GoToFolderDialog.cpp
     src/dialogs/ConnectToServerDialog.cpp
 )

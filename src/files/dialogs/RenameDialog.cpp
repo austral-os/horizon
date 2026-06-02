@@ -1,4 +1,4 @@
-#include "dialogs/NewFolderDialog.hpp"
+#include <horizon/files/dialogs/RenameDialog.hpp>
 #include "horizon/AquaObject.hpp"
 #include "horizon/Button.hpp"
 #include "horizon/Label.hpp"
@@ -6,32 +6,32 @@
 #include "horizon/TextBox.hpp"
 #include "horizon/Window.hpp"
 #include "horizon/I18n.hpp"
-#include <xkbcommon/xkbcommon-keysyms.h>
 
-namespace horizon::arkfm
+namespace horizon::files
 {
-    NewFolderDialog::NewFolderDialog()
-        : WaylandWindow("horizon.arkfm.new_folder", 400, 210, false, false)
+    RenameDialog::RenameDialog(const std::string &current_name)
+        : WaylandWindow("horizon.arkfm.rename", 400, 210, false, false),
+          m_current_name(current_name)
     {
-        set_name(i18n().tr("arkfm.dialog.new_folder"));
+        set_name(i18n().tr("arkfm.dialog.rename"));
         setup_ui();
     }
 
-    void NewFolderDialog::setup_ui()
+    void RenameDialog::setup_ui()
     {
-        auto window_widget = std::make_unique<horizon::Window>(i18n().tr("arkfm.dialog.new_folder"));
+        auto window_widget = std::make_unique<horizon::Window>(i18n().tr("arkfm.dialog.rename"));
 
         auto root_panel = std::make_unique<horizon::Widget>();
         root_panel->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         root_panel->set_spacing(15);
         root_panel->set_margin(20);
 
-        auto prompt_label = std::make_unique<horizon::Label>(i18n().tr("arkfm.dialog.folder_name"));
+        auto prompt_label = std::make_unique<horizon::Label>(i18n().tr("arkfm.dialog.new_name"));
         prompt_label->set_fixed_size(25);
         root_panel->add_child(std::move(prompt_label));
 
         auto text_box = std::make_unique<horizon::TextBox<>>();
-        text_box->set_placeholder(i18n().tr("arkfm.menu.new_folder"));
+        text_box->set_text(m_current_name);
         text_box->set_fixed_size(35);
         text_box->set_focusable(true);
         auto *text_box_ptr = text_box.get();
@@ -61,28 +61,16 @@ namespace horizon::arkfm
         accept_btn->set_text("Aceptar");
         accept_btn->set_size(100, 35);
         accept_btn->set_accent_color(WidgetAccentColor::Primary);
-        auto accept_action = [this, text_box_ptr]()
-        {
-            NewFolderEvent ev;
-            ev.sender = this;
-            ev.folder_name = text_box_ptr->text().empty() ? text_box_ptr->placeholder()
-                                                          : text_box_ptr->text();
-            when_accepted.run(ev);
-            this->on_close();
-        };
-
         accept_btn->when_click.connect(
-            [accept_action](auto &)
+            [this, text_box_ptr](auto &)
             {
-                accept_action();
-            });
-
-        text_box_ptr->when_key_press.connect(
-            [accept_action](KeyEventContext &ev)
-            {
-                if (ev.keysym == XKB_KEY_Return || ev.keysym == XKB_KEY_KP_Enter)
+                RenameEvent ev;
+                ev.sender = this;
+                ev.new_name = text_box_ptr->text();
+                if (!ev.new_name.empty())
                 {
-                    accept_action();
+                    when_accepted.run(ev);
+                    this->on_close();
                 }
             });
         button_container->add_child(std::move(accept_btn));
@@ -92,7 +80,5 @@ namespace horizon::arkfm
 
         window_widget->add_child(std::move(root_panel));
         set_root(std::move(window_widget));
-
-        set_focused_widget(text_box_ptr);
     }
-} // namespace horizon::arkfm
+} // namespace horizon::files

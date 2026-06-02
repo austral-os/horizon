@@ -3,7 +3,7 @@
 #include "horizon/EventsManager.hpp"
 #include <string>
 
-namespace horizon::arkfm
+namespace horizon::files
 {
     struct NewFolderEvent : public EventContext
     {
@@ -22,4 +22,4 @@ namespace horizon::arkfm
     private:
         void setup_ui();
     };
-} // namespace horizon::arkfm
+} // namespace horizon::files

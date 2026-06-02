@@ -3,9 +3,9 @@
 #include "horizon/arkutils/FileSystemModel.hpp"
 #include <string>
 
-namespace horizon::arkfm
+namespace horizon::files
 {
-    class ArkfmFileProvider
+    class FileProvider
     {
     public:
         /**
@@ -22,4 +22,4 @@ namespace horizon::arkfm
          */
         static std::string get_display_name(const arkutils::FileInfo &f);
     };
-} // namespace horizon::arkfm
+} // namespace horizon::files

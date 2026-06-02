@@ -1,9 +1,9 @@
 #include "ArkfmWindow.hpp"
 #include "dialogs/ConnectToServerDialog.hpp"
 #include "dialogs/GoToFolderDialog.hpp"
-#include "dialogs/NewFolderDialog.hpp"
-#include "dialogs/PropertiesDialog.hpp"
-#include "dialogs/RenameDialog.hpp"
+#include <horizon/files/dialogs/NewFolderDialog.hpp>
+#include <horizon/files/dialogs/PropertiesDialog.hpp>
+#include <horizon/files/dialogs/RenameDialog.hpp>
 #include "horizon/ApplicationLauncher.hpp"
 #include "horizon/ApplicationWindow.hpp"
 #include "horizon/DesktopManager.hpp"
@@ -22,6 +22,7 @@
 #include <horizon/DialogTypes.hpp>
 #include <horizon/I18n.hpp>
 #include <horizon/MenuItem.hpp>
+#include <horizon/files/FileContextMenuBuilder.hpp>
 #include <horizon/NotificationSender.hpp>
 #include <horizon/files/FileIconProvider.hpp>
 #include <horizon/ConfigManager.hpp>
@@ -252,63 +253,76 @@ namespace horizon::arkfm
         m_view_ptr->set_context_menu_factory(
             [this](const arkutils::FileInfo &f)
             {
-                auto menu = std::make_unique<horizon::Menu>();
+                horizon::files::FileContextMenuBuilder::Callbacks cb;
+                cb.on_refresh = [this]() { m_view_ptr->refresh(); };
+                
+                cb.on_trash = [this, f](const std::vector<std::string>& paths) {
+                    auto sel = this->m_view_ptr->get_selection();
+                    bool in_selection = false;
+                    std::vector<std::string> p = paths;
+                    for (const auto &item : sel) {
+                        p.push_back(item.path);
+                        if (item.path == f.path) in_selection = true;
+                    }
+                    if (in_selection && p.size() > 1) {
+                        this->application()->post_task([this, p]() { this->handle_trash(p); });
+                    } else {
+                        this->application()->post_task([this, f]() { this->handle_trash({f.path}); });
+                    }
+                };
 
-                auto item_open = menu->add_item(i18n().tr("arkfm.menu.open"));
-                item_open->when_click.connect([this, f](auto &)
-                                              { this->m_view_ptr->open_item(f); });
+                cb.on_restore = [this, f](const std::vector<std::string>& paths) {
+                    auto sel = this->m_view_ptr->get_selection();
+                    bool in_selection = false;
+                    std::vector<std::string> p = paths;
+                    for (const auto &item : sel) {
+                        p.push_back(item.path);
+                        if (item.path == f.path) in_selection = true;
+                    }
+                    if (in_selection && p.size() > 1) {
+                        this->application()->post_task([this, p]() { this->handle_restore(p); });
+                    } else {
+                        this->application()->post_task([this, f]() { this->handle_restore({f.path}); });
+                    }
+                };
 
-                auto item_open_with = menu->add_item(i18n().tr("arkfm.menu.open_with"));
-                auto sub_open_with = std::make_unique<horizon::Menu>();
+                cb.on_delete = [this, f](const std::vector<std::string>& paths) {
+                    auto sel = this->m_view_ptr->get_selection();
+                    bool in_selection = false;
+                    std::vector<std::string> p = paths;
+                    for (const auto &item : sel) {
+                        p.push_back(item.path);
+                        if (item.path == f.path) in_selection = true;
+                    }
+                    if (in_selection && p.size() > 1) {
+                        this->application()->post_task([this, p]() { this->handle_delete(p); });
+                    } else {
+                        this->application()->post_task([this, f]() { this->handle_delete({f.path}); });
+                    }
+                };
 
-                std::string mime = DesktopManager::get_mime_type(f.path);
-                auto apps = DesktopManager::get_apps_for_mime(mime);
+                cb.on_open_terminal = [this, f]() {
+                    std::string term_path = (f.type == horizon::arkutils::FileType::Directory)
+                                                ? f.path
+                                                : m_view_ptr->current_path();
+                    ApplicationLauncher::launch_binary("terminal", {}, term_path);
+                };
 
-                for (const auto &app : apps)
-                {
-                    auto app_item = sub_open_with->add_item(app.name);
-                    if (!app.icon.empty())
-                        app_item->set_icon(app.icon);
-                    app_item->when_click.connect(
-                        [this, f, app](auto &)
-                        { ApplicationLauncher::launch_from_desktop_file(app.path, {f.path}); });
-                }
+                cb.on_connect_to_server = [this]() { application()->signal_manager.emit("go-connect"); };
+                cb.on_toggle_hidden = [this]() { this->handle_toggle_hidden(); };
 
-                if (!apps.empty())
-                    sub_open_with->add_separator();
-
-                auto item_other = sub_open_with->add_item(i18n().tr("arkfm.menu.choose_app"));
-                item_other->when_click.connect(
-                    [this, f](auto &)
-                    {
-                        this->application()->post_task(
-                            [this, f]()
-                            {
-                                auto dialog = std::make_unique<AppPickerDialog>();
-                                dialog->when_accepted.connect(
-                                    [this, f](const DesktopEntry &entry)
-                                    {
-                                        ApplicationLauncher::launch_from_desktop_file(entry.path,
-                                                                                      {f.path});
-                                    });
-                                dialog->initialize();
-                                dialog->run();
-                            });
-                    });
-
-                item_open_with->set_submenu(std::move(sub_open_with));
-
-                menu->add_separator();
+                auto menu = horizon::files::FileContextMenuBuilder::build_item_menu(f, cb);
 
                 if (compression::CompressionManager::is_supported_archive(f.path))
                 {
+                    menu->add_separator();
                     auto item_extract = menu->add_item(i18n().tr("arkfm.menu.extract_here"));
                     item_extract->when_click.connect([this, f](auto &)
                                                      { this->handle_extract(f.path); });
-                    menu->add_separator();
                 }
                 else
                 {
+                    menu->add_separator();
                     auto item_compress = menu->add_item(i18n().tr("arkfm.menu.compress"));
                     auto sub = std::make_unique<horizon::Menu>();
 
@@ -346,17 +360,8 @@ namespace horizon::arkfm
                         { this->handle_compress(get_paths_to_compress(), ".7z"); });
 
                     item_compress->set_submenu(std::move(sub));
-                    menu->add_separator();
                 }
-
-                auto item_rename = menu->add_item(i18n().tr("arkfm.menu.rename"));
-                item_rename->when_click.connect(
-                    [this, f](auto &)
-                    {
-                        this->application()->post_task([this, f]()
-                                                       { this->handle_rename(f.path); });
-                    });
-                    
+                
                 if (f.type == horizon::arkutils::FileType::Directory)
                 {
                     menu->add_separator();
@@ -367,128 +372,6 @@ namespace horizon::arkfm
                                                                                     { this->handle_add_bookmark(f.path); });
                                                  });
                 }
-
-                bool is_in_trash =
-                    m_view_ptr->current_path().find("/.local/share/Trash") != std::string::npos;
-                if (!is_in_trash)
-                {
-                    auto item_trash = menu->add_item(i18n().tr("arkfm.menu.move_to_trash"));
-                    item_trash->when_click.connect(
-                        [this, f](auto &)
-                        {
-                            this->application()->post_task(
-                                [this, f]()
-                                {
-                                    auto sel = this->m_view_ptr->get_selection();
-                                    bool in_selection = false;
-                                    std::vector<std::string> paths;
-                                    for (const auto &item : sel)
-                                    {
-                                        paths.push_back(item.path);
-                                        if (item.path == f.path)
-                                            in_selection = true;
-                                    }
-                                    if (in_selection && paths.size() > 1)
-                                    {
-                                        this->handle_trash(paths);
-                                    }
-                                    else
-                                    {
-                                        this->handle_trash({f.path});
-                                    }
-                                });
-                        });
-                }
-                else
-                {
-                    auto item_restore = menu->add_item(i18n().tr("arkfm.menu.restore"));
-                    item_restore->when_click.connect(
-                        [this, f](auto &)
-                        {
-                            this->application()->post_task(
-                                [this, f]()
-                                {
-                                    auto sel = this->m_view_ptr->get_selection();
-                                    bool in_selection = false;
-                                    std::vector<std::string> paths;
-                                    for (const auto &item : sel)
-                                    {
-                                        paths.push_back(item.path);
-                                        if (item.path == f.path)
-                                            in_selection = true;
-                                    }
-                                    if (in_selection && paths.size() > 1)
-                                    {
-                                        this->handle_restore(paths);
-                                    }
-                                    else
-                                    {
-                                        this->handle_restore({f.path});
-                                    }
-                                });
-                        });
-                }
-
-                auto item_delete = menu->add_item(i18n().tr("arkfm.menu.delete"));
-                item_delete->when_click.connect(
-                    [this, f](auto &)
-                    {
-                        this->application()->post_task(
-                            [this, f]()
-                            {
-                                auto sel = this->m_view_ptr->get_selection();
-                                bool in_selection = false;
-                                std::vector<std::string> paths;
-                                for (const auto &item : sel)
-                                {
-                                    paths.push_back(item.path);
-                                    if (item.path == f.path)
-                                        in_selection = true;
-                                }
-                                if (in_selection && paths.size() > 1)
-                                {
-                                    this->handle_delete(paths);
-                                }
-                                else
-                                {
-                                    this->handle_delete({f.path});
-                                }
-                            });
-                    });
-
-                menu->add_separator();
-
-                auto item_props = menu->add_item(i18n().tr("arkfm.menu.properties"));
-                item_props->when_click.connect(
-                    [this, f](auto &)
-                    {
-                        auto dialog = std::make_unique<PropertiesDialog>(f);
-                        dialog->run();
-                    });
-
-                menu->add_separator();
-                auto item_terminal = menu->add_item(i18n().tr("arkfm.menu.open_terminal"));
-                item_terminal->when_click.connect(
-                    [this, f](auto &)
-                    {
-                        std::string term_path = (f.type == horizon::arkutils::FileType::Directory)
-                                                    ? f.path
-                                                    : m_view_ptr->current_path();
-                        ApplicationLauncher::launch_binary("terminal", {}, term_path);
-                    });
-
-                menu->add_separator();
-                auto item_connect = menu->add_item(i18n().tr("arkfm.menu.connect_to_server"));
-                item_connect->when_click.connect(
-                    [this](auto &) { application()->signal_manager.emit("go-connect"); });
-
-                menu->add_separator();
-                std::string hidden_text = m_view_ptr->show_hidden_files()
-                                              ? i18n().tr("arkfm.menu.hide_hidden")
-                                              : i18n().tr("arkfm.menu.show_hidden");
-                auto item_show_hidden = menu->add_item(hidden_text, "Ctrl+H");
-                item_show_hidden->when_click.connect([this](auto &)
-                                                     { this->handle_toggle_hidden(); });
 
                 return menu;
             });
@@ -654,63 +537,40 @@ namespace horizon::arkfm
                         {
                             if (!ctx.stop_propagation)
                             {
-                                m_active_context_menu = std::make_unique<horizon::Menu>();
+                                horizon::files::FileContextMenuBuilder::Callbacks cb;
+                                cb.on_refresh = [this]() { m_view_ptr->refresh(); };
+                                cb.on_open_terminal = [this]() {
+                                    ApplicationLauncher::launch_binary("terminal", {}, m_view_ptr->current_path());
+                                };
+                                cb.on_toggle_hidden = [this]() { this->handle_toggle_hidden(); };
 
-                                bool is_in_trash = m_view_ptr->current_path().find(
-                                                       "/.local/share/Trash") != std::string::npos;
+                                m_active_context_menu = horizon::files::FileContextMenuBuilder::build_empty_space_menu(
+                                    m_view_ptr->current_path(),
+                                    m_view_ptr->show_hidden_files(),
+                                    cb
+                                );
+
+                                bool is_in_trash = m_view_ptr->current_path().find("/.local/share/Trash") != std::string::npos;
                                 if (is_in_trash)
                                 {
-                                    auto item_empty_trash = m_active_context_menu->add_item(
-                                        "Vaciar papelera", "edit-delete");
-                                    item_empty_trash->when_click.connect(
-                                        [this](auto &)
-                                        {
-                                            this->application()->post_task(
-                                                [this]() { this->handle_empty_trash(); });
-                                        });
                                     m_active_context_menu->add_separator();
+                                    auto item_empty_trash = m_active_context_menu->add_item("Vaciar papelera", "edit-delete");
+                                    item_empty_trash->when_click.connect([this](auto &) {
+                                        this->application()->post_task([this]() { this->handle_empty_trash(); });
+                                    });
                                 }
-
-                                auto item_new = m_active_context_menu->add_item(i18n().tr("arkfm.menu.new_folder"));
-                                item_new->when_click.connect([this](auto &)
-                                                             { this->handle_new_folder(); });
 
                                 m_active_context_menu->add_separator();
 
                                 auto item_props = m_active_context_menu->add_item(i18n().tr("arkfm.menu.properties"));
-                                item_props->when_click.connect([this](auto &)
-                                                               { this->handle_properties(); });
-
-                                m_active_context_menu->add_separator();
-                                auto item_terminal = m_active_context_menu->add_item(
-                                    i18n().tr("arkfm.menu.open_terminal"));
-                                item_terminal->when_click.connect(
-                                    [this](auto &)
-                                    {
-                                        ApplicationLauncher::launch_binary(
-                                            "terminal", {}, m_view_ptr->current_path());
-                                    });
+                                item_props->when_click.connect([this](auto &) { this->handle_properties(); });
 
                                 m_active_context_menu->add_separator();
 
-                                auto item_connect =
-                                    m_active_context_menu->add_item(i18n().tr("arkfm.menu.connect_to_server"));
-                                item_connect->when_click.connect(
-                                    [this](auto &)
-                                    { application()->signal_manager.emit("go-connect"); });
+                                auto item_connect = m_active_context_menu->add_item(i18n().tr("arkfm.menu.connect_to_server"));
+                                item_connect->when_click.connect([this](auto &) { application()->signal_manager.emit("go-connect"); });
 
-                                m_active_context_menu->add_separator();
-
-                                auto item_show_hidden = m_active_context_menu->add_item(
-                                    m_view_ptr->show_hidden_files()
-                                        ? i18n().tr("arkfm.menu.hide_hidden")
-                                        : i18n().tr("arkfm.menu.show_hidden"),
-                                    "Ctrl+H");
-                                item_show_hidden->when_click.connect(
-                                    [this](auto &) { this->handle_toggle_hidden(); });
-
-                                application()->show_context_menu(m_active_context_menu.get(), -1,
-                                                                 -1, ctx.serial, this->m_view_ptr);
+                                application()->show_context_menu(m_active_context_menu.get(), -1, -1, ctx.serial, this->m_view_ptr);
                                 ctx.stop_propagation = true;
                             }
                         });
@@ -762,9 +622,9 @@ namespace horizon::arkfm
             [this]()
             {
                 application()->set_override_cursor(CursorType::Wait);
-                auto dialog = std::make_unique<NewFolderDialog>();
+                auto dialog = std::make_unique<horizon::files::NewFolderDialog>();
                 dialog->when_accepted.connect(
-                    [this](NewFolderEvent &ctx)
+                    [this](horizon::files::NewFolderEvent &ctx)
                     {
                         std::string full_path = m_view_ptr->current_path() + "/" + ctx.folder_name;
                         show_status_message(i18n().tr("arkfm.messages.creating_folder"));
@@ -838,9 +698,9 @@ namespace horizon::arkfm
     {
         application()->set_override_cursor(CursorType::Wait);
         std::filesystem::path p(path);
-        auto dialog = std::make_unique<RenameDialog>(p.filename().string());
+        auto dialog = std::make_unique<horizon::files::RenameDialog>(p.filename().string());
         dialog->when_accepted.connect(
-            [this, path, p](RenameEvent &ctx)
+            [this, path, p](horizon::files::RenameEvent &ctx)
             {
                 std::filesystem::path new_path = p.parent_path() / ctx.new_name;
 
@@ -1125,7 +985,7 @@ namespace horizon::arkfm
             [this, f]()
             {
                 application()->set_override_cursor(CursorType::Wait);
-                auto dialog = std::make_unique<PropertiesDialog>(f);
+                auto dialog = std::make_unique<horizon::files::PropertiesDialog>(f);
                 dialog->run();
                 application()->clear_override_cursor();
             });

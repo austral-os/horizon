@@ -6,6 +6,8 @@
 #include <horizon/Logger.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/files/FileIconView.hpp>
+#include <horizon/files/FileContextMenuBuilder.hpp>
+#include <horizon/files/FileEvents.hpp>
 #include <horizon/ApplicationLauncher.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <horizon/XdgUserDirs.hpp>
@@ -223,21 +225,60 @@ namespace horizon
                 }
             });
 
+            // Set item context menu factory
+            icon_view->set_context_menu_factory([this, iv_ptr = icon_view.get(), desktop_path](const arkutils::FileInfo &f) {
+                horizon::files::FileContextMenuBuilder::Callbacks cb;
+                cb.on_refresh = [iv_ptr, desktop_path]() { iv_ptr->refresh(desktop_path); };
+                
+                cb.on_delete = [iv_ptr, desktop_path](const std::vector<std::string>& paths) {
+                    for (const auto& p : paths) {
+                        std::filesystem::remove_all(p);
+                    }
+                    iv_ptr->refresh(desktop_path);
+                };
+
+                cb.on_trash = [iv_ptr, desktop_path](const std::vector<std::string>& paths) {
+                    for (const auto& p : paths) {
+                        std::system(("gio trash \"" + p + "\"").c_str());
+                    }
+                    iv_ptr->refresh(desktop_path);
+                };
+
+                cb.on_open_terminal = [f]() {
+                    std::string term_path = (f.type == horizon::arkutils::FileType::Directory)
+                                                ? f.path
+                                                : XdgUserDirs::get_desktop();
+                    ApplicationLauncher::launch_binary("terminal", {}, term_path);
+                };
+
+                return horizon::files::FileContextMenuBuilder::build_item_menu(f, cb);
+            });
+
             // Recreate context menu for the icon view so empty areas show it
-            auto iv_menu = std::make_unique<Menu>();
+            horizon::files::FileContextMenuBuilder::Callbacks empty_cb;
+            empty_cb.on_refresh = [iv_ptr = icon_view.get(), desktop_path]() { iv_ptr->refresh(desktop_path); };
+            empty_cb.on_open_terminal = [desktop_path]() {
+                ApplicationLauncher::launch_binary("terminal", {}, desktop_path);
+            };
+
+            auto iv_menu = horizon::files::FileContextMenuBuilder::build_empty_space_menu(desktop_path, false, empty_cb);
+
+            iv_menu->add_separator();
+
             auto iv_bg_item = std::make_unique<MenuItem>("Cambiar fondo");
             iv_bg_item->set_icon("preferences-desktop-wallpaper");
             iv_bg_item->when_click.connect([](EventContext&) {
                 std::system("preferences --desktop &");
             });
             iv_menu->add_item(std::move(iv_bg_item));
-            iv_menu->add_separator();
+            
             auto iv_disp_item = std::make_unique<MenuItem>("Configuración de pantalla");
             iv_disp_item->set_icon("preferences-desktop-display");
             iv_disp_item->when_click.connect([](EventContext&) {
                 std::system("preferences --display &");
             });
             iv_menu->add_item(std::move(iv_disp_item));
+            
             icon_view->set_context_menu(std::move(iv_menu));
 
             // Populate the icon view immediately
