@@ -117,6 +117,10 @@ namespace horizon
 
         Color menu_bg = theme_manager()->get_color("menu_bg");
         Color menu_border = theme_manager()->get_color("menu_border");
+        
+        float opacity = theme_manager()->get_menu_opacity();
+        menu_bg.a = opacity;
+        menu_border.a = opacity;
 
         int rect_w = m_width - m_margin * 2;
         int rect_h = m_height - m_margin * 2;

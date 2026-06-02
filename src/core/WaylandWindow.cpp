@@ -3398,6 +3398,7 @@ namespace horizon
         int surface_h = m_popup_vault->height();
 
         m_popup_surface = std::make_unique<WaylandSurface>(surface_w, surface_h);
+        m_popup_surface->set_blur(true);
         m_popup_listener = std::make_unique<PopupEventListener>(this, serial);
         m_popup_surface->set_event_listener(m_popup_listener.get());
 
