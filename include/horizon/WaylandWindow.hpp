@@ -558,6 +558,13 @@ namespace horizon
         void notify_app_manager(const std::string &type);
         void notify_window_state(bool minimized);
 
+        /**
+         * @brief Initializes the clipboard backend for this window.
+         * Subclasses that bypass WaylandWindow::initialize() (e.g. WaylandLayerWindow)
+         * must call this after their surface is fully set up.
+         */
+        void init_clipboard_backend();
+
     private:
         std::atomic<bool> m_is_running{false}; /**< Flag indicating if the event loop is active. */
         bool m_is_activated = false; /**< Flag indicating if the application is currently active. */

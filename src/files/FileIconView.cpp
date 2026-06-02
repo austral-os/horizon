@@ -677,4 +677,93 @@ namespace horizon::files
                 });
         }
     }
+
+    bool FileIconView::can_perform(ClipboardAction action) const
+    {
+        if (action == ClipboardAction::Copy || action == ClipboardAction::Cut)
+            return !get_selected_items().empty();
+        return (action == ClipboardAction::Paste);
+    }
+
+    void FileIconView::perform(ClipboardAction action)
+    {
+        LOG_INFO << "[FileIconView] perform clipboard action: " << (int)action;
+        if (action == ClipboardAction::Copy || action == ClipboardAction::Cut)
+        {
+            auto selection = get_selected_items();
+            m_clipboard_paths.clear();
+            for (const auto &item : selection) m_clipboard_paths.push_back(item.path);
+            m_is_cut = (action == ClipboardAction::Cut);
+
+            if (application()) {
+                LOG_INFO << "[FileIconView] application() is valid. Calling set_clipboard_owner on " << (void*)application();
+                application()->set_clipboard_owner(this);
+                LOG_INFO << "[FileIconView] set_clipboard_owner finished.";
+            } else {
+                LOG_INFO << "[FileIconView] application() is NULL!";
+            }
+        }
+        else if (action == ClipboardAction::Paste)
+        {
+            if (application()) {
+                LOG_INFO << "[FileIconView] calling request_clipboard_data on " << (void*)application();
+                application()->request_clipboard_data(this, "text/uri-list");
+            } else {
+                LOG_INFO << "[FileIconView] application() is NULL!";
+            }
+        }
+    }
+
+    std::vector<std::string> FileIconView::provided_mime_types() const
+    {
+        return {"text/uri-list"};
+    }
+
+    void FileIconView::provide_clipboard_data(const std::string &mime, DataSink &sink)
+    {
+        LOG_INFO << "[FileIconView] provide_clipboard_data: " << mime << " paths: " << m_clipboard_paths.size();
+        if (mime == "text/uri-list")
+        {
+            std::string data;
+            for (const auto &path : m_clipboard_paths) data += "file://" + path + "\r\n";
+            sink.write(std::vector<uint8_t>(data.begin(), data.end()));
+            sink.done();
+        }
+        else sink.error();
+    }
+
+    void FileIconView::on_clipboard_data_received(const std::string &mime, const std::vector<uint8_t> &data)
+    {
+        LOG_INFO << "[FileIconView] on_clipboard_data_received: " << mime << " data size: " << data.size();
+        if (mime != "text/uri-list" || data.empty()) return;
+
+        std::string content(data.begin(), data.end());
+        std::stringstream ss(content);
+        std::string line;
+        std::vector<std::string> paths;
+
+        while (std::getline(ss, line))
+        {
+            if (line.empty()) continue;
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            if (line.find("file://") == 0) paths.push_back(line.substr(7));
+        }
+
+        if (paths.empty()) return;
+
+        for (const auto &src_path : paths)
+        {
+            std::filesystem::path src(src_path);
+            std::filesystem::path dst(m_current_path);
+            dst /= src.filename();
+            
+            // Note: Normally we'd use 'move' if cut, but the Wayland standard
+            // without GNOME extensions doesn't expose the cut flag across clients.
+            // For now, we will do a standard copy operation.
+            arkutils::FileOperations::copy(src_path, dst.string(), nullptr);
+        }
+        
+        refresh(m_current_path);
+    }
+
 } // namespace horizon::files

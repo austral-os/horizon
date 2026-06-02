@@ -20,6 +20,7 @@ WaylandClipboardBackend::~WaylandClipboardBackend() {
 }
 
 void WaylandClipboardBackend::set_provider(ClipboardProvider* provider, const std::vector<std::string>& mime_types) {
+    LOG_INFO << "[WaylandClipboardBackend] set_provider called with " << mime_types.size() << " mime types. Serial: " << m_surface->last_serial();
     cleanup_source();
     m_local_provider = provider;
     m_owned_provider.reset(); // Clear any static data
@@ -193,6 +194,7 @@ void WaylandClipboardBackend::data_source_handle_send(void *data, struct wl_data
 }
 
 void WaylandClipboardBackend::data_source_handle_cancelled(void *data, struct wl_data_source *source) {
+    LOG_INFO << "[WaylandClipboardBackend] data_source_handle_cancelled! Compositor rejected clipboard.";
     auto self = static_cast<WaylandClipboardBackend*>(data);
     self->cleanup_source();
     self->m_local_provider = nullptr;

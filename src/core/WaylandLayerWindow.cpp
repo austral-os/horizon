@@ -46,6 +46,10 @@ namespace horizon
         }
         
         w_surface()->setup_layer_surface(m_layer, m_namespace, output);
+
+        // Layer windows bypass WaylandWindow::initialize(), so we must
+        // create the clipboard backend here explicitly.
+        init_clipboard_backend();
     }
 
     void WaylandLayerWindow::set_anchor(uint32_t anchor)

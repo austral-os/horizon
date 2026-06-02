@@ -372,6 +372,14 @@ namespace horizon
         }
     }
 
+    void WaylandWindow::init_clipboard_backend()
+    {
+        if (!m_clipboard_backend && m_surface)
+        {
+            m_clipboard_backend = std::make_unique<WaylandClipboardBackend>(m_surface.get());
+        }
+    }
+
     void WaylandWindow::set_resizable(bool resizable)
     {
         m_resizable = resizable;
@@ -2016,6 +2024,16 @@ namespace horizon
                 // IMPORTANT: Close the menu BEFORE running the handlers.
                 WaylandWindow *win = m_window;
                 uint32_t mods = win->m_modifiers;
+
+                // Propagate the popup click serial to the main window's surface.
+                // This is critical for clipboard operations: wl_data_device_set_selection
+                // requires a recent valid serial from an input event. The click happened
+                // in the popup surface, so we must update the parent surface's serial
+                // before the menu closes and perform() calls set_clipboard_owner.
+                if (win->m_surface && event.serial > 0) {
+                    win->m_surface->set_last_serial(event.serial);
+                    LOG_INFO << "[POPUP] Propagated serial " << event.serial << " to parent window surface";
+                }
 
                 if (win->m_popup_menu) {
                     win->close_context_menu();

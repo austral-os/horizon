@@ -26,6 +26,14 @@ namespace horizon::files
         void set_show_hidden_files(bool show) { m_show_hidden_files = show; }
         void set_file_filter(const std::vector<std::string>& filter) { m_file_filter = filter; }
 
+        // Clipboard integration
+        bool supports_clipboard() const override { return true; }
+        bool can_perform(ClipboardAction action) const override;
+        void perform(ClipboardAction action) override;
+        void provide_clipboard_data(const std::string &mime, DataSink &sink) override;
+        std::vector<std::string> provided_mime_types() const override;
+        void on_clipboard_data_received(const std::string &mime, const std::vector<uint8_t> &data) override;
+
         EventsManager<OperationProgressEvent> when_operation_progress;
 
     private:
@@ -38,5 +46,9 @@ namespace horizon::files
         std::vector<std::string> m_file_filter;
         std::unique_ptr<arkutils::FileSystemModel> m_fs_model;
         uint64_t m_thumbnail_timer_id{0};
+
+        // Clipboard state
+        std::vector<std::string> m_clipboard_paths;
+        bool m_is_cut = false;
     };
 } // namespace horizon::files
