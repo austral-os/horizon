@@ -17,18 +17,12 @@ TopPanelMenuBar::TopPanelMenuBar(TopPanelApplication *app) : m_app(app)
 {
     set_spacing(2);
 
-    // Initial creation of the system menu
+    // Initial creation of the system menu (always at index 0)
     auto system_menu = create_system_menu();
-    // We add it directly to ensure it survives apply_global_menu calls
     add_menu(std::move(system_menu));
 
-    // Also apply the fallback menu directly on startup since there are no active apps yet
-    auto fallback = create_fallback_menu();
-    if (fallback)
-    {
-        add_menu(std::move(fallback));
-        m_app_menus_count++;
-    }
+    // Apply fallback menu via the standard path so state is always consistent
+    apply_global_menu(nlohmann::json::object());
 
     // Wire up click callback
     when_menu_click.connect(
@@ -113,15 +107,18 @@ void TopPanelMenuBar::apply_global_menu(const nlohmann::json &request)
         }
     }
 
-    // Instead of clear_menus() which clears everything, we only remove app menus.
-    // Index 0 is the system menu, so we remove all menus from index 1 onwards.
-    while (m_app_menus_count > 0)
+    // Derive the actual number of app menus from real children count.
+    // Index 0 is always the system menu, so app menus start at index 1.
+    // Using children().size() - 1 avoids the counter going out of sync.
+    int actual_app_menus = static_cast<int>(children().size()) - 1;
+    while (actual_app_menus > 0)
     {
         remove_menu(1);
-        m_app_menus_count--;
+        actual_app_menus--;
     }
 
-    // Add new ones
+    // Add new ones and keep the counter in sync for legacy use
+    m_app_menus_count = 0;
     for (auto &menu : new_menus)
     {
         add_menu(std::move(menu));
