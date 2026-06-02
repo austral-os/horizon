@@ -86,8 +86,15 @@ if(HORIZON_PACKAGING_COMPONENTS)
             set(deb_name "horizon-${deb_name}")
         endif()
         string(TOUPPER "${comp}" comp_upper)
+        
+        get_property(comp_version GLOBAL PROPERTY HORIZON_APP_VERSION_${comp})
+        if(NOT comp_version)
+            set(comp_version "${HORIZON_VERSION}")
+        endif()
+
         set(CPACK_DEBIAN_${comp_upper}_PACKAGE_NAME "${deb_name}")
-        set(CPACK_DEBIAN_${comp_upper}_FILE_NAME "${deb_name}_${HORIZON_VERSION}_amd64.deb")
+        set(CPACK_DEBIAN_${comp_upper}_PACKAGE_VERSION "${comp_version}")
+        set(CPACK_DEBIAN_${comp_upper}_FILE_NAME "${deb_name}_${comp_version}_amd64.deb")
         
         # All individual apps depend on libhorizon
         set(CPACK_DEBIAN_${comp_upper}_PACKAGE_DEPENDS "libhorizon (>= ${HORIZON_VERSION})")

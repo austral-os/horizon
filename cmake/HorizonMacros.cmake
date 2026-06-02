@@ -55,15 +55,8 @@ macro(horizon_install_app TARGET_NAME)
     # Normalize APP_ID to use hyphens for the package name
     string(REPLACE "_" "-" APP_ID_NORM "${APP_APP_ID}")
     
-    # Set Debian package name for this component
-    if(APP_ID_NORM MATCHES "^horizon-")
-        set(CPACK_DEBIAN_${APP_APP_ID}_PACKAGE_NAME "${APP_ID_NORM}")
-    else()
-        set(CPACK_DEBIAN_${APP_APP_ID}_PACKAGE_NAME "horizon-${APP_ID_NORM}")
-    endif()
-
-    # Set version for this component
-    set(CPACK_DEBIAN_${APP_APP_ID}_PACKAGE_VERSION "${APP_VERSION}")
+    # Store the component's specific version in a global property
+    set_property(GLOBAL PROPERTY HORIZON_APP_VERSION_${APP_APP_ID} "${APP_VERSION}")
 
     # Get the actual output name of the binary
     get_target_property(APP_BINARY_NAME ${TARGET_NAME} OUTPUT_NAME)
