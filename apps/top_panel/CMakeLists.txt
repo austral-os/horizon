@@ -9,6 +9,7 @@ add_executable(top_panel
     src/BatteryIndicator.cpp
     src/NotificationIndicator.cpp
     src/VolumeIndicator.cpp
+    src/UpdateIndicator.cpp
 )
 
 target_include_directories(top_panel
@@ -32,7 +33,7 @@ horizon_install_app(top_panel
     NAME "Top Panel"
     COMMENT "System Top Panel"
     ICON "slingscold"
-    VERSION "0.3.0"
+    VERSION "0.4.0"
     CATEGORIES "System;"
     EXTRA_DESKTOP "NoDisplay=true"
 )
