@@ -652,6 +652,9 @@ namespace horizon
 
             EventContext ev;
             ev.sender = this;
+
+            invalidate();
+
             if (m_has_focus)
             {
                 when_focus.run(ev);
@@ -660,7 +663,6 @@ namespace horizon
             {
                 when_blur.run(ev);
             }
-            invalidate();
         }
     }
 

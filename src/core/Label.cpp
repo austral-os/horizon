@@ -414,7 +414,7 @@ namespace horizon
         });
 
         m_editor->when_blur.connect([this](EventContext &) {
-            end_edit(true);
+            end_edit(true, false);
         });
 
         add_child(std::move(editor));
@@ -423,7 +423,7 @@ namespace horizon
         invalidate();
     }
 
-    void Label::end_edit(bool accept_changes)
+    void Label::end_edit(bool accept_changes, bool restore_focus)
     {
         if (!m_is_editing)
             return;
@@ -445,7 +445,7 @@ namespace horizon
         m_is_editing = false;
         invalidate();
 
-        if (application()) {
+        if (restore_focus && application()) {
             Widget* ancestor = this->parent();
             while (ancestor) {
                 if (ancestor->is_focusable()) {

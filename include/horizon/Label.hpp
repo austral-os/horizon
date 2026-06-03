@@ -83,7 +83,7 @@ namespace horizon
         bool is_editable() const;
 
         void begin_edit();
-        void end_edit(bool accept_changes = true);
+        void end_edit(bool accept_changes = true, bool restore_focus = true);
 
         EventsManager<EventContext> when_text_edited;
 

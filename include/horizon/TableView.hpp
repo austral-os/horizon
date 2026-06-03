@@ -56,11 +56,13 @@ namespace horizon
 
                 if (ev.keysym == 0xff52) // Up arrow
                 {
+                    this->set_focus(true);
                     new_idx = (current_idx < 0) ? 0 : std::max(0, current_idx - 1);
                     ev.stop_propagation = true;
                 }
                 else if (ev.keysym == 0xff54) // Down arrow
                 {
+                    this->set_focus(true);
                     new_idx = (current_idx < 0) ? 0 : std::min((int)m_data.size() - 1, current_idx + 1);
                     ev.stop_propagation = true;
                 }

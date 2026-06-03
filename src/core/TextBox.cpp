@@ -100,6 +100,7 @@ namespace horizon
                     invalidate();
                     KeyEventContext ctx = ev;
                     when_text_changed.run(ctx);
+                    ev.stop_propagation = true;
                 }
                 else if (ev.keysym == XKB_KEY_Delete)
                 {
@@ -113,6 +114,7 @@ namespace horizon
                     invalidate();
                     KeyEventContext ctx = ev;
                     when_text_changed.run(ctx);
+                    ev.stop_propagation = true;
                 }
                 else if (ev.keysym == XKB_KEY_Left || ev.keysym == XKB_KEY_KP_Left)
                 {
@@ -123,6 +125,7 @@ namespace horizon
                     if (!shift)
                         m_selection_anchor = -1;
                     invalidate();
+                    ev.stop_propagation = true;
                 }
                 else if (ev.keysym == XKB_KEY_Right || ev.keysym == XKB_KEY_KP_Right)
                 {
@@ -133,6 +136,7 @@ namespace horizon
                     if (!shift)
                         m_selection_anchor = -1;
                     invalidate();
+                    ev.stop_propagation = true;
                 }
                 else if (ev.keysym == XKB_KEY_Home || ev.keysym == XKB_KEY_KP_Home)
                 {
@@ -142,6 +146,7 @@ namespace horizon
                     if (!shift)
                         m_selection_anchor = -1;
                     invalidate();
+                    ev.stop_propagation = true;
                 }
                 else if (ev.keysym == XKB_KEY_End || ev.keysym == XKB_KEY_KP_End)
                 {
@@ -151,6 +156,7 @@ namespace horizon
                     if (!shift)
                         m_selection_anchor = -1;
                     invalidate();
+                    ev.stop_propagation = true;
                 }
                 else if (!ev.text.empty())
                 {
@@ -163,6 +169,7 @@ namespace horizon
                         invalidate();
                         KeyEventContext ctx = ev;
                         when_text_changed.run(ctx);
+                        ev.stop_propagation = true;
                     }
                 }
             });

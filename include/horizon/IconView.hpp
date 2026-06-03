@@ -114,18 +114,21 @@ namespace horizon
                 if (m_layout_mode == IconViewLayoutMode::Horizontal) {
                     if (ev.keysym == 0xff51) // Left arrow
                     {
+                        this->set_focus(true);
                         new_idx = (current_idx <= 0) ? 0 : current_idx - 1;
                         ev.stop_propagation = true;
                         is_arrow = true;
                     }
                     else if (ev.keysym == 0xff53) // Right arrow
                     {
+                        this->set_focus(true);
                         new_idx = (current_idx < 0) ? 0 : std::min((int)m_data.size() - 1, current_idx + 1);
                         ev.stop_propagation = true;
                         is_arrow = true;
                     }
                     else if (ev.keysym == 0xff52) // Up arrow
                     {
+                        this->set_focus(true);
                         if (current_idx < 0) new_idx = 0;
                         else new_idx = std::max(0, current_idx - cols);
                         ev.stop_propagation = true;
@@ -133,6 +136,7 @@ namespace horizon
                     }
                     else if (ev.keysym == 0xff54) // Down arrow
                     {
+                        this->set_focus(true);
                         if (current_idx < 0) new_idx = 0;
                         else new_idx = std::min((int)m_data.size() - 1, current_idx + cols);
                         ev.stop_propagation = true;
@@ -141,18 +145,21 @@ namespace horizon
                 } else {
                     if (ev.keysym == 0xff52) // Up arrow
                     {
+                        this->set_focus(true);
                         new_idx = (current_idx <= 0) ? 0 : current_idx - 1;
                         ev.stop_propagation = true;
                         is_arrow = true;
                     }
                     else if (ev.keysym == 0xff54) // Down arrow
                     {
+                        this->set_focus(true);
                         new_idx = (current_idx < 0) ? 0 : std::min((int)m_data.size() - 1, current_idx + 1);
                         ev.stop_propagation = true;
                         is_arrow = true;
                     }
                     else if (ev.keysym == 0xff51) // Left arrow
                     {
+                        this->set_focus(true);
                         if (m_layout_mode == IconViewLayoutMode::VerticalRightToLeft) {
                             new_idx = (current_idx < 0) ? 0 : std::min((int)m_data.size() - 1, current_idx + rows);
                         } else {
@@ -164,6 +171,7 @@ namespace horizon
                     }
                     else if (ev.keysym == 0xff53) // Right arrow
                     {
+                        this->set_focus(true);
                         if (m_layout_mode == IconViewLayoutMode::VerticalRightToLeft) {
                             if (current_idx < 0) new_idx = 0;
                             else new_idx = std::max(0, current_idx - rows);
