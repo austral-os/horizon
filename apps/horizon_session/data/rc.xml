@@ -46,6 +46,11 @@
       <action name="Execute" command="playerctl previous" />
     </keybind>
 
+    <!-- Launchpad -->
+    <keybind key="Super_L">
+      <action name="Execute" command="launchpad" />
+    </keybind>
+
     <!-- Cambiar de ventana (Alt+Tab) -->
     <keybind key="A-Tab">
       <action name="NextWindow" />
