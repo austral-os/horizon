@@ -189,11 +189,6 @@ namespace horizon
                     bool ctrl_pressed = (ev.modifiers & WaylandWindow::Modifier::CTRL);
                     set_selected_index(new_idx, ctrl_pressed, shift_pressed);
                     
-                    IconViewItemMouseClickContext<T> click_ctx;
-                    click_ctx.item_index = new_idx;
-                    click_ctx.item_data = m_data[new_idx];
-                    when_item_click.run(click_ctx);
-
                     if (on_item_selected)
                         on_item_selected(new_idx, m_data[new_idx]);
 

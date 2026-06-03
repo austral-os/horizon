@@ -96,6 +96,53 @@ namespace horizon
         m_search_box->when_text_changed.connect([this](KeyEventContext &)
                                                 { filter_apps(m_search_box->text()); });
 
+        m_search_box->when_key_press.connect(
+            [this](KeyEventContext &ctx)
+            {
+                if (ctx.keysym == 0xff54 || ctx.keysym == 0xff52) // Down or Up arrow
+                {
+                    m_icon_view->set_focus(true);
+                    if (m_icon_view->selected_index() == -1 && !m_filtered_apps.empty())
+                    {
+                        m_icon_view->set_selected_index(0);
+                    }
+                }
+                else if (ctx.keysym == 0xff0d || ctx.keysym == 0xff8d) // Enter
+                {
+                    int selected = m_icon_view->selected_index();
+                    if (selected == -1 && !m_filtered_apps.empty())
+                        selected = 0;
+                    
+                    if (selected >= 0 && selected < (int)m_filtered_apps.size())
+                    {
+                        LOG_INFO << "Launching from search: " << m_filtered_apps[selected].name;
+                        ApplicationLauncher launcher;
+                        launcher.launch(m_filtered_apps[selected].exec);
+
+                        if (application())
+                            application()->quit();
+                    }
+                }
+            });
+
+        m_icon_view->when_key_press.connect(
+            [this](KeyEventContext &ctx)
+            {
+                if (ctx.keysym == 0xff0d || ctx.keysym == 0xff8d) // Enter
+                {
+                    int selected = m_icon_view->selected_index();
+                    if (selected >= 0 && selected < (int)m_filtered_apps.size())
+                    {
+                        LOG_INFO << "Launching from icon view: " << m_filtered_apps[selected].name;
+                        ApplicationLauncher launcher;
+                        launcher.launch(m_filtered_apps[selected].exec);
+
+                        if (application())
+                            application()->quit();
+                    }
+                }
+            });
+
         when_key_press.connect(
             [this](KeyEventContext &ctx)
             {
@@ -103,6 +150,31 @@ namespace horizon
                 {
                     if (application())
                         application()->quit();
+                    ctx.stop_propagation = true;
+                }
+                else if (ctx.keysym == 0xff08) // XKB_KEY_BackSpace
+                {
+                    if (!m_search_box->has_focus() && !m_search_box->text().empty())
+                    {
+                        m_search_box->set_focus(true);
+                        std::string t = m_search_box->text();
+                        t.pop_back();
+                        m_search_box->set_text(t);
+                        KeyEventContext ev_change;
+                        m_search_box->when_text_changed.run(ev_change);
+                        ctx.stop_propagation = true;
+                    }
+                }
+                else if (!ctx.text.empty() && ctx.text[0] >= 32)
+                {
+                    if (!m_search_box->has_focus())
+                    {
+                        m_search_box->set_focus(true);
+                        m_search_box->set_text(m_search_box->text() + ctx.text);
+                        KeyEventContext ev_change;
+                        m_search_box->when_text_changed.run(ev_change);
+                        ctx.stop_propagation = true;
+                    }
                 }
             });
 
@@ -153,6 +225,12 @@ namespace horizon
         add_child(std::move(footer));
 
         load_apps();
+
+        m_icon_view->set_focus(true);
+        if (!m_filtered_apps.empty())
+        {
+            m_icon_view->set_selected_index(0);
+        }
     }
 
     void LaunchpadWindow::load_apps()
