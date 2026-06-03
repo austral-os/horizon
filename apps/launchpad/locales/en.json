@@ -1,5 +1,8 @@
 {
   "launchpad": {
-    "placeholder": "Search applications..."
+    "placeholder": "Search applications...",
+    "poweroff": "Power Off",
+    "reboot": "Restart",
+    "logout": "Log Out"
   }
 }

@@ -7,6 +7,8 @@
 #include <horizon/Logger.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/I18n.hpp>
+#include <horizon/ToolbarButton.hpp>
+#include <cstdlib>
 
 namespace fs = std::filesystem;
 
@@ -28,6 +30,17 @@ namespace horizon
         search_container->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         search_container->set_fixed_size(48);
 
+        // Close button on the left
+        auto close_btn = std::make_unique<horizon::ToolbarButton>("", "window-close");
+        close_btn->set_fixed_size(48);
+        close_btn->when_click.connect(
+            [this](auto &)
+            {
+                if (application())
+                    application()->quit();
+            });
+        search_container->add_child(std::move(close_btn));
+
         // Left Spacer
         search_container->add_child(Spacer());
 
@@ -40,6 +53,11 @@ namespace horizon
 
         // Right Spacer
         search_container->add_child(Spacer());
+
+        // Dummy balancer to keep the search box perfectly centered
+        auto dummy = std::make_unique<Widget>();
+        dummy->set_fixed_size(48);
+        search_container->add_child(std::move(dummy));
 
         add_child(std::move(search_container));
 
@@ -87,6 +105,52 @@ namespace horizon
                         application()->quit();
                 }
             });
+
+        // Footer for Power buttons
+        auto footer = std::make_unique<Widget>();
+        footer->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        footer->set_fixed_size(60);
+        footer->set_margin(10);
+
+        auto shutdown_btn = std::make_unique<horizon::ToolbarButton>(i18n().tr("launchpad.poweroff"), "system-shutdown");
+        shutdown_btn->set_fixed_size(120);
+        shutdown_btn->set_text_color(Color(1.0f, 1.0f, 1.0f));
+        shutdown_btn->when_click.connect(
+            [this](auto &)
+            {
+                std::system("systemctl poweroff -i");
+            });
+        footer->add_child(std::move(shutdown_btn));
+        footer->add_child(Spacer(10));
+
+        auto reboot_btn = std::make_unique<horizon::ToolbarButton>(i18n().tr("launchpad.reboot"), "system-reboot");
+        reboot_btn->set_fixed_size(120);
+        reboot_btn->set_text_color(Color(1.0f, 1.0f, 1.0f));
+        reboot_btn->when_click.connect(
+            [this](auto &)
+            {
+                std::system("systemctl reboot -i");
+            });
+        footer->add_child(std::move(reboot_btn));
+        footer->add_child(Spacer(10));
+
+        auto logout_btn = std::make_unique<horizon::ToolbarButton>(i18n().tr("launchpad.logout"), "system-log-out");
+        logout_btn->set_fixed_size(140);
+        logout_btn->set_text_color(Color(1.0f, 1.0f, 1.0f));
+        logout_btn->when_click.connect(
+            [this](auto &)
+            {
+                if (application())
+                {
+                    application()->send_remote_signal(-1, "logout");
+                    application()->quit();
+                }
+            });
+        footer->add_child(std::move(logout_btn));
+
+        footer->add_child(Spacer()); // push buttons to the left
+
+        add_child(std::move(footer));
 
         load_apps();
     }

@@ -1,5 +1,8 @@
 {
   "launchpad": {
-    "placeholder": "Buscar aplicaciones..."
+    "placeholder": "Buscar aplicaciones...",
+    "poweroff": "Apagar",
+    "reboot": "Reiniciar",
+    "logout": "Cerrar sesión"
   }
 }
