@@ -5,6 +5,7 @@
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/ThemeManager.hpp>
+#include <xkbcommon/xkbcommon-keysyms.h>
 
 namespace horizon
 {
@@ -99,6 +100,9 @@ namespace horizon
             text_color.a *= 0.4f;
         }
         gc.setColor(text_color);
+
+        if (m_is_editing)
+            return;
 
         int line_height = size + 4;
 
@@ -367,6 +371,90 @@ namespace horizon
         }
 
         return lines;
+    }
+
+    void Label::set_editable(bool editable)
+    {
+        m_editable = editable;
+    }
+
+    bool Label::is_editable() const
+    {
+        return m_editable;
+    }
+
+    void Label::begin_edit()
+    {
+        if (!m_editable) {
+            LOG_WARNING << "Attempted to call begin_edit on a non-editable Label.";
+            return;
+        }
+        if (m_is_editing)
+            return;
+
+        m_is_editing = true;
+        auto editor = std::make_unique<TextBox<TextPolicy>>();
+        m_editor = editor.get();
+
+        m_editor->set_text(m_text);
+        m_editor->set_font_family(m_font_family);
+        m_editor->set_position_type(WidgetPositionTypes::FREE);
+        // Position relative to the window, same as the Label
+        m_editor->set_position(m_x, m_y); 
+        m_editor->set_size(m_width, m_height);
+
+        m_editor->when_key_press.connect([this](KeyEventContext &ctx) {
+            if (ctx.keysym == XKB_KEY_Return || ctx.keysym == XKB_KEY_KP_Enter) {
+                end_edit(true);
+                ctx.stop_propagation = true;
+            } else if (ctx.keysym == XKB_KEY_Escape) {
+                end_edit(false);
+                ctx.stop_propagation = true;
+            }
+        });
+
+        m_editor->when_blur.connect([this](EventContext &) {
+            end_edit(true);
+        });
+
+        add_child(std::move(editor));
+        m_editor->set_focus(true);
+        m_editor->select_all();
+        invalidate();
+    }
+
+    void Label::end_edit(bool accept_changes)
+    {
+        if (!m_is_editing)
+            return;
+
+        if (accept_changes && m_editor) {
+            std::string new_text = m_editor->text();
+            if (new_text != m_text) {
+                m_text = new_text;
+                EventContext ctx;
+                when_text_edited.run(ctx);
+            }
+        }
+
+        if (m_editor) {
+            remove_child(m_editor);
+            m_editor = nullptr;
+        }
+
+        m_is_editing = false;
+        invalidate();
+
+        if (application()) {
+            Widget* ancestor = this->parent();
+            while (ancestor) {
+                if (ancestor->is_focusable()) {
+                    ancestor->set_focus(true);
+                    break;
+                }
+                ancestor = ancestor->parent();
+            }
+        }
     }
 
 } // namespace horizon

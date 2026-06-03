@@ -113,6 +113,7 @@ namespace horizon
             m_scroll_area->when_scroll.connect([this](EventContext &) { sync_header_scroll(); });
 
             m_scroll_area->when_mouse_press.connect([this](MouseButtonEventContext &ctx) {
+                this->set_focus(true);
                 if (ctx.button == 0x110 || ctx.button == 0x111)
                 {
                     m_selected_rows.clear();
@@ -566,6 +567,7 @@ namespace horizon
                 row_widget->when_click.connect(
                     [this, row_idx, row_data](MouseButtonEventContext &ctx)
                     {
+                        this->set_focus(true);
                         bool ctrl_pressed = (ctx.modifiers & WaylandWindow::Modifier::CTRL);
                         bool shift_pressed = (ctx.modifiers & WaylandWindow::Modifier::SHIFT);
 

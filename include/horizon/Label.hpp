@@ -4,6 +4,7 @@
 #include <horizon/Widget.hpp>
 #include <string>
 #include <vector>
+#include <horizon/TextBox.hpp>
 
 namespace horizon
 {
@@ -78,6 +79,14 @@ namespace horizon
             return m_has_shadow;
         }
 
+        void set_editable(bool editable);
+        bool is_editable() const;
+
+        void begin_edit();
+        void end_edit(bool accept_changes = true);
+
+        EventsManager<EventContext> when_text_edited;
+
     private:
         std::vector<std::string> calculate_lines(GraphicsContext &gc, int max_width, int max_height,
                                                  int line_height);
@@ -92,6 +101,10 @@ namespace horizon
         Color m_text_color{0.0f, 0.0f, 0.0f, -1.0f}; // a < 0 means use theme default
         int m_left_padding{0};
         bool m_has_shadow{false};
+
+        bool m_editable{false};
+        bool m_is_editing{false};
+        TextBox<TextPolicy>* m_editor{nullptr};
 
         // Cache for layout results
         std::vector<std::string> m_cached_lines;

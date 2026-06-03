@@ -2,6 +2,7 @@
 #include "horizon/files/FileIconProvider.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/Icon.hpp"
+#include <xkbcommon/xkbcommon-keysyms.h>
 #include "horizon/IconThemeLookup.hpp"
 #include "horizon/Label.hpp"
 #include "horizon/lens/ThumbnailCache.hpp"
@@ -209,6 +210,7 @@ namespace horizon::files
             label->set_position_type(FREE);
             label->set_alignment(TextAlignment::Center);
             label->set_vertical_alignment(VerticalAlignment::Middle);
+            label->set_editable(true);
             m_label_ptr = label.get();
             add_child(std::move(label));
 
@@ -267,6 +269,16 @@ namespace horizon::files
             m_zoom = zoom;
             m_selected = selected;
             m_label_ptr->set_text(FileIconProvider::get_display_name(f));
+
+            m_label_ptr->when_text_edited.disconnect_all();
+            m_label_ptr->when_text_edited.connect([this, f](const EventContext&) {
+                std::string new_name = m_label_ptr->text();
+                if (new_name != FileIconProvider::get_display_name(f) && !new_name.empty()) {
+                    std::filesystem::path p(f.path);
+                    std::string new_path = p.parent_path() / new_name;
+                    arkutils::FileOperations::rename(f.path, new_path);
+                }
+            });
 
             m_icon_size = static_cast<int>(48 * m_zoom);
 
@@ -370,6 +382,13 @@ namespace horizon::files
             m_label_ptr->set_has_shadow(true);
             m_label_ptr->set_text_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
             set_default_text_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+        }
+
+        void begin_rename()
+        {
+            if (m_label_ptr && m_label_ptr->is_editable()) {
+                m_label_ptr->begin_edit();
+            }
         }
 
     private:
@@ -494,6 +513,19 @@ namespace horizon::files
                         m_scroll_area->set_scroll_position(m_scroll_area->scroll_x(), item_y);
                     } else if (item_y + item_h > current_scroll_y + viewport_h) {
                         m_scroll_area->set_scroll_position(m_scroll_area->scroll_x(), item_y + item_h - viewport_h);
+                    }
+                }
+            }
+        });
+
+        when_key_release.connect([this](KeyEventContext &ev) {
+            if (ev.keysym == XKB_KEY_F2) {
+                int idx = selected_index();
+                if (idx >= 0 && m_content_pane && idx < (int)m_content_pane->children().size()) {
+                    auto* item = dynamic_cast<FileIconItem*>(m_content_pane->children()[idx].get());
+                    if (item) {
+                        item->begin_rename();
+                        ev.stop_propagation = true;
                     }
                 }
             }

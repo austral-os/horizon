@@ -11,6 +11,8 @@
 #include "horizon/arkutils/FileSystemModel.hpp"
 #include <algorithm>
 #include <cctype>
+#include <xkbcommon/xkbcommon-keysyms.h>
+#include "horizon/arkutils/FileOperations.hpp"
 
 namespace horizon::files
 {
@@ -77,6 +79,27 @@ namespace horizon::files
         m_navigation_label->set_text_color(Color(1.0f, 1.0f, 1.0f));
         m_navigation_label->set_background_color(Color(0.0f, 0.0f, 0.0f));
         m_navigation_label->set_fixed_size(30);
+        m_navigation_label->set_editable(true);
+
+        m_navigation_label->when_text_edited.connect([this](const EventContext&) {
+            int idx = m_cover_flow->selected_index();
+            if (idx >= 0 && idx < (int)m_cover_flow->data().size()) {
+                const auto &f = m_cover_flow->data()[idx];
+                std::string new_name = m_navigation_label->text();
+                if (new_name != FileIconProvider::get_display_name(f) && !new_name.empty()) {
+                    std::filesystem::path p(f.path);
+                    std::string new_path = p.parent_path() / new_name;
+                    arkutils::FileOperations::rename(f.path, new_path);
+                }
+            }
+        });
+
+        when_key_release.connect([this](KeyEventContext &ev) {
+            if (ev.keysym == XKB_KEY_F2) {
+                m_navigation_label->begin_edit();
+                ev.stop_propagation = true;
+            }
+        });
 
         m_cover_flow->when_selection_changed.connect(
             [this](EventContext &)

@@ -2,6 +2,7 @@
 #include "horizon/Logger.hpp"
 #include "horizon/arkutils/FileOperations.hpp"
 #include "horizon/files/FileIconProvider.hpp"
+#include <xkbcommon/xkbcommon-keysyms.h>
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
@@ -42,6 +43,15 @@ namespace horizon::files
         col_name.cell_factory = [](const arkutils::FileInfo &f)
         {
             auto lbl = std::make_unique<Label>(FileIconProvider::get_display_name(f));
+            lbl->set_editable(true);
+            lbl->when_text_edited.connect([f, label_ptr = lbl.get()](const EventContext&) {
+                std::string new_name = label_ptr->text();
+                if (new_name != FileIconProvider::get_display_name(f) && !new_name.empty()) {
+                    std::filesystem::path p(f.path);
+                    std::string new_path = p.parent_path() / new_name;
+                    arkutils::FileOperations::rename(f.path, new_path);
+                }
+            });
             lbl->set_font_size(14);
             if (f.type == arkutils::FileType::Directory)
             {
@@ -225,6 +235,28 @@ namespace horizon::files
                         });
                 }
             });
+
+        when_key_release.connect([this](KeyEventContext &ev) {
+            if (ev.keysym == XKB_KEY_F2) {
+                int idx = this->selected_index();
+                if (idx >= 0 && this->children().size() > 1) {
+                    auto* scroll = static_cast<ScrollArea*>(this->children()[1].get());
+                    if (!scroll->children().empty()) {
+                        auto* content = scroll->children()[0].get();
+                        if (idx < (int)content->children().size()) {
+                            auto* row = content->children()[idx].get();
+                            if (row && row->children().size() > 1) {
+                                auto* label = dynamic_cast<Label*>(row->children()[1].get());
+                                if (label && label->is_editable()) {
+                                    label->begin_edit();
+                                    ev.stop_propagation = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 
     void FileListView::set_application_recursive(WaylandWindow *app)
