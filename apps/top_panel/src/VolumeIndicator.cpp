@@ -47,18 +47,6 @@ VolumeIndicator::VolumeIndicator() : ITopPanelWidget()
     vault->set_content(std::move(vault_content));
     this->set_vault(std::move(vault));
 
-    this->when_mouse_press.connect([this](MouseButtonEventContext &ctx) {
-        if (ctx.button == 0x110) { // Left click
-            if (this->vault() && this->vault()->is_visible()) {
-                this->vault()->set_visible(false);
-            } else if (this->vault()) {
-                this->vault()->set_visible(true);
-                // Also trigger a quick UI update to ensure correct vault location
-                this->invalidate();
-            }
-        }
-    });
-
     m_slider->when_value_changed.connect([this](EventContext &ctx) {
         float v = m_slider->value();
         // Prevent immediate bounce-back by temporarily ignoring updates in monitor loop?

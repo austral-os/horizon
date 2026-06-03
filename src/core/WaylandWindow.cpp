@@ -3425,7 +3425,7 @@ namespace horizon
             m_surface->set_last_serial(serial);
         }
 
-        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, surface_w, surface_h, w, h, false); // No grab: Vault needs to be interactive
+        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, surface_w, surface_h, w, h);
 
         invalidate();
     }
