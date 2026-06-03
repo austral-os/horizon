@@ -23,6 +23,8 @@ namespace horizon
 
         void initialize() override;
         void on_resize(int width, int height) override;
+        void on_pointer_event(const PointerEvent &event) override;
+        void on_activated(bool active) override;
 
         /**
          * @brief Sets the anchor for the layer surface.
@@ -79,6 +81,7 @@ namespace horizon
         uint32_t m_interactivity{0}; // 0 = ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE
         bool m_visible{false};
         int m_monitor_index{-1};
+        bool m_pointer_inside{false};
 
         void update_screen_position();
     };

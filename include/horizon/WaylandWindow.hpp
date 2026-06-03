@@ -195,6 +195,7 @@ namespace horizon
                                Widget *owner = nullptr);
         void hide_context_menu();
         void close_context_menu(bool emit_signal = true, uint32_t serial = 0);
+        bool has_popup() const { return m_popup_surface != nullptr; }
 
         void show_vault(Vault *vault, int x = -1, int y = -1, uint32_t serial = 0, Widget *owner = nullptr);
         void hide_vault();

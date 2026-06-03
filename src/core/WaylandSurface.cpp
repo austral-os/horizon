@@ -867,10 +867,21 @@ namespace horizon
     }
 
     static void keyboard_handle_keymap(void *data, wl_keyboard *, uint32_t format, int32_t fd, uint32_t size) { static_cast<WaylandSurface *>(data)->update_xkb_keymap(format, fd, size); }
-    static void keyboard_handle_enter(void *, wl_keyboard *, uint32_t, struct wl_surface *, struct wl_array *) {}
-    static void keyboard_handle_leave(void *, wl_keyboard *, uint32_t, struct wl_surface *) {}
+    static void keyboard_handle_enter(void *data, wl_keyboard *, uint32_t serial, struct wl_surface *, struct wl_array *) {
+        auto *ws = static_cast<WaylandSurface *>(data); if (!ws->listener()) return;
+        LOG_INFO << "[SURFACE] Keyboard ENTER received! Serial: " << serial;
+        ws->set_last_serial(serial);
+        ws->listener()->on_activated(true);
+    }
+    static void keyboard_handle_leave(void *data, wl_keyboard *, uint32_t serial, struct wl_surface *) {
+        auto *ws = static_cast<WaylandSurface *>(data); if (!ws->listener()) return;
+        LOG_INFO << "[SURFACE] Keyboard LEAVE received! Serial: " << serial;
+        ws->set_last_serial(serial);
+        ws->listener()->on_activated(false);
+    }
     static void keyboard_handle_key(void *data, wl_keyboard *, uint32_t serial, uint32_t, uint32_t key, uint32_t state) {
         auto *ws = static_cast<WaylandSurface *>(data); if (!ws->listener()) return;
+        LOG_INFO << "[SURFACE] Keyboard KEY event! key=" << key << " state=" << state << " xkb_state=" << (ws->xkb_state() != nullptr);
         ws->set_last_serial(serial);
         KeyEvent ev; ev.type = (state == WL_KEYBOARD_KEY_STATE_PRESSED) ? KeyEvent::Type::Press : KeyEvent::Type::Release; ev.key = key; ev.serial = serial;
         ws->process_key(key, state, ev); ws->listener()->on_key_event(ev);
@@ -898,8 +909,19 @@ namespace horizon
         if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) { close(fd); return; }
         char *map = (char*)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
         if (map == MAP_FAILED) { close(fd); return; }
-        struct xkb_keymap *km = xkb_keymap_new_from_string(m_xkb_context, map, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
-        munmap(map, size); close(fd); if (!km) return;
+        
+        // Copy the mapped memory to a std::string to ensure it is properly null-terminated.
+        // Some compositors (like kwin) include the null terminator in 'size', 
+        // while others (like wlroots/labwc) might not, causing xkb_keymap_new_from_string to fail.
+        std::string map_str;
+        if (size > 0 && map[size - 1] == '\0') {
+            map_str = std::string(map, size - 1);
+        } else {
+            map_str = std::string(map, size);
+        }
+        
+        struct xkb_keymap *km = xkb_keymap_new_from_string(m_xkb_context, map_str.c_str(), XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        munmap(map, size); close(fd); if (!km) { LOG_ERROR << "[SURFACE] Failed to compile XKB keymap!"; return; }
         struct xkb_state *st = xkb_state_new(km); if (!st) { xkb_keymap_unref(km); return; }
         if (m_xkb_state) xkb_state_unref(m_xkb_state); if (m_xkb_keymap) xkb_keymap_unref(m_xkb_keymap);
         m_xkb_keymap = km; m_xkb_state = st;

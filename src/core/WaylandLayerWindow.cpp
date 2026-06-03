@@ -35,9 +35,60 @@ namespace horizon
         update_screen_position();
     }
 
+    void WaylandLayerWindow::on_pointer_event(const PointerEvent &event)
+    {
+        WaylandWindow::on_pointer_event(event);
+        if (event.type == PointerEvent::Type::Enter)
+        {
+            m_pointer_inside = true;
+        }
+        else if (event.type == PointerEvent::Type::Press)
+        {
+            if (m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE)
+            {
+                set_keyboard_interactivity(ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND);
+            }
+        }
+        else if (event.type == PointerEvent::Type::Leave)
+        {
+            m_pointer_inside = false;
+            // WORKAROUND for labwc/wlroots bug: ON_DEMAND layer shell surfaces trap keyboard focus
+            // and fail to transfer it when an xdg_toplevel is clicked.
+            // When the mouse leaves the desktop background (meaning it entered an app window),
+            // we proactively yield focus by setting interactivity to NONE, allowing labwc to
+            // grant focus to the app.
+            if (m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND)
+            {
+                if (!has_popup()) 
+                {
+                    set_keyboard_interactivity(ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+                }
+            }
+        }
+    }
+
+    void WaylandLayerWindow::on_activated(bool active)
+    {
+        WaylandWindow::on_activated(active);
+        if (!active && m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND)
+        {
+            if (!has_popup())
+            {
+                set_keyboard_interactivity(ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+            }
+        }
+    }
+
     void WaylandLayerWindow::initialize()
     {
         w_surface()->init_display();
+        
+        when_popup_dismissed.connect([this](PopupDismissedContext &) {
+            if (!m_pointer_inside && m_interactivity == ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND)
+            {
+                set_keyboard_interactivity(ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+            }
+        });
         
         struct wl_output *output = nullptr;
         if (m_monitor_index >= 0)
@@ -108,7 +159,8 @@ namespace horizon
         {
             // Clear input region to make it click-through
             w_surface()->clear_input_region();
-            set_keyboard_interactivity(ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+            w_surface()->set_layer_keyboard_interactivity(ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE);
+            w_surface()->commit();
         }
     }
     int WaylandLayerWindow::get_monitor_count() const
