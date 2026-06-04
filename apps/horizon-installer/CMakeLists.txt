@@ -34,4 +34,5 @@ horizon_install_app(horizon-installer
     ICON "emblem-austral"
     VERSION "0.1.0"
     CATEGORIES "System;Settings;Utility;"
+    EXEC_PREFIX "sudo -E"
 )

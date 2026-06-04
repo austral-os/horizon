@@ -150,7 +150,7 @@ namespace horizon::installer
         // Ensure it's uncommented in locale.gen (Debian/Ubuntu style)
         execute_privileged_command("sed -i \"/# " + full_locale + "/s/^# //g\" /etc/locale.gen");
         // Also try adding it if it wasn't there
-        execute_privileged_command("grep -q \"" + full_locale + "\" /etc/locale.gen || echo \"" + full_locale + " UTF-8\" >> /etc/locale.gen");
+        execute_privileged_command("bash -c 'grep -q \"" + full_locale + "\" /etc/locale.gen || echo \"" + full_locale + " UTF-8\" >> /etc/locale.gen'");
         
         execute_privileged_command("locale-gen " + full_locale);
         execute_privileged_command("localectl set-locale LANG=" + full_locale);
@@ -563,14 +563,14 @@ namespace horizon::installer
         if (!res.success) return res;
 
         // Set user password
-        std::string pass_cmd = "echo \"" + username + ":" + password + "\" | /usr/sbin/chpasswd";
-        res = execute_privileged_command(pass_cmd);
+        std::string pass_cmd = "echo \"" + username + ":" + password + "\" | sudo /usr/sbin/chpasswd";
+        res = execute_command(pass_cmd);
         if (!res.success) return res;
 
         // Requirement: Assign root the same password as the new user
         LOG_INFO << "Assigning same password to root user...";
-        std::string root_pass_cmd = "echo \"root:" + password + "\" | /usr/sbin/chpasswd";
-        return execute_privileged_command(root_pass_cmd);
+        std::string root_pass_cmd = "echo \"root:" + password + "\" | sudo /usr/sbin/chpasswd";
+        return execute_command(root_pass_cmd);
     }
 
     StepResult InstallerManager::set_system_config(const std::string& hostname, const std::string& timezone)
@@ -643,12 +643,12 @@ namespace horizon::installer
         // Enable real display manager
         execute_privileged_command("systemctl enable greetd.service");
 
-        // Remove live user (usually 'user')
-        LOG_INFO << "Removing live user...";
-        execute_privileged_command("/usr/sbin/userdel -r user");
-
         // Remove trigger flag and mark setup as done
         mark_setup_done();
+
+        // Remove live user
+        LOG_INFO << "Removing live user...";
+        execute_privileged_command("/usr/sbin/userdel -f -r austral");
     }
 
     void InstallerManager::report_progress(float progress, const std::string& message)
@@ -735,7 +735,7 @@ namespace horizon::installer
             return execute_command(command);
         } else {
             LOG_INFO << "[Privileged] Requesting elevation for: " << command;
-            return execute_command("pkexec " + command);
+            return execute_command("sudo " + command);
         }
     }
 

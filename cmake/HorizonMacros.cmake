@@ -9,7 +9,7 @@ set(HORIZON_RUNTIME_DEPENDS
 # Function to install an app with its locales and desktop file
 macro(horizon_install_app TARGET_NAME)
     set(options)
-    set(oneValueArgs APP_ID NAME COMMENT ICON TERMINAL EXEC_ARGS EXTRA_DESKTOP VERSION)
+    set(oneValueArgs APP_ID NAME COMMENT ICON TERMINAL EXEC_PREFIX EXEC_ARGS EXTRA_DESKTOP VERSION)
     set(multiValueArgs MIMETYPE CATEGORIES)
     cmake_parse_arguments(APP "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -81,10 +81,14 @@ macro(horizon_install_app TARGET_NAME)
     endif()
 
     # Generate and Install Desktop File
-    if(APP_EXEC_ARGS)
-        set(APP_EXEC "${CMAKE_INSTALL_PREFIX}/bin/${APP_BINARY_NAME} ${APP_EXEC_ARGS}")
+    if(APP_EXEC_PREFIX)
+        set(APP_EXEC "${APP_EXEC_PREFIX} ${CMAKE_INSTALL_PREFIX}/bin/${APP_BINARY_NAME}")
     else()
         set(APP_EXEC "${CMAKE_INSTALL_PREFIX}/bin/${APP_BINARY_NAME}")
+    endif()
+    
+    if(APP_EXEC_ARGS)
+        set(APP_EXEC "${APP_EXEC} ${APP_EXEC_ARGS}")
     endif()
     set(APP_CATEGORIES "${APP_CAT}")
     

@@ -85,6 +85,13 @@ namespace horizon::greeter
         send_json(j);
     }
 
+    void GreetdClient::cancel_session()
+    {
+        nlohmann::json j;
+        j["type"] = "cancel_session";
+        send_json(j);
+    }
+
     void GreetdClient::post_auth_message_response(const std::string &response)
     {
         nlohmann::json j;

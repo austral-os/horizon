@@ -13,6 +13,11 @@ export QT_QPA_PLATFORMTHEME=xdgdesktopportal
 rm -f "$XDG_RUNTIME_DIR/wayland-[0-9]"
 rm -f "$XDG_RUNTIME_DIR/wayland-[0-9].lock"
 
+if [ ! -f "$HOME/.config/meteor.ini" ]; then
+    mkdir -p "$HOME/.config"
+    cp @CMAKE_INSTALL_FULL_DATADIR@/horizon/meteor.ini "$HOME/.config/meteor.ini"
+fi
+
 meteor &
 export METEOR_PID=$!
 

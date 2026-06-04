@@ -102,9 +102,9 @@ namespace horizon::greeter
 
     void GreeterWindow::initialize()
     {
+        w_surface()->set_layer_anchor(0xF);
+        w_surface()->set_layer_keyboard_interactivity(1);
         WaylandLayerWindow::initialize();
-        set_anchor(0xF);               // Anchor to all sides
-        set_keyboard_interactivity(1); // On
 
         setup_ui();
         ensure_gtk_icon_theme();
@@ -433,10 +433,14 @@ namespace horizon::greeter
         if (user.username == m_current_username)
             return;
 
+        bool had_previous_session = !m_current_username.empty();
         m_current_username = user.username;
         update_background(user.wallpaper_path);
 
-        // Initiate auth session with greetd
+        // Cancel previous session if switching, then initiate new auth session
+        if (had_previous_session)
+            m_client.cancel_session();
+        
         m_client.create_session(user.username);
 
         m_password_box->set_text("");

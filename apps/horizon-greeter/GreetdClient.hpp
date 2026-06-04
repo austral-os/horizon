@@ -46,6 +46,7 @@ namespace horizon::greeter
 
         // Requests to greetd
         void create_session(const std::string &username);
+        void cancel_session();
         void post_auth_message_response(const std::string &response);
         void start_session(const std::vector<std::string> &cmd, const std::vector<std::string> &env = {});
         void cancel();
