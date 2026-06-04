@@ -218,24 +218,24 @@ namespace horizon::installer
     void InstallerManager::mark_setup_done(const std::string& root)
     {
         std::string prefix = root;
-        if (!prefix.empty() && prefix.back() != '/') prefix += "/";
+        if (!prefix.empty() && prefix.back() == '/') prefix.pop_back();
 
-        LOG_INFO << "Marking system setup as complete (" << prefix << "etc/horizon-setup-done)";
-        execute_privileged_command("/usr/bin/touch " + prefix + "etc/horizon-setup-done");
-        execute_privileged_command("/usr/bin/rm -f " + prefix + "etc/horizon-setup-pending");
+        LOG_INFO << "Marking system setup as complete (" << prefix << "/etc/horizon-setup-done)";
+        execute_privileged_command("/usr/bin/touch " + prefix + "/etc/horizon-setup-done");
+        execute_privileged_command("/usr/bin/rm -f " + prefix + "/etc/horizon-setup-pending");
         
         // Remove installer and zutty from menus
-        execute_privileged_command("/usr/bin/rm -f " + prefix + "usr/share/applications/horizon-installer.desktop");
-        execute_privileged_command("/usr/bin/rm -f " + prefix + "usr/share/applications/zutty.desktop");
-        execute_privileged_command("/usr/bin/rm -f " + prefix + "usr/share/applications/vim.desktop");
-        execute_privileged_command("/usr/bin/rm -f " + prefix + "usr/share/applications/htop.desktop");
+        execute_privileged_command("/usr/bin/rm -f " + prefix + "/usr/share/applications/horizon-installer.desktop");
+        execute_privileged_command("/usr/bin/rm -f " + prefix + "/usr/share/applications/zutty.desktop");
+        execute_privileged_command("/usr/bin/rm -f " + prefix + "/usr/share/applications/vim.desktop");
+        execute_privileged_command("/usr/bin/rm -f " + prefix + "/usr/share/applications/htop.desktop");
 
         // Ensure xdg-open is replaced with our custom version (Requirement 2)
         // This is also done in Stage 1, but we do it here as a safety measure for OOBE-only flows
-        if (std::filesystem::exists(prefix + "usr/share/horizon/xdg-open")) {
-            LOG_INFO << "Enforcing custom xdg-open in " << prefix << "usr/bin/xdg-open";
-            execute_privileged_command("/usr/bin/cp " + prefix + "usr/share/horizon/xdg-open " + prefix + "usr/bin/xdg-open");
-            execute_privileged_command("/usr/bin/chmod +x " + prefix + "usr/bin/xdg-open");
+        if (std::filesystem::exists(prefix + "/usr/share/horizon/xdg-open")) {
+            LOG_INFO << "Enforcing custom xdg-open in " << prefix << "/usr/bin/xdg-open";
+            execute_privileged_command("/usr/bin/cp " + prefix + "/usr/share/horizon/xdg-open " + prefix + "/usr/bin/xdg-open");
+            execute_privileged_command("/usr/bin/chmod +x " + prefix + "/usr/bin/xdg-open");
         }
     }
 
