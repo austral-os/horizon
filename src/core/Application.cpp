@@ -13,7 +13,7 @@
 #include <horizon/LabwcCompositorContext.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
-#include <horizon/WayfireCompositorContext.hpp>
+#include <horizon/MeteorCompositorContext.hpp>
 #include <horizon/WaylandLayerWindow.hpp>
 #include <horizon/Window.hpp>
 #include <horizon/xdg-shell-client-protocol.h>

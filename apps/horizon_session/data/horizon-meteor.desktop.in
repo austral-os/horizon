@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Horizon (with FX)
+Comment=Horizon Desktop Environment on Meteor
+Exec=@CMAKE_INSTALL_FULL_BINDIR@/start-horizon-session-meteor.sh
+Icon=meteor
+Type=Application
+DesktopNames=Meteor;wlroots

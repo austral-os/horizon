@@ -7,14 +7,14 @@ namespace horizon
     class WaylandWindow;
 
     /**
-     * @class WayfireCompositorContext
-     * @brief Implementation of CompositorContext for Wayfire/XDG-Shell based environments.
+     * @class MeteorCompositorContext
+     * @brief Implementation of CompositorContext for Meteor/XDG-Shell based environments.
      */
-    class WayfireCompositorContext : public CompositorContext
+    class MeteorCompositorContext : public CompositorContext
     {
     public:
-        explicit WayfireCompositorContext(WaylandWindow *app);
-        ~WayfireCompositorContext() override = default;
+        explicit MeteorCompositorContext(WaylandWindow *app);
+        ~MeteorCompositorContext() override = default;
 
         void request_move(uint32_t serial) override;
         void request_resize(uint32_t serial, uint32_t edge) override;

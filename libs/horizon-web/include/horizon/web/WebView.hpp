@@ -184,7 +184,7 @@ private:
     mutable std::mutex m_scroll_mutex;
     static constexpr int SCROLLBAR_SIZE = 12;
 
-    // Wayfire Stabilization
+    // Meteor Stabilization
     bool m_window_activated = false;
     std::string m_pending_url;
     bool m_inspector_visible = false;

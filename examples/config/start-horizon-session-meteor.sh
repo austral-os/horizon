@@ -1,13 +1,13 @@
 #!/bin/bash
 export XDG_SESSION_TYPE=wayland
-export XDG_CURRENT_DESKTOP=HZN-WAYFIRE
+export XDG_CURRENT_DESKTOP=HZN-METEOR
 
 # Forzar a GTK, Qt y Electron a usar los portales XDG para los diálogos
 export GTK_USE_PORTAL=1
 export QT_QPA_PLATFORMTHEME=xdgdesktopportal
 
-wayfire &
-export WAYFIRE_PID=$!
+meteor &
+export METEOR_PID=$!
 
 # Esperar a que el socket del compositor esté disponible y exportar WAYLAND_DISPLAY
 for i in {1..50}; do
@@ -31,4 +31,4 @@ for i in {1..50}; do
     sleep 0.1
 done
 
-/home/horacio/Desarrollo/austral-os/horizon/build/apps/horizon_session/horizon_session --compositor wayfire
+/home/horacio/Desarrollo/austral-os/horizon/build/apps/horizon_session/horizon_session --compositor meteor

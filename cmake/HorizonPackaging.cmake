@@ -74,7 +74,7 @@ if(HORIZON_PACKAGING_COMPONENTS)
     set(CPACK_DEBIAN_HORIZON_DESKTOP_META_PACKAGE_NAME "horizon-desktop")
     set(CPACK_DEBIAN_HORIZON_DESKTOP_META_FILE_NAME "horizon-desktop_${HORIZON_VERSION}_amd64.deb")
     set(CPACK_DEBIAN_HORIZON_DESKTOP_META_PACKAGE_DEPENDS "${META_DEPENDS_STR}")
-    # Clear the global dependencies for the metapackage so it doesn't double-depend on wayfire etc,
+    # Clear the global dependencies for the metapackage so it doesn't double-depend on meteor etc,
     # as the individual apps will depend on them (if configured) or the apps will depend on libhorizon.
     # We will keep the runtime depends for the metapackage just in case.
     set(CPACK_DEBIAN_HORIZON_DESKTOP_META_PACKAGE_DEPENDS "${META_DEPENDS_STR}, ${HORIZON_RUNTIME_DEPENDS}")

@@ -1,4 +1,4 @@
-#include <utils/WayfireConfigWriter.hpp>
+#include <utils/MeteorConfigWriter.hpp>
 #include <fstream>
 #include <filesystem>
 #include <string>
@@ -7,13 +7,13 @@
 
 namespace horizon::preferences
 {
-    void WayfireConfigWriter::update_monitor_config(const std::vector<MonitorConfig>& configs)
+    void MeteorConfigWriter::update_monitor_config(const std::vector<MonitorConfig>& configs)
     {
         const char* home = std::getenv("HOME");
         if (!home) return;
 
         std::filesystem::path config_path(home);
-        config_path /= ".config/wayfire.ini";
+        config_path /= ".config/meteor.ini";
 
         std::vector<std::string> lines;
         if (std::filesystem::exists(config_path)) {

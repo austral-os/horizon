@@ -219,9 +219,9 @@ void HorizonSession::init(const std::string &compositor)
         {
             setenv("XDG_CURRENT_DESKTOP", "horizon:HZN-LABWC", 1);
         }
-        else if (compositor == "wayfire")
+        else if (compositor == "meteor")
         {
-            setenv("XDG_CURRENT_DESKTOP", "horizon:HZN-WAYFIRE", 1);
+            setenv("XDG_CURRENT_DESKTOP", "horizon:HZN-METEOR", 1);
         }
 
         LOG_INFO << "[HorizonSession] Set XDG_CURRENT_DESKTOP to: "
@@ -314,7 +314,7 @@ void HorizonSession::init(const std::string &compositor)
 
         // Migrate compositor configuration files if not present
         std::vector<std::pair<std::string, std::string>> compositor_configs = {
-            {"rc.xml", ".config/labwc/rc.xml"}, {"wayfire.ini", ".config/wayfire.ini"}};
+            {"rc.xml", ".config/labwc/rc.xml"}, {"meteor.ini", ".config/meteor.ini"}};
 
         for (const auto &cfg : compositor_configs)
         {
@@ -577,7 +577,7 @@ void HorizonSession::terminate_all_apps()
 void HorizonSession::cleanup_lingering_compositors()
 {
     LOG_INFO << "[HorizonSession] Checking for lingering compositor processes..." << std::endl;
-    // We try to find wayfire/labwc not belonging to our current session or just all of them owned
+    // We try to find meteor/labwc not belonging to our current session or just all of them owned
     // by us if we are starting a fresh session.
 
     // For simplicity and safety, we only do this if we are starting a fresh session
@@ -585,11 +585,11 @@ void HorizonSession::cleanup_lingering_compositors()
     if (!getenv("WAYLAND_DISPLAY"))
     {
         LOG_INFO << "[HorizonSession] Fresh session startup, cleaning up orphaned compositors "
-                    "(wayfire/labwc/Xwayland)..."
+                    "(meteor/labwc/Xwayland)..."
                  << std::endl;
         // pkill -u $USER will only kill our own processes.
         // We use SIGKILL (-9) here to ensure they release hardware resources immediately.
-        // std::system("pkill -9 -u $USER -x wayfire || true");
+        // std::system("pkill -9 -u $USER -x meteor || true");
         // std::system("pkill -9 -u $USER -x labwc || true");
         std::system("pkill -9 -u $USER -x Xwayland || true");
         // Give logind and the kernel a full second to release the seat and DRM master
@@ -735,7 +735,7 @@ void HorizonSession::run_startup_services()
 
     for (const auto &svc_path : m_startup_services)
     {
-        bool is_compositor = (svc_path == "wayfire" || svc_path == "labwc");
+        bool is_compositor = (svc_path == "meteor" || svc_path == "labwc");
         pid_t pid = run_service(svc_path, !is_compositor);
 
         // If we just started the compositor, we need to wait for its socket and set the environment
@@ -1209,7 +1209,7 @@ void HorizonSession::apply_display_config()
         LOG_INFO << "[HorizonSession] Applying configuration for desktop: " << desktop_str;
 
         if (desktop_str.find("LABWC") != std::string::npos ||
-            desktop_str.find("WAYFIRE") != std::string::npos)
+            desktop_str.find("METEOR") != std::string::npos)
         {
             // Use wlr-randr
             for (const auto &config : configs)

@@ -41,7 +41,7 @@
             "dark": "Dark",
             "compositor": "Compositor",
             "compositor_labwc": "Labwc (Stable)",
-            "compositor_wayfire": "Wayfire (Effects)",
+            "compositor_meteor": "Meteor (Effects)",
             "compositor_restart_hint": "Changes will take effect upon the next login.",
             "use_graphic_effects": "Use graphic effects",
             "opacity_title": "Element Opacity",

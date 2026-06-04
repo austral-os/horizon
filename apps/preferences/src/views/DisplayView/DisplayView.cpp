@@ -9,8 +9,8 @@
 #include <views/DisplayView/DisplayView.hpp>
 #include <views/DisplayView/KwinAdapter.hpp>
 #include <views/DisplayView/LabwcAdapter.hpp>
-#include <views/DisplayView/WayfireAdapter.hpp>
-#include <utils/WayfireConfigWriter.hpp>
+#include <views/DisplayView/MeteorAdapter.hpp>
+#include <utils/MeteorConfigWriter.hpp>
 #include <horizon/I18n.hpp>
 
 namespace horizon::preferences
@@ -33,9 +33,9 @@ namespace horizon::preferences
         {
             m_adapter = std::make_unique<KwinAdapter>();
         }
-        else if (desktop_str == "Wayfire")
+        else if (desktop_str == "Meteor")
         {
-            m_adapter = std::make_unique<WayfireAdapter>();
+            m_adapter = std::make_unique<MeteorAdapter>();
         }
         else
         {
@@ -241,7 +241,7 @@ namespace horizon::preferences
                     }
 
                     m_adapter->apply_configs(configs);
-                    WayfireConfigWriter::update_monitor_config(configs);
+                    MeteorConfigWriter::update_monitor_config(configs);
                     save_config();
 
                     // Show confirmation

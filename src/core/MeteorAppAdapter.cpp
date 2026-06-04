@@ -1,10 +1,10 @@
-#include "horizon/WayfireAppAdapter.hpp"
+#include "horizon/MeteorAppAdapter.hpp"
 #include "horizon/WaylandWindow.hpp"
 #include <horizon/Logger.hpp>
 
 namespace horizon
 {
-    WayfireAppAdapter::WayfireAppAdapter(WaylandWindow *app) : m_app(app)
+    MeteorAppAdapter::MeteorAppAdapter(WaylandWindow *app) : m_app(app)
     {
         if (m_app)
         {
@@ -13,12 +13,12 @@ namespace horizon
         }
     }
 
-    std::vector<ApplicationInfo> WayfireAppAdapter::get_running_applications()
+    std::vector<ApplicationInfo> MeteorAppAdapter::get_running_applications()
     {
         return m_foreign_apps;
     }
 
-    void WayfireAppAdapter::close(const std::string &app_id)
+    void MeteorAppAdapter::close(const std::string &app_id)
     {
         // For compatibility, we check for all instances and close them
         for (const auto &info : m_foreign_apps)
@@ -30,33 +30,33 @@ namespace horizon
         }
     }
 
-    void WayfireAppAdapter::activate_instance(struct zwlr_foreign_toplevel_handle_v1 *handle)
+    void MeteorAppAdapter::activate_instance(struct zwlr_foreign_toplevel_handle_v1 *handle)
     {
         if (m_app && m_app->w_surface())
             m_app->w_surface()->activate_foreign_instance(handle);
     }
 
-    void WayfireAppAdapter::minimize_instance(struct zwlr_foreign_toplevel_handle_v1 *handle)
+    void MeteorAppAdapter::minimize_instance(struct zwlr_foreign_toplevel_handle_v1 *handle)
     {
         if (m_app && m_app->w_surface())
             m_app->w_surface()->minimize_foreign_instance(handle);
     }
 
-    void WayfireAppAdapter::toggle_fullscreen_instance(struct zwlr_foreign_toplevel_handle_v1 *handle)
+    void MeteorAppAdapter::toggle_fullscreen_instance(struct zwlr_foreign_toplevel_handle_v1 *handle)
     {
         if (m_app && m_app->w_surface())
             m_app->w_surface()->toggle_fullscreen_foreign_instance(handle);
     }
 
-    void WayfireAppAdapter::close_instance(struct zwlr_foreign_toplevel_handle_v1 *handle)
+    void MeteorAppAdapter::close_instance(struct zwlr_foreign_toplevel_handle_v1 *handle)
     {
         if (m_app && m_app->w_surface())
             m_app->w_surface()->close_foreign_instance(handle);
     }
 
-    void WayfireAppAdapter::handle_ipc_message(const std::string &msg) {}
+    void MeteorAppAdapter::handle_ipc_message(const std::string &msg) {}
 
-    void WayfireAppAdapter::handle_foreign_update(AppListEventContext &ctx)
+    void MeteorAppAdapter::handle_foreign_update(AppListEventContext &ctx)
     {
         m_foreign_apps = ctx.apps;
         when_update.run(ctx);

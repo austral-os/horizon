@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
             std::cout << "Options:" << std::endl;
             std::cout << "  --help, -h               Show this help message" << std::endl;
             std::cout << "  --compositor <name>      Specify the compositor to start (e.g., labwc, "
-                         "wayfire)"
+                         "meteor)"
                       << std::endl;
             std::cout << "  --with-compositor        Alias for --compositor labwc" << std::endl;
             return 0;

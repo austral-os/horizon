@@ -8,15 +8,15 @@ namespace horizon
     class WaylandWindow;
 
     /**
-     * @class WayfireAppAdapter
-     * @brief Implementation of CompositorAppInterface for Wayfire.
+     * @class MeteorAppAdapter
+     * @brief Implementation of CompositorAppInterface for Meteor.
      * Currently utilizes the Horizon session IPC and Foreign Toplevels.
      */
-    class WayfireAppAdapter : public CompositorAppInterface
+    class MeteorAppAdapter : public CompositorAppInterface
     {
     public:
-        WayfireAppAdapter(WaylandWindow *app);
-        ~WayfireAppAdapter() override = default;
+        MeteorAppAdapter(WaylandWindow *app);
+        ~MeteorAppAdapter() override = default;
 
         std::vector<ApplicationInfo> get_running_applications() override;
 

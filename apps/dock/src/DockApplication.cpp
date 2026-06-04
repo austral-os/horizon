@@ -8,7 +8,7 @@
 #include <horizon/LabwcAppAdapter.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Menu.hpp>
-#include <horizon/WayfireAppAdapter.hpp>
+#include <horizon/MeteorAppAdapter.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/I18n.hpp>
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
@@ -84,12 +84,12 @@ namespace horizon
         const char *desktop_env = getenv("XDG_CURRENT_DESKTOP");
         std::string desktop_str = desktop_env ? desktop_env : "";
         std::transform(desktop_str.begin(), desktop_str.end(), desktop_str.begin(), ::tolower);
-        _is_wayfire = (desktop_str.find("wayfire") != std::string::npos);
+        _is_meteor = (desktop_str.find("meteor") != std::string::npos);
 
-        if (_is_wayfire)
+        if (_is_meteor)
         {
-            LOG_INFO << "[DOCK] Wayfire detected, using WayfireAppAdapter.";
-            _compositor_apps = std::make_unique<WayfireAppAdapter>(m_window);
+            LOG_INFO << "[DOCK] Meteor detected, using MeteorAppAdapter.";
+            _compositor_apps = std::make_unique<MeteorAppAdapter>(m_window);
         }
         else
         {
@@ -331,7 +331,7 @@ namespace horizon
         // 2. Add Pinned Apps
         for (const auto &pinned : m_pinned_apps)
         {
-            auto item = std::make_unique<DockItem>(m_window, _compositor_apps.get(), pinned.icon, _is_wayfire);
+            auto item = std::make_unique<DockItem>(m_window, _compositor_apps.get(), pinned.icon, _is_meteor);
             item->set_run_id(pinned.run_id);
             item->set_app_id(pinned.app_id);
             item->set_name(pinned.name);
@@ -398,7 +398,7 @@ namespace horizon
             std::string icon = instances[0].icon;
             if (icon.empty()) icon = app_id;
 
-            auto item = std::make_unique<DockItem>(m_window, _compositor_apps.get(), icon, _is_wayfire);
+            auto item = std::make_unique<DockItem>(m_window, _compositor_apps.get(), icon, _is_meteor);
             for (const auto& info : instances)
             {
                 item->add_instance(info);

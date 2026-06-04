@@ -155,9 +155,9 @@ namespace horizon::preferences
         auto checkbox = std::make_unique<Checkbox<AquaObject>>();
         checkbox->set_text(i18n().tr("preferences.appearance.use_graphic_effects"));
         checkbox->set_fixed_size(300);
-        checkbox->set_checked(m_compositor == "wayfire");
+        checkbox->set_checked(m_compositor == "meteor");
         checkbox->when_toggle.connect([this](ToggleEventContext &ctx)
-                                      { set_compositor(ctx.checked ? "wayfire" : "labwc"); });
+                                      { set_compositor(ctx.checked ? "meteor" : "labwc"); });
         m_compositor_checkbox = checkbox.get();
         compositor_row->add_child(std::move(checkbox));
 
@@ -244,7 +244,7 @@ namespace horizon::preferences
         }
         if (m_compositor_checkbox)
         {
-            m_compositor_checkbox->set_checked(m_compositor == "wayfire");
+            m_compositor_checkbox->set_checked(m_compositor == "meteor");
         }
     }
 

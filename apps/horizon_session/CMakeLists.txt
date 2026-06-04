@@ -28,12 +28,12 @@ horizon_install_app(horizon_session
 # --- Session Desktop Files and Startup Scripts ---
 
 set(SESSION_DESKTOPS
-    horizon-wayfire.desktop
+    horizon-meteor.desktop
     horizon-labwc.desktop
 )
 
 set(SESSION_SCRIPTS
-    start-horizon-session-wayfire.sh
+    start-horizon-session-meteor.sh
     start-horizon-session-labwc.sh
 )
 
@@ -246,8 +246,8 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/rc.xml")
     )
 endif()
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/wayfire.ini")
-    install(FILES data/wayfire.ini
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/meteor.ini")
+    install(FILES data/meteor.ini
         DESTINATION share/horizon
         COMPONENT session
     )

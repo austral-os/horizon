@@ -4,14 +4,14 @@
 namespace horizon::preferences
 {
     /**
-     * @class WayfireAdapter
-     * @brief Display adapter for Wayfire.
+     * @class MeteorAdapter
+     * @brief Display adapter for Meteor.
      */
-    class WayfireAdapter : public IDisplayAdapter
+    class MeteorAdapter : public IDisplayAdapter
     {
     public:
-        WayfireAdapter() = default;
-        ~WayfireAdapter() override = default;
+        MeteorAdapter() = default;
+        ~MeteorAdapter() override = default;
 
         void apply_configs(const std::vector<MonitorConfig>& configs) override;
     };

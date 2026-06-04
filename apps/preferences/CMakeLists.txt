@@ -15,7 +15,7 @@ add_executable(preferences
     src/views/DisplayView/DisplayDevices.cpp
     src/views/DisplayView/LabwcAdapter.cpp
     src/views/DisplayView/KwinAdapter.cpp
-    src/views/DisplayView/WayfireAdapter.cpp
+    src/views/DisplayView/MeteorAdapter.cpp
     src/views/SoundView/SoundView.cpp
     src/views/MouseView/MouseView.cpp
     src/views/KeyboardView/KeyboardView.cpp
@@ -45,7 +45,7 @@ add_executable(preferences
     src/views/ApplicationsView/StartupAppsView.cpp
     src/views/ApplicationsView/StartupEditDialog.cpp
     src/utils/XkbParser.cpp
-    src/utils/WayfireConfigWriter.cpp
+    src/utils/MeteorConfigWriter.cpp
     src/views/KeyboardView/KeyboardLanguageView.cpp
     src/views/ApplicationsView/LayoutPickerDialog.cpp
     src/utils/PipeWireManager.cpp

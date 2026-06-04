@@ -6,7 +6,7 @@
 #include "horizon/LabwcCompositorContext.hpp"
 #include "horizon/Menu.hpp"
 #include "horizon/Vault.hpp"
-#include "horizon/WayfireCompositorContext.hpp"
+#include "horizon/MeteorCompositorContext.hpp"
 #include "horizon/Window.hpp"
 #include <horizon/dialogs/PrintDialog.hpp>
 #include "horizon/SystemInfo.hpp"
@@ -94,11 +94,11 @@ namespace horizon
 
         LOG_INFO << "[APP] Detecting compositor (XDG_CURRENT_DESKTOP=" << desktop << ")";
 
-        if (desktop.find("wayfire") != std::string::npos ||
-            desktop.find("hzn-wayfire") != std::string::npos)
+        if (desktop.find("meteor") != std::string::npos ||
+            desktop.find("hzn-meteor") != std::string::npos)
         {
-            LOG_INFO << "[APP] Recognized Wayfire compositor, using WayfireCompositorContext";
-            m_compositor_context = std::make_unique<WayfireCompositorContext>(this);
+            LOG_INFO << "[APP] Recognized Meteor compositor, using MeteorCompositorContext";
+            m_compositor_context = std::make_unique<MeteorCompositorContext>(this);
         }
         else if (desktop.find("labwc") != std::string::npos ||
                  desktop.find("hzn-labwc") != std::string::npos)

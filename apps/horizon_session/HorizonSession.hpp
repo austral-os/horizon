@@ -119,7 +119,7 @@ private:
      */
     bool m_running = true;
     /**
-     * @brief PID del compositor (wayfire, labwc, etc.)
+     * @brief PID del compositor (meteor, labwc, etc.)
      */
     pid_t m_compositor_pid = -1;
 

@@ -56,7 +56,7 @@ namespace horizon
 
         void apply_autohide_state();
 
-        bool _is_wayfire = false;
+        bool _is_meteor = false;
         WaylandLayerWindow *m_window = nullptr;
         DockShelf *_shelf_ptr = nullptr;
         std::unique_ptr<CompositorAppInterface> _compositor_apps;

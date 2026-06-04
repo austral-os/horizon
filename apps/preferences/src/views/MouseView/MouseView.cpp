@@ -166,7 +166,7 @@ namespace horizon::preferences
         {
             float speed = m_pointer_speed_slider->value();
             apply_to_labwc(speed);
-            apply_to_wayfire(speed);
+            apply_to_meteor(speed);
         }
     }
 
@@ -239,14 +239,14 @@ namespace horizon::preferences
         }
     }
 
-    void MouseView::apply_to_wayfire(float speed)
+    void MouseView::apply_to_meteor(float speed)
     {
         const char *home = std::getenv("HOME");
         if (!home)
             return;
 
         std::filesystem::path config_path(home);
-        config_path /= ".config/wayfire.ini";
+        config_path /= ".config/meteor.ini";
 
         if (!std::filesystem::exists(config_path))
             return;

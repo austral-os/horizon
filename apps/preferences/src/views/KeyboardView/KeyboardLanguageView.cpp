@@ -228,7 +228,7 @@ namespace horizon::preferences
             m_layout_table->set_data(m_selected_layouts);
             save_config();
             apply_layout_to_labwc(m_selected_layouts[idx].id);
-            apply_layout_to_wayfire(m_selected_layouts[idx].id);
+            apply_layout_to_meteor(m_selected_layouts[idx].id);
         }
     }
     void KeyboardLanguageView::apply_layout_to_labwc(const std::string &layout_id)
@@ -284,13 +284,13 @@ namespace horizon::preferences
         std::system("labwc --reconfigure");
     }
 
-    void KeyboardLanguageView::apply_layout_to_wayfire(const std::string& layout_id)
+    void KeyboardLanguageView::apply_layout_to_meteor(const std::string& layout_id)
     {
         const char* home = std::getenv("HOME");
         if (!home) return;
 
         std::filesystem::path config_path(home);
-        config_path /= ".config/wayfire.ini";
+        config_path /= ".config/meteor.ini";
 
         std::vector<std::string> lines;
         bool in_input_section = false;

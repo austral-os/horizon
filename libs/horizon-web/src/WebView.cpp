@@ -1579,7 +1579,7 @@ namespace horizon
         {
             if (!m_initialized) init_wpe();
 
-            // LOAD GATE: Wayfire requires window activation before rendering starts
+            // LOAD GATE: Meteor requires window activation before rendering starts
             if (!m_window_activated) {
                 LOG_INFO << "[WEB] Load Gate engaged. Queuing URL: " << url;
                 m_pending_url = url;

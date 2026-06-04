@@ -4,7 +4,7 @@ Este documento detalla las responsabilidades y funciones clave de la clase `Appl
 
 ## 1. Orquestación del Ciclo de Vida y Sistema Base
 La responsabilidad primaria de `Application` es gestionar el ciclo de vida completo de la aplicación:
-*   **Inicialización**: Configura el entorno base, incluyendo el registro del logger, el manejo de señales del sistema (como ignorar `SIGPIPE`) y la detección del compositor actual (Wayfire, Labwc, etc.).
+*   **Inicialización**: Configura el entorno base, incluyendo el registro del logger, el manejo de señales del sistema (como ignorar `SIGPIPE`) y la detección del compositor actual (Meteor, Labwc, etc.).
 *   **Bucle de Eventos (Main Loop)**: Implementa el bucle principal utilizando `poll()`, lo que permite una espera eficiente de eventos de múltiples fuentes (Wayland, IPC, timers, `eventfd`).
 *   **Finalización (Graceful Shutdown)**: Gestiona el cierre ordenado de la aplicación, notificando a los interesados y liberando recursos de hardware y Wayland.
 *   **Wakeup Mechanism**: Provee un mecanismo basado en `eventfd` para despertar el bucle de eventos de forma segura desde otros hilos.

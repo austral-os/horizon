@@ -390,7 +390,7 @@ namespace horizon::greeter
         if (!m_sessions.empty())
         {
             int selected_idx = 0;
-            std::string default_session = "Horizon";
+            std::string default_session = "Horizon (with FX)";
 
             // Leer el compositor activo de la configuración del sistema
             std::ifstream f("/etc/horizon/compositor.conf");
@@ -398,9 +398,9 @@ namespace horizon::greeter
             {
                 std::string comp;
                 f >> comp;
-                if (comp == "wayfire")
+                if (comp == "labwc")
                 {
-                    default_session = "Horizon (with FX)";
+                    default_session = "Horizon";
                 }
             }
 

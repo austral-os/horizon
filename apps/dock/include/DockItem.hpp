@@ -12,7 +12,7 @@ namespace horizon
     class DockItem : public Icon
     {
     public:
-        DockItem(WaylandLayerWindow *app, CompositorAppInterface *compositor_apps, const std::string &icon_name, bool is_wayfire);
+        DockItem(WaylandLayerWindow *app, CompositorAppInterface *compositor_apps, const std::string &icon_name, bool is_meteor);
 
         void add_instance(const ApplicationInfo &info);
         void set_pinned_data(const std::string &run_id);
@@ -69,7 +69,7 @@ namespace horizon
 
         WaylandLayerWindow *_app;
         CompositorAppInterface *_compositor_apps;
-        bool _is_wayfire;
+        bool _is_meteor;
         std::string _app_id;
         std::string _run_id;
         std::string _name;

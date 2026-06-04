@@ -9,8 +9,8 @@
 namespace horizon
 {
 
-    DockItem::DockItem(WaylandLayerWindow *app, CompositorAppInterface *compositor_apps, const std::string &icon_name, bool is_wayfire)
-        : _app(app), _compositor_apps(compositor_apps), _is_wayfire(is_wayfire)
+    DockItem::DockItem(WaylandLayerWindow *app, CompositorAppInterface *compositor_apps, const std::string &icon_name, bool is_meteor)
+        : _app(app), _compositor_apps(compositor_apps), _is_meteor(is_meteor)
     {
         set_application_recursive(app);
         set_icon_name(icon_name);

@@ -1,6 +1,6 @@
 #!/bin/bash
 export XDG_SESSION_TYPE=wayland
-export XDG_CURRENT_DESKTOP=horizon:HZN-WAYFIRE
+export XDG_CURRENT_DESKTOP=horizon:HZN-METEOR
 
 # Disable hardware cursors to fix glitches in QEMU/VMs with virtio-gpu
 export WLR_NO_HARDWARE_CURSORS=1
@@ -13,8 +13,8 @@ export QT_QPA_PLATFORMTHEME=xdgdesktopportal
 rm -f "$XDG_RUNTIME_DIR/wayland-[0-9]"
 rm -f "$XDG_RUNTIME_DIR/wayland-[0-9].lock"
 
-wayfire &
-export WAYFIRE_PID=$!
+meteor &
+export METEOR_PID=$!
 
 # Esperar a que el socket del compositor esté disponible y exportar WAYLAND_DISPLAY
 for i in {1..50}; do
@@ -44,8 +44,8 @@ timeout 2 systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTO
 timeout 2 dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE || true
 timeout 2 systemctl --user start pipewire pipewire-pulse wireplumber || true
 
-@CMAKE_INSTALL_FULL_BINDIR@/horizon_session --compositor wayfire
+@CMAKE_INSTALL_FULL_BINDIR@/horizon_session --compositor meteor
 
 # Terminate the compositor gracefully and wait for it to release resources
-kill -TERM $WAYFIRE_PID 2>/dev/null || true
-wait $WAYFIRE_PID 2>/dev/null || true
+kill -TERM $METEOR_PID 2>/dev/null || true
+wait $METEOR_PID 2>/dev/null || true

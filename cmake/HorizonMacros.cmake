@@ -3,7 +3,7 @@ include(GNUInstallDirs)
 
 # --- Runtime Dependencies (External Debian packages) ---
 set(HORIZON_RUNTIME_DEPENDS
-    "wayfire (>= 0.9.0), labwc (>= 0.8.3), wayland-utils (>= 1.2.0), wlr-randr (>= 0.4.1), xdg-utils (>= 1.2.1), xdg-desktop-portal, xdg-desktop-portal-gtk, shared-mime-info (>= 2.4), fontconfig (>= 2.15.0), librsvg2-common (>= 2.60.0), gstreamer1.0-plugins-bad (>= 1.26.2), gstreamer1.0-libav (>= 1.26.2), desktop-file-utils, libsqlite3-0, libssl3, libpam0g"
+    "meteor (>= 0.1.0), labwc (>= 0.8.3), wayland-utils (>= 1.2.0), wlr-randr (>= 0.4.1), xdg-utils (>= 1.2.1), xdg-desktop-portal, xdg-desktop-portal-gtk, shared-mime-info (>= 2.4), fontconfig (>= 2.15.0), librsvg2-common (>= 2.60.0), gstreamer1.0-plugins-bad (>= 1.26.2), gstreamer1.0-libav (>= 1.26.2), desktop-file-utils, libsqlite3-0, libssl3, libpam0g"
 )
 
 # Function to install an app with its locales and desktop file
