@@ -26,3 +26,8 @@ install(DIRECTORY include/
     DESTINATION include
     COMPONENT libhorizon-overview-dev
 )
+
+install(DIRECTORY locales/
+    DESTINATION share/horizon/libs/horizon-overview/locales
+    COMPONENT libhorizon-overview
+)

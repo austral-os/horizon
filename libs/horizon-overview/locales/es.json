@@ -1,8 +1,8 @@
 {
-  "overview": {
-    "system_report": "Informe del Sistema",
-    "update": "Sincronizar",
-    "windows": "Ventanas",
-    "apps": "Aplicaciones"
-  }
+    "overview": {
+        "system_report": "Informe del Sistema",
+        "update": "Actualizaciones",
+        "windows": "Ventanas",
+        "apps": "Aplicaciones"
+    }
 }

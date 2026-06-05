@@ -1,8 +1,8 @@
 {
-  "overview": {
-    "system_report": "System Report",
-    "update": "Sync",
-    "windows": "Windows",
-    "apps": "Applications"
-  }
+    "overview": {
+        "system_report": "System Report",
+        "update": "Updates",
+        "windows": "Windows",
+        "apps": "Applications"
+    }
 }
