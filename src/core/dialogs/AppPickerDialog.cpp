@@ -10,7 +10,7 @@
 
 namespace horizon
 {
-    AppPickerDialog::AppPickerDialog() : WaylandWindow("horizon.app_picker", 450, 550, true, true)
+    AppPickerDialog::AppPickerDialog() : WaylandWindow("horizon.app_picker", 450, 550, false, true)
     {
         set_name("Seleccionar Aplicación");
         setup_ui();

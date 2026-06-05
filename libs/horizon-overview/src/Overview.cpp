@@ -1,3 +1,4 @@
+#include <fstream>
 #include <horizon/Button.hpp>
 #include <horizon/I18n.hpp>
 #include <horizon/Icon.hpp>
@@ -6,6 +7,7 @@
 #include <horizon/SolidObject.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/SystemInfo.hpp>
+#include <horizon/FormatUtils.hpp>
 
 namespace horizon
 {
@@ -33,12 +35,31 @@ namespace horizon
         auto content = std::make_unique<Widget>();
         content->set_layout_type(WIDGET_LAYOUT_VERTICAL);
 
-        auto title = std::make_unique<Label>(SystemInfo::get_os());
+        std::string codename = "luna"; // default fallback
+        std::ifstream os_release("/etc/os-release");
+        std::string line;
+        while (std::getline(os_release, line))
+        {
+            if (line.find("VERSION_CODENAME=") == 0)
+            {
+                codename = line.substr(17);
+                // Remove any quotes if present
+                if (codename.size() > 0 && codename.front() == '"')
+                    codename.erase(0, 1);
+                if (codename.size() > 0 && codename.back() == '"')
+                    codename.pop_back();
+                break;
+            }
+        }
+        std::string os_name = "Austral OS v" HORIZON_CORE_VERSION " (" + codename + ")";
+
+        auto title = std::make_unique<Label>(os_name);
         title->set_font_size(28);
         title->set_fixed_size(LABEL_HEIGHT);
         title->set_font_weight(FONT_WEIGHT_BOLD);
         auto version = std::make_unique<Label>("Kernel " + SystemInfo::get_kernel());
         version->set_fixed_size(LABEL_HEIGHT);
+        version->set_font_size(14);
 
         auto model = std::make_unique<Label>(SystemInfo::get_model());
         model->set_font_size(18);
@@ -50,7 +71,8 @@ namespace horizon
         cpu->set_fixed_size(LABEL_HEIGHT);
         cpu->set_font_weight(FONT_WEIGHT_BOLD);
 
-        auto ram = std::make_unique<Label>(SystemInfo::get_ram());
+        std::string ram_str = format_bytes(SystemInfo::get_memory_info().total_capacity);
+        auto ram = std::make_unique<Label>(ram_str);
         ram->set_font_size(18);
         ram->set_fixed_size(LABEL_HEIGHT);
         ram->set_font_weight(FONT_WEIGHT_BOLD);
