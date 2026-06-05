@@ -1,6 +1,7 @@
 #include "horizon/Widget.hpp"
 #include <cstdlib>
 #include <fstream>
+#include <filesystem>
 #include <horizon/Frame.hpp>
 #include <horizon/I18n.hpp>
 #include <horizon/Icon.hpp>
@@ -155,9 +156,9 @@ namespace horizon::preferences
         auto checkbox = std::make_unique<Checkbox<AquaObject>>();
         checkbox->set_text(i18n().tr("preferences.appearance.use_graphic_effects"));
         checkbox->set_fixed_size(300);
-        checkbox->set_checked(m_compositor == "meteor");
+        checkbox->set_checked(m_use_effects);
         checkbox->when_toggle.connect([this](ToggleEventContext &ctx)
-                                      { set_compositor(ctx.checked ? "meteor" : "labwc"); });
+                                      { set_use_effects(ctx.checked); });
         m_compositor_checkbox = checkbox.get();
         compositor_row->add_child(std::move(checkbox));
 
@@ -244,41 +245,112 @@ namespace horizon::preferences
         }
         if (m_compositor_checkbox)
         {
-            m_compositor_checkbox->set_checked(m_compositor == "meteor");
+            m_compositor_checkbox->set_checked(m_use_effects);
         }
     }
 
     void AppearanceView::load_compositor_config()
     {
-        std::ifstream f("/etc/horizon/compositor.conf");
+        m_use_effects = false;
+        std::string config_path = std::string(getenv("HOME")) + "/.config/meteor.ini";
+        std::ifstream f(config_path);
         if (f.is_open())
         {
-            f >> m_compositor;
-        }
-        else
-        {
-            m_compositor = "labwc";
+            std::string line;
+            bool in_core = false;
+            bool in_plugins = false;
+            while (std::getline(f, line))
+            {
+                if (!line.empty() && line[0] == '[') {
+                    in_core = (line.find("[core]") != std::string::npos);
+                    in_plugins = false;
+                }
+                
+                if (in_core) {
+                    if (line.find("plugins") != std::string::npos && line.find("=") != std::string::npos) {
+                        in_plugins = true;
+                    }
+                    if (in_plugins) {
+                        if (line.find("wobbly") != std::string::npos || line.find("blur") != std::string::npos) {
+                            m_use_effects = true;
+                            break;
+                        }
+                        if (line.empty() || line.back() != '\\') {
+                            in_plugins = false; // end of plugins list
+                        }
+                    }
+                }
+            }
         }
     }
 
-    void AppearanceView::set_compositor(const std::string &comp)
+    void AppearanceView::set_use_effects(bool use_effects)
     {
-        if (comp == m_compositor)
+        if (use_effects == m_use_effects)
             return;
 
-        // Disparar comando seguro mediante Polkit
-        std::string cmd = "pkexec /usr/bin/horizon-set-compositor " + comp;
-        int res = std::system(cmd.c_str());
+        m_use_effects = use_effects;
+        
+        std::string config_path = std::string(getenv("HOME")) + "/.config/meteor.ini";
+        
+        // Ensure config exists
+        if (!std::filesystem::exists(config_path)) {
+            std::error_code ec;
+            std::filesystem::copy_file("/usr/share/horizon/meteor.ini", config_path, std::filesystem::copy_options::overwrite_existing, ec);
+        }
 
-        if (res == 0)
-        {
-            m_compositor = comp;
-            update_selection_visuals();
-            if (m_restart_hint_label)
-            {
-                m_restart_hint_label->set_text(
-                    i18n().tr("preferences.appearance.compositor_restart_hint"));
+        std::vector<std::string> lines;
+        std::ifstream f(config_path);
+        bool in_core = false;
+        bool skipping_plugins = false;
+
+        std::string basic_plugins = "autostart command core decoration grid move place resize switcher window-rules wm-actions wproto foreign-toplevel";
+        std::string fx_plugins = "alpha animate expo vswitch wobbly blur winshadows";
+
+        if (f.is_open()) {
+            std::string line;
+            while (std::getline(f, line)) {
+                if (skipping_plugins) {
+                    if (!line.empty() && line.back() == '\\') {
+                        continue;
+                    } else {
+                        skipping_plugins = false;
+                        continue;
+                    }
+                }
+
+                if (!line.empty() && line[0] == '[') {
+                    in_core = (line.find("[core]") != std::string::npos);
+                }
+
+                if (in_core && line.find("plugins") != std::string::npos && line.find("=") != std::string::npos) {
+                    std::string new_line = "plugins = " + basic_plugins;
+                    if (use_effects) {
+                        new_line += " " + fx_plugins;
+                    }
+                    lines.push_back(new_line);
+                    
+                    if (!line.empty() && line.back() == '\\') {
+                        skipping_plugins = true;
+                    }
+                } else {
+                    lines.push_back(line);
+                }
             }
+            f.close();
+
+            std::ofstream out(config_path);
+            for (const auto& l : lines) {
+                out << l << "\n";
+            }
+        }
+
+        update_selection_visuals();
+        
+        if (m_restart_hint_label)
+        {
+            m_restart_hint_label->set_text(
+                i18n().tr("preferences.appearance.compositor_restart_hint"));
         }
     }
 

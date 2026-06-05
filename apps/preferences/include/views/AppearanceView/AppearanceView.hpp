@@ -26,7 +26,7 @@ namespace horizon::preferences
         void save_config();
         void update_selection_visuals();
         void load_compositor_config();
-        void set_compositor(const std::string &comp);
+        void set_use_effects(bool use_effects);
 
         Label* m_title_label{nullptr};
         Widget* m_light_box{nullptr};
@@ -41,7 +41,7 @@ namespace horizon::preferences
 
         std::unique_ptr<ConfigManager> m_config;
         std::string m_variant{"dark"};
-        std::string m_compositor{"labwc"};
+        bool m_use_effects{false};
         float m_panel_opacity{1.0f};
         float m_menu_opacity{1.0f};
         bool m_is_loading{false};
