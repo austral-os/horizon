@@ -311,9 +311,8 @@ namespace horizon
             }
         }
 
-        // 2. Try to read from ~/.config/horizon/memory
-        const char *home = getenv("HOME");
-        std::string config_path = (home ? std::string(home) : "") + "/.config/horizon/memory";
+        // 2. Try to read from /usr/share/horizon/memory
+        std::string config_path = "/usr/share/horizon/memory";
         std::ifstream dmi_file(config_path);
 
         if (dmi_file.is_open())
