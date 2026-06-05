@@ -681,6 +681,11 @@ namespace horizon
     void WaylandSurface::minimize_foreign_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) { if (handle && m_foreign_toplevels.count(handle)) zwlr_foreign_toplevel_handle_v1_set_minimized(handle); }
     void WaylandSurface::toggle_fullscreen_foreign_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) { if (handle && m_foreign_toplevels.count(handle)) zwlr_foreign_toplevel_handle_v1_set_fullscreen(handle, nullptr); }
     void WaylandSurface::close_foreign_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) { if (handle && m_foreign_toplevels.count(handle)) zwlr_foreign_toplevel_handle_v1_close(handle); }
+    void WaylandSurface::set_foreign_instance_rectangle(struct zwlr_foreign_toplevel_handle_v1 *handle, int x, int y, int width, int height) {
+        if (handle && m_foreign_toplevels.count(handle) && m_surface) {
+            zwlr_foreign_toplevel_handle_v1_set_rectangle(handle, m_surface, x, y, width, height);
+        }
+    }
 
     void WaylandSurface::update_blur_region() {
         if (!m_surface || !m_blur_enabled || !m_background_effect_manager) return;

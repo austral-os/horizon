@@ -239,6 +239,7 @@ namespace horizon
         void minimize_foreign_instance(struct zwlr_foreign_toplevel_handle_v1 *handle);
         void toggle_fullscreen_foreign_instance(struct zwlr_foreign_toplevel_handle_v1 *handle);
         void close_foreign_instance(struct zwlr_foreign_toplevel_handle_v1 *handle);
+        void set_foreign_instance_rectangle(struct zwlr_foreign_toplevel_handle_v1 *handle, int x, int y, int width, int height);
         
         // Deprecated - replaced by instance versions
         void activate_foreign_app(const std::string &app_id) {}

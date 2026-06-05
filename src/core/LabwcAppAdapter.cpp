@@ -55,6 +55,12 @@ namespace horizon
             m_app->w_surface()->close_foreign_instance(handle);
     }
 
+    void LabwcAppAdapter::set_instance_rectangle(struct zwlr_foreign_toplevel_handle_v1 *handle, int x, int y, int width, int height)
+    {
+        if (m_app && m_app->w_surface())
+            m_app->w_surface()->set_foreign_instance_rectangle(handle, x, y, width, height);
+    }
+
     void LabwcAppAdapter::handle_ipc_message(const std::string &msg) {}
 
     void LabwcAppAdapter::handle_foreign_update(AppListEventContext &ctx)

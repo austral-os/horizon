@@ -59,6 +59,7 @@ namespace horizon
         virtual void minimize_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) = 0;
         virtual void toggle_fullscreen_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) = 0;
         virtual void close_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) = 0;
+        virtual void set_instance_rectangle(struct zwlr_foreign_toplevel_handle_v1 *handle, int x, int y, int width, int height) = 0;
 
         // LEGACY - To be removed after full migration
         virtual void activate(const std::string &app_id) {}

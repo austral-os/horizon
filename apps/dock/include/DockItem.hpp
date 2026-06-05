@@ -77,6 +77,10 @@ namespace horizon
         bool _dragging = false;
         double _press_x = 0;
         double _press_y = 0;
+        int _last_rect_x = -1;
+        int _last_rect_y = -1;
+        int _last_rect_w = -1;
+        int _last_rect_h = -1;
     };
 
 } // namespace horizon

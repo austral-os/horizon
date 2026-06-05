@@ -27,6 +27,7 @@ namespace horizon
         void minimize_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) override;
         void toggle_fullscreen_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) override;
         void close_instance(struct zwlr_foreign_toplevel_handle_v1 *handle) override;
+        void set_instance_rectangle(struct zwlr_foreign_toplevel_handle_v1 *handle, int x, int y, int width, int height) override;
 
     private:
         void setup_ipc();

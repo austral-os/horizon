@@ -201,6 +201,22 @@ namespace horizon
         uint32_t tex_id = 0;
         ctx.popGroupToTexture(tex_id, m_start_draw_x, m_start_draw_y, m_available_draw_width, m_available_draw_height);
 
+        if (_compositor_apps && is_running() && 
+            (_last_rect_x != m_start_draw_x || _last_rect_y != m_start_draw_y || 
+             _last_rect_w != m_available_draw_width || _last_rect_h != m_available_draw_height)) {
+             
+            _last_rect_x = m_start_draw_x;
+            _last_rect_y = m_start_draw_y;
+            _last_rect_w = m_available_draw_width;
+            _last_rect_h = m_available_draw_height;
+            
+            for (const auto& info : _instances) {
+                if (info.handle != nullptr) {
+                    _compositor_apps->set_instance_rectangle(info.handle, _last_rect_x, _last_rect_y, _last_rect_w, _last_rect_h);
+                }
+            }
+        }
+
         // 2. Draw the main icon (OpenGL)
         float mvp[16];
         Matrix::identity(mvp);
