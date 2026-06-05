@@ -2064,7 +2064,13 @@ namespace horizon
 
     void WaylandWindow::PopupEventListener::on_close()
     {
-        m_window->close_context_menu();
+        if (m_window)
+        {
+            if (m_window->m_popup_menu)
+                m_window->close_context_menu();
+            else if (m_window->m_popup_vault)
+                m_window->close_vault();
+        }
         m_window = nullptr;
     }
 
