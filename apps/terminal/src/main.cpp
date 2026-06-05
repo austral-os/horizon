@@ -15,7 +15,7 @@ using namespace horizon::terminal;
 
 int main(int argc, char **argv)
 {
-    Application app("org.horizon.terminal", 800, 600);
+    Application app("org.horizon.terminal", 1390, 875);
 
     // Load translations
     horizon::i18n().load_app_locales("terminal");
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 
             return content;
         },
-        800, 650);
+        1390, 875);
 
     // Setup About info
     auto &about = app.about_manager();
@@ -74,7 +74,8 @@ int main(int argc, char **argv)
     about.set_app_version(APP_VERSION);
     about.set_app_icon("horizon-terminal");
     about.set_app_git(ABOUT_HORIZON.git);
-    about.add_app_translator("Horacio", "https://github.com/austral-os/horizon", "horaciodrs@gmail.com");
+    about.add_app_translator("Horacio", "https://github.com/austral-os/horizon",
+                             "horaciodrs@gmail.com");
 
     // Create the terminal window (properly decorated with Horizon window frame)
     auto terminal_window = std::make_unique<TerminalWindow>();
