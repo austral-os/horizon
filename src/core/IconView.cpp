@@ -24,7 +24,129 @@ namespace horizon
         m_scroll_area->when_mouse_press.connect([this](MouseButtonEventContext &ctx) {
             if (ctx.button == 0x110 || ctx.button == 0x111)
             {
-                clear_selection();
+                if (m_rubberband_selection_enabled && ctx.button == 0x110) {
+                    m_is_rubberbanding = true;
+                    m_rubberband_start_x = ctx.x - m_x + m_scroll_area->scroll_x();
+                    m_rubberband_start_y = ctx.y - m_y + m_scroll_area->scroll_y();
+                    m_rubberband_current_x = m_rubberband_start_x;
+                    m_rubberband_current_y = m_rubberband_start_y;
+
+                    bool ctrl_pressed = (ctx.modifiers & WaylandWindow::Modifier::CTRL);
+                    bool shift_pressed = (ctx.modifiers & WaylandWindow::Modifier::SHIFT);
+
+                    if (!ctrl_pressed && !shift_pressed) {
+                        clear_selection();
+                        m_initial_selection.clear();
+                    } else {
+                        m_initial_selection = m_selected_indices;
+                    }
+                } else {
+                    clear_selection();
+                }
+            }
+        });
+
+        m_scroll_area->when_mouse_drag.connect([this](MouseMoveEventContext &ctx) {
+            if (m_is_rubberbanding) {
+                m_rubberband_current_x = ctx.x - m_x + m_scroll_area->scroll_x();
+                m_rubberband_current_y = ctx.y - m_y + m_scroll_area->scroll_y();
+
+                int rx = std::min(m_rubberband_start_x, m_rubberband_current_x);
+                int ry = std::min(m_rubberband_start_y, m_rubberband_current_y);
+                int rw = std::abs(m_rubberband_start_x - m_rubberband_current_x);
+                int rh = std::abs(m_rubberband_start_y - m_rubberband_current_y);
+
+                m_selected_indices = m_initial_selection;
+
+                auto &children = m_content_pane->children();
+                for (int i = 0; i < (int)children.size(); ++i) {
+                    auto &child = children[i];
+                    int cx = child->x() - m_x + m_scroll_area->scroll_x();
+                    int cy = child->y() - m_y + m_scroll_area->scroll_y();
+                    int cw = child->width();
+                    int ch = child->height();
+
+                    if (rx < cx + cw && rx + rw > cx &&
+                        ry < cy + ch && ry + rh > cy) {
+                        m_selected_indices.insert(i);
+                    }
+                }
+
+                if (!m_autoscroll_timer && application()) {
+                    bool near_edge = false;
+                    int scroll_y = m_scroll_area->scroll_y();
+                    int local_y = ctx.y - m_y;
+                    if (local_y < 20 && scroll_y > 0) near_edge = true;
+                    if (local_y > m_scroll_area->height() - 20) near_edge = true;
+
+                    if (near_edge) {
+                        m_autoscroll_timer = application()->add_timer(30, [this]() {
+                            if (!m_is_rubberbanding) return;
+                            int scroll_y = m_scroll_area->scroll_y();
+                            
+                            // Use window coordinates to calculate local_y
+                            // But wait, the timer doesn't have ctx.y.
+                            // We can use m_rubberband_current_y which is content coordinate, 
+                            // to infer local_y.
+                            int local_y = m_rubberband_current_y - m_scroll_area->scroll_y();
+                            
+                            if (local_y < 20 && scroll_y > 0) {
+                                m_scroll_area->set_scroll_position(m_scroll_area->scroll_x(), std::max(0, scroll_y - 10));
+                            } else if (local_y > m_scroll_area->height() - 20) {
+                                m_scroll_area->set_scroll_position(m_scroll_area->scroll_x(), scroll_y + 10);
+                            }
+                            
+                            int rx = std::min(m_rubberband_start_x, m_rubberband_current_x);
+                            int ry = std::min(m_rubberband_start_y, m_rubberband_current_y);
+                            int rw = std::abs(m_rubberband_start_x - m_rubberband_current_x);
+                            int rh = std::abs(m_rubberband_start_y - m_rubberband_current_y);
+                            
+                            m_selected_indices = m_initial_selection;
+                            auto &children = m_content_pane->children();
+                            for (int i = 0; i < (int)children.size(); ++i) {
+                                auto &child = children[i];
+                                int cx = child->x() - m_x + m_scroll_area->scroll_x();
+                                int cy = child->y() - m_y + m_scroll_area->scroll_y();
+                                int cw = child->width();
+                                int ch = child->height();
+
+                                if (rx < cx + cw && rx + rw > cx &&
+                                    ry < cy + ch && ry + rh > cy) {
+                                    m_selected_indices.insert(i);
+                                }
+                            }
+                            invalidate();
+                            
+                            local_y = m_rubberband_current_y - m_scroll_area->scroll_y();
+                            if (local_y >= 20 && local_y <= m_scroll_area->height() - 20) {
+                                if (m_autoscroll_timer && application()) {
+                                    application()->stop_timer(m_autoscroll_timer);
+                                    m_autoscroll_timer = 0;
+                                }
+                            }
+                        }, true);
+                    }
+                }
+                
+                int local_y = ctx.y - m_y;
+                if (m_autoscroll_timer && application() && local_y >= 20 && local_y <= m_scroll_area->height() - 20) {
+                    application()->stop_timer(m_autoscroll_timer);
+                    m_autoscroll_timer = 0;
+                }
+
+                invalidate();
+            }
+        });
+
+        m_scroll_area->when_mouse_release.connect([this](MouseButtonEventContext &ctx) {
+            if (m_is_rubberbanding && ctx.button == 0x110) {
+                m_is_rubberbanding = false;
+                if (m_autoscroll_timer && application()) {
+                    application()->stop_timer(m_autoscroll_timer);
+                    m_autoscroll_timer = 0;
+                }
+                rebuild_items();
+                invalidate();
             }
         });
     }
@@ -42,6 +164,48 @@ namespace horizon
     float IconViewBase::zoom() const
     {
         return m_zoom;
+    }
+
+    void IconViewBase::set_rubberband_selection_enabled(bool enabled)
+    {
+        m_rubberband_selection_enabled = enabled;
+    }
+
+    bool IconViewBase::rubberband_selection_enabled() const
+    {
+        return m_rubberband_selection_enabled;
+    }
+
+    void IconViewBase::draw(GraphicsContext &gc)
+    {
+        Widget::draw(gc);
+
+        if (m_is_rubberbanding)
+        {
+            int rx = std::min(m_rubberband_start_x, m_rubberband_current_x) + m_x - m_scroll_area->scroll_x();
+            int ry = std::min(m_rubberband_start_y, m_rubberband_current_y) + m_y - m_scroll_area->scroll_y();
+            int rw = std::abs(m_rubberband_start_x - m_rubberband_current_x);
+            int rh = std::abs(m_rubberband_start_y - m_rubberband_current_y);
+
+            Color theme_color = Color(0.2f, 0.5f, 0.9f, 0.3f);
+            Color stroke_color = Color(0.2f, 0.5f, 0.9f, 0.8f);
+            if (theme_manager()) {
+                Color base = theme_manager()->get_color("table_row_selected");
+                theme_color = Color(base.r, base.g, base.b, 0.3f);
+                stroke_color = Color(base.r, base.g, base.b, 0.8f);
+            }
+
+            gc.save();
+            gc.clip(m_x, m_y, m_width, m_height);
+
+            gc.setColor(theme_color);
+            gc.fillRect(rx, ry, rw, rh);
+
+            gc.setColor(stroke_color);
+            gc.drawRect(rx, ry, rw, rh, 0, 1.0f);
+
+            gc.restore();
+        }
     }
 
     void IconViewBase::set_transparent(bool transparent)

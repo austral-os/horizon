@@ -45,6 +45,11 @@ namespace horizon
 
         int get_theme_font_size(const std::string &role = "icon-view") const;
 
+        void set_rubberband_selection_enabled(bool enabled);
+        bool rubberband_selection_enabled() const;
+
+        void draw(GraphicsContext &gc) override;
+
         void calculate_layout() override;
         void set_application_recursive(WaylandWindow *app) override;
 
@@ -76,6 +81,15 @@ namespace horizon
 
         bool m_transparent{false};
         IconViewLayoutMode m_layout_mode{IconViewLayoutMode::Horizontal};
+
+        bool m_rubberband_selection_enabled{false};
+        bool m_is_rubberbanding{false};
+        int m_rubberband_start_x{0};
+        int m_rubberband_start_y{0};
+        int m_rubberband_current_x{0};
+        int m_rubberband_current_y{0};
+        std::set<int> m_initial_selection;
+        uint32_t m_autoscroll_timer{0};
     };
 
     /**

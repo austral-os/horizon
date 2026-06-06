@@ -429,6 +429,7 @@ namespace horizon::files
         set_position_type(FILL);
         set_zoom(1.5f);
         set_focusable(true);
+        set_rubberband_selection_enabled(true);
         m_current_path = std::move(path);
         m_fs_model = std::make_unique<arkutils::FileSystemModel>();
 
@@ -485,10 +486,6 @@ namespace horizon::files
         // Ensure we grab focus when clicked in empty space
         m_scroll_area->when_mouse_press.connect([this](MouseButtonEventContext &ctx) {
             set_focus(true);
-            if (ctx.button == 0x110 || ctx.button == 0x111)
-            {
-                clear_selection();
-            }
         });
     }
 
