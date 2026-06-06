@@ -280,64 +280,76 @@ namespace horizon
                 auto item_widget = m_item_factory(m_data[i], m_zoom, is_selected);
                 if (item_widget)
                 {
-                    item_widget->when_mouse_press.connect(
-                        [this, i](MouseButtonEventContext &ctx)
+                    item_widget->when_mouse_press.connect([](MouseButtonEventContext &ctx) {
+                        ctx.stop_propagation = true;
+                    });
+
+                    item_widget->when_click.connect([this, i](MouseButtonEventContext &ctx) {
+                        bool ctrl_pressed = (ctx.modifiers & WaylandWindow::Modifier::CTRL);
+                        bool shift_pressed = (ctx.modifiers & WaylandWindow::Modifier::SHIFT);
+
+                        auto now = std::chrono::steady_clock::now();
+                        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                            now - m_last_item_click_time)
+                                            .count();
+
+                        if (!ctrl_pressed && m_last_item_click_index == i &&
+                            m_last_item_click_button == ctx.button && duration < 500)
                         {
-                            if (ctx.button == 0x110) // Left click
-                            {
-                                bool ctrl_pressed = (ctx.modifiers & WaylandWindow::Modifier::CTRL);
+                            IconViewItemMouseClickContext<T> click_ctx;
+                            click_ctx.item_index = i;
+                            click_ctx.item_data = m_data[i];
+                            when_item_dbl_click.run(click_ctx);
+                            m_last_item_click_index = -1; // Reset
+                        }
+                        else
+                        {
+                            set_selected_index(i, ctrl_pressed, shift_pressed);
 
-                                auto now = std::chrono::steady_clock::now();
-                                auto duration =
-                                    std::chrono::duration_cast<std::chrono::milliseconds>(
-                                        now - m_last_item_click_time)
-                                        .count();
+                            IconViewItemMouseClickContext<T> click_ctx;
+                            click_ctx.item_index = i;
+                            click_ctx.item_data = m_data[i];
+                            when_item_click.run(click_ctx);
 
-                                if (!ctrl_pressed &&
-                                    m_last_item_click_index == i &&
-                                    m_last_item_click_button == ctx.button && duration < 500)
-                                {
-                                    IconViewItemMouseClickContext<T> click_ctx;
-                                    click_ctx.item_index = i;
-                                    click_ctx.item_data = m_data[i];
-                                    when_item_dbl_click.run(click_ctx);
-                                    m_last_item_click_index = -1; // Reset
-                                }
-                                else
-                                {
-                                    bool shift_pressed = (ctx.modifiers & WaylandWindow::Modifier::SHIFT);
-                                    set_selected_index(i, ctrl_pressed, shift_pressed);
+                            if (on_item_selected)
+                                on_item_selected(i, m_data[i]);
 
-                                    IconViewItemMouseClickContext<T> click_ctx;
-                                    click_ctx.item_index = i;
-                                    click_ctx.item_data = m_data[i];
-                                    when_item_click.run(click_ctx);
+                            m_last_item_click_time = now;
+                            m_last_item_click_index = i;
+                            m_last_item_click_button = ctx.button;
+                        }
+                        
+                        ctx.stop_propagation = true;
+                    });
 
-                                    if (on_item_selected)
-                                        on_item_selected(i, m_data[i]);
-
-                                    m_last_item_click_time = now;
-                                    m_last_item_click_index = i;
-                                    m_last_item_click_button = ctx.button;
-                                }
-                            }
-                            else if (ctx.button == 0x111) // Right click
-                            {
-                                // Only change selection if item not already selected
-                                if (m_selected_indices.count(i) == 0)
-                                    set_selected_index(i, false, false);
-                            }
-                            ctx.stop_propagation = true;
-                        });
+                    // Keep when_dbl_click connected for API consistency, though it won't fire for unselected items due to rebuild_items
+                    item_widget->when_dbl_click.connect([this, i](MouseButtonEventContext &ctx) {
+                        IconViewItemMouseClickContext<T> click_ctx;
+                        click_ctx.item_index = i;
+                        click_ctx.item_data = m_data[i];
+                        when_item_dbl_click.run(click_ctx);
+                        ctx.stop_propagation = true;
+                    });
 
                     if (m_item_menu_factory)
                     {
-                        auto *item_ptr = item_widget.get();
                         T item_data = m_data[i];
-                        item_widget->when_right_click.connect([this, item_ptr, item_data](auto &ctx) {
-                            if (m_item_menu_factory && !item_ptr->context_menu()) {
-                                item_ptr->set_context_menu(m_item_menu_factory(item_data));
+                        item_widget->when_right_click.connect([this, item_data, i](auto &ctx) {
+                            if (m_selected_indices.count(i) == 0)
+                                set_selected_index(i, false, false);
+                            
+                            this->set_context_menu(m_item_menu_factory(item_data));
+                            if (this->application() && this->context_menu()) {
+                                this->application()->show_context_menu(this->context_menu(), -1, -1, ctx.serial, this);
                             }
+                            ctx.stop_propagation = true;
+                        });
+                    }
+                    else
+                    {
+                        item_widget->when_right_click.connect([this, i](auto &ctx) {
+                            if (m_selected_indices.count(i) == 0)
+                                set_selected_index(i, false, false);
                         });
                     }
 
