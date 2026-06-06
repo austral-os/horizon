@@ -62,6 +62,23 @@ namespace horizon
             {
                 if (m_menu_open)
                 {
+                    // Wayland spurious 0,0 event workaround:
+                    // If the pointer is not actually over this item, ignore the enter event.
+                    auto pos = item_ptr->get_absolute_position();
+                    auto *win = item_ptr->application();
+                    if (win) {
+                        int px = (int)win->pointer_x();
+                        int py = (int)win->pointer_y();
+                        LOG_INFO << "[MenuBar] Checking MouseEnter on " << item_ptr->text() << " (pointer at " << px << "," << py << ") bounds: " << pos.x << "," << pos.y << " to " << pos.x + item_ptr->width() << "," << pos.y + item_ptr->height();
+                        if (px < pos.x || px > pos.x + item_ptr->width() || py < pos.y || py > pos.y + item_ptr->height())
+                        {
+                            LOG_INFO << "[MenuBar] Ignoring spurious MouseEnter on " << item_ptr->text() << " (pointer at " << px << "," << py << ")";
+                            return;
+                        }
+                    } else {
+                        LOG_INFO << "[MenuBar] MouseEnter on " << item_ptr->text() << " but application() is null!";
+                    }
+
                     update_selection(item_ptr, false);
                 }
             });
@@ -92,6 +109,21 @@ namespace horizon
             {
                 if (m_menu_open)
                 {
+                    auto pos = item_ptr->get_absolute_position();
+                    auto *win = item_ptr->application();
+                    if (win) {
+                        int px = (int)win->pointer_x();
+                        int py = (int)win->pointer_y();
+                        LOG_INFO << "[MenuBar] Checking MouseEnter on " << item_ptr->text() << " (pointer at " << px << "," << py << ") bounds: " << pos.x << "," << pos.y << " to " << pos.x + item_ptr->width() << "," << pos.y + item_ptr->height();
+                        if (px < pos.x || px > pos.x + item_ptr->width() || py < pos.y || py > pos.y + item_ptr->height())
+                        {
+                            LOG_INFO << "[MenuBar] Ignoring spurious MouseEnter on " << item_ptr->text() << " (pointer at " << px << "," << py << ")";
+                            return;
+                        }
+                    } else {
+                        LOG_INFO << "[MenuBar] MouseEnter on " << item_ptr->text() << " but application() is null!";
+                    }
+
                     update_selection(item_ptr, false);
                 }
             });
@@ -217,8 +249,13 @@ namespace horizon
             MenuBarClickContext ctx;
             ctx.sender = this;
             ctx.menu = selected_item->menu();
-            ctx.x = selected_item->x();
-            ctx.y = selected_item->y() + selected_item->height();
+            auto pos = selected_item->get_absolute_position();
+            if (auto app = application()) {
+                pos.x -= app->screen_x();
+                pos.y -= app->screen_y();
+            }
+            ctx.x = pos.x;
+            ctx.y = pos.y + selected_item->height();
             ctx.serial = serial;
             when_menu_click.run(ctx);
         }

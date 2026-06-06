@@ -1385,20 +1385,37 @@ namespace horizon
 
     void WaylandWindow::on_pointer_event(const PointerEvent &event)
     {
+        bool is_spurious_zero = (event.type == PointerEvent::Type::Move || event.type == PointerEvent::Type::Enter) && 
+                                event.x == 0.0 && event.y == 0.0;
 
-        m_pointer_x = event.x;
-        m_pointer_y = event.y;
+        // Workaround for wlroots/Wayland compositor bug:
+        // Compositors often send a spurious Move(0, 0) or Enter(0, 0) event to the main surface 
+        // when a popup maps or unmaps, before sending the correct Leave or Enter event.
+        // We must ignore this globally because it can happen during wl_display_roundtrip when listener is null.
+        if (is_spurious_zero)
+        {
+            LOG_INFO << "[WINDOW] Ignoring spurious Move/Enter to (0,0)";
+            return;
+        }
+
+        // wl_pointer_leave does not send valid coordinates, so don't overwrite our last known valid position
+        if (event.type != PointerEvent::Type::Leave)
+        {
+            m_pointer_x = event.x;
+            m_pointer_y = event.y;
+        }
 
         if (m_popup_listener)
         {
-            // If the main window receives a pointer event while a non-grabbing popup (like Vault)
-            // is open, it means the user clicked OUTSIDE the popup.
-            // (If they clicked inside the popup, the compositor would deliver the event to the popup surface).
             if (event.type == PointerEvent::Type::Press)
             {
                 LOG_INFO << "[WINDOW] Click outside popup detected on main window. Closing popup.";
                 if (m_popup_menu) close_context_menu();
                 else close_vault();
+            }
+            else if (event.type == PointerEvent::Type::Move || event.type == PointerEvent::Type::Enter || event.type == PointerEvent::Type::Leave)
+            {
+                handle_move(event);
             }
             // Consume the event so we don't accidentally click a button underneath the popup
             return;
@@ -1837,6 +1854,9 @@ namespace horizon
             return;
         }
 
+        bool destroyed = false;
+        m_destroyed = &destroyed;
+
         Widget *popup_root = m_window->m_popup_menu ? (Widget*)m_window->m_popup_menu : (Widget*)m_window->m_popup_vault;
 
         // LOG_INFO << "[POPUP_EV] Type: " << (int)event.type << " at (" << event.x << ", " << event.y << ") serial: " << event.serial;
@@ -1845,6 +1865,27 @@ namespace horizon
         int y = (int)event.y;
 
         Widget *under = popup_root->hit_test(x, y);
+        Widget *main_under = nullptr;
+
+        if (!under && m_window->m_root)
+        {
+            int main_x = x + m_window->m_popup_x;
+            int main_y = y + m_window->m_popup_y;
+            
+            // Workaround for wlroots bug sending global 0,0 coordinates as local popup coordinates
+            if (main_x == 0 && main_y == 0)
+            {
+                LOG_INFO << "[POPUP] Ignoring spurious pointer event that maps to main (0,0)";
+            }
+            else
+            {
+                main_under = m_window->m_root->hit_test(main_x, main_y);
+            }
+        }
+
+        Widget *target_under = under ? under : main_under;
+        int target_x = under ? x : x + m_window->m_popup_x;
+        int target_y = under ? y : y + m_window->m_popup_y;
 
         // 0. Click-outside logic: If we are clicking on the main window (not the popup)
         // while a popup is active, we should close the popup and let the main window
@@ -1854,17 +1895,60 @@ namespace horizon
             LOG_INFO << "[POPUP] Click outside. Click=(" << x << "," << y 
                      << ") Vault bounds: x=" << popup_root->x() << " y=" << popup_root->y() 
                      << " w=" << popup_root->width() << " h=" << popup_root->height();
+                     
+            WaylandWindow* win = m_window; // Save local copy as close_* will nullify m_window
+
             if (m_window->m_popup_menu) m_window->close_context_menu();
             else m_window->close_vault();
+            
+            // If the user clicked on a widget in the main window (like another MenuBarItem),
+            // route the press event to it so they don't have to click twice.
+            if (main_under)
+            {
+                std::vector<Widget *> chain;
+                Widget *temp = main_under;
+                while (temp)
+                {
+                    chain.push_back(temp);
+                    temp = temp->parent();
+                }
+
+                win->set_focused_widget(main_under);
+
+                MouseButtonEventContext ev;
+                ev.button = event.button;
+                ev.x = (double)target_x;
+                ev.y = (double)target_y;
+                ev.modifiers = win->m_modifiers;
+                ev.serial = event.serial;
+                for (Widget *w : chain)
+                {
+                    ev.sender = w;
+                    w->when_mouse_press.run(ev);
+                    if (destroyed) return;
+                    if (ev.stop_propagation)
+                        break;
+                }
+            }
+            if (!destroyed) m_destroyed = nullptr;
             return;
         }
 
         // 1. Hover tracking (Enter/Leave/Move)
         if (event.type == PointerEvent::Type::Move || event.type == PointerEvent::Type::Enter || event.type == PointerEvent::Type::Leave)
         {
-            if (event.type == PointerEvent::Type::Leave) under = nullptr;
+            if (event.type == PointerEvent::Type::Leave) target_under = nullptr;
 
-            if (under != m_hovered)
+            if (event.type == PointerEvent::Type::Move) {
+                LOG_INFO << "[POPUP HOVER] Move at popup local: (" << x << ", " << y << "), popup origin: (" << m_window->m_popup_x << ", " << m_window->m_popup_y << ")";
+                if (main_under) {
+                    LOG_INFO << "[POPUP HOVER] Hit main window widget: " << typeid(*main_under).name();
+                } else {
+                    LOG_INFO << "[POPUP HOVER] No widget hit in main window at (" << (x + m_window->m_popup_x) << ", " << (y + m_window->m_popup_y) << ")";
+                }
+            }
+
+            if (target_under != m_hovered)
             {
                 std::vector<Widget *> old_path;
                 Widget *temp = m_hovered;
@@ -1875,11 +1959,11 @@ namespace horizon
                 }
 
                 std::vector<Widget *> new_path;
-                temp = under;
-                while (temp)
+                Widget *temp2 = target_under;
+                while (temp2)
                 {
-                    new_path.push_back(temp);
-                    temp = temp->parent();
+                    new_path.push_back(temp2);
+                    temp2 = temp2->parent();
                 }
 
                 // Send MouseLeave to widgets in old path that are NOT in new path
@@ -1887,9 +1971,13 @@ namespace horizon
                 {
                     if (std::find(new_path.begin(), new_path.end(), w) == new_path.end())
                     {
-                        EventContext leave_ev;
-                        leave_ev.sender = w;
-                        w->when_mouse_leave.run(leave_ev);
+                        m_window->post_task([window = m_window, w]() {
+                            if (!window->is_widget_alive(w)) return;
+                            EventContext leave_ev;
+                            leave_ev.sender = w;
+                            w->when_mouse_leave.run(leave_ev);
+                        });
+                        if (destroyed) return;
                     }
                 }
 
@@ -1899,13 +1987,17 @@ namespace horizon
                     Widget *w = *it;
                     if (std::find(old_path.begin(), old_path.end(), w) == old_path.end())
                     {
-                        EventContext enter_ev;
-                        enter_ev.sender = w;
-                        w->when_mouse_enter.run(enter_ev);
+                        m_window->post_task([window = m_window, w]() {
+                            if (!window->is_widget_alive(w)) return;
+                            EventContext enter_ev;
+                            enter_ev.sender = w;
+                            w->when_mouse_enter.run(enter_ev);
+                        });
+                        if (destroyed) return;
                     }
                 }
 
-                m_hovered = under;
+                m_hovered = target_under;
             }
         }
 
@@ -1931,6 +2023,7 @@ namespace horizon
             {
                 ev.sender = w;
                 w->when_mouse_wheel.run(ev);
+                if (destroyed) return;
                 if (ev.stop_propagation) {
                     break;
                 }
@@ -1940,7 +2033,7 @@ namespace horizon
         else
         {
             // If we have a pressed widget, route events to it even if mouse moved outside it
-            Widget *target = m_pressed ? m_pressed : under;
+            Widget *target = m_pressed ? m_pressed : target_under;
             if (!target) return;
 
             std::vector<Widget *> chain;
@@ -1954,8 +2047,8 @@ namespace horizon
             if (event.type == PointerEvent::Type::Move || event.type == PointerEvent::Type::Enter)
             {
                 MouseMoveEventContext mv;
-                mv.x = (double)x;
-                mv.y = (double)y;
+                mv.x = (double)target_x;
+                mv.y = (double)target_y;
                 mv.modifiers = m_window->m_modifiers;
 
                 if (!m_pressed_buttons.empty() && m_pressed) {
@@ -1975,15 +2068,15 @@ namespace horizon
             else if (event.type == PointerEvent::Type::Press)
             {
                 m_pressed_buttons.insert(event.button);
-                m_pressed = under; // Capture the pressed widget for drag/release
+                m_pressed = target_under; // Capture the pressed widget for drag/release
                 
                 // Allow interactive widgets (like TextBox) inside Vaults to receive keyboard focus
-                m_window->set_focused_widget(under);
+                m_window->set_focused_widget(target_under);
 
                 MouseButtonEventContext ev;
                 ev.button = event.button;
-                ev.x = (double)x;
-                ev.y = (double)y;
+                ev.x = (double)target_x;
+                ev.y = (double)target_y;
                 ev.modifiers = m_window->m_modifiers;
                 ev.serial = event.serial;
                 for (Widget *w : chain)
@@ -1992,11 +2085,11 @@ namespace horizon
                     // Adjust Y for scrolled menus so bounds checks pass in Widget.cpp
                     if (auto *m = dynamic_cast<Menu *>(w->parent()))
                     {
-                        ev.y = (double)y + m->scroll_y();
+                        ev.y = (double)target_y + m->scroll_y();
                     }
                     else
                     {
-                        ev.y = (double)y;
+                        ev.y = (double)target_y;
                     }
                     w->when_mouse_press.run(ev);
                     if (ev.stop_propagation)
@@ -2015,8 +2108,8 @@ namespace horizon
 
                 MouseButtonEventContext ev;
                 ev.button = event.button;
-                ev.x = (double)x;
-                ev.y = (double)y;
+                ev.x = (double)target_x;
+                ev.y = (double)target_y;
                 ev.modifiers = m_window->m_modifiers;
                 ev.serial = event.serial;
                 ev.stop_propagation = true; // IMPORTANT: Prevent propagation to main window
@@ -2045,13 +2138,14 @@ namespace horizon
                     ev.modifiers = mods;
                     if (auto *m = dynamic_cast<Menu *>(w->parent()))
                     {
-                        ev.y = (double)y + m->scroll_y();
+                        ev.y = (double)target_y + m->scroll_y();
                     }
                     else
                     {
-                        ev.y = (double)y;
+                        ev.y = (double)target_y;
                     }
                     w->when_mouse_release.run(ev);
+                    if (destroyed) return;
                 }
 
                 if (m_pressed_buttons.empty()) {
@@ -2059,6 +2153,7 @@ namespace horizon
                 }
             }
         }
+        if (!destroyed) m_destroyed = nullptr;
 
     }
 
@@ -2104,8 +2199,11 @@ namespace horizon
         if (!m_root)
             return;
 
-        m_pointer_x = event.x;
-        m_pointer_y = event.y;
+        if (event.type != PointerEvent::Type::Leave)
+        {
+            m_pointer_x = event.x;
+            m_pointer_y = event.y;
+        }
 
         // If an override cursor is active, apply it and skip all hover logic
         if (m_override_cursor.has_value())
@@ -3126,6 +3224,8 @@ namespace horizon
 
     void WaylandWindow::show_context_menu(Menu *menu, int x, int y, uint32_t serial, Widget *owner)
     {
+        if (!menu) return;
+
         close_context_menu(false);
 
         if (!m_surface || !menu)
@@ -3240,6 +3340,9 @@ namespace horizon
             y = (int)m_pointer_y;
         }
 
+        m_popup_x = x;
+        m_popup_y = y;
+
         m_popup_menu = menu;
         m_popup_menu->set_application_recursive(this);
         m_popup_menu->set_visible(true);
@@ -3304,8 +3407,6 @@ namespace horizon
         if (m_popup_menu)
         {
             m_popup_menu->set_visible(false);
-            // Move the menu to a temporary variable and destroy it in a deferred task
-            // This prevents segfaults if a menu item action blocks the thread (e.g., opens a dialog)
             auto menu_to_destroy = m_popup_menu;
             m_popup_menu = nullptr;
             post_task([menu = menu_to_destroy]() {
@@ -3319,7 +3420,7 @@ namespace horizon
         
         // Force the compositor to process the destruction immediately
         if (m_surface && m_surface->display()) {
-            wl_display_roundtrip(m_surface->display());
+            wl_display_flush(m_surface->display());
         }
             if (m_popup_listener)
             {
@@ -3413,6 +3514,9 @@ namespace horizon
             m_popup_vault->set_arrow_position(-1, -1);
         }
 
+        m_popup_x = x;
+        m_popup_y = y;
+
         // Position vault at origin of the popup surface - no offset
         m_popup_vault->set_position(0, 0);
         m_popup_vault->calculate_layout();
@@ -3457,7 +3561,7 @@ namespace horizon
         {
             m_popup_surface = nullptr;
             if (m_surface && m_surface->display()) {
-                wl_display_roundtrip(m_surface->display());
+                wl_display_flush(m_surface->display());
             }
             if (m_popup_listener)
             {

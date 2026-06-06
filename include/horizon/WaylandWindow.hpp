@@ -41,9 +41,16 @@ namespace horizon
             std::set<uint32_t> m_pressed_buttons;
 
         public:
+            bool *m_destroyed = nullptr;
+
             PopupEventListener(WaylandWindow *window, uint32_t opening_serial = 0)
                 : m_window(window), m_opening_serial(opening_serial)
             {
+            }
+
+            ~PopupEventListener()
+            {
+                if (m_destroyed) *m_destroyed = true;
             }
 
             void on_pointer_event(const PointerEvent &event) override;
