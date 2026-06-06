@@ -344,9 +344,6 @@ namespace horizon::files
 
         if (paths.empty()) return;
 
-        // Note: For move/copy operations, FileView should ideally emit a signal
-        // or use arkutils::FileOperations directly.
-        // For now, we'll keep it simple and just do the operations.
         for (const auto &src_path : paths)
         {
             std::filesystem::path src(src_path);
@@ -354,7 +351,19 @@ namespace horizon::files
             std::filesystem::path dst = dst_dir / src.filename();
 
             if (src == dst_dir || dst_dir.string().find(src.string() + "/") == 0) continue;
-            if (std::filesystem::exists(dst)) continue;
+            
+            if (std::filesystem::exists(dst)) {
+                if (src == dst && m_is_cut) continue;
+                
+                std::string base = src.stem().string();
+                std::string ext = src.extension().string();
+                dst = dst_dir / ("Copia de " + base + ext);
+                int counter = 1;
+                while (std::filesystem::exists(dst)) {
+                    dst = dst_dir / ("Copia de " + base + " " + std::to_string(counter) + ext);
+                    counter++;
+                }
+            }
 
             if (m_is_cut)
             {
@@ -372,8 +381,8 @@ namespace horizon::files
             }
             else
             {
-                auto filename = src.filename().string();
-                auto future = arkutils::FileOperations::copy(src_path, m_current_path, [this](double progress) {
+                auto filename = dst.filename().string();
+                auto future = arkutils::FileOperations::copy(src_path, dst.string(), [this](double progress) {
                     if (application()) {
                         application()->post_task([this, progress]() {
                             OperationProgressEvent ev;
@@ -406,6 +415,11 @@ namespace horizon::files
     }
 
     std::vector<std::string> FileView::provided_mime_types() const
+    {
+        return {"text/uri-list"};
+    }
+
+    std::vector<std::string> FileView::accepted_mime_types() const
     {
         return {"text/uri-list"};
     }

@@ -182,12 +182,24 @@ namespace horizon::files
                                 if (!src.empty())
                                 {
                                     std::filesystem::path p(src);
-                                    std::string dest = f.path + "/" + p.filename().string();
+                                    std::filesystem::path dst_dir(f.path);
+                                    std::filesystem::path dest = dst_dir / p.filename();
+                                    
+                                    if (std::filesystem::exists(dest)) {
+                                        std::string base = p.stem().string();
+                                        std::string ext = p.extension().string();
+                                        dest = dst_dir / ("Copia de " + base + ext);
+                                        int counter = 1;
+                                        while (std::filesystem::exists(dest)) {
+                                            dest = dst_dir / ("Copia de " + base + " " + std::to_string(counter) + ext);
+                                            counter++;
+                                        }
+                                    }
 
-                                    if (src != dest)
+                                    if (src != dest.string())
                                     {
                                         auto future = arkutils::FileOperations::copy(
-                                            src, dest,
+                                            src, dest.string(),
                                             [this](double progress)
                                             {
                                                 if (application())

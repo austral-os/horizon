@@ -67,6 +67,7 @@ namespace horizon::files
         void perform(ClipboardAction action) override;
         void provide_clipboard_data(const std::string &mime, DataSink &sink) override;
         std::vector<std::string> provided_mime_types() const override;
+        std::vector<std::string> accepted_mime_types() const override;
         void on_clipboard_data_received(const std::string &mime, const std::vector<uint8_t> &data) override;
 
     private:

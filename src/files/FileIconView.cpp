@@ -1,4 +1,5 @@
 #include "horizon/files/FileIconView.hpp"
+#include "horizon/files/FileView.hpp"
 #include "horizon/files/FileIconProvider.hpp"
 #include "horizon/Application.hpp"
 #include "horizon/Icon.hpp"
@@ -247,10 +248,22 @@ namespace horizon::files
                     
                     if (!src.empty()) {
                         std::filesystem::path p(src);
-                        std::string dest = m_file_info.path + "/" + p.filename().string();
+                        std::filesystem::path dst_dir(m_file_info.path);
+                        std::filesystem::path dest = dst_dir / p.filename();
                         
-                        if (src != dest) {
-                            auto future = arkutils::FileOperations::copy(src, dest);
+                        if (std::filesystem::exists(dest)) {
+                            std::string base = p.stem().string();
+                            std::string ext = p.extension().string();
+                            dest = dst_dir / ("Copia de " + base + ext);
+                            int counter = 1;
+                            while (std::filesystem::exists(dest)) {
+                                dest = dst_dir / ("Copia de " + base + " " + std::to_string(counter) + ext);
+                                counter++;
+                            }
+                        }
+                        
+                        if (src != dest.string()) {
+                            auto future = arkutils::FileOperations::copy(src, dest.string());
                             std::thread([f = std::move(future)]() mutable {
                                 f.get();
                             }).detach();
@@ -648,6 +661,12 @@ namespace horizon::files
         }
     }
 
+    bool FileIconView::supports_clipboard() const
+    {
+        if (parent() && dynamic_cast<FileView*>(parent())) return false;
+        return true;
+    }
+
     bool FileIconView::can_perform(ClipboardAction action) const
     {
         if (action == ClipboardAction::Copy || action == ClipboardAction::Cut)
@@ -689,6 +708,11 @@ namespace horizon::files
         return {"text/uri-list"};
     }
 
+    std::vector<std::string> FileIconView::accepted_mime_types() const
+    {
+        return {"text/uri-list"};
+    }
+
     void FileIconView::provide_clipboard_data(const std::string &mime, DataSink &sink)
     {
         LOG_INFO << "[FileIconView] provide_clipboard_data: " << mime << " paths: " << m_clipboard_paths.size();
@@ -724,16 +748,46 @@ namespace horizon::files
         for (const auto &src_path : paths)
         {
             std::filesystem::path src(src_path);
-            std::filesystem::path dst(m_current_path);
-            dst /= src.filename();
+            std::filesystem::path dst_dir(m_current_path);
+            std::filesystem::path dst = dst_dir / src.filename();
             
-            // Note: Normally we'd use 'move' if cut, but the Wayland standard
-            // without GNOME extensions doesn't expose the cut flag across clients.
-            // For now, we will do a standard copy operation.
-            arkutils::FileOperations::copy(src_path, dst.string(), nullptr);
+            if (src == dst_dir || dst_dir.string().find(src.string() + "/") == 0) continue;
+
+            if (std::filesystem::exists(dst)) {
+                if (src == dst && m_is_cut) continue;
+                
+                std::string base = src.stem().string();
+                std::string ext = src.extension().string();
+                dst = dst_dir / ("Copia de " + base + ext);
+                int counter = 1;
+                while (std::filesystem::exists(dst)) {
+                    dst = dst_dir / ("Copia de " + base + " " + std::to_string(counter) + ext);
+                    counter++;
+                }
+            }
+            
+            if (m_is_cut) {
+                auto future = arkutils::FileOperations::move(src_path, dst.string());
+                std::thread([this, f = std::move(future)]() mutable {
+                    f.get();
+                    if (application()) {
+                        application()->post_task([this]() {
+                            this->refresh(m_current_path);
+                        });
+                    }
+                }).detach();
+            } else {
+                auto future = arkutils::FileOperations::copy(src_path, dst.string(), nullptr);
+                std::thread([this, f = std::move(future)]() mutable {
+                    f.get();
+                    if (application()) {
+                        application()->post_task([this]() {
+                            this->refresh(m_current_path);
+                        });
+                    }
+                }).detach();
+            }
         }
-        
-        refresh(m_current_path);
     }
 
 } // namespace horizon::files
