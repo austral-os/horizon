@@ -782,30 +782,57 @@ namespace horizon
     void CairoGraphicContext::drawPixels(const unsigned char *data, int img_w, int img_h, int x,
                                          int y, int w, int h, int channels)
     {
-        if (!data || img_w <= 0 || img_h <= 0)
+        if (!data || img_w <= 0 || img_h <= 0 || w <= 0 || h <= 0 || !cr)
             return;
 
-        // Note: Cairo prefers pre-multiplied Alpha, but for STB we'll assume ARGB32 for now
-        // or just draw it directly if possible. STB_load(..., 4) gives RGBA.
-        // We'll create a temporary surface for the draw.
-        // A better way would be for the ImageDriver to hold the surface,
-        // but we want the DRIVER to be Cairo-free.
-        // Caching the surface in the context based on the data pointer is one option.
+        std::string cache_key;
+        if (m_app)
+        {
+            cache_key = "stb_" + std::to_string(reinterpret_cast<uintptr_t>(data)) + "_" + std::to_string(w) + "x" + std::to_string(h);
+            if (m_app->m_surface_cache.count(cache_key))
+            {
+                cairo_surface_t *cached_s = static_cast<cairo_surface_t *>(m_app->m_surface_cache[cache_key]);
+                cairo_save(cr);
+                cairo_set_source_surface(cr, cached_s, x, y);
+                cairo_paint(cr);
+                cairo_restore(cr);
+                return;
+            }
+        }
 
         cairo_surface_t *pixel_s = cairo_image_surface_create_for_data(
             const_cast<unsigned char *>(data), CAIRO_FORMAT_ARGB32, img_w, img_h, img_w * 4);
 
         if (cairo_surface_status(pixel_s) == CAIRO_STATUS_SUCCESS)
         {
-            cairo_save(cr);
-            double sx = static_cast<double>(w) / img_w;
-            double sy = static_cast<double>(h) / img_h;
+            if (m_app)
+            {
+                cairo_surface_t *scaled_s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
+                cairo_t *temp_cr = cairo_create(scaled_s);
+                cairo_scale(temp_cr, static_cast<double>(w) / img_w, static_cast<double>(h) / img_h);
+                cairo_set_source_surface(temp_cr, pixel_s, 0, 0);
+                cairo_paint(temp_cr);
+                cairo_destroy(temp_cr);
 
-            cairo_translate(cr, x, y);
-            cairo_scale(cr, sx, sy);
-            cairo_set_source_surface(cr, pixel_s, 0, 0);
-            cairo_paint(cr);
-            cairo_restore(cr);
+                m_app->m_surface_cache[cache_key] = scaled_s;
+
+                cairo_save(cr);
+                cairo_set_source_surface(cr, scaled_s, x, y);
+                cairo_paint(cr);
+                cairo_restore(cr);
+            }
+            else
+            {
+                cairo_save(cr);
+                double sx = static_cast<double>(w) / img_w;
+                double sy = static_cast<double>(h) / img_h;
+
+                cairo_translate(cr, x, y);
+                cairo_scale(cr, sx, sy);
+                cairo_set_source_surface(cr, pixel_s, 0, 0);
+                cairo_paint(cr);
+                cairo_restore(cr);
+            }
         }
 
         cairo_surface_destroy(pixel_s);
