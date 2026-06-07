@@ -18,6 +18,6 @@ horizon_install_app(austral-welcome
     APP_ID "austral-welcome"
     NAME "Austral Welcome"
     COMMENT "Welcome to Austral OS"
-    ICON "system-help"
+    ICON "austral-welcome"
     CATEGORIES "Utility;"
 )
