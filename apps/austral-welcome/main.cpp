@@ -7,7 +7,7 @@ using namespace horizon;
 
 int main(int argc, char *argv[])
 {
-    auto app = std::make_unique<Application>("org.austral.welcome", 950, 600);
+    auto app = std::make_unique<Application>("austral-welcome", 950, 600);
 
     // Load translations
     horizon::i18n().load_app_locales("austral-welcome");
