@@ -50,9 +50,12 @@ void AppStoreWindow::set_active_view(const std::string& view_name) {
 
 void AppStoreWindow::setup_toolbar() {
     auto tb = toolbar();
+
+    auto btn_wrapper = std::make_unique<horizon::Widget>();
     
     auto btn_action = std::make_unique<horizon::ToolbarButton>(horizon::i18n().tr("appstore.action.install"), "system-software-install");
     m_btn_action = btn_action.get();
+    m_btn_action->set_fixed_size(45);
     m_btn_action->set_visible(false);
     m_btn_action->when_click.connect([this](auto&) {
         if (!m_explore_view) return;
@@ -64,7 +67,8 @@ void AppStoreWindow::setup_toolbar() {
             m_explore_view->trigger_install();
         }
     });
-    tb->add_toolbar_widget(std::move(btn_action));
+    btn_wrapper->add_child(std::move(btn_action));
+    tb->add_toolbar_widget(std::move(btn_wrapper));
     
     tb->add_toolbar_widget(horizon::Spacer());
 
@@ -80,11 +84,13 @@ void AppStoreWindow::setup_toolbar() {
         set_active_view(ctx.button_text);
     });
 
+    tb->add_toolbar_widget(horizon::Spacer());
     tb->add_toolbar_widget(std::move(group_btn));
     tb->add_toolbar_widget(horizon::Spacer());
 
     auto search_box = std::make_unique<horizon::SearchBox>();
     m_search_box = search_box.get();
+    m_search_box->set_fixed_size(35);
     m_search_box->set_placeholder(horizon::i18n().tr("appstore.search.placeholder"));
     m_search_box->when_text_changed.connect([this](horizon::KeyEventContext&) {
         static size_t debounce_timer = 0;
@@ -101,7 +107,7 @@ void AppStoreWindow::setup_toolbar() {
     
     auto search_wrapper = std::make_unique<horizon::Widget>();
     search_wrapper->set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
-    search_wrapper->set_fixed_size(250);
+    search_wrapper->set_fixed_size(200);
     search_wrapper->add_child(std::move(search_box));
     
     tb->add_toolbar_widget(std::move(search_wrapper));
