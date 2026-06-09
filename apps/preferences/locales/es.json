@@ -49,7 +49,7 @@
             "menu_opacity": "Opacidad del menú:"
         },
         "compositor": {
-            "minimize_animation": "Animación de Minimizar (squeezimize)",
+            "minimize_animation": "Animación de Minimizar (magic lamp)",
             "open_close_animation": "Animación de Abrir/Cerrar (zoom)",
             "shadows": "Sombras de Ventanas",
             "wobbly_windows": "Ventanas Gelatinosas",

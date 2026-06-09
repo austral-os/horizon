@@ -49,7 +49,7 @@
             "menu_opacity": "Menu opacity:"
         },
         "compositor": {
-            "minimize_animation": "Minimize Animation (squeezimize)",
+            "minimize_animation": "Minimize Animation (magic lamp)",
             "open_close_animation": "Open/Close Animation (zoom)",
             "shadows": "Window Shadows",
             "wobbly_windows": "Wobbly Windows",
