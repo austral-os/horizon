@@ -6,6 +6,7 @@
 #include <horizon/Label.hpp>
 #include <horizon/Icon.hpp>
 #include <horizon/Checkbox.hpp>
+#include <iostream>
 #include <horizon/AquaObject.hpp>
 #include <horizon/apt/AptManager.hpp>
 #include <thread>
@@ -222,10 +223,30 @@ void ExploreView::perform_search(const std::string& query) {
         std::thread([this, query]() {
             auto results = m_apt->search_packages(query);
             if (application()) {
-                application()->post_task([this, results = std::move(results)]() mutable {
-                    m_tableview->set_data(std::move(results));
+                application()->post_task([this, query, results = std::move(results)]() mutable {
                     if (on_loading_state_changed) {
                         on_loading_state_changed(false, "Búsqueda finalizada");
+                    }
+                    
+                    bool has_results = !results.empty();
+                    int best_match_idx = 0;
+                    if (has_results) {
+                        for (size_t i = 0; i < results.size(); ++i) {
+                            if (results[i].name == query) {
+                                best_match_idx = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    std::cout << "DEBUG: Search query='" << query << "' found at index " << best_match_idx << " total results=" << results.size() << std::endl;
+
+                    m_tableview->set_data(results);
+                    
+                    if (has_results) {
+                        m_tableview->set_selected_index(best_match_idx);
+                        m_tableview->scroll_to_index(best_match_idx);
+                        update_details(results[best_match_idx]);
                     }
                 });
             }

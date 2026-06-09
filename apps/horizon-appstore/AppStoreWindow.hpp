@@ -15,13 +15,15 @@ namespace horizon::appstore {
 
 class AppStoreWindow : public horizon::ApplicationWindow {
 public:
-    AppStoreWindow();
+    AppStoreWindow(const std::string& initial_view = "Destacados", const std::string& initial_search = "");
     ~AppStoreWindow() override = default;
+    
+    void set_active_view(const std::string& view_name);
 
 private:
     void setup_toolbar();
     void setup_statusbar();
-    void setup_content();
+    void setup_content(const std::string& initial_search);
     
     void set_status(const std::string& message, bool loading = false);
 

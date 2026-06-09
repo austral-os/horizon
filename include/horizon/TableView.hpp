@@ -9,6 +9,7 @@
 #include <horizon/TableRow.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/Menu.hpp>
+#include <iostream>
 #include <memory>
 #include <set>
 #include <vector>
@@ -80,15 +81,16 @@ namespace horizon
                     when_row_click.run(click_ctx);
 
                     // Auto-scroll to make the row visible
-                    if (m_scroll_area) {
+                    if (children().size() >= 2) {
+                        ScrollArea *scroll = static_cast<ScrollArea *>(children()[1].get());
                         int row_y = new_idx * m_row_height;
-                        int current_scroll_y = m_scroll_area->scroll_y();
-                        int viewport_h = m_scroll_area->height();
+                        int current_scroll_y = scroll->scroll_y();
+                        int viewport_h = scroll->height();
 
                         if (row_y < current_scroll_y) {
-                            m_scroll_area->set_scroll_position(m_scroll_area->scroll_x(), row_y);
+                            scroll->set_scroll_position(scroll->scroll_x(), row_y);
                         } else if (row_y + m_row_height > current_scroll_y + viewport_h) {
-                            m_scroll_area->set_scroll_position(m_scroll_area->scroll_x(), row_y + m_row_height - viewport_h);
+                            scroll->set_scroll_position(scroll->scroll_x(), row_y + m_row_height - viewport_h);
                         }
                     }
                 }
@@ -243,6 +245,36 @@ namespace horizon
                 m_selection_anchor = index;
             }
             update_selection_visuals();
+        }
+
+        void scroll_to_index(int index)
+        {
+            auto* app = application();
+            if (!app) return;
+            
+            app->add_timer(50, [this, index]() {
+                    if (children().size() < 2) return;
+                    ScrollArea *scroll = static_cast<ScrollArea *>(children()[1].get());
+                    if (!scroll || scroll->children().empty()) return;
+                    
+                    Widget *content = scroll->children()[0].get();
+                    
+                    // Wait until layout is established and DOM is populated
+                    if (m_height <= 0 || scroll->height() <= 0 || (!m_data.empty() && content->children().empty())) {
+                        scroll_to_index(index);
+                        return;
+                    }
+
+                    calculate_internal_layout();
+                    
+                    if (index >= 0 && index < (int)m_data.size()) {
+                        int row_y = index * m_row_height;
+                        int viewport_h = scroll->height();
+                        int target_y = row_y - (viewport_h / 2) + (m_row_height / 2);
+                        if (target_y < 0) target_y = 0;
+                        scroll->set_scroll_position(scroll->scroll_x(), target_y);
+                    }
+                });
         }
 
         void set_row_menu_factory(std::function<std::unique_ptr<Menu>(const T &)> factory)

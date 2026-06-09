@@ -5,15 +5,46 @@
 
 namespace horizon::appstore {
 
-AppStoreWindow::AppStoreWindow() : ApplicationWindow("Horizon AppStore") {
+AppStoreWindow::AppStoreWindow(const std::string& initial_view, const std::string& initial_search) : ApplicationWindow("Horizon AppStore") {
     set_size(1000, 700);
     
     m_apt_manager = std::make_unique<horizon::apt::AptManager>();
     m_apt_manager->initialize();
 
-    setup_content();
+    setup_content(initial_search);
     setup_toolbar();
     setup_statusbar();
+    
+    set_active_view(initial_view);
+    
+    if (!initial_search.empty() && m_search_box) {
+        m_search_box->set_text(initial_search);
+    }
+}
+
+void AppStoreWindow::set_active_view(const std::string& view_name) {
+    if (!m_group_btn) return;
+    
+    if (view_name == "Explorar") {
+        m_group_btn->set_current_item(1);
+    } else if (view_name == "Actualizaciones") {
+        m_group_btn->set_current_item(2);
+    } else {
+        m_group_btn->set_current_item(0);
+    }
+
+    bool is_explore = (view_name == "Explorar");
+    if (m_featured_view) m_featured_view->set_visible(view_name == "Destacados");
+    if (m_explore_view) m_explore_view->set_visible(is_explore);
+    if (m_updates_view) m_updates_view->set_visible(view_name == "Actualizaciones");
+    
+    if (m_btn_action) {
+        if (is_explore && m_explore_view && m_explore_view->selected_package()) {
+            m_btn_action->set_visible(true);
+        } else {
+            m_btn_action->set_visible(false);
+        }
+    }
 }
 
 void AppStoreWindow::setup_toolbar() {
@@ -45,18 +76,7 @@ void AppStoreWindow::setup_toolbar() {
     m_group_btn->set_current_item(0);
 
     m_group_btn->when_button_clicked.connect([this](horizon::GroupButtonClickEvent& ctx) {
-        bool is_explore = (ctx.button_text == "Explorar");
-        if (m_featured_view) m_featured_view->set_visible(ctx.button_text == "Destacados");
-        if (m_explore_view) m_explore_view->set_visible(is_explore);
-        if (m_updates_view) m_updates_view->set_visible(ctx.button_text == "Actualizaciones");
-        
-        if (m_btn_action) {
-            if (is_explore && m_explore_view && m_explore_view->selected_package()) {
-                m_btn_action->set_visible(true);
-            } else {
-                m_btn_action->set_visible(false);
-            }
-        }
+        set_active_view(ctx.button_text);
     });
 
     tb->add_toolbar_widget(std::move(group_btn));
@@ -73,9 +93,7 @@ void AppStoreWindow::setup_toolbar() {
                 m_explore_view->perform_search(m_search_box->text());
                 // Switch to explore view if we are searching
                 m_group_btn->set_current_item(1);
-                if (m_featured_view) m_featured_view->set_visible(false);
-                if (m_updates_view) m_updates_view->set_visible(false);
-                m_explore_view->set_visible(true);
+                set_active_view("Explorar");
             }
         });
     });
@@ -89,7 +107,7 @@ void AppStoreWindow::setup_toolbar() {
     tb->add_toolbar_widget(horizon::Spacer(10));
 }
 
-void AppStoreWindow::setup_content() {
+void AppStoreWindow::setup_content(const std::string& initial_search) {
     auto content = std::make_unique<horizon::Widget>();
     m_content_area = content.get();
     m_content_area->set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
@@ -127,9 +145,13 @@ void AppStoreWindow::setup_content() {
     
     m_content_area->add_child(std::move(explore));
     
-    this->when_application_load.connect([this](auto&) {
+    this->when_application_load.connect([this, initial_search](auto&) {
         if (m_explore_view) {
-            m_explore_view->load_initial_data();
+            if (!initial_search.empty()) {
+                m_explore_view->perform_search(initial_search);
+            } else {
+                m_explore_view->load_initial_data();
+            }
         }
     });
     
