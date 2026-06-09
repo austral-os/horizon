@@ -16,7 +16,7 @@
 #include "views/PowerView/PowerView.hpp"
 #include "views/PrintersView/PrintersView.hpp"
 #include "views/RegionView/RegionView.hpp"
-#include "views/ScreensaverView/ScreensaverView.hpp"
+#include "views/CompositorView/CompositorView.hpp"
 #include "views/SoundView/SoundView.hpp"
 #include "views/UsersView/UsersView.hpp"
 #include "views/WifiView/WifiView.hpp"
@@ -72,8 +72,8 @@ namespace horizon::preferences
             view = std::make_unique<DesktopView>();
         else if (id == "appearance")
             view = std::make_unique<AppearanceView>();
-        else if (id == "screensaver")
-            view = std::make_unique<ScreensaverView>();
+        else if (id == "compositor")
+            view = std::make_unique<CompositorView>();
         else if (id == "notifications")
             view = std::make_unique<NotificationsView>();
         else if (id == "display")

@@ -9,7 +9,7 @@ add_executable(preferences
     src/views/DesktopView/WallpaperView.cpp
     src/views/DesktopView/DockView.cpp
     src/views/AppearanceView/AppearanceView.cpp
-    src/views/ScreensaverView/ScreensaverView.cpp
+    src/views/CompositorView/CompositorView.cpp
     src/views/NotificationsView/NotificationsView.cpp
     src/views/DisplayView/DisplayView.cpp
     src/views/DisplayView/DisplayDevices.cpp
@@ -46,6 +46,7 @@ add_executable(preferences
     src/views/ApplicationsView/StartupEditDialog.cpp
     src/utils/XkbParser.cpp
     src/utils/MeteorConfigWriter.cpp
+    src/utils/MeteorPluginManager.cpp
     src/views/KeyboardView/KeyboardLanguageView.cpp
     src/views/ApplicationsView/LayoutPickerDialog.cpp
     src/utils/PipeWireManager.cpp
@@ -73,7 +74,7 @@ horizon_install_app(preferences
     NAME "Preferences"
     COMMENT "Horizon System Preferences"
     ICON "applications-system"
-    VERSION "0.1.6"
+    VERSION "0.1.7"
     CATEGORIES "System;"
 )
 

@@ -8,12 +8,12 @@ namespace horizon::preferences
         // Category: Personal
         IconGroup personal;
         personal.title = i18n().tr("preferences.groups.personal");
-        personal.items = {
-            {"appearance", i18n().tr("preferences.sections.appearance"), "preferences-desktop-theme"},
-            {"desktop", i18n().tr("preferences.sections.desktop"), "user-desktop"},
-            {"screensaver", i18n().tr("preferences.sections.screensaver"), "preferences-desktop-screensaver"},
-            {"notifications", i18n().tr("preferences.sections.notifications"), "preferences-desktop-notification"}
-        };
+        personal.items = {{"appearance", i18n().tr("preferences.sections.appearance"),
+                           "preferences-desktop-theme"},
+                          {"desktop", i18n().tr("preferences.sections.desktop"), "user-desktop"},
+                          {"compositor", i18n().tr("preferences.sections.compositor"), "ccsm"},
+                          {"notifications", i18n().tr("preferences.sections.notifications"),
+                           "preferences-desktop-notification"}};
         add_group(personal);
 
         // Category: Hardware
@@ -23,10 +23,10 @@ namespace horizon::preferences
             {"display", i18n().tr("preferences.sections.display"), "video-display"},
             {"sound", i18n().tr("preferences.sections.sound"), "preferences-desktop-sound"},
             {"mouse", i18n().tr("preferences.sections.mouse"), "preferences-desktop-peripherals"},
-            {"keyboard", i18n().tr("preferences.sections.keyboard"), "preferences-desktop-keyboard"},
+            {"keyboard", i18n().tr("preferences.sections.keyboard"),
+             "preferences-desktop-keyboard"},
             {"printers", i18n().tr("preferences.sections.printers"), "preferences-devices-printer"},
-            {"power", i18n().tr("preferences.sections.power"), "preferences-system-power"}
-        };
+            {"power", i18n().tr("preferences.sections.power"), "preferences-system-power"}};
         add_group(hardware);
 
         // Category: Network
@@ -34,9 +34,9 @@ namespace horizon::preferences
         network.title = i18n().tr("preferences.groups.network");
         network.items = {
             {"wi-fi", i18n().tr("preferences.sections.wifi"), "network-wireless"},
-            {"bluetooth", i18n().tr("preferences.sections.bluetooth"), "preferences-system-bluetooth"},
-            {"network", i18n().tr("preferences.sections.network"), "network-workgroup"}
-        };
+            {"bluetooth", i18n().tr("preferences.sections.bluetooth"),
+             "preferences-system-bluetooth"},
+            {"network", i18n().tr("preferences.sections.network"), "network-workgroup"}};
         add_group(network);
 
         // Category: System
@@ -47,8 +47,7 @@ namespace horizon::preferences
             {"datetime", i18n().tr("preferences.sections.datetime"), "preferences-system-time"},
             {"region", i18n().tr("preferences.sections.region"), "preferences-desktop-locale"},
             {"applications", i18n().tr("preferences.sections.applications"), "applications-other"},
-            {"details", i18n().tr("preferences.sections.details"), "help-about"}
-        };
+            {"details", i18n().tr("preferences.sections.details"), "help-about"}};
         add_group(system);
     }
 } // namespace horizon::preferences

@@ -11,7 +11,7 @@
         "sections": {
             "appearance": "Apariencia",
             "desktop": "Escritorio",
-            "screensaver": "Salvapantallas",
+            "compositor": "Compositor",
             "notifications": "Notificaciones",
             "display": "Pantalla",
             "sound": "Sonido",
@@ -47,6 +47,13 @@
             "opacity_title": "Opacidad de Elementos",
             "panel_opacity": "Opacidad del panel:",
             "menu_opacity": "Opacidad del menú:"
+        },
+        "compositor": {
+            "minimize_animation": "Animación de Minimizar (squeezimize)",
+            "open_close_animation": "Animación de Abrir/Cerrar (zoom)",
+            "shadows": "Sombras de Ventanas",
+            "wobbly_windows": "Ventanas Gelatinosas",
+            "blur": "Desenfocar Fondo (Blur)"
         },
         "applications": {
             "tabs": {

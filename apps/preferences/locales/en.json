@@ -11,7 +11,7 @@
         "sections": {
             "appearance": "Appearance",
             "desktop": "Desktop",
-            "screensaver": "Screensaver",
+            "compositor": "Compositor",
             "notifications": "Notifications",
             "display": "Displays",
             "sound": "Sound",
@@ -47,6 +47,13 @@
             "opacity_title": "Element Opacity",
             "panel_opacity": "Panel opacity:",
             "menu_opacity": "Menu opacity:"
+        },
+        "compositor": {
+            "minimize_animation": "Minimize Animation (squeezimize)",
+            "open_close_animation": "Open/Close Animation (zoom)",
+            "shadows": "Window Shadows",
+            "wobbly_windows": "Wobbly Windows",
+            "blur": "Background Blur"
         },
         "applications": {
             "tabs": {
