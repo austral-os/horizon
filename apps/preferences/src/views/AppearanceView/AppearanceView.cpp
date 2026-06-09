@@ -305,7 +305,7 @@ namespace horizon::preferences
         bool skipping_plugins = false;
 
         std::string basic_plugins = "autostart command core decoration grid move place resize switcher window-rules wm-actions wproto foreign-toplevel";
-        std::string fx_plugins = "alpha animate expo vswitch wobbly blur winshadows";
+        std::string fx_plugins = "alpha animate expo vswitch wobbly blur winshadows squeezimize zoom";
 
         if (f.is_open()) {
             std::string line;
