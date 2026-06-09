@@ -22,6 +22,9 @@ public:
     // Initializes the APT cache. Returns true on success.
     bool initialize();
 
+    // Reloads the APT cache by destroying and rebuilding it.
+    void reload_cache();
+
     // Search for packages by keyword.
     std::vector<PackageInfo> search_packages(const std::string& keyword);
 

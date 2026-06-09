@@ -24,6 +24,12 @@ AptManager::~AptManager() {
     delete d;
 }
 
+void AptManager::reload_cache() {
+    delete d;
+    d = new Private();
+    initialize();
+}
+
 bool AptManager::initialize() {
     if (d->initialized) return true;
 

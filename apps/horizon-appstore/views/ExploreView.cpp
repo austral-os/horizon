@@ -26,6 +26,7 @@ void ExploreView::setup_ui() {
     auto cat_table = std::make_unique<horizon::TableView<CategoryItem>>();
     m_category_table = cat_table.get();
     m_category_table->set_fixed_size(250); // width
+    m_category_table->set_header_visible(false);
 
     horizon::TableColumn<CategoryItem> col_cat_icon;
     col_cat_icon.title = "";
@@ -164,6 +165,7 @@ void ExploreView::setup_ui() {
     m_detail_icon = icon.get();
     m_detail_icon->set_icon_size(64);
     m_detail_icon->set_fixed_size(80);
+    m_detail_icon->set_vertical_alignment(horizon::VerticalAlignment::Top);
     details_panel->add_child(std::move(icon));
 
     auto info_panel = std::make_unique<horizon::Widget>();
@@ -172,10 +174,12 @@ void ExploreView::setup_ui() {
     auto title = std::make_unique<horizon::Label>("");
     m_detail_title = title.get();
     m_detail_title->set_fixed_size(30); // height
+    m_detail_title->set_font_weight(horizon::FONT_WEIGHT_BOLD);
     info_panel->add_child(std::move(title));
 
     auto desc = std::make_unique<horizon::Label>("");
     m_detail_desc = desc.get();
+    m_detail_desc->set_vertical_alignment(horizon::VerticalAlignment::Top);
     info_panel->add_child(std::move(desc));
 
     details_panel->add_child(std::move(info_panel));
@@ -208,6 +212,8 @@ void ExploreView::load_initial_data() {
 }
 
 void ExploreView::perform_search(const std::string& query) {
+    m_current_search_query = query;
+    m_current_category = "";
     if (m_apt && !query.empty()) {
         if (on_loading_state_changed) {
             on_loading_state_changed(true, "Buscando '" + query + "'...");
@@ -228,6 +234,8 @@ void ExploreView::perform_search(const std::string& query) {
 }
 
 void ExploreView::filter_by_category(const std::string& category_name) {
+    m_current_category = category_name;
+    m_current_search_query = "";
     if (!m_apt) return;
 
     if (on_loading_state_changed) {
@@ -282,6 +290,16 @@ void ExploreView::update_details(const horizon::apt::PackageInfo& pkg) {
     }
 }
 
+void ExploreView::reload_current_view() {
+    if (!m_current_search_query.empty()) {
+        perform_search(m_current_search_query);
+    } else if (!m_current_category.empty()) {
+        filter_by_category(m_current_category);
+    } else {
+        load_initial_data();
+    }
+}
+
 void ExploreView::trigger_install() {
     if (!m_selected_pkg) return;
     std::string pkg_name = m_selected_pkg->name;
@@ -292,13 +310,18 @@ void ExploreView::trigger_install() {
     
     std::thread([this, pkg_name]() {
         bool success = m_apt->install_package(pkg_name);
+        m_apt->reload_cache(); // Refresh cache with new package status
         application()->post_task([this, success, pkg_name]() {
             if (on_loading_state_changed) {
                 std::string msg = success ? "Instalación completada." : "Error instalando " + pkg_name + ".";
                 on_loading_state_changed(false, msg);
             }
-            // Refresh logic to update UI
-            load_initial_data();
+            // Update selected package status manually if it matches
+            if (success && m_selected_pkg && m_selected_pkg->name == pkg_name) {
+                m_selected_pkg->is_installed = true;
+                if (on_package_selected) on_package_selected(&(*m_selected_pkg));
+            }
+            reload_current_view();
         });
     }).detach();
 }
@@ -313,13 +336,18 @@ void ExploreView::trigger_remove() {
     
     std::thread([this, pkg_name]() {
         bool success = m_apt->remove_package(pkg_name);
+        m_apt->reload_cache(); // Refresh cache with new package status
         application()->post_task([this, success, pkg_name]() {
             if (on_loading_state_changed) {
                 std::string msg = success ? "Desinstalación completada." : "Error desinstalando " + pkg_name + ".";
                 on_loading_state_changed(false, msg);
             }
-            // Refresh logic to update UI
-            load_initial_data();
+            // Update selected package status manually if it matches
+            if (success && m_selected_pkg && m_selected_pkg->name == pkg_name) {
+                m_selected_pkg->is_installed = false;
+                if (on_package_selected) on_package_selected(&(*m_selected_pkg));
+            }
+            reload_current_view();
         });
     }).detach();
 }

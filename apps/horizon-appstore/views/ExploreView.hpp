@@ -24,6 +24,7 @@ public:
 
     void perform_search(const std::string& query);
     void load_initial_data();
+    void reload_current_view();
 
     std::function<void(bool, const std::string&)> on_loading_state_changed;
     std::function<void(const horizon::apt::PackageInfo*)> on_package_selected;
@@ -52,6 +53,8 @@ private:
 
     size_t m_search_timer_id = 0;
     std::optional<horizon::apt::PackageInfo> m_selected_pkg;
+    std::string m_current_search_query;
+    std::string m_current_category;
 };
 
 }
