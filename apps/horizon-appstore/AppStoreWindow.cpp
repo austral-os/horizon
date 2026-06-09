@@ -2,10 +2,11 @@
 #include <horizon/Toolbar.hpp>
 #include <horizon/Statusbar.hpp>
 #include <horizon/Spacer.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon::appstore {
 
-AppStoreWindow::AppStoreWindow(const std::string& initial_view, const std::string& initial_search) : ApplicationWindow("Horizon AppStore") {
+AppStoreWindow::AppStoreWindow(const std::string& initial_view, const std::string& initial_search) : ApplicationWindow("AppStore") {
     set_size(1000, 700);
     
     m_apt_manager = std::make_unique<horizon::apt::AptManager>();
@@ -25,18 +26,18 @@ AppStoreWindow::AppStoreWindow(const std::string& initial_view, const std::strin
 void AppStoreWindow::set_active_view(const std::string& view_name) {
     if (!m_group_btn) return;
     
-    if (view_name == "Explorar") {
+    if (view_name == horizon::i18n().tr("appstore.views.explore")) {
         m_group_btn->set_current_item(1);
-    } else if (view_name == "Actualizaciones") {
+    } else if (view_name == horizon::i18n().tr("appstore.views.updates")) {
         m_group_btn->set_current_item(2);
     } else {
         m_group_btn->set_current_item(0);
     }
 
-    bool is_explore = (view_name == "Explorar");
-    if (m_featured_view) m_featured_view->set_visible(view_name == "Destacados");
+    bool is_explore = (view_name == horizon::i18n().tr("appstore.views.explore"));
+    if (m_featured_view) m_featured_view->set_visible(view_name == horizon::i18n().tr("appstore.views.featured"));
     if (m_explore_view) m_explore_view->set_visible(is_explore);
-    if (m_updates_view) m_updates_view->set_visible(view_name == "Actualizaciones");
+    if (m_updates_view) m_updates_view->set_visible(view_name == horizon::i18n().tr("appstore.views.updates"));
     
     if (m_btn_action) {
         if (is_explore && m_explore_view && m_explore_view->selected_package()) {
@@ -50,7 +51,7 @@ void AppStoreWindow::set_active_view(const std::string& view_name) {
 void AppStoreWindow::setup_toolbar() {
     auto tb = toolbar();
     
-    auto btn_action = std::make_unique<horizon::ToolbarButton>("Instalar", "system-software-install");
+    auto btn_action = std::make_unique<horizon::ToolbarButton>(horizon::i18n().tr("appstore.action.install"), "system-software-install");
     m_btn_action = btn_action.get();
     m_btn_action->set_visible(false);
     m_btn_action->when_click.connect([this](auto&) {
@@ -69,9 +70,9 @@ void AppStoreWindow::setup_toolbar() {
 
     auto group_btn = std::make_unique<horizon::ToggleGroupButton>();
     m_group_btn = group_btn.get();
-    m_group_btn->add_item("Destacados");
-    m_group_btn->add_item("Explorar");
-    m_group_btn->add_item("Actualizaciones");
+    m_group_btn->add_item(horizon::i18n().tr("appstore.views.featured"));
+    m_group_btn->add_item(horizon::i18n().tr("appstore.views.explore"));
+    m_group_btn->add_item(horizon::i18n().tr("appstore.views.updates"));
     m_group_btn->set_fixed_size(400);
     m_group_btn->set_current_item(0);
 
@@ -84,7 +85,7 @@ void AppStoreWindow::setup_toolbar() {
 
     auto search_box = std::make_unique<horizon::SearchBox>();
     m_search_box = search_box.get();
-    m_search_box->set_placeholder("Buscar...");
+    m_search_box->set_placeholder(horizon::i18n().tr("appstore.search.placeholder"));
     m_search_box->when_text_changed.connect([this](horizon::KeyEventContext&) {
         static size_t debounce_timer = 0;
         if (debounce_timer) application()->stop_timer(debounce_timer);
@@ -93,7 +94,7 @@ void AppStoreWindow::setup_toolbar() {
                 m_explore_view->perform_search(m_search_box->text());
                 // Switch to explore view if we are searching
                 m_group_btn->set_current_item(1);
-                set_active_view("Explorar");
+                set_active_view(horizon::i18n().tr("appstore.views.explore"));
             }
         });
     });
@@ -132,10 +133,10 @@ void AppStoreWindow::setup_content(const std::string& initial_search) {
                 m_btn_action->set_visible(true);
             }
             if (pkg->is_installed) {
-                m_btn_action->set_title("Desinstalar");
+                m_btn_action->set_title(horizon::i18n().tr("appstore.action.uninstall"));
                 m_btn_action->set_icon_name("edit-delete");
             } else {
-                m_btn_action->set_title("Instalar");
+                m_btn_action->set_title(horizon::i18n().tr("appstore.action.install"));
                 m_btn_action->set_icon_name("system-software-install");
             }
         } else {
@@ -167,7 +168,7 @@ void AppStoreWindow::setup_statusbar() {
     show_status_bar();
     auto sb = statusbar();
     
-    auto lbl = std::make_unique<horizon::Label>("Listo");
+    auto lbl = std::make_unique<horizon::Label>(horizon::i18n().tr("appstore.status.ready"));
     m_status_label = lbl.get();
 
     auto pbc = std::make_unique<horizon::Widget>();

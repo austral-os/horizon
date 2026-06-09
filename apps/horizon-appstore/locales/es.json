@@ -1,0 +1,54 @@
+{
+  "appstore": {
+    "about": {
+      "description": "Encuentra e instala aplicaciones en tu sistema."
+    },
+    "help": {
+      "usage": "Uso: horizon-appstore [OPCIONES]\n\nOpciones:\n  explore                 Inicia en la vista 'Explorar'.\n  --explore               Igual a 'explore'.\n  updates                 Inicia en la vista 'Actualizaciones'.\n  --updates               Igual a 'updates'.\n  --search <query>        Busca un paquete, selecciona y muestra el resultado exacto si lo hay.\n  --search=<query>        Igual a '--search <query>'.\n  -h, --help              Muestra este mensaje de ayuda y sale.\n"
+    },
+    "views": {
+      "explore": "Explorar",
+      "featured": "Destacados",
+      "updates": "Actualizaciones"
+    },
+    "search": {
+      "placeholder": "Buscar..."
+    },
+    "status": {
+      "ready": "Listo",
+      "searching": "Buscando '%1'...",
+      "search_finished": "Búsqueda finalizada",
+      "loading_category": "Cargando %1...",
+      "installing": "Instalando %1...",
+      "install_success": "Instalación completada.",
+      "install_error": "Error instalando %1.",
+      "uninstalling": "Desinstalando %1...",
+      "uninstall_success": "Desinstalación completada.",
+      "uninstall_error": "Error desinstalando %1."
+    },
+    "action": {
+      "install": "Instalar",
+      "uninstall": "Desinstalar"
+    },
+    "explore": {
+      "column": {
+        "category": "Categoría",
+        "application": "Aplicación",
+        "version": "Versión"
+      }
+    },
+    "category": {
+      "all": "Todas",
+      "accessories": "Accesorios",
+      "education": "Educación",
+      "graphics": "Gráficos",
+      "internet": "Internet",
+      "games": "Juegos",
+      "multimedia": "Multimedia",
+      "office": "Ofimática",
+      "development": "Desarrollo",
+      "system": "Sistema",
+      "other": "Otros"
+    }
+  }
+}

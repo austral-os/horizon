@@ -9,7 +9,7 @@
 #include <iostream>
 #include <horizon/AquaObject.hpp>
 #include <horizon/apt/AptManager.hpp>
-#include <thread>
+#include <horizon/I18n.hpp>
 
 namespace horizon::appstore {
 
@@ -42,7 +42,7 @@ void ExploreView::setup_ui() {
     m_category_table->add_column(col_cat_icon);
 
     horizon::TableColumn<CategoryItem> col_cat_name;
-    col_cat_name.title = "Categoría";
+    col_cat_name.title = horizon::i18n().tr("appstore.explore.column.category");
     col_cat_name.width = 200;
     col_cat_name.cell_factory = [](const CategoryItem& c) -> std::unique_ptr<horizon::Widget> {
         return std::make_unique<horizon::Label>(c.name);
@@ -82,7 +82,7 @@ void ExploreView::setup_ui() {
     m_tableview->add_column(col_installed);
 
     horizon::TableColumn<horizon::apt::PackageInfo> col_app;
-    col_app.title = "Aplicación";
+    col_app.title = horizon::i18n().tr("appstore.explore.column.application");
     col_app.width = 300;
     col_app.cell_factory = [](const horizon::apt::PackageInfo& pkg) -> std::unique_ptr<horizon::Widget> {
         auto hpanel = std::make_unique<horizon::Widget>();
@@ -117,7 +117,7 @@ void ExploreView::setup_ui() {
     m_tableview->add_column(col_app);
 
     horizon::TableColumn<horizon::apt::PackageInfo> col_version;
-    col_version.title = "Versión";
+    col_version.title = horizon::i18n().tr("appstore.explore.column.version");
     col_version.width = 150;
     col_version.cell_factory = [](const horizon::apt::PackageInfo& pkg) -> std::unique_ptr<horizon::Widget> {
         std::string clean_ver = pkg.version;
@@ -192,24 +192,24 @@ void ExploreView::setup_ui() {
 
 void ExploreView::build_categories() {
     std::vector<CategoryItem> categories = {
-        {"Todas", "applications-all"},
-        {"Accesorios", "applications-utilities"},
-        {"Educación", "applications-science"},
-        {"Gráficos", "applications-graphics"},
-        {"Internet", "applications-internet"},
-        {"Juegos", "applications-games"},
-        {"Multimedia", "applications-multimedia"},
-        {"Ofimática", "applications-office"},
-        {"Desarrollo", "applications-development"},
-        {"Sistema", "applications-system"},
-        {"Otros", "applications-other"}
+        {horizon::i18n().tr("appstore.category.all"), "applications-all"},
+        {horizon::i18n().tr("appstore.category.accessories"), "applications-utilities"},
+        {horizon::i18n().tr("appstore.category.education"), "applications-science"},
+        {horizon::i18n().tr("appstore.category.graphics"), "applications-graphics"},
+        {horizon::i18n().tr("appstore.category.internet"), "applications-internet"},
+        {horizon::i18n().tr("appstore.category.games"), "applications-games"},
+        {horizon::i18n().tr("appstore.category.multimedia"), "applications-multimedia"},
+        {horizon::i18n().tr("appstore.category.office"), "applications-office"},
+        {horizon::i18n().tr("appstore.category.development"), "applications-development"},
+        {horizon::i18n().tr("appstore.category.system"), "applications-system"},
+        {horizon::i18n().tr("appstore.category.other"), "applications-other"}
     };
 
     m_category_table->set_data(std::move(categories));
 }
 
 void ExploreView::load_initial_data() {
-    filter_by_category("Todas");
+    filter_by_category(horizon::i18n().tr("appstore.category.all"));
 }
 
 void ExploreView::perform_search(const std::string& query) {
@@ -217,7 +217,10 @@ void ExploreView::perform_search(const std::string& query) {
     m_current_category = "";
     if (m_apt && !query.empty()) {
         if (on_loading_state_changed) {
-            on_loading_state_changed(true, "Buscando '" + query + "'...");
+            std::string msg = horizon::i18n().tr("appstore.status.searching");
+            auto pos = msg.find("%1");
+            if (pos != std::string::npos) msg.replace(pos, 2, query);
+            on_loading_state_changed(true, msg);
         }
 
         std::thread([this, query]() {
@@ -225,7 +228,7 @@ void ExploreView::perform_search(const std::string& query) {
             if (application()) {
                 application()->post_task([this, query, results = std::move(results)]() mutable {
                     if (on_loading_state_changed) {
-                        on_loading_state_changed(false, "Búsqueda finalizada");
+                        on_loading_state_changed(false, horizon::i18n().tr("appstore.status.search_finished"));
                     }
                     
                     bool has_results = !results.empty();
@@ -260,30 +263,34 @@ void ExploreView::filter_by_category(const std::string& category_name) {
     if (!m_apt) return;
 
     if (on_loading_state_changed) {
-        on_loading_state_changed(true, "Cargando " + (category_name.empty() ? "Todas" : category_name) + "...");
+        std::string cat_display = category_name.empty() ? horizon::i18n().tr("appstore.category.all") : category_name;
+        std::string msg = horizon::i18n().tr("appstore.status.loading_category");
+        auto pos = msg.find("%1");
+        if (pos != std::string::npos) msg.replace(pos, 2, cat_display);
+        on_loading_state_changed(true, msg);
     }
 
     std::thread([this, category_name]() {
         std::vector<std::string> sections;
-        if (category_name == "Accesorios") {
+        if (category_name == horizon::i18n().tr("appstore.category.accessories")) {
             sections = {"utils", "misc"};
-        } else if (category_name == "Educación") {
+        } else if (category_name == horizon::i18n().tr("appstore.category.education")) {
             sections = {"education", "math", "science"};
-        } else if (category_name == "Gráficos") {
+        } else if (category_name == horizon::i18n().tr("appstore.category.graphics")) {
             sections = {"graphics"};
-        } else if (category_name == "Internet") {
+        } else if (category_name == horizon::i18n().tr("appstore.category.internet")) {
             sections = {"web", "net", "mail", "news"};
-        } else if (category_name == "Juegos") {
+        } else if (category_name == horizon::i18n().tr("appstore.category.games")) {
             sections = {"games"};
-        } else if (category_name == "Multimedia") {
+        } else if (category_name == horizon::i18n().tr("appstore.category.multimedia")) {
             sections = {"sound", "video", "media"};
-        } else if (category_name == "Ofimática") {
+        } else if (category_name == horizon::i18n().tr("appstore.category.office")) {
             sections = {"editors", "text", "doc"};
-        } else if (category_name == "Desarrollo") {
+        } else if (category_name == horizon::i18n().tr("appstore.category.development")) {
             sections = {"devel", "lisp", "java", "python", "ruby", "perl", "rust", "golang"};
-        } else if (category_name == "Sistema") {
+        } else if (category_name == horizon::i18n().tr("appstore.category.system")) {
             sections = {"admin", "sys"};
-        } else if (category_name == "Otros") {
+        } else if (category_name == horizon::i18n().tr("appstore.category.other")) {
             sections = {"other"};
         }
 
@@ -293,7 +300,7 @@ void ExploreView::filter_by_category(const std::string& category_name) {
             application()->post_task([this, results = std::move(results)]() mutable {
                 m_tableview->set_data(std::move(results));
                 if (on_loading_state_changed) {
-                    on_loading_state_changed(false, "Listo");
+                    on_loading_state_changed(false, horizon::i18n().tr("appstore.status.ready"));
                 }
             });
         }
@@ -326,7 +333,10 @@ void ExploreView::trigger_install() {
     std::string pkg_name = m_selected_pkg->name;
     
     if (on_loading_state_changed) {
-        on_loading_state_changed(true, "Instalando " + pkg_name + "...");
+        std::string msg = horizon::i18n().tr("appstore.status.installing");
+        auto pos = msg.find("%1");
+        if (pos != std::string::npos) msg.replace(pos, 2, pkg_name);
+        on_loading_state_changed(true, msg);
     }
     
     std::thread([this, pkg_name]() {
@@ -334,7 +344,14 @@ void ExploreView::trigger_install() {
         m_apt->reload_cache(); // Refresh cache with new package status
         application()->post_task([this, success, pkg_name]() {
             if (on_loading_state_changed) {
-                std::string msg = success ? "Instalación completada." : "Error instalando " + pkg_name + ".";
+                std::string msg;
+                if (success) {
+                    msg = horizon::i18n().tr("appstore.status.install_success");
+                } else {
+                    msg = horizon::i18n().tr("appstore.status.install_error");
+                    auto pos = msg.find("%1");
+                    if (pos != std::string::npos) msg.replace(pos, 2, pkg_name);
+                }
                 on_loading_state_changed(false, msg);
             }
             // Update selected package status manually if it matches
@@ -352,7 +369,10 @@ void ExploreView::trigger_remove() {
     std::string pkg_name = m_selected_pkg->name;
     
     if (on_loading_state_changed) {
-        on_loading_state_changed(true, "Desinstalando " + pkg_name + "...");
+        std::string msg = horizon::i18n().tr("appstore.status.uninstalling");
+        auto pos = msg.find("%1");
+        if (pos != std::string::npos) msg.replace(pos, 2, pkg_name);
+        on_loading_state_changed(true, msg);
     }
     
     std::thread([this, pkg_name]() {
@@ -360,7 +380,14 @@ void ExploreView::trigger_remove() {
         m_apt->reload_cache(); // Refresh cache with new package status
         application()->post_task([this, success, pkg_name]() {
             if (on_loading_state_changed) {
-                std::string msg = success ? "Desinstalación completada." : "Error desinstalando " + pkg_name + ".";
+                std::string msg;
+                if (success) {
+                    msg = horizon::i18n().tr("appstore.status.uninstall_success");
+                } else {
+                    msg = horizon::i18n().tr("appstore.status.uninstall_error");
+                    auto pos = msg.find("%1");
+                    if (pos != std::string::npos) msg.replace(pos, 2, pkg_name);
+                }
                 on_loading_state_changed(false, msg);
             }
             // Update selected package status manually if it matches

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(horizon-appstore)
+project(horizon-appstore VERSION 1.0.0)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -20,4 +20,17 @@ target_link_libraries(horizon-appstore PUBLIC
     horizon-apt
 )
 
-install(TARGETS horizon-appstore DESTINATION bin)
+add_custom_command(TARGET horizon-appstore POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/locales
+    $<TARGET_FILE_DIR:horizon-appstore>/locales
+)
+
+horizon_install_app(horizon-appstore
+    APP_ID "horizon-appstore"
+    NAME "AppStore"
+    COMMENT "Encuentra e instala aplicaciones en tu sistema."
+    ICON "system-software-install"
+    VERSION "0.1.0"
+    CATEGORIES "System;"
+)
