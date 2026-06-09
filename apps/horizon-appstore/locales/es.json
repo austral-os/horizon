@@ -24,11 +24,20 @@
       "install_error": "Error instalando %1.",
       "uninstalling": "Desinstalando %1...",
       "uninstall_success": "Desinstalación completada.",
-      "uninstall_error": "Error desinstalando %1."
+      "uninstall_error": "Error desinstalando %1.",
+      "updating": "Actualizando sistema...",
+      "update_success": "Sistema actualizado correctamente.",
+      "update_error": "Error al actualizar."
     },
     "action": {
       "install": "Instalar",
-      "uninstall": "Desinstalar"
+      "uninstall": "Desinstalar",
+      "update_all": "Actualizar Todo"
+    },
+    "updates": {
+      "empty_title": "El sistema está actualizado",
+      "empty_desc": "No hay paquetes pendientes de actualizar.",
+      "check_btn": "Buscar actualizaciones"
     },
     "explore": {
       "column": {

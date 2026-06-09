@@ -28,6 +28,15 @@ namespace horizon
         tip->set_notification("safety-symbolic", "Buscando actualizaciones...");
         set_tooltip(std::move(tip));
 
+        this->when_click.connect(
+            [this](MouseButtonEventContext &ctx)
+            {
+                if (ctx.button == 0x110)
+                { // Left click
+                    std::system("horizon-appstore --updates &");
+                }
+            });
+
         m_running = true;
         m_monitor_thread = std::thread(
             [this]()

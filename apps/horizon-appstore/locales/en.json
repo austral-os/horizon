@@ -24,11 +24,20 @@
       "install_error": "Error installing %1.",
       "uninstalling": "Uninstalling %1...",
       "uninstall_success": "Uninstallation completed.",
-      "uninstall_error": "Error uninstalling %1."
+      "uninstall_error": "Error uninstalling %1.",
+      "updating": "Updating system...",
+      "update_success": "System updated successfully.",
+      "update_error": "Error updating."
     },
     "action": {
       "install": "Install",
-      "uninstall": "Uninstall"
+      "uninstall": "Uninstall",
+      "update_all": "Update All"
+    },
+    "updates": {
+      "empty_title": "System is up to date",
+      "empty_desc": "No packages pending update.",
+      "check_btn": "Check for updates"
     },
     "explore": {
       "column": {

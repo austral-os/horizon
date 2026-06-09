@@ -40,6 +40,12 @@ public:
     // Remove a package using pkexec. Returns true on success.
     bool remove_package(const std::string& pkg_name);
 
+    // List all upgradable packages from local cache.
+    std::vector<PackageInfo> list_upgradable_packages();
+
+    // Upgrade all upgradable packages using pkexec. Returns true on success.
+    bool upgrade_all_packages();
+
 private:
     struct Private;
     Private* d;

@@ -223,4 +223,51 @@ bool AptManager::remove_package(const std::string& pkg_name) {
     return result == 0;
 }
 
+std::vector<PackageInfo> AptManager::list_upgradable_packages() {
+    std::vector<PackageInfo> results;
+    if (!initialize()) return results;
+
+    pkgCache* cache = d->cache_file.GetPkgCache();
+    pkgDepCache* depCache = d->cache_file.GetDepCache();
+    if (!cache || !depCache) return results;
+
+    pkgRecords records(d->cache_file);
+
+    for (pkgCache::PkgIterator pkg = cache->PkgBegin(); !pkg.end(); ++pkg) {
+        if (!pkg.Name()) continue;
+        if (pkg->CurrentVer == 0) continue; // Not installed
+
+        pkgDepCache::StateCache &state = (*depCache)[pkg];
+        if (!state.Upgradable()) continue;
+
+        pkgCache::VerIterator ver = state.InstVerIter(*depCache);
+        if (ver.end()) continue;
+
+        PackageInfo info;
+        info.name = pkg.Name();
+        info.version = ver.VerStr() ? ver.VerStr() : "";
+        info.is_installed = true; // It's upgradable so it must be installed
+        
+        pkgCache::DescIterator desc = ver.DescriptionList();
+        if (!desc.end()) {
+            pkgRecords::Parser& parser = records.Lookup(desc.FileList());
+            info.description = parser.ShortDesc();
+        }
+
+        results.push_back(info);
+    }
+
+    std::sort(results.begin(), results.end(), [](const PackageInfo& a, const PackageInfo& b) {
+        return a.name < b.name;
+    });
+
+    return results;
+}
+
+bool AptManager::upgrade_all_packages() {
+    std::string cmd = "pkexec env DEBIAN_FRONTEND=noninteractive apt-get upgrade -y";
+    int result = std::system(cmd.c_str());
+    return result == 0;
+}
+
 } // namespace horizon::apt

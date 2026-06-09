@@ -35,15 +35,25 @@ void AppStoreWindow::set_active_view(const std::string& view_name) {
     }
 
     bool is_explore = (view_name == horizon::i18n().tr("appstore.views.explore"));
+    bool is_updates = (view_name == horizon::i18n().tr("appstore.views.updates"));
+    
     if (m_featured_view) m_featured_view->set_visible(view_name == horizon::i18n().tr("appstore.views.featured"));
     if (m_explore_view) m_explore_view->set_visible(is_explore);
-    if (m_updates_view) m_updates_view->set_visible(view_name == horizon::i18n().tr("appstore.views.updates"));
+    if (m_updates_view) m_updates_view->set_visible(is_updates);
     
     if (m_btn_action) {
         if (is_explore && m_explore_view && m_explore_view->selected_package()) {
             m_btn_action->set_visible(true);
         } else {
             m_btn_action->set_visible(false);
+        }
+    }
+
+    if (m_btn_update_all) {
+        if (is_updates && m_has_updates) {
+            m_btn_update_all->set_visible(true);
+        } else {
+            m_btn_update_all->set_visible(false);
         }
     }
 }
@@ -68,6 +78,15 @@ void AppStoreWindow::setup_toolbar() {
         }
     });
     btn_wrapper->add_child(std::move(btn_action));
+    auto btn_update_all = std::make_unique<horizon::ToolbarButton>(horizon::i18n().tr("appstore.action.update_all"), "software-update-available-symbolic");
+    m_btn_update_all = btn_update_all.get();
+    m_btn_update_all->set_fixed_size(45);
+    m_btn_update_all->set_visible(false);
+    m_btn_update_all->when_click.connect([this](auto&) {
+        if (m_updates_view) m_updates_view->trigger_update_all();
+    });
+    btn_wrapper->add_child(std::move(btn_update_all));
+
     tb->add_toolbar_widget(std::move(btn_wrapper));
     
     tb->add_toolbar_widget(horizon::Spacer());
@@ -152,6 +171,24 @@ void AppStoreWindow::setup_content(const std::string& initial_search) {
     
     m_content_area->add_child(std::move(explore));
     
+    auto updates = std::make_unique<UpdatesView>(m_apt_manager.get());
+    m_updates_view = updates.get();
+    m_updates_view->set_visible(false);
+    m_updates_view->on_loading_state_changed = [this](bool loading, const std::string& msg) {
+        set_status(msg, loading);
+        if (m_btn_update_all) m_btn_update_all->set_enabled(!loading);
+        if (m_group_btn) m_group_btn->set_enabled(!loading);
+    };
+    m_updates_view->on_updates_status_changed = [this](int update_count) {
+        if (m_btn_update_all) {
+            m_has_updates = (update_count > 0);
+            if (m_group_btn && m_group_btn->current_item() == 2) {
+                m_btn_update_all->set_visible(m_has_updates);
+            }
+        }
+    };
+    m_content_area->add_child(std::move(updates));
+
     this->when_application_load.connect([this, initial_search](auto&) {
         if (m_explore_view) {
             if (!initial_search.empty()) {
@@ -160,12 +197,10 @@ void AppStoreWindow::setup_content(const std::string& initial_search) {
                 m_explore_view->load_initial_data();
             }
         }
+        if (m_updates_view) {
+            m_updates_view->load_initial_data();
+        }
     });
-    
-    auto updates = std::make_unique<UpdatesView>();
-    m_updates_view = updates.get();
-    m_updates_view->set_visible(false);
-    m_content_area->add_child(std::move(updates));
 
     set_content(std::move(content));
 }

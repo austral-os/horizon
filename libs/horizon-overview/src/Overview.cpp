@@ -93,6 +93,9 @@ namespace horizon
         auto btn_update = std::make_unique<Button<SolidObject>>();
         btn_update->set_text(i18n().tr("overview.update"));
         btn_update->set_fixed_size(200);
+        btn_update->when_click.connect([](auto&) {
+            std::system("horizon-appstore --updates &");
+        });
 
         button_container->add_child(std::move(btn_system));
         button_container->add_child(Spacer(40));
