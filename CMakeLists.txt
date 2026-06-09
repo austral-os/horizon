@@ -156,7 +156,7 @@ add_subdirectory(libs/horizon-network)
 add_subdirectory(libs/horizon-network-storage)
 add_subdirectory(libs/horizon-compression-tools)
 add_subdirectory(libs/horizon-capture)
-
+add_subdirectory(libs/horizon-apt)
 
 # --- Core Applications ---
 add_subdirectory(apps/top_panel)
@@ -189,6 +189,7 @@ add_subdirectory(apps/horizon-keyring-manager)
 add_subdirectory(apps/pkg-installer)
 add_subdirectory(apps/horizon-lens)
 add_subdirectory(apps/xdg-desktop-portal-horizon)
+add_subdirectory(apps/horizon-appstore)
 
 
 # --- Examples and Demos ---
