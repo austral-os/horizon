@@ -31,6 +31,7 @@ struct FeaturedApp {
     std::string icon_path;
     std::string name;
     std::string description;
+    double avg_rating = 0.0;
 };
 
 struct Category {

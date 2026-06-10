@@ -2,6 +2,7 @@
 #include <horizon/TableColumn.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/Widget.hpp>
+#include <horizon/NotificationSender.hpp>
 #include <horizon/TableView.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Icon.hpp>
@@ -10,7 +11,7 @@
 #include <horizon/AquaObject.hpp>
 #include <horizon/apt/AptManager.hpp>
 #include <horizon/I18n.hpp>
-#include <horizon/ProgressBar.hpp>
+#include <horizon/StarRating.hpp>
 #include <horizon/Image.hpp>
 #include <horizon/ScrollArea.hpp>
 #include <horizon/Application.hpp>
@@ -41,7 +42,7 @@ PackageDetailsWidget::PackageDetailsWidget() {
     m_version->set_position_type(horizon::FREE);
     add_child(std::move(version));
 
-    auto rating = std::make_unique<horizon::ProgressBar>();
+    auto rating = std::make_unique<horizon::StarRating>();
     m_rating = rating.get();
     m_rating->set_position_type(horizon::FREE);
     add_child(std::move(rating));
@@ -86,9 +87,9 @@ void PackageDetailsWidget::calculate_layout() {
     m_version->set_size(w - 120 - 150, 20);
     m_version->set_font_size(12);
 
-    // Rating (ProgressBar) arriba a la derecha, con un tamaño adecuado
+    // Rating (StarRating) arriba a la derecha, con un tamaño adecuado
     m_rating->set_position(bx + w - 140, by + 30);
-    m_rating->set_size(120, 15);
+    // El tamaño del StarRating se autoajusta según m_star_size, no hace falta forzar 120x15
 
     // Descripción con un buen margen superior
     m_description->set_position(bx + 20, by + 120);
@@ -123,7 +124,7 @@ void PackageDetailsWidget::update_basic_info(const horizon::apt::PackageInfo& pk
     m_version->set_text(pkg.version);
     m_description->set_text(pkg.description);
     m_icon->set_icon_name(pkg.icon.empty() ? "system-software-install" : pkg.icon);
-    m_rating->set_progress(0.0f); // Default
+    m_rating->set_rating(0.0f); // Default
     clear_screenshots();
     invalidate();
     calculate_layout();
@@ -134,7 +135,7 @@ void PackageDetailsWidget::update_api_info(const horizon::apt::AppDetails& app_d
     if (v_details.description && !v_details.description->empty()) m_description->set_text(*v_details.description);
     
     // Rating mapping from 0 to 5 -> 0.0f to 1.0f
-    m_rating->set_progress(app_details.avg_rating / 5.0f);
+    m_rating->set_rating(app_details.avg_rating);
     
     invalidate();
     calculate_layout();
@@ -349,6 +350,18 @@ void ExploreView::setup_ui() {
     
     auto details_widget = std::make_unique<PackageDetailsWidget>();
     m_details_widget = details_widget.get();
+    m_details_widget->rating_widget()->when_change.connect([this](float new_rating) {
+        if (!m_selected_pkg || m_selected_api_version.empty()) return;
+        int int_rating = static_cast<int>(std::round(new_rating));
+        m_api_client.post_app_review_async(m_selected_pkg->name, m_selected_api_version, int_rating, "", [this](bool success) {
+            std::string app_name = m_selected_pkg ? m_selected_pkg->name : "AppStore";
+            if (success) {
+                horizon::NotificationSender::send("AppStore", horizon::i18n().tr("appstore.status.rating_sent"), "emblem-favorite", 3000);
+            } else {
+                horizon::NotificationSender::send("AppStore", horizon::i18n().tr("appstore.status.rating_failed"), "dialog-error", 3000);
+            }
+        });
+    });
     m_details_scroll->set_content(std::move(details_widget));
 
     auto no_sel_widget = std::make_unique<NoSelectionWidget>();
@@ -502,6 +515,7 @@ void ExploreView::update_details(const horizon::apt::PackageInfo& pkg) {
         if (details) {
             if (!details->versions.empty()) {
                 std::string latest_version = details->versions[0].version_string;
+                m_selected_api_version = latest_version;
                 m_api_client.get_app_version_details_async(pkg_name, latest_version, "es", [this, pkg_name, details_val = *details](std::optional<horizon::apt::AppVersionDetails> v_details) {
                     if (v_details) {
                         if (application()) {

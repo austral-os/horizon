@@ -3,6 +3,7 @@
 #include <horizon/ToolbarButton.hpp>
 #include <horizon/Image.hpp>
 #include <horizon/Application.hpp>
+#include <horizon/StarRating.hpp>
 
 namespace horizon::appstore {
 
@@ -35,6 +36,12 @@ public:
         m_description->set_cursor_type(horizon::CursorType::Pointer);
         add_child(std::move(lbl_desc));
         
+        auto rating = std::make_unique<horizon::StarRating>();
+        m_rating = rating.get();
+        m_rating->set_position_type(horizon::FREE);
+        m_rating->set_readonly(true);
+        add_child(std::move(rating));
+
         auto btn_prev = std::make_unique<horizon::ToolbarButton>("", "go-previous", 24);
         m_btn_prev = btn_prev.get();
         m_btn_prev->set_position_type(horizon::FREE);
@@ -51,6 +58,7 @@ public:
             if (idx >= 0 && idx < (int)data.size()) {
                 m_title->set_text(data[idx].name);
                 m_description->set_text(data[idx].description);
+                m_rating->set_rating(data[idx].avg_rating);
             }
         });
         
@@ -109,8 +117,11 @@ public:
         m_coverflow->set_size(w, 350);
         
         m_title->set_position(bx + 40, by + 370);
-        m_title->set_size(w - 200, 30);
+        m_title->set_size(w - 300, 30);
         
+        m_rating->set_position(bx + w - 180, by + 375);
+        m_rating->set_size(140, 24);
+
         m_description->set_position(bx + 40, by + 410);
         m_description->set_size(w - 200, 70);
         
@@ -130,6 +141,7 @@ public:
     horizon::CoverFlow<horizon::apt::FeaturedApp>* m_coverflow = nullptr;
     horizon::Label* m_title = nullptr;
     horizon::Label* m_description = nullptr;
+    horizon::StarRating* m_rating = nullptr;
     horizon::ToolbarButton* m_btn_prev = nullptr;
     horizon::ToolbarButton* m_btn_next = nullptr;
     std::function<void(const std::string&)> on_app_clicked;

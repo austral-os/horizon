@@ -27,7 +27,9 @@
       "uninstall_error": "Error uninstalling %1.",
       "updating": "Updating system...",
       "update_success": "System updated successfully.",
-      "update_error": "Error updating."
+      "update_error": "Error updating.",
+      "rating_sent": "Rating submitted successfully.",
+      "rating_failed": "Failed to submit rating."
     },
     "action": {
       "install": "Install",

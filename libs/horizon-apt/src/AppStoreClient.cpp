@@ -219,6 +219,7 @@ void AppStoreClient::get_featured_apps_async(const std::string& lang, std::funct
             app.icon_path = item.value("icon_path", "");
             app.name = item.value("name", "");
             app.description = item.value("description", "");
+            app.avg_rating = item.value("avg_rating", 0.0);
             apps.push_back(app);
         }
         return apps;

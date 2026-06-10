@@ -5,7 +5,7 @@
 #include <horizon/TableView.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Icon.hpp>
-#include <horizon/ProgressBar.hpp>
+#include <horizon/StarRating.hpp>
 #include <horizon/Image.hpp>
 #include <horizon/ScrollArea.hpp>
 #include <horizon/apt/AptManager.hpp>
@@ -34,12 +34,13 @@ public:
     void clear_screenshots();
     
     horizon::Icon* icon() const { return m_icon; }
+    horizon::StarRating* rating_widget() const { return m_rating; }
 
 private:
     horizon::Icon* m_icon = nullptr;
     horizon::Label* m_title = nullptr;
     horizon::Label* m_version = nullptr;
-    horizon::ProgressBar* m_rating = nullptr;
+    horizon::StarRating* m_rating = nullptr;
     horizon::Label* m_description = nullptr;
     std::vector<horizon::Image*> m_screenshots;
 };
@@ -82,6 +83,7 @@ private:
 
     size_t m_search_timer_id = 0;
     std::optional<horizon::apt::PackageInfo> m_selected_pkg;
+    std::string m_selected_api_version;
     std::string m_current_search_query;
     std::string m_current_category;
     std::shared_ptr<bool> m_is_alive;

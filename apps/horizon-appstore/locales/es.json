@@ -27,7 +27,9 @@
       "uninstall_error": "Error desinstalando %1.",
       "updating": "Actualizando sistema...",
       "update_success": "Sistema actualizado correctamente.",
-      "update_error": "Error al actualizar."
+      "update_error": "Error al actualizar.",
+      "rating_sent": "Opinión enviada.",
+      "rating_failed": "No se ha podido enviar la valoración."
     },
     "action": {
       "install": "Instalar",
