@@ -104,6 +104,11 @@ namespace horizon
                 {
                     child->set_size(clip_w, child->height());
                 }
+                else
+                {
+                    // Si el ancho no cambió, pero tal vez el alto sí, forzamos que el hijo se recalcule
+                    child->calculate_layout();
+                }
             }
         }
 

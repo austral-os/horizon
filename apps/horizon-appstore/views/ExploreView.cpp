@@ -1,5 +1,6 @@
 #include "ExploreView.hpp"
 #include <horizon/TableColumn.hpp>
+#include <horizon/HPanel.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/Widget.hpp>
 #include <horizon/NotificationSender.hpp>
@@ -244,8 +245,8 @@ void ExploreView::setup_ui() {
     m_vpanel->add_child(std::move(cat_table));
 
     // Right Panel: Results & Details
-    auto right_panel = std::make_unique<horizon::Widget>();
-    right_panel->set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
+    auto right_panel = std::make_unique<horizon::HPanel>();
+    right_panel->set_top_height(350);
 
     auto tableview = std::make_unique<horizon::TableView<horizon::apt::PackageInfo>>();
     m_tableview = tableview.get();
@@ -348,7 +349,6 @@ void ExploreView::setup_ui() {
     // Details Panel
     auto scroll_area = std::make_unique<horizon::ScrollArea>();
     m_details_scroll = scroll_area.get();
-    m_details_scroll->set_fixed_size(250); // initial height, can be overridden by layout
     
     auto details_widget = std::make_unique<PackageDetailsWidget>();
     m_details_widget = details_widget.get();
@@ -372,8 +372,13 @@ void ExploreView::setup_ui() {
     m_details_scroll->set_visible(false);
     m_no_sel_widget->set_visible(true);
 
-    right_panel->add_child(std::move(scroll_area));
-    right_panel->add_child(std::move(no_sel_widget));
+    auto bottom_panel = std::make_unique<horizon::Widget>();
+    // Puede ser STACK si existiese, pero VERTICAL y manejando la visibilidad basta
+    bottom_panel->set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
+    bottom_panel->add_child(std::move(scroll_area));
+    bottom_panel->add_child(std::move(no_sel_widget));
+
+    right_panel->add_child(std::move(bottom_panel));
 
     m_vpanel->add_child(std::move(right_panel));
     add_child(std::move(vpanel));
