@@ -19,6 +19,11 @@ public:
     };
     horizon::EventsManager<AppClickedContext> when_app_clicked;
 
+    struct CategoryClickedContext {
+        std::string category_name;
+    };
+    horizon::EventsManager<CategoryClickedContext> when_category_clicked;
+
 private:
     void setup_ui();
     

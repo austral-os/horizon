@@ -337,19 +337,27 @@ void FeaturedView::load_initial_data() {
             item->set_size(230, 32);
             item->set_position_type(horizon::FREE);
             item->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
-            item->set_cursor_type(horizon::CursorType::Pointer);
             item->set_spacing(10);
+            item->set_cursor_type(horizon::CursorType::Pointer);
             
             auto icon = std::make_unique<horizon::Icon>();
             icon->set_icon_name(cat.second);
             icon->set_icon_size(24);
             icon->set_fixed_size(24);
+            icon->set_cursor_type(horizon::CursorType::Pointer);
             item->add_child(std::move(icon));
             
             auto lbl = std::make_unique<horizon::Label>(cat.first);
             lbl->set_text_color(horizon::Color(0.8f, 0.8f, 0.8f, 1.0f));
+            lbl->set_cursor_type(horizon::CursorType::Pointer);
             item->add_child(std::move(lbl));
             
+            item->when_click.connect([this, cat_name = cat.first](auto&) {
+                CategoryClickedContext ctx;
+                ctx.category_name = cat_name;
+                when_category_clicked.run(ctx);
+            });
+
             cat_sec->add_child(std::move(item));
         }
         cat_sec->calculate_layout();

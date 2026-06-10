@@ -152,6 +152,18 @@ void AppStoreWindow::setup_content(const std::string& initial_search) {
             m_explore_view->perform_search(ctx.package_name);
         }
     });
+    
+    m_featured_view->when_category_clicked.connect([this](const FeaturedView::CategoryClickedContext& ctx) {
+        if (m_group_btn) {
+            m_group_btn->set_current_item(1);
+        }
+        set_active_view(horizon::i18n().tr("appstore.views.explore"));
+        if (m_explore_view) {
+            if (m_search_box) m_search_box->set_text("");
+            m_explore_view->select_category(ctx.category_name);
+        }
+    });
+
     m_content_area->add_child(std::move(featured));
     
     auto explore = std::make_unique<ExploreView>(m_apt_manager);

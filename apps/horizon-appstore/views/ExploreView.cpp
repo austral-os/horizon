@@ -395,6 +395,18 @@ void ExploreView::build_categories() {
     m_category_table->set_data(std::move(categories));
 }
 
+void ExploreView::select_category(const std::string& category_name) {
+    if (!m_category_table) return;
+    const auto& data = m_category_table->data();
+    for (size_t i = 0; i < data.size(); ++i) {
+        if (data[i].name == category_name) {
+            m_category_table->set_selected_index(i);
+            break;
+        }
+    }
+    filter_by_category(category_name);
+}
+
 void ExploreView::load_initial_data() {
     filter_by_category(horizon::i18n().tr("appstore.category.all"));
 }

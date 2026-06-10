@@ -54,6 +54,7 @@ public:
     void load_initial_data();
     void reload_current_view();
     void clear_selection();
+    void select_category(const std::string& category_name);
 
     std::function<void(bool, const std::string&)> on_loading_state_changed;
     std::function<void(const horizon::apt::PackageInfo*)> on_package_selected;
