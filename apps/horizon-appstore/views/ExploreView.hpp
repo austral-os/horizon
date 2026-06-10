@@ -5,8 +5,11 @@
 #include <horizon/TableView.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Icon.hpp>
+#include <horizon/ProgressBar.hpp>
+#include <horizon/Image.hpp>
+#include <horizon/ScrollArea.hpp>
 #include <horizon/apt/AptManager.hpp>
-#include <horizon/apt/AptManager.hpp>
+#include <horizon/apt/AppStoreClient.hpp>
 #include <functional>
 #include <optional>
 
@@ -17,6 +20,30 @@ struct CategoryItem {
     std::string icon;
 };
 
+class PackageDetailsWidget : public horizon::Widget {
+public:
+    PackageDetailsWidget();
+    ~PackageDetailsWidget() override = default;
+
+    void calculate_layout() override;
+    void draw(horizon::GraphicsContext& gc) override;
+
+    void update_basic_info(const horizon::apt::PackageInfo& pkg);
+    void update_api_info(const horizon::apt::AppDetails& app_details, const horizon::apt::AppVersionDetails& v_details);
+    void add_screenshot(const std::string& local_path);
+    void clear_screenshots();
+    
+    horizon::Icon* icon() const { return m_icon; }
+
+private:
+    horizon::Icon* m_icon = nullptr;
+    horizon::Label* m_title = nullptr;
+    horizon::Label* m_version = nullptr;
+    horizon::ProgressBar* m_rating = nullptr;
+    horizon::Label* m_description = nullptr;
+    std::vector<horizon::Image*> m_screenshots;
+};
+
 class ExploreView : public horizon::Widget {
 public:
     ExploreView(horizon::apt::AptManager* apt_manager);
@@ -25,6 +52,7 @@ public:
     void perform_search(const std::string& query);
     void load_initial_data();
     void reload_current_view();
+    void clear_selection();
 
     std::function<void(bool, const std::string&)> on_loading_state_changed;
     std::function<void(const horizon::apt::PackageInfo*)> on_package_selected;
@@ -42,14 +70,15 @@ private:
     void filter_by_category(const std::string& category_name);
 
     horizon::apt::AptManager* m_apt = nullptr;
+    horizon::apt::AppStoreClient m_api_client;
     
     horizon::VPanel* m_vpanel = nullptr;
     horizon::TableView<CategoryItem>* m_category_table = nullptr;
     horizon::TableView<horizon::apt::PackageInfo>* m_tableview = nullptr;
     
-    horizon::Icon* m_detail_icon = nullptr;
-    horizon::Label* m_detail_title = nullptr;
-    horizon::Label* m_detail_desc = nullptr;
+    PackageDetailsWidget* m_details_widget = nullptr;
+    horizon::ScrollArea* m_details_scroll = nullptr;
+    horizon::Widget* m_no_sel_widget = nullptr;
 
     size_t m_search_timer_id = 0;
     std::optional<horizon::apt::PackageInfo> m_selected_pkg;

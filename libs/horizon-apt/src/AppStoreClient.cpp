@@ -1,0 +1,387 @@
+#include <horizon/apt/AppStoreClient.hpp>
+#include <libsoup/soup.h>
+#include <nlohmann/json.hpp>
+#include <iostream>
+#include <thread>
+#include <fstream>
+#include <filesystem>
+
+using json = nlohmann::json;
+
+namespace horizon::apt {
+
+struct AppStoreClient::Private {
+    SoupSession* session;
+    std::string base_url = "https://appstore-api.hdrdevs.com.ar/api";
+
+    std::string get_cache_dir() const {
+        const char* home = getenv("HOME");
+        return home ? std::string(home) + "/.cache/horizon-appstore" : "/tmp/horizon-appstore-cache";
+    }
+
+    std::string get_cache_file_path(const std::string& url) const {
+        std::string safe_name = url;
+        for (char& c : safe_name) {
+            if (!isalnum(c)) c = '_';
+        }
+        return get_cache_dir() + "/api/" + safe_name + ".json";
+    }
+
+    bool is_cache_valid(const std::string& filepath) const {
+        if (!std::filesystem::exists(filepath)) return false;
+        
+        auto ftime = std::filesystem::last_write_time(filepath);
+        auto now = std::filesystem::file_time_type::clock::now();
+        auto diff = std::chrono::duration_cast<std::chrono::hours>(now - ftime).count();
+        
+        return diff < 24; // 24 hours TTL
+    }
+
+    template<typename T>
+    void make_async_request(const std::string& url, std::function<void(std::optional<T>)> callback, std::function<std::optional<T>(const json&)> parser, bool use_cache = true) {
+        if (use_cache) {
+            std::string cache_path = get_cache_file_path(url);
+            if (is_cache_valid(cache_path)) {
+                std::thread([cache_path, callback = std::move(callback), parser = std::move(parser)]() {
+                    try {
+                        std::ifstream in(cache_path);
+                        json j;
+                        in >> j;
+                        if (j.value("status", "") == "success") {
+                            callback(parser(j["data"]));
+                            return;
+                        }
+                    } catch (...) {
+                        // On cache read error, fall through to network request (but we are in a thread, so we'd have to handle it carefully)
+                        // For simplicity, just return nullopt if cache is corrupted. The cache will expire eventually or can be cleared.
+                        callback(std::nullopt);
+                        return;
+                    }
+                    callback(std::nullopt);
+                }).detach();
+                return;
+            }
+        }
+
+        std::thread([url, use_cache, cache_path = get_cache_file_path(url), cache_dir = get_cache_dir(), callback = std::move(callback), parser = std::move(parser)]() {
+            SoupSession* session = soup_session_new();
+            SoupMessage* msg = soup_message_new("GET", url.c_str());
+            if (!msg) {
+                g_object_unref(session);
+                callback(std::nullopt);
+                return;
+            }
+
+            GError* error = nullptr;
+            GBytes* bytes = soup_session_send_and_read(session, msg, nullptr, &error);
+            
+            if (error) {
+                std::cerr << "Request failed: " << error->message << std::endl;
+                g_error_free(error);
+                callback(std::nullopt);
+            } else {
+                gsize size;
+                const char* data = static_cast<const char*>(g_bytes_get_data(bytes, &size));
+                try {
+                    json j = json::parse(std::string_view(data, size));
+                    if (j.value("status", "") == "success") {
+                        if (use_cache) {
+                            std::error_code ec;
+                            std::filesystem::create_directories(cache_dir + "/api", ec);
+                            std::ofstream out(cache_path);
+                            if (out.is_open()) {
+                                out << j.dump();
+                                out.close();
+                            }
+                        }
+                        callback(parser(j["data"]));
+                    } else {
+                        callback(std::nullopt);
+                    }
+                } catch (const std::exception& e) {
+                    std::cerr << "JSON Parse error: " << e.what() << std::endl;
+                    callback(std::nullopt);
+                }
+                g_bytes_unref(bytes);
+            }
+            g_object_unref(msg);
+            g_object_unref(session);
+        }).detach();
+    }
+
+    void make_post_request(const std::string& url, const json& body, std::function<void(bool)> callback) {
+        std::string body_str = body.dump();
+        
+        std::thread([url, body_str, callback = std::move(callback)]() {
+            SoupSession* session = soup_session_new();
+            SoupMessage* msg = soup_message_new("POST", url.c_str());
+            if (!msg) {
+                g_object_unref(session);
+                callback(false);
+                return;
+            }
+
+            GBytes* body_bytes = g_bytes_new(body_str.c_str(), body_str.size());
+            soup_message_set_request_body_from_bytes(msg, "application/json", body_bytes);
+            g_bytes_unref(body_bytes);
+
+            GError* error = nullptr;
+            GBytes* bytes = soup_session_send_and_read(session, msg, nullptr, &error);
+            
+            if (error) {
+                std::cerr << "POST failed: " << error->message << std::endl;
+                g_error_free(error);
+                callback(false);
+            } else {
+                gsize size;
+                const char* data = static_cast<const char*>(g_bytes_get_data(bytes, &size));
+                try {
+                    json j = json::parse(std::string_view(data, size));
+                    callback(j.value("status", "") == "success");
+                } catch (...) {
+                    callback(false);
+                }
+                g_bytes_unref(bytes);
+            }
+            g_object_unref(msg);
+            g_object_unref(session);
+        }).detach();
+    }
+};
+
+AppStoreClient::AppStoreClient() : d(new Private) {
+    d->session = soup_session_new();
+}
+
+AppStoreClient::~AppStoreClient() {
+    if (d->session) {
+        g_object_unref(d->session);
+    }
+    delete d;
+}
+
+// Helpers to parse JSON safely
+static std::optional<std::string> get_opt_string(const json& j, const std::string& key) {
+    if (j.contains(key) && !j[key].is_null()) {
+        return j[key].get<std::string>();
+    }
+    return std::nullopt;
+}
+
+static std::optional<int> get_opt_int(const json& j, const std::string& key) {
+    if (j.contains(key) && !j[key].is_null()) {
+        return j[key].get<int>();
+    }
+    return std::nullopt;
+}
+
+void AppStoreClient::get_apps_async(std::optional<int> category_id, const std::string& sort_by, const std::string& order, int limit, int offset, const std::string& lang, std::function<void(std::optional<std::vector<AppInfo>>)> callback) {
+    std::string url = d->base_url + "/apps?sort_by=" + sort_by + "&order=" + order + "&limit=" + std::to_string(limit) + "&offset=" + std::to_string(offset) + "&lang=" + lang;
+    if (category_id) {
+        url += "&category_id=" + std::to_string(*category_id);
+    }
+
+    d->make_async_request<std::vector<AppInfo>>(url, std::move(callback), [](const json& data) -> std::optional<std::vector<AppInfo>> {
+        std::vector<AppInfo> apps;
+        if (!data.is_array()) return std::nullopt;
+        for (const auto& item : data) {
+            AppInfo app;
+            app.id = item.value("id", 0);
+            app.package_name = item.value("package_name", "");
+            app.category_id = get_opt_int(item, "category_id");
+            app.category_name = item.value("category_name", "");
+            app.version_id = item.value("version_id", 0);
+            app.version_string = item.value("version_string", "");
+            app.icon_path = item.value("icon_path", "");
+            app.published_at = item.value("published_at", "");
+            app.name = item.value("name", "");
+            app.avg_rating = item.value("avg_rating", 0.0);
+            app.review_count = item.value("review_count", 0);
+            app.extra_translations_count = item.value("extra_translations_count", 0);
+            apps.push_back(app);
+        }
+        return apps;
+    });
+}
+
+void AppStoreClient::get_featured_apps_async(const std::string& lang, std::function<void(std::optional<std::vector<FeaturedApp>>)> callback) {
+    std::string url = d->base_url + "/featured?lang=" + lang;
+    d->make_async_request<std::vector<FeaturedApp>>(url, std::move(callback), [](const json& data) -> std::optional<std::vector<FeaturedApp>> {
+        std::vector<FeaturedApp> apps;
+        if (!data.is_array()) return std::nullopt;
+        for (const auto& item : data) {
+            FeaturedApp app;
+            app.order_index = item.value("order_index", 0);
+            app.id = item.value("id", 0);
+            app.package_name = item.value("package_name", "");
+            app.category_name = item.value("category_name", "");
+            app.version_string = item.value("version_string", "");
+            app.icon_path = item.value("icon_path", "");
+            app.name = item.value("name", "");
+            app.description = item.value("description", "");
+            apps.push_back(app);
+        }
+        return apps;
+    });
+}
+
+void AppStoreClient::get_app_details_async(const std::string& package_name, const std::string& lang, std::function<void(std::optional<AppDetails>)> callback) {
+    std::string url = d->base_url + "/apps/" + package_name + "?lang=" + lang;
+    d->make_async_request<AppDetails>(url, std::move(callback), [](const json& data) -> std::optional<AppDetails> {
+        if (!data.contains("app") || !data.contains("versions")) return std::nullopt;
+        
+        AppDetails details;
+        const auto& app = data["app"];
+        details.id = app.value("id", 0);
+        details.package_name = app.value("package_name", "");
+        details.category_id = get_opt_int(app, "category_id");
+        details.category_name = app.value("category_name", "");
+        details.avg_rating = app.value("avg_rating", 0.0);
+        
+        for (const auto& v : data["versions"]) {
+            AppVersionShort ver;
+            ver.id = v.value("id", 0);
+            ver.version_string = v.value("version_string", "");
+            ver.published_at = v.value("published_at", "");
+            ver.name = v.value("name", "");
+            details.versions.push_back(ver);
+        }
+        return details;
+    });
+}
+
+void AppStoreClient::get_app_version_details_async(const std::string& package_name, const std::string& version_string, const std::string& lang, std::function<void(std::optional<AppVersionDetails>)> callback) {
+    std::string url = d->base_url + "/apps/" + package_name + "/versions/" + version_string + "?lang=" + lang;
+    d->make_async_request<AppVersionDetails>(url, std::move(callback), [](const json& data) -> std::optional<AppVersionDetails> {
+        AppVersionDetails details;
+        details.id = data.value("id", 0);
+        details.app_id = data.value("app_id", 0);
+        details.version_string = data.value("version_string", "");
+        details.published_at = data.value("published_at", "");
+        details.icon_path = get_opt_string(data, "icon_path");
+        details.source_url = get_opt_string(data, "source_url");
+        details.signature = get_opt_string(data, "signature");
+        details.name = data.value("name", "");
+        details.description = get_opt_string(data, "description");
+        details.release_notes = get_opt_string(data, "release_notes");
+        
+        if (data.contains("screenshots") && data["screenshots"].is_array()) {
+            for (const auto& s : data["screenshots"]) {
+                AppScreenshot shot;
+                shot.id = s.value("id", 0);
+                shot.image_path = s.value("image_path", "");
+                details.screenshots.push_back(shot);
+            }
+        }
+        return details;
+    });
+}
+
+void AppStoreClient::get_app_reviews_async(const std::string& package_name, const std::string& version_string, std::function<void(std::optional<std::vector<Review>>)> callback) {
+    std::string url = d->base_url + "/apps/" + package_name + "/versions/" + version_string + "/reviews";
+    d->make_async_request<std::vector<Review>>(url, std::move(callback), [](const json& data) -> std::optional<std::vector<Review>> {
+        std::vector<Review> reviews;
+        if (!data.is_array()) return std::nullopt;
+        for (const auto& item : data) {
+            Review rev;
+            rev.id = item.value("id", 0);
+            rev.rating = item.value("rating", 0);
+            rev.comment = item.value("comment", "");
+            rev.created_at = item.value("created_at", "");
+            reviews.push_back(rev);
+        }
+        return reviews;
+    });
+}
+
+void AppStoreClient::post_app_review_async(const std::string& package_name, const std::string& version_string, int rating, const std::string& comment, std::function<void(bool)> callback) {
+    std::string url = d->base_url + "/apps/" + package_name + "/versions/" + version_string + "/reviews";
+    json body = {
+        {"rating", rating},
+        {"comment", comment}
+    };
+    d->make_post_request(url, body, std::move(callback));
+}
+
+void AppStoreClient::download_image_async(const std::string& image_path, std::function<void(std::optional<std::string>)> callback) {
+    if (image_path.empty()) {
+        callback(std::nullopt);
+        return;
+    }
+    
+    std::string url = d->base_url.substr(0, d->base_url.find("/api")) + image_path;
+
+    std::thread([url, cache_dir = d->get_cache_dir(), image_path, callback = std::move(callback)]() {
+        auto filename = std::filesystem::path(image_path).filename().string();
+        std::string local_path = cache_dir + "/images/" + filename;
+        
+        if (std::filesystem::exists(local_path)) {
+            auto ftime = std::filesystem::last_write_time(local_path);
+            auto now = std::filesystem::file_time_type::clock::now();
+            auto diff = std::chrono::duration_cast<std::chrono::hours>(now - ftime).count();
+            if (diff < 24) {
+                callback(local_path);
+                return;
+            }
+        }
+
+        SoupSession* session = soup_session_new();
+        SoupMessage* msg = soup_message_new("GET", url.c_str());
+        if (!msg) {
+            g_object_unref(session);
+            callback(std::nullopt);
+            return;
+        }
+
+        GError* error = nullptr;
+        GBytes* bytes = soup_session_send_and_read(session, msg, nullptr, &error);
+        if (error) {
+            std::cerr << "Failed to download image: " << error->message << std::endl;
+            g_error_free(error);
+            callback(std::nullopt);
+        } else {
+            gsize size;
+            const char* data = static_cast<const char*>(g_bytes_get_data(bytes, &size));
+            
+            std::error_code ec;
+            std::filesystem::create_directories(cache_dir + "/images/", ec);
+            
+            std::ofstream out(local_path, std::ios::binary);
+            if (out.is_open()) {
+                out.write(data, size);
+                out.close();
+            }
+
+            g_bytes_unref(bytes);
+            callback(local_path);
+        }
+        g_object_unref(msg);
+        g_object_unref(session);
+    }).detach();
+}
+
+void AppStoreClient::get_categories_async(std::function<void(std::optional<std::vector<Category>>)> callback) {
+    std::string url = d->base_url + "/categories";
+    d->make_async_request<std::vector<Category>>(url, std::move(callback), [](const json& data) -> std::optional<std::vector<Category>> {
+        std::vector<Category> categories;
+        if (!data.is_array()) return std::nullopt;
+        for (const auto& item : data) {
+            Category cat;
+            cat.id = item.value("id", 0);
+            cat.name = item.value("name", "");
+            cat.icon = get_opt_string(item, "icon");
+            categories.push_back(cat);
+        }
+        return categories;
+    });
+}
+
+void AppStoreClient::clear_cache() {
+    std::error_code ec;
+    std::string cache_dir = d->get_cache_dir();
+    if (std::filesystem::exists(cache_dir, ec)) {
+        std::filesystem::remove_all(cache_dir, ec);
+    }
+}
+
+} // namespace horizon::apt

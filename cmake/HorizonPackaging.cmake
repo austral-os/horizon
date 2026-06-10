@@ -64,7 +64,7 @@ if(HORIZON_PACKAGING_COMPONENTS)
         list(APPEND META_DEPENDS "${deb_name}")
     endforeach()
     # Also handle libraries that were previously in package-libs
-    set(LIB_COMPONENTS "libhorizon;libhorizon-dev;libhorizon-capture;libhorizon-capture-dev;libhorizon-compression-tools;libhorizon-compression-tools-dev;libhorizon-disk-utilities-dev;libhorizon-download;libhorizon-download-dev;libhorizon-image;libhorizon-image-dev;libhorizon-installer-utils;libhorizon-installer-utils-dev;libhorizon-network;libhorizon-network-dev;libhorizon-network-storage;libhorizon-network-storage-dev;libhorizon-overview;libhorizon-overview-dev;libhorizon-pdf;libhorizon-pdf-dev;libhorizon-print;libhorizon-print-dev;libhorizon-terminal;libhorizon-terminal-dev;libhorizon-text;libhorizon-text-dev;libhorizon-video;libhorizon-video-dev;libhorizon-web;libhorizon-web-dev")
+    set(LIB_COMPONENTS "libhorizon;libhorizon-dev;libhorizon-apt;libhorizon-apt-dev;libhorizon-capture;libhorizon-capture-dev;libhorizon-compression-tools;libhorizon-compression-tools-dev;libhorizon-disk-utilities-dev;libhorizon-download;libhorizon-download-dev;libhorizon-image;libhorizon-image-dev;libhorizon-installer-utils;libhorizon-installer-utils-dev;libhorizon-network;libhorizon-network-dev;libhorizon-network-storage;libhorizon-network-storage-dev;libhorizon-overview;libhorizon-overview-dev;libhorizon-pdf;libhorizon-pdf-dev;libhorizon-print;libhorizon-print-dev;libhorizon-terminal;libhorizon-terminal-dev;libhorizon-text;libhorizon-text-dev;libhorizon-video;libhorizon-video-dev;libhorizon-web;libhorizon-web-dev")
     
     foreach(lib ${LIB_COMPONENTS})
         list(APPEND META_DEPENDS "${lib}")
@@ -158,7 +158,7 @@ add_custom_target(package-components
     COMMENT "Generating individual .deb packages for each application..."
 )
 
-set(LIB_COMPONENTS "libhorizon;libhorizon-dev;libhorizon-capture;libhorizon-capture-dev;libhorizon-compression-tools;libhorizon-compression-tools-dev;libhorizon-disk-utilities;libhorizon-disk-utilities-dev;libhorizon-download;libhorizon-download-dev;libhorizon-image;libhorizon-image-dev;libhorizon-installer-utils;libhorizon-installer-utils-dev;libhorizon-network;libhorizon-network-dev;libhorizon-network-storage;libhorizon-network-storage-dev;libhorizon-overview;libhorizon-overview-dev;libhorizon-pdf;libhorizon-pdf-dev;libhorizon-print;libhorizon-print-dev;libhorizon-terminal;libhorizon-terminal-dev;libhorizon-text;libhorizon-text-dev;libhorizon-video;libhorizon-video-dev;libhorizon-web;libhorizon-web-dev")
+set(LIB_COMPONENTS "libhorizon;libhorizon-dev;libhorizon-apt;libhorizon-apt-dev;libhorizon-capture;libhorizon-capture-dev;libhorizon-compression-tools;libhorizon-compression-tools-dev;libhorizon-disk-utilities-dev;libhorizon-download;libhorizon-download-dev;libhorizon-image;libhorizon-image-dev;libhorizon-installer-utils;libhorizon-installer-utils-dev;libhorizon-network;libhorizon-network-dev;libhorizon-network-storage;libhorizon-network-storage-dev;libhorizon-overview;libhorizon-overview-dev;libhorizon-pdf;libhorizon-pdf-dev;libhorizon-print;libhorizon-print-dev;libhorizon-terminal;libhorizon-terminal-dev;libhorizon-text;libhorizon-text-dev;libhorizon-video;libhorizon-video-dev;libhorizon-web;libhorizon-web-dev")
 
 file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/CPackConfigLibs.cmake
     CONTENT "

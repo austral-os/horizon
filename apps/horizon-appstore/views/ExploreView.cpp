@@ -10,13 +10,192 @@
 #include <horizon/AquaObject.hpp>
 #include <horizon/apt/AptManager.hpp>
 #include <horizon/I18n.hpp>
+#include <horizon/ProgressBar.hpp>
+#include <horizon/Image.hpp>
+#include <horizon/ScrollArea.hpp>
+#include <horizon/Application.hpp>
 
 namespace horizon::appstore {
+
+PackageDetailsWidget::PackageDetailsWidget() {
+    set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL); // Doesn't matter because we override calculate_layout
+    set_position_type(horizon::FILL);
+
+    auto icon = std::make_unique<horizon::Icon>();
+    m_icon = icon.get();
+    m_icon->set_icon_size(64);
+    m_icon->set_fixed_size(80);
+    m_icon->set_position_type(horizon::FREE);
+    add_child(std::move(icon));
+
+    auto title = std::make_unique<horizon::Label>();
+    m_title = title.get();
+    m_title->set_font_weight(horizon::FONT_WEIGHT_BOLD);
+    m_title->set_font_size(16);
+    m_title->set_position_type(horizon::FREE);
+    add_child(std::move(title));
+
+    auto version = std::make_unique<horizon::Label>();
+    m_version = version.get();
+    m_version->set_font_size(10);
+    m_version->set_position_type(horizon::FREE);
+    add_child(std::move(version));
+
+    auto rating = std::make_unique<horizon::ProgressBar>();
+    m_rating = rating.get();
+    m_rating->set_position_type(horizon::FREE);
+    add_child(std::move(rating));
+
+    auto desc = std::make_unique<horizon::Label>();
+    m_description = desc.get();
+    m_description->set_vertical_alignment(horizon::VerticalAlignment::Top);
+    m_description->set_position_type(horizon::FREE);
+    add_child(std::move(desc));
+}
+
+void PackageDetailsWidget::draw(horizon::GraphicsContext& gc) {
+    if (theme_manager()) {
+        gc.setColor(theme_manager()->get_color("textbox_bg"));
+        gc.fillRect(x(), y(), width(), height());
+        
+        gc.setColor(theme_manager()->get_color("window_border"));
+        gc.drawRect(x(), y(), width(), height(), 0, 1.0f);
+    }
+    Widget::draw(gc);
+}
+
+void PackageDetailsWidget::calculate_layout() {
+    if (!m_title) return;
+    int w = width();
+    if (w <= 0) w = 797; // fallback
+
+    int bx = x();
+    int by = y();
+
+    // Icono un poco más grande y con más margen
+    m_icon->set_position(bx + 20, by + 20);
+    m_icon->set_size(80, 80);
+    
+    // Título más prominente
+    m_title->set_position(bx + 120, by + 20);
+    m_title->set_size(w - 120 - 150, 35);
+    m_title->set_font_size(24);
+    
+    // Versión alineada debajo del título
+    m_version->set_position(bx + 120, by + 60);
+    m_version->set_size(w - 120 - 150, 20);
+    m_version->set_font_size(12);
+
+    // Rating (ProgressBar) arriba a la derecha, con un tamaño adecuado
+    m_rating->set_position(bx + w - 140, by + 30);
+    m_rating->set_size(120, 15);
+
+    // Descripción con un buen margen superior
+    m_description->set_position(bx + 20, by + 120);
+    int desc_h = m_description->preferred_height(w - 40);
+    m_description->set_size(w - 40, desc_h);
+
+    // Capturas de pantalla debajo de la descripción
+    int current_y = by + 120 + desc_h + 30;
+    int current_x = bx + 20;
+    
+    for (auto img : m_screenshots) {
+        img->set_position(current_x, current_y);
+        // Hacer las capturas un poco más grandes para que se vean mejor
+        img->set_size(300, 180);
+        current_x += 320; // 20px de separación
+    }
+
+    int total_height = (current_y - by) + (m_screenshots.empty() ? 0 : 200);
+    
+    // Ocupar al menos el espacio disponible en el ScrollArea padre
+    if (parent()) {
+        total_height = std::max(total_height, parent()->height());
+    }
+
+    if (height() != total_height) {
+        set_height(total_height);
+    }
+}
+
+void PackageDetailsWidget::update_basic_info(const horizon::apt::PackageInfo& pkg) {
+    m_title->set_text(pkg.name);
+    m_version->set_text(pkg.version);
+    m_description->set_text(pkg.description);
+    m_icon->set_icon_name(pkg.icon.empty() ? "system-software-install" : pkg.icon);
+    m_rating->set_progress(0.0f); // Default
+    clear_screenshots();
+    invalidate();
+    calculate_layout();
+}
+
+void PackageDetailsWidget::update_api_info(const horizon::apt::AppDetails& app_details, const horizon::apt::AppVersionDetails& v_details) {
+    if (!v_details.name.empty()) m_title->set_text(v_details.name);
+    if (v_details.description && !v_details.description->empty()) m_description->set_text(*v_details.description);
+    
+    // Rating mapping from 0 to 5 -> 0.0f to 1.0f
+    m_rating->set_progress(app_details.avg_rating / 5.0f);
+    
+    invalidate();
+    calculate_layout();
+}
+
+void PackageDetailsWidget::add_screenshot(const std::string& local_path) {
+    auto img = std::make_unique<horizon::Image>();
+    img->set_path(local_path);
+    img->set_mode(horizon::ImageMode::Fit);
+    img->set_position_type(horizon::FREE);
+    m_screenshots.push_back(img.get());
+    add_child(std::move(img));
+    invalidate();
+    calculate_layout();
+}
+
+void PackageDetailsWidget::clear_screenshots() {
+    for (auto img : m_screenshots) {
+        remove_child(img);
+    }
+    m_screenshots.clear();
+    invalidate();
+    calculate_layout();
+}
 
 ExploreView::ExploreView(horizon::apt::AptManager* apt_manager) : m_apt(apt_manager) {
     set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
     setup_ui();
     build_categories();
+}
+
+class NoSelectionWidget : public horizon::Widget {
+public:
+    NoSelectionWidget() {
+        set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
+        set_position_type(horizon::FILL);
+
+        auto lbl = std::make_unique<horizon::Label>(horizon::i18n().tr("appstore.explore.no_selection"));
+        lbl->set_alignment(horizon::TextAlignment::Center);
+        lbl->set_vertical_alignment(horizon::VerticalAlignment::Middle);
+        lbl->set_font_size(18);
+        add_child(std::move(lbl));
+    }
+
+    void draw(horizon::GraphicsContext& gc) override {
+        if (theme_manager()) {
+            gc.setColor(theme_manager()->get_color("textbox_bg"));
+            gc.fillRect(x(), y(), width(), height());
+            
+            gc.setColor(theme_manager()->get_color("window_border"));
+            gc.drawRect(x(), y(), width(), height(), 0, 1.0f);
+        }
+        Widget::draw(gc);
+    }
+};
+
+void ExploreView::clear_selection() {
+    m_selected_pkg = std::nullopt;
+    if (m_no_sel_widget) m_no_sel_widget->set_visible(true);
+    if (m_details_scroll) m_details_scroll->set_visible(false);
+    if (on_package_selected) on_package_selected(nullptr);
 }
 
 void ExploreView::setup_ui() {
@@ -158,33 +337,22 @@ void ExploreView::setup_ui() {
     right_panel->add_child(std::move(tableview));
 
     // Details Panel
-    auto details_panel = std::make_unique<horizon::Widget>();
-    details_panel->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
-    details_panel->set_fixed_size(150); // height
+    auto scroll_area = std::make_unique<horizon::ScrollArea>();
+    m_details_scroll = scroll_area.get();
+    m_details_scroll->set_fixed_size(250); // initial height, can be overridden by layout
+    
+    auto details_widget = std::make_unique<PackageDetailsWidget>();
+    m_details_widget = details_widget.get();
+    m_details_scroll->set_content(std::move(details_widget));
 
-    auto icon = std::make_unique<horizon::Icon>();
-    m_detail_icon = icon.get();
-    m_detail_icon->set_icon_size(64);
-    m_detail_icon->set_fixed_size(80);
-    m_detail_icon->set_vertical_alignment(horizon::VerticalAlignment::Top);
-    details_panel->add_child(std::move(icon));
+    auto no_sel_widget = std::make_unique<NoSelectionWidget>();
+    m_no_sel_widget = no_sel_widget.get();
 
-    auto info_panel = std::make_unique<horizon::Widget>();
-    info_panel->set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
+    m_details_scroll->set_visible(false);
+    m_no_sel_widget->set_visible(true);
 
-    auto title = std::make_unique<horizon::Label>("");
-    m_detail_title = title.get();
-    m_detail_title->set_fixed_size(30); // height
-    m_detail_title->set_font_weight(horizon::FONT_WEIGHT_BOLD);
-    info_panel->add_child(std::move(title));
-
-    auto desc = std::make_unique<horizon::Label>("");
-    m_detail_desc = desc.get();
-    m_detail_desc->set_vertical_alignment(horizon::VerticalAlignment::Top);
-    info_panel->add_child(std::move(desc));
-
-    details_panel->add_child(std::move(info_panel));
-    right_panel->add_child(std::move(details_panel));
+    right_panel->add_child(std::move(scroll_area));
+    right_panel->add_child(std::move(no_sel_widget));
 
     m_vpanel->add_child(std::move(right_panel));
     add_child(std::move(vpanel));
@@ -250,6 +418,8 @@ void ExploreView::perform_search(const std::string& query) {
                         m_tableview->set_selected_index(best_match_idx);
                         m_tableview->scroll_to_index(best_match_idx);
                         update_details(results[best_match_idx]);
+                    } else {
+                        clear_selection();
                     }
                 });
             }
@@ -299,6 +469,7 @@ void ExploreView::filter_by_category(const std::string& category_name) {
         if (application()) {
             application()->post_task([this, results = std::move(results)]() mutable {
                 m_tableview->set_data(std::move(results));
+                clear_selection();
                 if (on_loading_state_changed) {
                     on_loading_state_changed(false, horizon::i18n().tr("appstore.status.ready"));
                 }
@@ -308,14 +479,62 @@ void ExploreView::filter_by_category(const std::string& category_name) {
 }
 
 void ExploreView::update_details(const horizon::apt::PackageInfo& pkg) {
+    if (m_no_sel_widget) m_no_sel_widget->set_visible(false);
+    if (m_details_scroll) m_details_scroll->set_visible(true);
+
     m_selected_pkg = pkg;
-    m_detail_title->set_text(pkg.name);
-    m_detail_desc->set_text(pkg.description);
-    m_detail_icon->set_icon_name(pkg.icon.empty() ? "system-software-install" : pkg.icon);
+    m_details_widget->update_basic_info(pkg);
     
     if (on_package_selected) {
         on_package_selected(&(*m_selected_pkg));
     }
+
+    std::string pkg_name = pkg.name;
+    m_api_client.get_app_details_async(pkg_name, "es", [this, pkg_name](std::optional<horizon::apt::AppDetails> details) {
+        if (details) {
+            if (!details->versions.empty()) {
+                std::string latest_version = details->versions[0].version_string;
+                m_api_client.get_app_version_details_async(pkg_name, latest_version, "es", [this, pkg_name, details_val = *details](std::optional<horizon::apt::AppVersionDetails> v_details) {
+                    if (v_details) {
+                        if (application()) {
+                            application()->post_task([this, pkg_name, details_val, v_details = *v_details]() {
+                                if (m_selected_pkg && m_selected_pkg->name == pkg_name) {
+                                    m_details_widget->update_api_info(details_val, v_details);
+                                    if (v_details.icon_path && !v_details.icon_path->empty()) {
+                                        m_api_client.download_image_async(*v_details.icon_path, [this, pkg_name](std::optional<std::string> local_path) {
+                                            if (local_path && application()) {
+                                                application()->post_task([this, pkg_name, path = *local_path]() {
+                                                    if (m_selected_pkg && m_selected_pkg->name == pkg_name) {
+                                                        m_details_widget->icon()->set_icon_path(path);
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }
+                                    
+                                    // Descargar screenshots (max 3)
+                                    int count = 0;
+                                    for (const auto& shot : v_details.screenshots) {
+                                        if (count >= 3) break;
+                                        m_api_client.download_image_async(shot.image_path, [this, pkg_name](std::optional<std::string> local_path) {
+                                            if (local_path && application()) {
+                                                application()->post_task([this, pkg_name, path = *local_path]() {
+                                                    if (m_selected_pkg && m_selected_pkg->name == pkg_name) {
+                                                        m_details_widget->add_screenshot(path);
+                                                    }
+                                                });
+                                            }
+                                        });
+                                        count++;
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        }
+    });
 }
 
 void ExploreView::reload_current_view() {

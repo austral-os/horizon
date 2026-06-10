@@ -175,7 +175,8 @@ sudo apt install build-essential g++ pkg-config \
                  libsecret-1-dev libpam0g-dev libssl-dev \
                  libsoup-3.0-dev libavcodec-dev libavformat-dev \
                  libavutil-dev libswscale-dev libswresample-dev \
-                 libcups2-dev libavahi-client-dev libavahi-common-dev
+                 libcups2-dev libavahi-client-dev libavahi-common-dev \
+                 libapt-pkg-dev
 ```
 
 _Note: For applications like Nova (web browser), you may also need multimedia plugins:_
