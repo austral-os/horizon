@@ -28,6 +28,8 @@ private:
     // Pointers to the internal components of the banner
     horizon::CoverFlow<horizon::apt::FeaturedApp>* m_coverflow = nullptr;
     class FeaturedBannerWidget* m_banner = nullptr;
+    class SectionWidget* m_categories_section = nullptr;
+    class SectionWidget* m_top_rated_section = nullptr;
     
     std::shared_ptr<bool> m_is_alive;
     bool m_data_loaded = false;

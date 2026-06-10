@@ -1,11 +1,89 @@
 #include "FeaturedView.hpp"
 #include <horizon/Label.hpp>
+#include <horizon/CoverFlow.hpp>
 #include <horizon/ToolbarButton.hpp>
 #include <horizon/Image.hpp>
 #include <horizon/Application.hpp>
 #include <horizon/StarRating.hpp>
+#include <horizon/I18n.hpp>
+#include <horizon/Icon.hpp>
 
 namespace horizon::appstore {
+
+enum class SectionLayoutMode { Stack, Flow };
+
+class SectionWidget : public horizon::Widget {
+public:
+    SectionWidget(const std::string& title, SectionLayoutMode mode)
+        : m_title_str(title), m_mode(mode) 
+    {
+        set_position_type(horizon::FREE);
+        
+        auto lbl = std::make_unique<horizon::Label>(title);
+        m_title_label = lbl.get();
+        m_title_label->set_font_weight(horizon::FONT_WEIGHT_BOLD);
+        m_title_label->set_font_size(18);
+        m_title_label->set_text_color(horizon::Color(1.0f, 1.0f, 1.0f, 1.0f));
+        m_title_label->set_position_type(horizon::FREE);
+        add_child(std::move(lbl));
+    }
+    
+    void calculate_layout() override {
+        int current_y = 50; // header height + padding
+        int current_x = 10;
+        int max_row_height = 0;
+        
+        for (const auto& child : children()) {
+            if (child.get() == m_title_label) {
+                child->set_position(x() + 10, y() + 10);
+                child->set_size(width() - 20, 30);
+                continue;
+            }
+            if (m_mode == SectionLayoutMode::Stack) {
+                child->set_position(x() + 10, y() + current_y);
+                current_y += child->height() + 10;
+            } else {
+                if (current_x + child->width() > width() - 10) {
+                    current_x = 10;
+                    current_y += max_row_height + 10;
+                    max_row_height = 0;
+                }
+                child->set_position(x() + current_x, y() + current_y);
+                max_row_height = std::max(max_row_height, child->height());
+                current_x += child->width() + 10;
+            }
+            child->calculate_layout();
+        }
+        
+        if (m_mode == SectionLayoutMode::Flow && max_row_height > 0) {
+            current_y += max_row_height + 10;
+        }
+        
+        if (height() != current_y) {
+            set_height(current_y);
+        }
+    }
+    
+    void draw(horizon::GraphicsContext& gc) override {
+        gc.save();
+        // Draw background
+        gc.setColor(horizon::Color(0.12f, 0.12f, 0.12f, 1.0f));
+        gc.clipRoundedRect(x(), y(), width(), height(), 8);
+        gc.fillRect(x(), y(), width(), height());
+        
+        // Draw header (top rounded, bottom flat)
+        gc.setColor(horizon::Color(0.08f, 0.08f, 0.08f, 1.0f));
+        gc.fillRect(x(), y(), width(), 40);
+        gc.restore();
+        
+        horizon::Widget::draw(gc);
+    }
+    
+private:
+    std::string m_title_str;
+    SectionLayoutMode m_mode;
+    horizon::Label* m_title_label = nullptr;
+};
 
 class FeaturedBannerWidget : public horizon::Widget {
 public:
@@ -51,6 +129,14 @@ public:
         m_btn_next = btn_next.get();
         m_btn_next->set_position_type(horizon::FREE);
         add_child(std::move(btn_next));
+
+        auto cat_sec = std::make_unique<SectionWidget>("Categorías", SectionLayoutMode::Stack);
+        m_categories_section = cat_sec.get();
+        add_child(std::move(cat_sec));
+
+        auto top_sec = std::make_unique<SectionWidget>("Mejor Valoradas", SectionLayoutMode::Flow);
+        m_top_rated_section = top_sec.get();
+        add_child(std::move(top_sec));
         
         m_coverflow->when_index_changed.connect([this](auto&) {
             int idx = m_coverflow->selected_index();
@@ -130,6 +216,24 @@ public:
         
         m_btn_next->set_position(bx + w - 60, by + 440);
         m_btn_next->set_size(40, 40);
+
+        int sec_y = by + 500;
+        m_categories_section->set_position(bx + 40, sec_y);
+        m_categories_section->set_width(250);
+        m_categories_section->calculate_layout();
+        
+        m_top_rated_section->set_position(bx + 310, sec_y);
+        m_top_rated_section->set_width(w - 350);
+        m_top_rated_section->calculate_layout();
+
+        // Update FeaturedBannerWidget height based on sections
+        int max_sec_h = std::max(m_categories_section->height(), m_top_rated_section->height());
+        if (max_sec_h > 0) {
+            h = std::max(h, 500 + max_sec_h + 40); // 40 is bottom padding
+            if (height() != h) {
+                set_height(h);
+            }
+        }
     }
     
     void draw(horizon::GraphicsContext& gc) override {
@@ -144,7 +248,13 @@ public:
     horizon::StarRating* m_rating = nullptr;
     horizon::ToolbarButton* m_btn_prev = nullptr;
     horizon::ToolbarButton* m_btn_next = nullptr;
+    SectionWidget* m_categories_section = nullptr;
+    SectionWidget* m_top_rated_section = nullptr;
     std::function<void(const std::string&)> on_app_clicked;
+
+public:
+    SectionWidget* categories_section() const { return m_categories_section; }
+    SectionWidget* top_rated_section() const { return m_top_rated_section; }
 };
 
 FeaturedView::FeaturedView() {
@@ -205,6 +315,124 @@ void FeaturedView::setup_ui() {
 void FeaturedView::load_initial_data() {
     if (m_data_loaded) return;
     m_data_loaded = true;
+
+    // Categorías
+    if (m_banner && m_banner->categories_section()) {
+        auto cat_sec = m_banner->categories_section();
+        std::vector<std::pair<std::string, std::string>> categories = {
+            {horizon::i18n().tr("appstore.category.all"), "applications-all"},
+            {horizon::i18n().tr("appstore.category.accessories"), "applications-utilities"},
+            {horizon::i18n().tr("appstore.category.education"), "applications-science"},
+            {horizon::i18n().tr("appstore.category.graphics"), "applications-graphics"},
+            {horizon::i18n().tr("appstore.category.internet"), "applications-internet"},
+            {horizon::i18n().tr("appstore.category.games"), "applications-games"},
+            {horizon::i18n().tr("appstore.category.multimedia"), "applications-multimedia"},
+            {horizon::i18n().tr("appstore.category.office"), "applications-office"},
+            {horizon::i18n().tr("appstore.category.development"), "applications-development"},
+            {horizon::i18n().tr("appstore.category.system"), "applications-system"},
+            {horizon::i18n().tr("appstore.category.other"), "applications-other"}
+        };
+        for (const auto& cat : categories) {
+            auto item = std::make_unique<horizon::Widget>();
+            item->set_size(230, 32);
+            item->set_position_type(horizon::FREE);
+            item->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
+            item->set_cursor_type(horizon::CursorType::Pointer);
+            item->set_spacing(10);
+            
+            auto icon = std::make_unique<horizon::Icon>();
+            icon->set_icon_name(cat.second);
+            icon->set_icon_size(24);
+            icon->set_fixed_size(24);
+            item->add_child(std::move(icon));
+            
+            auto lbl = std::make_unique<horizon::Label>(cat.first);
+            lbl->set_text_color(horizon::Color(0.8f, 0.8f, 0.8f, 1.0f));
+            item->add_child(std::move(lbl));
+            
+            cat_sec->add_child(std::move(item));
+        }
+        cat_sec->calculate_layout();
+        m_banner->calculate_layout();
+    }
+
+    // Aplicaciones mejor valoradas
+    m_api_client.get_apps_async(std::nullopt, "rating", "desc", 15, 0, "es", [this, alive = m_is_alive](std::optional<std::vector<horizon::apt::AppInfo>> apps) {
+        if (apps && application() && m_banner && m_banner->top_rated_section()) {
+            application()->post_task([this, alive, apps_val = *apps]() {
+                if (!*alive) return;
+                auto top_sec = m_banner->top_rated_section();
+                for (size_t i = 0; i < apps_val.size() && i < 15; i++) {
+                    const auto& app = apps_val[i];
+                    auto item = std::make_unique<horizon::Widget>();
+                    item->set_size(300, 80);
+                    item->set_position_type(horizon::FREE);
+                    item->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
+                    item->set_cursor_type(horizon::CursorType::Pointer);
+                    item->set_spacing(10);
+                    
+                    if (app.icon_path.empty()) {
+                        auto icon = std::make_unique<horizon::Icon>();
+                        icon->set_icon_name("system-software-install");
+                        icon->set_icon_size(64);
+                        icon->set_fixed_size(64);
+                        icon->set_cursor_type(horizon::CursorType::Pointer);
+                        item->add_child(std::move(icon));
+                    } else {
+                        auto img = std::make_unique<horizon::Image>();
+                        img->set_mode(horizon::ImageMode::Fit);
+                        img->set_size(64, 64);
+                        img->set_fixed_size(64);
+                        img->set_cursor_type(horizon::CursorType::Pointer);
+                        
+                        m_api_client.download_image_async(app.icon_path, [img_ptr = img.get(), alive, this](std::optional<std::string> path) {
+                            if (path && application()) {
+                                application()->post_task([img_ptr, p = *path, alive]() {
+                                    if (!*alive) return;
+                                    img_ptr->set_path(p);
+                                    img_ptr->invalidate();
+                                });
+                            }
+                        });
+                        item->add_child(std::move(img));
+                    }
+                    
+                    auto vpanel = std::make_unique<horizon::Widget>();
+                    vpanel->set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
+                    vpanel->set_spacing(5);
+                    vpanel->set_cursor_type(horizon::CursorType::Pointer);
+                    
+                    auto lbl_name = std::make_unique<horizon::Label>(app.name);
+                    lbl_name->set_font_weight(horizon::FONT_WEIGHT_BOLD);
+                    lbl_name->set_text_color(horizon::Color(1.0f, 1.0f, 1.0f, 1.0f));
+                    lbl_name->set_fixed_size(20);
+                    lbl_name->set_cursor_type(horizon::CursorType::Pointer);
+                    vpanel->add_child(std::move(lbl_name));
+                    
+                    auto rating = std::make_unique<horizon::StarRating>();
+                    rating->set_star_size(14);
+                    rating->set_size(90, 14);
+                    rating->set_fixed_size(14);
+                    rating->set_readonly(true);
+                    rating->set_rating(app.avg_rating);
+                    vpanel->add_child(std::move(rating));
+                    
+                    item->add_child(std::move(vpanel));
+                    
+                    item->when_click.connect([this, pkg = app.package_name](auto&) {
+                        AppClickedContext ctx;
+                        ctx.package_name = pkg;
+                        when_app_clicked.run(ctx);
+                    });
+
+                    top_sec->add_child(std::move(item));
+                }
+                top_sec->calculate_layout();
+                m_banner->calculate_layout();
+            });
+        }
+    });
+
     m_api_client.get_featured_apps_async("es", [this, alive = m_is_alive](std::optional<std::vector<horizon::apt::FeaturedApp>> apps) {
         if (apps && application()) {
             application()->post_task([this, alive, apps_val = *apps]() {
