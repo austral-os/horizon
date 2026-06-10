@@ -3,6 +3,10 @@
 #include <horizon/Statusbar.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/I18n.hpp>
+#include <horizon/dialogs/PreferencesContent.hpp>
+#include <horizon/ConfigSection.hpp>
+#include <horizon/TextBox.hpp>
+#include <horizon/Label.hpp>
 
 namespace horizon::appstore {
 
@@ -56,6 +60,10 @@ void AppStoreWindow::set_active_view(const std::string& view_name) {
             m_btn_update_all->set_visible(false);
         }
     }
+
+    if (m_btn_refresh_featured) {
+        m_btn_refresh_featured->set_visible(view_name == horizon::i18n().tr("appstore.views.featured"));
+    }
 }
 
 void AppStoreWindow::setup_toolbar() {
@@ -86,6 +94,15 @@ void AppStoreWindow::setup_toolbar() {
         if (m_updates_view) m_updates_view->trigger_update_all();
     });
     btn_wrapper->add_child(std::move(btn_update_all));
+
+    auto btn_refresh_featured = std::make_unique<horizon::ToolbarButton>(horizon::i18n().tr("appstore.action.refresh"), "view-refresh");
+    m_btn_refresh_featured = btn_refresh_featured.get();
+    m_btn_refresh_featured->set_fixed_size(45);
+    m_btn_refresh_featured->set_visible(false);
+    m_btn_refresh_featured->when_click.connect([this](auto&) {
+        if (m_featured_view) m_featured_view->reload_data();
+    });
+    btn_wrapper->add_child(std::move(btn_refresh_featured));
 
     tb->add_toolbar_widget(std::move(btn_wrapper));
     

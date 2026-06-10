@@ -37,7 +37,10 @@
         "action": {
             "install": "Instalar",
             "uninstall": "Desinstalar",
-            "update_all": "Actualizar Todo"
+            "remove": "Desinstalar",
+            "update": "Actualizar",
+            "update_all": "Actualizar Todo",
+            "refresh": "Recargar"
         },
         "updates": {
             "empty_title": "El sistema está actualizado",
@@ -64,6 +67,11 @@
             "development": "Desarrollo",
             "system": "Sistema",
             "other": "Otros"
+        },
+        "preferences": {
+            "general": "General",
+            "api_url": "URL de la API",
+            "clear_cache": "Borrar Caché"
         }
     }
 }

@@ -13,6 +13,7 @@ public:
     ~FeaturedView() override;
 
     void load_initial_data();
+    void reload_data();
 
     struct AppClickedContext {
         std::string package_name;

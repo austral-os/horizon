@@ -36,8 +36,10 @@
         },
         "action": {
             "install": "Install",
-            "uninstall": "Uninstall",
-            "update_all": "Update All"
+            "remove": "Remove",
+            "update": "Update",
+            "update_all": "Update All",
+            "refresh": "Refresh"
         },
         "updates": {
             "empty_title": "System is up to date",
@@ -64,6 +66,11 @@
             "development": "Development",
             "system": "System",
             "other": "Other"
+        },
+        "preferences": {
+            "general": "General",
+            "api_url": "API URL",
+            "clear_cache": "Clear Cache"
         }
     }
 }

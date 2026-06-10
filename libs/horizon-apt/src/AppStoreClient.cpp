@@ -37,10 +37,107 @@ struct AppStoreClient::Private {
         return diff < 24; // 24 hours TTL
     }
 
+    std::string get_config_url() const {
+        const char* home = getenv("HOME");
+        if (!home) return "";
+        std::string path = std::string(home) + "/.config/horizon/appstore.json";
+        try {
+            if (!std::filesystem::exists(path)) return "";
+            std::ifstream in(path);
+            json j;
+            in >> j;
+            if (j.contains("api_url") && !j["api_url"].is_null()) {
+                std::string url = j["api_url"].get<std::string>();
+                if (!url.empty() && url.back() == '/') {
+                    url.pop_back();
+                }
+                return url;
+            }
+        } catch (...) {}
+        return "";
+    }
+
+    std::optional<std::string> perform_http_get_raw(const std::string& url) const {
+        SoupSession* session = soup_session_new();
+        SoupMessage* msg = soup_message_new("GET", url.c_str());
+        if (!msg) {
+            g_object_unref(session);
+            return std::nullopt;
+        }
+
+        GError* error = nullptr;
+        GBytes* bytes = soup_session_send_and_read(session, msg, nullptr, &error);
+        if (error) {
+            std::cerr << "Request failed for " << url << ": " << error->message << std::endl;
+            g_error_free(error);
+            g_object_unref(msg);
+            g_object_unref(session);
+            return std::nullopt;
+        }
+
+        gsize size;
+        const char* data = static_cast<const char*>(g_bytes_get_data(bytes, &size));
+        std::string ret(data, size);
+        g_bytes_unref(bytes);
+        g_object_unref(msg);
+        g_object_unref(session);
+        return ret;
+    }
+
+    std::optional<json> perform_http_get(const std::string& url) const {
+        auto raw = perform_http_get_raw(url);
+        if (!raw) return std::nullopt;
+        try {
+            return json::parse(*raw);
+        } catch (...) {
+            return std::nullopt;
+        }
+    }
+
+    std::optional<json> perform_http_post(const std::string& url, const json& body) const {
+        std::string body_str = body.dump();
+        SoupSession* session = soup_session_new();
+        SoupMessage* msg = soup_message_new("POST", url.c_str());
+        if (!msg) {
+            g_object_unref(session);
+            return std::nullopt;
+        }
+
+        GBytes* body_bytes = g_bytes_new(body_str.c_str(), body_str.size());
+        soup_message_set_request_body_from_bytes(msg, "application/json", body_bytes);
+        g_bytes_unref(body_bytes);
+
+        GError* error = nullptr;
+        GBytes* bytes = soup_session_send_and_read(session, msg, nullptr, &error);
+        
+        if (error) {
+            std::cerr << "POST failed for " << url << ": " << error->message << std::endl;
+            g_error_free(error);
+            g_object_unref(msg);
+            g_object_unref(session);
+            return std::nullopt;
+        }
+
+        gsize size;
+        const char* data = static_cast<const char*>(g_bytes_get_data(bytes, &size));
+        std::optional<json> ret = std::nullopt;
+        try {
+            ret = json::parse(std::string_view(data, size));
+        } catch (...) {}
+        g_bytes_unref(bytes);
+        g_object_unref(msg);
+        g_object_unref(session);
+        return ret;
+    }
+
     template<typename T>
-    void make_async_request(const std::string& url, std::function<void(std::optional<T>)> callback, std::function<std::optional<T>(const json&)> parser, bool use_cache = true) {
+    void make_async_request(const std::string& endpoint, std::function<void(std::optional<T>)> callback, std::function<std::optional<T>(const json&)> parser, bool use_cache = true) {
+        std::string custom_url = get_config_url();
+        std::string full_custom_url = custom_url.empty() ? "" : custom_url + endpoint;
+        std::string full_default_url = base_url + endpoint;
+
         if (use_cache) {
-            std::string cache_path = get_cache_file_path(url);
+            std::string cache_path = get_cache_file_path(full_custom_url.empty() ? full_default_url : full_custom_url);
             if (is_cache_valid(cache_path)) {
                 std::thread([cache_path, callback = std::move(callback), parser = std::move(parser)]() {
                     try {
@@ -51,100 +148,69 @@ struct AppStoreClient::Private {
                             callback(parser(j["data"]));
                             return;
                         }
-                    } catch (...) {
-                        // On cache read error, fall through to network request (but we are in a thread, so we'd have to handle it carefully)
-                        // For simplicity, just return nullopt if cache is corrupted. The cache will expire eventually or can be cleared.
-                        callback(std::nullopt);
-                        return;
-                    }
+                    } catch (...) {}
                     callback(std::nullopt);
                 }).detach();
                 return;
             }
         }
 
-        std::thread([url, use_cache, cache_path = get_cache_file_path(url), cache_dir = get_cache_dir(), callback = std::move(callback), parser = std::move(parser)]() {
-            SoupSession* session = soup_session_new();
-            SoupMessage* msg = soup_message_new("GET", url.c_str());
-            if (!msg) {
-                g_object_unref(session);
-                callback(std::nullopt);
-                return;
+        std::thread([full_custom_url, full_default_url, use_cache, cache_dir = get_cache_dir(), this, callback = std::move(callback), parser = std::move(parser)]() {
+            std::optional<json> j_res = std::nullopt;
+            std::string success_url = "";
+            
+            if (!full_custom_url.empty()) {
+                j_res = perform_http_get(full_custom_url);
+                if (j_res && j_res->value("status", "") == "success") {
+                    success_url = full_custom_url;
+                }
+            }
+            
+            if (!j_res || j_res->value("status", "") != "success") {
+                j_res = perform_http_get(full_default_url);
+                if (j_res && j_res->value("status", "") == "success") {
+                    success_url = full_default_url;
+                }
             }
 
-            GError* error = nullptr;
-            GBytes* bytes = soup_session_send_and_read(session, msg, nullptr, &error);
-            
-            if (error) {
-                std::cerr << "Request failed: " << error->message << std::endl;
-                g_error_free(error);
-                callback(std::nullopt);
-            } else {
-                gsize size;
-                const char* data = static_cast<const char*>(g_bytes_get_data(bytes, &size));
-                try {
-                    json j = json::parse(std::string_view(data, size));
-                    if (j.value("status", "") == "success") {
-                        if (use_cache) {
-                            std::error_code ec;
-                            std::filesystem::create_directories(cache_dir + "/api", ec);
-                            std::ofstream out(cache_path);
-                            if (out.is_open()) {
-                                out << j.dump();
-                                out.close();
-                            }
-                        }
-                        callback(parser(j["data"]));
-                    } else {
-                        callback(std::nullopt);
+            if (j_res && j_res->value("status", "") == "success") {
+                if (use_cache && !success_url.empty()) {
+                    std::error_code ec;
+                    std::filesystem::create_directories(cache_dir + "/api", ec);
+                    std::ofstream out(get_cache_file_path(success_url));
+                    if (out.is_open()) {
+                        out << j_res->dump();
+                        out.close();
                     }
-                } catch (const std::exception& e) {
-                    std::cerr << "JSON Parse error: " << e.what() << std::endl;
-                    callback(std::nullopt);
                 }
-                g_bytes_unref(bytes);
+                callback(parser((*j_res)["data"]));
+            } else {
+                callback(std::nullopt);
             }
-            g_object_unref(msg);
-            g_object_unref(session);
         }).detach();
     }
 
-    void make_post_request(const std::string& url, const json& body, std::function<void(bool)> callback) {
-        std::string body_str = body.dump();
-        
-        std::thread([url, body_str, callback = std::move(callback)]() {
-            SoupSession* session = soup_session_new();
-            SoupMessage* msg = soup_message_new("POST", url.c_str());
-            if (!msg) {
-                g_object_unref(session);
-                callback(false);
-                return;
-            }
+    void make_post_request(const std::string& endpoint, const json& body, std::function<void(bool)> callback) {
+        std::string custom_url = get_config_url();
+        std::string full_custom_url = custom_url.empty() ? "" : custom_url + endpoint;
+        std::string full_default_url = base_url + endpoint;
 
-            GBytes* body_bytes = g_bytes_new(body_str.c_str(), body_str.size());
-            soup_message_set_request_body_from_bytes(msg, "application/json", body_bytes);
-            g_bytes_unref(body_bytes);
-
-            GError* error = nullptr;
-            GBytes* bytes = soup_session_send_and_read(session, msg, nullptr, &error);
+        std::thread([full_custom_url, full_default_url, body, this, callback = std::move(callback)]() {
+            std::optional<json> j_res = std::nullopt;
             
-            if (error) {
-                std::cerr << "POST failed: " << error->message << std::endl;
-                g_error_free(error);
-                callback(false);
-            } else {
-                gsize size;
-                const char* data = static_cast<const char*>(g_bytes_get_data(bytes, &size));
-                try {
-                    json j = json::parse(std::string_view(data, size));
-                    callback(j.value("status", "") == "success");
-                } catch (...) {
-                    callback(false);
-                }
-                g_bytes_unref(bytes);
+            if (!full_custom_url.empty()) {
+                j_res = perform_http_post(full_custom_url, body);
             }
-            g_object_unref(msg);
-            g_object_unref(session);
+            
+            if (!j_res || j_res->value("status", "") != "success") {
+                j_res = perform_http_post(full_default_url, body);
+            }
+
+            if (j_res && j_res->value("status", "") == "success") {
+                callback(true);
+            } else {
+                callback(false);
+            }
         }).detach();
     }
 };
@@ -176,12 +242,12 @@ static std::optional<int> get_opt_int(const json& j, const std::string& key) {
 }
 
 void AppStoreClient::get_apps_async(std::optional<int> category_id, const std::string& sort_by, const std::string& order, int limit, int offset, const std::string& lang, std::function<void(std::optional<std::vector<AppInfo>>)> callback) {
-    std::string url = d->base_url + "/apps?sort_by=" + sort_by + "&order=" + order + "&limit=" + std::to_string(limit) + "&offset=" + std::to_string(offset) + "&lang=" + lang;
+    std::string endpoint = "/apps?sort_by=" + sort_by + "&order=" + order + "&limit=" + std::to_string(limit) + "&offset=" + std::to_string(offset) + "&lang=" + lang;
     if (category_id) {
-        url += "&category_id=" + std::to_string(*category_id);
+        endpoint += "&category_id=" + std::to_string(*category_id);
     }
 
-    d->make_async_request<std::vector<AppInfo>>(url, std::move(callback), [](const json& data) -> std::optional<std::vector<AppInfo>> {
+    d->make_async_request<std::vector<AppInfo>>(endpoint, std::move(callback), [](const json& data) -> std::optional<std::vector<AppInfo>> {
         std::vector<AppInfo> apps;
         if (!data.is_array()) return std::nullopt;
         for (const auto& item : data) {
@@ -205,8 +271,8 @@ void AppStoreClient::get_apps_async(std::optional<int> category_id, const std::s
 }
 
 void AppStoreClient::get_featured_apps_async(const std::string& lang, std::function<void(std::optional<std::vector<FeaturedApp>>)> callback) {
-    std::string url = d->base_url + "/featured?lang=" + lang;
-    d->make_async_request<std::vector<FeaturedApp>>(url, std::move(callback), [](const json& data) -> std::optional<std::vector<FeaturedApp>> {
+    std::string endpoint = "/featured?lang=" + lang;
+    d->make_async_request<std::vector<FeaturedApp>>(endpoint, std::move(callback), [](const json& data) -> std::optional<std::vector<FeaturedApp>> {
         std::vector<FeaturedApp> apps;
         if (!data.is_array()) return std::nullopt;
         for (const auto& item : data) {
@@ -227,8 +293,8 @@ void AppStoreClient::get_featured_apps_async(const std::string& lang, std::funct
 }
 
 void AppStoreClient::get_app_details_async(const std::string& package_name, const std::string& lang, std::function<void(std::optional<AppDetails>)> callback) {
-    std::string url = d->base_url + "/apps/" + package_name + "?lang=" + lang;
-    d->make_async_request<AppDetails>(url, std::move(callback), [](const json& data) -> std::optional<AppDetails> {
+    std::string endpoint = "/apps/" + package_name + "?lang=" + lang;
+    d->make_async_request<AppDetails>(endpoint, std::move(callback), [](const json& data) -> std::optional<AppDetails> {
         if (!data.contains("app") || !data.contains("versions")) return std::nullopt;
         
         AppDetails details;
@@ -252,8 +318,8 @@ void AppStoreClient::get_app_details_async(const std::string& package_name, cons
 }
 
 void AppStoreClient::get_app_version_details_async(const std::string& package_name, const std::string& version_string, const std::string& lang, std::function<void(std::optional<AppVersionDetails>)> callback) {
-    std::string url = d->base_url + "/apps/" + package_name + "/versions/" + version_string + "?lang=" + lang;
-    d->make_async_request<AppVersionDetails>(url, std::move(callback), [](const json& data) -> std::optional<AppVersionDetails> {
+    std::string endpoint = "/apps/" + package_name + "/versions/" + version_string + "?lang=" + lang;
+    d->make_async_request<AppVersionDetails>(endpoint, std::move(callback), [](const json& data) -> std::optional<AppVersionDetails> {
         AppVersionDetails details;
         details.id = data.value("id", 0);
         details.app_id = data.value("app_id", 0);
@@ -279,8 +345,8 @@ void AppStoreClient::get_app_version_details_async(const std::string& package_na
 }
 
 void AppStoreClient::get_app_reviews_async(const std::string& package_name, const std::string& version_string, std::function<void(std::optional<std::vector<Review>>)> callback) {
-    std::string url = d->base_url + "/apps/" + package_name + "/versions/" + version_string + "/reviews";
-    d->make_async_request<std::vector<Review>>(url, std::move(callback), [](const json& data) -> std::optional<std::vector<Review>> {
+    std::string endpoint = "/apps/" + package_name + "/versions/" + version_string + "/reviews";
+    d->make_async_request<std::vector<Review>>(endpoint, std::move(callback), [](const json& data) -> std::optional<std::vector<Review>> {
         std::vector<Review> reviews;
         if (!data.is_array()) return std::nullopt;
         for (const auto& item : data) {
@@ -296,12 +362,12 @@ void AppStoreClient::get_app_reviews_async(const std::string& package_name, cons
 }
 
 void AppStoreClient::post_app_review_async(const std::string& package_name, const std::string& version_string, int rating, const std::string& comment, std::function<void(bool)> callback) {
-    std::string url = d->base_url + "/apps/" + package_name + "/versions/" + version_string + "/reviews";
+    std::string endpoint = "/apps/" + package_name + "/versions/" + version_string + "/reviews";
     json body = {
         {"rating", rating},
         {"comment", comment}
     };
-    d->make_post_request(url, body, std::move(callback));
+    d->make_post_request(endpoint, body, std::move(callback));
 }
 
 void AppStoreClient::download_image_async(const std::string& image_path, std::function<void(std::optional<std::string>)> callback) {
@@ -310,9 +376,20 @@ void AppStoreClient::download_image_async(const std::string& image_path, std::fu
         return;
     }
     
-    std::string url = d->base_url.substr(0, d->base_url.find("/api")) + image_path;
+    std::string custom_url = d->get_config_url();
+    std::string full_custom_url = "";
+    if (!custom_url.empty()) {
+        auto pos = custom_url.find("/api");
+        if (pos != std::string::npos) {
+            full_custom_url = custom_url.substr(0, pos) + image_path;
+        } else {
+            full_custom_url = custom_url + image_path;
+        }
+    }
+    
+    std::string full_default_url = d->base_url.substr(0, d->base_url.find("/api")) + image_path;
 
-    std::thread([url, cache_dir = d->get_cache_dir(), image_path, callback = std::move(callback)]() {
+    std::thread([full_custom_url, full_default_url, cache_dir = d->get_cache_dir(), image_path, this, callback = std::move(callback)]() {
         auto filename = std::filesystem::path(image_path).filename().string();
         std::string local_path = cache_dir + "/images/" + filename;
         
@@ -326,44 +403,34 @@ void AppStoreClient::download_image_async(const std::string& image_path, std::fu
             }
         }
 
-        SoupSession* session = soup_session_new();
-        SoupMessage* msg = soup_message_new("GET", url.c_str());
-        if (!msg) {
-            g_object_unref(session);
-            callback(std::nullopt);
-            return;
+        std::optional<std::string> raw = std::nullopt;
+        if (!full_custom_url.empty()) {
+            raw = d->perform_http_get_raw(full_custom_url);
+        }
+        
+        if (!raw) {
+            raw = d->perform_http_get_raw(full_default_url);
         }
 
-        GError* error = nullptr;
-        GBytes* bytes = soup_session_send_and_read(session, msg, nullptr, &error);
-        if (error) {
-            std::cerr << "Failed to download image: " << error->message << std::endl;
-            g_error_free(error);
-            callback(std::nullopt);
-        } else {
-            gsize size;
-            const char* data = static_cast<const char*>(g_bytes_get_data(bytes, &size));
-            
+        if (raw) {
             std::error_code ec;
             std::filesystem::create_directories(cache_dir + "/images/", ec);
             
             std::ofstream out(local_path, std::ios::binary);
             if (out.is_open()) {
-                out.write(data, size);
+                out.write(raw->data(), raw->size());
                 out.close();
             }
-
-            g_bytes_unref(bytes);
             callback(local_path);
+        } else {
+            callback(std::nullopt);
         }
-        g_object_unref(msg);
-        g_object_unref(session);
     }).detach();
 }
 
 void AppStoreClient::get_categories_async(std::function<void(std::optional<std::vector<Category>>)> callback) {
-    std::string url = d->base_url + "/categories";
-    d->make_async_request<std::vector<Category>>(url, std::move(callback), [](const json& data) -> std::optional<std::vector<Category>> {
+    std::string endpoint = "/categories";
+    d->make_async_request<std::vector<Category>>(endpoint, std::move(callback), [](const json& data) -> std::optional<std::vector<Category>> {
         std::vector<Category> categories;
         if (!data.is_array()) return std::nullopt;
         for (const auto& item : data) {

@@ -468,6 +468,20 @@ namespace horizon::appstore
         }
     }
 
+    void FeaturedView::reload_data()
+    {
+        clear_children();
+        m_data_loaded = false;
+        m_featured_loaded = false;
+        m_top_rated_loaded = false;
+        
+        // Recrear la UI
+        setup_ui();
+        
+        // Cargar los datos frescos
+        load_initial_data();
+    }
+
     void FeaturedView::load_initial_data()
     {
         if (m_data_loaded)

@@ -30,6 +30,7 @@ private:
     horizon::ToggleGroupButton* m_group_btn = nullptr;
     horizon::ToolbarButton* m_btn_action = nullptr;
     horizon::ToolbarButton* m_btn_update_all = nullptr;
+    horizon::ToolbarButton* m_btn_refresh_featured = nullptr;
     horizon::SearchBox* m_search_box = nullptr;
     horizon::Widget* m_content_area = nullptr;
     horizon::Label* m_status_label = nullptr;
