@@ -46,8 +46,8 @@ private:
 
 class ExploreView : public horizon::Widget {
 public:
-    ExploreView(horizon::apt::AptManager* apt_manager);
-    ~ExploreView() override = default;
+    explicit ExploreView(std::shared_ptr<horizon::apt::AptManager> apt_manager);
+    ~ExploreView() override;
 
     void perform_search(const std::string& query);
     void load_initial_data();
@@ -69,7 +69,7 @@ private:
     void update_details(const horizon::apt::PackageInfo& pkg);
     void filter_by_category(const std::string& category_name);
 
-    horizon::apt::AptManager* m_apt = nullptr;
+    std::shared_ptr<horizon::apt::AptManager> m_apt;
     horizon::apt::AppStoreClient m_api_client;
     
     horizon::VPanel* m_vpanel = nullptr;
@@ -84,6 +84,7 @@ private:
     std::optional<horizon::apt::PackageInfo> m_selected_pkg;
     std::string m_current_search_query;
     std::string m_current_category;
+    std::shared_ptr<bool> m_is_alive;
 };
 
 }

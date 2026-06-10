@@ -10,7 +10,7 @@ namespace horizon::appstore {
 class FeaturedView : public horizon::Widget {
 public:
     FeaturedView();
-    ~FeaturedView() override = default;
+    ~FeaturedView() override;
 
     void load_initial_data();
 
@@ -28,6 +28,9 @@ private:
     // Pointers to the internal components of the banner
     horizon::CoverFlow<horizon::apt::FeaturedApp>* m_coverflow = nullptr;
     class FeaturedBannerWidget* m_banner = nullptr;
+    
+    std::shared_ptr<bool> m_is_alive;
+    bool m_data_loaded = false;
 };
 
 }

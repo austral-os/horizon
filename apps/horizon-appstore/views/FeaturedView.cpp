@@ -23,6 +23,7 @@ public:
         m_title->set_font_size(24);
         m_title->set_font_weight(horizon::FONT_WEIGHT_BOLD);
         m_title->set_text_color(horizon::Color(1.0f, 1.0f, 1.0f, 1.0f));
+        m_title->set_cursor_type(horizon::CursorType::Pointer);
         add_child(std::move(lbl_title));
         
         auto lbl_desc = std::make_unique<horizon::Label>();
@@ -31,6 +32,7 @@ public:
         m_description->set_font_size(14);
         m_description->set_text_color(horizon::Color(0.8f, 0.8f, 0.8f, 1.0f));
         m_description->set_vertical_alignment(horizon::VerticalAlignment::Top);
+        m_description->set_cursor_type(horizon::CursorType::Pointer);
         add_child(std::move(lbl_desc));
         
         auto btn_prev = std::make_unique<horizon::ToolbarButton>("", "go-previous", 24);
@@ -136,7 +138,12 @@ public:
 FeaturedView::FeaturedView() {
     set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
     set_position_type(horizon::FILL);
+    m_is_alive = std::make_shared<bool>(true);
     setup_ui();
+}
+
+FeaturedView::~FeaturedView() {
+    *m_is_alive = false;
 }
 
 void FeaturedView::setup_ui() {
@@ -157,12 +164,20 @@ void FeaturedView::setup_ui() {
         auto img = std::make_unique<horizon::Image>();
         img->set_mode(horizon::ImageMode::Fit);
         
-        m_api_client.download_image_async(app.icon_path, [img_ptr = img.get(), this](std::optional<std::string> path) {
+        m_api_client.download_image_async(app.icon_path, [img_ptr = img.get(), alive = m_is_alive, this](std::optional<std::string> path) {
             if (path && application()) {
-                application()->post_task([img_ptr, p = *path, this]() {
-                    img_ptr->set_path(p);
-                    if (m_coverflow) {
-                        m_coverflow->invalidate();
+                application()->post_task([img_ptr, p = *path, alive, this]() {
+                    if (*alive) {
+                        bool found = false;
+                        if (m_coverflow) {
+                            for (const auto& child : m_coverflow->children()) {
+                                if (child.get() == img_ptr) { found = true; break; }
+                            }
+                        }
+                        if (found) {
+                            img_ptr->set_path(p);
+                            m_coverflow->invalidate();
+                        }
                     }
                 });
             }
@@ -176,9 +191,12 @@ void FeaturedView::setup_ui() {
 }
 
 void FeaturedView::load_initial_data() {
-    m_api_client.get_featured_apps_async("es", [this](std::optional<std::vector<horizon::apt::FeaturedApp>> apps) {
+    if (m_data_loaded) return;
+    m_data_loaded = true;
+    m_api_client.get_featured_apps_async("es", [this, alive = m_is_alive](std::optional<std::vector<horizon::apt::FeaturedApp>> apps) {
         if (apps && application()) {
-            application()->post_task([this, apps_val = *apps]() {
+            application()->post_task([this, alive, apps_val = *apps]() {
+                if (!*alive) return;
                 if (m_coverflow) {
                     m_coverflow->set_data(apps_val);
                     // trigger selection manually to populate title/description

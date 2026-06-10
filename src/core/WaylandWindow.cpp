@@ -161,6 +161,10 @@ namespace horizon
 
     WaylandWindow::~WaylandWindow()
     {
+        // DESTROY WIDGETS FIRST! 
+        // This prevents children like CoverFlow from accessing destroyed GL resources in m_app
+        m_root.reset();
+
         if (m_active_window == this)
         {
             m_active_window = nullptr;

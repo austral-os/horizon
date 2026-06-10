@@ -35,7 +35,7 @@ private:
     horizon::Label* m_status_label = nullptr;
     horizon::ProgressBar* m_progress_bar = nullptr;
     
-    std::unique_ptr<horizon::apt::AptManager> m_apt_manager;
+    std::shared_ptr<horizon::apt::AptManager> m_apt_manager;
     FeaturedView* m_featured_view = nullptr;
     ExploreView* m_explore_view = nullptr;
     UpdatesView* m_updates_view = nullptr;

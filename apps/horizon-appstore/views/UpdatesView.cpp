@@ -8,9 +8,14 @@
 
 namespace horizon::appstore {
 
-UpdatesView::UpdatesView(horizon::apt::AptManager* apt_manager) : m_apt(apt_manager) {
+UpdatesView::UpdatesView(std::shared_ptr<horizon::apt::AptManager> apt_manager) : m_apt(std::move(apt_manager)) {
+    m_is_alive = std::make_shared<bool>(true);
     set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
     setup_ui();
+}
+
+UpdatesView::~UpdatesView() {
+    *m_is_alive = false;
 }
 
 void UpdatesView::setup_ui() {
@@ -153,11 +158,12 @@ void UpdatesView::check_for_updates() {
         on_loading_state_changed(true, horizon::i18n().tr("appstore.status.searching"));
     }
     
-    std::thread([this]() {
-        auto results = m_apt->list_upgradable_packages();
+    std::thread([apt = m_apt, alive = m_is_alive, this]() {
+        auto results = apt->list_upgradable_packages();
         
         if (application()) {
-            application()->post_task([this, results = std::move(results)]() mutable {
+            application()->post_task([this, alive = m_is_alive, results = std::move(results)]() mutable {
+                if (!*alive) return;
                 if (on_loading_state_changed) {
                     on_loading_state_changed(false, horizon::i18n().tr("appstore.status.ready"));
                 }
@@ -185,12 +191,13 @@ void UpdatesView::trigger_update_all() {
         on_loading_state_changed(true, horizon::i18n().tr("appstore.status.updating"));
     }
     
-    std::thread([this]() {
-        bool success = m_apt->upgrade_all_packages();
-        m_apt->reload_cache();
+    std::thread([apt = m_apt, alive = m_is_alive, this]() {
+        bool success = apt->upgrade_all_packages();
+        apt->reload_cache();
         
         if (application()) {
-            application()->post_task([this, success]() {
+            application()->post_task([this, alive = m_is_alive, success]() {
+                if (!*alive) return;
                 if (on_loading_state_changed) {
                     std::string msg = success ? horizon::i18n().tr("appstore.status.update_success") : horizon::i18n().tr("appstore.status.update_error");
                     on_loading_state_changed(false, msg);

@@ -10,8 +10,8 @@ namespace horizon::appstore {
 
 class UpdatesView : public horizon::Widget {
 public:
-    UpdatesView(horizon::apt::AptManager* apt_manager);
-    ~UpdatesView() override = default;
+    explicit UpdatesView(std::shared_ptr<horizon::apt::AptManager> apt_manager);
+    ~UpdatesView() override;
 
     std::function<void(bool loading, const std::string& msg)> on_loading_state_changed;
     std::function<void(int update_count)> on_updates_status_changed;
@@ -21,12 +21,14 @@ public:
     void trigger_update_all();
 
 private:
-    horizon::apt::AptManager* m_apt = nullptr;
+    std::shared_ptr<horizon::apt::AptManager> m_apt;
     
     horizon::Widget* m_empty_state = nullptr;
     horizon::Widget* m_results_state = nullptr;
     horizon::TableView<horizon::apt::PackageInfo>* m_tableview = nullptr;
     horizon::Button<horizon::AquaObject>* m_btn_check = nullptr;
+
+    std::shared_ptr<bool> m_is_alive;
 
     void setup_ui();
 };

@@ -9,7 +9,7 @@ namespace horizon::appstore {
 AppStoreWindow::AppStoreWindow(const std::string& initial_view, const std::string& initial_search) : ApplicationWindow("AppStore") {
     set_size(1000, 700);
     
-    m_apt_manager = std::make_unique<horizon::apt::AptManager>();
+    m_apt_manager = std::make_shared<horizon::apt::AptManager>();
     m_apt_manager->initialize();
 
     setup_content(initial_search);
@@ -154,7 +154,7 @@ void AppStoreWindow::setup_content(const std::string& initial_search) {
     });
     m_content_area->add_child(std::move(featured));
     
-    auto explore = std::make_unique<ExploreView>(m_apt_manager.get());
+    auto explore = std::make_unique<ExploreView>(m_apt_manager);
     m_explore_view = explore.get();
     m_explore_view->set_visible(false);
     m_explore_view->on_loading_state_changed = [this](bool loading, const std::string& msg) {
@@ -183,7 +183,7 @@ void AppStoreWindow::setup_content(const std::string& initial_search) {
     
     m_content_area->add_child(std::move(explore));
     
-    auto updates = std::make_unique<UpdatesView>(m_apt_manager.get());
+    auto updates = std::make_unique<UpdatesView>(m_apt_manager);
     m_updates_view = updates.get();
     m_updates_view->set_visible(false);
     m_updates_view->on_loading_state_changed = [this](bool loading, const std::string& msg) {

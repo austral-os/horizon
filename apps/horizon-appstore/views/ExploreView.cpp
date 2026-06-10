@@ -160,10 +160,16 @@ void PackageDetailsWidget::clear_screenshots() {
     calculate_layout();
 }
 
-ExploreView::ExploreView(horizon::apt::AptManager* apt_manager) : m_apt(apt_manager) {
+ExploreView::ExploreView(std::shared_ptr<horizon::apt::AptManager> apt_manager) : m_apt(std::move(apt_manager)) {
+    m_is_alive = std::make_shared<bool>(true);
     set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
+    set_position_type(horizon::FILL);
     setup_ui();
     build_categories();
+}
+
+ExploreView::~ExploreView() {
+    *m_is_alive = false;
 }
 
 class NoSelectionWidget : public horizon::Widget {
@@ -391,10 +397,11 @@ void ExploreView::perform_search(const std::string& query) {
             on_loading_state_changed(true, msg);
         }
 
-        std::thread([this, query]() {
-            auto results = m_apt->search_packages(query);
+        std::thread([apt = m_apt, query, alive = m_is_alive, this]() {
+            auto results = apt->search_packages(query);
             if (application()) {
-                application()->post_task([this, query, results = std::move(results)]() mutable {
+                application()->post_task([this, alive = m_is_alive, query, results = std::move(results)]() mutable {
+                    if (!*alive) return;
                     if (on_loading_state_changed) {
                         on_loading_state_changed(false, horizon::i18n().tr("appstore.status.search_finished"));
                     }
@@ -440,7 +447,7 @@ void ExploreView::filter_by_category(const std::string& category_name) {
         on_loading_state_changed(true, msg);
     }
 
-    std::thread([this, category_name]() {
+    std::thread([apt = m_apt, category_name, alive = m_is_alive, this]() {
         std::vector<std::string> sections;
         if (category_name == horizon::i18n().tr("appstore.category.accessories")) {
             sections = {"utils", "misc"};
@@ -464,10 +471,11 @@ void ExploreView::filter_by_category(const std::string& category_name) {
             sections = {"other"};
         }
 
-        auto results = m_apt->list_packages_by_sections(sections, 50);
+        auto results = apt->list_packages_by_sections(sections, 50);
         
         if (application()) {
-            application()->post_task([this, results = std::move(results)]() mutable {
+            application()->post_task([this, alive, results = std::move(results)]() mutable {
+                if (!*alive) return;
                 m_tableview->set_data(std::move(results));
                 clear_selection();
                 if (on_loading_state_changed) {
@@ -497,13 +505,15 @@ void ExploreView::update_details(const horizon::apt::PackageInfo& pkg) {
                 m_api_client.get_app_version_details_async(pkg_name, latest_version, "es", [this, pkg_name, details_val = *details](std::optional<horizon::apt::AppVersionDetails> v_details) {
                     if (v_details) {
                         if (application()) {
-                            application()->post_task([this, pkg_name, details_val, v_details = *v_details]() {
+                            application()->post_task([this, alive = m_is_alive, pkg_name, details_val, v_details = *v_details]() {
+                                if (!*alive) return;
                                 if (m_selected_pkg && m_selected_pkg->name == pkg_name) {
                                     m_details_widget->update_api_info(details_val, v_details);
                                     if (v_details.icon_path && !v_details.icon_path->empty()) {
                                         m_api_client.download_image_async(*v_details.icon_path, [this, pkg_name](std::optional<std::string> local_path) {
                                             if (local_path && application()) {
-                                                application()->post_task([this, pkg_name, path = *local_path]() {
+                                                application()->post_task([this, alive = m_is_alive, pkg_name, path = *local_path]() {
+                                                    if (!*alive) return;
                                                     if (m_selected_pkg && m_selected_pkg->name == pkg_name) {
                                                         m_details_widget->icon()->set_icon_path(path);
                                                     }
@@ -518,7 +528,8 @@ void ExploreView::update_details(const horizon::apt::PackageInfo& pkg) {
                                         if (count >= 3) break;
                                         m_api_client.download_image_async(shot.image_path, [this, pkg_name](std::optional<std::string> local_path) {
                                             if (local_path && application()) {
-                                                application()->post_task([this, pkg_name, path = *local_path]() {
+                                                application()->post_task([this, alive = m_is_alive, pkg_name, path = *local_path]() {
+                                                    if (!*alive) return;
                                                     if (m_selected_pkg && m_selected_pkg->name == pkg_name) {
                                                         m_details_widget->add_screenshot(path);
                                                     }
@@ -558,10 +569,11 @@ void ExploreView::trigger_install() {
         on_loading_state_changed(true, msg);
     }
     
-    std::thread([this, pkg_name]() {
-        bool success = m_apt->install_package(pkg_name);
-        m_apt->reload_cache(); // Refresh cache with new package status
-        application()->post_task([this, success, pkg_name]() {
+    std::thread([apt = m_apt, alive = m_is_alive, pkg_name, this]() {
+        bool success = apt->install_package(pkg_name);
+        apt->reload_cache(); // Refresh cache with new package status
+        application()->post_task([this, alive, success, pkg_name]() {
+            if (!*alive) return;
             if (on_loading_state_changed) {
                 std::string msg;
                 if (success) {
@@ -594,10 +606,11 @@ void ExploreView::trigger_remove() {
         on_loading_state_changed(true, msg);
     }
     
-    std::thread([this, pkg_name]() {
-        bool success = m_apt->remove_package(pkg_name);
-        m_apt->reload_cache(); // Refresh cache with new package status
-        application()->post_task([this, success, pkg_name]() {
+    std::thread([apt = m_apt, alive = m_is_alive, pkg_name, this]() {
+        bool success = apt->remove_package(pkg_name);
+        apt->reload_cache(); // Refresh cache with new package status
+        application()->post_task([this, alive, success, pkg_name]() {
+            if (!*alive) return;
             if (on_loading_state_changed) {
                 std::string msg;
                 if (success) {
