@@ -156,6 +156,8 @@ namespace horizon
 
             if (changed)
             {
+                EventContext ctx;
+                when_index_changed.run(ctx);
                 invalidate();
             }
         }

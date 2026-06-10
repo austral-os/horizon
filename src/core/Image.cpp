@@ -54,6 +54,14 @@ namespace horizon
         int img_w = m_driver->width();
         int img_h = m_driver->height();
 
+        if (img_w <= 0 || img_h <= 0) {
+            // SvgImageDriver initializes its size on the first draw call.
+            // If size is 0, issue a dummy draw to force it to query its size.
+            m_driver->draw(ctx, 0, 0, 0, 0);
+            img_w = m_driver->width();
+            img_h = m_driver->height();
+        }
+
         if (img_w <= 0 || img_h <= 0)
             return;
 

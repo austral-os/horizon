@@ -21,6 +21,8 @@ namespace horizon
         void set_selected_index(int index);
         int selected_index() const;
         void update_animation();
+        
+        EventsManager<EventContext> when_index_changed;
 
         void set_item_size(int width, int height);
 
