@@ -125,6 +125,7 @@ void PackageDetailsWidget::update_basic_info(const horizon::apt::PackageInfo& pk
     m_description->set_text(pkg.description);
     m_icon->set_icon_name(pkg.icon.empty() ? "system-software-install" : pkg.icon);
     m_rating->set_rating(0.0f); // Default
+    m_rating->set_visible(false); // Ocultar si no hay datos de la API
     clear_screenshots();
     invalidate();
     calculate_layout();
@@ -136,6 +137,7 @@ void PackageDetailsWidget::update_api_info(const horizon::apt::AppDetails& app_d
     
     // Rating mapping from 0 to 5 -> 0.0f to 1.0f
     m_rating->set_rating(app_details.avg_rating);
+    m_rating->set_visible(true); // Mostrar si hay datos de la API
     
     invalidate();
     calculate_layout();
