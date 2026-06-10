@@ -1,65 +1,69 @@
 {
-  "appstore": {
-    "about": {
-      "description": "Find and install applications on your system."
-    },
-    "help": {
-      "usage": "Usage: horizon-appstore [OPTIONS]\n\nOptions:\n  explore                 Start in the 'Explore' view.\n  --explore               Same as 'explore'.\n  updates                 Start in the 'Updates' view.\n  --updates               Same as 'updates'.\n  --search <query>        Search for a package, select and show the exact match if there is one.\n  --search=<query>        Same as '--search <query>'.\n  -h, --help              Show this help message and exit.\n"
-    },
-    "views": {
-      "explore": "Explore",
-      "featured": "Featured",
-      "updates": "Updates"
-    },
-    "search": {
-      "placeholder": "Search..."
-    },
-    "status": {
-      "ready": "Ready",
-      "searching": "Searching '%1'...",
-      "search_finished": "Search finished",
-      "loading_category": "Loading %1...",
-      "installing": "Installing %1...",
-      "install_success": "Installation completed.",
-      "install_error": "Error installing %1.",
-      "uninstalling": "Uninstalling %1...",
-      "uninstall_success": "Uninstallation completed.",
-      "uninstall_error": "Error uninstalling %1.",
-      "updating": "Updating system...",
-      "update_success": "System updated successfully.",
-      "update_error": "Error updating.",
-      "rating_sent": "Rating submitted successfully.",
-      "rating_failed": "Failed to submit rating."
-    },
-    "action": {
-      "install": "Install",
-      "uninstall": "Uninstall",
-      "update_all": "Update All"
-    },
-    "updates": {
-      "empty_title": "System is up to date",
-      "empty_desc": "No packages pending update.",
-      "check_btn": "Check for updates"
-    },
-    "explore": {
-      "column": {
-        "category": "Category",
-        "application": "Application",
-        "version": "Version"
-      }
-    },
-    "category": {
-      "all": "All",
-      "accessories": "Accessories",
-      "education": "Education",
-      "graphics": "Graphics",
-      "internet": "Internet",
-      "games": "Games",
-      "multimedia": "Multimedia",
-      "office": "Office",
-      "development": "Development",
-      "system": "System",
-      "other": "Other"
+    "appstore": {
+        "about": {
+            "description": "Find and install applications on your system."
+        },
+        "help": {
+            "usage": "Usage: horizon-appstore [OPTIONS]\n\nOptions:\n  explore                 Start in the 'Explore' view.\n  --explore               Same as 'explore'.\n  updates                 Start in the 'Updates' view.\n  --updates               Same as 'updates'.\n  --search <query>        Search for a package, select and show the exact match if there is one.\n  --search=<query>        Same as '--search <query>'.\n  -h, --help              Show this help message and exit.\n"
+        },
+        "views": {
+            "explore": "Explore",
+            "featured": "Featured",
+            "updates": "Updates"
+        },
+        "featured": {
+            "loading": "Loading"
+        },
+        "search": {
+            "placeholder": "Search..."
+        },
+        "status": {
+            "ready": "Ready",
+            "searching": "Searching '%1'...",
+            "search_finished": "Search finished",
+            "loading_category": "Loading %1...",
+            "installing": "Installing %1...",
+            "install_success": "Installation completed.",
+            "install_error": "Error installing %1.",
+            "uninstalling": "Uninstalling %1...",
+            "uninstall_success": "Uninstallation completed.",
+            "uninstall_error": "Error uninstalling %1.",
+            "updating": "Updating system...",
+            "update_success": "System updated successfully.",
+            "update_error": "Error updating.",
+            "rating_sent": "Rating submitted successfully.",
+            "rating_failed": "Failed to submit rating."
+        },
+        "action": {
+            "install": "Install",
+            "uninstall": "Uninstall",
+            "update_all": "Update All"
+        },
+        "updates": {
+            "empty_title": "System is up to date",
+            "empty_desc": "No packages pending update.",
+            "check_btn": "Check for updates"
+        },
+        "explore": {
+            "no_selection": "No package selected",
+            "column": {
+                "category": "Category",
+                "application": "Application",
+                "version": "Version"
+            }
+        },
+        "category": {
+            "all": "All",
+            "accessories": "Accessories",
+            "education": "Education",
+            "graphics": "Graphics",
+            "internet": "Internet",
+            "games": "Games",
+            "multimedia": "Multimedia",
+            "office": "Office",
+            "development": "Development",
+            "system": "System",
+            "other": "Other"
+        }
     }
-  }
 }

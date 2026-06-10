@@ -1,65 +1,69 @@
 {
-  "appstore": {
-    "about": {
-      "description": "Encuentra e instala aplicaciones en tu sistema."
-    },
-    "help": {
-      "usage": "Uso: horizon-appstore [OPCIONES]\n\nOpciones:\n  explore                 Inicia en la vista 'Explorar'.\n  --explore               Igual a 'explore'.\n  updates                 Inicia en la vista 'Actualizaciones'.\n  --updates               Igual a 'updates'.\n  --search <query>        Busca un paquete, selecciona y muestra el resultado exacto si lo hay.\n  --search=<query>        Igual a '--search <query>'.\n  -h, --help              Muestra este mensaje de ayuda y sale.\n"
-    },
-    "views": {
-      "explore": "Explorar",
-      "featured": "Destacados",
-      "updates": "Actualizaciones"
-    },
-    "search": {
-      "placeholder": "Buscar..."
-    },
-    "status": {
-      "ready": "Listo",
-      "searching": "Buscando '%1'...",
-      "search_finished": "Búsqueda finalizada",
-      "loading_category": "Cargando %1...",
-      "installing": "Instalando %1...",
-      "install_success": "Instalación completada.",
-      "install_error": "Error instalando %1.",
-      "uninstalling": "Desinstalando %1...",
-      "uninstall_success": "Desinstalación completada.",
-      "uninstall_error": "Error desinstalando %1.",
-      "updating": "Actualizando sistema...",
-      "update_success": "Sistema actualizado correctamente.",
-      "update_error": "Error al actualizar.",
-      "rating_sent": "Opinión enviada.",
-      "rating_failed": "No se ha podido enviar la valoración."
-    },
-    "action": {
-      "install": "Instalar",
-      "uninstall": "Desinstalar",
-      "update_all": "Actualizar Todo"
-    },
-    "updates": {
-      "empty_title": "El sistema está actualizado",
-      "empty_desc": "No hay paquetes pendientes de actualizar.",
-      "check_btn": "Buscar actualizaciones"
-    },
-    "explore": {
-      "column": {
-        "category": "Categoría",
-        "application": "Aplicación",
-        "version": "Versión"
-      }
-    },
-    "category": {
-      "all": "Todas",
-      "accessories": "Accesorios",
-      "education": "Educación",
-      "graphics": "Gráficos",
-      "internet": "Internet",
-      "games": "Juegos",
-      "multimedia": "Multimedia",
-      "office": "Ofimática",
-      "development": "Desarrollo",
-      "system": "Sistema",
-      "other": "Otros"
+    "appstore": {
+        "about": {
+            "description": "Encuentra e instala aplicaciones en tu sistema."
+        },
+        "help": {
+            "usage": "Uso: horizon-appstore [OPCIONES]\n\nOpciones:\n  explore                 Inicia en la vista 'Explorar'.\n  --explore               Igual a 'explore'.\n  updates                 Inicia en la vista 'Actualizaciones'.\n  --updates               Igual a 'updates'.\n  --search <query>        Busca un paquete, selecciona y muestra el resultado exacto si lo hay.\n  --search=<query>        Igual a '--search <query>'.\n  -h, --help              Muestra este mensaje de ayuda y sale.\n"
+        },
+        "views": {
+            "explore": "Explorar",
+            "featured": "Destacados",
+            "updates": "Actualizaciones"
+        },
+        "featured": {
+            "loading": "Cargando"
+        },
+        "search": {
+            "placeholder": "Buscar..."
+        },
+        "status": {
+            "ready": "Listo",
+            "searching": "Buscando '%1'...",
+            "search_finished": "Búsqueda finalizada",
+            "loading_category": "Cargando %1...",
+            "installing": "Instalando %1...",
+            "install_success": "Instalación completada.",
+            "install_error": "Error instalando %1.",
+            "uninstalling": "Desinstalando %1...",
+            "uninstall_success": "Desinstalación completada.",
+            "uninstall_error": "Error desinstalando %1.",
+            "updating": "Actualizando sistema...",
+            "update_success": "Sistema actualizado correctamente.",
+            "update_error": "Error al actualizar.",
+            "rating_sent": "Opinión enviada.",
+            "rating_failed": "No se ha podido enviar la valoración."
+        },
+        "action": {
+            "install": "Instalar",
+            "uninstall": "Desinstalar",
+            "update_all": "Actualizar Todo"
+        },
+        "updates": {
+            "empty_title": "El sistema está actualizado",
+            "empty_desc": "No hay paquetes pendientes de actualizar.",
+            "check_btn": "Buscar actualizaciones"
+        },
+        "explore": {
+            "no_selection": "Ningún paquete seleccionado",
+            "column": {
+                "category": "Categoría",
+                "application": "Aplicación",
+                "version": "Versión"
+            }
+        },
+        "category": {
+            "all": "Todas",
+            "accessories": "Accesorios",
+            "education": "Educación",
+            "graphics": "Gráficos",
+            "internet": "Internet",
+            "games": "Juegos",
+            "multimedia": "Multimedia",
+            "office": "Ofimática",
+            "development": "Desarrollo",
+            "system": "Sistema",
+            "other": "Otros"
+        }
     }
-  }
 }

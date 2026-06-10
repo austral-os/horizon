@@ -216,27 +216,31 @@ void ExploreView::setup_ui() {
     auto cat_table = std::make_unique<horizon::TableView<CategoryItem>>();
     m_category_table = cat_table.get();
     m_category_table->set_fixed_size(250); // width
-    m_category_table->set_header_visible(false);
+    m_category_table->set_header_visible(true);
 
-    horizon::TableColumn<CategoryItem> col_cat_icon;
-    col_cat_icon.title = "";
-    col_cat_icon.width = 32;
-    col_cat_icon.sortable = false;
-    col_cat_icon.cell_factory = [](const CategoryItem& c) -> std::unique_ptr<horizon::Widget> {
+    horizon::TableColumn<CategoryItem> col_category;
+    col_category.title = horizon::i18n().tr("appstore.explore.column.category");
+    col_category.width = 232;
+    col_category.sortable = false;
+    col_category.cell_factory = [](const CategoryItem& c) -> std::unique_ptr<horizon::Widget> {
+        auto container = std::make_unique<horizon::Widget>();
+        container->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
+        container->set_spacing(10);
+        container->set_margin(5);
+
         auto icon = std::make_unique<horizon::Icon>();
         icon->set_icon_name(c.icon);
         icon->set_icon_size(16);
-        return icon;
-    };
-    m_category_table->add_column(col_cat_icon);
+        icon->set_fixed_size(16);
+        container->add_child(std::move(icon));
 
-    horizon::TableColumn<CategoryItem> col_cat_name;
-    col_cat_name.title = horizon::i18n().tr("appstore.explore.column.category");
-    col_cat_name.width = 200;
-    col_cat_name.cell_factory = [](const CategoryItem& c) -> std::unique_ptr<horizon::Widget> {
-        return std::make_unique<horizon::Label>(c.name);
+        auto lbl = std::make_unique<horizon::Label>(c.name);
+        lbl->set_vertical_alignment(horizon::VerticalAlignment::Middle);
+        container->add_child(std::move(lbl));
+
+        return container;
     };
-    m_category_table->add_column(col_cat_name);
+    m_category_table->add_column(col_category);
 
     m_category_table->when_row_click.connect([this](const horizon::TableViewRowMouseClickContext<CategoryItem>& ctx) {
         filter_by_category(ctx.row_data.name);

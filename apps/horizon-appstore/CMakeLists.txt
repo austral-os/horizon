@@ -31,6 +31,6 @@ horizon_install_app(horizon-appstore
     NAME "AppStore"
     COMMENT "Encuentra e instala aplicaciones en tu sistema."
     ICON "system-software-install"
-    VERSION "0.1.0"
+    VERSION "0.3.0"
     CATEGORIES "System;"
 )

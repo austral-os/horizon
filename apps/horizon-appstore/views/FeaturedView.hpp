@@ -38,6 +38,12 @@ private:
     
     std::shared_ptr<bool> m_is_alive;
     bool m_data_loaded = false;
+    
+    bool m_featured_loaded = false;
+    bool m_top_rated_loaded = false;
+    class LoadingWidget* m_loading_widget = nullptr;
+    
+    void check_hide_loading();
 };
 
 }
