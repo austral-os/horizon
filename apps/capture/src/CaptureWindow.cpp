@@ -72,7 +72,7 @@ CaptureWindow::~CaptureWindow() {
 }
 
 void CaptureWindow::setup_ui() {
-    auto content_panel = std::make_unique<VPanel>();
+    auto content_panel = std::make_unique<Widget>();
     content_panel->set_spacing(20);
     content_panel->set_margin(40);
     content_panel->set_layout_type(WIDGET_LAYOUT_VERTICAL);
