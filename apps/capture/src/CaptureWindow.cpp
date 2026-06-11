@@ -22,6 +22,27 @@
 namespace horizon::capture
 {
 
+    namespace
+    {
+        std::string shorten_path_for_display(const std::string &path)
+        {
+            std::string display_path = path;
+            const char* home = std::getenv("HOME");
+            if (home != nullptr) {
+                std::string home_str(home);
+                if (display_path.find(home_str) == 0) {
+                    display_path = "~" + display_path.substr(home_str.length());
+                }
+            }
+
+            if (display_path.length() > 40)
+            {
+                return display_path.substr(0, 15) + "..." + display_path.substr(display_path.length() - 22);
+            }
+            return display_path;
+        }
+    }
+
     CaptureWindow::CaptureWindow() : ApplicationWindow("Capture")
     {
         m_recorder = std::make_shared<VideoRecorder>();
@@ -166,7 +187,7 @@ namespace horizon::capture
         content_panel->add_child(std::move(target_panel));
 
         m_status_label = new Label(horizon::i18n().tr("capture.status.ready"));
-        m_status_label->set_fixed_size(25);
+        m_status_label->set_fixed_size(50);
         auto status_ptr = std::unique_ptr<Label>(m_status_label);
         content_panel->add_child(std::move(status_ptr));
 
@@ -367,7 +388,7 @@ namespace horizon::capture
                 horizon::i18n()
                     .tr("capture.status.saved")
                     .replace(horizon::i18n().tr("capture.status.saved").find("{}"), 2,
-                             full_path.string()));
+                             shorten_path_for_display(full_path.string())));
         }
         else
         {
@@ -456,7 +477,7 @@ namespace horizon::capture
                                 horizon::i18n()
                                     .tr("capture.status.saved")
                                     .replace(horizon::i18n().tr("capture.status.saved").find("{}"),
-                                             2, full_path.string()));
+                                             2, shorten_path_for_display(full_path.string())));
                         }
                         else
                         {
