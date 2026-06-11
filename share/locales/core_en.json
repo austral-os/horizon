@@ -56,7 +56,12 @@
             "folder_name": "Folder name:",
             "go_to_folder": "Go to Folder",
             "enter_path": "Enter the path of the folder:",
-            "error": "Error"
+            "error": "Error",
+            "file": {
+                "no_selection": "No selection",
+                "browse": "Browse...",
+                "select_title": "Select"
+            }
         },
         "global_menu": {
             "edit": "Edit",

@@ -7,7 +7,19 @@
         "preferences": {
             "general": "General",
             "image": "Image",
-            "video": "Video"
+            "video": "Video",
+            "output_directory": "Output Directory",
+            "image_format": "Image Format",
+            "video_container": "Video Container",
+            "recording_quality": "Recording Quality",
+            "format_png": "PNG (Lossless)",
+            "format_jpg": "JPEG (Compressed)",
+            "format_bmp": "Bitmap (Raw)",
+            "format_mp4": "MP4 (H.264 / AAC)",
+            "format_webm": "WebM (VP9 / Opus)",
+            "quality_low": "Low (Small size)",
+            "quality_medium": "Medium (Balanced)",
+            "quality_high": "High (High Bitrate)"
         },
         "menu": {
             "image": "Image",
