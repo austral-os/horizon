@@ -24,7 +24,7 @@ public:
      * @param record_audio Whether to capture system audio.
      * @return true if recording started successfully.
      */
-    bool start(const std::string& output_file, int x, int y, int width, int height, int fps = 30, bool record_audio = false);
+    bool start(const std::string& output_name, const std::string& output_file, int x, int y, int width, int height, int fps = 30, bool record_audio = false);
 
     /**
      * @brief Stop the current recording.

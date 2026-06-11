@@ -18,6 +18,14 @@ struct CaptureBuffer {
     uint32_t format;
 };
 
+struct OutputGeometry {
+    std::string name;
+    int x;
+    int y;
+    int w;
+    int h;
+};
+
 class CaptureEngine {
 public:
     CaptureEngine();
@@ -41,6 +49,17 @@ public:
      * @return true if successful.
      */
     bool get_output_dimensions(const std::string& output_name, int& w, int& h);
+
+    /**
+     * @brief Get the full geometry (position and dimensions) of an output.
+     * @param output_name Name of the output. If empty, uses the first one.
+     * @param x Output X position in global space.
+     * @param y Output Y position in global space.
+     * @param w Output width.
+     * @param h Output height.
+     * @return true if successful.
+     */
+    bool get_output_geometry(const std::string& output_name, int& x, int& y, int& w, int& h);
     
     /**
      * @brief Capture a specific region of an output.
@@ -53,6 +72,11 @@ public:
      * @return true if successful.
      */
     bool capture_region(const std::string& output_name, int x, int y, int width, int height, const std::string& file_path);
+
+    /**
+     * @brief Get all outputs known by the compositor.
+     */
+    std::vector<OutputGeometry> get_all_outputs();
 
 private:
     struct Impl;

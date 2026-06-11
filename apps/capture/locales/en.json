@@ -25,7 +25,20 @@
             "recording_screen": "Recording screen...",
             "recording_stop_hint": "Recording... (Press Stop to finish)",
             "recording_finished": "Recording finished and saved.",
-            "not_implemented": "Not implemented"
+            "not_implemented": "Not implemented",
+            "countdown": "Capturing in {}s..."
+        },
+        "delay": {
+            "label": "Delay:"
+        },
+        "timeout": {
+            "none": "No wait",
+            "seconds_1": "1 second",
+            "seconds_2": "2 seconds",
+            "seconds_3": "3 seconds",
+            "seconds_4": "4 seconds",
+            "seconds_5": "5 seconds",
+            "seconds_10": "10 seconds"
         },
         "alert": {
             "not_implemented_title": "Feature not implemented",

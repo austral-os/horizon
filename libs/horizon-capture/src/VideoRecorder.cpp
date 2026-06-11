@@ -51,6 +51,12 @@ struct VideoRecorder::Impl {
     struct wl_registry* registry = nullptr;
     struct wl_shm* shm = nullptr;
     struct zwlr_screencopy_manager_v1* screencopy_manager = nullptr;
+    
+    struct OutputRef {
+        struct wl_output* output;
+        std::string name;
+    };
+    std::vector<OutputRef> outputs;
     struct wl_output* target_output = nullptr;
 
     // FFmpeg
@@ -223,7 +229,7 @@ VideoRecorder::~VideoRecorder() {
 
 bool VideoRecorder::is_recording() const { return m_impl->running; }
 
-bool VideoRecorder::start(const std::string& output_file, int x, int y, int width, int height, int fps, bool record_audio) {
+bool VideoRecorder::start(const std::string& output_name, const std::string& output_file, int x, int y, int width, int height, int fps, bool record_audio) {
     if (m_impl->running) return false;
 
     m_impl->x = x; m_impl->y = y; m_impl->width = width; m_impl->height = height; m_impl->fps = fps;
@@ -231,6 +237,8 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
     m_impl->start_time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
     m_impl->next_audio_pts = 0;
     m_impl->audio_peak = 0.0f;
+    m_impl->outputs.clear();
+    m_impl->target_output = nullptr;
 
     // Wayland
     m_impl->display = wl_display_connect(nullptr);
@@ -241,12 +249,46 @@ bool VideoRecorder::start(const std::string& output_file, int x, int y, int widt
             auto* impl = (Impl*)data;
             if (strcmp(interface, "wl_shm") == 0) impl->shm = (wl_shm*)wl_registry_bind(reg, name, &wl_shm_interface, 1);
             else if (strcmp(interface, "zwlr_screencopy_manager_v1") == 0) impl->screencopy_manager = (zwlr_screencopy_manager_v1*)wl_registry_bind(reg, name, &zwlr_screencopy_manager_v1_interface, 3);
-            else if (strcmp(interface, "wl_output") == 0 && !impl->target_output) impl->target_output = (wl_output*)wl_registry_bind(reg, name, &wl_output_interface, 1);
+            else if (strcmp(interface, "wl_output") == 0) {
+                struct wl_output* out = (wl_output*)wl_registry_bind(reg, name, &wl_output_interface, std::min(version, 4u));
+                Impl::OutputRef ref; ref.output = out;
+                impl->outputs.push_back(ref);
+                static const struct wl_output_listener out_l = {
+                    .geometry = [](void*, struct wl_output*, int32_t, int32_t, int32_t, int32_t, int32_t, const char*, const char*, int32_t) {},
+                    .mode = [](void*, struct wl_output*, uint32_t, int32_t, int32_t, int32_t) {},
+                    .done = [](void*, struct wl_output*) {},
+                    .scale = [](void*, struct wl_output*, int32_t) {},
+                    .name = [](void* d, struct wl_output* o, const char* n) {
+                        auto* impl = (Impl*)d;
+                        for (auto& ref : impl->outputs) {
+                            if (ref.output == o) { ref.name = n; break; }
+                        }
+                    },
+                    .description = [](void*, struct wl_output*, const char*) {}
+                };
+                wl_output_add_listener(out, &out_l, impl);
+            }
         },
         [](void*, struct wl_registry*, uint32_t) {}
     };
     wl_registry_add_listener(m_impl->registry, &reg_l, m_impl.get());
     wl_display_roundtrip(m_impl->display); wl_display_roundtrip(m_impl->display);
+
+    if (output_name.empty()) {
+        if (!m_impl->outputs.empty()) m_impl->target_output = m_impl->outputs[0].output;
+    } else {
+        for (const auto& ref : m_impl->outputs) {
+            if (ref.name == output_name) {
+                m_impl->target_output = ref.output;
+                break;
+            }
+        }
+    }
+    
+    if (!m_impl->target_output) {
+        LOG_ERROR << "[VideoRecorder] Target output not found: " << output_name << " (falling back)";
+        if (!m_impl->outputs.empty()) m_impl->target_output = m_impl->outputs[0].output;
+    }
 
     // FFmpeg
     avformat_alloc_output_context2(&m_impl->fmt_ctx, nullptr, nullptr, output_file.c_str());

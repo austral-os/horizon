@@ -17,6 +17,9 @@ struct OutputInfo {
     uint32_t id;
     int width = 0;
     int height = 0;
+    int x = 0;
+    int y = 0;
+    int scale = 1;
 };
 
 struct CaptureEngine::Impl {
@@ -70,7 +73,16 @@ struct CaptureEngine::Impl {
             impl->outputs.push_back(info);
             
             static const struct wl_output_listener output_listener = {
-                .geometry = [](void*, struct wl_output*, int32_t, int32_t, int32_t, int32_t, int32_t, const char*, const char*, int32_t) {},
+                .geometry = [](void* data, struct wl_output* output, int32_t x, int32_t y, int32_t, int32_t, int32_t, const char*, const char*, int32_t) {
+                    auto* impl = static_cast<Impl*>(data);
+                    for (auto& o : impl->outputs) {
+                        if (o.output == output) {
+                            o.x = x;
+                            o.y = y;
+                            break;
+                        }
+                    }
+                },
                 .mode = [](void* data, struct wl_output* output, uint32_t flags, int32_t width, int32_t height, int32_t refresh) {
                     auto* impl = static_cast<Impl*>(data);
                     if (flags & WL_OUTPUT_MODE_CURRENT) {
@@ -84,7 +96,15 @@ struct CaptureEngine::Impl {
                     }
                 },
                 .done = [](void*, struct wl_output*) {},
-                .scale = [](void*, struct wl_output*, int32_t) {},
+                .scale = [](void* data, struct wl_output* output, int32_t factor) {
+                    auto* impl = static_cast<Impl*>(data);
+                    for (auto& o : impl->outputs) {
+                        if (o.output == output) {
+                            o.scale = factor > 0 ? factor : 1;
+                            break;
+                        }
+                    }
+                },
                 .name = handle_output_name,
                 .description = [](void*, struct wl_output*, const char*) {}
             };
@@ -276,20 +296,51 @@ bool CaptureEngine::capture_region(const std::string& output_name, int x, int y,
 bool CaptureEngine::get_output_dimensions(const std::string& output_name, int& w, int& h) {
     if (output_name.empty()) {
         if (!m_impl->outputs.empty()) {
-            w = m_impl->outputs[0].width;
-            h = m_impl->outputs[0].height;
+            w = m_impl->outputs[0].width / m_impl->outputs[0].scale;
+            h = m_impl->outputs[0].height / m_impl->outputs[0].scale;
             return true;
         }
     } else {
         for (const auto& o : m_impl->outputs) {
             if (o.name == output_name) {
-                w = o.width;
-                h = o.height;
+                w = o.width / o.scale;
+                h = o.height / o.scale;
                 return true;
             }
         }
     }
     return false;
+}
+
+bool CaptureEngine::get_output_geometry(const std::string& output_name, int& x, int& y, int& w, int& h) {
+    if (output_name.empty()) {
+        if (!m_impl->outputs.empty()) {
+            x = m_impl->outputs[0].x;
+            y = m_impl->outputs[0].y;
+            w = m_impl->outputs[0].width / m_impl->outputs[0].scale;
+            h = m_impl->outputs[0].height / m_impl->outputs[0].scale;
+            return true;
+        }
+    } else {
+        for (const auto& o : m_impl->outputs) {
+            if (o.name == output_name) {
+                x = o.x;
+                y = o.y;
+                w = o.width / o.scale;
+                h = o.height / o.scale;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+std::vector<OutputGeometry> CaptureEngine::get_all_outputs() {
+    std::vector<OutputGeometry> res;
+    for (const auto& o : m_impl->outputs) {
+        res.push_back({o.name, o.x, o.y, o.width / o.scale, o.height / o.scale});
+    }
+    return res;
 }
 
 } // namespace horizon::capture

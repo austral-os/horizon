@@ -182,6 +182,7 @@ namespace horizon
         void set_screen_position(int x, int y) { m_screen_x = x; m_screen_y = y; }
         int screen_x() const { return m_screen_x; }
         int screen_y() const { return m_screen_y; }
+        const std::string &current_output_name() const { return m_current_output_name; }
 
         Role role() const { return m_role; }
 
@@ -274,6 +275,7 @@ namespace horizon
         int m_width{800}, m_height{600};
         int m_screen_x{0}, m_screen_y{0};
         int m_monitor_width{0}, m_monitor_height{0};
+        std::string m_current_output_name;
         bool m_is_initialized{false};
         bool m_is_maximized{false};
         bool m_is_minimized{false};

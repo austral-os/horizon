@@ -38,6 +38,7 @@ namespace horizon
             {
                 ws->m_monitor_width = detail.width;
                 ws->m_monitor_height = detail.height;
+                ws->m_current_output_name = detail.name;
                 LOG_INFO << "[SURFACE] Entered monitor: " << detail.name << " (" << ws->m_monitor_width << "x" << ws->m_monitor_height << ")";
                 break;
             }

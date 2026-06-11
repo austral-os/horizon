@@ -25,7 +25,20 @@
             "recording_screen": "Grabando pantalla...",
             "recording_stop_hint": "Grabando... (Presione Stop para finalizar)",
             "recording_finished": "Grabación finalizada y guardada.",
-            "not_implemented": "No implementado"
+            "not_implemented": "No implementado",
+            "countdown": "Capturando en {}s..."
+        },
+        "delay": {
+            "label": "Espera:"
+        },
+        "timeout": {
+            "none": "Sin espera",
+            "seconds_1": "1 segundo",
+            "seconds_2": "2 segundos",
+            "seconds_3": "3 segundos",
+            "seconds_4": "4 segundos",
+            "seconds_5": "5 segundos",
+            "seconds_10": "10 segundos"
         },
         "alert": {
             "not_implemented_title": "Función no implementada",
