@@ -49,42 +49,48 @@ namespace horizon::capture
                     [this](const SignalContext &)
                     {
                         LOG_INFO << "[CaptureApp] Global Signal: img_selection received";
-                        this->execute_with_delay([this]() { this->capture_selection_image(); });
-                    });
-                app->signal_manager.connect(
-                    "img_window",
-                    [this](const SignalContext &)
-                    {
-                        LOG_INFO << "[CaptureApp] Global Signal: img_window received";
-                        this->execute_with_delay([this]() { this->capture_window_image(); });
+                        this->capture_selection_image();
                     });
                 app->signal_manager.connect(
                     "img_screen",
                     [this](const SignalContext &)
                     {
                         LOG_INFO << "[CaptureApp] Global Signal: img_screen received";
-                        this->execute_with_delay([this]() { this->capture_screen_image(); });
+                        auto item = m_target_combo ? m_target_combo->selected_item() : nullptr;
+                        if (item && item->id.find("screen:") == 0)
+                        {
+                            std::string output_name = item->id.substr(7);
+                            this->execute_with_delay([this, output_name]()
+                                                     { this->capture_screen_image(output_name); });
+                        }
+                        else
+                        {
+                            this->execute_with_delay([this]() { this->capture_screen_image(""); });
+                        }
                     });
                 app->signal_manager.connect(
                     "vid_selection",
                     [this](const SignalContext &)
                     {
                         LOG_INFO << "[CaptureApp] Global Signal: vid_selection received";
-                        this->execute_with_delay([this]() { this->start_selection_video(); });
-                    });
-                app->signal_manager.connect(
-                    "vid_window",
-                    [this](const SignalContext &)
-                    {
-                        LOG_INFO << "[CaptureApp] Global Signal: vid_window received";
-                        this->execute_with_delay([this]() { this->start_window_video(); });
+                        this->start_selection_video();
                     });
                 app->signal_manager.connect(
                     "vid_screen",
                     [this](const SignalContext &)
                     {
                         LOG_INFO << "[CaptureApp] Global Signal: vid_screen received";
-                        this->execute_with_delay([this]() { this->start_screen_video(); });
+                        auto item = m_target_combo ? m_target_combo->selected_item() : nullptr;
+                        if (item && item->id.find("screen:") == 0)
+                        {
+                            std::string output_name = item->id.substr(7);
+                            this->execute_with_delay([this, output_name]()
+                                                     { this->start_screen_video(output_name); });
+                        }
+                        else
+                        {
+                            this->execute_with_delay([this]() { this->start_screen_video(""); });
+                        }
                     });
             });
         m_config->load();
