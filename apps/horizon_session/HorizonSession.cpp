@@ -265,7 +265,8 @@ void HorizonSession::init(const std::string &compositor)
                                                  "power.json",   "text-editor.json",
                                                  "nova.json",    "capture.json",
                                                  "mouse.json",   "notifications.json",
-                                                 "color-scheme.json", "arkfm.json"};
+                                                 "color-scheme.json", "arkfm.json",
+                                                 "appstore.json"};
 
         for (const auto &config_file : config_files)
         {

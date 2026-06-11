@@ -166,6 +166,14 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/arkfm.json")
     )
 endif()
 
+# --- AppStore Config ---
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/appstore.json")
+    install(FILES data/appstore.json
+        DESTINATION share/horizon
+        COMPONENT session
+    )
+endif()
+
 # --- Nova Config ---
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/data/nova.json")
     install(FILES data/nova.json

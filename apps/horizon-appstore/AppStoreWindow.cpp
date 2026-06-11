@@ -199,7 +199,7 @@ void AppStoreWindow::setup_content(const std::string& initial_search) {
                 m_btn_action->set_visible(true);
             }
             if (pkg->is_installed) {
-                m_btn_action->set_title(horizon::i18n().tr("appstore.action.uninstall"));
+                m_btn_action->set_title(horizon::i18n().tr("appstore.action.remove"));
                 m_btn_action->set_icon_name("edit-delete");
             } else {
                 m_btn_action->set_title(horizon::i18n().tr("appstore.action.install"));

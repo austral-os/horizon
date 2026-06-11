@@ -1,10 +1,10 @@
 #include "ArkfmApplication.hpp"
+#include "ArkfmPreferencesSection.hpp"
 #include "ArkfmWindow.hpp"
 #include "horizon/EventsManager.hpp"
-#include "horizon/Menu.hpp"
 #include "horizon/I18n.hpp"
+#include "horizon/Menu.hpp"
 #include "horizon/dialogs/PreferencesContent.hpp"
-#include "ArkfmPreferencesSection.hpp"
 #include <cstdlib>
 
 namespace horizon::arkfm
@@ -13,32 +13,35 @@ namespace horizon::arkfm
     const int ARK_APP_DEFAULT_WIDTH = 1000;
     const int ARK_APP_DEFAULT_HEIGHT = 700;
 
-    ArkfmApplication::ArkfmApplication(const std::string& initial_path)
+    ArkfmApplication::ArkfmApplication(const std::string &initial_path)
         : Application("org.horizon.arkfm", ARK_APP_DEFAULT_WIDTH, ARK_APP_DEFAULT_HEIGHT)
     {
         // Load translations
         i18n().load_app_locales("arkfm");
 
         set_name(i18n().tr("arkfm.title"));
-        set_icon_name("system-file-manager");
+        set_icon_name("arkfm");
 
         char *home = std::getenv("HOME");
-        std::string config_path = home ? std::string(home) + "/.config/horizon/arkfm.json" : "arkfm.json";
+        std::string config_path =
+            home ? std::string(home) + "/.config/horizon/arkfm.json" : "arkfm.json";
 
         set_preferences_content(
             [this, config_path]()
             {
                 auto content = std::make_unique<PreferencesContent>(config_path);
                 auto *content_ptr = content.get();
-                auto on_change = [this, content_ptr]() { 
-                    content_ptr->save_config(); 
-                    if (!this->m_managed_windows.empty() && this->m_managed_windows[0].window) {
-                        this->m_managed_windows[0].window->signal_manager.emit("preferences-changed");
+                auto on_change = [this, content_ptr]()
+                {
+                    content_ptr->save_config();
+                    if (!this->m_managed_windows.empty() && this->m_managed_windows[0].window)
+                    {
+                        this->m_managed_windows[0].window->signal_manager.emit(
+                            "preferences-changed");
                     }
                 };
 
-                content->add_section(i18n().tr("arkfm.preferences.general"),
-                                     "preferences-system",
+                content->add_section(i18n().tr("arkfm.preferences.general"), "preferences-system",
                                      std::make_unique<ArkfmPreferencesSection>(on_change), "arkfm");
 
                 return content;
@@ -50,9 +53,10 @@ namespace horizon::arkfm
         about.set_app_title("ArkFM");
         about.set_app_description("ArkFM is the default file manager for Horizon.");
         about.set_app_version(APP_VERSION);
-        about.set_app_icon("system-file-manager");
+        about.set_app_icon("arkfm");
 
-        auto window = std::make_unique<ArkfmWindow>(initial_path, ARK_APP_DEFAULT_WIDTH, ARK_APP_DEFAULT_HEIGHT);
+        auto window = std::make_unique<ArkfmWindow>(initial_path, ARK_APP_DEFAULT_WIDTH,
+                                                    ARK_APP_DEFAULT_HEIGHT);
         set_root(std::move(window));
 
         auto m_mnu_file = std::make_unique<horizon::Menu>();
@@ -95,7 +99,8 @@ namespace horizon::arkfm
         auto mnu_help = std::make_unique<horizon::Menu>();
         mnu_help->set_title(i18n().tr("arkfm.menu.help"));
         mnu_help->set_id("help");
-        mnu_help->add_item(i18n().tr("arkfm.menu.about"), "F1", "aboutus"); // changed to aboutus for core signal
+        mnu_help->add_item(i18n().tr("arkfm.menu.about"), "F1",
+                           "aboutus"); // changed to aboutus for core signal
 
         add_menu(std::move(m_mnu_file));
         add_menu(std::move(m_mnu_edit));
