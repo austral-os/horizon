@@ -11,12 +11,12 @@
 #include <horizon/MenuItem.hpp>
 #include <horizon/NotificationSender.hpp>
 #include <horizon/Spacer.hpp>
+#include <horizon/SystemInfo.hpp>
 #include <horizon/Toolbar.hpp>
 #include <horizon/ToolbarButton.hpp>
 #include <horizon/VPanel.hpp>
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/capture/SelectionWindow.h>
-#include <horizon/SystemInfo.hpp>
 #include <thread>
 
 namespace horizon::capture
@@ -107,25 +107,16 @@ namespace horizon::capture
         content_panel->set_margin(40);
         content_panel->set_layout_type(WIDGET_LAYOUT_VERTICAL);
 
-        auto title = std::make_unique<Label>(horizon::i18n().tr("capture.title"));
-        title->set_fixed_size(32);
-        // title->set_bold(true); // If supported
-        content_panel->add_child(std::move(title));
-
-        auto subtitle = std::make_unique<Label>(horizon::i18n().tr("capture.about.description"));
-        subtitle->set_fixed_size(25);
-        content_panel->add_child(std::move(subtitle));
-
         auto delay_panel = std::make_unique<Widget>();
         delay_panel->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         delay_panel->set_fixed_size(35);
         delay_panel->set_spacing(10);
         auto delay_label = std::make_unique<Label>(horizon::i18n().tr("capture.delay.label"));
-        delay_label->set_fixed_size(80);
+        delay_label->set_fixed_size(120);
         delay_panel->add_child(std::move(delay_label));
 
         auto delay_combo = std::make_unique<Combo>();
-        delay_combo->set_fixed_size(150);
+        delay_combo->set_fixed_size(250);
         m_delay_combo = delay_combo.get();
         m_delay_combo->add_item("0", horizon::i18n().tr("capture.timeout.none"));
         m_delay_combo->add_item("1", horizon::i18n().tr("capture.timeout.seconds_1"));
@@ -146,22 +137,23 @@ namespace horizon::capture
         target_panel->set_fixed_size(35);
         target_panel->set_spacing(10);
         auto target_label = std::make_unique<Label>("Capturar:");
-        target_label->set_fixed_size(80);
+        target_label->set_fixed_size(120);
         target_panel->add_child(std::move(target_label));
 
         auto target_combo = std::make_unique<Combo>();
         target_combo->set_fixed_size(250);
         m_target_combo = target_combo.get();
         m_target_combo->add_item("area", "Área seleccionada");
-        
+
         auto outputs = m_engine.get_all_outputs();
         int screen_idx = 1;
-        for (const auto& o : outputs) {
+        for (const auto &o : outputs)
+        {
             std::string text = "Pantalla " + std::to_string(screen_idx) + " (" + o.name + ")";
             m_target_combo->add_item("screen:" + o.name, text);
             screen_idx++;
         }
-        
+
         m_target_combo->set_selected_item_index(0);
         target_panel->add_child(std::move(target_combo));
         target_panel->add_child(Spacer());
@@ -186,22 +178,29 @@ namespace horizon::capture
             m_toolbar->add_toolbar_widget(std::move(img_btn_ptr));
             img_btn->when_click.connect(
                 [this](const MouseButtonEventContext &)
-                { 
-                    this->execute_with_delay([this]() {
-                        if (m_target_combo) {
-                            auto item = m_target_combo->selected_item();
-                            if (item && item->id == "area") {
-                                this->capture_selection_image();
-                            } else if (item && item->id.find("screen:") == 0) {
-                                std::string output_name = item->id.substr(7);
-                                this->capture_screen_image(output_name);
-                            } else {
-                                this->capture_screen_image("");
-                            }
-                        } else {
-                            this->capture_screen_image("");
+                {
+                    if (m_target_combo)
+                    {
+                        auto item = m_target_combo->selected_item();
+                        if (item && item->id == "area")
+                        {
+                            this->capture_selection_image();
                         }
-                    }); 
+                        else if (item && item->id.find("screen:") == 0)
+                        {
+                            std::string output_name = item->id.substr(7);
+                            this->execute_with_delay([this, output_name]()
+                                                     { this->capture_screen_image(output_name); });
+                        }
+                        else
+                        {
+                            this->execute_with_delay([this]() { this->capture_screen_image(""); });
+                        }
+                    }
+                    else
+                    {
+                        this->execute_with_delay([this]() { this->capture_screen_image(""); });
+                    }
                 });
 
             auto vid_btn_ptr = std::make_unique<ToolbarButton>(
@@ -214,21 +213,32 @@ namespace horizon::capture
                     if (m_is_recording)
                         stop_video();
                     else
-                        this->execute_with_delay([this]() {
-                            if (m_target_combo) {
-                                auto item = m_target_combo->selected_item();
-                                if (item && item->id == "area") {
-                                    this->start_selection_video();
-                                } else if (item && item->id.find("screen:") == 0) {
-                                    std::string output_name = item->id.substr(7);
-                                    this->start_screen_video(output_name);
-                                } else {
-                                    this->start_screen_video("");
-                                }
-                            } else {
-                                this->start_screen_video("");
+                    {
+                        if (m_target_combo)
+                        {
+                            auto item = m_target_combo->selected_item();
+                            if (item && item->id == "area")
+                            {
+                                this->start_selection_video();
                             }
-                        });
+                            else if (item && item->id.find("screen:") == 0)
+                            {
+                                std::string output_name = item->id.substr(7);
+                                this->execute_with_delay(
+                                    [this, output_name]()
+                                    { this->start_screen_video(output_name); });
+                            }
+                            else
+                            {
+                                this->execute_with_delay([this]()
+                                                         { this->start_screen_video(""); });
+                            }
+                        }
+                        else
+                        {
+                            this->execute_with_delay([this]() { this->start_screen_video(""); });
+                        }
+                    }
                 });
 
             auto pref_btn_ptr = std::make_unique<ToolbarButton>(
@@ -317,7 +327,7 @@ namespace horizon::capture
         return path;
     }
 
-    void CaptureWindow::capture_screen_image(const std::string& output_name)
+    void CaptureWindow::capture_screen_image(const std::string &output_name)
     {
         m_config->load(); // Reload in case preferences changed
 
@@ -384,56 +394,69 @@ namespace horizon::capture
                 int h = rect.height;
 
                 std::string target_output = m_selection_win->w_surface()->current_output_name();
-                if (target_output.empty()) {
-                    LOG_ERROR << "[CaptureApp] Could not determine output name for selection window!";
+                if (target_output.empty())
+                {
+                    LOG_ERROR
+                        << "[CaptureApp] Could not determine output name for selection window!";
                     auto outputs = m_engine.get_all_outputs();
-                    if (!outputs.empty()) {
+                    if (!outputs.empty())
+                    {
                         target_output = outputs[0].name;
                     }
                 }
-
-                LOG_INFO << "[CaptureApp] Capturing region from output: " << target_output 
-                         << " local coords: x=" << x << " y=" << y << " w=" << w << " h=" << h;
 
                 m_selection_win->set_visible(false);
                 m_selection_win->quit();
                 this->application()->post_task([this]() { m_selection_win.reset(); });
 
-                // Small delay to ensure the window is gone from the compositor's view
-                std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                this->execute_with_delay(
+                    [this, target_output, x, y, w, h]()
+                    {
+                        // Small delay to ensure the window is gone from the compositor's view (if
+                        // delay is 0)
+                        if (m_delay_seconds <= 0)
+                        {
+                            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                        }
 
-                m_config->load();
-                std::string out_dir =
-                    expand_tilde(m_config->get_value("general", "output_directory", "."));
-                std::string format = m_config->get_value("image", "format", "png");
+                        LOG_INFO << "[CaptureApp] Capturing region from output: " << target_output
+                                 << " local coords: x=" << x << " y=" << y << " w=" << w
+                                 << " h=" << h;
 
-                if (!out_dir.empty() && !std::filesystem::exists(out_dir))
-                {
-                    std::filesystem::create_directories(out_dir);
-                }
+                        m_config->load();
+                        std::string out_dir =
+                            expand_tilde(m_config->get_value("general", "output_directory", "."));
+                        std::string format = m_config->get_value("image", "format", "png");
 
-                std::string filename =
-                    "screenshot_selection_" +
-                    std::to_string(std::chrono::system_clock::now().time_since_epoch().count()) +
-                    "." + format;
-                std::filesystem::path full_path = std::filesystem::path(out_dir) / filename;
+                        if (!out_dir.empty() && !std::filesystem::exists(out_dir))
+                        {
+                            std::filesystem::create_directories(out_dir);
+                        }
 
-                if (m_engine.capture_region(target_output, x, y, w, h, full_path.string()))
-                {
-                    NotificationSender::send("Captura realizada",
-                                             "La selección se ha guardado en: " +
-                                                 full_path.filename().string(),
-                                             "camera-photo");
-                    m_status_label->set_text(
-                        horizon::i18n()
-                            .tr("capture.status.saved")
-                            .replace(horizon::i18n().tr("capture.status.saved").find("{}"), 2,
-                                     full_path.string()));
-                }
-                else
-                {
-                    m_status_label->set_text(horizon::i18n().tr("capture.status.failed"));
-                }
+                        std::string filename =
+                            "screenshot_selection_" +
+                            std::to_string(
+                                std::chrono::system_clock::now().time_since_epoch().count()) +
+                            "." + format;
+                        std::filesystem::path full_path = std::filesystem::path(out_dir) / filename;
+
+                        if (m_engine.capture_region(target_output, x, y, w, h, full_path.string()))
+                        {
+                            NotificationSender::send("Captura realizada",
+                                                     "La selección se ha guardado en: " +
+                                                         full_path.filename().string(),
+                                                     "camera-photo");
+                            m_status_label->set_text(
+                                horizon::i18n()
+                                    .tr("capture.status.saved")
+                                    .replace(horizon::i18n().tr("capture.status.saved").find("{}"),
+                                             2, full_path.string()));
+                        }
+                        else
+                        {
+                            m_status_label->set_text(horizon::i18n().tr("capture.status.failed"));
+                        }
+                    });
             });
 
         m_selection_win->selection_widget()->when_cancelled().connect(
@@ -454,7 +477,7 @@ namespace horizon::capture
                              horizon::i18n().tr("capture.alert.not_implemented_title"));
     }
 
-    void CaptureWindow::start_screen_video(const std::string& output_name)
+    void CaptureWindow::start_screen_video(const std::string &output_name)
     {
         if (m_is_recording)
             return;
@@ -478,7 +501,8 @@ namespace horizon::capture
 
         // Get monitor dimensions dynamically
         int x = 0, y = 0, w = 1920, h = 1080;
-        if (!m_engine.get_output_geometry(output_name, x, y, w, h)) {
+        if (!m_engine.get_output_geometry(output_name, x, y, w, h))
+        {
             LOG_ERROR << "[CaptureApp] Failed to get monitor geometry, falling back to 1920x1080";
         }
 
@@ -537,53 +561,66 @@ namespace horizon::capture
                 if (h % 2 != 0)
                     h--;
 
+                std::string target_output = m_selection_win->w_surface()->current_output_name();
+                if (target_output.empty())
+                {
+                    auto outputs = m_engine.get_all_outputs();
+                    if (!outputs.empty())
+                        target_output = outputs[0].name;
+                }
+
                 m_selection_win->set_visible(false);
                 m_selection_win->quit();
                 this->application()->post_task([this]() { m_selection_win.reset(); });
 
-                std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
-                m_config->load();
-                std::string out_dir =
-                    expand_tilde(m_config->get_value("general", "output_directory", "."));
-                std::string container = m_config->get_value("video", "container", "mp4");
-
-                if (!out_dir.empty() && !std::filesystem::exists(out_dir))
-                {
-                    std::filesystem::create_directories(out_dir);
-                }
-
-                std::string filename =
-                    "recording_selection_" +
-                    std::to_string(std::chrono::system_clock::now().time_since_epoch().count()) +
-                    "." + container;
-                std::filesystem::path full_path = std::filesystem::path(out_dir) / filename;
-
-                std::string target_output = m_selection_win->w_surface()->current_output_name();
-                if (target_output.empty()) {
-                    auto outputs = m_engine.get_all_outputs();
-                    if (!outputs.empty()) target_output = outputs[0].name;
-                }
-
-                LOG_INFO << "[CaptureApp] Starting region recording to: " << full_path.string() << " on output " << target_output;
-
-                if (m_recorder->start(target_output, full_path.string(), x, y, w, h, 30, true))
-                {
-                    m_is_recording = true;
-                    NotificationSender::send("Grabación iniciada",
-                                             "Se está grabando la región seleccionada.",
-                                             "media-record");
-                    m_status_label->set_text(horizon::i18n().tr("capture.status.recording_screen"));
-                    if (m_record_btn)
+                this->execute_with_delay(
+                    [this, target_output, x, y, w, h]()
                     {
-                        m_record_btn->set_title(horizon::i18n().tr("capture.toolbar.stop"));
-                        m_record_btn->set_icon_name("media-playback-stop-symbolic");
-                    }
-                }
-                else
-                {
-                    m_status_label->set_text(horizon::i18n().tr("capture.status.failed"));
-                }
+                        if (m_delay_seconds <= 0)
+                        {
+                            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                        }
+
+                        m_config->load();
+                        std::string out_dir =
+                            expand_tilde(m_config->get_value("general", "output_directory", "."));
+                        std::string container = m_config->get_value("video", "container", "mp4");
+
+                        if (!out_dir.empty() && !std::filesystem::exists(out_dir))
+                        {
+                            std::filesystem::create_directories(out_dir);
+                        }
+
+                        std::string filename =
+                            "recording_selection_" +
+                            std::to_string(
+                                std::chrono::system_clock::now().time_since_epoch().count()) +
+                            "." + container;
+                        std::filesystem::path full_path = std::filesystem::path(out_dir) / filename;
+
+                        LOG_INFO << "[CaptureApp] Starting region recording to: "
+                                 << full_path.string() << " on output " << target_output;
+
+                        if (m_recorder->start(target_output, full_path.string(), x, y, w, h, 30,
+                                              true))
+                        {
+                            m_is_recording = true;
+                            NotificationSender::send("Grabación iniciada",
+                                                     "Se está grabando la región seleccionada.",
+                                                     "media-record");
+                            m_status_label->set_text(
+                                horizon::i18n().tr("capture.status.recording_screen"));
+                            if (m_record_btn)
+                            {
+                                m_record_btn->set_title(horizon::i18n().tr("capture.toolbar.stop"));
+                                m_record_btn->set_icon_name("media-playback-stop-symbolic");
+                            }
+                        }
+                        else
+                        {
+                            m_status_label->set_text(horizon::i18n().tr("capture.status.failed"));
+                        }
+                    });
             });
 
         m_selection_win->selection_widget()->when_cancelled().connect(
