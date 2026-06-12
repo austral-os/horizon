@@ -42,6 +42,7 @@ namespace horizon
         virtual std::string get_display_text() const = 0;
 
         EventsManager<KeyEventContext> when_text_changed;
+        EventsManager<KeyEventContext> when_submit;
 
     protected:
         std::string m_text{""};

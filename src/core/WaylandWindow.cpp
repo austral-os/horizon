@@ -3007,8 +3007,7 @@ namespace horizon
         m_all_widgets.erase(widget);
 
         // Remove from dirty list
-        m_dirty_widgets.erase(std::remove(m_dirty_widgets.begin(), m_dirty_widgets.end(), widget),
-                              m_dirty_widgets.end());
+        m_dirty_widgets.erase(widget);
 
         // Clear focused/hovered/pressed if this widget is going away
         if (m_focused == widget)
@@ -3086,11 +3085,7 @@ namespace horizon
         }
         else
         {
-            if (std::find(m_dirty_widgets.begin(), m_dirty_widgets.end(), widget) ==
-                m_dirty_widgets.end())
-            {
-                m_dirty_widgets.push_back(widget);
-            }
+            m_dirty_widgets.insert(widget);
         }
         wakeup();
     }

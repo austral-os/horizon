@@ -620,7 +620,7 @@ namespace horizon
         bool m_full_repaint = true; /**< Flag indicating if the entire UI needs re-rendering. */
         bool m_first_frame =
             true; /**< True until the first buffer is committed. Breaking Meteor deadlock. */
-        std::vector<Widget *> m_dirty_widgets; /**< List of widgets that need re-rendering. */
+        std::unordered_set<Widget *> m_dirty_widgets; /**< List of widgets that need re-rendering. */
         int m_wakeup_fd{-1};                   /**< File descriptor for waking up the event loop. */
 
         Widget *m_hovered = nullptr; /**< The widget currently under the mouse pointer. */

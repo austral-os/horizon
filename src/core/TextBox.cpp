@@ -116,6 +116,12 @@ namespace horizon
                     when_text_changed.run(ctx);
                     ev.stop_propagation = true;
                 }
+                else if (ev.keysym == XKB_KEY_Return || ev.keysym == XKB_KEY_KP_Enter)
+                {
+                    KeyEventContext ctx = ev;
+                    when_submit.run(ctx);
+                    ev.stop_propagation = true;
+                }
                 else if (ev.keysym == XKB_KEY_Left || ev.keysym == XKB_KEY_KP_Left)
                 {
                     if (shift && m_selection_anchor == -1)

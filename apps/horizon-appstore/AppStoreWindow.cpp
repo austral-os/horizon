@@ -128,17 +128,13 @@ void AppStoreWindow::setup_toolbar() {
     m_search_box = search_box.get();
     m_search_box->set_fixed_size(35);
     m_search_box->set_placeholder(horizon::i18n().tr("appstore.search.placeholder"));
-    m_search_box->when_text_changed.connect([this](horizon::KeyEventContext&) {
-        static size_t debounce_timer = 0;
-        if (debounce_timer) application()->stop_timer(debounce_timer);
-        debounce_timer = application()->add_timer(300, [this]() {
-            if (m_explore_view) {
-                m_explore_view->perform_search(m_search_box->text());
-                // Switch to explore view if we are searching
-                m_group_btn->set_current_item(1);
-                set_active_view(horizon::i18n().tr("appstore.views.explore"));
-            }
-        });
+    m_search_box->when_submit.connect([this](horizon::KeyEventContext&) {
+        if (m_explore_view) {
+            m_explore_view->perform_search(m_search_box->text());
+            // Switch to explore view if we are searching
+            m_group_btn->set_current_item(1);
+            set_active_view(horizon::i18n().tr("appstore.views.explore"));
+        }
     });
     
     auto search_wrapper = std::make_unique<horizon::Widget>();
