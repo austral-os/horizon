@@ -441,6 +441,9 @@ namespace horizon
             xdg_surface_set_window_geometry(m_xdg_surface, 0, 0, popup_w, popup_h);
         }
 
+        if (m_shm) m_cursor_theme = wl_cursor_theme_load(nullptr, 24, m_shm);
+        if (m_compositor) m_cursor_surface = wl_compositor_create_surface(m_compositor);
+
         wl_surface_commit(m_surface);
         wl_display_roundtrip(m_display);
         resize_buffer(m_width, m_height);

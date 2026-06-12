@@ -12,6 +12,7 @@ namespace horizon
 
     Menu::Menu() : Widget()
     {
+        set_cursor_type(CursorType::Default);
         // Default appearance - Solid white-ish as requested
         set_background_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
 

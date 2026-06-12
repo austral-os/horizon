@@ -13,6 +13,7 @@ namespace horizon
 
     MenuItem::MenuItem() : Widget(), m_id("")
     {
+        set_cursor_type(CursorType::Default);
         auto content = std::make_unique<Label>();
         m_content = content.get();
         m_content->set_position_type(FREE);

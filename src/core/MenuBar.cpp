@@ -276,6 +276,7 @@ namespace horizon
     {
         set_alignment(TextAlignment::Center);
         m_icon = nullptr;
+        set_cursor_type(CursorType::Default);
     }
 
     void MenuBarItem::set_icon_theme_color_key(const std::string &key)

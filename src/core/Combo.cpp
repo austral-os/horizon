@@ -12,6 +12,7 @@ namespace horizon
     {
         set_focusable(true);
         set_size(150, 30);
+        set_cursor_type(CursorType::Default);
 
         when_click.connect([this](MouseButtonEventContext &ev) { on_click(ev.serial); });
 

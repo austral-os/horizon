@@ -2157,8 +2157,21 @@ namespace horizon
                 }
             }
         }
-        if (!destroyed) m_destroyed = nullptr;
-
+        if (!destroyed)
+        {
+            m_destroyed = nullptr;
+            if (m_window && m_window->m_popup_surface)
+            {
+                if (m_hovered)
+                {
+                    m_window->m_popup_surface->set_cursor(m_hovered->cursor_type());
+                }
+                else
+                {
+                    m_window->m_popup_surface->set_cursor(CursorType::Default);
+                }
+            }
+        }
     }
 
     void WaylandWindow::PopupEventListener::on_close()
