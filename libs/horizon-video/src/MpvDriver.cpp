@@ -19,6 +19,7 @@ public:
         mpv_set_option_string(m_mpv, "vo", "libmpv");
         mpv_set_option_string(m_mpv, "hwdec", "auto");
         mpv_set_option_string(m_mpv, "keep-open", "yes");
+        mpv_set_option_string(m_mpv, "initial-audio-sync", "no");
 
         if (mpv_initialize(m_mpv) < 0) {
             mpv_terminate_destroy(m_mpv);
@@ -33,6 +34,13 @@ public:
 
         if (mpv_render_context_create(&m_render_ctx, m_mpv, params) < 0) {
              LOG_ERROR << "[MpvDriver] Could not create render context";
+        } else {
+             mpv_render_context_set_update_callback(m_render_ctx, [](void* ctx) {
+                 auto driver = static_cast<MpvDriver*>(ctx);
+                 if (driver->on_position_changed) {
+                     driver->on_position_changed(0.0);
+                 }
+             }, this);
         }
 
         // Start event thread
@@ -117,6 +125,8 @@ public:
     void draw(GraphicsContext& ctx, int x, int y, int w, int h) override {
         if (!m_render_ctx || w <= 0 || h <= 0) return;
 
+        mpv_render_context_update(m_render_ctx);
+
         int stride = w * 4;
         std::vector<uint8_t> buffer(stride * h);
 
@@ -131,7 +141,7 @@ public:
 
         mpv_render_context_render(m_render_ctx, params);
 
-        ctx.drawPixels(buffer.data(), w, h, x, y, w, h, 4);
+        ctx.drawPixels(buffer.data(), w, h, x, y, w, h, 4, "NO_CACHE");
         
         if (on_position_changed) on_position_changed(position());
     }

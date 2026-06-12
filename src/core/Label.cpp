@@ -403,11 +403,13 @@ namespace horizon
         m_editor->set_position(m_x, m_y); 
         m_editor->set_size(m_width, m_height);
 
+        m_editor->when_submit.connect([this](KeyEventContext &ctx) {
+            end_edit(true);
+            ctx.stop_propagation = true;
+        });
+
         m_editor->when_key_press.connect([this](KeyEventContext &ctx) {
-            if (ctx.keysym == XKB_KEY_Return || ctx.keysym == XKB_KEY_KP_Enter) {
-                end_edit(true);
-                ctx.stop_propagation = true;
-            } else if (ctx.keysym == XKB_KEY_Escape) {
+            if (ctx.keysym == XKB_KEY_Escape) {
                 end_edit(false);
                 ctx.stop_propagation = true;
             }

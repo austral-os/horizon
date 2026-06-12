@@ -63,13 +63,10 @@ namespace horizon::polkit
         password_box->set_focusable(true);
         m_password_entry = password_box.get();
 
-        m_password_entry->when_key_press.connect(
+        m_password_entry->when_submit.connect(
             [this](KeyEventContext &ev)
             {
-                if (ev.keysym == XKB_KEY_Return || ev.keysym == XKB_KEY_KP_Enter)
-                {
-                    on_authenticate();
-                }
+                on_authenticate();
             });
 
         // Label de error (inicialmente vacío y oculto)

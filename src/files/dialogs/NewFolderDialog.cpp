@@ -77,13 +77,10 @@ namespace horizon::files
                 accept_action();
             });
 
-        text_box_ptr->when_key_press.connect(
+        text_box_ptr->when_submit.connect(
             [accept_action](KeyEventContext &ev)
             {
-                if (ev.keysym == XKB_KEY_Return || ev.keysym == XKB_KEY_KP_Enter)
-                {
-                    accept_action();
-                }
+                accept_action();
             });
         button_container->add_child(std::move(accept_btn));
 

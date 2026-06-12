@@ -1,6 +1,7 @@
 #include <horizon/video/VideoView.hpp>
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Logger.hpp>
+#include <horizon/WaylandWindow.hpp>
 
 namespace horizon::video {
 
@@ -103,7 +104,13 @@ void VideoView::ensure_driver() {
         m_driver = internal::create_mpv_driver();
         if (m_driver) {
             m_driver->on_position_changed = [this](double) {
-                invalidate(); // Request redraw on each frame/position change
+                if (application()) {
+                    application()->post_task([this]() {
+                        invalidate();
+                    });
+                } else {
+                    invalidate(); // Fallback
+                }
             };
             m_driver->on_finished = [this]() {
                 EventContext ctx;

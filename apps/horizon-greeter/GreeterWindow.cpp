@@ -202,12 +202,6 @@ namespace horizon::greeter
     {
         if (event.type == KeyEvent::Type::Press) // Press
         {
-            // Direct capture of Enter key
-            if (event.keysym == XKB_KEY_Return || event.keysym == XKB_KEY_KP_Enter)
-            {
-                on_login_pressed();
-                return;
-            }
 
             // If user is typing password, don't change user with arrows
             if (!(m_password_box->has_focus() && !m_password_box->text().empty()))
@@ -303,6 +297,7 @@ namespace horizon::greeter
         m_password_box->set_placeholder("Password");
         m_password_box->set_visible(false);
         pass_row->add_child(std::move(pass_box));
+        m_password_box->when_submit.connect([this](auto &) { on_login_pressed(); });
         pass_row->add_child(Spacer());
         login_area->add_child(std::move(pass_row));
 

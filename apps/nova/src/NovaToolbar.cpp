@@ -65,17 +65,14 @@ namespace horizon::nova
         m_search_box->set_position_type(FILL);
         m_search_box->set_fixed_size(-1); // Override default TextBox fixed size to allow expansion
 
-        m_search_box->when_key_press.connect(
+        m_search_box->when_submit.connect(
             [this](KeyEventContext &ctx)
             {
-                if (ctx.keysym == 0xff0d || ctx.keysym == 0xff8d)
-                { // Enter key or KP_Enter
-                    std::string query = m_search_box->text();
-                    LOG_INFO << "[NOVA] Search submitted: " << query;
-                    SearchChangedEvent ev;
-                    ev.query = query;
-                    this->when_search_submitted.run(ev);
-                }
+                std::string query = m_search_box->text();
+                LOG_INFO << "[NOVA] Search submitted: " << query;
+                SearchChangedEvent ev;
+                ev.query = query;
+                this->when_search_submitted.run(ev);
             });
 
         m_search_box->when_click.connect(

@@ -785,8 +785,9 @@ namespace horizon
         if (!data || img_w <= 0 || img_h <= 0 || w <= 0 || h <= 0 || !cr)
             return;
 
+        bool use_cache = (m_app != nullptr) && (cache_key != "NO_CACHE");
         std::string final_cache_key;
-        if (m_app)
+        if (use_cache)
         {
             if (!cache_key.empty())
             {
@@ -812,7 +813,7 @@ namespace horizon
 
         if (cairo_surface_status(pixel_s) == CAIRO_STATUS_SUCCESS)
         {
-            if (m_app)
+            if (use_cache)
             {
                 cairo_surface_t *scaled_s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
                 cairo_t *temp_cr = cairo_create(scaled_s);
