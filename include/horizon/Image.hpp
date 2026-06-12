@@ -14,7 +14,8 @@ namespace horizon
         Normal,  ///< Draw at original size, centered.
         Stretch, ///< Stretch to fill the entire widget area.
         Fit,     ///< Scale to fill while maintaining aspect ratio.
-        Repeat   ///< Tile the image to fill the entire area.
+        Repeat,  ///< Tile the image to fill the entire area.
+        Crop     ///< Scale to fill while maintaining aspect ratio, cropping the excess.
     };
 
     class WaylandWindow;

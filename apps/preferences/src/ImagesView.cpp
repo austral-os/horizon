@@ -6,7 +6,7 @@
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/WaylandWindow.hpp>
-#include <horizon/arkutils/Thumbnailer.hpp>
+#include <horizon/lens/ThumbnailCache.hpp>
 
 namespace horizon::preferences
 {
@@ -25,8 +25,10 @@ namespace horizon::preferences
         set_margin(4); // Subtle padding
 
         auto img = std::make_unique<Image>();
-        img->set_path(thumbnail_path);
-        img->set_mode(ImageMode::Fit); // Maintain aspect ratio
+        if (!thumbnail_path.empty()) {
+            img->set_path(thumbnail_path);
+        }
+        img->set_mode(ImageMode::Crop); // Scale to fill the box without empty spaces
         img->set_position_type(horizon::WidgetPositionTypes::FILL);
         m_image = img.get();
         add_child(std::move(img));
@@ -37,6 +39,14 @@ namespace horizon::preferences
     void ThumbnailItem::draw(horizon::GraphicsContext &gc)
     {
         horizon::Widget::draw(gc);
+    }
+
+    void ThumbnailItem::set_thumbnail(const std::string& thumbnail_path)
+    {
+        if (m_image) {
+            m_image->set_path(thumbnail_path);
+            invalidate();
+        }
     }
 
     // --- ThumbnailGrid ---
@@ -102,9 +112,11 @@ namespace horizon::preferences
 
     ImagesView::~ImagesView()
     {
-        LOG_INFO << "[ImagesView] Destructor called, stopping loading thread...";
-        m_alive->store(false);
-        stop_loading();
+        if (m_thumbnail_timer_id != 0 && application())
+        {
+            application()->stop_timer(m_thumbnail_timer_id);
+            m_thumbnail_timer_id = 0;
+        }
     }
 
     void ImagesView::set_path(const std::string &path)
@@ -114,121 +126,146 @@ namespace horizon::preferences
             return;
         m_current_path = path;
 
-        stop_loading();
-
+        if (m_thumbnail_timer_id != 0 && application())
         {
-            std::lock_guard<std::mutex> lock(m_pending_mutex);
-            m_pending_thumbnails.clear();
+            application()->stop_timer(m_thumbnail_timer_id);
+            m_thumbnail_timer_id = 0;
         }
 
         m_grid_container->clear_children();
+        m_image_paths.clear();
         invalidate();
 
-        if (!path.empty())
-        {
-            LOG_INFO << "[ImagesView] Dispatching start_loading for " << path;
-            start_loading(path);
-        }
-    }
-
-    void ImagesView::start_loading(const std::string &path)
-    {
-        m_stop_requested = false;
-        m_loading_thread = std::thread(
-            [this, path]()
-            {
-                try
-                {
-                    std::vector<std::string> extensions = {".jpg", ".jpeg", ".png", ".bmp", ".svg"};
-
-                    if (!std::filesystem::exists(path))
-                        return;
-
-                    for (const auto &entry : std::filesystem::directory_iterator(path))
-                    {
-                        if (m_stop_requested)
-                            break;
-
-                        if (entry.is_regular_file())
-                        {
-                            std::string ext = entry.path().extension().string();
-                            std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-
-                            if (std::find(extensions.begin(), extensions.end(), ext) !=
-                                extensions.end())
-                            {
-                                std::string original = entry.path().string();
-                                LOG_INFO << "[ImagesView] Found image: " << original;
-                                std::string thumb = arkutils::Thumbnailer::generate(
-                                    original, THUMB_WIDTH, THUMB_HEIGHT);
-                                LOG_INFO << "[ImagesView] Thumbnail generated: " << thumb;
-
-                                if (!thumb.empty())
-                                {
-                                    add_thumbnail_safe(original, thumb);
-                                }
-                            }
-                        }
-                    }
-                }
-                catch (...)
-                {
-                }
-            });
-    }
-
-    void ImagesView::stop_loading()
-    {
-        m_stop_requested = true;
-        if (m_loading_thread.joinable())
-        {
-            m_loading_thread.join();
-        }
-    }
-
-    void ImagesView::add_thumbnail_safe(const std::string &original_path,
-                                        const std::string &thumbnail_path)
-    {
-        if (!m_alive->load())
+        if (path.empty() || !std::filesystem::exists(path))
             return;
 
-        auto *app = WaylandWindow::get_active_window();
-        if (app)
+        std::vector<std::string> extensions = {".jpg", ".jpeg", ".png", ".bmp", ".svg"};
+
+        try
         {
-            LOG_INFO << "[ImagesView] add_thumbnail_safe: Posting task for " << original_path;
-            app->post_task(
-                [this, original_path, thumbnail_path, alive = m_alive]()
+            for (const auto &entry : std::filesystem::directory_iterator(path))
+            {
+                if (entry.is_regular_file())
                 {
-                    if (!alive->load() || m_stop_requested)
-                        return;
-                    LOG_INFO << "[ImagesView] Task executing for " << original_path;
+                    std::string ext = entry.path().extension().string();
+                    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
-                    auto item = std::make_unique<ThumbnailItem>(original_path, thumbnail_path);
-                    item->set_position_type(horizon::WidgetPositionTypes::FREE);
+                    if (std::find(extensions.begin(), extensions.end(), ext) != extensions.end())
+                    {
+                        std::string original = entry.path().string();
+                        m_image_paths.push_back(original);
 
-                    std::string path = original_path;
-                    item->when_mouse_press.connect(
-                        [this, path](MouseButtonEventContext &ev)
+                        std::string thumb = lens::ThumbnailCache::get_thumbnail(original, lens::ThumbnailSize::Large);
+
+                        if (thumb.empty() && lens::ThumbnailCache::is_supported(original))
                         {
-                            if (ev.button == 0x110)
-                            { // BTN_LEFT
-                                when_image_selected.run(path);
-                                ev.stop_propagation = true;
-                            }
-                        });
+                            lens::ThumbnailCache::request_thumbnail(original, lens::ThumbnailSize::Large);
+                        }
 
-                    m_grid_container->add_child(std::move(item));
-                    update_layout();
-                    invalidate();
+                        auto item = std::make_unique<ThumbnailItem>(original, thumb);
+                        item->set_position_type(horizon::WidgetPositionTypes::FREE);
+
+                        item->when_mouse_press.connect(
+                            [this, original](MouseButtonEventContext &ev)
+                            {
+                                if (ev.button == 0x110)
+                                { // BTN_LEFT
+                                    when_image_selected.run(original);
+                                    ev.stop_propagation = true;
+                                }
+                            });
+
+                        m_grid_container->add_child(std::move(item));
+                    }
+                }
+            }
+        }
+        catch (...)
+        {
+            LOG_ERROR << "[ImagesView] Failed to read directory " << path;
+        }
+
+        update_layout();
+        invalidate();
+        start_thumbnail_watch();
+    }
+
+    void ImagesView::start_thumbnail_watch()
+    {
+        if (!application())
+            return;
+
+        if (m_thumbnail_timer_id != 0)
+        {
+            application()->stop_timer(m_thumbnail_timer_id);
+            m_thumbnail_timer_id = 0;
+        }
+
+        // Check if any thumbnails are missing
+        bool pending = false;
+        for (const auto &original : m_image_paths)
+        {
+            if (lens::ThumbnailCache::is_supported(original) &&
+                lens::ThumbnailCache::get_thumbnail(original, lens::ThumbnailSize::Large).empty())
+            {
+                pending = true;
+                break;
+            }
+        }
+
+        if (pending)
+        {
+            m_thumbnail_timer_id = application()->add_timer(1000,
+                [this]()
+                {
+                    m_thumbnail_timer_id = 0;
+                    check_thumbnails();
                 });
         }
-        else
+    }
+
+    void ImagesView::check_thumbnails()
+    {
+        if (!application() || !m_grid_container)
+            return;
+
+        bool has_new = false;
+        bool still_pending = false;
+
+        for (auto const &child : m_grid_container->children())
         {
-            LOG_INFO << "[ImagesView] add_thumbnail_safe: Buffering " << original_path
-                     << " (No Application context)";
-            // Store pending thumbnail for when we are attached to window
-            std::lock_guard<std::mutex> lock(m_pending_mutex);
-            m_pending_thumbnails.push_back({original_path, thumbnail_path});
+            if (auto *item = dynamic_cast<ThumbnailItem *>(child.get()))
+            {
+                std::string original = item->original_path();
+                if (lens::ThumbnailCache::is_supported(original))
+                {
+                    std::string thumb = lens::ThumbnailCache::get_thumbnail(original, lens::ThumbnailSize::Large);
+                    if (!thumb.empty())
+                    {
+                        item->set_thumbnail(thumb);
+                        has_new = true;
+                    }
+                    else
+                    {
+                        still_pending = true;
+                    }
+                }
+            }
+        }
+
+        if (has_new)
+        {
+            invalidate();
+        }
+
+        if (still_pending)
+        {
+            m_thumbnail_timer_id = application()->add_timer(1000,
+                [this]()
+                {
+                    m_thumbnail_timer_id = 0;
+                    check_thumbnails();
+                });
         }
     }
 
@@ -239,13 +276,8 @@ namespace horizon::preferences
         {
             set_background_color(theme_manager()->get_color("textbox_bg"));
             set_border_color(theme_manager()->get_color("window_border"));
-
-            std::lock_guard<std::mutex> lock(m_pending_mutex);
-            for (const auto &pending : m_pending_thumbnails)
-            {
-                add_thumbnail_safe(pending.original, pending.thumb);
-            }
-            m_pending_thumbnails.clear();
+            
+            start_thumbnail_watch();
         }
     }
 

@@ -120,6 +120,25 @@ namespace horizon
                 }
             }
             break;
+
+        case ImageMode::Crop:
+            // Scale to fill the entire area, cropping the excess
+            {
+                double aspect_ratio = static_cast<double>(img_w) / img_h;
+                int target_w = draw_w;
+                int target_h = static_cast<int>(draw_w / aspect_ratio);
+
+                if (target_h < draw_h)
+                {
+                    target_h = draw_h;
+                    target_w = static_cast<int>(draw_h * aspect_ratio);
+                }
+
+                int x = draw_x + (draw_w - target_w) / 2;
+                int y = draw_y + (draw_h - target_h) / 2;
+                m_driver->draw(ctx, x, y, target_w, target_h);
+            }
+            break;
         }
 
         ctx.restore();
