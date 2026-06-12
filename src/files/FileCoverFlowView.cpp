@@ -33,6 +33,17 @@ namespace horizon::files
         {
             std::string thumb = lens::ThumbnailCache::get_thumbnail(f.path,
                 lens::ThumbnailSize::XLarge);
+            if (thumb.empty())
+            {
+                thumb = lens::ThumbnailCache::get_thumbnail(f.path,
+                    lens::ThumbnailSize::Large);
+            }
+            if (thumb.empty())
+            {
+                thumb = lens::ThumbnailCache::get_thumbnail(f.path,
+                    lens::ThumbnailSize::Normal);
+            }
+
             if (!thumb.empty())
             {
                 m_icon->set_icon_path(thumb);
@@ -40,7 +51,11 @@ namespace horizon::files
             else
             {
                 m_icon->set_icon_name(FileIconProvider::get_icon_name(f));
+            }
 
+            // Always request XLarge if we don't have it, even if we are showing a smaller fallback
+            if (lens::ThumbnailCache::get_thumbnail(f.path, lens::ThumbnailSize::XLarge).empty())
+            {
                 if (lens::ThumbnailCache::is_supported(f.path))
                 {
                     lens::ThumbnailCache::request_thumbnail(f.path,
@@ -146,7 +161,14 @@ namespace horizon::files
         refresh(m_current_path);
     }
 
-    FileCoverFlowView::~FileCoverFlowView() = default;
+    FileCoverFlowView::~FileCoverFlowView()
+    {
+        if (m_thumbnail_timer_id != 0 && application())
+        {
+            application()->stop_timer(m_thumbnail_timer_id);
+            m_thumbnail_timer_id = 0;
+        }
+    }
 
     void FileCoverFlowView::set_show_hidden_files(bool show)
     {
@@ -225,5 +247,61 @@ namespace horizon::files
     {
         m_cover_flow->set_data(files);
         m_list_view->update_table(files);
+        start_thumbnail_watch();
+    }
+
+    void FileCoverFlowView::start_thumbnail_watch()
+    {
+        if (!application() || !m_cover_flow)
+            return;
+
+        if (m_thumbnail_timer_id != 0)
+        {
+            application()->stop_timer(m_thumbnail_timer_id);
+            m_thumbnail_timer_id = 0;
+        }
+
+        m_missing_thumbnails.clear();
+        for (const auto &f : m_cover_flow->data())
+        {
+            if (lens::ThumbnailCache::is_supported(f.path) &&
+                lens::ThumbnailCache::get_thumbnail(f.path, lens::ThumbnailSize::XLarge).empty())
+            {
+                m_missing_thumbnails.insert(f.path);
+            }
+        }
+
+        if (!m_missing_thumbnails.empty())
+        {
+            m_thumbnail_timer_id = application()->add_timer(3000,
+                [this]()
+                {
+                    m_thumbnail_timer_id = 0;
+                    check_thumbnails();
+                });
+        }
+    }
+
+    void FileCoverFlowView::check_thumbnails()
+    {
+        if (!application() || !m_cover_flow)
+            return;
+
+        bool has_new = false;
+        for (const auto &path : m_missing_thumbnails)
+        {
+            if (!lens::ThumbnailCache::get_thumbnail(path, lens::ThumbnailSize::XLarge).empty())
+            {
+                has_new = true;
+                break;
+            }
+        }
+
+        if (has_new)
+        {
+            m_cover_flow->refresh();
+        }
+
+        start_thumbnail_watch();
     }
 } // namespace horizon::files

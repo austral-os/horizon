@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <set>
 
 namespace horizon
 {
@@ -62,6 +63,11 @@ namespace horizon::files
         std::unique_ptr<horizon::arkutils::FileSystemModel> m_fs_model;
 
         void update_data(const std::vector<arkutils::FileInfo> &files);
+
+        uint32_t m_thumbnail_timer_id{0};
+        std::set<std::string> m_missing_thumbnails;
+        void start_thumbnail_watch();
+        void check_thumbnails();
     };
 
 } // namespace horizon::files
