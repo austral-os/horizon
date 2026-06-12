@@ -175,8 +175,15 @@ private:
         m_manager->set_progress_callback(
             [this](float progress, const std::string &msg)
             {
-                if (m_install_page_ptr)
-                    m_install_page_ptr->update_progress(progress, msg);
+                if (auto *app = application())
+                {
+                    app->post_task(
+                        [this, progress, msg]()
+                        {
+                            if (m_install_page_ptr)
+                                m_install_page_ptr->update_progress(progress, msg);
+                        });
+                }
             });
 
         if (m_working_mode)

@@ -677,7 +677,7 @@ namespace horizon::installer
             if (pos != std::string::npos && pos > 2) {
                 try {
                     size_t start = pos - 1;
-                    while (start > 0 && std::isdigit(line[start])) start--;
+                    while (start > 0 && std::isdigit(static_cast<unsigned char>(line[start]))) start--;
                     
                     if (start < pos - 1) {
                         int percent = std::stoi(line.substr(start + 1, pos - start - 1));
