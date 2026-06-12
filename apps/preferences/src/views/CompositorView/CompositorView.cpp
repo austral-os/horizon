@@ -17,8 +17,42 @@ namespace horizon::preferences
         m_title_label = title.get();
         add_child(std::move(title));
 
-        setup_checkbox(m_minimize_cb, i18n().tr("preferences.compositor.minimize_animation"), "squeezimize");
-        setup_checkbox(m_open_close_cb, i18n().tr("preferences.compositor.open_close_animation"), "zoom");
+        // Minimize animation (squeezimize)
+        auto min_cb = std::make_unique<Checkbox<AquaObject>>();
+        m_minimize_cb = min_cb.get();
+        m_minimize_cb->set_fixed_size(30);
+        m_minimize_cb->set_text(i18n().tr("preferences.compositor.minimize_animation"));
+        bool has_min = (MeteorPluginManager::get_config_value("animate", "minimize_animation") == "squeezimize");
+        m_minimize_cb->set_checked(has_min);
+        m_minimize_cb->when_toggle.connect([](ToggleEventContext& ctx) {
+            if (ctx.checked) {
+                MeteorPluginManager::set_config_value("animate", "minimize_animation", "squeezimize");
+                MeteorPluginManager::set_config_value("animate", "squeezimize_duration", "700ms circle");
+            } else {
+                MeteorPluginManager::remove_config_value("animate", "minimize_animation");
+                MeteorPluginManager::remove_config_value("animate", "squeezimize_duration");
+            }
+        });
+        add_child(std::move(min_cb));
+
+        // Open/Close animation (zoom)
+        auto open_cb = std::make_unique<Checkbox<AquaObject>>();
+        m_open_close_cb = open_cb.get();
+        m_open_close_cb->set_fixed_size(30);
+        m_open_close_cb->set_text(i18n().tr("preferences.compositor.open_close_animation"));
+        bool has_zoom = (MeteorPluginManager::get_config_value("animate", "open_animation") == "zoom" &&
+                         MeteorPluginManager::get_config_value("animate", "close_animation") == "zoom");
+        m_open_close_cb->set_checked(has_zoom);
+        m_open_close_cb->when_toggle.connect([](ToggleEventContext& ctx) {
+            if (ctx.checked) {
+                MeteorPluginManager::set_config_value("animate", "open_animation", "zoom");
+                MeteorPluginManager::set_config_value("animate", "close_animation", "zoom");
+            } else {
+                MeteorPluginManager::remove_config_value("animate", "open_animation");
+                MeteorPluginManager::remove_config_value("animate", "close_animation");
+            }
+        });
+        add_child(std::move(open_cb));
         setup_checkbox(m_shadows_cb, i18n().tr("preferences.compositor.shadows"), "winshadows");
         setup_checkbox(m_wobbly_cb, i18n().tr("preferences.compositor.wobbly_windows"), "wobbly");
         setup_checkbox(m_blur_cb, i18n().tr("preferences.compositor.blur"), "blur");

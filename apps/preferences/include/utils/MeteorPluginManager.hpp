@@ -19,5 +19,9 @@ namespace horizon::preferences
          * @param enable true to enable, false to disable
          */
         static void set_plugin_enabled(const std::string& plugin_name, bool enable);
+
+        static std::string get_config_value(const std::string& section, const std::string& key);
+        static void set_config_value(const std::string& section, const std::string& key, const std::string& value);
+        static void remove_config_value(const std::string& section, const std::string& key);
     };
 }
