@@ -91,7 +91,7 @@ namespace horizon
         std::unique_ptr<ImageDriver> createImageDriver(const std::string &path) override;
 
         void drawPixels(const unsigned char *data, int img_w, int img_h, int x, int y, int w, int h,
-                        int channels = 4) override;
+                        int channels = 4, const std::string& cache_key = "") override;
         void drawSvg(const std::string &path, int x, int y, int w, int h) override;
         void getSvgSize(const std::string &path, int &w, int &h) override;
 

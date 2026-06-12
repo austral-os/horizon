@@ -43,11 +43,11 @@ namespace horizon
 
         std::lock_guard<std::mutex> lock(g_cache_mutex);
         
+        m_path = path;
         auto it = g_image_cache.find(path);
         if (it != g_image_cache.end())
         {
-            auto shared = it->second.lock();
-            if (shared)
+            if (auto shared = it->second.lock())
             {
                 m_impl->shared_data = shared;
                 m_width = shared->width;
@@ -59,9 +59,7 @@ namespace horizon
         auto shared = std::make_shared<SharedImageData>();
         shared->data = stbi_load(path.c_str(), &shared->width, &shared->height, &shared->channels, 4);
         if (!shared->data)
-        {
             return false;
-        }
 
         // Cairo CAIRO_FORMAT_ARGB32 on Little-Endian expects BGRA byte order.
         // STB loads as RGBA. We swap R and B.
@@ -70,11 +68,10 @@ namespace horizon
             std::swap(shared->data[i], shared->data[i + 2]);
         }
 
+        g_image_cache[path] = shared;
+        m_impl->shared_data = shared;
         m_width = shared->width;
         m_height = shared->height;
-        m_impl->shared_data = shared;
-        g_image_cache[path] = shared;
-
         return true;
     }
 
@@ -83,7 +80,7 @@ namespace horizon
         if (!m_impl->shared_data || !m_impl->shared_data->data)
             return;
 
-        ctx.drawPixels(m_impl->shared_data->data, m_width, m_height, x, y, w, h, m_impl->shared_data->channels);
+        ctx.drawPixels(m_impl->shared_data->data, m_width, m_height, x, y, w, h, m_impl->shared_data->channels, m_path);
     }
 
 } // namespace horizon

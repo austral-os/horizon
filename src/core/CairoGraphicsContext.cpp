@@ -780,18 +780,25 @@ namespace horizon
     }
 
     void CairoGraphicContext::drawPixels(const unsigned char *data, int img_w, int img_h, int x,
-                                         int y, int w, int h, int channels)
+                                         int y, int w, int h, int channels, const std::string& cache_key)
     {
         if (!data || img_w <= 0 || img_h <= 0 || w <= 0 || h <= 0 || !cr)
             return;
 
-        std::string cache_key;
+        std::string final_cache_key;
         if (m_app)
         {
-            cache_key = "stb_" + std::to_string(reinterpret_cast<uintptr_t>(data)) + "_" + std::to_string(w) + "x" + std::to_string(h);
-            if (m_app->m_surface_cache.count(cache_key))
+            if (!cache_key.empty())
             {
-                cairo_surface_t *cached_s = static_cast<cairo_surface_t *>(m_app->m_surface_cache[cache_key]);
+                final_cache_key = "stb_" + cache_key + "_" + std::to_string(w) + "x" + std::to_string(h);
+            }
+            else
+            {
+                final_cache_key = "stb_" + std::to_string(reinterpret_cast<uintptr_t>(data)) + "_" + std::to_string(w) + "x" + std::to_string(h);
+            }
+            if (m_app->m_surface_cache.count(final_cache_key))
+            {
+                cairo_surface_t *cached_s = static_cast<cairo_surface_t *>(m_app->m_surface_cache[final_cache_key]);
                 cairo_save(cr);
                 cairo_set_source_surface(cr, cached_s, x, y);
                 cairo_paint(cr);
@@ -814,7 +821,7 @@ namespace horizon
                 cairo_paint(temp_cr);
                 cairo_destroy(temp_cr);
 
-                m_app->m_surface_cache[cache_key] = scaled_s;
+                m_app->m_surface_cache[final_cache_key] = scaled_s;
 
                 cairo_save(cr);
                 cairo_set_source_surface(cr, scaled_s, x, y);

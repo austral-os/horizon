@@ -26,5 +26,6 @@ namespace horizon
 
         struct Impl;
         std::unique_ptr<Impl> m_impl;
+        std::string m_path;
     };
 } // namespace horizon

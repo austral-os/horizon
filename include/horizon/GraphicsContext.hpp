@@ -155,7 +155,7 @@ namespace horizon
          * @brief Draws raw pixels to the context.
          */
         virtual void drawPixels(const unsigned char *data, int img_w, int img_h, int x, int y,
-                                int w, int h, int channels = 4) = 0;
+                                int w, int h, int channels = 4, const std::string& cache_key = "") = 0;
 
         /**
          * @brief Draws an SVG file to the context.
