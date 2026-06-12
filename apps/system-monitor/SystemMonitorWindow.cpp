@@ -5,9 +5,9 @@
 #include <horizon/Label.hpp>
 #include <horizon/Spacer.hpp>
 #include <horizon/TableColumn.hpp>
+#include <horizon/ToggleGroupButton.hpp>
 #include <horizon/Toolbar.hpp>
 #include <horizon/Widget.hpp>
-#include <horizon/ToggleGroupButton.hpp>
 #include <iomanip>
 #include <sstream>
 
@@ -18,9 +18,6 @@ namespace horizon
     {
         setup_toolbar();
         setup_content();
-
-        // Initial update
-        update_processes();
     }
 
     void SystemMonitorWindow::set_application_recursive(WaylandWindow *app)
@@ -29,7 +26,9 @@ namespace horizon
 
         if (app && m_refresh_timer_id == 0)
         {
-            m_refresh_timer_id = app->add_timer(1000, [this]() { update_processes(); }, true);
+            app->when_load.connect([this](AppEventContext &) { update_processes(); });
+
+            m_refresh_timer_id = app->add_timer(2000, [this]() { update_processes(); }, true);
         }
     }
 
@@ -42,7 +41,7 @@ namespace horizon
             i18n().tr("system_monitor.toolbar.terminate"), "process-stop");
         m_btn_terminate = btn_terminate.get();
         m_btn_terminate->set_enabled(false);
-        
+
         m_btn_terminate->when_click.connect(
             [this](EventContext &)
             {
@@ -50,7 +49,8 @@ namespace horizon
                 if (!selected.empty())
                 {
                     const auto &p = selected[0];
-                    std::string msg = i18n().tr("system_monitor.confirm_kill") + " " + p.name + " (PID: " + std::to_string(p.pid) + ")?";
+                    std::string msg = i18n().tr("system_monitor.confirm_kill") + " " + p.name +
+                                      " (PID: " + std::to_string(p.pid) + ")?";
                     if (application()->confirm(msg, i18n().tr("system_monitor.toolbar.terminate")))
                     {
                         m_process_manager.terminate_process(p.pid);
@@ -72,25 +72,37 @@ namespace horizon
         auto group_btn = std::make_unique<ToggleGroupButton>();
         group_btn->add_item("CPU");
         group_btn->add_item(i18n().tr("system_monitor.toolbar.memory"));
-        
+
         bool has_battery = m_process_manager.get_energy_usage().has_battery;
-        if (has_battery) {
+        if (has_battery)
+        {
             group_btn->add_item(i18n().tr("system_monitor.toolbar.energy"));
         }
 
         group_btn->add_item(i18n().tr("system_monitor.toolbar.disk"));
         group_btn->add_item(i18n().tr("system_monitor.toolbar.network"));
         group_btn->set_fixed_size(500);
-        
+
         group_btn->set_current_item(0);
 
-        group_btn->when_button_clicked.connect([this](GroupButtonClickEvent &ctx) {
-            if (m_cpu_stats) m_cpu_stats->set_visible(ctx.button_text == "CPU");
-            if (m_memory_stats) m_memory_stats->set_visible(ctx.button_text == i18n().tr("system_monitor.toolbar.memory"));
-            if (m_energy_stats) m_energy_stats->set_visible(ctx.button_text == i18n().tr("system_monitor.toolbar.energy"));
-            if (m_disk_stats) m_disk_stats->set_visible(ctx.button_text == i18n().tr("system_monitor.toolbar.disk"));
-            if (m_network_stats) m_network_stats->set_visible(ctx.button_text == i18n().tr("system_monitor.toolbar.network"));
-        });
+        group_btn->when_button_clicked.connect(
+            [this](GroupButtonClickEvent &ctx)
+            {
+                if (m_cpu_stats)
+                    m_cpu_stats->set_visible(ctx.button_text == "CPU");
+                if (m_memory_stats)
+                    m_memory_stats->set_visible(ctx.button_text ==
+                                                i18n().tr("system_monitor.toolbar.memory"));
+                if (m_energy_stats)
+                    m_energy_stats->set_visible(ctx.button_text ==
+                                                i18n().tr("system_monitor.toolbar.energy"));
+                if (m_disk_stats)
+                    m_disk_stats->set_visible(ctx.button_text ==
+                                              i18n().tr("system_monitor.toolbar.disk"));
+                if (m_network_stats)
+                    m_network_stats->set_visible(ctx.button_text ==
+                                                 i18n().tr("system_monitor.toolbar.network"));
+            });
 
         tb->add_toolbar_widget(std::move(group_btn));
 
@@ -102,14 +114,15 @@ namespace horizon
         m_search_box = search_box.get();
         m_search_box->set_placeholder(i18n().tr("system_monitor.toolbar.search"));
         m_search_box->set_fixed_size(35);
-        m_search_box->when_text_changed.connect([this](KeyEventContext &) { 
-            // Simple debounce using a timer
-            static size_t debounce_timer = 0;
-            if (debounce_timer) application()->stop_timer(debounce_timer);
-            debounce_timer = application()->add_timer(300, [this]() {
-                update_processes();
+        m_search_box->when_text_changed.connect(
+            [this](KeyEventContext &)
+            {
+                // Simple debounce using a timer
+                static size_t debounce_timer = 0;
+                if (debounce_timer)
+                    application()->stop_timer(debounce_timer);
+                debounce_timer = application()->add_timer(300, [this]() { update_processes(); });
             });
-        });
 
         auto search_wrapper = std::make_unique<Widget>();
         search_wrapper->set_layout_type(WidgetLayoutTypes::WIDGET_LAYOUT_VERTICAL);
@@ -210,10 +223,12 @@ namespace horizon
         { return a.command < b.command; };
         m_table_view->add_column(col_cmd);
 
-        m_table_view->when_row_click.connect([this](const TableViewRowMouseClickContext<ProcessInfo>& ctx) {
-            m_selected_pid = ctx.row_data.pid;
-            m_btn_terminate->set_enabled(true);
-        });
+        m_table_view->when_row_click.connect(
+            [this](const TableViewRowMouseClickContext<ProcessInfo> &ctx)
+            {
+                m_selected_pid = ctx.row_data.pid;
+                m_btn_terminate->set_enabled(true);
+            });
 
         root->add_child(std::move(table_view));
 
@@ -223,7 +238,7 @@ namespace horizon
         sb->set_fixed_size(200);
         sb->set_layout_type(WIDGET_LAYOUT_VERTICAL);
         sb->set_spacing(0);
-        
+
         auto cpu_stats = std::make_unique<CPUStats>();
         m_cpu_stats = cpu_stats.get();
         sb->add_child(std::move(cpu_stats));
@@ -233,7 +248,8 @@ namespace horizon
         m_memory_stats->set_visible(false); // Hidden by default
         sb->add_child(std::move(mem_stats));
 
-        if (m_process_manager.get_energy_usage().has_battery) {
+        if (m_process_manager.get_energy_usage().has_battery)
+        {
             auto energy_stats = std::make_unique<EnergyStats>();
             m_energy_stats = energy_stats.get();
             m_energy_stats->set_visible(false);
@@ -261,13 +277,18 @@ namespace horizon
         auto energy_usage = m_process_manager.get_energy_usage();
         auto disk_usage = m_process_manager.get_disk_usage();
         auto net_usage = m_process_manager.get_network_usage();
- 
-        if (m_cpu_stats) m_cpu_stats->update(cpu_usage);
-        if (m_memory_stats) m_memory_stats->update(mem_usage);
-        if (m_energy_stats) m_energy_stats->update(energy_usage);
-        if (m_disk_stats) m_disk_stats->update(disk_usage);
-        if (m_network_stats) m_network_stats->update(net_usage);
-        
+
+        if (m_cpu_stats)
+            m_cpu_stats->update(cpu_usage);
+        if (m_memory_stats)
+            m_memory_stats->update(mem_usage);
+        if (m_energy_stats)
+            m_energy_stats->update(energy_usage);
+        if (m_disk_stats)
+            m_disk_stats->update(disk_usage);
+        if (m_network_stats)
+            m_network_stats->update(net_usage);
+
         set_title(i18n().tr("system_monitor.title"));
 
         std::string filter = m_search_box->text();
@@ -305,7 +326,7 @@ namespace horizon
                 }
             }
         }
-        
+
         m_btn_terminate->set_enabled(false);
     }
 } // namespace horizon

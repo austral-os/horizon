@@ -91,6 +91,7 @@ namespace horizon
         EventsManager<AppEventContext> when_deactivated;
         EventsManager<AppEventContext> when_close;
         EventsManager<AppListEventContext> when_foreign_update;
+        EventsManager<AppEventContext> when_load;
 
         SignalManager signal_manager;
 

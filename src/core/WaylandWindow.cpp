@@ -872,7 +872,12 @@ namespace horizon
 
                         render_gl_ui();
                         m_last_commit_time = frame_now;
-                        m_first_frame = false;
+                        if (m_first_frame) {
+                            m_first_frame = false;
+                            AppEventContext ev;
+                            ev.sender = this;
+                            when_load.run(ev);
+                        }
                     }
                 }
             }
