@@ -780,7 +780,11 @@ namespace horizon
             static constexpr uint64_t FRAME_MS = 16;
             
             bool root_dirty = (m_root && (m_root->is_dirty() || m_root->is_child_dirty()));
-            bool has_pending = m_full_repaint || !m_dirty_widgets.empty() || root_dirty;
+            bool has_pending;
+            {
+                std::lock_guard<std::mutex> lock(m_state_mutex);
+                has_pending = m_full_repaint || !m_dirty_widgets.empty() || root_dirty;
+            }
 
             if (has_pending && !m_is_minimized && (m_surface->is_configured() || m_first_frame))
             {
@@ -791,9 +795,13 @@ namespace horizon
                     
                     if (should_render && m_root)
                     {
-                        m_dirty_widgets.clear();
-                        bool full = m_full_repaint || m_first_frame;
-                        m_full_repaint = false;
+                        bool full;
+                        {
+                            std::lock_guard<std::mutex> lock(m_state_mutex);
+                            m_dirty_widgets.clear();
+                            full = m_full_repaint || m_first_frame;
+                            m_full_repaint = false;
+                        }
 
                         if (m_surface)
                         {
@@ -937,7 +945,11 @@ namespace horizon
 
                     // Redraw heartbeat: if we have pending redraws but were rate-limited,
                     // wake up exactly when 16ms have passed.
-                    bool has_pending = m_full_repaint || !m_dirty_widgets.empty();
+                    bool has_pending;
+                    {
+                        std::lock_guard<std::mutex> lock(m_state_mutex);
+                        has_pending = m_full_repaint || !m_dirty_widgets.empty();
+                    }
                     if (has_pending)
                     {
                         static constexpr uint64_t FRAME_MS = 16;
@@ -3025,7 +3037,10 @@ namespace horizon
         m_all_widgets.erase(widget);
 
         // Remove from dirty list
-        m_dirty_widgets.erase(widget);
+        {
+            std::lock_guard<std::mutex> lock(m_state_mutex);
+            m_dirty_widgets.erase(widget);
+        }
 
         // Clear focused/hovered/pressed if this widget is going away
         if (m_focused == widget)
@@ -3097,13 +3112,16 @@ namespace horizon
 
     void WaylandWindow::invalidate(Widget *widget)
     {
-        if (!widget)
         {
-            m_full_repaint = true;
-        }
-        else
-        {
-            m_dirty_widgets.insert(widget);
+            std::lock_guard<std::mutex> lock(m_state_mutex);
+            if (!widget)
+            {
+                m_full_repaint = true;
+            }
+            else
+            {
+                m_dirty_widgets.insert(widget);
+            }
         }
         wakeup();
     }
