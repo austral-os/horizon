@@ -51,6 +51,7 @@ namespace horizon
         RibbonSection *add_section(int tab_index, const std::string &section_title);
 
         void set_active_tab(int index);
+        void set_tab_visible(int index, bool visible);
 
     protected:
         void render(GraphicsContext &gc, int cx, int cy, int cw, int ch,
@@ -70,6 +71,7 @@ namespace horizon
             std::string title;
             std::unique_ptr<Widget> content_container; // Horizontal layout for sections
             Widget *button;
+            bool visible = true;
         };
 
         std::vector<TabData> m_tabs;

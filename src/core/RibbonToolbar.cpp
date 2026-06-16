@@ -254,18 +254,44 @@ namespace horizon
 
     void RibbonToolbar::set_active_tab(int index)
     {
-        if (index < 0 || index >= (int)m_tabs.size())
+        if (index >= (int)m_tabs.size())
             return;
 
-        if (m_active_tab_index != -1)
+        if (m_active_tab_index != -1 && m_active_tab_index < (int)m_tabs.size())
         {
             static_cast<RibbonTabButton *>(m_tabs[m_active_tab_index].button)->set_active(false);
         }
 
         m_active_tab_index = index;
-        static_cast<RibbonTabButton *>(m_tabs[m_active_tab_index].button)->set_active(true);
+        if (m_active_tab_index != -1) {
+            static_cast<RibbonTabButton *>(m_tabs[m_active_tab_index].button)->set_active(true);
+        }
 
         m_scroll_x = 0;
+        invalidate();
+    }
+
+    void RibbonToolbar::set_tab_visible(int index, bool visible)
+    {
+        if (index < 0 || index >= (int)m_tabs.size())
+            return;
+
+        if (m_tabs[index].visible == visible) return;
+
+        m_tabs[index].visible = visible;
+        m_tabs[index].button->set_visible(visible);
+
+        if (!visible && m_active_tab_index == index)
+        {
+            int new_index = -1;
+            for (int i = 0; i < (int)m_tabs.size(); ++i) {
+                if (m_tabs[i].visible) {
+                    new_index = i;
+                    break;
+                }
+            }
+            set_active_tab(new_index);
+        }
         invalidate();
     }
 
@@ -448,19 +474,25 @@ namespace horizon
         ctx.setColor(brd);
         for (int i = 0; i < (int)m_tabs.size(); ++i)
         {
+            if (!m_tabs[i].visible) continue;
+
             Widget *btn = m_tabs[i].button;
             int bx = btn->x();
             int bw = btn->width();
 
-            // Borde derecho: se omite si el siguiente tab es el activo,
-            // ya que el activo dibujará su propio borde izquierdo en ese borde
-            bool next_is_active = (i + 1 == m_active_tab_index);
+            bool next_is_active = false;
+            for (int j = i + 1; j < (int)m_tabs.size(); ++j) {
+                if (m_tabs[j].visible) {
+                    next_is_active = (j == m_active_tab_index);
+                    break;
+                }
+            }
+
             if (!next_is_active)
             {
                 ctx.drawLine(bx + bw - 1, m_y, bx + bw - 1, header_bottom, 0.5f);
             }
 
-            // El tab activo además tiene borde izquierdo
             if (i == m_active_tab_index)
             {
                 ctx.drawLine(bx, m_y, bx, header_bottom, 0.5f);
