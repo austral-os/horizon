@@ -41,28 +41,36 @@ namespace horizon::files
             if (!apps.empty()) sub_open_with->add_separator();
             
             auto item_other = sub_open_with->add_item(i18n().tr("core.file_menu.choose_app"));
-            item_other->when_click.connect([f](auto &) {
-                auto dialog = std::make_unique<AppPickerDialog>();
-                dialog->when_accepted.connect([f](const DesktopEntry& app) {
-                    ApplicationLauncher::launch_from_desktop_file(app.path, {f.path});
-                });
-                dialog->run();
+            item_other->when_click.connect([f](horizon::MouseButtonEventContext &ev) {
+                if (auto app = static_cast<horizon::Widget*>(ev.sender)->application()) {
+                    app->add_timer(50, [f]() {
+                        auto dialog = std::make_unique<AppPickerDialog>();
+                        dialog->when_accepted.connect([f](const DesktopEntry& app) {
+                            ApplicationLauncher::launch_from_desktop_file(app.path, {f.path});
+                        });
+                        dialog->run();
+                    }, false);
+                }
             });
             item_open_with->set_submenu(std::move(sub_open_with));
             menu->add_separator();
         }
 
         auto item_rename = menu->add_item(i18n().tr("core.file_menu.rename"));
-        item_rename->when_click.connect([f, callbacks](auto &) {
-            auto dialog = std::make_unique<RenameDialog>(f.name);
-            dialog->when_accepted.connect([f, callbacks](auto& ev) {
-                std::filesystem::path old_path = f.path;
-                std::filesystem::path new_path = old_path.parent_path() / ev.new_name;
-                std::error_code ec;
-                std::filesystem::rename(old_path, new_path, ec);
-                if (callbacks.on_refresh) callbacks.on_refresh();
-            });
-            dialog->run();
+        item_rename->when_click.connect([f, callbacks](horizon::MouseButtonEventContext &ev) {
+            if (auto app = static_cast<horizon::Widget*>(ev.sender)->application()) {
+                app->add_timer(50, [f, callbacks]() {
+                    auto dialog = std::make_unique<RenameDialog>(f.name);
+                    dialog->when_accepted.connect([f, callbacks](auto& ev2) {
+                        std::filesystem::path old_path = f.path;
+                        std::filesystem::path new_path = old_path.parent_path() / ev2.new_name;
+                        std::error_code ec;
+                        std::filesystem::rename(old_path, new_path, ec);
+                        if (callbacks.on_refresh) callbacks.on_refresh();
+                    });
+                    dialog->run();
+                }, false);
+            }
         });
 
         menu->add_separator();
@@ -87,9 +95,13 @@ namespace horizon::files
         menu->add_separator();
 
         auto item_props = menu->add_item(i18n().tr("core.file_menu.properties"));
-        item_props->when_click.connect([f](auto &) {
-            auto dialog = std::make_unique<PropertiesDialog>(f);
-            dialog->run();
+        item_props->when_click.connect([f](horizon::MouseButtonEventContext &ev) {
+            if (auto app = static_cast<horizon::Widget*>(ev.sender)->application()) {
+                app->add_timer(50, [f]() {
+                    auto dialog = std::make_unique<PropertiesDialog>(f);
+                    dialog->run();
+                }, false);
+            }
         });
 
         if (callbacks.on_open_terminal) {
@@ -109,15 +121,19 @@ namespace horizon::files
         auto menu = std::make_unique<Menu>();
 
         auto item_new = menu->add_item(i18n().tr("core.file_menu.new_folder"));
-        item_new->when_click.connect([current_path, callbacks](auto &) {
-            auto dialog = std::make_unique<NewFolderDialog>();
-            dialog->when_accepted.connect([current_path, callbacks](auto& ev) {
-                std::filesystem::path folder_path = std::filesystem::path(current_path) / ev.folder_name;
-                std::error_code ec;
-                std::filesystem::create_directory(folder_path, ec);
-                if (callbacks.on_refresh) callbacks.on_refresh();
-            });
-            dialog->run();
+        item_new->when_click.connect([current_path, callbacks](horizon::MouseButtonEventContext &ev) {
+            if (auto app = static_cast<horizon::Widget*>(ev.sender)->application()) {
+                app->add_timer(50, [current_path, callbacks]() {
+                    auto dialog = std::make_unique<NewFolderDialog>();
+                    dialog->when_accepted.connect([current_path, callbacks](auto& ev2) {
+                        std::filesystem::path folder_path = std::filesystem::path(current_path) / ev2.folder_name;
+                        std::error_code ec;
+                        std::filesystem::create_directory(folder_path, ec);
+                        if (callbacks.on_refresh) callbacks.on_refresh();
+                    });
+                    dialog->run();
+                }, false);
+            }
         });
 
         menu->add_separator();

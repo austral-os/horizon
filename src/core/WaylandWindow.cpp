@@ -3304,9 +3304,9 @@ namespace horizon
                     menu->add_separator();
                 }
 
-                auto *cut = menu->add_item("Cortar", "Ctrl+X", "clipboard_cut");
-                auto *copy = menu->add_item("Copiar", "Ctrl+C", "clipboard_copy");
-                auto *paste = menu->add_item("Pegar", "Ctrl+V", "clipboard_paste");
+                auto *cut = menu->add_item(i18n().tr("core.global_menu.cut"), "Ctrl+X", "clipboard_cut");
+                auto *copy = menu->add_item(i18n().tr("core.global_menu.copy"), "Ctrl+C", "clipboard_copy");
+                auto *paste = menu->add_item(i18n().tr("core.global_menu.paste"), "Ctrl+V", "clipboard_paste");
 
                 cut->set_id("cut");
                 copy->set_id("copy");
@@ -3316,12 +3316,18 @@ namespace horizon
                 copy->set_emit_signal_manager(false);
                 paste->set_emit_signal_manager(false);
 
-                cut->when_click.connect([clipboard_target](auto &)
-                                        { clipboard_target->perform(ClipboardAction::Cut); });
-                copy->when_click.connect([clipboard_target](auto &)
-                                         { clipboard_target->perform(ClipboardAction::Copy); });
-                paste->when_click.connect([clipboard_target](auto &)
-                                          { clipboard_target->perform(ClipboardAction::Paste); });
+                cut->when_click.connect([clipboard_target](auto &) {
+                    auto app = clipboard_target->application();
+                    if (app) app->post_task([clipboard_target]() { clipboard_target->perform(ClipboardAction::Cut); });
+                });
+                copy->when_click.connect([clipboard_target](auto &) {
+                    auto app = clipboard_target->application();
+                    if (app) app->post_task([clipboard_target]() { clipboard_target->perform(ClipboardAction::Copy); });
+                });
+                paste->when_click.connect([clipboard_target](auto &) {
+                    auto app = clipboard_target->application();
+                    if (app) app->post_task([clipboard_target]() { clipboard_target->perform(ClipboardAction::Paste); });
+                });
 
                 cut->set_enabled(clipboard_target->can_perform(ClipboardAction::Cut));
                 copy->set_enabled(clipboard_target->can_perform(ClipboardAction::Copy));
@@ -3451,17 +3457,21 @@ namespace horizon
 
         if (m_popup_surface || m_popup_listener)
         {
+            std::shared_ptr<WaylandSurface> surface_to_destroy = std::move(m_popup_surface);
+            std::shared_ptr<PopupEventListener> listener_to_destroy = std::move(m_popup_listener);
+            
             m_popup_surface = nullptr;
-        
-        // Force the compositor to process the destruction immediately
-        if (m_surface && m_surface->display()) {
-            wl_display_flush(m_surface->display());
-        }
-            if (m_popup_listener)
-            {
-                m_popup_listener->deactivate();
-            }
             m_popup_listener = nullptr;
+            
+            post_task([surface = surface_to_destroy, listener = listener_to_destroy, this]() {
+                if (listener) {
+                    listener->deactivate();
+                }
+                // Force the compositor to process the destruction immediately
+                if (this->m_surface && this->m_surface->display()) {
+                    wl_display_flush(this->m_surface->display());
+                }
+            });
         }
         invalidate();
 

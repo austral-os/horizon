@@ -499,7 +499,7 @@ namespace horizon::arkfm
                         "go-to-folder",
                         [this](SignalContext &)
                         {
-                            application()->post_task(
+                            application()->add_timer(50,
                                 [this]()
                                 {
                                     application()->set_override_cursor(CursorType::Wait);
@@ -512,14 +512,14 @@ namespace horizon::arkfm
                                         });
                                     dialog->run();
                                     application()->clear_override_cursor();
-                                });
+                                }, false);
                         });
 
                     application()->signal_manager.connect(
                         "go-connect",
                         [this](SignalContext &)
                         {
-                            application()->post_task(
+                            application()->add_timer(50,
                                 [this]()
                                 {
                                     application()->set_override_cursor(CursorType::Wait);
@@ -529,7 +529,7 @@ namespace horizon::arkfm
                                         { this->handle_mount_remote(ev.uri); });
                                     dialog->run();
                                     application()->clear_override_cursor();
-                                });
+                                }, false);
                         });
 
                     m_view_ptr->when_right_click.connect(
@@ -618,7 +618,7 @@ namespace horizon::arkfm
         if (!m_view_ptr)
             return;
 
-        application()->post_task(
+        application()->add_timer(50,
             [this]()
             {
                 application()->set_override_cursor(CursorType::Wait);
@@ -656,7 +656,7 @@ namespace horizon::arkfm
                     });
                 dialog->run();
                 application()->clear_override_cursor();
-            });
+            }, false);
     }
     
     void ArkfmWindow::handle_add_bookmark(const std::string &path)
@@ -696,51 +696,53 @@ namespace horizon::arkfm
 
     void ArkfmWindow::handle_rename(const std::string &path)
     {
-        application()->set_override_cursor(CursorType::Wait);
-        std::filesystem::path p(path);
-        auto dialog = std::make_unique<horizon::files::RenameDialog>(p.filename().string());
-        dialog->when_accepted.connect(
-            [this, path, p](horizon::files::RenameEvent &ctx)
-            {
-                std::filesystem::path new_path = p.parent_path() / ctx.new_name;
-
-                if (std::filesystem::exists(new_path))
+        application()->add_timer(50, [this, path]() {
+            application()->set_override_cursor(CursorType::Wait);
+            std::filesystem::path p(path);
+            auto dialog = std::make_unique<horizon::files::RenameDialog>(p.filename().string());
+            dialog->when_accepted.connect(
+                [this, path, p](horizon::files::RenameEvent &ctx)
                 {
-                    application()->alert("Ya existe un archivo o carpeta con el nombre '" +
-                                             ctx.new_name + "' en esta ubicación.",
-                                         i18n().tr("arkfm.messages.rename_error"), MessageType::Error);
-                    return;
-                }
+                    std::filesystem::path new_path = p.parent_path() / ctx.new_name;
 
-                auto future = arkutils::FileOperations::rename(path, new_path.string());
-                std::thread(
-                    [this, f = std::move(future)]() mutable
+                    if (std::filesystem::exists(new_path))
                     {
-                        auto result = f.get();
-                        if (application())
+                        application()->alert("Ya existe un archivo o carpeta con el nombre '" +
+                                                 ctx.new_name + "' en esta ubicación.",
+                                             i18n().tr("arkfm.messages.rename_error"), MessageType::Error);
+                        return;
+                    }
+
+                    auto future = arkutils::FileOperations::rename(path, new_path.string());
+                    std::thread(
+                        [this, f = std::move(future)]() mutable
                         {
-                            application()->post_task(
-                                [this, result]()
-                                {
-                                    if (result == arkutils::FileOperations::Result::Success)
+                            auto result = f.get();
+                            if (application())
+                            {
+                                application()->post_task(
+                                    [this, result]()
                                     {
-                                        show_status_message(i18n().tr("arkfm.messages.rename_success"));
-                                        if (m_view_ptr)
-                                            m_view_ptr->refresh();
-                                    }
-                                    else
-                                    {
-                                        application()->alert(
-                                            "No se pudo renombrar el archivo o carpeta.", "Error",
-                                            MessageType::Error);
-                                    }
-                                });
-                        }
-                    })
-                    .detach();
-            });
-        dialog->run();
-        application()->clear_override_cursor();
+                                        if (result == arkutils::FileOperations::Result::Success)
+                                        {
+                                            show_status_message(i18n().tr("arkfm.messages.rename_success"));
+                                            if (m_view_ptr)
+                                                m_view_ptr->refresh();
+                                        }
+                                        else
+                                        {
+                                            application()->alert(
+                                                "No se pudo renombrar el archivo o carpeta.", "Error",
+                                                MessageType::Error);
+                                        }
+                                    });
+                            }
+                        })
+                        .detach();
+                });
+            dialog->run();
+            application()->clear_override_cursor();
+        }, false);
     }
 
     void ArkfmWindow::handle_delete(const std::vector<std::string> &paths)
@@ -981,14 +983,14 @@ namespace horizon::arkfm
             f = sel[0];
         }
 
-        application()->post_task(
+        application()->add_timer(50,
             [this, f]()
             {
                 application()->set_override_cursor(CursorType::Wait);
                 auto dialog = std::make_unique<horizon::files::PropertiesDialog>(f);
                 dialog->run();
                 application()->clear_override_cursor();
-            });
+            }, false);
     }
 
     void ArkfmWindow::show_status_message(const std::string &msg, int timeout_ms)
