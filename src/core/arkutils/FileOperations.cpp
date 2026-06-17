@@ -7,19 +7,26 @@ namespace fs = std::filesystem;
 
 namespace horizon::arkutils
 {
-    static uintmax_t calculate_total_size(const fs::path &path)
+    static uintmax_t calculate_total_size(const fs::path &path, const fs::path &exclude_path)
     {
         try
         {
-            if (fs::is_regular_file(path))
+            if (!fs::exists(path)) return 0;
+            if (!fs::is_directory(path))
                 return fs::file_size(path);
             uintmax_t size = 0;
             if (fs::is_directory(path))
             {
-                for (const auto &entry : fs::recursive_directory_iterator(path))
+                auto it = fs::recursive_directory_iterator(path);
+                for (; it != fs::recursive_directory_iterator(); ++it)
                 {
-                    if (fs::is_regular_file(entry))
-                        size += fs::file_size(entry);
+                    if (it->path() == exclude_path)
+                    {
+                        it.disable_recursion_pending();
+                        continue;
+                    }
+                    if (fs::is_regular_file(it->status()))
+                        size += fs::file_size(it->path());
                 }
             }
             return size;
@@ -30,7 +37,7 @@ namespace horizon::arkutils
         }
     }
 
-    static void copy_recursive(const fs::path &src, const fs::path &dest,
+    static void copy_recursive(const fs::path &src, const fs::path &dest, const fs::path &root_dest,
                                uintmax_t &current_size, uintmax_t total_size,
                                FileOperations::ProgressCallback on_progress)
     {
@@ -39,7 +46,8 @@ namespace horizon::arkutils
             fs::create_directories(dest);
             for (const auto &entry : fs::directory_iterator(src))
             {
-                copy_recursive(entry.path(), dest / entry.path().filename(), current_size,
+                if (entry.path() == root_dest) continue;
+                copy_recursive(entry.path(), dest / entry.path().filename(), root_dest, current_size,
                                total_size, on_progress);
             }
         }
@@ -83,10 +91,10 @@ namespace horizon::arkutils
                                       d /= s.filename();
                                   }
 
-                                  uintmax_t total_size = calculate_total_size(s);
+                                  uintmax_t total_size = calculate_total_size(s, d);
                                   uintmax_t current_size = 0;
 
-                                  copy_recursive(s, d, current_size, total_size, on_progress);
+                                  copy_recursive(s, d, d, current_size, total_size, on_progress);
 
                                   if (on_progress)
                                       on_progress(1.0);

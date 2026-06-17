@@ -350,7 +350,7 @@ namespace horizon::files
             std::filesystem::path dst_dir(m_current_path);
             std::filesystem::path dst = dst_dir / src.filename();
 
-            if (src == dst_dir || dst_dir.string().find(src.string() + "/") == 0) continue;
+            if (m_is_cut && (src == dst_dir || dst_dir.string().find(src.string() + "/") == 0)) continue;
             
             if (std::filesystem::exists(dst)) {
                 if (src == dst && m_is_cut) continue;
