@@ -1,5 +1,6 @@
 #include "ImageViewerWindow.hpp"
 #include "ImageViewerToolbar.hpp"
+#include "CroppableImageWidget.hpp"
 #include <horizon/Toolbar.hpp>
 #include <horizon/I18n.hpp>
 #include <horizon/dialogs/FileDialog.hpp>
@@ -24,7 +25,7 @@ ImageViewerTabContent::ImageViewerTabContent(const std::string& path) {
     m_scroll_area = scroll.get();
     m_scroll_area->set_position_type(FILL);
     
-    auto widget = std::make_unique<ImageWidget>();
+    auto widget = std::make_unique<CroppableImageWidget>();
     m_image_widget = widget.get();
     
     m_scroll_area->set_content(std::move(widget));
@@ -168,6 +169,22 @@ void ImageViewerWindow::setup_toolbar() {
         this->on_open_clicked();
     });
 
+    m_toolbar_widget->when_save_clicked.connect([this](EventContext&) {
+        this->on_save_clicked();
+    });
+
+    m_toolbar_widget->when_undo_clicked.connect([this](EventContext&) {
+        this->on_undo_clicked();
+    });
+
+    m_toolbar_widget->when_redo_clicked.connect([this](EventContext&) {
+        this->on_redo_clicked();
+    });
+
+    m_toolbar_widget->when_crop_clicked.connect([this](EventContext&) {
+        this->on_crop_clicked();
+    });
+
     m_toolbar_widget->when_navigation_clicked.connect([this](GroupButtonClickEvent& ev) {
         this->on_navigation_clicked(ev.button_index);
     });
@@ -257,6 +274,32 @@ void ImageViewerWindow::on_extra_clicked(int button_index) {
         if (application()) application()->signal_manager.emit("fullscreen");
     } else if (button_index == 1) { // Settings
         if (application()) application()->show_preferences();
+    }
+}
+
+void ImageViewerWindow::on_crop_clicked() {
+    auto* content = current_content();
+    if (!content) return;
+    auto* img = content->image_widget();
+    if (img) img->toggle_crop_mode();
+}
+
+void ImageViewerWindow::on_save_clicked() {
+    auto* content = current_content();
+    if (!content) return;
+    auto* img = content->image_widget();
+    if (img) img->save_image();
+}
+
+void ImageViewerWindow::on_undo_clicked() {
+    if (application()) {
+        application()->signal_manager.emit("undo");
+    }
+}
+
+void ImageViewerWindow::on_redo_clicked() {
+    if (application()) {
+        application()->signal_manager.emit("redo");
     }
 }
 

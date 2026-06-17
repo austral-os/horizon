@@ -14,6 +14,8 @@ namespace image {
 
 class ImageViewerToolbar;
 
+class CroppableImageWidget;
+
 /**
  * @class ImageViewerTabContent
  * @brief Represents the content of a single tab in the image viewer.
@@ -25,7 +27,7 @@ public:
     void open_file(const std::string& path);
     void navigate(int direction);
     
-    ImageWidget* image_widget() const { return m_image_widget; }
+    CroppableImageWidget* image_widget() const { return m_image_widget; }
     const std::string& current_path() const { return m_current_path; }
 
 private:
@@ -35,7 +37,7 @@ private:
     std::vector<std::string> m_directory_files;
     int m_current_index{-1};
     
-    ImageWidget* m_image_widget{nullptr};
+    CroppableImageWidget* m_image_widget{nullptr};
     ScrollArea* m_scroll_area{nullptr};
 };
 
@@ -63,6 +65,10 @@ private:
     void on_zoom_clicked(int button_index);
     void on_transform_clicked(int button_index);
     void on_extra_clicked(int button_index);
+    void on_crop_clicked();
+    void on_save_clicked();
+    void on_undo_clicked();
+    void on_redo_clicked();
 
     TabCollection* m_tabs{nullptr};
     ImageViewerToolbar* m_toolbar_widget{nullptr};

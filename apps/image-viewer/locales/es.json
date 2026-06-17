@@ -14,6 +14,9 @@
     },
     "toolbar": {
         "open": "Abrir archivo",
+        "save": "Guardar imagen",
+        "undo": "Deshacer",
+        "redo": "Rehacer",
         "previous": "Imagen anterior",
         "next": "Imagen siguiente",
         "zoom_in": "Acercar",
@@ -22,6 +25,7 @@
         "zoom_original": "Tamaño original (1:1)",
         "rotate_left": "Girar a la izquierda",
         "rotate_right": "Girar a la derecha",
+        "crop": "Recortar imagen",
         "fullscreen": "Pantalla completa",
         "settings": "Preferencias"
     }

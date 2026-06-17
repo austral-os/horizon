@@ -38,13 +38,19 @@ namespace horizon
 
             // 1. Abrir (Izquierda)
             auto open_group = std::make_unique<horizon::GroupButton>();
-            open_group->set_fixed_size(44);
+            open_group->set_fixed_size(164);
             open_group->add_item(create_icon("document-open", "toolbar.open"));
+            open_group->add_item(create_icon("document-save", "toolbar.save"));
+            open_group->add_item(create_icon("edit-undo", "toolbar.undo"));
+            open_group->add_item(create_icon("edit-redo", "toolbar.redo"));
             open_group->when_button_clicked.connect(
-                [this](horizon::GroupButtonClickEvent &)
+                [this](horizon::GroupButtonClickEvent &ev)
                 {
                     horizon::EventContext ctx;
-                    this->when_open_clicked.run(ctx);
+                    if (ev.button_index == 0) this->when_open_clicked.run(ctx);
+                    else if (ev.button_index == 1) this->when_save_clicked.run(ctx);
+                    else if (ev.button_index == 2) this->when_undo_clicked.run(ctx);
+                    else if (ev.button_index == 3) this->when_redo_clicked.run(ctx);
                 });
             add_child(std::move(open_group));
 
@@ -72,11 +78,18 @@ namespace horizon
 
             // 4. Transformación (Centrado)
             auto trans_group = std::make_unique<horizon::GroupButton>();
-            trans_group->set_fixed_size(84); // 2 botones
+            trans_group->set_fixed_size(124); // 3 botones
             trans_group->add_item(create_icon("object-rotate-left", "toolbar.rotate_left"));
             trans_group->add_item(create_icon("object-rotate-right", "toolbar.rotate_right"));
+            trans_group->add_item(create_icon("image-crop", "toolbar.crop"));
             trans_group->when_button_clicked.connect([this](horizon::GroupButtonClickEvent &ev)
-                                                     { this->when_transform_clicked.run(ev); });
+                                                     {
+                                                         if (ev.button_index < 2) this->when_transform_clicked.run(ev);
+                                                         else {
+                                                             horizon::EventContext ctx;
+                                                             this->when_crop_clicked.run(ctx);
+                                                         }
+                                                     });
             add_child(std::move(trans_group));
 
             add_child(horizon::Spacer());

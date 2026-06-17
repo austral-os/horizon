@@ -14,6 +14,9 @@
     },
     "toolbar": {
         "open": "Open file",
+        "save": "Save image",
+        "undo": "Undo",
+        "redo": "Redo",
         "previous": "Previous image",
         "next": "Next image",
         "zoom_in": "Zoom In",
@@ -22,6 +25,7 @@
         "zoom_original": "Original size (1:1)",
         "rotate_left": "Rotate left",
         "rotate_right": "Rotate right",
+        "crop": "Crop image",
         "fullscreen": "Fullscreen",
         "settings": "Preferences"
     }
