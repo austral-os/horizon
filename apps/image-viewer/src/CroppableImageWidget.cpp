@@ -31,6 +31,10 @@ CroppableImageWidget::CroppableImageWidget() {
         else if (check_handle(m_crop_x + m_crop_w, m_crop_y)) m_dragging_handle = 1;
         else if (check_handle(m_crop_x + m_crop_w, m_crop_y + m_crop_h)) m_dragging_handle = 2;
         else if (check_handle(m_crop_x, m_crop_y + m_crop_h)) m_dragging_handle = 3;
+        else if (check_handle(m_crop_x + m_crop_w / 2, m_crop_y)) m_dragging_handle = 5; // top-center
+        else if (check_handle(m_crop_x + m_crop_w, m_crop_y + m_crop_h / 2)) m_dragging_handle = 6; // right-center
+        else if (check_handle(m_crop_x + m_crop_w / 2, m_crop_y + m_crop_h)) m_dragging_handle = 7; // bottom-center
+        else if (check_handle(m_crop_x, m_crop_y + m_crop_h / 2)) m_dragging_handle = 8; // left-center
         else if (ix >= m_crop_x && ix <= m_crop_x + m_crop_w && iy >= m_crop_y && iy <= m_crop_y + m_crop_h) m_dragging_handle = 4;
         else {
             // New crop rect
@@ -76,6 +80,16 @@ CroppableImageWidget::CroppableImageWidget() {
             m_crop_x = m_crop_start_x + dx;
             m_crop_w = m_crop_start_w - dx;
             m_crop_h = m_crop_start_h + dy;
+        } else if (m_dragging_handle == 5) { // top-center
+            m_crop_y = m_crop_start_y + dy;
+            m_crop_h = m_crop_start_h - dy;
+        } else if (m_dragging_handle == 6) { // right-center
+            m_crop_w = m_crop_start_w + dx;
+        } else if (m_dragging_handle == 7) { // bottom-center
+            m_crop_h = m_crop_start_h + dy;
+        } else if (m_dragging_handle == 8) { // left-center
+            m_crop_x = m_crop_start_x + dx;
+            m_crop_w = m_crop_start_w - dx;
         } else if (m_dragging_handle == 4) { // center
             m_crop_x = m_crop_start_x + dx;
             m_crop_y = m_crop_start_y + dy;
@@ -348,6 +362,18 @@ void CroppableImageWidget::draw(GraphicsContext& ctx) {
         // Right
         ctx.fillRect(cx + m_crop_w, cy, image_width() - (m_crop_x + m_crop_w), m_crop_h);
         
+        // Draw guides when dragging to clarify the crop area
+        if (m_dragging_handle != -1 && m_dragging_handle != 4) {
+            ctx.setColor(1.0f, 1.0f, 1.0f, 0.4f); // Semi-transparent white
+            float guide_w = 1.0f / zoom();
+            // Horizontal guides extending across the full image
+            ctx.fillRect(-iw2, cy, image_width(), guide_w);
+            ctx.fillRect(-iw2, cy + m_crop_h, image_width(), guide_w);
+            // Vertical guides extending across the full image
+            ctx.fillRect(cx, -ih2, guide_w, image_height());
+            ctx.fillRect(cx + m_crop_w, -ih2, guide_w, image_height());
+        }
+        
         // Draw crop rect border
         ctx.setColor(1.0f, 1.0f, 1.0f, 1.0f);
         float line_w = 2.0f / zoom();
@@ -356,10 +382,17 @@ void CroppableImageWidget::draw(GraphicsContext& ctx) {
         // Draw handles
         float hw = 10.0f / zoom();
         ctx.setColor(1.0f, 1.0f, 1.0f, 1.0f);
+        // Corners
         ctx.fillRect(cx - hw/2, cy - hw/2, hw, hw);
         ctx.fillRect(cx + m_crop_w - hw/2, cy - hw/2, hw, hw);
         ctx.fillRect(cx + m_crop_w - hw/2, cy + m_crop_h - hw/2, hw, hw);
         ctx.fillRect(cx - hw/2, cy + m_crop_h - hw/2, hw, hw);
+        
+        // Edges
+        ctx.fillRect(cx + m_crop_w/2 - hw/2, cy - hw/2, hw, hw); // top-center
+        ctx.fillRect(cx + m_crop_w - hw/2, cy + m_crop_h/2 - hw/2, hw, hw); // right-center
+        ctx.fillRect(cx + m_crop_w/2 - hw/2, cy + m_crop_h - hw/2, hw, hw); // bottom-center
+        ctx.fillRect(cx - hw/2, cy + m_crop_h/2 - hw/2, hw, hw); // left-center
         
         ctx.restore();
     }
