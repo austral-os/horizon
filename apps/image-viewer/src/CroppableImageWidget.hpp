@@ -21,6 +21,12 @@ public:
     bool supports_undo() const override { return true; }
     // By convention, supporting undo often implies supporting redo, but let's make sure.
 
+    EventsManager<EventContext> when_operation_started;
+    EventsManager<EventContext> when_operation_finished;
+    EventsManager<EventContext> when_crop_mode_changed;
+
+    bool is_cropping() const { return m_is_cropping; }
+
 protected:
     void draw(GraphicsContext& ctx) override;
 

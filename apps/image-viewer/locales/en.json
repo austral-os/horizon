@@ -28,5 +28,8 @@
         "crop": "Crop image",
         "fullscreen": "Fullscreen",
         "settings": "Preferences"
+    },
+    "statusbar": {
+        "crop_mode": "Press ENTER to apply crop or ESC to cancel"
     }
 }

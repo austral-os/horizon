@@ -10,6 +10,11 @@
 #include <memory>
 
 namespace horizon {
+    class Label;
+    class ProgressBar;
+}
+
+namespace horizon {
 namespace image {
 
 class ImageViewerToolbar;
@@ -72,6 +77,8 @@ private:
 
     TabCollection* m_tabs{nullptr};
     ImageViewerToolbar* m_toolbar_widget{nullptr};
+    horizon::Label* m_status_label{nullptr};
+    horizon::ProgressBar* m_progress_bar{nullptr};
 };
 
 } // namespace image

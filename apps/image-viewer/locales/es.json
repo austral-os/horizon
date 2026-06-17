@@ -28,5 +28,8 @@
         "crop": "Recortar imagen",
         "fullscreen": "Pantalla completa",
         "settings": "Preferencias"
+    },
+    "statusbar": {
+        "crop_mode": "Presionar ENTER para cortar o ESC para cancelar"
     }
 }

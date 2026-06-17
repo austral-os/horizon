@@ -1,6 +1,10 @@
 #include "ImageViewerWindow.hpp"
 #include "ImageViewerToolbar.hpp"
 #include "CroppableImageWidget.hpp"
+#include <horizon/Statusbar.hpp>
+#include <horizon/Label.hpp>
+#include <horizon/ProgressBar.hpp>
+#include <horizon/Spacer.hpp>
 #include <horizon/Toolbar.hpp>
 #include <horizon/I18n.hpp>
 #include <horizon/dialogs/FileDialog.hpp>
@@ -95,6 +99,32 @@ ImageViewerWindow::ImageViewerWindow() : ApplicationWindow(i18n().tr("app.title"
     set_size(1024, 768);
     setup_ui();
     setup_toolbar();
+
+    show_status_bar();
+    auto *sb = statusbar();
+    
+    auto lbl = std::make_unique<horizon::Label>("");
+    m_status_label = lbl.get();
+
+    auto pbc = std::make_unique<horizon::Widget>();
+    auto pb = std::make_unique<horizon::ProgressBar>();
+
+    m_progress_bar = pb.get();
+    m_progress_bar->set_visible(false);
+    m_progress_bar->set_fixed_size(100);
+    m_progress_bar->set_indeterminate(true);
+
+    pbc->set_layout_type(WidgetLayoutTypes::WIDGET_LAYOUT_VERTICAL);
+    pbc->set_fixed_size(200);
+
+    pbc->add_child(horizon::Spacer());
+    pbc->add_child(std::move(pb));
+    pbc->add_child(horizon::Spacer());
+
+    sb->add_child(horizon::Spacer(10));
+    sb->add_child(std::move(lbl));
+    sb->add_child(std::move(pbc));
+    sb->add_child(horizon::Spacer(10));
 
     // Conectar eventos estándar de archivos
     when_file_opened.connect([this](Window::FileOpenedContext& ctx) {
@@ -211,6 +241,38 @@ ImageViewerTabContent* ImageViewerWindow::current_content() const {
 
 void ImageViewerWindow::open_file(const std::string& path) {
     auto content = std::make_unique<ImageViewerTabContent>(path);
+    auto* img = content->image_widget();
+    
+    img->when_load_started.connect([this](EventContext&) {
+        if (m_progress_bar) m_progress_bar->set_visible(true);
+        if (m_status_label) m_status_label->set_text(i18n().tr("dialog.open_image"));
+    });
+
+    img->when_load_finished.connect([this](EventContext&) {
+        if (m_progress_bar) m_progress_bar->set_visible(false);
+        if (m_status_label) m_status_label->set_text("");
+    });
+
+    auto* croppable = dynamic_cast<CroppableImageWidget*>(img);
+    if (croppable) {
+        croppable->when_operation_started.connect([this](EventContext&) {
+            if (m_progress_bar) m_progress_bar->set_visible(true);
+            if (m_status_label) m_status_label->set_text("Procesando imagen...");
+        });
+        croppable->when_operation_finished.connect([this](EventContext&) {
+            if (m_progress_bar) m_progress_bar->set_visible(false);
+            if (m_status_label) m_status_label->set_text("");
+        });
+        croppable->when_crop_mode_changed.connect([this, croppable](EventContext&) {
+            if (m_status_label) {
+                if (croppable->is_cropping()) {
+                    m_status_label->set_text(i18n().tr("statusbar.crop_mode"));
+                } else {
+                    m_status_label->set_text("");
+                }
+            }
+        });
+    }
     
     fs::path p(path);
     std::string title = p.filename().string();

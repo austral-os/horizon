@@ -140,6 +140,8 @@ void CroppableImageWidget::toggle_crop_mode() {
         reset_crop_rect();
     }
     invalidate();
+    EventContext ev;
+    when_crop_mode_changed.run(ev);
 }
 
 void CroppableImageWidget::reset_crop_rect() {
@@ -165,28 +167,44 @@ void CroppableImageWidget::apply_crop() {
         std::to_string((int)m_crop_x) + "+" + std::to_string((int)m_crop_y) + 
         " +repage \"" + temp_path + "\"";
         
-    int ret = std::system(cmd.c_str());
-    if (ret == 0) {
-        m_history.push_back(current_p);
-        
-        // Clear redo history when a new action is performed
-        for (const auto& p : m_redo_history) {
-            if (p != m_original_path && std::filesystem::exists(p)) {
-                std::filesystem::remove(p);
-            }
+    EventContext ev;
+    when_operation_started.run(ev);
+    
+    auto app = application();
+    std::thread([this, app, current_p, temp_path, cmd]() {
+        int ret = std::system(cmd.c_str());
+        if (app) {
+            app->post_task([this, ret, current_p, temp_path]() {
+                if (ret == 0) {
+                    m_history.push_back(current_p);
+                    
+                    // Clear redo history when a new action is performed
+                    for (const auto& p : m_redo_history) {
+                        if (p != m_original_path && std::filesystem::exists(p)) {
+                            std::filesystem::remove(p);
+                        }
+                    }
+                    m_redo_history.clear();
+                    
+                    m_current_temp_path = temp_path;
+                    
+                    m_is_cropping = false;
+                    
+                    // Reload image from temp path
+                    set_path(""); // force reload
+                    set_path(m_current_temp_path);
+                    
+                    EventContext ev_crop;
+                    this->when_crop_mode_changed.run(ev_crop);
+                } else {
+                    LOG_ERROR << "Failed to apply crop via ImageMagick";
+                }
+                
+                EventContext ev_end;
+                this->when_operation_finished.run(ev_end);
+            });
         }
-        m_redo_history.clear();
-        
-        m_current_temp_path = temp_path;
-        
-        m_is_cropping = false;
-        
-        // Reload image from temp path
-        set_path(""); // force reload
-        set_path(m_current_temp_path);
-    } else {
-        LOG_ERROR << "Failed to apply crop via ImageMagick";
-    }
+    }).detach();
 }
 
 void CroppableImageWidget::undo_crop() {
@@ -240,29 +258,47 @@ void CroppableImageWidget::redo_crop() {
 void CroppableImageWidget::save_image() {
     if (m_current_temp_path.empty() || m_original_path.empty()) return;
     
-    std::error_code ec;
-    std::filesystem::copy_file(m_current_temp_path, m_original_path, std::filesystem::copy_options::overwrite_existing, ec);
+    EventContext ev;
+    when_operation_started.run(ev);
     
-    if (!ec) {
-        // Now original is updated. We can remove temp path.
-        std::filesystem::remove(m_current_temp_path);
-        m_current_temp_path.clear();
-        m_history.clear(); // Clear history after save
-        for (const auto& p : m_redo_history) {
-            if (p != m_original_path && std::filesystem::exists(p)) {
-                std::filesystem::remove(p);
-            }
+    auto app = application();
+    std::string src = m_current_temp_path;
+    std::string dst = m_original_path;
+    
+    std::thread([this, app, src, dst]() {
+        std::error_code ec;
+        std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
+        
+        if (app) {
+            app->post_task([this, ec]() {
+                if (!ec) {
+                    // Now original is updated. We can remove temp path.
+                    std::filesystem::remove(m_current_temp_path);
+                    m_current_temp_path.clear();
+                    m_history.clear(); // Clear history after save
+                    for (const auto& p : m_redo_history) {
+                        if (p != m_original_path && std::filesystem::exists(p)) {
+                            std::filesystem::remove(p);
+                        }
+                    }
+                    m_redo_history.clear(); // Clear redo history after save
+                    set_path(m_original_path);
+                } else {
+                    LOG_ERROR << "Failed to save cropped image: " << ec.message();
+                }
+                
+                EventContext ev_end;
+                this->when_operation_finished.run(ev_end);
+            });
         }
-        m_redo_history.clear(); // Clear redo history after save
-        set_path(m_original_path);
-    } else {
-        LOG_ERROR << "Failed to save cropped image: " << ec.message();
-    }
+    }).detach();
 }
 
 void CroppableImageWidget::cancel_crop() {
     m_is_cropping = false;
     invalidate();
+    EventContext ev;
+    when_crop_mode_changed.run(ev);
 }
 
 void CroppableImageWidget::screen_to_image(float sx, float sy, float& ix, float& iy) {

@@ -6,6 +6,7 @@
 #include <horizon/Menu.hpp>
 #include <horizon/I18n.hpp>
 #include <horizon/EventsManager.hpp>
+#include <thread>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -57,8 +58,6 @@ void ImageWidget::set_path(const std::string& path) {
     if (m_path == path) return;
     m_path = path;
     load_driver();
-    update_size();
-    invalidate();
 }
 
 void ImageWidget::set_zoom(float zoom) {
@@ -127,8 +126,6 @@ void ImageWidget::set_application_recursive(WaylandWindow* app) {
     Widget::set_application_recursive(app);
     if (app && !m_driver && !m_path.empty()) {
         load_driver();
-        update_size();
-        invalidate();
     }
 }
 
@@ -137,14 +134,33 @@ void ImageWidget::load_driver() {
     auto app = application();
     if (!app) return;
     
-    // Use a dummy graphics context if necessary or get it from application
-    // Actually, GraphicsContext is needed to create the driver (factory pattern)
-    // We can use the window's context
     auto* win = dynamic_cast<WaylandWindow*>(app);
     if (!win) return;
     
     auto& ctx = win->get_graphics_context();
-    m_driver = ctx.createImageDriver(m_path);
+    
+    m_load_id++;
+    int current_load = m_load_id;
+    std::string path_to_load = m_path;
+    
+    EventContext ev;
+    when_load_started.run(ev);
+    
+    std::thread([this, app, &ctx, path_to_load, current_load]() {
+        auto driver = ctx.createImageDriver(path_to_load);
+        auto* raw_driver = driver.release();
+        
+        app->post_task([this, current_load, raw_driver]() mutable {
+            std::unique_ptr<ImageDriver> d(raw_driver);
+            if (this->m_load_id == current_load) {
+                this->m_driver = std::move(d);
+                this->update_size();
+                this->invalidate();
+                EventContext ev_finish;
+                this->when_load_finished.run(ev_finish);
+            }
+        });
+    }).detach();
 }
 
 void ImageWidget::update_size() {

@@ -37,6 +37,9 @@ public:
 
     void set_application_recursive(WaylandWindow* app) override;
 
+    EventsManager<EventContext> when_load_started;
+    EventsManager<EventContext> when_load_finished;
+
 protected:
     void draw(GraphicsContext& ctx) override;
 
@@ -45,6 +48,7 @@ private:
     std::unique_ptr<ImageDriver> m_driver;
     float m_zoom{1.0f};
     float m_rotation{0.0f};
+    int m_load_id{0};
     
     void load_driver();
     void update_size();
