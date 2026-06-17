@@ -58,6 +58,72 @@ struct DownloadTask::Impl {
             parent->m_progress.total_bytes = std::stoull(length_str);
         }
 
+        // Extract real filename from Content-Disposition or final URI
+        std::string new_filename;
+        const char* content_disposition = soup_message_headers_get_one(response_headers, "Content-Disposition");
+        if (content_disposition) {
+            std::string cd(content_disposition);
+            size_t pos = cd.find("filename=");
+            if (pos != std::string::npos) {
+                new_filename = cd.substr(pos + 9);
+                if (!new_filename.empty() && new_filename[0] == '"') {
+                    new_filename = new_filename.substr(1);
+                    size_t quote_pos = new_filename.find('"');
+                    if (quote_pos != std::string::npos) {
+                        new_filename = new_filename.substr(0, quote_pos);
+                    }
+                } else if (!new_filename.empty()) {
+                    size_t semicolon = new_filename.find(';');
+                    if (semicolon != std::string::npos) {
+                        new_filename = new_filename.substr(0, semicolon);
+                    }
+                }
+            }
+        }
+        
+        if (new_filename.empty()) {
+            GUri* final_uri = soup_message_get_uri(message);
+            if (final_uri) {
+                const char* path = g_uri_get_path(final_uri);
+                if (path) {
+                    std::string path_str = path;
+                    size_t slash = path_str.find_last_of('/');
+                    if (slash != std::string::npos) {
+                        new_filename = path_str.substr(slash + 1);
+                    } else {
+                        new_filename = path_str;
+                    }
+                }
+            }
+        }
+        
+        if (!new_filename.empty() && new_filename != parent->filename() && new_filename != "download" && new_filename != "/") {
+            std::filesystem::path old_path = parent->m_destination;
+            std::filesystem::path new_path = old_path.parent_path() / new_filename;
+            
+            if (std::filesystem::exists(new_path) && new_path != old_path) {
+                std::string stem = new_path.stem().string();
+                std::string extension = new_path.extension().string();
+                std::filesystem::path parent_dir = new_path.parent_path();
+                int counter = 2;
+                while (true) {
+                    std::filesystem::path candidate = parent_dir / (stem + "-" + std::to_string(counter) + extension);
+                    if (!std::filesystem::exists(candidate)) {
+                        new_path = candidate;
+                        break;
+                    }
+                    counter++;
+                }
+            }
+            
+            if (new_path != old_path) {
+                file_stream.close();
+                std::filesystem::rename(old_path, new_path);
+                parent->m_destination = new_path.string();
+                file_stream.open(parent->m_destination, std::ios::binary | std::ios::out | std::ios::app);
+            }
+        }
+
         auto start_time = std::chrono::steady_clock::now();
         uint8_t buffer[16384];
         

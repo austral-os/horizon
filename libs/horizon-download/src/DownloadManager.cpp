@@ -33,8 +33,14 @@ DownloadManager::~DownloadManager() {
 std::shared_ptr<DownloadTask> DownloadManager::add_download(const std::string& url, const std::string& destination) {
     std::string final_dest = destination;
     if (final_dest.empty()) {
-        std::string filename = std::filesystem::path(url).filename().string();
-        if (filename.empty() || filename.find('?') != std::string::npos) {
+        std::string url_path = url;
+        size_t query_pos = url_path.find_first_of("?#");
+        if (query_pos != std::string::npos) {
+            url_path = url_path.substr(0, query_pos);
+        }
+        
+        std::string filename = std::filesystem::path(url_path).filename().string();
+        if (filename.empty()) {
             filename = "download";
         }
         final_dest = m_default_dir + "/" + filename;
