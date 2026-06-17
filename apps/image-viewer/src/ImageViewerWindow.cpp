@@ -111,7 +111,7 @@ ImageViewerWindow::ImageViewerWindow() : ApplicationWindow(i18n().tr("app.title"
 
     m_progress_bar = pb.get();
     m_progress_bar->set_visible(false);
-    m_progress_bar->set_fixed_size(100);
+    m_progress_bar->set_fixed_size(10);
     m_progress_bar->set_indeterminate(true);
 
     pbc->set_layout_type(WidgetLayoutTypes::WIDGET_LAYOUT_VERTICAL);
