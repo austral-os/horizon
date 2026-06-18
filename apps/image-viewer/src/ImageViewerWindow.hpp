@@ -58,6 +58,8 @@ public:
     void open_file(const std::string& path);
     uint32_t file_capabilities() const override { return FileOpen | FileClose | FileSave | FileSaveAs; }
     std::string current_file_path() const override;
+    
+    bool supports_undo() const override { return true; }
 
 private:
     void setup_ui();

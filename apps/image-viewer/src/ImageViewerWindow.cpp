@@ -152,6 +152,20 @@ ImageViewerWindow::ImageViewerWindow() : ApplicationWindow(i18n().tr("app.title"
         }
     });
 
+    when_undo.connect([this](EventContext&) {
+        auto* content = current_content();
+        if (content && content->image_widget()) {
+            content->image_widget()->undo_crop();
+        }
+    });
+
+    when_redo.connect([this](EventContext&) {
+        auto* content = current_content();
+        if (content && content->image_widget()) {
+            content->image_widget()->redo_crop();
+        }
+    });
+
     set_accept_drops(true);
     when_drop.connect([this](DropEventContext &ctx) {
         auto data = ctx.get_data("text/uri-list");
