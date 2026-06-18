@@ -749,66 +749,69 @@ namespace horizon::arkfm
     {
         if (m_is_deleting || paths.empty())
             return;
-        m_is_deleting = true;
 
-        application()->set_override_cursor(CursorType::Wait);
+        application()->add_timer(50, [this, paths]() {
+            m_is_deleting = true;
 
-        std::string prompt_msg;
-        if (paths.size() == 1)
-        {
-            std::string filename = std::filesystem::path(paths[0]).filename().string();
-            prompt_msg = i18n().tr("arkfm.messages.delete_prompt_single");
-            size_t pos = prompt_msg.find("%1");
-            if (pos != std::string::npos) prompt_msg.replace(pos, 2, filename);
-        }
-        else
-        {
-            prompt_msg = i18n().tr("arkfm.messages.delete_prompt_multiple");
-            size_t pos = prompt_msg.find("%1");
-            if (pos != std::string::npos) prompt_msg.replace(pos, 2, std::to_string(paths.size()));
-        }
+            application()->set_override_cursor(CursorType::Wait);
 
-        if (application()->confirm(prompt_msg, "Confirmar eliminación"))
-        {
-            show_status_message(i18n().tr("arkfm.messages.deleting"));
-            std::thread(
-                [this, paths]() mutable
-                {
-                    bool all_success = true;
-                    for (const auto &path : paths)
+            std::string prompt_msg;
+            if (paths.size() == 1)
+            {
+                std::string filename = std::filesystem::path(paths[0]).filename().string();
+                prompt_msg = i18n().tr("arkfm.messages.delete_prompt_single");
+                size_t pos = prompt_msg.find("%1");
+                if (pos != std::string::npos) prompt_msg.replace(pos, 2, filename);
+            }
+            else
+            {
+                prompt_msg = i18n().tr("arkfm.messages.delete_prompt_multiple");
+                size_t pos = prompt_msg.find("%1");
+                if (pos != std::string::npos) prompt_msg.replace(pos, 2, std::to_string(paths.size()));
+            }
+
+            if (application()->confirm(prompt_msg, "Confirmar eliminación"))
+            {
+                show_status_message(i18n().tr("arkfm.messages.deleting"));
+                std::thread(
+                    [this, paths]() mutable
                     {
-                        auto future = arkutils::FileOperations::remove(path);
-                        auto result = future.get();
-                        if (result != arkutils::FileOperations::Result::Success)
+                        bool all_success = true;
+                        for (const auto &path : paths)
                         {
-                            all_success = false;
-                        }
-                    }
-
-                    if (application())
-                    {
-                        application()->post_task(
-                            [this, all_success]()
+                            auto future = arkutils::FileOperations::remove(path);
+                            auto result = future.get();
+                            if (result != arkutils::FileOperations::Result::Success)
                             {
-                                if (all_success)
+                                all_success = false;
+                            }
+                        }
+
+                        if (application())
+                        {
+                            application()->post_task(
+                                [this, all_success]()
                                 {
-                                    show_status_message(i18n().tr("arkfm.messages.delete_success"));
-                                }
-                                else
-                                {
-                                    application()->alert(
-                                        i18n().tr("arkfm.messages.delete_error_multi"),
-                                        "Error", MessageType::Error);
-                                }
-                                if (m_view_ptr)
-                                    m_view_ptr->refresh();
-                            });
-                    }
-                })
-                .detach();
-        }
-        application()->clear_override_cursor();
-        m_is_deleting = false;
+                                    if (all_success)
+                                    {
+                                        show_status_message(i18n().tr("arkfm.messages.delete_success"));
+                                    }
+                                    else
+                                    {
+                                        application()->alert(
+                                            i18n().tr("arkfm.messages.delete_error_multi"),
+                                            "Error", MessageType::Error);
+                                    }
+                                    if (m_view_ptr)
+                                        m_view_ptr->refresh();
+                                });
+                        }
+                    })
+                    .detach();
+            }
+            application()->clear_override_cursor();
+            m_is_deleting = false;
+        }, false);
     }
 
     void ArkfmWindow::handle_trash(const std::vector<std::string> &paths)
@@ -917,44 +920,46 @@ namespace horizon::arkfm
         if (m_is_deleting)
             return;
 
-        if (application()->confirm(
-                "¿Está seguro que desea vaciar la papelera? Esta acción no se puede deshacer.",
-                "Confirmar vaciar papelera"))
-        {
-            m_is_deleting = true;
-            application()->set_override_cursor(CursorType::Wait);
+        application()->add_timer(50, [this]() {
+            if (application()->confirm(
+                    "¿Está seguro que desea vaciar la papelera? Esta acción no se puede deshacer.",
+                    "Confirmar vaciar papelera"))
+            {
+                m_is_deleting = true;
+                application()->set_override_cursor(CursorType::Wait);
 
-            show_status_message(i18n().tr("arkfm.messages.emptying_trash"));
-            std::thread(
-                [this]() mutable
-                {
-                    std::string cmd = "gio trash --empty";
-                    int result = system(cmd.c_str());
-
-                    if (application())
+                show_status_message(i18n().tr("arkfm.messages.emptying_trash"));
+                std::thread(
+                    [this]() mutable
                     {
-                        application()->post_task(
-                            [this, result]()
-                            {
-                                if (result == 0)
-                                {
-                                    show_status_message(i18n().tr("arkfm.messages.empty_trash_success"));
-                                }
-                                else
-                                {
-                                    application()->alert(i18n().tr("arkfm.messages.empty_trash_error"),
-                                                         "Error", MessageType::Error);
-                                }
-                                if (m_view_ptr)
-                                    m_view_ptr->refresh();
-                            });
-                    }
-                })
-                .detach();
+                        std::string cmd = "gio trash --empty";
+                        int result = system(cmd.c_str());
 
-            application()->clear_override_cursor();
-            m_is_deleting = false;
-        }
+                        if (application())
+                        {
+                            application()->post_task(
+                                [this, result]()
+                                {
+                                    if (result == 0)
+                                    {
+                                        show_status_message(i18n().tr("arkfm.messages.empty_trash_success"));
+                                    }
+                                    else
+                                    {
+                                        application()->alert(i18n().tr("arkfm.messages.empty_trash_error"),
+                                                             "Error", MessageType::Error);
+                                    }
+                                    if (m_view_ptr)
+                                        m_view_ptr->refresh();
+                                });
+                        }
+                    })
+                    .detach();
+
+                application()->clear_override_cursor();
+                m_is_deleting = false;
+            }
+        }, false);
     }
 
     void ArkfmWindow::handle_open()
@@ -1251,57 +1256,59 @@ namespace horizon::arkfm
 
     void ArkfmWindow::handle_extract(const std::string &path)
     {
-        std::string dest = m_view_ptr->current_path();
-        show_status_message(i18n().tr("arkfm.messages.extracting"));
+        application()->add_timer(50, [this, path]() {
+            std::string dest = m_view_ptr->current_path();
+            show_status_message(i18n().tr("arkfm.messages.extracting"));
 
-        auto task = compression::CompressionManager::extract_smart(path, dest);
-        m_active_tasks.push_back(task);
+            auto task = compression::CompressionManager::extract_smart(path, dest);
+            m_active_tasks.push_back(task);
 
-        task->when_progress.connect(
-            [this](compression::CompressionProgressEvent &ev)
-            {
-                if (m_progress_bar)
+            task->when_progress.connect(
+                [this](compression::CompressionProgressEvent &ev)
                 {
-                    m_progress_bar->set_visible(true);
-                    m_progress_bar->set_progress(static_cast<float>(ev.progress));
-                }
-                if (!ev.status_message.empty())
-                    show_status_message(ev.status_message);
-            });
-
-        task->when_finished.connect(
-            [this, path, task](compression::CompressionFinishedEvent &ev)
-            {
-                application()->post_task(
-                    [this, ev, path, task]()
+                    if (m_progress_bar)
                     {
-                        if (m_progress_bar)
-                            m_progress_bar->set_visible(false);
+                        m_progress_bar->set_visible(true);
+                        m_progress_bar->set_progress(static_cast<float>(ev.progress));
+                    }
+                    if (!ev.status_message.empty())
+                        show_status_message(ev.status_message);
+                });
 
-                        if (ev.success)
+            task->when_finished.connect(
+                [this, path, task](compression::CompressionFinishedEvent &ev)
+                {
+                    application()->post_task(
+                        [this, ev, path, task]()
                         {
-                            show_status_message(i18n().tr("arkfm.messages.extract_success"));
-                            NotificationSender::send("Extracción completada",
-                                                     "El archivo se ha extraído correctamente.",
-                                                     "package-x-generic");
-                            if (m_view_ptr)
-                                m_view_ptr->refresh();
-                        }
-                        else
-                        {
-                            show_status_message(i18n().tr("arkfm.messages.extract_error"));
-                            application()->alert(i18n().tr("arkfm.messages.extract_error") + ": " + ev.error_message,
-                                                 "Error", MessageType::Error);
-                        }
+                            if (m_progress_bar)
+                                m_progress_bar->set_visible(false);
 
-                        // Remove from active tasks
-                        auto it = std::find(m_active_tasks.begin(), m_active_tasks.end(), task);
-                        if (it != m_active_tasks.end())
-                            m_active_tasks.erase(it);
-                    });
-            });
+                            if (ev.success)
+                            {
+                                show_status_message(i18n().tr("arkfm.messages.extract_success"));
+                                NotificationSender::send("Extracción completada",
+                                                         "El archivo se ha extraído correctamente.",
+                                                         "package-x-generic");
+                                if (m_view_ptr)
+                                    m_view_ptr->refresh();
+                            }
+                            else
+                            {
+                                show_status_message(i18n().tr("arkfm.messages.extract_error"));
+                                application()->alert(i18n().tr("arkfm.messages.extract_error") + ": " + ev.error_message,
+                                                     "Error", MessageType::Error);
+                            }
 
-        task->start();
+                            // Remove from active tasks
+                            auto it = std::find(m_active_tasks.begin(), m_active_tasks.end(), task);
+                            if (it != m_active_tasks.end())
+                                m_active_tasks.erase(it);
+                        });
+                });
+
+            task->start();
+        }, false);
     }
 
     void ArkfmWindow::handle_compress(const std::vector<std::string> &paths,
@@ -1310,81 +1317,83 @@ namespace horizon::arkfm
         if (paths.empty())
             return;
 
-        std::filesystem::path first(paths[0]);
-        std::string base_name;
-        std::string out_path;
+        application()->add_timer(50, [this, paths, format_ext]() {
+            std::filesystem::path first(paths[0]);
+            std::string base_name;
+            std::string out_path;
 
-        if (paths.size() > 1)
-        {
-            base_name = first.parent_path().filename().string();
-            if (base_name.empty() || base_name == "/")
-                base_name = "Archive";
-        }
-        else
-        {
-            base_name = first.stem().string();
-        }
-
-        out_path = (first.parent_path() / (base_name + format_ext)).string();
-        int counter = 1;
-        while (std::filesystem::exists(out_path))
-        {
-            out_path =
-                (first.parent_path() / (base_name + "_" + std::to_string(counter) + format_ext))
-                    .string();
-            counter++;
-        }
-
-        show_status_message(i18n().tr("arkfm.messages.compressing"));
-
-        compression::ArchiveFormat fmt =
-            compression::CompressionManager::format_from_extension(format_ext);
-        auto task = compression::CompressionManager::compress(paths, out_path, fmt);
-        m_active_tasks.push_back(task);
-
-        task->when_progress.connect(
-            [this](compression::CompressionProgressEvent &ev)
+            if (paths.size() > 1)
             {
-                if (m_progress_bar)
+                base_name = first.parent_path().filename().string();
+                if (base_name.empty() || base_name == "/")
+                    base_name = "Archive";
+            }
+            else
+            {
+                base_name = first.stem().string();
+            }
+
+            out_path = (first.parent_path() / (base_name + format_ext)).string();
+            int counter = 1;
+            while (std::filesystem::exists(out_path))
+            {
+                out_path =
+                    (first.parent_path() / (base_name + "_" + std::to_string(counter) + format_ext))
+                        .string();
+                counter++;
+            }
+
+            show_status_message(i18n().tr("arkfm.messages.compressing"));
+
+            compression::ArchiveFormat fmt =
+                compression::CompressionManager::format_from_extension(format_ext);
+            auto task = compression::CompressionManager::compress(paths, out_path, fmt);
+            m_active_tasks.push_back(task);
+
+            task->when_progress.connect(
+                [this](compression::CompressionProgressEvent &ev)
                 {
-                    m_progress_bar->set_visible(true);
-                    m_progress_bar->set_progress(static_cast<float>(ev.progress));
-                }
-            });
-
-        task->when_finished.connect(
-            [this, out_path, task](compression::CompressionFinishedEvent &ev)
-            {
-                application()->post_task(
-                    [this, ev, out_path, task]()
+                    if (m_progress_bar)
                     {
-                        if (m_progress_bar)
-                            m_progress_bar->set_visible(false);
+                        m_progress_bar->set_visible(true);
+                        m_progress_bar->set_progress(static_cast<float>(ev.progress));
+                    }
+                });
 
-                        if (ev.success)
+            task->when_finished.connect(
+                [this, out_path, task](compression::CompressionFinishedEvent &ev)
+                {
+                    application()->post_task(
+                        [this, ev, out_path, task]()
                         {
-                            show_status_message(i18n().tr("arkfm.messages.compress_success"));
-                            NotificationSender::send("Compresión completada",
-                                                     "El archivo se ha creado correctamente.",
-                                                     "package-x-generic");
-                            if (m_view_ptr)
-                                m_view_ptr->refresh();
-                        }
-                        else
-                        {
-                            show_status_message(i18n().tr("arkfm.messages.compress_error"));
-                            application()->alert(i18n().tr("arkfm.messages.compress_error") + ": " + ev.error_message, "Error",
-                                                 MessageType::Error);
-                        }
+                            if (m_progress_bar)
+                                m_progress_bar->set_visible(false);
 
-                        // Remove from active tasks
-                        auto it = std::find(m_active_tasks.begin(), m_active_tasks.end(), task);
-                        if (it != m_active_tasks.end())
-                            m_active_tasks.erase(it);
-                    });
-            });
+                            if (ev.success)
+                            {
+                                show_status_message(i18n().tr("arkfm.messages.compress_success"));
+                                NotificationSender::send("Compresión completada",
+                                                         "El archivo se ha creado correctamente.",
+                                                         "package-x-generic");
+                                if (m_view_ptr)
+                                    m_view_ptr->refresh();
+                            }
+                            else
+                            {
+                                show_status_message(i18n().tr("arkfm.messages.compress_error"));
+                                application()->alert(i18n().tr("arkfm.messages.compress_error") + ": " + ev.error_message, "Error",
+                                                     MessageType::Error);
+                            }
 
-        task->start();
+                            // Remove from active tasks
+                            auto it = std::find(m_active_tasks.begin(), m_active_tasks.end(), task);
+                            if (it != m_active_tasks.end())
+                                m_active_tasks.erase(it);
+                        });
+                });
+
+            task->start();
+        }, false);
     }
 
 } // namespace horizon::arkfm
