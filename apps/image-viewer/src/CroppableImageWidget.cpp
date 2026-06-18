@@ -269,26 +269,36 @@ void CroppableImageWidget::redo_crop() {
     }
 }
 
-void CroppableImageWidget::save_image() {
-    if (m_current_temp_path.empty() || m_original_path.empty()) return;
+void CroppableImageWidget::save_to_path(const std::string& target_path) {
+    if (m_original_path.empty() && m_current_temp_path.empty()) {
+        if (!path().empty()) {
+            m_original_path = path();
+        } else {
+            return;
+        }
+    }
     
     EventContext ev;
     when_operation_started.run(ev);
     
     auto app = application();
-    std::string src = m_current_temp_path;
-    std::string dst = m_original_path;
+    std::string src = m_current_temp_path.empty() ? m_original_path : m_current_temp_path;
+    std::string dst = target_path;
     
     std::thread([this, app, src, dst]() {
         std::error_code ec;
-        std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
+        if (src != dst) {
+            std::filesystem::copy_file(src, dst, std::filesystem::copy_options::overwrite_existing, ec);
+        }
         
         if (app) {
-            app->post_task([this, ec]() {
+            app->post_task([this, ec, dst]() {
                 if (!ec) {
-                    // Now original is updated. We can remove temp path.
-                    std::filesystem::remove(m_current_temp_path);
-                    m_current_temp_path.clear();
+                    if (!m_current_temp_path.empty() && m_current_temp_path != dst) {
+                        std::filesystem::remove(m_current_temp_path);
+                        m_current_temp_path.clear();
+                    }
+                    m_original_path = dst;
                     m_history.clear(); // Clear history after save
                     for (const auto& p : m_redo_history) {
                         if (p != m_original_path && std::filesystem::exists(p)) {
@@ -298,7 +308,7 @@ void CroppableImageWidget::save_image() {
                     m_redo_history.clear(); // Clear redo history after save
                     set_path(m_original_path);
                 } else {
-                    LOG_ERROR << "Failed to save cropped image: " << ec.message();
+                    LOG_ERROR << "Failed to save image to path: " << ec.message();
                 }
                 
                 EventContext ev_end;
@@ -306,6 +316,11 @@ void CroppableImageWidget::save_image() {
             });
         }
     }).detach();
+}
+
+void CroppableImageWidget::save_image() {
+    if (m_original_path.empty()) return;
+    save_to_path(m_original_path);
 }
 
 void CroppableImageWidget::cancel_crop() {

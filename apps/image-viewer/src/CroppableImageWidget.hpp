@@ -14,6 +14,7 @@ public:
     void toggle_crop_mode();
     void apply_crop();
     void save_image();
+    void save_to_path(const std::string& target_path);
     void cancel_crop();
     void undo_crop();
     void redo_crop();

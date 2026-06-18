@@ -137,6 +137,21 @@ ImageViewerWindow::ImageViewerWindow() : ApplicationWindow(i18n().tr("app.title"
         }
     });
 
+    when_save.connect([this](Window::FileSaveContext& ctx) {
+        auto* content = current_content();
+        if (content && content->image_widget()) {
+            content->image_widget()->save_to_path(ctx.path);
+        }
+    });
+
+    when_save_as.connect([this](Window::FileSaveContext& ctx) {
+        auto* content = current_content();
+        if (content && content->image_widget()) {
+            content->image_widget()->save_to_path(ctx.path);
+            content->open_file(ctx.path);
+        }
+    });
+
     set_accept_drops(true);
     when_drop.connect([this](DropEventContext &ctx) {
         auto data = ctx.get_data("text/uri-list");
@@ -237,6 +252,14 @@ void ImageViewerWindow::setup_toolbar() {
 ImageViewerTabContent* ImageViewerWindow::current_content() const {
     if (!m_tabs) return nullptr;
     return dynamic_cast<ImageViewerTabContent*>(m_tabs->current_tab_body());
+}
+
+std::string ImageViewerWindow::current_file_path() const {
+    auto* content = current_content();
+    if (content) {
+        return content->current_path();
+    }
+    return "";
 }
 
 void ImageViewerWindow::open_file(const std::string& path) {
@@ -347,10 +370,9 @@ void ImageViewerWindow::on_crop_clicked() {
 }
 
 void ImageViewerWindow::on_save_clicked() {
-    auto* content = current_content();
-    if (!content) return;
-    auto* img = content->image_widget();
-    if (img) img->save_image();
+    if (application()) {
+        application()->signal_manager.emit("file.save");
+    }
 }
 
 void ImageViewerWindow::on_undo_clicked() {
