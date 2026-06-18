@@ -395,6 +395,15 @@ namespace horizon::capture
             LOG_ERROR << "[CaptureApp] Screenshot failed";
             m_status_label->set_text(horizon::i18n().tr("capture.status.failed"));
         }
+        
+        if (m_edit_on_finish) {
+            std::string cmd = "nohup image-viewer \"" + full_path.string() + "\" >/dev/null 2>&1 &";
+            system(cmd.c_str());
+        }
+        
+        if (m_quit_on_finish) {
+            application()->quit();
+        }
     }
 
     void CaptureWindow::capture_selection_image()
@@ -436,15 +445,13 @@ namespace horizon::capture
                 m_selection_win->quit();
                 this->application()->post_task([this]() { m_selection_win.reset(); });
 
-                this->execute_with_delay(
-                    [this, target_output, x, y, w, h]()
-                    {
-                        // Small delay to ensure the window is gone from the compositor's view (if
-                        // delay is 0)
-                        if (m_delay_seconds <= 0)
-                        {
-                            std::this_thread::sleep_for(std::chrono::milliseconds(200));
-                        }
+                this->application()->post_task([this, target_output, x, y, w, h]() {
+                    // Delay capture by 500ms using a timer so the event loop can destroy the window
+                    auto timer_ptr = std::make_shared<uint32_t>(0);
+                    *timer_ptr = this->application()->add_timer(500, [this, target_output, x, y, w, h, timer_ptr]() {
+                        this->application()->stop_timer(*timer_ptr);
+                        
+                        this->execute_with_delay([this, target_output, x, y, w, h]() {
 
                         LOG_INFO << "[CaptureApp] Capturing region from output: " << target_output
                                  << " local coords: x=" << x << " y=" << y << " w=" << w
@@ -483,7 +490,18 @@ namespace horizon::capture
                         {
                             m_status_label->set_text(horizon::i18n().tr("capture.status.failed"));
                         }
+                        
+                        if (m_edit_on_finish) {
+                            std::string cmd = "nohup image-viewer \"" + full_path.string() + "\" >/dev/null 2>&1 &";
+                            system(cmd.c_str());
+                        }
+                        
+                        if (m_quit_on_finish) {
+                            this->application()->quit();
+                        }
                     });
+                    });
+                });
             });
 
         m_selection_win->selection_widget()->when_cancelled().connect(
@@ -494,6 +512,9 @@ namespace horizon::capture
                 m_selection_win->quit();
                 this->application()->post_task([this]() { m_selection_win.reset(); });
                 m_status_label->set_text(horizon::i18n().tr("capture.status.ready"));
+                if (m_quit_on_finish) {
+                    this->application()->quit();
+                }
             });
     }
 
@@ -605,7 +626,7 @@ namespace horizon::capture
                     {
                         if (m_delay_seconds <= 0)
                         {
-                            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                            std::this_thread::sleep_for(std::chrono::milliseconds(500));
                         }
 
                         m_config->load();

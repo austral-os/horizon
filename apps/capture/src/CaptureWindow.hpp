@@ -26,6 +26,9 @@ public:
     void capture_screen_image(const std::string& output_name = "");
     void capture_selection_image();
     void capture_window_image();
+    
+    void set_quit_on_finish(bool quit) { m_quit_on_finish = quit; }
+    void set_edit_on_finish(bool edit) { m_edit_on_finish = edit; }
 
     void start_screen_video(const std::string& output_name = "");
     void start_selection_video();
@@ -52,6 +55,9 @@ private:
     int m_delay_seconds = 0;
     size_t m_countdown_timer_id = 0;
     int m_current_countdown = 0;
+    
+    bool m_quit_on_finish = false;
+    bool m_edit_on_finish = false;
 };
 
 } // namespace horizon::capture

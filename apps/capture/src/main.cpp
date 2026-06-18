@@ -1,6 +1,7 @@
 #include "CaptureWindow.hpp"
 #include "CapturePreferences.hpp"
 #include <horizon/Application.hpp>
+#include <horizon/WaylandLayerWindow.hpp>
 #include <horizon/Menu.hpp>
 #include <horizon/MenuItem.hpp>
 #include <horizon/I18n.hpp>
@@ -13,9 +14,46 @@
 using namespace horizon;
 using namespace horizon::capture;
 
+class CliApplication : public horizon::Application {
+public:
+    CliApplication(const std::string &app_id) 
+        : Application(app_id, 1, 1, false, true) 
+    {
+        // By using a layer window instead of a standard window, the compositor 
+        // won't draw any shadows or window frames around it.
+        create_layer_window("org.horizon.capture.cli", 0, -1);
+    }
+};
+
 int main(int argc, char** argv) {
+    bool cli_mode = false;
+    bool edit_mode = false;
+    std::string mode = "";
+    std::string type = "";
+    
+    // Check for CLI arguments first so we know which Application type to create
+    if (argc > 1) {
+        for (int i = 1; i < argc; ++i) {
+            std::string arg = argv[i];
+            if (arg == "--image") type = "image";
+            else if (arg == "--video") type = "video";
+            else if (arg == "--area") mode = "area";
+            else if (arg == "--screen") mode = "screen";
+            else if (arg == "--edit") edit_mode = true;
+        }
+        if (!type.empty() && !mode.empty()) {
+            cli_mode = true;
+        }
+    }
+
     // Standard Horizon application setup
-    Application app("org.horizon.capture", 600, 400);
+    std::unique_ptr<horizon::Application> app_ptr;
+    if (cli_mode) {
+        app_ptr = std::make_unique<CliApplication>("org.horizon.capture");
+    } else {
+        app_ptr = std::make_unique<horizon::Application>("org.horizon.capture", 600, 400);
+    }
+    Application& app = *app_ptr;
     
     // Load translations
     horizon::i18n().load_app_locales("capture");
@@ -87,12 +125,34 @@ int main(int argc, char** argv) {
     });
     app.add_menu(std::move(video_menu));
 
-    app.set_root(std::move(window));
-    
-    // Check for CLI arguments (optional, can still support basic ones)
-    if (argc > 1) {
-        // ... CLI logic could be kept here if needed, but the user wants a GUI ...
+    if (cli_mode) {
+        win_ptr->when_application_load.connect([win_ptr, type, mode, edit_mode](horizon::EventContext&) {
+            LOG_INFO << "[CaptureApp] when_application_load triggered for CLI action";
+            
+            win_ptr->set_quit_on_finish(true);
+            win_ptr->set_edit_on_finish(edit_mode);
+            
+            if (win_ptr->application()) {
+                win_ptr->application()->post_task([win_ptr, type, mode]() {
+                    if (type == "image") {
+                        if (mode == "area") {
+                            win_ptr->capture_selection_image();
+                        } else if (mode == "screen") {
+                            win_ptr->capture_screen_image();
+                        }
+                    } else if (type == "video") {
+                        if (mode == "area") {
+                            win_ptr->start_selection_video();
+                        } else if (mode == "screen") {
+                            win_ptr->start_screen_video();
+                        }
+                    }
+                });
+            }
+        });
     }
+
+    app.set_root(std::move(window));
 
     app.run();
     
