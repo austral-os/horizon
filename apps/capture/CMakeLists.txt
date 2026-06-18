@@ -19,7 +19,7 @@ horizon_install_app(capture
     NAME "Capture"
     COMMENT "Screen Capture and Recording"
     ICON "screenrecorder"
-    VERSION "0.4.3"
+    VERSION "0.4.4"
     CATEGORIES "Utility;AudioVideo;"
 )
 
