@@ -7,6 +7,7 @@
 #include <horizon/TableView.hpp>
 #include <horizon/LoadingBar.hpp>
 #include <horizon/EventsManager.hpp>
+#include <horizon/TextBox.hpp>
 #include <string>
 #include <vector>
 #include <optional>
@@ -25,13 +26,14 @@ namespace horizon::preferences
         DriverSearchDialog(const std::string& printer_name);
         ~DriverSearchDialog() override;
 
-        // Disparado cuando el driver se instaló con apt, o cuando se seleccionó un PPD manual (pasando la ruta)
-        EventsManager<std::string> when_driver_ready;
+        // Disparado cuando el driver se instaló con apt, o cuando se seleccionó un PPD manual
+        EventsManager<DriverPackage> when_driver_ready;
 
     private:
         void setup_ui();
         void start_search();
         void install_selected();
+        void filter_drivers(const std::string& query);
 
         std::string m_printer_name;
         std::vector<DriverPackage> m_packages;
@@ -40,6 +42,7 @@ namespace horizon::preferences
         Label* m_status_label{nullptr};
         LoadingBar* m_loading_bar{nullptr};
         TableView<DriverPackage>* m_table_view{nullptr};
+        TextBoxBase* m_search_box{nullptr};
         Button<AquaObject>* m_install_btn{nullptr};
         Button<AquaObject>* m_manual_btn{nullptr};
         Button<AquaObject>* m_cancel_btn{nullptr};

@@ -3,8 +3,10 @@
 #include <horizon/Combo.hpp>
 #include <horizon/GroupButton.hpp>
 #include <horizon/Label.hpp>
+#include <horizon/RibbonButton.hpp>
 #include <horizon/RibbonToolbar.hpp>
 #include <horizon/SolidObject.hpp>
+#include <horizon/Vault.hpp>
 #include <horizon/WaylandWindow.hpp>
 #include <horizon/Window.hpp>
 
@@ -29,19 +31,39 @@ int main(int argc, char **argv)
     int t1 = ribbon->add_tab("Home");
     auto s1 = ribbon->add_section(t1, "Clipboard");
 
-    auto b1 = std::make_unique<Button<AquaObject>>();
+    auto b1 = std::make_unique<RibbonButton>();
+    b1->set_icon("edit-paste");
     b1->set_text("Paste");
+    b1->set_text_position(RibbonButtonTextPosition::BelowIcon);
+    b1->set_button_size(RibbonButtonSize::Large);
+    b1->set_font_size(9);
     b1->set_fixed_size(60);
     s1->add_widget(std::move(b1));
 
-    auto b2 = std::make_unique<Button<AquaObject>>();
+    auto b2 = std::make_unique<RibbonButton>();
+    b2->set_icon("edit-cut");
     b2->set_text("Cut");
-    b2->set_fixed_size(60);
+    b2->set_text_position(RibbonButtonTextPosition::RightOfIcon);
+    b2->set_button_size(RibbonButtonSize::Normal);
+    b2->set_fixed_size(150);
+    
+    auto vault2 = std::make_unique<Vault>();
+    auto vault2_label = std::make_unique<Label>();
+    vault2_label->set_text("Cut options");
+    vault2->set_content(std::move(vault2_label));
+    b2->set_vault(std::move(vault2));
+    
     s1->add_widget(std::move(b2));
 
-    auto b3 = std::make_unique<Button<AquaObject>>();
-    b3->set_text("Copy");
-    b3->set_fixed_size(60);
+    auto b3 = std::make_unique<RibbonButton>();
+    b3->set_icon("edit-copy");
+    b3->set_button_size(RibbonButtonSize::Large);
+    b3->set_fixed_size(48);
+    auto vault = std::make_unique<Vault>();
+    auto vault_label = std::make_unique<Label>();
+    vault_label->set_text("Copy options");
+    vault->set_content(std::move(vault_label));
+    b3->set_vault(std::move(vault));
     s1->add_widget(std::move(b3));
 
     auto s2 = ribbon->add_section(t1, "Font");

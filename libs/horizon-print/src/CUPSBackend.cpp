@@ -110,11 +110,16 @@ PrinterId CUPSBackend::addPrinter(const std::string& name, const std::string& ur
     // Ya NO hacemos fallback a RAW silencioso, para poder disparar la UI de búsqueda de drivers.
     std::string script = "";
     if (!config.ppdPath.empty()) {
-        script = "/usr/sbin/lpadmin -p '" + safe_id + "' -v '" + uri + "' -P '" + config.ppdPath + "' -E";
+        if (config.ppdPath[0] == '/') {
+            script = "/usr/sbin/lpadmin -p '" + safe_id + "' -v '" + uri + "' -P '" + config.ppdPath + "' -E";
+        } else {
+            // It's a model name from lpinfo -m
+            script = "/usr/sbin/lpadmin -p '" + safe_id + "' -v '" + uri + "' -m '" + config.ppdPath + "' -E";
+        }
     } else if (!bestPPD.empty()) {
         script = "/usr/sbin/lpadmin -p '" + safe_id + "' -v '" + uri + "' -m '" + bestPPD + "' -E";
     } else {
-        script = "timeout 5 /usr/sbin/lpadmin -p '" + safe_id + "' -v '" + uri + "' -m everywhere -E 2>/dev/null";
+        throw std::runtime_error("DRIVER_MISSING");
     }
     
     std::string cmd = "pkexec bash -c \"" + script + "\"";

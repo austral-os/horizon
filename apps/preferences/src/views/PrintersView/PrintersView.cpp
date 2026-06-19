@@ -127,12 +127,18 @@ namespace horizon::preferences
                             if (err_msg == "DRIVER_MISSING") {
                                 app->post_task([this, app, ev]() {
                                     auto search_dialog = std::make_unique<DriverSearchDialog>(ev.name);
-                                    search_dialog->when_driver_ready.connect([this, app, ev](std::string ppd_path) {
-                                        std::thread([this, app, ev, ppd_path]() {
+                                    search_dialog->when_driver_ready.connect([this, app, ev](DriverPackage pkg) {
+                                        std::thread([this, app, ev, pkg]() {
                                             try {
                                                 horizon::print::PrintConfig config;
-                                                config.ppdPath = ppd_path;
-                                                this->m_printer_service->addPrinter(ev.name, ev.uri, config);
+                                                config.ppdPath = pkg.name;
+                                                
+                                                std::string final_name = ev.name;
+                                                if (final_name.find("Unknown Network Device") != std::string::npos) {
+                                                    final_name = pkg.description;
+                                                }
+                                                
+                                                this->m_printer_service->addPrinter(final_name, ev.uri, config);
                                                 
                                                 std::this_thread::sleep_for(std::chrono::milliseconds(200));
                                                 app->post_task([this]() {

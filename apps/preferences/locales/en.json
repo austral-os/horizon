@@ -188,7 +188,10 @@
             "install": "Install",
             "installing": "Installing...",
             "failed": "Failed",
-            "install_error": "Error installing. Try manual."
+            "install_error": "Error installing. Try manual.",
+            "driver_for": "Select Driver for",
+            "search_driver": "Search driver...",
+            "searching_drivers": "Searching for drivers in system..."
         },
         "sound": {
             "output": "Output",

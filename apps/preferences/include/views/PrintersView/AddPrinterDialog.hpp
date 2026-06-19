@@ -15,6 +15,7 @@
 #include <vector>
 #include <memory>
 #include <mutex>
+#include <set>
 
 namespace horizon::preferences
 {
@@ -44,6 +45,8 @@ namespace horizon::preferences
 
         std::unique_ptr<horizon::print::PrinterDiscovery> m_discovery;
         std::vector<horizon::print::Printer> m_discovered_printers;
+        std::vector<horizon::print::Printer> m_manual_printers;
+        std::set<std::string> m_probed_ips;
         horizon::print::Printer m_selected_printer;
         std::mutex m_printers_mutex;
     };

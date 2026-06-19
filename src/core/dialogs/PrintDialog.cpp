@@ -28,7 +28,7 @@ namespace horizon
 
     void PrintDialog::setup_ui()
     {
-        auto win = std::make_unique<Window>(i18n().tr("core.print.title"));
+        auto win = std::make_unique<Window>(i18n().tr("core.dialog.print.title"));
         win->set_size(600, 600); // Increased size to fit new controls
 
         auto content = std::make_unique<Widget>();
@@ -38,14 +38,14 @@ namespace horizon
         content->set_spacing(15);
 
         auto header = std::make_unique<Label>();
-        header->set_text(i18n().tr("core.print.title"));
+        header->set_text(i18n().tr("core.dialog.print.title"));
         header->set_font_size(24);
         header->set_font_weight(FONT_WEIGHT_BOLD);
         header->set_fixed_size(30);
         content->add_child(std::move(header));
 
         auto desc = std::make_unique<Label>();
-        desc->set_text(i18n().tr("core.print.select_printer"));
+        desc->set_text(i18n().tr("core.dialog.print.select_printer"));
         desc->set_fixed_size(20);
         content->add_child(std::move(desc));
 
@@ -54,7 +54,7 @@ namespace horizon
 
         TableColumn<horizon::print::Printer> col_name;
         col_name.id = "name";
-        col_name.title = i18n().tr("core.print.name");
+        col_name.title = i18n().tr("core.dialog.print.name");
         col_name.width = 150;
         col_name.cell_factory = [](const horizon::print::Printer &p)
         {
@@ -109,21 +109,21 @@ namespace horizon
 
         auto paper_combo = std::make_unique<Combo>();
         paper_combo->add_item("A4", "A4");
-        paper_combo->add_item("Letter", i18n().tr("core.print.paper_letter"));
-        paper_combo->add_item("Legal", i18n().tr("core.print.paper_legal"));
-        paper_combo->add_item("Executive", i18n().tr("core.print.paper_exec"));
+        paper_combo->add_item("Letter", i18n().tr("core.dialog.print.paper_letter"));
+        paper_combo->add_item("Legal", i18n().tr("core.dialog.print.paper_legal"));
+        paper_combo->add_item("Executive", i18n().tr("core.dialog.print.paper_exec"));
         paper_combo->set_selected_item_index(0);
         m_paper_size_combo = paper_combo.get();
         settings_row1->add_child(std::move(paper_combo));
 
         auto orient_lbl = std::make_unique<Label>();
-        orient_lbl->set_text(i18n().tr("core.print.orientation"));
+        orient_lbl->set_text(i18n().tr("core.dialog.print.orientation"));
         orient_lbl->set_alignment(TextAlignment::Right);
         settings_row1->add_child(std::move(orient_lbl));
 
         auto orient_combo = std::make_unique<Combo>();
-        orient_combo->add_item("Portrait", i18n().tr("core.print.portrait"));
-        orient_combo->add_item("Landscape", i18n().tr("core.print.landscape"));
+        orient_combo->add_item("Portrait", i18n().tr("core.dialog.print.portrait"));
+        orient_combo->add_item("Landscape", i18n().tr("core.dialog.print.landscape"));
         orient_combo->set_selected_item_index(0);
         m_orientation_combo = orient_combo.get();
         settings_row1->add_child(std::move(orient_combo));
@@ -141,23 +141,23 @@ namespace horizon
         settings_row2->add_child(std::move(quality_lbl));
 
         auto quality_combo = std::make_unique<Combo>();
-        quality_combo->add_item("Normal", i18n().tr("core.print.normal"));
-        quality_combo->add_item("Draft", i18n().tr("core.print.draft"));
-        quality_combo->add_item("High", i18n().tr("core.print.high"));
+        quality_combo->add_item("Normal", i18n().tr("core.dialog.print.normal"));
+        quality_combo->add_item("Draft", i18n().tr("core.dialog.print.draft"));
+        quality_combo->add_item("High", i18n().tr("core.dialog.print.high"));
         quality_combo->set_selected_item_index(0);
         m_quality_combo = quality_combo.get();
         settings_row2->add_child(std::move(quality_combo));
 
         auto pages_lbl = std::make_unique<Label>();
-        pages_lbl->set_text(i18n().tr("core.print.pages"));
+        pages_lbl->set_text(i18n().tr("core.dialog.print.pages"));
         pages_lbl->set_alignment(TextAlignment::Right);
         settings_row2->add_child(std::move(pages_lbl));
 
         auto pages_combo = std::make_unique<Combo>();
-        pages_combo->add_item("all", i18n().tr("core.print.all"));
-        pages_combo->add_item("even", i18n().tr("core.print.even"));
-        pages_combo->add_item("odd", i18n().tr("core.print.odd"));
-        pages_combo->add_item("range", i18n().tr("core.print.specific"));
+        pages_combo->add_item("all", i18n().tr("core.dialog.print.all"));
+        pages_combo->add_item("even", i18n().tr("core.dialog.print.even"));
+        pages_combo->add_item("odd", i18n().tr("core.dialog.print.odd"));
+        pages_combo->add_item("range", i18n().tr("core.dialog.print.specific"));
         pages_combo->set_selected_item_index(0);
         m_page_range_combo = pages_combo.get();
         settings_row2->add_child(std::move(pages_combo));
@@ -172,7 +172,7 @@ namespace horizon
         settings_row3->add_child(std::move(Spacer()));
 
         auto range_text = std::make_unique<TextBox<>>();
-        range_text->set_placeholder(i18n().tr("core.print.range_placeholder"));
+        range_text->set_placeholder(i18n().tr("core.dialog.print.range_placeholder"));
         range_text->set_fixed_size(120);
         range_text->set_enabled(false);
         range_text->set_visible(false);
@@ -213,7 +213,7 @@ namespace horizon
         btn_row->add_child(std::move(cancel_btn));
 
         auto print_btn = std::make_unique<Button<AquaObject>>();
-        print_btn->set_text(i18n().tr("core.print.print_btn"));
+        print_btn->set_text(i18n().tr("core.dialog.print.print_btn"));
         print_btn->set_fixed_size(120);
         print_btn->set_enabled(false);
         print_btn->set_accent_color(WidgetAccentColor::Primary);

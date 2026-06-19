@@ -188,7 +188,10 @@
             "install": "Instalar",
             "installing": "Instalando...",
             "failed": "Falló",
-            "install_error": "Error instalando. Intenta manual."
+            "install_error": "Error instalando. Intenta manual.",
+            "driver_for": "Seleccionar controlador para",
+            "search_driver": "Buscar controlador...",
+            "searching_drivers": "Buscando controladores en el sistema..."
         },
         "sound": {
             "output": "Salida",
