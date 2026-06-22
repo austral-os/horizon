@@ -55,6 +55,7 @@ namespace horizon
         void post_watcher_task(std::function<void()> task) override;
 
         void apply_autohide_state();
+        void update_input_region();
 
         bool _is_meteor = false;
         WaylandLayerWindow *m_window = nullptr;

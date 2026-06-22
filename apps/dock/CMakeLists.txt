@@ -30,7 +30,7 @@ horizon_install_app(dock
     NAME "Horizon Dock"
     COMMENT "System Dock"
     ICON "slingscold"
-    VERSION "0.2.1"
+    VERSION "0.3.0"
     CATEGORIES "System;"
     EXTRA_DESKTOP "NoDisplay=true"
 )

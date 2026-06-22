@@ -161,6 +161,14 @@ namespace horizon
         shelf->set_dock_app(this);
         _shelf_ptr = shelf.get();
 
+        _shelf_ptr->when_mouse_move.connect([this](auto &) {
+            update_input_region();
+        });
+
+        _shelf_ptr->when_mouse_leave.connect([this](auto &) {
+            update_input_region();
+        });
+
         root->add_child(std::move(left_spacer));
         root->add_child(std::move(shelf));
         root->add_child(std::move(right_spacer));
@@ -419,6 +427,7 @@ namespace horizon
             m_window->root()->calculate_layout();
         m_window->invalidate();
 
+        update_input_region();
     }
 
     void DockApplication::load_config()
@@ -520,6 +529,14 @@ namespace horizon
                     }
                     update_dock(m_last_apps);
                 }
+            }
+            else
+            {
+                // Default pinned apps
+                pin_app("launchpad", "Launchpad", "slingscold", "launchpad");
+                pin_app("org.horizon.arkfm", "Files", "system-file-manager", "arkfm");
+                pin_app("org.horizon.terminal", "Terminal", "utilities-terminal", "terminal");
+                pin_app("org.horizon.preferences", "Preferences", "preferences-system", "preferences");
             }
         }
         catch (const std::exception &e)
@@ -686,6 +703,58 @@ namespace horizon
         else
         {
             m_window->set_margin(0, 0, 0, 0);
+        }
+        update_input_region();
+    }
+
+    void DockApplication::update_input_region()
+    {
+        if (!m_window || !m_window->w_surface() || !_shelf_ptr) return;
+
+        if (m_autohide_enabled) {
+            // When autohide is enabled, we leave the input region entirely open 
+            // so the edge of the screen can catch the mouse to unhide the dock.
+            m_window->w_surface()->clear_input_region();
+            return;
+        }
+
+        int shelf_w = _shelf_ptr->width();
+        int shelf_h = _shelf_ptr->height();
+
+        // Use manual calculation to ensure accuracy before render() has been called
+        int shelf_x = (m_window->width() - shelf_w) / 2;
+        int shelf_y = (m_window->height() - shelf_h) / 2;
+        
+        int base_size = _shelf_ptr->base_size();
+
+        bool is_magnifying = _shelf_ptr->is_mouse_over() && _shelf_ptr->is_magnification_enabled();
+
+        if (m_position == "bottom") {
+            if (is_magnifying) {
+                // Expanded region: cover the full height of the dock, but only the width of the shelf
+                m_window->w_surface()->set_input_region(shelf_x, 0, shelf_w, m_window->height());
+            } else {
+                // Unmagnified region: tightly bound to the unmagnified shelf
+                // The unmagnified physical shelf takes up `base_size * 1.5625f` from the bottom
+                int tight_h = static_cast<int>(base_size * 1.5625f);
+                int tight_y = m_window->height() - tight_h;
+                m_window->w_surface()->set_input_region(shelf_x, tight_y, shelf_w, tight_h);
+            }
+        } else if (m_position == "left") {
+            if (is_magnifying) {
+                m_window->w_surface()->set_input_region(0, shelf_y, m_window->width(), shelf_h);
+            } else {
+                int tight_w = static_cast<int>(base_size * 1.5625f);
+                m_window->w_surface()->set_input_region(0, shelf_y, tight_w, shelf_h);
+            }
+        } else if (m_position == "right") {
+            if (is_magnifying) {
+                m_window->w_surface()->set_input_region(0, shelf_y, m_window->width(), shelf_h);
+            } else {
+                int tight_w = static_cast<int>(base_size * 1.5625f);
+                int tight_x = m_window->width() - tight_w;
+                m_window->w_surface()->set_input_region(tight_x, shelf_y, tight_w, shelf_h);
+            }
         }
     }
 
