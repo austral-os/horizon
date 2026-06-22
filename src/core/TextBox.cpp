@@ -34,6 +34,39 @@ namespace horizon
         when_mouse_press.connect(
             [this](MouseButtonEventContext &ev)
             {
+                if (has_spin_buttons())
+                {
+                    int spin_w = 16;
+                    int spin_x = m_width - spin_w - 2;
+                    int spin_y_up = 2;
+                    int spin_y_down = m_height / 2;
+                    int spin_h = (m_height - 4) / 2;
+
+                    if (ev.x >= m_x + spin_x && ev.x <= m_x + spin_x + spin_w)
+                    {
+                        if (ev.y >= m_y + spin_y_up && ev.y < m_y + spin_y_up + spin_h)
+                        {
+                            m_spin_up_pressed = true;
+                            on_spin_up();
+                            m_spin_press_time = std::chrono::steady_clock::now();
+                            m_last_spin_repeat_time = m_spin_press_time;
+                            ev.stop_propagation = true;
+                            invalidate();
+                            return;
+                        }
+                        else if (ev.y >= m_y + spin_y_down && ev.y < m_y + spin_y_down + spin_h)
+                        {
+                            m_spin_down_pressed = true;
+                            on_spin_down();
+                            m_spin_press_time = std::chrono::steady_clock::now();
+                            m_last_spin_repeat_time = m_spin_press_time;
+                            ev.stop_propagation = true;
+                            invalidate();
+                            return;
+                        }
+                    }
+                }
+
                 m_selection_anchor = -1; // Reset to force new anchor in draw()
                 m_is_dragging = true;
                 m_has_pending_click = true;
@@ -52,7 +85,73 @@ namespace horizon
                 }
             });
 
-        when_mouse_release.connect([this](MouseButtonEventContext &ev) { m_is_dragging = false; });
+        when_mouse_release.connect([this](MouseButtonEventContext &ev) { 
+            m_is_dragging = false; 
+            if (m_spin_up_pressed || m_spin_down_pressed) {
+                m_spin_up_pressed = false;
+                m_spin_down_pressed = false;
+                invalidate();
+            }
+        });
+
+        when_mouse_move.connect(
+            [this](MouseMoveEventContext &ev)
+            {
+                if (has_spin_buttons())
+                {
+                    int spin_w = 16;
+                    int spin_x = m_width - spin_w - 2;
+                    int spin_y_up = 2;
+                    int spin_y_down = m_height / 2;
+                    int spin_h = (m_height - 4) / 2;
+
+                    bool hover_up = false;
+                    bool hover_down = false;
+
+                    if (ev.x >= m_x + spin_x && ev.x <= m_x + spin_x + spin_w)
+                    {
+                        if (ev.y >= m_y + spin_y_up && ev.y < m_y + spin_y_up + spin_h)
+                            hover_up = true;
+                        else if (ev.y >= m_y + spin_y_down && ev.y < m_y + spin_y_down + spin_h)
+                            hover_down = true;
+                    }
+
+                    if (m_spin_up_hover != hover_up || m_spin_down_hover != hover_down)
+                    {
+                        m_spin_up_hover = hover_up;
+                        m_spin_down_hover = hover_down;
+                        invalidate();
+                    }
+                }
+            });
+
+        when_mouse_leave.connect(
+            [this](EventContext &ev)
+            {
+                if (m_spin_up_hover || m_spin_down_hover || m_spin_up_pressed || m_spin_down_pressed)
+                {
+                    m_spin_up_hover = false;
+                    m_spin_down_hover = false;
+                    m_spin_up_pressed = false;
+                    m_spin_down_pressed = false;
+                    invalidate();
+                }
+            });
+
+        when_mouse_wheel.connect(
+            [this](MouseWheelEventContext &ev)
+            {
+                if (has_spin_buttons())
+                {
+                    if (ev.dy < 0) {
+                        on_spin_up();
+                        ev.stop_propagation = true;
+                    } else if (ev.dy > 0) {
+                        on_spin_down();
+                        ev.stop_propagation = true;
+                    }
+                }
+            });
 
         when_right_click.connect(
             [this](MouseButtonEventContext &ev)
@@ -194,6 +293,23 @@ namespace horizon
 
     void TextBoxBase::draw(GraphicsContext &gc)
     {
+        if (m_spin_up_pressed || m_spin_down_pressed)
+        {
+            auto now = std::chrono::steady_clock::now();
+            auto elapsed_press = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_spin_press_time).count();
+            if (elapsed_press > 500)
+            {
+                auto elapsed_repeat = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_last_spin_repeat_time).count();
+                if (elapsed_repeat > 50)
+                {
+                    if (m_spin_up_pressed) on_spin_up();
+                    else on_spin_down();
+                    m_last_spin_repeat_time = now;
+                }
+            }
+            invalidate();
+        }
+
         auto *tm = theme_manager();
         auto theme_font = tm->get_font("window");
         std::string family = m_font_family.empty() ? theme_font.family : m_font_family;
@@ -256,7 +372,9 @@ namespace horizon
                                   {m_corner_radius, m_corner_radius, 0, 0});
 
         gc.save();
-        gc.clip(m_x + m_padding_left - 3, m_y + 5, m_width - (m_padding_left + m_padding_right) + 6,
+        int clip_w = m_width - (m_padding_left + m_padding_right) + 6;
+        if (has_spin_buttons()) clip_w -= 20;
+        gc.clip(m_x + m_padding_left - 3, m_y + 5, clip_w,
                 m_height - 10);
 
         int text_x_base = m_x + m_padding_left;
@@ -277,6 +395,7 @@ namespace horizon
                               FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
 
         int visible_width = m_width - (m_padding_left + m_padding_right);
+        if (has_spin_buttons()) visible_width -= 20;
         int cursor_x_rel = cursor_metrics.width;
 
         if (cursor_x_rel < m_scroll_offset)
@@ -371,6 +490,38 @@ namespace horizon
             gc.fillRect(cursor_x, m_y + 8, 2, m_height - 16);
         }
         gc.restore();
+
+        if (has_spin_buttons())
+        {
+            int spin_w = 16;
+            int spin_x = m_width - spin_w - 2;
+            int spin_y_up = 2;
+            int spin_y_down = m_height / 2;
+            int spin_h = (m_height - 4) / 2;
+
+            Color btn_up_bg = m_spin_up_pressed ? Color(0.0f, 0.0f, 0.0f, 0.2f) : (m_spin_up_hover ? Color(0.0f, 0.0f, 0.0f, 0.1f) : Color(0.0f, 0.0f, 0.0f, 0.05f));
+            gc.setColor(btn_up_bg);
+            gc.fillRect(m_x + spin_x, m_y + spin_y_up, spin_w, spin_h, CornerRadius(0, m_corner_radius, 0, 0));
+
+            Color btn_down_bg = m_spin_down_pressed ? Color(0.0f, 0.0f, 0.0f, 0.2f) : (m_spin_down_hover ? Color(0.0f, 0.0f, 0.0f, 0.1f) : Color(0.0f, 0.0f, 0.0f, 0.05f));
+            gc.setColor(btn_down_bg);
+            gc.fillRect(m_x + spin_x, m_y + spin_y_down, spin_w, spin_h, CornerRadius(0, 0, m_corner_radius, 0));
+
+            gc.setColor(text_color);
+            std::vector<PolygonPoint> up_arrow = {
+                PolygonPoint(m_x + spin_x + spin_w/2, m_y + spin_y_up + spin_h/2 - 2, 0),
+                PolygonPoint(m_x + spin_x + spin_w/2 - 3, m_y + spin_y_up + spin_h/2 + 2, 0),
+                PolygonPoint(m_x + spin_x + spin_w/2 + 3, m_y + spin_y_up + spin_h/2 + 2, 0)
+            };
+            gc.fillPolygon(up_arrow);
+
+            std::vector<PolygonPoint> down_arrow = {
+                PolygonPoint(m_x + spin_x + spin_w/2, m_y + spin_y_down + spin_h/2 + 2, 0),
+                PolygonPoint(m_x + spin_x + spin_w/2 - 3, m_y + spin_y_down + spin_h/2 - 2, 0),
+                PolygonPoint(m_x + spin_x + spin_w/2 + 3, m_y + spin_y_down + spin_h/2 - 2, 0)
+            };
+            gc.fillPolygon(down_arrow);
+        }
     }
 
     void TextBoxBase::set_text(const std::string &text)

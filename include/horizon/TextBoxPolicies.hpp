@@ -1,5 +1,6 @@
 #pragma once
 #include <cctype>
+#include <cstdio>
 #include <regex>
 #include <string>
 
@@ -14,6 +15,8 @@ namespace horizon
         long long max_int = 2147483647LL;
         double min_double = -1e308;
         double max_double = 1e308;
+        bool show_spin_buttons = false;
+        double spin_step = 1.0;
     };
 
     struct TextPolicy
@@ -27,6 +30,9 @@ namespace horizon
         {
             return text;
         }
+
+        static void spin_up(std::string &text, const TextBoxConfig &config) {}
+        static void spin_down(std::string &text, const TextBoxConfig &config) {}
     };
 
     struct PasswordPolicy
@@ -40,6 +46,9 @@ namespace horizon
         {
             return std::string(text.length(), '*');
         }
+
+        static void spin_up(std::string &text, const TextBoxConfig &config) {}
+        static void spin_down(std::string &text, const TextBoxConfig &config) {}
     };
 
     struct IntegerPolicy
@@ -66,6 +75,28 @@ namespace horizon
         static std::string get_display_text(const std::string &text, const TextBoxConfig &)
         {
             return text;
+        }
+
+        static void spin_up(std::string &text, const TextBoxConfig &config)
+        {
+            long long val = 0;
+            if (!text.empty()) {
+                try { val = std::stoll(text); } catch (...) {}
+            }
+            val += (long long)config.spin_step;
+            if (val > config.max_int) val = config.max_int;
+            text = std::to_string(val);
+        }
+
+        static void spin_down(std::string &text, const TextBoxConfig &config)
+        {
+            long long val = 0;
+            if (!text.empty()) {
+                try { val = std::stoll(text); } catch (...) {}
+            }
+            val -= (long long)config.spin_step;
+            if (val < config.min_int) val = config.min_int;
+            text = std::to_string(val);
         }
     };
 
@@ -94,6 +125,32 @@ namespace horizon
         {
             return text;
         }
+
+        static void spin_up(std::string &text, const TextBoxConfig &config)
+        {
+            double val = 0.0;
+            if (!text.empty()) {
+                try { val = std::stod(text); } catch (...) {}
+            }
+            val += config.spin_step;
+            if (val > config.max_double) val = config.max_double;
+            char buf[64];
+            snprintf(buf, sizeof(buf), "%g", val);
+            text = buf;
+        }
+
+        static void spin_down(std::string &text, const TextBoxConfig &config)
+        {
+            double val = 0.0;
+            if (!text.empty()) {
+                try { val = std::stod(text); } catch (...) {}
+            }
+            val -= config.spin_step;
+            if (val < config.min_double) val = config.min_double;
+            char buf[64];
+            snprintf(buf, sizeof(buf), "%g", val);
+            text = buf;
+        }
     };
 
     struct EmailPolicy
@@ -111,6 +168,9 @@ namespace horizon
         {
             return text;
         }
+
+        static void spin_up(std::string &text, const TextBoxConfig &config) {}
+        static void spin_down(std::string &text, const TextBoxConfig &config) {}
     };
 
     struct DatePolicy
@@ -143,5 +203,8 @@ namespace horizon
         {
             return text;
         }
+
+        static void spin_up(std::string &text, const TextBoxConfig &config) {}
+        static void spin_down(std::string &text, const TextBoxConfig &config) {}
     };
 } // namespace horizon

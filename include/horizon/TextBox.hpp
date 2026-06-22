@@ -41,6 +41,10 @@ namespace horizon
         virtual bool is_valid() const = 0;
         virtual std::string get_display_text() const = 0;
 
+        virtual bool has_spin_buttons() const { return false; }
+        virtual void on_spin_up() {}
+        virtual void on_spin_down() {}
+
         EventsManager<KeyEventContext> when_text_changed;
         EventsManager<KeyEventContext> when_submit;
 
@@ -57,6 +61,14 @@ namespace horizon
         int m_pending_click_x{-1};
         bool m_has_pending_click{false};
         std::string m_clipboard_buffer{""};
+
+        // Spin Buttons State
+        bool m_spin_up_hover{false};
+        bool m_spin_down_hover{false};
+        bool m_spin_up_pressed{false};
+        bool m_spin_down_pressed{false};
+        std::chrono::steady_clock::time_point m_spin_press_time;
+        std::chrono::steady_clock::time_point m_last_spin_repeat_time;
 
         // UI Customization
         int m_padding_left{8};
@@ -78,6 +90,27 @@ namespace horizon
         std::string get_display_text() const override
         {
             return Policy::get_display_text(m_text, config);
+        }
+
+        bool has_spin_buttons() const override
+        {
+            return config.show_spin_buttons;
+        }
+
+        void on_spin_up() override
+        {
+            Policy::spin_up(m_text, config);
+            KeyEventContext ctx;
+            when_text_changed.run(ctx);
+            invalidate();
+        }
+
+        void on_spin_down() override
+        {
+            Policy::spin_down(m_text, config);
+            KeyEventContext ctx;
+            when_text_changed.run(ctx);
+            invalidate();
         }
 
         TextBoxConfig config;

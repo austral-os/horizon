@@ -158,6 +158,20 @@ int main()
         textbox->set_text("");
         tb_container->add_child(std::move(textbox));
 
+        auto spinbox = std::make_unique<TextBox<horizon::IntegerPolicy>>();
+        spinbox->set_placeholder("Edad");
+        spinbox->set_text("18");
+        spinbox->config.show_spin_buttons = true;
+        spinbox->config.spin_step = 1;
+        tb_container->add_child(std::move(spinbox));
+
+        auto doublebox = std::make_unique<TextBox<horizon::DoublePolicy>>();
+        doublebox->set_placeholder("Precio");
+        doublebox->set_text("19.99");
+        doublebox->config.show_spin_buttons = true;
+        doublebox->config.spin_step = 0.01;
+        tb_container->add_child(std::move(doublebox));
+
         auto searchbox = std::make_unique<horizon::SearchBox>();
         searchbox->set_placeholder("Buscar...");
         tb_container->add_child(std::move(searchbox));
