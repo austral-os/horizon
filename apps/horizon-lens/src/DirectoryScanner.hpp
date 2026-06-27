@@ -40,6 +40,12 @@ namespace horizon::lens
         void set_on_file_found(FileFoundCallback cb) { m_on_file_found = cb; }
 
         /**
+         * @brief Adds an additional directory path to be scanned in the background.
+         */
+        void add_scan_path(const std::string& path);
+
+
+        /**
          * @brief Starts the background scanning thread.
          */
         void start();
@@ -66,7 +72,8 @@ namespace horizon::lens
         bool is_excluded(const std::string& path) const;
         bool is_candidate(const std::string& path) const;
 
-        std::string       m_root_path;
+        std::vector<std::string> m_scan_paths;
+
         FileFoundCallback m_on_file_found;
         std::thread       m_thread;
         std::atomic<bool> m_stop{false};

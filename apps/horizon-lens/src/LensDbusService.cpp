@@ -1,5 +1,7 @@
 #include "LensDbusService.hpp"
+#include "LensService.hpp"
 #include <horizon/Logger.hpp>
+
 #include <dbus/dbus.h>
 
 namespace horizon::lens
@@ -18,6 +20,9 @@ namespace horizon::lens
             if (method == "RequestThumbnail") {
                 handle_request_thumbnail(msg);
                 return DBUS_HANDLER_RESULT_HANDLED;
+            } else if (method == "ScanDirectory") {
+                handle_scan_directory(msg);
+                return DBUS_HANDLER_RESULT_HANDLED;
             }
         }
         
@@ -28,6 +33,9 @@ namespace horizon::lens
   <interface name="org.horizon.Lens.Thumbnailer">
     <method name="RequestThumbnail">
       <arg name="filepath" type="s" direction="in"/>
+    </method>
+    <method name="ScanDirectory">
+      <arg name="dirpath" type="s" direction="in"/>
     </method>
   </interface>
 </node>)";
@@ -55,4 +63,24 @@ namespace horizon::lens
             m_dbus.send_reply(msg, {});
         }
     }
+
+    void LensDbusService::handle_scan_directory(DBusMessage* msg)
+    {
+        const char* dirpath = nullptr;
+        if (!dbus_message_get_args(msg, nullptr, DBUS_TYPE_STRING, &dirpath, DBUS_TYPE_INVALID)) {
+            LOG_ERROR << "horizon-lens: Invalid arguments for ScanDirectory";
+            return;
+        }
+
+        if (dirpath) {
+            LOG_INFO << "horizon-lens: D-Bus requested scan for directory: " << dirpath;
+            if (LensService::instance() && LensService::instance()->get_scanner()) {
+                LensService::instance()->get_scanner()->add_scan_path(dirpath);
+            }
+            
+            // Send empty reply (void return)
+            m_dbus.send_reply(msg, {});
+        }
+    }
 }
+

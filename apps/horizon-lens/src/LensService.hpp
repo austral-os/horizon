@@ -35,6 +35,9 @@ namespace horizon::lens
          */
         void stop();
 
+        static LensService* instance() { return s_instance; }
+        DirectoryScanner* get_scanner() const { return m_scanner.get(); }
+
     private:
         std::unique_ptr<DirectoryScanner> m_scanner;
         std::unique_ptr<ThumbWorker>      m_worker;

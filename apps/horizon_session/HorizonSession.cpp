@@ -11,6 +11,9 @@
 #include <filesystem>
 #include <fstream>
 #include <horizon-installer-utils/InstallerManager.hpp>
+#include "IpcServer.hpp"
+#include <horizon/IpcClient.hpp>
+#include <horizon/ConfigManager.hpp>
 #include <horizon/DisplayConfig.hpp>
 #include <horizon/Logger.hpp>
 #include <iostream>
@@ -466,6 +469,45 @@ void HorizonSession::start()
 
     m_running = true;
     m_monitoring_thread = std::thread(&HorizonSession::monitor_services_loop, this);
+
+    // Parse desktop.json and notify horizon-lens in the background
+    std::thread([]() {
+        // Wait for horizon-lens to fully start and register D-Bus service
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+
+        const char *home = std::getenv("HOME");
+        if (!home) return;
+
+        std::string config_path = std::string(home) + "/.config/horizon/desktop.json";
+        if (!fs::exists(config_path)) return;
+
+        try {
+            std::ifstream f(config_path);
+            nlohmann::json data = nlohmann::json::parse(f);
+
+            if (data.contains("desktop") && 
+                data["desktop"].contains("backgrounds") && 
+                data["desktop"]["backgrounds"].contains("sources")) 
+            {
+                for (const auto& source : data["desktop"]["backgrounds"]["sources"]) {
+                    if (source.contains("routes")) {
+                        for (const auto& route : source["routes"]) {
+                            if (route.contains("path")) {
+                                std::string dir_path = route["path"].get<std::string>();
+                                LOG_INFO << "[HorizonSession] Asking horizon-lens to scan: " << dir_path;
+                                std::string cmd = "dbus-send --session --type=method_call --dest=org.horizon.Lens "
+                                                  "/org/horizon/Lens org.horizon.Lens.Thumbnailer.ScanDirectory "
+                                                  "string:\"" + dir_path + "\"";
+                                std::system(cmd.c_str());
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR << "[HorizonSession] Error parsing desktop.json for thumbnails: " << e.what();
+        }
+    }).detach();
 }
 
 void HorizonSession::stop()
@@ -734,9 +776,45 @@ void HorizonSession::run_startup_services()
         }
     }
 
+    int total_services = m_startup_services.size();
+    int current_service_index = 0;
+
+    std::unique_ptr<horizon::IpcClient> splash_ipc;
+
+    bool starting_compositor = false;
+    for (const auto &svc_path : m_startup_services) {
+        if (svc_path == "meteor" || svc_path == "labwc") starting_compositor = true;
+    }
+
+    if (!starting_compositor && getenv("WAYLAND_DISPLAY")) {
+        LOG_INFO << "[HorizonSession] Already in a compositor, launching horizon-splash immediately...";
+        if (is_dev_mode()) {
+            run_service(std::string(HORIZON_BUILD_BIN_DIR) + "/apps/horizon-splash/horizon-splash", false);
+        } else {
+            run_service("horizon-splash", false);
+        }
+        for (int splash_wait = 0; splash_wait < 10; ++splash_wait) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            if (fs::exists("/tmp/horizon_splash.sock")) break;
+        }
+        if (fs::exists("/tmp/horizon_splash.sock")) {
+            splash_ipc = std::make_unique<horizon::IpcClient>("/tmp/horizon_splash.sock");
+            splash_ipc->send("{\"progress\": 0, \"text\": \"Entorno detectado\"}");
+        }
+    }
+
     for (const auto &svc_path : m_startup_services)
     {
         bool is_compositor = (svc_path == "meteor" || svc_path == "labwc");
+
+        if (splash_ipc && !is_compositor) {
+            int progress = (current_service_index * 100) / total_services;
+            std::string svc_name = fs::path(svc_path).filename().string();
+            std::string msg = "{\"progress\": " + std::to_string(progress) + ", \"text\": \"Cargando " + svc_name + "\"}";
+            splash_ipc->send(msg);
+        }
+        current_service_index++;
+
         pid_t pid = run_service(svc_path, !is_compositor);
 
         // If we just started the compositor, we need to wait for its socket and set the environment
@@ -767,6 +845,27 @@ void HorizonSession::run_startup_services()
 
                 // Apply saved display configuration
                 apply_display_config();
+
+                // Launch splash screen right after compositor is ready
+                LOG_INFO << "[HorizonSession] Launching horizon-splash...";
+                if (is_dev_mode()) {
+                    run_service(std::string(HORIZON_BUILD_BIN_DIR) + "/apps/horizon-splash/horizon-splash", false);
+                } else {
+                    run_service("horizon-splash", false);
+                }
+                
+                // Wait briefly for the splash IPC socket to be ready
+                for (int splash_wait = 0; splash_wait < 10; ++splash_wait) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    if (fs::exists("/tmp/horizon_splash.sock")) {
+                        break;
+                    }
+                }
+                
+                if (fs::exists("/tmp/horizon_splash.sock")) {
+                    splash_ipc = std::make_unique<horizon::IpcClient>("/tmp/horizon_splash.sock");
+                    splash_ipc->send("{\"progress\": 0, \"text\": \"Compositor iniciado\"}");
+                }
             }
             else
             {
@@ -796,6 +895,11 @@ void HorizonSession::run_startup_services()
             std::this_thread::sleep_for(
                 std::chrono::milliseconds(100)); // Space out apps to reduce concurrent congestion
         }
+    }
+
+    if (splash_ipc) {
+        splash_ipc->send("{\"progress\": 99, \"text\": \"Esperando entorno...\"}");
+        // We do NOT send "close" here. We wait for horizon_wall to send its "ready" message.
     }
 }
 
@@ -990,6 +1094,20 @@ std::string HorizonSession::handle_ipc_message(const std::string &msg)
         {
             LOG_INFO << "[HorizonSession] New subscription request." << std::endl;
             return "SUBSCRIBE";
+        }
+        else if (type == "ready")
+        {
+            std::string service = j.value("service", "unknown");
+            if (service == "horizon_wall") {
+                LOG_INFO << "[HorizonSession] horizon_wall is ready, closing splash screen." << std::endl;
+                std::thread([]() {
+                    try {
+                        horizon::IpcClient splash_ipc("/tmp/horizon_splash.sock");
+                        splash_ipc.send("{\"close\": true}");
+                    } catch (...) {}
+                }).detach();
+            }
+            return "{\"status\": \"ok\"}";
         }
 
         bool changed = false;

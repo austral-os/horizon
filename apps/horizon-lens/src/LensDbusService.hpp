@@ -19,5 +19,7 @@ namespace horizon::lens
         ThumbWorker& m_worker;
 
         void handle_request_thumbnail(DBusMessage* msg);
+        void handle_scan_directory(DBusMessage* msg);
     };
 }
+

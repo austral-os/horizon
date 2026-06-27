@@ -191,6 +191,7 @@ add_subdirectory(apps/pkg-installer)
 add_subdirectory(apps/horizon-lens)
 add_subdirectory(apps/xdg-desktop-portal-horizon)
 add_subdirectory(apps/horizon-appstore)
+add_subdirectory(apps/horizon-splash)
 
 
 # --- Examples and Demos ---

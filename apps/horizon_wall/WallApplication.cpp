@@ -18,7 +18,9 @@
 #include <poll.h>
 #include <sys/inotify.h>
 #include <unistd.h>
+#include <unistd.h>
 #include <random>
+#include <horizon/IpcClient.hpp>
 
 namespace horizon
 {
@@ -66,6 +68,14 @@ namespace horizon
             // Trigger initial wallpaper load on the main thread loop (via first window's task queue)
             first->post_task([this]() {
                 load_wallpaper(m_wall_path);
+                
+                // Notify session that wallpaper is loaded
+                std::thread([]() {
+                    try {
+                        horizon::IpcClient session_ipc("/tmp/horizon_session.sock");
+                        session_ipc.send("{\"type\": \"ready\", \"service\": \"horizon_wall\"}");
+                    } catch (...) {}
+                }).detach();
             });
         });
 

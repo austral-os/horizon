@@ -41,8 +41,8 @@ const std::vector<std::string> DirectoryScanner::SUPPORTED_EXTENSIONS = {
 // Constructor / Destructor
 // ---------------------------------------------------------------------------
 DirectoryScanner::DirectoryScanner(const std::string& root_path)
-    : m_root_path(root_path)
 {
+    m_scan_paths.push_back(root_path);
 }
 
 DirectoryScanner::~DirectoryScanner()
@@ -53,6 +53,15 @@ DirectoryScanner::~DirectoryScanner()
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
+void DirectoryScanner::add_scan_path(const std::string& path)
+{
+    std::unique_lock<std::mutex> lock(m_cv_mutex);
+    if (std::find(m_scan_paths.begin(), m_scan_paths.end(), path) == m_scan_paths.end()) {
+        m_scan_paths.push_back(path);
+        m_cv.notify_all();
+    }
+}
+
 void DirectoryScanner::start()
 {
     m_stop = false;
@@ -103,11 +112,20 @@ bool DirectoryScanner::is_candidate(const std::string& path) const
 // ---------------------------------------------------------------------------
 void DirectoryScanner::scanner_thread_fn()
 {
-    LOG_INFO << "horizon-lens: DirectoryScanner started for " << m_root_path;
+    LOG_INFO << "horizon-lens: DirectoryScanner started.";
 
     while (!m_stop) {
-        LOG_INFO << "horizon-lens: Starting scan pass of " << m_root_path;
-        scan_directory(m_root_path);
+        std::vector<std::string> current_paths;
+        {
+            std::unique_lock<std::mutex> lock(m_cv_mutex);
+            current_paths = m_scan_paths;
+        }
+
+        for (const auto& path : current_paths) {
+            LOG_INFO << "horizon-lens: Starting scan pass of " << path;
+            scan_directory(path);
+            if (m_stop) break;
+        }
 
         if (m_stop) break;
 
