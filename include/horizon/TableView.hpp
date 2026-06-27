@@ -245,6 +245,9 @@ namespace horizon
                 m_selection_anchor = index;
             }
             update_selection_visuals();
+
+            EventContext ev_ctx;
+            when_selection_changed.run(ev_ctx);
         }
 
         void scroll_to_index(int index)
@@ -316,6 +319,7 @@ namespace horizon
 
         EventsManager<TableViewRowMouseClickContext<T>> when_row_click;
         EventsManager<TableViewRowMouseClickContext<T>> when_row_dbl_click;
+        EventsManager<EventContext> when_selection_changed;
 
         void render(GraphicsContext &gc, int cx, int cy, int cw, int ch,
                     bool force = false) override

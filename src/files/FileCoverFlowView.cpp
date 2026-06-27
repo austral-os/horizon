@@ -75,6 +75,10 @@ namespace horizon::files
         set_position_type(FILL);
         set_focusable(true);
 
+        when_focus.connect([this](EventContext &) {
+            if (m_cover_flow) m_cover_flow->set_focus(true);
+        });
+
         m_fs_model = std::make_unique<arkutils::FileSystemModel>();
 
         auto cover_flow = std::make_unique<horizon::CoverFlow<arkutils::FileInfo>>();
@@ -116,12 +120,14 @@ namespace horizon::files
             }
         });
 
-        m_cover_flow->when_selection_changed.connect(
+        m_cover_flow->when_index_changed.connect(
             [this](EventContext &)
             {
                 int idx = m_cover_flow->selected_index();
-                if (m_list_view)
+                if (m_list_view && m_list_view->selected_index() != idx) {
                     m_list_view->set_selected_index(idx);
+                    m_list_view->scroll_to_index(idx);
+                }
 
                 if (idx >= 0 && idx < (int)m_cover_flow->data().size())
                 {
@@ -133,6 +139,22 @@ namespace horizon::files
         auto list_view = std::make_unique<FileListView>(m_current_path);
         m_list_view = list_view.get();
         m_list_view->set_show_hidden_files(m_show_hidden_files);
+
+        m_list_view->when_selection_changed.connect(
+            [this](EventContext &)
+            {
+                int idx = m_list_view->selected_index();
+                if (m_cover_flow && m_cover_flow->selected_index() != idx)
+                {
+                    m_cover_flow->set_selected_index(idx);
+                }
+                
+                if (m_cover_flow && idx >= 0 && idx < (int)m_cover_flow->data().size())
+                {
+                    const auto &f = m_cover_flow->data()[idx];
+                    m_navigation_label->set_text(FileIconProvider::get_display_name(f));
+                }
+            });
 
         m_list_view->when_row_click.connect(
             [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
@@ -247,7 +269,25 @@ namespace horizon::files
     {
         m_cover_flow->set_data(files);
         m_list_view->update_table(files);
+        
+        if (!files.empty())
+        {
+            m_list_view->set_selected_index(0);
+            m_navigation_label->set_text(FileIconProvider::get_display_name(files[0]));
+        }
+        else
+        {
+            m_navigation_label->set_text("");
+        }
+        
         start_thumbnail_watch();
+        
+        if (application()) {
+            application()->post_task([this]() {
+                this->set_focus(true);
+                if (m_cover_flow) m_cover_flow->set_focus(true);
+            });
+        }
     }
 
     std::vector<arkutils::FileInfo> FileCoverFlowView::get_selected_items() const

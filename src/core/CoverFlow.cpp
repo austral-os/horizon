@@ -81,13 +81,15 @@ namespace horizon
         when_key_press.connect(
             [this](KeyEventContext &ev)
             {
-                if (ev.keysym == 0xff51)
-                { // Left arrow
+                if (ev.keysym == 0xff51 || ev.keysym == 0xff52)
+                { // Left or Up arrow
                     set_selected_index(std::max(0, m_selected_index - 1));
+                    ev.stop_propagation = true;
                 }
-                else if (ev.keysym == 0xff53)
-                { // Right arrow
+                else if (ev.keysym == 0xff53 || ev.keysym == 0xff54)
+                { // Right or Down arrow
                     set_selected_index(std::min((int)m_children.size() - 1, m_selected_index + 1));
+                    ev.stop_propagation = true;
                 }
             });
 
