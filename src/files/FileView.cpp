@@ -232,6 +232,8 @@ namespace horizon::files
             return child->get_selected_items();
         else if (auto *child = dynamic_cast<FileIconView *>(m_children.back().get()))
             return child->get_selected_items();
+        else if (auto *child = dynamic_cast<FileCoverFlowView *>(m_children.back().get()))
+            return child->get_selected_items();
         
         return {};
     }

@@ -250,6 +250,14 @@ namespace horizon::files
         start_thumbnail_watch();
     }
 
+    std::vector<arkutils::FileInfo> FileCoverFlowView::get_selected_items() const
+    {
+        if (m_list_view)
+            return m_list_view->get_selected_items();
+        return {};
+    }
+
+
     void FileCoverFlowView::start_thumbnail_watch()
     {
         if (!application() || !m_cover_flow)

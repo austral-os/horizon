@@ -35,6 +35,8 @@ namespace horizon::files
         void set_context_menu_factory(std::function<std::unique_ptr<horizon::Menu>(const arkutils::FileInfo &)> factory);
         void refresh(const std::string &path, const std::string &filter = "");
         void update_table(const std::vector<arkutils::FileInfo> &files);
+        std::vector<arkutils::FileInfo> get_selected_items() const;
+
 
         EventsManager<horizon::TableViewRowMouseClickContext<arkutils::FileInfo>>
             when_row_dbl_click;
