@@ -78,12 +78,6 @@ namespace horizon
         Color sidebar_item_fg = tm->get_color("sidebar_item_fg");
         Color sidebar_item_fg2 = tm->get_color("sidebar_item_fg2");
 
-        if (is_hovered() && !selected)
-        {
-            gc.setColor(0.9f, 0.9f, 0.9f, 0.5f);
-            gc.fillRect(m_x, m_y, m_width, m_height);
-        }
-
         if (selected)
         {
             // Blue gradient selection (macOS Aqua style)
