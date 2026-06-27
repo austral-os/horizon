@@ -17,4 +17,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     horizon
 )
 
-install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_BINDIR}/apps/${PROJECT_NAME})
+horizon_install_app(${PROJECT_NAME}
+    APP_ID "horizon-splash"
+    NAME "Splash"
+    COMMENT "Horizon Splash Screen"
+    CATEGORIES "System;"
+    NO_DESKTOP
+)

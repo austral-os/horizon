@@ -8,7 +8,7 @@ set(HORIZON_RUNTIME_DEPENDS
 
 # Function to install an app with its locales and desktop file
 macro(horizon_install_app TARGET_NAME)
-    set(options)
+    set(options NO_DESKTOP)
     set(oneValueArgs APP_ID NAME COMMENT ICON TERMINAL EXEC_PREFIX EXEC_ARGS EXTRA_DESKTOP VERSION)
     set(multiValueArgs MIMETYPE CATEGORIES)
     cmake_parse_arguments(APP "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -105,16 +105,18 @@ macro(horizon_install_app TARGET_NAME)
     endif()
     set(APP_EXTRA "${APP_EXTRA_DESKTOP}")
     
-    configure_file(
-        ${CMAKE_SOURCE_DIR}/cmake/app.desktop.in
-        ${CMAKE_CURRENT_BINARY_DIR}/${APP_APP_ID}.desktop
-        @ONLY
-    )
+    if(NOT APP_NO_DESKTOP)
+        configure_file(
+            ${CMAKE_SOURCE_DIR}/cmake/app.desktop.in
+            ${CMAKE_CURRENT_BINARY_DIR}/${APP_APP_ID}.desktop
+            @ONLY
+        )
 
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${APP_APP_ID}.desktop
-        DESTINATION share/applications
-        COMPONENT ${APP_APP_ID}
-    )
+        install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${APP_APP_ID}.desktop
+            DESTINATION share/applications
+            COMPONENT ${APP_APP_ID}
+        )
+    endif()
 
     # Track all app components globally so we can build a metapackage later
     set_property(GLOBAL APPEND PROPERTY HORIZON_APP_COMPONENTS ${APP_APP_ID})
