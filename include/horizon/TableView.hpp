@@ -297,7 +297,7 @@ namespace horizon
         int sort_column() const { return m_sort_column; }
         bool sort_ascending() const { return m_sort_ascending; }
 
-        void apply_sort()
+        void apply_sort(bool rebuild = true)
         {
             if (m_sort_column < 0 || (size_t)m_sort_column >= m_columns.size())
                 return;
@@ -313,7 +313,8 @@ namespace horizon
                               else
                                   return m_columns[col_idx].sort_predicate(b, a);
                           });
-                rebuild_content();
+                if (rebuild)
+                    rebuild_content();
             }
         }
 
@@ -577,101 +578,147 @@ namespace horizon
 
             Widget *content = scroll->children()[0].get();
             content->clear_children();
+            calculate_internal_layout();
 
-            for (size_t row_idx = 0; row_idx < m_data.size(); ++row_idx)
+            uint64_t my_generation = ++m_rebuild_generation;
+            if (auto *app = application())
             {
-                auto row_widget = std::make_unique<TableRow>();
-                row_widget->set_fixed_size(m_row_height);
-
-                if (m_use_alternate_colors)
-                {
-                    row_widget->set_alternate(row_idx % 2 != 0);
-                }
-
-                row_widget->when_mouse_press.connect(
-                    [](MouseButtonEventContext &ctx)
-                    {
-                        ctx.stop_propagation = true;
-                    });
-
-                if (m_selected_rows.count((int)row_idx) > 0)
-                {
-                    row_widget->set_selected(true);
-                }
-
-                // Capture row data by value to avoid out-of-bounds access if m_data is updated
-                T row_data = m_data[row_idx];
-
-                row_widget->when_click.connect(
-                    [this, row_idx, row_data](MouseButtonEventContext &ctx)
-                    {
-                        this->set_focus(true);
-                        bool ctrl_pressed = (ctx.modifiers & WaylandWindow::Modifier::CTRL);
-                        bool shift_pressed = (ctx.modifiers & WaylandWindow::Modifier::SHIFT);
-
-                        set_selected_index((int)row_idx, ctrl_pressed, shift_pressed);
-
-                        TableViewRowMouseClickContext<T> click_ctx;
-                        click_ctx.row_index = (int)row_idx;
-                        click_ctx.row_data = row_data;
-                        when_row_click.run(click_ctx);
-
-                        ctx.stop_propagation = true;
-                    });
-
-                row_widget->when_right_click.connect(
-                    [this, row_idx, row_data](MouseButtonEventContext &ctx)
-                    {
-                        // If row not already selected, select it exclusively
-                        if (m_selected_rows.count((int)row_idx) == 0)
-                        {
-                            set_selected_index((int)row_idx, false, false);
-                        }
-                    });
-
-                row_widget->when_dbl_click.connect(
-                    [this, row_idx, row_data](MouseButtonEventContext &ctx)
-                    {
-                        TableViewRowMouseClickContext<T> click_ctx;
-                        click_ctx.row_index = (int)row_idx;
-                        click_ctx.row_data = row_data;
-                        when_row_dbl_click.run(click_ctx);
-                    });
-
-                for (size_t col_idx = 0; col_idx < m_columns.size(); ++col_idx)
-                {
-                    std::unique_ptr<Widget> cell;
-                    if (m_columns[col_idx].cell_factory)
-                    {
-                        cell = m_columns[col_idx].cell_factory(row_data);
-                    }
-                    else
-                    {
-                        auto lbl = std::make_unique<Label>("Cell");
-                        cell = std::move(lbl);
-                    }
-                    cell->set_fixed_size(m_columns[col_idx].width);
-                    row_widget->add_child(std::move(cell));
-                }
-
-                if (m_row_menu_factory)
-                {
-                    auto *row_ptr = row_widget.get();
-                    row_widget->when_right_click.connect([this, row_ptr, row_data](auto&) {
-                        if (m_row_menu_factory && !row_ptr->context_menu()) {
-                            row_ptr->set_context_menu(m_row_menu_factory(row_data));
-                        }
-                    });
-                }
-
-                if (m_row_setup_callback)
-                {
-                    m_row_setup_callback(row_widget.get(), row_data);
-                }
-
-                content->add_child(std::move(row_widget));
+                append_content_batch(my_generation, 0);
             }
+            else
+            {
+                for (size_t row_idx = 0; row_idx < m_data.size(); ++row_idx)
+                    content->add_child(create_row_widget(row_idx));
+                invalidate();
+            }
+        }
+
+        std::unique_ptr<TableRow> create_row_widget(size_t row_idx)
+        {
+            auto row_widget = std::make_unique<TableRow>();
+            row_widget->set_fixed_size(m_row_height);
+
+            if (m_use_alternate_colors)
+            {
+                row_widget->set_alternate(row_idx % 2 != 0);
+            }
+
+            row_widget->when_mouse_press.connect(
+                [](MouseButtonEventContext &ctx)
+                {
+                    ctx.stop_propagation = true;
+                });
+
+            if (m_selected_rows.count((int)row_idx) > 0)
+            {
+                row_widget->set_selected(true);
+            }
+
+            // Capture row data by value to avoid out-of-bounds access if m_data is updated.
+            T row_data = m_data[row_idx];
+
+            row_widget->when_click.connect(
+                [this, row_idx, row_data](MouseButtonEventContext &ctx)
+                {
+                    this->set_focus(true);
+                    bool ctrl_pressed = (ctx.modifiers & WaylandWindow::Modifier::CTRL);
+                    bool shift_pressed = (ctx.modifiers & WaylandWindow::Modifier::SHIFT);
+
+                    set_selected_index((int)row_idx, ctrl_pressed, shift_pressed);
+
+                    TableViewRowMouseClickContext<T> click_ctx;
+                    click_ctx.row_index = (int)row_idx;
+                    click_ctx.row_data = row_data;
+                    when_row_click.run(click_ctx);
+
+                    ctx.stop_propagation = true;
+                });
+
+            row_widget->when_right_click.connect(
+                [this, row_idx, row_data](MouseButtonEventContext &ctx)
+                {
+                    // If row not already selected, select it exclusively.
+                    if (m_selected_rows.count((int)row_idx) == 0)
+                    {
+                        set_selected_index((int)row_idx, false, false);
+                    }
+                });
+
+            row_widget->when_dbl_click.connect(
+                [this, row_idx, row_data](MouseButtonEventContext &ctx)
+                {
+                    TableViewRowMouseClickContext<T> click_ctx;
+                    click_ctx.row_index = (int)row_idx;
+                    click_ctx.row_data = row_data;
+                    when_row_dbl_click.run(click_ctx);
+                });
+
+            for (size_t col_idx = 0; col_idx < m_columns.size(); ++col_idx)
+            {
+                std::unique_ptr<Widget> cell;
+                if (m_columns[col_idx].cell_factory)
+                {
+                    cell = m_columns[col_idx].cell_factory(row_data);
+                }
+                else
+                {
+                    auto lbl = std::make_unique<Label>("Cell");
+                    cell = std::move(lbl);
+                }
+                cell->set_fixed_size(m_columns[col_idx].width);
+                row_widget->add_child(std::move(cell));
+            }
+
+            if (m_row_menu_factory)
+            {
+                auto *row_ptr = row_widget.get();
+                row_widget->when_right_click.connect([this, row_ptr, row_data](auto&) {
+                    if (m_row_menu_factory && !row_ptr->context_menu()) {
+                        row_ptr->set_context_menu(m_row_menu_factory(row_data));
+                    }
+                });
+            }
+
+            if (m_row_setup_callback)
+            {
+                m_row_setup_callback(row_widget.get(), row_data);
+            }
+
+            return row_widget;
+        }
+
+        void append_content_batch(uint64_t generation, size_t start_idx)
+        {
+            if (generation != m_rebuild_generation || children().size() < 2)
+                return;
+
+            ScrollArea *scroll = static_cast<ScrollArea *>(children()[1].get());
+            if (scroll->children().empty())
+                return;
+
+            Widget *content = scroll->children()[0].get();
+            constexpr size_t rows_per_batch = 12;
+            size_t end_idx = std::min(start_idx + rows_per_batch, m_data.size());
+
+            for (size_t row_idx = start_idx; row_idx < end_idx; ++row_idx)
+                content->add_child(create_row_widget(row_idx));
+
             invalidate();
+
+            if (end_idx < m_data.size())
+            {
+                if (auto *app = application())
+                {
+                    app->add_timer(1, [this, generation, end_idx]()
+                    {
+                        append_content_batch(generation, end_idx);
+                    });
+                }
+                else
+                {
+                    append_content_batch(generation, end_idx);
+                }
+            }
         }
 
         virtual void sort_by_column(size_t col_idx)

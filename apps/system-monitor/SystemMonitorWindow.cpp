@@ -20,15 +20,22 @@ namespace horizon
         setup_content();
     }
 
+    SystemMonitorWindow::~SystemMonitorWindow()
+    {
+        m_alive->store(false);
+        if (m_refresh_thread.joinable())
+            m_refresh_thread.join();
+    }
+
     void SystemMonitorWindow::set_application_recursive(WaylandWindow *app)
     {
         ApplicationWindow::set_application_recursive(app);
 
         if (app && m_refresh_timer_id == 0)
         {
-            app->when_load.connect([this](AppEventContext &) { update_processes(); });
+            app->when_load.connect([this](AppEventContext &) { request_process_update(); });
 
-            m_refresh_timer_id = app->add_timer(2000, [this]() { update_processes(); }, true);
+            m_refresh_timer_id = app->add_timer(2000, [this]() { request_process_update(); }, true);
         }
     }
 
@@ -54,7 +61,7 @@ namespace horizon
                     if (application()->confirm(msg, i18n().tr("system_monitor.toolbar.terminate")))
                     {
                         m_process_manager.terminate_process(p.pid);
-                        update_processes();
+                        request_process_update();
                     }
                 }
             });
@@ -121,7 +128,7 @@ namespace horizon
                 static size_t debounce_timer = 0;
                 if (debounce_timer)
                     application()->stop_timer(debounce_timer);
-                debounce_timer = application()->add_timer(300, [this]() { update_processes(); });
+                debounce_timer = application()->add_timer(300, [this]() { request_process_update(); });
             });
 
         auto search_wrapper = std::make_unique<Widget>();
@@ -269,25 +276,72 @@ namespace horizon
         set_content(std::move(root));
     }
 
-    void SystemMonitorWindow::update_processes()
+    void SystemMonitorWindow::request_process_update()
     {
-        auto processes = m_process_manager.get_processes();
-        auto cpu_usage = m_process_manager.get_cpu_usage();
-        auto mem_usage = m_process_manager.get_memory_usage();
-        auto energy_usage = m_process_manager.get_energy_usage();
-        auto disk_usage = m_process_manager.get_disk_usage();
-        auto net_usage = m_process_manager.get_network_usage();
+        bool expected = false;
+        if (!m_refresh_in_progress.compare_exchange_strong(expected, true))
+        {
+            m_refresh_pending.store(true);
+            return;
+        }
+
+        if (m_refresh_thread.joinable())
+            m_refresh_thread.join();
+
+        auto *app = application();
+        if (!app)
+        {
+            m_refresh_in_progress.store(false);
+            return;
+        }
+
+        auto alive = m_alive;
+        uint64_t generation = ++m_refresh_generation;
+
+        m_refresh_thread = std::thread(
+            [this, app, alive, generation]()
+            {
+                RefreshSnapshot snapshot;
+                snapshot.generation = generation;
+                snapshot.processes = m_process_manager.get_processes();
+                snapshot.cpu_usage = m_process_manager.get_cpu_usage();
+                snapshot.mem_usage = m_process_manager.get_memory_usage();
+                snapshot.energy_usage = m_process_manager.get_energy_usage();
+                snapshot.disk_usage = m_process_manager.get_disk_usage();
+                snapshot.net_usage = m_process_manager.get_network_usage();
+
+                app->post_task(
+                    [this, alive, snapshot = std::move(snapshot)]() mutable
+                    {
+                        if (!alive->load())
+                            return;
+
+                        apply_refresh_snapshot(std::move(snapshot));
+                    });
+            });
+    }
+
+    void SystemMonitorWindow::apply_refresh_snapshot(RefreshSnapshot snapshot)
+    {
+        m_refresh_in_progress.store(false);
+
+        if (snapshot.generation != m_refresh_generation.load())
+        {
+            if (m_refresh_pending.exchange(false))
+                request_process_update();
+            return;
+        }
 
         if (m_cpu_stats)
-            m_cpu_stats->update(cpu_usage);
+            m_cpu_stats->update(snapshot.cpu_usage);
         if (m_memory_stats)
-            m_memory_stats->update(mem_usage);
+            m_memory_stats->update(snapshot.mem_usage);
         if (m_energy_stats)
-            m_energy_stats->update(energy_usage);
+            m_energy_stats->update(snapshot.energy_usage);
         if (m_disk_stats)
-            m_disk_stats->update(disk_usage);
+            m_disk_stats->update(snapshot.disk_usage);
         if (m_network_stats)
-            m_network_stats->update(net_usage);
+            m_network_stats->update(snapshot.net_usage);
 
         set_title(i18n().tr("system_monitor.title"));
 
@@ -295,7 +349,7 @@ namespace horizon
         if (!filter.empty())
         {
             std::vector<ProcessInfo> filtered;
-            for (const auto &p : processes)
+            for (const auto &p : snapshot.processes)
             {
                 if (p.name.find(filter) != std::string::npos ||
                     p.command.find(filter) != std::string::npos)
@@ -307,10 +361,10 @@ namespace horizon
         }
         else
         {
-            m_table_view->set_data(std::move(processes));
+            m_table_view->set_data(std::move(snapshot.processes));
         }
 
-        m_table_view->apply_sort();
+        m_table_view->apply_sort(false);
 
         // Restore selection
         if (m_selected_pid != -1)
@@ -322,11 +376,16 @@ namespace horizon
                 {
                     m_table_view->set_selected_index((int)i);
                     m_btn_terminate->set_enabled(true);
+                    if (m_refresh_pending.exchange(false))
+                        request_process_update();
                     return;
                 }
             }
         }
 
         m_btn_terminate->set_enabled(false);
+
+        if (m_refresh_pending.exchange(false))
+            request_process_update();
     }
 } // namespace horizon
