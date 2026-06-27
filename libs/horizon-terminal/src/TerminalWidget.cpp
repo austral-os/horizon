@@ -79,6 +79,7 @@ TerminalWidget::TerminalWidget() {
 }
 
 TerminalWidget::~TerminalWidget() {
+    m_alive->store(false);
     if (m_app) {
         if (m_cursor_timer != 0) m_app->stop_timer(m_cursor_timer);
         if (m_resize_timer != 0) m_app->stop_timer(m_resize_timer);
@@ -213,19 +214,8 @@ VTermScreenCell TerminalWidget::get_cell_at(int r, int c, int size, int offset) 
     const char* fallback_fg = "#f8f8f2"; // Dracula foreground
 
     int history_index = size - offset + r;
-    if (history_index < size && history_index >= 0) {
-        const auto& line = m_controller->get_scrollback_line(history_index);
-        if (c < (int)line.cells.size()) {
-            cell = line.cells[c];
-        } else {
-            cell.bg.type = VTERM_COLOR_DEFAULT_BG;
-            cell.fg.type = VTERM_COLOR_DEFAULT_FG;
-        }
-    } else if (history_index >= size) {
-        if (vterm_screen_get_cell(m_controller->get_screen(), {history_index - size, c}, &cell) == 0) {
-            cell.bg.type = VTERM_COLOR_DEFAULT_BG;
-            cell.fg.type = VTERM_COLOR_DEFAULT_FG;
-        }
+    if (history_index >= 0) {
+        cell = m_controller->get_vterm_cell(history_index, c);
     } else {
         cell.bg.type = VTERM_COLOR_DEFAULT_BG;
         cell.fg.type = VTERM_COLOR_DEFAULT_FG;
@@ -555,10 +545,67 @@ void TerminalWidget::handle_key_press(KeyEventContext &ctx) {
 
 
 void TerminalWidget::on_pty_read(const char* data, size_t len) {
-    m_controller->push_data(data, len);
+    if (!data || len == 0) return;
+
+    bool should_schedule = false;
+    {
+        std::lock_guard<std::mutex> lock(m_pending_pty_mutex);
+        m_pending_pty_data.insert(m_pending_pty_data.end(), data, data + len);
+        if (!m_pty_flush_pending) {
+            m_pty_flush_pending = true;
+            should_schedule = true;
+        }
+    }
+
+    if (!should_schedule)
+        return;
+
+    auto alive = m_alive;
+    if (m_app) {
+        m_app->post_task([this, alive]() {
+            if (!alive->load())
+                return;
+            flush_pending_pty_data();
+        });
+    } else {
+        std::lock_guard<std::mutex> lock(m_pending_pty_mutex);
+        m_pty_flush_pending = false;
+    }
+}
+
+void TerminalWidget::flush_pending_pty_data() {
+    std::vector<uint8_t> pending;
+    {
+        std::lock_guard<std::mutex> lock(m_pending_pty_mutex);
+        pending.swap(m_pending_pty_data);
+        m_pty_flush_pending = false;
+    }
+
+    if (pending.empty())
+        return;
+
+    m_controller->push_data(reinterpret_cast<const char*>(pending.data()), pending.size());
     if (m_scroll_offset > 0) {
         m_scroll_offset = 0;
         invalidate();
+    }
+
+    bool should_schedule = false;
+    {
+        std::lock_guard<std::mutex> lock(m_pending_pty_mutex);
+        if (!m_pending_pty_data.empty() && !m_pty_flush_pending) {
+            m_pty_flush_pending = true;
+            should_schedule = true;
+        }
+    }
+
+    if (should_schedule && m_app) {
+        auto alive = m_alive;
+        m_app->post_task([this, alive]() {
+            if (!alive->load())
+                return;
+            flush_pending_pty_data();
+        });
     }
 }
 
@@ -788,6 +835,24 @@ void TerminalWidget::set_application_recursive(WaylandWindow *app) {
                 this->m_cursor_visible = true; // when focus comes back, start visible
             }
         }, true);
+    }
+
+    bool should_schedule_flush = false;
+    {
+        std::lock_guard<std::mutex> lock(m_pending_pty_mutex);
+        if (m_app && !m_pending_pty_data.empty() && !m_pty_flush_pending) {
+            m_pty_flush_pending = true;
+            should_schedule_flush = true;
+        }
+    }
+
+    if (should_schedule_flush) {
+        auto alive = m_alive;
+        m_app->post_task([this, alive]() {
+            if (!alive->load())
+                return;
+            flush_pending_pty_data();
+        });
     }
 }
 

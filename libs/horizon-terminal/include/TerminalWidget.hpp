@@ -14,8 +14,10 @@
 #include <horizon/AquaPolygon.hpp>
 #include <cairo-ft.h>
 #include <fontconfig/fontconfig.h>
+#include <mutex>
 #include <thread>
 #include <atomic>
+#include <vector>
 
 #include <horizon/ClipboardProvider.hpp>
 
@@ -72,6 +74,7 @@ public:
 private:
     void update_pty_size();
     void on_pty_read(const char* data, size_t len);
+    void flush_pending_pty_data();
     void on_terminal_damage(VTermRect rect);
     VTermScreenCell get_cell_at(int r, int c, int size, int offset);
     
@@ -85,6 +88,10 @@ private:
 
     std::unique_ptr<TerminalController> m_controller;
     std::unique_ptr<PtyHandler> m_pty;
+    std::shared_ptr<std::atomic<bool>> m_alive{std::make_shared<std::atomic<bool>>(true)};
+    std::mutex m_pending_pty_mutex;
+    std::vector<uint8_t> m_pending_pty_data;
+    bool m_pty_flush_pending{false};
     
     int m_rows = 0;
     int m_cols = 0;

@@ -53,6 +53,7 @@ public:
     };
     size_t get_scrollback_size() const { return m_scrollback_buffer.size(); }
     const ScrollbackLine& get_scrollback_line(size_t index) const { return m_scrollback_buffer[index]; }
+    VTermScreenCell get_vterm_cell(int row, int col);
  
     Cell get_cell(int row, int col);
 

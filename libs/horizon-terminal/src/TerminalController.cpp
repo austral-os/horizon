@@ -227,14 +227,20 @@ void TerminalController::set_color_scheme(const TerminalColorScheme& scheme) {
     }
 }
 
-Cell TerminalController::get_cell(int row, int col) {
-    std::lock_guard<std::mutex> lock(m_mutex);
+VTermScreenCell TerminalController::get_vterm_cell(int row, int col) {
+    auto clear_cell = [](VTermScreenCell &cell) {
+        memset(&cell, 0, sizeof(cell));
+        cell.width = 1;
+        cell.bg.type = VTERM_COLOR_DEFAULT_BG;
+        cell.fg.type = VTERM_COLOR_DEFAULT_FG;
+    };
+
     int sb_size = (int)m_scrollback_buffer.size();
     int rows, cols;
     vterm_get_size(m_vt, &rows, &cols);
 
     VTermScreenCell vcell;
-    bool wrapped = false;
+    clear_cell(vcell);
 
     if (row < sb_size) {
         // En scrollback. m_scrollback_buffer[0] es la línea más RECUPERADA (la última que salió).
@@ -242,18 +248,30 @@ Cell TerminalController::get_cell(int row, int col) {
         const auto& line = m_scrollback_buffer[sb_size - 1 - row];
         if (col >= 0 && col < (int)line.cells.size()) {
             vcell = line.cells[col];
-        } else {
-            memset(&vcell, 0, sizeof(vcell));
         }
-        wrapped = line.wrapped;
     } else {
         // En pantalla activa.
         VTermPos pos = { row - sb_size, col };
-        if (vterm_screen_get_cell(m_screen, pos, &vcell) == 0) {
-            memset(&vcell, 0, sizeof(vcell));
-        }
+        if (pos.row >= 0 && pos.row < rows && col >= 0 && col < cols)
+            vterm_screen_get_cell(m_screen, pos, &vcell);
+    }
+
+    return vcell;
+}
+
+Cell TerminalController::get_cell(int row, int col) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    int sb_size = (int)m_scrollback_buffer.size();
+
+    VTermScreenCell vcell = get_vterm_cell(row, col);
+    bool wrapped = false;
+
+    if (row < sb_size) {
+        const auto& line = m_scrollback_buffer[sb_size - 1 - row];
+        wrapped = line.wrapped;
+    } else {
         VTermState* state = vterm_obtain_state(m_vt);
-        const VTermLineInfo* info = vterm_state_get_lineinfo(state, pos.row);
+        const VTermLineInfo* info = vterm_state_get_lineinfo(state, row - sb_size);
         wrapped = info ? info->continuation : false;
     }
 
@@ -281,4 +299,3 @@ int TerminalController::get_total_rows() const {
 
 } // namespace terminal
 } // namespace horizon
-
