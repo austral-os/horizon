@@ -15,6 +15,9 @@ public:
 
     void set_document(std::shared_ptr<PdfDocument> doc);
     void calculate_page_layout();
+    void set_zoom(double zoom);
+    double zoom() const { return m_zoom; }
+    double max_page_width() const { return m_max_page_width; }
     
     // Core widget overrides
     void draw(horizon::GraphicsContext &ctx) override;
@@ -44,6 +47,8 @@ private:
     int m_page_spacing = 20;
     int m_total_width{0};
     int m_total_height{0};
+    double m_zoom{1.0};
+    double m_max_page_width{0.0};
     
     // Estado de selección
     bool m_is_selecting{false};

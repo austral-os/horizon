@@ -4,6 +4,7 @@
     },
     "toolbar": {
         "open": "Abrir",
+        "sidebar": "Mostrar u ocultar barra lateral",
         "zoom_in": "Ampliar",
         "zoom_out": "Reducir",
         "zoom_fit": "Ajustar",

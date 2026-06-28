@@ -4,6 +4,7 @@
     },
     "toolbar": {
         "open": "Open",
+        "sidebar": "Toggle Sidebar",
         "zoom_in": "Zoom In",
         "zoom_out": "Zoom Out",
         "zoom_fit": "Zoom Fit",

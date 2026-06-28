@@ -15,6 +15,7 @@
 #include <horizon/dialogs/FileDialog.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Application.hpp>
+#include <algorithm>
 #include <sstream>
 
 namespace horizon {
@@ -249,6 +250,7 @@ void DocumentWindow::open_file(const std::string& path) {
     auto widget = std::make_unique<PdfWidget>();
     auto* pdf_ptr = widget.get();
     widget->set_document(shared_doc);
+    widget->set_position_type(horizon::FREE);
     
     // MENU CONTEXTUAL: Toggle Sidebar + Fullscreen + Clipboard
     widget->when_right_click.connect([this, pdf_ptr](horizon::MouseButtonEventContext& ev) {
@@ -325,13 +327,55 @@ void DocumentWindow::open_file(const std::string& path) {
     }
 }
 
+bool DocumentWindow::current_pdf_view(PdfWidget*& pdf, horizon::ScrollArea*& scroll) const {
+    pdf = nullptr;
+    scroll = nullptr;
+
+    if (!m_tabs) return false;
+
+    auto* current = m_tabs->current_tab_body();
+    auto* vpanel = dynamic_cast<horizon::VPanel*>(current);
+    if (!vpanel || vpanel->children().size() < 2) return false;
+
+    scroll = dynamic_cast<horizon::ScrollArea*>(vpanel->children()[1].get());
+    if (!scroll || scroll->children().empty()) return false;
+
+    pdf = dynamic_cast<PdfWidget*>(scroll->children()[0].get());
+    return pdf != nullptr;
+}
+
 void DocumentWindow::on_zoom_in() {
+    PdfWidget* pdf = nullptr;
+    horizon::ScrollArea* scroll = nullptr;
+    if (!current_pdf_view(pdf, scroll)) return;
+
+    int current_page = pdf->get_page_at_y(scroll->scroll_y());
+    pdf->set_zoom(pdf->zoom() * 1.2);
+    scroll->set_scroll_position(scroll->scroll_x(), pdf->get_page_y(current_page));
+    scroll->invalidate();
 }
 
 void DocumentWindow::on_zoom_out() {
+    PdfWidget* pdf = nullptr;
+    horizon::ScrollArea* scroll = nullptr;
+    if (!current_pdf_view(pdf, scroll)) return;
+
+    int current_page = pdf->get_page_at_y(scroll->scroll_y());
+    pdf->set_zoom(pdf->zoom() / 1.2);
+    scroll->set_scroll_position(scroll->scroll_x(), pdf->get_page_y(current_page));
+    scroll->invalidate();
 }
 
 void DocumentWindow::on_zoom_fit() {
+    PdfWidget* pdf = nullptr;
+    horizon::ScrollArea* scroll = nullptr;
+    if (!current_pdf_view(pdf, scroll) || pdf->max_page_width() <= 0.0) return;
+
+    int current_page = pdf->get_page_at_y(scroll->scroll_y());
+    double target_zoom = (double)std::max(1, scroll->width() - 40) / pdf->max_page_width();
+    pdf->set_zoom(target_zoom);
+    scroll->set_scroll_position(0, pdf->get_page_y(current_page));
+    scroll->invalidate();
 }
 
 void DocumentWindow::on_toggle_fullscreen() {

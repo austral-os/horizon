@@ -2,6 +2,7 @@
 #include "horizon/pdf/PdfThumbnailWidget.hpp"
 #include <horizon/Widget.hpp>
 #include <horizon/ScrollArea.hpp>
+#include <horizon/ThemeManager.hpp>
 #include <horizon/Logger.hpp>
 #include <cairo.h>
 
@@ -89,13 +90,16 @@ void PdfSidebar::render(horizon::GraphicsContext &ctx, int cx, int cy, int cw, i
         int bw = width();
         int bh = height();
 
-        // Fondo blanco (pedido por usuario)
-        cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+        auto* tm = theme_manager();
+        Color bg = tm ? tm->get_color("window_bg") : Color(1.0f, 1.0f, 1.0f, 1.0f);
+        Color border = tm ? tm->get_color("window_border") : Color(0.85f, 0.85f, 0.85f, 1.0f);
+
+        cairo_set_source_rgba(cr, bg.r, bg.g, bg.b, bg.a);
         cairo_rectangle(cr, bx, by, bw, bh);
         cairo_fill(cr);
 
         // Línea separadora a la derecha
-        cairo_set_source_rgb(cr, 0.85, 0.85, 0.85);
+        cairo_set_source_rgba(cr, border.r, border.g, border.b, border.a);
         cairo_set_line_width(cr, 1.0);
         cairo_move_to(cr, bx + bw - 1.0, by);
         cairo_line_to(cr, bx + bw - 1.0, by + bh);

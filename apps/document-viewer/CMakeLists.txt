@@ -35,7 +35,7 @@ horizon_install_app(document-viewer
     NAME "Visor de Documentos"
     COMMENT "Ver y leer documentos PDF"
     ICON "document-viewer"
-    VERSION "0.1.2"
+    VERSION "0.1.4"
     CATEGORIES "Office;Viewer;"
     MIMETYPE "application/pdf;"
     EXEC_ARGS "%F"

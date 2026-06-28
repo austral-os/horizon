@@ -9,6 +9,8 @@
 #include <memory>
 
 namespace horizon {
+class ScrollArea;
+
 namespace pdf {
 
 class DocumentWindow : public horizon::ApplicationWindow {
@@ -22,6 +24,7 @@ public:
 private:
     void build_toolbar();
     void build_content();
+    bool current_pdf_view(PdfWidget*& pdf, horizon::ScrollArea*& scroll) const;
     
     // UI Components
     horizon::TabCollection* m_tabs{nullptr};

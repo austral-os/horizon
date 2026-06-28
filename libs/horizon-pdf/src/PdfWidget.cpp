@@ -30,6 +30,15 @@ void PdfWidget::set_document(std::shared_ptr<PdfDocument> doc) {
     invalidate();
 }
 
+void PdfWidget::set_zoom(double zoom) {
+    double clamped_zoom = std::max(0.25, std::min(zoom, 4.0));
+    if (std::abs(m_zoom - clamped_zoom) < 0.001) return;
+
+    m_zoom = clamped_zoom;
+    calculate_page_layout();
+    invalidate();
+}
+
 void PdfWidget::calculate_page_layout() {
     if (!m_document) return;
 
@@ -46,12 +55,13 @@ void PdfWidget::calculate_page_layout() {
             double w, h;
             poppler_page_get_size(page, &w, &h);
             if (w > max_width) max_width = w;
-            current_y += h + m_page_spacing;
+            current_y += (h * m_zoom) + m_page_spacing;
             g_object_unref(page);
         }
     }
 
-    m_total_width = (int)max_width + m_page_spacing * 2;
+    m_max_page_width = max_width;
+    m_total_width = (int)std::ceil(max_width * m_zoom) + m_page_spacing * 2;
     m_total_height = (int)current_y;
     
     set_width(m_total_width);
@@ -101,22 +111,8 @@ int PdfWidget::preferred_height() const {
 }
 
 int PdfWidget::get_page_y(int page_index) const {
-    if (!m_document) return 0;
-    
-    double current_y = m_page_spacing;
-    int count = m_document->page_count();
-    
-    for (int i = 0; i < count && i < page_index; ++i) {
-        PopplerPage* page = m_document->get_page(i);
-        if (page) {
-            double w, h;
-            poppler_page_get_size(page, &w, &h);
-            current_y += h + m_page_spacing;
-            g_object_unref(page);
-        }
-    }
-    
-    return (int)current_y;
+    if (page_index < 0 || page_index >= (int)m_page_y_positions.size()) return 0;
+    return m_page_y_positions[page_index];
 }
 
 void PdfWidget::draw(horizon::GraphicsContext &ctx) {
@@ -153,30 +149,33 @@ void PdfWidget::draw(horizon::GraphicsContext &ctx) {
         if (page) {
             double w, h;
             poppler_page_get_size(page, &w, &h);
+            double display_w = w * m_zoom;
+            double display_h = h * m_zoom;
 
             // Verificar visibilidad
-            bool is_visible = (current_y + h >= viewport_y) && (current_y <= viewport_y + viewport_h);
+            bool is_visible = (current_y + display_h >= viewport_y) && (current_y <= viewport_y + viewport_h);
 
             if (is_visible) {
                 // Centrado dinámico basado en el ANCHO TOTAL del widget (bw)
-                double rx = std::max((double)m_page_spacing, (bw - w) / 2.0);
+                double rx = std::max((double)m_page_spacing, (bw - display_w) / 2.0);
                 
                 double fx = bx + rx;
                 double fy = by + current_y;
 
                 // Sombra suave (Shadow)
                 cairo_set_source_rgba(cr, 0, 0, 0, 0.15);
-                cairo_rectangle(cr, fx + 2, fy + 2, w + 2, h + 2);
+                cairo_rectangle(cr, fx + 2, fy + 2, display_w + 2, display_h + 2);
                 cairo_fill(cr);
 
                 // Fondo blanco
                 cairo_set_source_rgb(cr, 1, 1, 1);
-                cairo_rectangle(cr, fx, fy, w, h);
+                cairo_rectangle(cr, fx, fy, display_w, display_h);
                 cairo_fill(cr);
 
                 // Renderizado Poppler
                 cairo_save(cr);
                 cairo_translate(cr, fx, fy);
+                cairo_scale(cr, m_zoom, m_zoom);
                 
                 poppler_page_render(page, cr);
 
@@ -209,11 +208,11 @@ void PdfWidget::draw(horizon::GraphicsContext &ctx) {
                 // Borde suave
                 cairo_set_source_rgb(cr, 0.8, 0.8, 0.8);
                 cairo_set_line_width(cr, 1.0);
-                cairo_rectangle(cr, fx, fy, w, h);
+                cairo_rectangle(cr, fx, fy, display_w, display_h);
                 cairo_stroke(cr);
             }
 
-            current_y += h + m_page_spacing;
+            current_y += display_h + m_page_spacing;
             g_object_unref(page);
         }
     }
@@ -235,11 +234,11 @@ void PdfWidget::handle_mouse_press(horizon::MouseButtonEventContext &ev) {
     if (page) {
         double w, h;
         poppler_page_get_size(page, &w, &h);
-        double rx = std::max((double)m_page_spacing, (bw - w) / 2.0);
+        double rx = std::max((double)m_page_spacing, (bw - (w * m_zoom)) / 2.0);
         double current_y = m_page_y_positions[m_sel_page_idx];
         
-        m_sel_start_x = (local_x - rx);
-        m_sel_start_y = (local_y - current_y);
+        m_sel_start_x = (local_x - rx) / m_zoom;
+        m_sel_start_y = (local_y - current_y) / m_zoom;
         m_sel_end_x = m_sel_start_x;
         m_sel_end_y = m_sel_start_y;
         
@@ -261,11 +260,11 @@ void PdfWidget::handle_mouse_drag(horizon::MouseMoveEventContext &ev) {
     if (page) {
         double w, h;
         poppler_page_get_size(page, &w, &h);
-        double rx = std::max((double)m_page_spacing, (bw - w) / 2.0);
+        double rx = std::max((double)m_page_spacing, (bw - (w * m_zoom)) / 2.0);
         double current_y = m_page_y_positions[m_sel_page_idx];
         
-        m_sel_end_x = (local_x - rx);
-        m_sel_end_y = (local_y - current_y);
+        m_sel_end_x = (local_x - rx) / m_zoom;
+        m_sel_end_y = (local_y - current_y) / m_zoom;
         
         g_object_unref(page);
     }
