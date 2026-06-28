@@ -73,9 +73,11 @@ void TextEditorWidget::set_document(std::shared_ptr<TextDocument> doc) {
     m_doc = doc;
     if (m_doc) {
         m_doc->on_changed = [this]() {
+            this->calculate_layout();
             this->invalidate();
         };
-        set_size(preferred_width(), preferred_height());
+        ensure_metrics();
+        calculate_layout();
     }
     invalidate();
 }
@@ -354,6 +356,8 @@ void TextEditorWidget::calculate_layout() {
     if (!m_doc) return;
 
     int text_w = 0, text_h = 0;
+    ensure_metrics();
+
     if (m_layout) {
         pango_layout_get_pixel_size(m_layout, &text_w, &text_h);
     } else {
@@ -405,7 +409,7 @@ bool TextEditorWidget::update_pango_layout(cairo_t* cr) {
     pango_font_description_free(desc);
     
     pango_layout_set_width(m_layout, -1);
-    pango_layout_set_wrap(m_layout, PANGO_WRAP_WORD);
+    pango_layout_set_wrap(m_layout, PANGO_WRAP_WORD_CHAR);
 
     // 2. Text and Attributes from safe snapshot
     std::u32string u32_text;
@@ -713,18 +717,32 @@ void TextEditorWidget::ensure_cursor_visible() {
         }
     }
 }
+
+void TextEditorWidget::invalidate_layout() {
+    m_last_layout_version = 0xFFFFFFFFFFFFFFFF;
+    if (m_doc) {
+        m_doc->set_line_metrics({});
+    }
+}
+
 void TextEditorWidget::set_font_family(const std::string& family) {
+    if (m_font_family == family) return;
     m_font_family = family;
+    invalidate_layout();
     invalidate();
 }
 
 void TextEditorWidget::set_font_size(double size) {
+    if (m_font_size == size) return;
     m_font_size = size;
+    invalidate_layout();
     invalidate();
 }
 
 void TextEditorWidget::set_font_weight(int weight) {
+    if (m_font_weight == weight) return;
     m_font_weight = weight;
+    invalidate_layout();
     invalidate();
 }
 

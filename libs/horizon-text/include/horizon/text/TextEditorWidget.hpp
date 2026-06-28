@@ -64,6 +64,7 @@ protected:
     void ensure_metrics();
     int get_char_index_at(double x, double y);
     void ensure_cursor_visible();
+    void invalidate_layout();
 
 private:
     std::shared_ptr<TextDocument> m_doc;

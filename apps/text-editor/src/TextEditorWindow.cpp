@@ -155,6 +155,7 @@ void TextEditorWindow::create_tab(const std::string& title, std::shared_ptr<hori
     auto editor = std::make_unique<horizon::text::TextEditorWidget>();
     auto* editor_ptr = editor.get();
     editor->set_document(doc);
+    editor->set_position_type(WidgetPositionTypes::FREE);
     editor->set_highlight_current_line(true);
     
     scroll->set_content(std::move(editor));
@@ -170,6 +171,7 @@ void TextEditorWindow::create_tab(const std::string& title, std::shared_ptr<hori
 
     editor_ptr->when_cursor_moved.connect([this](EventContext&) { this->update_status_bar(); });
     doc->on_changed = [this, editor_ptr]() {
+        editor_ptr->calculate_layout();
         editor_ptr->invalidate();
         this->update_status_bar();
     };
