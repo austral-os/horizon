@@ -40,8 +40,14 @@ TerminalWindow::TerminalWindow()
             m_tabs->remove_tab(index);
             if (m_tabs->tab_count() == 0) {
                 application()->quit();
+            } else {
+                focus_current_terminal();
             }
         });
+    });
+
+    m_tabs->when_tab_selected.connect([this](int) {
+        focus_current_terminal();
     });
     
     // Set it as the content of the ApplicationWindow
@@ -62,10 +68,7 @@ TerminalWindow::TerminalWindow()
         if (application()->is_fullscreen()) {
             application()->unfullscreen();
         } else {
-            // Ensure we have a focused terminal to target
-            if (m_tabs->current_tab_body()) {
-                m_tabs->current_tab_body()->set_focus(true);
-            }
+            focus_current_terminal();
             application()->fullscreen();
         }
     });
@@ -109,6 +112,22 @@ void TerminalWindow::create_new_tab() {
         });
     } else {
         ptr->set_focus(true);
+    }
+}
+
+void TerminalWindow::focus_current_terminal() {
+    if (!m_tabs) return;
+
+    auto* terminal = dynamic_cast<TerminalWidget*>(m_tabs->current_tab_body());
+    if (!terminal) return;
+
+    auto* app = application();
+    if (app) {
+        app->post_task([terminal]() {
+            terminal->set_focus(true);
+        });
+    } else {
+        terminal->set_focus(true);
     }
 }
 

@@ -16,6 +16,8 @@ public:
     void create_new_tab();
 
 private:
+    void focus_current_terminal();
+
     TabCollection* m_tabs;
     TerminalToolbar* m_toolbar;
     TerminalColorScheme m_scheme;
