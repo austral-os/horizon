@@ -149,6 +149,14 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
     int cursor_pixel_y = PANGO_PIXELS(cursor_rect.y);
     int cursor_pixel_h = PANGO_PIXELS(cursor_rect.height);
 
+    if (m_highlight_current_line) {
+        Color line_color = tm->get_variant() == "light" ? bg_color.darker(8.0f) : bg_color.lighter(8.0f);
+        line_color = line_color.with_alpha(0.85f);
+        cairo_set_source_rgba(cr, line_color.r, line_color.g, line_color.b, line_color.a);
+        cairo_rectangle(cr, tx, ty + cursor_pixel_y, std::max(0, m_width - margin_x), cursor_pixel_h);
+        cairo_fill(cr);
+    }
+
     // 5. Draw Selection Highlight (Behind text)
     if (sel_start != sel_end) {
         int s_idx = std::max(0, std::min((int)u32_text.length(), std::min(sel_start, sel_end)));
