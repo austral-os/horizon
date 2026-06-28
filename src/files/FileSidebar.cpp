@@ -342,51 +342,48 @@ namespace horizon::files
         {
             for (const auto &part : disk->partitions)
             {
-                if (disk->is_removable || part->is_mounted)
+                if (!has_devices)
                 {
-                    if (!has_devices)
-                    {
-                        add_group("Devices");
-                        has_devices = true;
-                    }
-
-                    std::string label = part->label.empty() ? part->name : part->label;
-                    std::string icon =
-                        disk->is_removable ? "drive-removable-media" : "drive-harddisk";
-
-                    auto item =
-                        std::make_unique<DiskSidebarItem>(icon, label, part.get(), &m_disk_manager, this);
-
-                    if (part->is_mounted)
-                    {
-                        item->set_path(part->mount_point);
-                    }
-                    else
-                    {
-                        std::string dev_path = part->device_path;
-                        item->when_click.connect(
-                            [this, dev_path](auto &)
-                            {
-                                auto result = m_disk_manager.mount_partition(dev_path, "");
-                                if (result.success)
-                                {
-                                    std::thread(
-                                        [this]()
-                                        {
-                                            std::this_thread::sleep_for(
-                                                std::chrono::milliseconds(500));
-                                            if (application())
-                                            {
-                                                application()->post_task(
-                                                    [this]() { this->refresh_devices(); });
-                                            }
-                                        })
-                                        .detach();
-                                }
-                            });
-                    }
-                    add_item("Devices", std::move(item));
+                    add_group("Devices");
+                    has_devices = true;
                 }
+
+                std::string label = part->label.empty() ? part->name : part->label;
+                std::string icon =
+                    disk->is_removable ? "drive-removable-media" : "drive-harddisk";
+
+                auto item =
+                    std::make_unique<DiskSidebarItem>(icon, label, part.get(), &m_disk_manager, this);
+
+                if (part->is_mounted)
+                {
+                    item->set_path(part->mount_point);
+                }
+                else
+                {
+                    std::string dev_path = part->device_path;
+                    item->when_click.connect(
+                        [this, dev_path](auto &)
+                        {
+                            auto result = m_disk_manager.mount_partition(dev_path, "");
+                            if (result.success)
+                            {
+                                std::thread(
+                                    [this]()
+                                    {
+                                        std::this_thread::sleep_for(
+                                            std::chrono::milliseconds(500));
+                                        if (application())
+                                        {
+                                            application()->post_task(
+                                                [this]() { this->refresh_devices(); });
+                                        }
+                                    })
+                                    .detach();
+                            }
+                        });
+                }
+                add_item("Devices", std::move(item));
             }
         }
 
