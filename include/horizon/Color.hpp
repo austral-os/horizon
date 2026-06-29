@@ -27,6 +27,10 @@ namespace horizon
         void to_hsv(float &h, float &s, float &v) const;
         void to_rgb(float &out_r, float &out_g, float &out_b, float &out_a) const;
 
+        // luminancia y oscuridad
+        float relative_luminance() const;
+        bool is_dark() const;
+
         // generacion de variantes
         Color lighter(float percent) const; // 0-100
         Color darker(float percent) const;

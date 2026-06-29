@@ -424,6 +424,12 @@ namespace horizon
         return font_definition{};
     }
 
+    bool ThemeManager::is_dark() const
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return get_color("window_bg").is_dark();
+    }
+
     float ThemeManager::get_panel_opacity() const
     {
         std::lock_guard<std::recursive_mutex> lock(mutex);

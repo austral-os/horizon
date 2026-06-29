@@ -20,7 +20,7 @@ namespace horizon
             Color col1 = Color(0.8f, 0.9f, 0.4f, 1.0f);
             Color col2 = Color(0.8f, 0.8f, 0.4f, 1.0f);
 
-            if (theme_manager()->get_variant() == "dark")
+            if (theme_manager()->is_dark())
             {
                 col1 = Color(0.22f, 0.26f, 0.16f, 1.0f);
                 col2 = Color(0.13f, 0.16f, 0.10f, 1.0f);
@@ -108,7 +108,7 @@ namespace horizon
 
         auto update_label_colors = [name_lbl_ptr = name_lbl.get(), value_lbl_ptr = value_lbl.get()]() {
             Color lbl_color = Color(0.2f, 0.3f, 0.1f, 1.0f);
-            if (theme_manager()->get_variant() == "dark")
+            if (theme_manager()->is_dark())
             {
                 lbl_color = Color(0.8f, 0.9f, 0.4f, 1.0f);
             }
@@ -168,7 +168,7 @@ namespace horizon
             m_history.erase(m_history.begin());
 
         Color series_color = Color(0.2f, 0.3f, 0.1f);
-        if (theme_manager()->get_variant() == "dark")
+        if (theme_manager()->is_dark())
         {
             series_color = Color(0.8f, 0.9f, 0.4f);
         }

@@ -38,6 +38,8 @@ namespace horizon
         std::string get_variant() const;
         void set_variant(const std::string &variant_name);
 
+        bool is_dark() const;
+
         font_definition get_font(const std::string &role) const;
 
         float get_panel_opacity() const;

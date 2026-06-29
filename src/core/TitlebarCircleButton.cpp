@@ -17,11 +17,11 @@ namespace horizon
         // std::cout << "TitlebarCircleButton::draw" << std::endl;
 
         auto *tm = theme_manager();
-        auto variant = tm->get_variant();
+        bool dark = tm->is_dark();
 
-        Color border = variant == "dark" ? tm->get_color("titlebar_border").darker(20.0f)
-                                         : tm->get_color("titlebar_border");
-        Color border2 = variant == "dark" ? border.lighter(20.0f) : border.lighter(90.0f);
+        Color border = dark ? tm->get_color("titlebar_border").darker(20.0f)
+                            : tm->get_color("titlebar_border");
+        Color border2 = dark ? border.lighter(20.0f) : border.lighter(90.0f);
 
         int radius = m_width / 2;
         int center_x = m_start_draw_x + m_width / 2;

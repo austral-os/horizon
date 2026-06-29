@@ -78,6 +78,29 @@ namespace horizon
         rgb_to_hsv(r, g, b, h, s, v);
     }
 
+    // WCAG 2.0 relative luminance — sRGB linearization helper
+    static float srgb_linearize(float channel)
+    {
+        if (channel <= 0.04045f)
+            return channel / 12.92f;
+        return std::pow((channel + 0.055f) / 1.055f, 2.4f);
+    }
+
+    // WCAG 2.0 relative luminance
+    float Color::relative_luminance() const
+    {
+        float rl = srgb_linearize(clamp(r));
+        float gl = srgb_linearize(clamp(g));
+        float bl = srgb_linearize(clamp(b));
+        return 0.2126f * rl + 0.7152f * gl + 0.0722f * bl;
+    }
+
+    // true when the color is closer to white text than black text by WCAG contrast
+    bool Color::is_dark() const
+    {
+        return relative_luminance() < 0.179f;
+    }
+
     // lighter
     Color Color::lighter(float percent) const
     {
