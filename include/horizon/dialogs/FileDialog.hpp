@@ -5,6 +5,11 @@
 #include <string>
 #include <vector>
 
+namespace horizon::arkutils
+{
+    struct FileInfo;
+}
+
 namespace horizon::files
 {
     class FileView;
@@ -60,6 +65,7 @@ namespace horizon
     private:
         void setup_ui();
         void handle_accept();
+        void handle_item_selected(const arkutils::FileInfo &file);
 
         FileDialogMode m_mode;
         files::FileView *m_view{nullptr};

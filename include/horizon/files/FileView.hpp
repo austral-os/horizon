@@ -58,6 +58,7 @@ namespace horizon::files
 
         // Signals
         EventsManager<PathChangedEvent> when_path_changed;
+        EventsManager<arkutils::FileInfo> when_item_selected;
         EventsManager<arkutils::FileInfo> when_item_opened;
         EventsManager<OperationProgressEvent> when_operation_progress;
 

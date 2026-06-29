@@ -175,6 +175,12 @@ namespace horizon
         set_root(std::move(window_widget));
 
         // Connect view selection to filename input
+        m_view->when_item_selected.connect(
+            [this](const arkutils::FileInfo &f)
+            {
+                handle_item_selected(f);
+            });
+
         m_view->when_item_opened.connect(
             [this](const arkutils::FileInfo &f)
             {
@@ -207,6 +213,15 @@ namespace horizon
         when_accepted.run(ctx);
         
         on_close();
+    }
+
+    void FileDialog::handle_item_selected(const arkutils::FileInfo &file)
+    {
+        if ((m_mode == FileDialogMode::Save || m_mode == FileDialogMode::SaveAs) &&
+            file.type == arkutils::FileType::Regular)
+        {
+            m_filename_input->set_text(file.name);
+        }
     }
 
     void FileDialog::set_current_path(const std::string &path)

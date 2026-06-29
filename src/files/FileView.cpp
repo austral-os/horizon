@@ -46,6 +46,12 @@ namespace horizon::files
             view->set_show_hidden_files(m_show_hidden_files);
             view->set_file_filter(m_file_filter);
             if (m_click_behavior == ClickBehavior::Double) {
+                view->when_row_click.connect(
+                    [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
+                    {
+                        auto selected = ctx.row_data;
+                        this->when_item_selected.run(selected);
+                    });
                 view->when_row_dbl_click.connect(
                     [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
                     {
@@ -55,6 +61,8 @@ namespace horizon::files
                 view->when_row_click.connect(
                     [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
                     {
+                        auto selected = ctx.row_data;
+                        this->when_item_selected.run(selected);
                         this->open_item(ctx.row_data);
                     });
             }
@@ -77,6 +85,12 @@ namespace horizon::files
             view->set_show_hidden_files(m_show_hidden_files);
             view->set_file_filter(m_file_filter);
             if (m_click_behavior == ClickBehavior::Double) {
+                view->when_item_click.connect(
+                    [this](horizon::IconViewItemMouseClickContext<arkutils::FileInfo> &ctx)
+                    {
+                        auto selected = ctx.item_data;
+                        this->when_item_selected.run(selected);
+                    });
                 view->when_item_dbl_click.connect(
                     [this](horizon::IconViewItemMouseClickContext<arkutils::FileInfo> &ctx)
                     {
@@ -86,6 +100,8 @@ namespace horizon::files
                 view->when_item_click.connect(
                     [this](horizon::IconViewItemMouseClickContext<arkutils::FileInfo> &ctx)
                     {
+                        auto selected = ctx.item_data;
+                        this->when_item_selected.run(selected);
                         this->open_item(ctx.item_data);
                     });
             }
@@ -107,6 +123,12 @@ namespace horizon::files
             view->set_show_hidden_files(m_show_hidden_files);
             view->set_file_filter(m_file_filter);
             if (m_click_behavior == ClickBehavior::Double) {
+                view->when_row_click.connect(
+                    [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
+                    {
+                        auto selected = ctx.row_data;
+                        this->when_item_selected.run(selected);
+                    });
                 view->when_row_dbl_click.connect(
                     [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
                     {
@@ -116,6 +138,8 @@ namespace horizon::files
                 view->when_row_click.connect(
                     [this](horizon::TableViewRowMouseClickContext<arkutils::FileInfo> &ctx)
                     {
+                        auto selected = ctx.row_data;
+                        this->when_item_selected.run(selected);
                         this->open_item(ctx.row_data);
                     });
             }
