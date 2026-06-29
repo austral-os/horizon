@@ -60,7 +60,9 @@
             "file": {
                 "no_selection": "Sin selección",
                 "browse": "Examinar...",
-                "select_title": "Seleccionar"
+                "select_title": "Seleccionar",
+                "overwrite_title": "¿Reemplazar archivo?",
+                "overwrite_message": "Ya existe un archivo llamado '{name}'. ¿Desea reemplazarlo?"
             }
         },
         "global_menu": {

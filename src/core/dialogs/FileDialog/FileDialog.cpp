@@ -5,6 +5,7 @@
 #include <horizon/AquaObject.hpp>
 #include <horizon/Button.hpp>
 #include <horizon/Combo.hpp>
+#include <horizon/I18n.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/Spacer.hpp>
@@ -209,6 +210,15 @@ namespace horizon
         if ((m_mode == FileDialogMode::Save || m_mode == FileDialogMode::SaveAs) && !p.has_extension())
         {
             p += extension_for_selected_filter();
+        }
+
+        if ((m_mode == FileDialogMode::Save || m_mode == FileDialogMode::SaveAs) &&
+            std::filesystem::exists(p) &&
+            !confirm(i18n().tr("core.dialog.file.overwrite_message", {{"name", p.filename().string()}}),
+                     i18n().tr("core.dialog.file.overwrite_title"),
+                     MessageType::Question))
+        {
+            return;
         }
         
         FileDialogAcceptedContext ctx;
