@@ -628,6 +628,7 @@ namespace horizon
             true; /**< True until the first buffer is committed. Breaking Meteor deadlock. */
         std::unordered_set<Widget *> m_dirty_widgets; /**< List of widgets that need re-rendering. */
         int m_wakeup_fd{-1};                   /**< File descriptor for waking up the event loop. */
+        int m_signal_fd{-1};                  /**< signalfd for SIGINT/SIGTERM. */
 
         Widget *m_hovered = nullptr; /**< The widget currently under the mouse pointer. */
         Widget *m_pressed = nullptr; /**< The widget currently being pressed by a mouse button. */

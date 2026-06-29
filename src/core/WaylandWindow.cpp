@@ -31,7 +31,9 @@
 #include <linux/input-event-codes.h>
 #include <memory>
 #include <poll.h>
+#include <signal.h>
 #include <sys/eventfd.h>
+#include <sys/signalfd.h>
 #include <unistd.h>
 
 namespace horizon
@@ -238,6 +240,10 @@ namespace horizon
         if (m_wakeup_fd >= 0)
         {
             close(m_wakeup_fd);
+        }
+        if (m_signal_fd >= 0)
+        {
+            close(m_signal_fd);
         }
     }
 
@@ -749,11 +755,27 @@ namespace horizon
 
         notify_app_manager("app_started");
 
-        struct pollfd fds[2];
+        // OS signal handling: block SIGINT/SIGTERM and receive them via signalfd
+        // so they integrate with the poll() loop instead of interrupting arbitrarily.
+        sigset_t signal_mask;
+        sigemptyset(&signal_mask);
+        sigaddset(&signal_mask, SIGINT);
+        sigaddset(&signal_mask, SIGTERM);
+        pthread_sigmask(SIG_BLOCK, &signal_mask, nullptr);
+
+        m_signal_fd = signalfd(-1, &signal_mask, SFD_NONBLOCK | SFD_CLOEXEC);
+        if (m_signal_fd < 0)
+        {
+            LOG_ERROR << "[APP] Failed to create signalfd: " << strerror(errno);
+        }
+
+        struct pollfd fds[3];
         fds[0].fd = wl_display_get_fd(m_surface->display());
         fds[0].events = POLLIN;
         fds[1].fd = m_wakeup_fd;
         fds[1].events = POLLIN;
+        fds[2].fd = m_signal_fd >= 0 ? m_signal_fd : -1;
+        fds[2].events = POLLIN;
 
         while (m_is_running)
         {
@@ -1026,7 +1048,7 @@ namespace horizon
                 if (timeout == -1 || timeout > 100)
                     timeout = 100; // Never block for more than 100ms
 
-                int ret = poll(fds, 2, timeout);
+                int ret = poll(fds, 3, timeout);
                 if (ret < 0)
                 {
                     wl_display_cancel_read(m_surface->display());
@@ -1100,6 +1122,20 @@ namespace horizon
                         {
                             // ignore error
                         }
+                    }
+                    if (m_signal_fd >= 0 && (fds[2].revents & POLLIN))
+                    {
+                        // Drain all queued signal events
+                        struct signalfd_siginfo info;
+                        while (read(m_signal_fd, &info, sizeof(info)) > 0)
+                        {
+                            LOG_INFO << "[APP] OS signal received: "
+                                     << (info.ssi_signo == SIGINT ? "SIGINT" :
+                                         info.ssi_signo == SIGTERM ? "SIGTERM" :
+                                         std::to_string(info.ssi_signo));
+                        }
+                        // Trigger graceful close — goes through when_close save-check
+                        this->on_close();
                     }
                 }
 

@@ -43,6 +43,15 @@ namespace horizon
         // Global safeguard: ignore SIGPIPE to prevent crash when writing to broken sockets
         signal(SIGPIPE, SIG_IGN);
 
+        // Block SIGINT/SIGTERM process-wide so they can only be received via signalfd
+        // in the WaylandWindow event loop. This ensures the save-check can intercept them.
+        // The mask is inherited by all threads created after this point.
+        sigset_t signal_mask;
+        sigemptyset(&signal_mask);
+        sigaddset(&signal_mask, SIGINT);
+        sigaddset(&signal_mask, SIGTERM);
+        pthread_sigmask(SIG_BLOCK, &signal_mask, nullptr);
+
         // Initialize i18n
         i18n(); // Ensure singleton is initialized, it will load core locales automatically
 
