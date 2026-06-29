@@ -328,8 +328,8 @@ namespace horizon::portal
             dbus_message_iter_next(&iter);
         }
 
-        // We could parse options dict here, but for now we default to what the mode specifies.
         bool directory = false;
+        bool multiple = false;
         std::vector<horizon::FileFilter> file_filters;
 
         // Parse options (a{sv})
@@ -350,6 +350,14 @@ namespace horizon::portal
                     if (dbus_message_iter_get_arg_type(&var_iter) == DBUS_TYPE_BOOLEAN) {
                         dbus_message_iter_get_basic(&var_iter, &val);
                         directory = val;
+                    }
+                } else if (std::string(key) == "multiple") {
+                    DBusMessageIter var_iter;
+                    dbus_message_iter_recurse(&entry_iter, &var_iter);
+                    dbus_bool_t val;
+                    if (dbus_message_iter_get_arg_type(&var_iter) == DBUS_TYPE_BOOLEAN) {
+                        dbus_message_iter_get_basic(&var_iter, &val);
+                        multiple = val;
                     }
                 } else if (std::string(key) == "filters") {
                     DBusMessageIter var_iter;
@@ -432,12 +440,15 @@ namespace horizon::portal
         dbus_message_ref(msg);
 
         // Run dialog in a new thread
-        std::thread([this, conn, msg, request_obj, mode, directory, s_title, handle_path, file_filters]() {
+        std::thread([this, conn, msg, request_obj, mode, directory, multiple, s_title, handle_path, file_filters]() {
             FileDialogMode dialog_mode = FileDialogMode::Open;
             if (mode == 1 || mode == 2) dialog_mode = FileDialogMode::Save;
             if (directory) dialog_mode = FileDialogMode::SelectFolder;
 
             auto dialog = std::make_unique<horizon::FileDialog>(dialog_mode, s_title);
+            if (mode == 0 && !directory) {
+                dialog->set_select_multiple(multiple);
+            }
             
             if (!file_filters.empty()) {
                 dialog->set_filters(file_filters);
@@ -450,7 +461,13 @@ namespace horizon::portal
 
             dialog->when_accepted.connect([&](horizon::FileDialogAcceptedContext& ctx) {
                 response_code = 0; // Success
-                uris.push_back("file://" + ctx.selected_path);
+                if (!ctx.selected_paths.empty()) {
+                    for (const auto& path : ctx.selected_paths) {
+                        uris.push_back("file://" + path);
+                    }
+                } else if (!ctx.selected_path.empty()) {
+                    uris.push_back("file://" + ctx.selected_path);
+                }
                 done = true;
                 dialog->quit();
             });

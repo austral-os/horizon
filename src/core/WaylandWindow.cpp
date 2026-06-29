@@ -594,14 +594,33 @@ namespace horizon
                                                 dialog->set_filters(filters);
                                             }
 
+                                            dialog->set_select_multiple(win->allows_multiple_open_files());
+
                                             dialog->when_accepted.connect(
                                                 [win](FileDialogAcceptedContext &ctx)
-                                               {
-                                                   Window::FileOpenedContext fctx;
-                                                   fctx.path = ctx.selected_path;
-                                                   win->when_file_opened.run(fctx);
-                                                   win->signals.emit("file.opened", &fctx);
-                                               });
+                                                {
+                                                    Window::FileOpenedContext fctx;
+                                                    if (!ctx.selected_paths.empty())
+                                                    {
+                                                        fctx.paths = ctx.selected_paths;
+                                                    }
+                                                    else if (!ctx.selected_path.empty())
+                                                    {
+                                                        fctx.paths.push_back(ctx.selected_path);
+                                                    }
+
+                                                    if (!fctx.paths.empty())
+                                                    {
+                                                        fctx.path = fctx.paths.front();
+                                                    }
+                                                    else
+                                                    {
+                                                        fctx.path = ctx.selected_path;
+                                                    }
+
+                                                    win->when_file_opened.run(fctx);
+                                                    win->signals.emit("file.opened", &fctx);
+                                                });
 
                                            dialog->run();
                                        }).detach();

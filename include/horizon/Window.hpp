@@ -42,6 +42,7 @@ namespace horizon
         virtual uint32_t file_capabilities() const { return FileNone; }
         virtual std::string current_file_path() const { return ""; }
         virtual std::vector<FileFilter> file_filters() const { return {}; }
+        virtual bool allows_multiple_open_files() const { return false; }
 
         bool draw_background() const { return m_draw_background; }
         void set_draw_background(bool draw) { m_draw_background = draw; invalidate(); }
@@ -51,6 +52,7 @@ namespace horizon
         struct FileOpenedContext : public EventContext
         {
             std::string path;
+            std::vector<std::string> paths;
         };
 
         struct FileSaveContext : public EventContext

@@ -28,6 +28,7 @@ namespace horizon
     {
     public:
         std::string selected_path;
+        std::vector<std::string> selected_paths;
     };
 
     class FileDialogCancelledContext : public EventContext
@@ -54,6 +55,8 @@ namespace horizon
 
         void set_current_path(const std::string &path);
         std::string selected_path() const;
+        void set_select_multiple(bool select_multiple);
+        bool select_multiple() const;
 
         EventsManager<FileDialogAcceptedContext> when_accepted;
         EventsManager<FileDialogCancelledContext> when_cancelled;
@@ -62,6 +65,7 @@ namespace horizon
         void setup_ui();
         void handle_accept();
         void handle_item_selected(const arkutils::FileInfo &file);
+        void accept_paths(const std::vector<std::string> &paths);
         std::string extension_for_selected_filter() const;
 
         FileDialogMode m_mode;
@@ -72,5 +76,6 @@ namespace horizon
         TextBoxBase *m_filename_input{nullptr};
         Combo *m_filter_combo{nullptr};
         std::vector<FileFilter> m_filters;
+        bool m_select_multiple{false};
     };
 } // namespace horizon

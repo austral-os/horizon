@@ -60,12 +60,45 @@ FileDialog(FileDialogMode mode, const std::string &title = "");
 ### Methods
 *   `void set_current_path(const std::string &path)`: Changes the current directory shown in the dialog.
 *   `std::string selected_path() const`: Returns the full path currently entered or selected in the dialog.
+*   `void set_select_multiple(bool select_multiple)`: Enables multiple file selection for `Open` mode. This is ignored by save-oriented flows.
+*   `bool select_multiple() const`: Returns whether multiple selection is enabled.
 
 ### Signals (EventsManager)
-*   `when_accepted`: `EventsManager<FileDialogAcceptedContext>`. Executed when the user confirms the action (clicking Open/Save or pressing Enter in the text field). The context contains the `selected_path` property.
+*   `when_accepted`: `EventsManager<FileDialogAcceptedContext>`. Executed when the user confirms the action (clicking Open/Save or pressing Enter in the text field). The context contains `selected_path` for backward compatibility and `selected_paths` for all accepted paths.
 *   `when_cancelled`: `EventsManager<FileDialogCancelledContext>`. Executed when the user closes the dialog or clicks "Cancel".
 
-## 4. File Filtering (`FileFilter`)
+### Accepted context
+
+| Property | Meaning |
+| :--- | :--- |
+| `selected_path` | The accepted path. In multiple-selection mode, this is the first selected path. |
+| `selected_paths` | All accepted paths. In single-selection mode, this contains one item. |
+
+`selected_path` remains available so existing applications do not need to change when they only support one file.
+
+## 4. Multiple Selection
+
+Multiple selection is supported for `FileDialogMode::Open`:
+
+```cpp
+auto dialog = std::make_unique<horizon::FileDialog>(
+    horizon::FileDialogMode::Open,
+    "Open Documents"
+);
+
+dialog->set_select_multiple(true);
+dialog->when_accepted.connect([](horizon::FileDialogAcceptedContext &ctx) {
+    for (const auto &path : ctx.selected_paths) {
+        // Open each selected file.
+    }
+});
+```
+
+Only regular files are returned from an open-file multiple selection. Directories continue to behave as navigation targets.
+
+When Horizon is used as an XDG Desktop Portal backend, `xdg-desktop-portal-horizon` maps the standard `org.freedesktop.portal.FileChooser.OpenFile` `multiple` option to this mode and returns all selected files in the portal `uris` result.
+
+## 5. File Filtering (`FileFilter`)
 
 The selection dialog allows you to restrict file visibility (except for directories, which are always shown) by defining filters based on extensions or patterns.
 
@@ -117,14 +150,14 @@ If `usage` is omitted, it defaults to `FileFilterUsage::All`, so existing two-fi
 {"Images", {"*.png", "*.jpg"}} // Applies to all dialog modes.
 ```
 
-## 5. Implementation Details and Navigation
+## 6. Implementation Details and Navigation
 
 *   **Sidebar**: Provides quick access to system folders like **All My Files**, **Applications**, **Desktop**, **Documents**, **Downloads**, and **iCloud Drive**.
 *   **Search**: The toolbar includes a real-time filtered search field.
 *   **View Modes**: The user can toggle between **Icon (Grid)**, **List**, and **CoverFlow** views using the toolbar controls.
 *   **Navigation**: Supports backward and forward navigation, similar to a web browser.
 
-## 6. Considerations for Save Mode
+## 7. Considerations for Save Mode
 
 In `Save` or `SaveAs` mode, the dialog allows the user to type a file name that does not yet exist in the current directory. The `when_accepted` signal will return the full path constructed from the current directory and the entered name.
 

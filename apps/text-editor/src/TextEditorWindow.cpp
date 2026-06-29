@@ -30,7 +30,18 @@ std::vector<FileFilter> text_file_filters() {
         setup_ui();
 
         when_file_opened.connect([this](Window::FileOpenedContext& ctx) {
-            this->open_file(ctx.path);
+            if (!ctx.paths.empty()) {
+                for (const auto& path : ctx.paths) {
+                    if (!path.empty()) {
+                        this->open_file(path);
+                    }
+                }
+                return;
+            }
+
+            if (!ctx.path.empty()) {
+                this->open_file(ctx.path);
+            }
         });
 
         set_accept_drops(true);

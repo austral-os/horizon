@@ -188,7 +188,9 @@ namespace horizon
                 if (f.type == arkutils::FileType::Regular)
                 {
                     m_filename_input->set_text(f.name);
-                    if (m_mode == FileDialogMode::Open)
+                    if (m_mode == FileDialogMode::Open && m_select_multiple)
+                        accept_paths({f.path});
+                    else if (m_mode == FileDialogMode::Open)
                         handle_accept();
                 }
             });
@@ -196,6 +198,31 @@ namespace horizon
 
     void FileDialog::handle_accept()
     {
+        if (m_mode == FileDialogMode::Open && m_select_multiple)
+        {
+            std::vector<std::string> paths;
+            for (const auto &file : m_view->get_selection())
+            {
+                if (file.type == arkutils::FileType::Regular)
+                    paths.push_back(file.path);
+            }
+
+            if (!paths.empty())
+            {
+                accept_paths(paths);
+                return;
+            }
+
+            const std::string filename = m_filename_input->text();
+            if (filename.empty())
+                return;
+
+            const auto p = std::filesystem::path(m_view->current_path()) / filename;
+            if (std::filesystem::is_regular_file(p))
+                accept_paths({p.string()});
+            return;
+        }
+
         std::string filename = m_filename_input->text();
         if (filename.empty())
         {
@@ -224,8 +251,23 @@ namespace horizon
         FileDialogAcceptedContext ctx;
         ctx.sender = this;
         ctx.selected_path = p.string();
+        ctx.selected_paths = {ctx.selected_path};
         when_accepted.run(ctx);
         
+        on_close();
+    }
+
+    void FileDialog::accept_paths(const std::vector<std::string> &paths)
+    {
+        if (paths.empty())
+            return;
+
+        FileDialogAcceptedContext ctx;
+        ctx.sender = this;
+        ctx.selected_path = paths.front();
+        ctx.selected_paths = paths;
+        when_accepted.run(ctx);
+
         on_close();
     }
 
@@ -261,6 +303,16 @@ namespace horizon
     std::string FileDialog::selected_path() const
     {
         return std::filesystem::path(m_view->current_path()) / m_filename_input->text();
+    }
+
+    void FileDialog::set_select_multiple(bool select_multiple)
+    {
+        m_select_multiple = select_multiple;
+    }
+
+    bool FileDialog::select_multiple() const
+    {
+        return m_select_multiple;
     }
 
     void FileDialog::set_filters(const std::vector<FileFilter>& filters)
