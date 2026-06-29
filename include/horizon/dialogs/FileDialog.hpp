@@ -2,6 +2,7 @@
 
 #include "horizon/WaylandWindow.hpp"
 #include "horizon/EventsManager.hpp"
+#include "horizon/dialogs/FileFilter.hpp"
 #include <string>
 #include <vector>
 
@@ -43,11 +44,6 @@ namespace horizon
         New
     };
 
-    struct FileFilter {
-        std::string name;
-        std::vector<std::string> patterns;
-    };
-
     class FileDialog : public WaylandWindow
     {
     public:
@@ -66,6 +62,7 @@ namespace horizon
         void setup_ui();
         void handle_accept();
         void handle_item_selected(const arkutils::FileInfo &file);
+        std::string extension_for_selected_filter() const;
 
         FileDialogMode m_mode;
         files::FileView *m_view{nullptr};

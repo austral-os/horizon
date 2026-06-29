@@ -17,6 +17,7 @@ public:
 
     uint32_t file_capabilities() const override { return FileAll; }
     std::string current_file_path() const override;
+    std::vector<FileFilter> file_filters() const override;
 
     void open_file(const std::string& path);
     void new_file();

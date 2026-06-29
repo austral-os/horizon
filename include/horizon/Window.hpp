@@ -4,7 +4,9 @@
 #include "horizon/Titlebar.hpp"
 #include <horizon/GraphicsContext.hpp>
 #include <horizon/SignalManager.hpp>
+#include <horizon/dialogs/FileFilter.hpp>
 #include <string>
+#include <vector>
 
 namespace horizon
 {
@@ -39,6 +41,7 @@ namespace horizon
 
         virtual uint32_t file_capabilities() const { return FileNone; }
         virtual std::string current_file_path() const { return ""; }
+        virtual std::vector<FileFilter> file_filters() const { return {}; }
 
         bool draw_background() const { return m_draw_background; }
         void set_draw_background(bool draw) { m_draw_background = draw; invalidate(); }

@@ -12,6 +12,16 @@
 namespace horizon {
 namespace text_editor {
 
+namespace {
+std::vector<FileFilter> text_file_filters() {
+    return {
+        {"Archivo TXT", {"*.txt"}, FileFilterUsage::All},
+        {"Archivo MD", {"*.md"}, FileFilterUsage::All},
+        {"All Files", {"*"}, FileFilterUsage::All}
+    };
+}
+}
+
     TextEditorWindow::TextEditorWindow() 
         : ApplicationWindow("Text Editor") {
         i18n().load_app_locales("text-editor");
@@ -205,6 +215,10 @@ std::string TextEditorWindow::current_file_path() const {
         }
     }
     return "";
+}
+
+std::vector<FileFilter> TextEditorWindow::file_filters() const {
+    return text_file_filters();
 }
 
 void TextEditorWindow::save_current_file() {

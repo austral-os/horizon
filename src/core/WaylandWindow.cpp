@@ -36,6 +36,23 @@
 
 namespace horizon
 {
+    namespace
+    {
+        std::vector<FileFilter> filters_for_usage(const std::vector<FileFilter> &filters,
+                                                  FileFilterUsage usage)
+        {
+            std::vector<FileFilter> result;
+            for (const auto &filter : filters)
+            {
+                if (filter.usage == FileFilterUsage::All || filter.usage == usage)
+                {
+                    result.push_back(filter);
+                }
+            }
+            return result;
+        }
+    }
+
     WaylandWindow *WaylandWindow::m_active_window = nullptr;
 
     static const char *VERTEX_SHADER = "attribute vec3 position;\n"
@@ -567,12 +584,18 @@ namespace horizon
                                    LOG_INFO << "WaylandWindow: Received 'file.open' signal";
                                    if (Window *win = find_window_target(m_root.get()))
                                    {
-                                       std::thread([this, win]() {
-                                           auto dialog = std::make_unique<FileDialog>(
-                                               FileDialogMode::Open, i18n().tr("core.global_menu.file_open"));
+                                        std::thread([this, win]() {
+                                            auto dialog = std::make_unique<FileDialog>(
+                                                FileDialogMode::Open, i18n().tr("core.global_menu.file_open"));
 
-                                           dialog->when_accepted.connect(
-                                               [win](FileDialogAcceptedContext &ctx)
+                                            auto filters = filters_for_usage(win->file_filters(), FileFilterUsage::Open);
+                                            if (!filters.empty())
+                                            {
+                                                dialog->set_filters(filters);
+                                            }
+
+                                            dialog->when_accepted.connect(
+                                                [win](FileDialogAcceptedContext &ctx)
                                                {
                                                    Window::FileOpenedContext fctx;
                                                    fctx.path = ctx.selected_path;
@@ -649,6 +672,12 @@ namespace horizon
                                            {
                                                dialog->set_current_path(current_path);
                                            }
+
+                                            auto filters = filters_for_usage(win->file_filters(), FileFilterUsage::Save);
+                                            if (!filters.empty())
+                                            {
+                                                dialog->set_filters(filters);
+                                            }
 
                                            dialog->when_accepted.connect(
                                                [win](FileDialogAcceptedContext &ctx)

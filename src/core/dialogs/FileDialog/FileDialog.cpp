@@ -206,6 +206,10 @@ namespace horizon
         }
 
         std::filesystem::path p = std::filesystem::path(m_view->current_path()) / filename;
+        if ((m_mode == FileDialogMode::Save || m_mode == FileDialogMode::SaveAs) && !p.has_extension())
+        {
+            p += extension_for_selected_filter();
+        }
         
         FileDialogAcceptedContext ctx;
         ctx.sender = this;
@@ -269,11 +273,35 @@ namespace horizon
                 if (idx >= 0 && idx < (int)m_filters.size()) {
                     if (m_view) {
                         m_view->set_file_filter(m_filters[idx].patterns);
-                        m_view->refresh();
                     }
                 }
             });
         }
+    }
+
+    std::string FileDialog::extension_for_selected_filter() const
+    {
+        if (!m_filter_combo)
+            return {};
+
+        int idx = m_filter_combo->selected_item_index();
+        if (idx < 0 || idx >= static_cast<int>(m_filters.size()))
+            return {};
+
+        const auto &patterns = m_filters[idx].patterns;
+        if (patterns.size() != 1)
+            return {};
+
+        const std::string &pattern = patterns[0];
+        if (pattern.size() <= 2 || pattern[0] != '*' || pattern[1] != '.')
+            return {};
+
+        const std::string extension = pattern.substr(1);
+        if (extension.find('*') != std::string::npos || extension.find('?') != std::string::npos ||
+            extension.find('/') != std::string::npos || extension.find('\\') != std::string::npos)
+            return {};
+
+        return extension;
     }
 
 } // namespace horizon

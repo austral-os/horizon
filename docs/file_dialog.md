@@ -65,11 +65,13 @@ FileDialog(FileDialogMode mode, const std::string &title = "");
 *   `when_accepted`: `EventsManager<FileDialogAcceptedContext>`. Executed when the user confirms the action (clicking Open/Save or pressing Enter in the text field). The context contains the `selected_path` property.
 *   `when_cancelled`: `EventsManager<FileDialogCancelledContext>`. Executed when the user closes the dialog or clicks "Cancel".
 
-## 4. File Filtering (FileFilters)
+## 4. File Filtering (`FileFilter`)
 
 The selection dialog allows you to restrict file visibility (except for directories, which are always shown) by defining filters based on extensions or patterns.
 
-To enable this feature, you need to declare an array of `horizon::FileFilter` structures and pass it to the dialog:
+### Direct dialog usage
+
+To enable filtering on a manually created `FileDialog`, declare a list of `horizon::FileFilter` structures and pass it to the dialog before calling `run()`:
 
 ```cpp
 std::vector<horizon::FileFilter> filters = {
@@ -79,11 +81,41 @@ std::vector<horizon::FileFilter> filters = {
     {"All Files", {"*"}}
 };
 
-// You must inject the list of filters before running the dialog
 dialog->set_filters(filters);
 ```
 
 When filters are injected, the dialog interface will automatically display a drop-down menu (Combo box) at the bottom. By selecting an option from the menu, the current view will dynamically refresh, hiding all files that do not match the `glob` patterns or extensions of the active filter.
+
+### Window-level filters for application actions
+
+Applications that use the standard `file.open`, `file.save`, or `file.save_as` actions should expose supported formats once from their `Window` subclass:
+
+```cpp
+#include <horizon/dialogs/FileFilter.hpp>
+
+std::vector<horizon::FileFilter> MyWindow::file_filters() const
+{
+    return {
+        {"Text Files", {"*.txt"}, horizon::FileFilterUsage::All},
+        {"Markdown Files", {"*.md"}, horizon::FileFilterUsage::All},
+        {"All Files", {"*"}, horizon::FileFilterUsage::All}
+    };
+}
+```
+
+The framework applies these filters automatically when it creates the standard file dialog:
+
+| Usage | Dialogs that receive the filter |
+| :--- | :--- |
+| `FileFilterUsage::All` | `Open`, `Save`, and `SaveAs` |
+| `FileFilterUsage::Open` | `Open` only |
+| `FileFilterUsage::Save` | `Save` and `SaveAs` only |
+
+If `usage` is omitted, it defaults to `FileFilterUsage::All`, so existing two-field initializers remain valid:
+
+```cpp
+{"Images", {"*.png", "*.jpg"}} // Applies to all dialog modes.
+```
 
 ## 5. Implementation Details and Navigation
 
@@ -95,6 +127,12 @@ When filters are injected, the dialog interface will automatically display a dro
 ## 6. Considerations for Save Mode
 
 In `Save` or `SaveAs` mode, the dialog allows the user to type a file name that does not yet exist in the current directory. The `when_accepted` signal will return the full path constructed from the current directory and the entered name.
+
+When the active filter has a single concrete extension pattern such as `*.txt` or `*.md`, saving an extensionless filename appends that extension automatically. For example, entering `notes` with a `*.md` filter returns `notes.md`.
+
+The `All Files` filter should use the `*` pattern. It does not append or enforce any extension, so users can type any filename they need.
+
+Selecting an existing regular file in `Save` or `SaveAs` mode fills the filename text field without accepting the dialog. This supports overwrite flows: users can click an existing file to copy its name, then explicitly confirm with **Save**.
 
 ---
 > [!TIP]
