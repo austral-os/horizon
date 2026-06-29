@@ -242,6 +242,45 @@ namespace horizon
         {
             return false;
         }
+
+        // --- Save Check (content-modified tracking) ---
+        /**
+         * @brief Whether this widget tracks content modification for save-check.
+         * Override to return true in widgets that hold user-editable content.
+         */
+        virtual bool supports_save_check() const
+        {
+            return false;
+        }
+
+        /**
+         * @brief Whether the content has been modified since the last save.
+         * The default implementation reads the m_content_modified flag.
+         * Override to delegate to an external model (e.g. TextDocument).
+         */
+        virtual bool is_content_modified() const
+        {
+            return m_content_modified;
+        }
+
+        /**
+         * @brief Marks the content as modified (true) or not (false).
+         * This does NOT affect the render-dirty flag (m_dirty).
+         * Call this when the widget's data content changes.
+         */
+        virtual void set_content_modified(bool modified)
+        {
+            m_content_modified = modified;
+        }
+
+        /**
+         * @brief Convenience: clears the content-modified flag after saving.
+         */
+        void clear_content_modified()
+        {
+            set_content_modified(false);
+        }
+
         virtual bool can_perform(ClipboardAction action) const
         {
             return false;
@@ -415,6 +454,7 @@ namespace horizon
         size_t m_next_handler_id{0};
         bool m_dirty{true};
         bool m_child_dirty{true};
+        bool m_content_modified{false}; /**< Content-modified flag, independent of render-dirty. */
 
         std::chrono::steady_clock::time_point m_last_click_time;
         uint32_t m_last_click_button{0};

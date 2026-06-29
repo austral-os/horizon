@@ -87,6 +87,10 @@
             "zoom_out": "Alejar",
             "print": "Imprimir"
         },
+        "save_check": {
+            "unsaved_title": "Cambios sin guardar",
+            "unsaved_message": "Hay cambios sin guardar. Si cierra, se perderán.\n\n¿Desea cerrar de todas formas?"
+        },
         "color_picker": {
             "html_notation": "Notación HTML:"
         },

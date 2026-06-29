@@ -614,7 +614,12 @@ int TextEditorWidget::preferred_height() const {
     return 600;
 }
 
-bool TextEditorWidget::can_perform(ClipboardAction action) const {
+    bool TextEditorWidget::is_content_modified() const
+    {
+        return m_doc ? m_doc->is_dirty() : Widget::is_content_modified();
+    }
+
+    bool TextEditorWidget::can_perform(ClipboardAction action) const {
     if (!m_doc) return false;
     switch (action) {
         case ClipboardAction::Copy:

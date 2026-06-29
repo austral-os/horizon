@@ -10,6 +10,10 @@
             "highlight_current_line": "Resaltar línea actual",
             "show_line_numbers": "Mostrar números de línea"
         },
+        "save_check": {
+            "tab_unsaved_title": "Pestaña sin guardar",
+            "tab_unsaved_message": "Esta pestaña tiene cambios sin guardar. Si la cierra, se perderán.\n\n¿Cerrar de todas formas?"
+        },
         "toolbar": {
             "new": "Nuevo archivo",
             "open": "Abrir archivo",

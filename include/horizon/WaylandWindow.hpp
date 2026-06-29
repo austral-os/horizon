@@ -558,6 +558,11 @@ namespace horizon
 
         class Window *find_window_target(Widget *root);
 
+        // --- Save Check (public, used by Application/Window subclasses) ---
+        bool detect_save_check_support(Widget *root);
+        bool has_dirty_save_check_widgets(Widget *root);
+        void collect_dirty_save_check_widgets(Widget *root, std::vector<Widget*> &result);
+
     protected:
         /**
          * @brief Notifies the application manager about lifecycle events.

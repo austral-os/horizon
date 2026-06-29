@@ -87,6 +87,10 @@
             "zoom_out": "Zoom Out",
             "print": "Print"
         },
+        "save_check": {
+            "unsaved_title": "Unsaved Changes",
+            "unsaved_message": "There are unsaved changes. If you close, they will be lost.\n\nDo you want to close anyway?"
+        },
         "color_picker": {
             "html_notation": "HTML Notation:"
         },

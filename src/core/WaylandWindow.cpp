@@ -144,6 +144,22 @@ namespace horizon
                                    this->post_task([this]() { this->on_close(); });
                                });
 
+        // 🔒 Save-check guard: intercept close if any child has unsaved content
+        when_close.connect([this](AppEventContext &ev)
+                           {
+                               if (!m_root) return;
+                               if (!detect_save_check_support(m_root.get())) return;
+                               if (!has_dirty_save_check_widgets(m_root.get())) return;
+
+                               bool should_close = this->confirm(
+                                   i18n().tr("core.save_check.unsaved_message"),
+                                   i18n().tr("core.save_check.unsaved_title"));
+                               if (!should_close)
+                               {
+                                   ev.stop_propagation = true;
+                               }
+                           });
+
         signal_manager.connect("fullscreen",
                                [this](SignalContext &p)
                                {
@@ -4032,6 +4048,49 @@ namespace horizon
                 return win;
         }
         return nullptr;
+    }
+
+    bool WaylandWindow::detect_save_check_support(Widget *root)
+    {
+        if (!root)
+            return false;
+        if (root->supports_save_check())
+            return true;
+        for (const auto &child : root->children())
+        {
+            if (detect_save_check_support(child.get()))
+                return true;
+        }
+        return false;
+    }
+
+    bool WaylandWindow::has_dirty_save_check_widgets(Widget *root)
+    {
+        if (!root)
+            return false;
+        if (root->supports_save_check() && root->is_content_modified())
+            return true;
+        for (const auto &child : root->children())
+        {
+            if (has_dirty_save_check_widgets(child.get()))
+                return true;
+        }
+        return false;
+    }
+
+    void WaylandWindow::collect_dirty_save_check_widgets(Widget *root,
+                                                         std::vector<Widget*> &result)
+    {
+        if (!root)
+            return;
+        if (root->supports_save_check() && root->is_content_modified())
+        {
+            result.push_back(root);
+        }
+        for (const auto &child : root->children())
+        {
+            collect_dirty_save_check_widgets(child.get(), result);
+        }
     }
 
     void WaylandWindow::alert(const std::string &message, const std::string &title,

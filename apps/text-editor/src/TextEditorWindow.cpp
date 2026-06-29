@@ -147,12 +147,20 @@ void TextEditorWindow::setup_ui() {
     m_tabs->set_smart_header(true);
     m_tabs->set_closable_tabs(true);
     
-    m_tabs->when_tab_close_requested.connect([this](int index) {
-        m_tabs->remove_tab(index);
-        if (m_tabs->tab_count() == 0) {
-            new_file();
-        }
-    });
+        m_tabs->when_tab_close_requested.connect([this](int index) {
+            // Save-check: ask confirmation if the tab's content has unsaved changes
+            Widget *body = m_tabs->tab_body(index);
+            if (body && application() && application()->has_dirty_save_check_widgets(body)) {
+                bool should_close = application()->confirm(
+                    i18n().tr("text_editor.save_check.tab_unsaved_message"),
+                    i18n().tr("text_editor.save_check.tab_unsaved_title"));
+                if (!should_close) return;
+            }
+            m_tabs->remove_tab(index);
+            if (m_tabs->tab_count() == 0) {
+                new_file();
+            }
+        });
     
     m_tabs->when_add_tab_clicked.connect([this](EventContext&) {
         new_file();

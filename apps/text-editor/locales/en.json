@@ -10,6 +10,10 @@
             "highlight_current_line": "Highlight current line",
             "show_line_numbers": "Show line numbers"
         },
+        "save_check": {
+            "tab_unsaved_title": "Unsaved Tab",
+            "tab_unsaved_message": "This tab has unsaved changes. If you close it, they will be lost.\n\nClose anyway?"
+        },
         "toolbar": {
             "new": "New file",
             "open": "Open file",

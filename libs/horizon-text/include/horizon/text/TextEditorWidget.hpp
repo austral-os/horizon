@@ -43,6 +43,8 @@ public:
     bool supports_clipboard() const override { return true; }
     bool supports_undo() const override { return true; }
     bool supports_printing() const override { return true; }
+    bool supports_save_check() const override { return true; }
+    bool is_content_modified() const override;
     horizon::print::PrintDocument generate_print_document(const horizon::print::PrintConfig& config) override;
 
     bool can_perform(ClipboardAction action) const override;
