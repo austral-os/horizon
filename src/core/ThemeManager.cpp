@@ -1,6 +1,7 @@
 #include "horizon/ThemeManager.hpp"
 #include "horizon/EventsManager.hpp"
 
+#include <cctype>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -362,10 +363,82 @@ namespace horizon
         return true;
     }
 
+    // Resolve the path to an app's color-scheme.json
+    static std::string resolve_app_color_scheme_path_impl(const std::string &app_id)
+    {
+        // 1. Source tree (development)
+#ifdef HORIZON_SOURCE_DIR
+        {
+            std::string p = std::string(HORIZON_SOURCE_DIR) + "/apps/" + app_id + "/assets/color-scheme.json";
+            if (fs::exists(p))
+                return p;
+        }
+#endif
+
+        // 2. Installed system path
+        {
+            std::string p = "/usr/share/horizon/apps/" + app_id + "/color-scheme.json";
+            if (fs::exists(p))
+                return p;
+        }
+
+        // 3. Build directory (via HORIZON_BUILD_DIR)
+#ifdef HORIZON_BUILD_DIR
+        {
+            std::string p = std::string(HORIZON_BUILD_DIR) + "/apps/" + app_id + "/assets/color-scheme.json";
+            if (fs::exists(p))
+                return p;
+        }
+#endif
+
+        // 4. Executable directory (dev-copy from CMake POST_BUILD copies assets/ to $<TARGET_FILE_DIR>/assets/)
+        {
+            std::error_code ec;
+            auto exe_path = fs::read_symlink("/proc/self/exe", ec);
+            if (!ec)
+            {
+                std::string p = (exe_path.parent_path() / "assets" / "color-scheme.json").string();
+                if (fs::exists(p, ec))
+                    return p;
+            }
+        }
+
+        // 5. CWD-relative (running from project root)
+        {
+            std::string p = "apps/" + app_id + "/assets/color-scheme.json";
+            if (fs::exists(p))
+                return p;
+        }
+
+        return "";
+    }
+
     Color ThemeManager::get_color(const std::string &role) const
     {
         std::lock_guard<std::recursive_mutex> lock(mutex);
 
+        // Check active app scheme first
+        if (!m_active_app_id.empty())
+        {
+            auto app_it = m_app_schemes.find(m_active_app_id);
+            if (app_it != m_app_schemes.end())
+            {
+                const auto &app_data = app_it->second;
+                if (app_data.active_variant != "default")
+                {
+                    auto var_it = app_data.variants.find(app_data.active_variant);
+                    if (var_it != app_data.variants.end())
+                    {
+                        auto role_it = var_it->second.find(role);
+                        if (role_it != var_it->second.end())
+                            return role_it->second;
+                        // Role not in app variant — fall through to global
+                    }
+                }
+            }
+        }
+
+        // Fall back to global scheme
         auto scheme_it = color_schemes.find(active_variant);
         if (scheme_it == color_schemes.end())
             return Color();
@@ -442,7 +515,206 @@ namespace horizon
         return menu_opacity;
     }
 
+    bool ThemeManager::load_app_color_scheme(const std::string &app_id)
+    {
+        std::string path = resolve_app_color_scheme_path_impl(app_id);
+        debug_log("load_app_color_scheme(" + app_id + ") resolved to: " + (path.empty() ? "(not found)" : path));
 
+        if (path.empty())
+            return false;
+
+        std::ifstream file(path);
+        if (!file.is_open())
+        {
+            debug_log("load_app_color_scheme(" + app_id + ") — could not open file");
+            return false;
+        }
+
+        json j;
+        try
+        {
+            file >> j;
+        }
+        catch (const std::exception &e)
+        {
+            debug_log("load_app_color_scheme(" + app_id + ") — parse error: " + std::string(e.what()));
+            return false;
+        }
+
+        if (!j.contains("colors") || !j.contains("variant"))
+        {
+            debug_log("load_app_color_scheme(" + app_id + ") — missing 'colors' or 'variant'");
+            return false;
+        }
+
+        AppColorSchemeData data;
+
+        if (j["colors"].is_object())
+        {
+            for (auto &[variant_name, variant_colors] : j["colors"].items())
+            {
+                if (!variant_colors.is_object())
+                {
+                    debug_log("load_app_color_scheme(" + app_id + ") — skipping non-object variant '" + variant_name + "'");
+                    continue;
+                }
+                auto &target = data.variants[variant_name];
+                for (auto &[role, hex_val] : variant_colors.items())
+                {
+                    if (!hex_val.is_string())
+                    {
+                        debug_log("load_app_color_scheme(" + app_id + ") — skipping non-string color '" + role + "'");
+                        continue;
+                    }
+                    auto parsed = parse_hex(hex_val.get<std::string>());
+                    if (parsed.has_value())
+                    {
+                        target[role] = parsed.value();
+                    }
+                    else
+                    {
+                        debug_log("load_app_color_scheme(" + app_id + ") — skipping color '" + role + "': invalid hex string '" + hex_val.get<std::string>() + "'");
+                    }
+                }
+            }
+        }
+        else
+        {
+            debug_log("load_app_color_scheme(" + app_id + ") — 'colors' is not an object");
+        }
+
+        if (j["variant"].is_string())
+        {
+            data.default_variant = j["variant"].get<std::string>();
+        }
+        else
+        {
+            debug_log("load_app_color_scheme(" + app_id + ") — 'variant' is not a string, using 'light'");
+            data.default_variant = "light";
+        }
+        data.active_variant = data.default_variant;
+
+        size_t variant_count;
+        {
+            std::lock_guard<std::recursive_mutex> lock(mutex);
+            m_app_schemes[app_id] = std::move(data);
+            variant_count = m_app_schemes[app_id].variants.size();
+        }
+
+        debug_log("load_app_color_scheme(" + app_id + ") loaded " +
+                  std::to_string(variant_count) +
+                  " variants from " + path);
+        return true;
+    }
+
+    bool ThemeManager::activate_app_color_scheme(const std::string &app_id)
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+
+        auto it = m_app_schemes.find(app_id);
+        if (it == m_app_schemes.end())
+        {
+            debug_log("activate_app_color_scheme(" + app_id + ") — scheme not loaded");
+            return false;
+        }
+
+        m_active_app_id = app_id;
+
+        // Ensure active variant is initialized
+        if (it->second.active_variant.empty())
+        {
+            it->second.active_variant = it->second.default_variant;
+        }
+
+        debug_log("activate_app_color_scheme(" + app_id + ") activated, variant=" + it->second.active_variant);
+
+        ThemeEventContext ev;
+        ev.sender = this;
+        when_change.run(ev);
+
+        return true;
+    }
+
+    void ThemeManager::deactivate_app_color_scheme()
+    {
+        {
+            std::lock_guard<std::recursive_mutex> lock(mutex);
+            if (m_active_app_id.empty())
+                return;
+            m_active_app_id.clear();
+        }
+
+        ThemeEventContext ev;
+        ev.sender = this;
+        when_change.run(ev);
+    }
+
+    std::vector<std::string> ThemeManager::app_color_scheme_variants(const std::string &app_id) const
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+
+        std::vector<std::string> result;
+        result.push_back("default");
+
+        auto it = m_app_schemes.find(app_id);
+        if (it != m_app_schemes.end())
+        {
+            for (const auto &[name, _] : it->second.variants)
+            {
+                result.push_back(name);
+            }
+        }
+
+        return result;
+    }
+
+    std::string ThemeManager::get_app_color_scheme_variant(const std::string &app_id) const
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+
+        auto it = m_app_schemes.find(app_id);
+        if (it == m_app_schemes.end())
+            return "default";
+
+        return it->second.active_variant.empty() ? "default" : it->second.active_variant;
+    }
+
+    bool ThemeManager::set_app_color_scheme_variant(const std::string &app_id, const std::string &variant)
+    {
+        {
+            std::lock_guard<std::recursive_mutex> lock(mutex);
+
+            auto it = m_app_schemes.find(app_id);
+            if (it == m_app_schemes.end())
+                return false;
+
+            if (variant == "default")
+            {
+                it->second.active_variant = "default";
+                debug_log("set_app_color_scheme_variant(" + app_id + ", " + variant + ")");
+            }
+            else
+            {
+                if (it->second.variants.find(variant) == it->second.variants.end())
+                    return false;
+
+                it->second.active_variant = variant;
+                debug_log("set_app_color_scheme_variant(" + app_id + ", " + variant + ")");
+            }
+        }
+
+        ThemeEventContext ev;
+        ev.sender = this;
+        when_change.run(ev);
+
+        return true;
+    }
+
+    std::string ThemeManager::active_app_id() const
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+        return m_active_app_id;
+    }
 
     bool ThemeManager::parse_json(const json &j)
     {
@@ -457,7 +729,16 @@ namespace horizon
         {
             for (auto &[role, value] : scheme_value.items())
             {
-                color_schemes[scheme_name][role] = parse_hex(value.get<std::string>());
+                auto parsed = parse_hex(value.get<std::string>());
+                if (parsed.has_value())
+                {
+                    color_schemes[scheme_name][role] = parsed.value();
+                }
+                else
+                {
+                    debug_log("parse_json() — invalid hex '" + value.get<std::string>() + "' for role '" + role + "', using black fallback");
+                    color_schemes[scheme_name][role] = Color();
+                }
             }
         }
 
@@ -549,19 +830,33 @@ namespace horizon
         return j;
     }
 
-    Color ThemeManager::parse_hex(const std::string &hex)
+    std::optional<Color> ThemeManager::parse_hex(const std::string &hex)
     {
+        // Strict validation: only accept "#RRGGBB" format
+        if (hex.size() != 7 || hex[0] != '#')
+            return std::nullopt;
+
+        for (size_t i = 1; i < 7; ++i)
+        {
+            if (!std::isxdigit(static_cast<unsigned char>(hex[i])))
+                return std::nullopt;
+        }
+
         unsigned int r = 0, g = 0, b = 0;
 
-        std::sscanf(hex.c_str(), "#%02x%02x%02x", &r, &g, &b);
+        int n = std::sscanf(hex.c_str(), "#%02x%02x%02x", &r, &g, &b);
 
-        Color col;
-        col.r = r / 255.0f;
-        col.g = g / 255.0f;
-        col.b = b / 255.0f;
-        col.a = 1.0f;
+        if (n == 3)
+        {
+            Color col;
+            col.r = static_cast<float>(r) / 255.0f;
+            col.g = static_cast<float>(g) / 255.0f;
+            col.b = static_cast<float>(b) / 255.0f;
+            col.a = 1.0f;
+            return col;
+        }
 
-        return col;
+        return std::nullopt;
     }
 
     std::string ThemeManager::to_hex(const Color &c)

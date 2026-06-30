@@ -118,6 +118,22 @@ macro(horizon_install_app TARGET_NAME)
         )
     endif()
 
+    # Install Assets (color-scheme.json, etc.) — flattens assets/ contents into share/horizon/apps/${APP_APP_ID}/
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets")
+        install(DIRECTORY assets/
+            DESTINATION share/horizon/apps/${APP_APP_ID}
+            COMPONENT ${APP_APP_ID}
+        )
+
+        # Copy assets to build directory for local testing
+        add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_CURRENT_SOURCE_DIR}/assets
+            $<TARGET_FILE_DIR:${TARGET_NAME}>/assets
+            COMMENT "Copying app assets to build directory"
+        )
+    endif()
+
     # Track all app components globally so we can build a metapackage later
     set_property(GLOBAL APPEND PROPERTY HORIZON_APP_COMPONENTS ${APP_APP_ID})
 

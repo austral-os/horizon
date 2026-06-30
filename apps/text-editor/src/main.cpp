@@ -2,6 +2,7 @@
 #include "TextEditorGeneralSection.hpp"
 #include <horizon/Application.hpp>
 #include <horizon/I18n.hpp>
+#include <horizon/ThemeManager.hpp>
 #include <horizon/dialogs/PreferencesContent.hpp>
 #include <cstdlib>
 
@@ -12,6 +13,10 @@ int main(int argc, char** argv) {
     
     // Set up i18n
     i18n().load_app_locales("text-editor");
+
+    // Load and activate app-local color scheme
+    theme_manager()->load_app_color_scheme("text-editor");
+    theme_manager()->activate_app_color_scheme("text-editor");
     app.set_name(i18n().tr("text_editor.title"));
     app.set_icon_name("accessories-text-editor");
 
