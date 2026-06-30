@@ -133,6 +133,8 @@ Detailed guides on implementing core framework features:
 - [**Clipboard System**](docs/clipboard.md): Standardized signal-based copy, cut, and paste implementation.
 - [**Fullscreen System**](docs/fullscreen.md): Declarative fullscreen support and visual isolation protocol.
 - [**File Operations Standard**](docs/file_operations_standard.md): Automated file menu injection and standardized operations.
+- [**Save Check Standard**](docs/save_check_standard.md): Standardized unsaved-change protection before destructive actions.
+- [**App-Specific Color Schemes**](docs/app_color_schemes.md): Per-application color scheme assets and ThemeManager integration.
 - [**Localization (i18n)**](docs/localization.md): Native multi-language support with JSON backends.
 - **Dialog System**: Unified interface for user interaction via modal dialogs.
     - [**MessageDialog System**](docs/message_dialogs.md): Standardized alert and confirmation dialogs.
