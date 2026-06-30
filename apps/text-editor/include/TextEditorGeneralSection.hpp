@@ -6,6 +6,7 @@
 #include <horizon/Checkbox.hpp>
 #include <horizon/Combo.hpp>
 #include <horizon/FontSelector.hpp>
+#include <horizon/Spacer.hpp>
 #include <horizon/I18n.hpp>
 #include <horizon/ThemeManager.hpp>
 #include <functional>
@@ -18,38 +19,49 @@ class TextEditorGeneralSection : public Widget, public ConfigSection {
 public:
     TextEditorGeneralSection(std::function<void()> on_change) : Widget(), m_on_change(on_change) {
         set_layout_type(WIDGET_LAYOUT_VERTICAL);
-        set_margin(30);
+        set_margin(24);
         set_spacing(15);
 
         auto add_label = [this](const std::string &text) {
             auto label = std::make_unique<Label>(text);
             label->set_font_weight(FONT_WEIGHT_BOLD);
+            label->set_fixed_size(22);
             add_child(std::move(label));
         };
 
         // 1. Font
         add_label(i18n().tr("core.dialog.font.type_label"));
         auto font_selector = std::make_unique<FontSelector>();
+        font_selector->set_fixed_size(36);
         m_font_selector = font_selector.get();
         m_font_selector->when_font_changed.connect([this](const FontDialogAcceptedContext &) {
             if (m_on_change) m_on_change();
         });
         add_child(std::move(font_selector));
 
-        // 2. Color Scheme
+        // 2. Color Scheme — wrapped in a horizontal row so the combo
+        //    keeps a reasonable width instead of stretching full-width.
         add_label(i18n().tr("text_editor.preferences.color_scheme"));
-        auto color_scheme_combo = std::make_unique<Combo>();
-        color_scheme_combo->set_width(250);
-        for (const auto &variant : ThemeManager::instance().app_color_scheme_variants("text-editor")) {
-            color_scheme_combo->add_item(variant, variant);
+        auto combo_row = std::make_unique<Widget>();
+        combo_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        combo_row->set_fixed_size(30);
+        {
+            auto color_scheme_combo = std::make_unique<Combo>();
+            color_scheme_combo->set_width(250);
+            color_scheme_combo->set_fixed_size(250);
+            for (const auto &variant : ThemeManager::instance().app_color_scheme_variants("text-editor")) {
+                color_scheme_combo->add_item(variant, variant);
+            }
+            m_color_scheme_combo = color_scheme_combo.get();
+            m_color_scheme_combo->when_item_selected.connect([this](const ComboItemSelectedContext &ctx) {
+                if (m_loading) return;
+                ThemeManager::instance().set_app_color_scheme_variant("text-editor", ctx.item.id);
+                if (m_on_change) m_on_change();
+            });
+            combo_row->add_child(std::move(color_scheme_combo));
+            combo_row->add_child(Spacer());
         }
-        m_color_scheme_combo = color_scheme_combo.get();
-        m_color_scheme_combo->when_item_selected.connect([this](const ComboItemSelectedContext &ctx) {
-            if (m_loading) return;
-            ThemeManager::instance().set_app_color_scheme_variant("text-editor", ctx.item.id);
-            if (m_on_change) m_on_change();
-        });
-        add_child(std::move(color_scheme_combo));
+        add_child(std::move(combo_row));
 
         // 3. Highlight Line
         auto highlight_check = std::make_unique<Checkbox<AquaObject>>();
@@ -64,6 +76,10 @@ public:
         m_line_numbers_check = line_numbers_check.get();
         m_line_numbers_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
         add_child(std::move(line_numbers_check));
+
+        // 5. Bottom spacer: absorbs extra space when the dialog is resized taller,
+        //    keeping controls at the top.
+        add_child(Spacer());
     }
 
     void from_json(const nlohmann::json &j) override {
