@@ -3,6 +3,8 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <limits.h>
+#include <algorithm>
+#include <dirent.h>
 #include <horizon/Logger.hpp>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -77,6 +79,147 @@ bool I18n::load_app_locales(const std::string& app_id) {
     return any_loaded;
 }
 
+bool I18n::load_app_locale(const std::string& app_id, const std::string& locale) {
+    LOG_INFO << "I18n: Loading app locale '" << locale << "' for app: " << app_id;
+
+    // Build fallback chain: requested locale -> global locale chain -> en
+    std::vector<std::string> locales;
+
+    // 1. Requested locale with its own chain (e.g., "es_AR" -> ["es_AR", "es"])
+    auto requested_chain = resolve_locale_chain(locale);
+    for (const auto& l : requested_chain) {
+        if (std::find(locales.begin(), locales.end(), l) == locales.end()) {
+            locales.push_back(l);
+        }
+    }
+
+    // 2. Global locale chain as secondary fallback (if different from requested)
+    if (locale != m_current_locale) {
+        auto global_chain = resolve_locale_chain(m_current_locale);
+        for (const auto& l : global_chain) {
+            if (std::find(locales.begin(), locales.end(), l) == locales.end()) {
+                locales.push_back(l);
+            }
+        }
+    }
+
+    // 3. Always fall back to English
+    if (std::find(locales.begin(), locales.end(), "en") == locales.end()) {
+        locales.push_back("en");
+    }
+
+    bool any_loaded = false;
+    bool requested_loaded = false;
+    for (const auto& loc : locales) {
+        bool loaded = false;
+        for (const auto& base_path : s_search_paths) {
+            std::vector<std::string> candidates = {
+                base_path + "/apps/" + app_id + "/locales/" + loc + ".json",
+                base_path + "/libs/" + app_id + "/locales/" + loc + ".json",
+                base_path + "/" + app_id + "/locales/" + loc + ".json",
+                base_path + "/locales/" + loc + ".json",
+            };
+
+            for (const auto& path : candidates) {
+                if (load_locale(loc, path)) {
+                    loaded = true;
+                    any_loaded = true;
+                    if (std::find(requested_chain.begin(), requested_chain.end(), loc)
+                        != requested_chain.end()) {
+                        requested_loaded = true;
+                    }
+                    break;
+                }
+            }
+            if (loaded) break;
+        }
+    }
+
+    // Only switch locale and return true if the requested locale chain
+    // itself (e.g. "es_AR" -> "es") actually had translation files.
+    // If only fallback locales (global, en) loaded, return false so
+    // callers can fall back to the global default instead of setting
+    // an invalid current locale.
+    if (requested_loaded) {
+        // Propagate the global locale to the backend so translate() can
+        // fall back through it when the app locale doesn't have a key.
+        auto* jb = dynamic_cast<JsonBackend*>(m_backend.get());
+        if (jb && !m_global_locale.empty()) {
+            jb->set_global_locale(m_global_locale);
+        }
+        // Switch the current locale WITHOUT redefining the global fallback
+        set_current_locale(locale);
+    }
+
+    return requested_loaded;
+}
+
+std::vector<std::string> I18n::available_app_locales(const std::string& app_id) const {
+    std::vector<std::string> result;
+    for (const auto& base_path : s_search_paths) {
+        // Scan only the app-specific locale paths that load_app_locale()
+        // searches.  Do NOT scan the generic locales/ directory: its files
+        // are core/system locales, not per-app locale files, and including
+        // them would expose core locales as app options.
+        std::vector<std::string> dir_candidates = {
+            base_path + "/apps/" + app_id + "/locales/",
+            base_path + "/libs/" + app_id + "/locales/",
+            base_path + "/" + app_id + "/locales/",
+        };
+
+        for (const auto& dir_path : dir_candidates) {
+            DIR* d = opendir(dir_path.c_str());
+            if (!d) continue;
+            struct dirent* entry;
+            while ((entry = readdir(d)) != nullptr) {
+                std::string name(entry->d_name);
+                // Match *.json files, exclude hidden/dotfiles
+                if (name.size() > 5 && name.substr(name.size() - 5) == ".json" && name[0] != '.') {
+                    std::string code = name.substr(0, name.size() - 5);
+                    if (std::find(result.begin(), result.end(), code) == result.end()) {
+                        result.push_back(code);
+                    }
+                }
+            }
+            closedir(d);
+        }
+    }
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+std::string I18n::get_app_locale_display_name(const std::string& app_id, const std::string& locale) const {
+    // Search all app-specific file paths that load_app_locale() searches,
+    // keeping display-name resolution consistent with availability.
+    for (const auto& base_path : s_search_paths) {
+        std::vector<std::string> candidate_paths = {
+            base_path + "/apps/" + app_id + "/locales/" + locale + ".json",
+            base_path + "/libs/" + app_id + "/locales/" + locale + ".json",
+            base_path + "/" + app_id + "/locales/" + locale + ".json",
+        };
+
+        for (const auto& path : candidate_paths) {
+            std::ifstream f(path);
+            if (f.is_open()) {
+                try {
+                    nlohmann::json data;
+                    f >> data;
+                    if (data.contains("language") && data["language"].contains("local_name")) {
+                        return data["language"]["local_name"].get<std::string>();
+                    }
+                    // Fallback to generic "name" field
+                    if (data.contains("language") && data["language"].contains("name")) {
+                        return data["language"]["name"].get<std::string>();
+                    }
+                } catch (...) {
+                    // Ignore parse errors, fall through to next candidate
+                }
+            }
+        }
+    }
+    return locale;
+}
+
 void I18n::set_backend(std::unique_ptr<I18nBackend> backend) {
     m_backend = std::move(backend);
 }
@@ -95,6 +238,33 @@ void I18n::set_locale(const std::string& locale) {
         clean_locale = clean_locale.substr(0, dot);
     }
     
+    // Public set_locale() establishes the system/global locale:
+    // it updates BOTH global and current, and propagates the global
+    // fallback to the backend so translate() can use it.
+    m_global_locale = clean_locale;
+    m_current_locale = clean_locale;
+    m_backend->set_locale(clean_locale);
+    
+    // Propagate global locale to backend for fallback chain resolution
+    auto* jb = dynamic_cast<JsonBackend*>(m_backend.get());
+    if (jb) {
+        jb->set_global_locale(clean_locale);
+    }
+}
+
+void I18n::set_current_locale(const std::string& locale) {
+    if (!m_backend) return;
+    
+    std::string clean_locale = locale;
+    size_t dot = clean_locale.find('.');
+    if (dot != std::string::npos) {
+        clean_locale = clean_locale.substr(0, dot);
+    }
+    
+    // Internal-only: switch the active locale without touching
+    // the global fallback. The caller (e.g. load_app_locale())
+    // is responsible for propagating m_global_locale to the backend
+    // separately.
     m_current_locale = clean_locale;
     m_backend->set_locale(clean_locale);
 }

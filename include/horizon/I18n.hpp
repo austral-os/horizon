@@ -43,9 +43,19 @@ public:
     bool load_locale(const std::string& locale, const std::string& path);
 
     /**
-     * @brief Sets the active locale via the active backend.
+     * @brief Sets the system/global locale. Updates both the current locale 
+     * and the global fallback locale, propagating the global fallback to 
+     * the backend for correct translate() fallback chains.
      */
     void set_locale(const std::string& locale);
+
+    /**
+     * @brief Switches only the active current locale without altering the 
+     * global fallback. Used internally by load_app_locale() to temporarily 
+     * switch the current locale for an app override without redefining the 
+     * system-wide global fallback.
+     */
+    void set_current_locale(const std::string& locale);
 
     /**
      * @brief Translates a key with optional variables.
@@ -85,6 +95,31 @@ public:
     bool load_app_locales(const std::string& app_id);
 
     /**
+     * @brief Loads a single app-specific locale (e.g., "fr") independent of the global locale.
+     * Searches standard paths for apps/{app_id}/locales/{locale}.json and
+     * sets the active locale if found. Falls back gracefully via the normal
+     * translation chain.
+     */
+    bool load_app_locale(const std::string& app_id, const std::string& locale);
+
+    /**
+     * @brief Returns the list of available locale codes for an app by scanning
+     * locale files on disk (e.g., ["en", "es", "fr", "de", "pt", "it"]).
+     */
+    std::vector<std::string> available_app_locales(const std::string& app_id) const;
+
+    /**
+     * @brief Returns the local display name of an app locale from its file metadata.
+     * Reads "language.local_name" from the locale JSON. Falls back to the code.
+     */
+    std::string get_app_locale_display_name(const std::string& app_id, const std::string& locale) const;
+
+    /**
+     * @brief Returns the currently active locale code.
+     */
+    std::string current_locale() const { return m_current_locale; }
+
+    /**
      * @brief Resolves a locale chain (e.g., "es_AR" -> ["es_AR", "es"]).
      */
     static std::vector<std::string> resolve_locale_chain(const std::string& locale);
@@ -105,6 +140,7 @@ private:
     static std::vector<std::string> s_search_paths;
     std::unique_ptr<I18nBackend> m_backend;
     std::string m_current_locale;
+    std::string m_global_locale;
 };
 
 /**

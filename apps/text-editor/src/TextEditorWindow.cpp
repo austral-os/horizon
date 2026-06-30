@@ -25,7 +25,21 @@ std::vector<FileFilter> text_file_filters() {
 
     TextEditorWindow::TextEditorWindow() 
         : ApplicationWindow("Text Editor") {
-        i18n().load_app_locales("text-editor");
+        // Load language preference from config BEFORE setting title or building UI,
+        // so the correct locale is active for all i18n calls.
+        std::string lang = load_language_setting();
+        if (lang.empty() || lang == "default") {
+            // Follow global/fallback locale chain
+            i18n().load_app_locales("text-editor");
+        } else {
+            // Load the specific app locale
+            if (!i18n().load_app_locale("text-editor", lang)) {
+                // Invalid or missing locale — fall back to global default
+                LOG_WARNING << "TextEditor: language '" << lang << "' not found, falling back to global locale";
+                i18n().load_app_locales("text-editor");
+            }
+        }
+
         set_title(i18n().tr("text_editor.title"));
         set_size(1024, 768);
         setup_ui();
@@ -269,6 +283,23 @@ void TextEditorWindow::update_status_bar() {
 std::string TextEditorWindow::get_config_path() {
     char *home = std::getenv("HOME");
     return home ? std::string(home) + "/.config/horizon/text-editor.json" : "text-editor.json";
+}
+
+std::string TextEditorWindow::load_language_setting() {
+    std::string path = get_config_path();
+    std::ifstream file(path);
+    if (!file.is_open()) return "default";
+
+    try {
+        nlohmann::json j;
+        file >> j;
+        if (j.contains("editor") && j["editor"].contains("language")) {
+            return j["editor"]["language"].get<std::string>();
+        }
+    } catch (...) {
+        // Config parse error — fall back to default
+    }
+    return "default";
 }
 
 void TextEditorWindow::load_settings() {

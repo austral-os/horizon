@@ -26,6 +26,13 @@ public:
     void update_status_bar();
     void load_settings();
 
+    /**
+     * @brief Reads the language preference from config and loads the
+     *        corresponding app locale before UI construction.
+     * @return The selected locale code, or "default" if none.
+     */
+    std::string load_language_setting();
+
 protected:
     void setup_ui();
     void create_tab(const std::string& title, std::shared_ptr<horizon::text::TextDocument> doc);

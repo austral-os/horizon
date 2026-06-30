@@ -9,6 +9,7 @@
 #include <horizon/Spacer.hpp>
 #include <horizon/I18n.hpp>
 #include <horizon/ThemeManager.hpp>
+#include <horizon/Application.hpp>
 #include <functional>
 #include <string>
 
@@ -39,7 +40,47 @@ public:
         });
         add_child(std::move(font_selector));
 
-        // 2. Color Scheme — wrapped in a horizontal row so the combo
+        // 2. Language — wrapped in a horizontal row so the combo
+        //    keeps a reasonable width. Changes apply after restart.
+        add_label(i18n().tr("text_editor.preferences.language"));
+        {
+            auto lang_row = std::make_unique<Widget>();
+            lang_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+            lang_row->set_fixed_size(30);
+            {
+                auto lang_combo = std::make_unique<Combo>();
+                lang_combo->set_width(250);
+                lang_combo->set_fixed_size(250);
+
+                // "Default (System)" — always first
+                lang_combo->add_item("default", i18n().tr("text_editor.preferences.language_default"));
+
+                // Scan for available app locale files
+                auto available = i18n().available_app_locales("text-editor");
+                for (const auto& loc : available) {
+                    std::string display = i18n().get_app_locale_display_name("text-editor", loc);
+                    lang_combo->add_item(loc, display);
+                }
+
+                m_language_combo = lang_combo.get();
+                m_language_combo->when_item_selected.connect([this](const ComboItemSelectedContext &ctx) {
+                    if (m_loading) return;
+                    if (m_on_change) m_on_change();
+                    // Language changes only take effect after restart
+                    if (application()) {
+                        application()->alert(
+                            i18n().tr("text_editor.preferences.language_restart"),
+                            i18n().tr("text_editor.title"),
+                            MessageType::Info);
+                    }
+                });
+                lang_row->add_child(std::move(lang_combo));
+                lang_row->add_child(Spacer());
+            }
+            add_child(std::move(lang_row));
+        }
+
+        // 3. Color Scheme — wrapped in a horizontal row so the combo
         //    keeps a reasonable width instead of stretching full-width.
         add_label(i18n().tr("text_editor.preferences.color_scheme"));
         auto combo_row = std::make_unique<Widget>();
@@ -63,21 +104,21 @@ public:
         }
         add_child(std::move(combo_row));
 
-        // 3. Highlight Line
+        // 4. Highlight Line
         auto highlight_check = std::make_unique<Checkbox<AquaObject>>();
         highlight_check->set_text(i18n().tr("text_editor.preferences.highlight_current_line"));
         m_highlight_check = highlight_check.get();
         m_highlight_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
         add_child(std::move(highlight_check));
 
-        // 4. Line Numbers
+        // 5. Line Numbers
         auto line_numbers_check = std::make_unique<Checkbox<AquaObject>>();
         line_numbers_check->set_text(i18n().tr("text_editor.preferences.show_line_numbers"));
         m_line_numbers_check = line_numbers_check.get();
         m_line_numbers_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
         add_child(std::move(line_numbers_check));
 
-        // 5. Bottom spacer: absorbs extra space when the dialog is resized taller,
+        // 6. Bottom spacer: absorbs extra space when the dialog is resized taller,
         //    keeping controls at the top.
         add_child(Spacer());
     }
@@ -98,6 +139,11 @@ public:
         if (j.contains("show_line_numbers")) m_line_numbers_check->set_checked(j["show_line_numbers"].get<bool>());
 
         m_loading = true;
+
+        // Restore language selection (fallback: default)
+        m_language_combo->set_selected_item_by_id(j.value("language", "default"));
+
+        // Restore color scheme variant
         std::string variant = j.value("variant", "default");
         if (!ThemeManager::instance().set_app_color_scheme_variant("text-editor", variant)) {
             variant = "default";
@@ -115,6 +161,11 @@ public:
         j["font_weight"] = (sel.style.find("Bold") != std::string::npos || sel.style.find("bold") != std::string::npos) ? 1 : 0;
         j["highlight_line"] = m_highlight_check->is_checked();
         j["show_line_numbers"] = m_line_numbers_check->is_checked();
+        if (auto selected = m_language_combo->selected_item()) {
+            j["language"] = selected->id;
+        } else {
+            j["language"] = "default";
+        }
         if (auto selected = m_color_scheme_combo->selected_item()) {
             j["variant"] = selected->id;
         } else {
@@ -125,6 +176,7 @@ public:
 
 private:
     Combo *m_color_scheme_combo;
+    Combo *m_language_combo;
     FontSelector *m_font_selector;
     Checkbox<AquaObject> *m_highlight_check;
     Checkbox<AquaObject> *m_line_numbers_check;

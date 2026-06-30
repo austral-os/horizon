@@ -1,0 +1,34 @@
+{
+    "language": {
+        "local_name": "Français"
+    },
+    "text_editor": {
+        "title": "Éditeur de Texte",
+        "status": {
+            "line": "Ln",
+            "col": "Col",
+            "total": "Total"
+        },
+        "preferences": {
+            "language": "Langue",
+            "language_default": "Par défaut (Système)",
+            "language_restart": "Les changements de langue seront appliqués après redémarrage.",
+            "color_scheme": "Schéma de couleurs",
+            "highlight_current_line": "Surligner la ligne actuelle",
+            "show_line_numbers": "Afficher les numéros de ligne"
+        },
+        "save_check": {
+            "tab_unsaved_title": "Onglet non sauvegardé",
+            "tab_unsaved_message": "Cet onglet contient des modifications non sauvegardées. Si vous le fermez, elles seront perdues.\n\nFermer quand même?"
+        },
+        "toolbar": {
+            "new": "Nouveau fichier",
+            "open": "Ouvrir le fichier",
+            "save": "Enregistrer le fichier",
+            "undo": "Annuler",
+            "redo": "Rétablir",
+            "fullscreen": "Plein écran",
+            "preferences": "Préférences"
+        }
+    }
+}

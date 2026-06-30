@@ -1,4 +1,7 @@
 {
+    "language": {
+        "local_name": "Español"
+    },
     "text_editor": {
         "title": "Editor de Texto",
         "status": {
@@ -7,6 +10,9 @@
             "total": "Total"
         },
         "preferences": {
+            "language": "Idioma",
+            "language_default": "Predeterminado (Sistema)",
+            "language_restart": "Los cambios de idioma se aplicarán después de reiniciar.",
             "color_scheme": "Tema de colores",
             "highlight_current_line": "Resaltar línea actual",
             "show_line_numbers": "Mostrar números de línea"

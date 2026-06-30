@@ -1,0 +1,34 @@
+{
+    "language": {
+        "local_name": "Italiano"
+    },
+    "text_editor": {
+        "title": "Editor di Testo",
+        "status": {
+            "line": "Rg",
+            "col": "Cl",
+            "total": "Totale"
+        },
+        "preferences": {
+            "language": "Lingua",
+            "language_default": "Predefinito (Sistema)",
+            "language_restart": "Le modifiche alla lingua verranno applicate dopo il riavvio.",
+            "color_scheme": "Schema colori",
+            "highlight_current_line": "Evidenzia riga corrente",
+            "show_line_numbers": "Mostra numeri di riga"
+        },
+        "save_check": {
+            "tab_unsaved_title": "Scheda non salvata",
+            "tab_unsaved_message": "Questa scheda ha modifiche non salvate. Se la chiudi, andranno perse.\n\nChiudere comunque?"
+        },
+        "toolbar": {
+            "new": "Nuovo file",
+            "open": "Apri file",
+            "save": "Salva file",
+            "undo": "Annulla",
+            "redo": "Ripristina",
+            "fullscreen": "Attiva/disattiva schermo intero",
+            "preferences": "Preferenze"
+        }
+    }
+}

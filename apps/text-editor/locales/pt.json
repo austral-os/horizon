@@ -1,0 +1,34 @@
+{
+    "language": {
+        "local_name": "Português"
+    },
+    "text_editor": {
+        "title": "Editor de Texto",
+        "status": {
+            "line": "Ln",
+            "col": "Col",
+            "total": "Total"
+        },
+        "preferences": {
+            "language": "Idioma",
+            "language_default": "Padrão (Sistema)",
+            "language_restart": "As alterações de idioma serão aplicadas após reiniciar.",
+            "color_scheme": "Esquema de Cores",
+            "highlight_current_line": "Destacar linha atual",
+            "show_line_numbers": "Mostrar números de linha"
+        },
+        "save_check": {
+            "tab_unsaved_title": "Guia não salva",
+            "tab_unsaved_message": "Esta guia tem alterações não salvas. Se fechá-la, elas serão perdidas.\n\nFechar mesmo assim?"
+        },
+        "toolbar": {
+            "new": "Novo arquivo",
+            "open": "Abrir arquivo",
+            "save": "Salvar arquivo",
+            "undo": "Desfazer",
+            "redo": "Refazer",
+            "fullscreen": "Alternar tela cheia",
+            "preferences": "Preferências"
+        }
+    }
+}

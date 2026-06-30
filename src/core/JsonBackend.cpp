@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <algorithm>
 #include <horizon/Logger.hpp>
 
 namespace horizon {
@@ -17,19 +18,37 @@ namespace {
         }
     }
 
-    std::vector<std::string> resolve_chain(const std::string& locale) {
-        std::vector<std::string> chain;
-        if (!locale.empty()) {
+    // Append locale + its base (after underscore) to chain, avoiding duplicates
+    void add_locale_to_chain(std::vector<std::string>& chain, const std::string& locale) {
+        if (locale.empty()) return;
+        if (std::find(chain.begin(), chain.end(), locale) == chain.end()) {
             chain.push_back(locale);
-            size_t underscore = locale.find('_');
-            if (underscore != std::string::npos) {
-                chain.push_back(locale.substr(0, underscore));
+        }
+        size_t underscore = locale.find('_');
+        if (underscore != std::string::npos) {
+            std::string base = locale.substr(0, underscore);
+            if (std::find(chain.begin(), chain.end(), base) == chain.end()) {
+                chain.push_back(base);
             }
         }
-        // Universal fallback
-        if (locale != "en") {
+    }
+
+    std::vector<std::string> resolve_chain(const std::string& locale, const std::string& fallback) {
+        std::vector<std::string> chain;
+
+        // 1. Current locale with its own chain (e.g., "es_AR" -> ["es_AR", "es"])
+        add_locale_to_chain(chain, locale);
+
+        // 2. Global system locale as secondary fallback (if different from current)
+        if (!fallback.empty() && fallback != locale) {
+            add_locale_to_chain(chain, fallback);
+        }
+
+        // 3. Universal fallback: English
+        if (std::find(chain.begin(), chain.end(), "en") == chain.end()) {
             chain.push_back("en");
         }
+
         return chain;
     }
 }
@@ -74,7 +93,7 @@ bool JsonBackend::has_key(const std::string& key) const {
 }
 
 std::string JsonBackend::translate(const std::string& key, int count, const Params& vars) const {
-    auto chain = resolve_chain(m_current_locale);
+    auto chain = resolve_chain(m_current_locale, m_global_locale);
     const nlohmann::json* node = nullptr;
 
     for (const auto& loc : chain) {
@@ -152,7 +171,7 @@ std::string JsonBackend::interpolate(const std::string& input, const Params& var
 }
 
 const nlohmann::json* JsonBackend::find_node(const std::string& key) const {
-    auto chain = resolve_chain(m_current_locale);
+    auto chain = resolve_chain(m_current_locale, m_global_locale);
     for (const auto& loc : chain) {
         const nlohmann::json* node = find_node_in_locale(loc, key);
         if (node) return node;

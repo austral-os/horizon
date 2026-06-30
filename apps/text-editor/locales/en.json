@@ -1,4 +1,7 @@
 {
+    "language": {
+        "local_name": "English"
+    },
     "text_editor": {
         "title": "Text Editor",
         "status": {
@@ -7,6 +10,9 @@
             "total": "Total"
         },
         "preferences": {
+            "language": "Language",
+            "language_default": "Default (System)",
+            "language_restart": "Language changes will take effect after restart.",
             "color_scheme": "Color Scheme",
             "highlight_current_line": "Highlight current line",
             "show_line_numbers": "Show line numbers"
