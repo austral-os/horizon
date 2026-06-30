@@ -4,8 +4,10 @@
 #include <horizon/ConfigSection.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/Checkbox.hpp>
+#include <horizon/Combo.hpp>
 #include <horizon/FontSelector.hpp>
 #include <horizon/I18n.hpp>
+#include <horizon/ThemeManager.hpp>
 #include <functional>
 #include <string>
 
@@ -34,14 +36,29 @@ public:
         });
         add_child(std::move(font_selector));
 
-        // 2. Highlight Line
+        // 2. Color Scheme
+        add_label(i18n().tr("text_editor.preferences.color_scheme"));
+        auto color_scheme_combo = std::make_unique<Combo>();
+        color_scheme_combo->set_width(250);
+        for (const auto &variant : ThemeManager::instance().app_color_scheme_variants("text-editor")) {
+            color_scheme_combo->add_item(variant, variant);
+        }
+        m_color_scheme_combo = color_scheme_combo.get();
+        m_color_scheme_combo->when_item_selected.connect([this](const ComboItemSelectedContext &ctx) {
+            if (m_loading) return;
+            ThemeManager::instance().set_app_color_scheme_variant("text-editor", ctx.item.id);
+            if (m_on_change) m_on_change();
+        });
+        add_child(std::move(color_scheme_combo));
+
+        // 3. Highlight Line
         auto highlight_check = std::make_unique<Checkbox<AquaObject>>();
         highlight_check->set_text(i18n().tr("text_editor.preferences.highlight_current_line"));
         m_highlight_check = highlight_check.get();
         m_highlight_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
         add_child(std::move(highlight_check));
 
-        // 3. Line Numbers
+        // 4. Line Numbers
         auto line_numbers_check = std::make_unique<Checkbox<AquaObject>>();
         line_numbers_check->set_text(i18n().tr("text_editor.preferences.show_line_numbers"));
         m_line_numbers_check = line_numbers_check.get();
@@ -63,6 +80,15 @@ public:
 
         if (j.contains("highlight_line")) m_highlight_check->set_checked(j["highlight_line"].get<bool>());
         if (j.contains("show_line_numbers")) m_line_numbers_check->set_checked(j["show_line_numbers"].get<bool>());
+
+        m_loading = true;
+        std::string variant = j.value("variant", "default");
+        if (!ThemeManager::instance().set_app_color_scheme_variant("text-editor", variant)) {
+            variant = "default";
+            ThemeManager::instance().set_app_color_scheme_variant("text-editor", variant);
+        }
+        m_color_scheme_combo->set_selected_item_by_id(variant);
+        m_loading = false;
     }
 
     nlohmann::json to_json() const override {
@@ -73,13 +99,20 @@ public:
         j["font_weight"] = (sel.style.find("Bold") != std::string::npos || sel.style.find("bold") != std::string::npos) ? 1 : 0;
         j["highlight_line"] = m_highlight_check->is_checked();
         j["show_line_numbers"] = m_line_numbers_check->is_checked();
+        if (auto selected = m_color_scheme_combo->selected_item()) {
+            j["variant"] = selected->id;
+        } else {
+            j["variant"] = "default";
+        }
         return j;
     }
 
 private:
+    Combo *m_color_scheme_combo;
     FontSelector *m_font_selector;
     Checkbox<AquaObject> *m_highlight_check;
     Checkbox<AquaObject> *m_line_numbers_check;
+    bool m_loading = false;
     std::function<void()> m_on_change;
 };
 

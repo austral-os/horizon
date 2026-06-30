@@ -7,6 +7,7 @@
             "total": "Total"
         },
         "preferences": {
+            "color_scheme": "Color Scheme",
             "highlight_current_line": "Highlight current line",
             "show_line_numbers": "Show line numbers"
         },

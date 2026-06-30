@@ -5,6 +5,7 @@
 #include <horizon/I18n.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/ScrollArea.hpp>
+#include <horizon/ThemeManager.hpp>
 #include <horizon/dialogs/FileDialog.hpp>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -280,7 +281,13 @@ void TextEditorWindow::load_settings() {
         file >> j;
         if (j.contains("editor")) {
             auto config = j["editor"];
-            
+
+            // Apply color scheme variant before other settings
+            std::string variant = config.value("variant", "default");
+            if (!ThemeManager::instance().set_app_color_scheme_variant("text-editor", variant)) {
+                ThemeManager::instance().set_app_color_scheme_variant("text-editor", "default");
+            }
+
             for (int i = 0; i < m_tabs->tab_count(); ++i) {
                 auto* scroll = dynamic_cast<ScrollArea*>(m_tabs->tab_body(i));
                 if (scroll && !scroll->children().empty()) {
