@@ -132,11 +132,28 @@ namespace horizon
             m_compositor_context = std::make_unique<LabwcCompositorContext>(this);
         }
 
-        theme_manager()->when_change.connect(
-            [this](ThemeEventContext &p)
+        m_theme_token = std::make_shared<std::atomic<bool>>(true);
+        m_theme_change_connection = theme_manager()->when_change.connect(
+            [this, token = m_theme_token](ThemeEventContext &p)
             {
                 LOG_INFO << "Theme changed";
-                this->invalidate();
+                // Post task to own thread — ensures Widget tree access is safe
+                // even when when_change fires from a background thread
+                // (e.g. preferences dialog thread, inotify watcher thread).
+                //
+                // Both lambdas capture the shared lifetime token by value. If the
+                // window is destroyed while EventsManager::run() is iterating its
+                // copied handlers on another thread, the token is invalidated before
+                // disconnect() returns, so in-flight callbacks bail out without
+                // touching 'this'.
+                if (!token->load())
+                    return;
+                this->post_task([token, this]()
+                {
+                    if (!token->load())
+                        return;
+                    this->invalidate();
+                });
             });
 
         signal_manager.connect("quit",
@@ -196,8 +213,26 @@ namespace horizon
 
     WaylandWindow::~WaylandWindow()
     {
-        // DESTROY WIDGETS FIRST! 
-        // This prevents children like CoverFlow from accessing destroyed GL resources in m_app
+        // Step 1: Invalidate the shared lifetime token. Any theme callback already
+        // in-flight (copied by EventsManager::run() before we could disconnect on
+        // another thread) will check the token and bail without touching 'this'.
+        if (m_theme_token)
+            *m_theme_token = false;
+
+        // Step 2: Disconnect from theme change events to prevent NEW callbacks.
+        if (m_theme_change_connection.has_value())
+            theme_manager()->when_change.disconnect(*m_theme_change_connection);
+
+        // Step 3: Drain any tasks that captured stale 'this' pointers before the
+        // token was invalidated. Without this, the next event loop iteration would
+        // execute them on freed memory.
+        {
+            std::lock_guard<std::mutex> lock(m_task_mutex);
+            m_task_queue.clear();
+        }
+
+        // Step 4: DESTROY WIDGETS FIRST!
+        // This prevents children like CoverFlow from accessing destroyed GL resources
         m_root.reset();
 
         if (m_active_window == this)

@@ -445,5 +445,16 @@ add_custom_command(TARGET i18n_demo POST_BUILD
     COMMENT "Copying demo locales to build directory"
 )
 
+# --- Tests ---
+option(BUILD_TESTING "Build tests" OFF)
+if(BUILD_TESTING)
+    enable_testing()
+
+    add_executable(events_manager_test tests/events_manager_test.cpp)
+    target_link_libraries(events_manager_test PRIVATE horizon)
+    add_test(NAME events_manager_test COMMAND events_manager_test)
+    set_tests_properties(events_manager_test PROPERTIES TIMEOUT 10)
+endif()
+
 # --- Packaging ---
 include(cmake/HorizonPackaging.cmake)

@@ -717,6 +717,9 @@ namespace horizon
 
         void collect_focusable_widgets(Widget *root, std::vector<Widget *> &list);
 
+        std::shared_ptr<std::atomic<bool>> m_theme_token;
+        std::optional<size_t> m_theme_change_connection;
+
         PreferencesFactory m_preferences_factory;
         int m_preferences_width{500};
         int m_preferences_height{400};

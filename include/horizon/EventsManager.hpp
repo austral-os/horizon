@@ -7,6 +7,9 @@
 #include <map>
 #include <type_traits>
 #include <mutex>
+#include <condition_variable>
+#include <memory>
+#include <thread>
 
 namespace horizon
 {
@@ -166,7 +169,10 @@ namespace horizon
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             size_t id = m_next_id++;
-            m_handlers.push_back({id, std::move(callback)});
+            auto handler = std::make_shared<Handler>();
+            handler->id = id;
+            handler->callback = std::move(callback);
+            m_handlers.push_back(handler);
             return id;
         }
 
@@ -176,15 +182,24 @@ namespace horizon
          */
         void disconnect(size_t id)
         {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            for (auto it = m_handlers.begin(); it != m_handlers.end(); ++it)
+            std::shared_ptr<Handler> handler;
             {
-                if (it->id == id)
+                std::lock_guard<std::mutex> lock(m_mutex);
+                for (auto it = m_handlers.begin(); it != m_handlers.end(); ++it)
                 {
-                    m_handlers.erase(it);
-                    break;
+                    if ((*it)->id == id)
+                    {
+                        handler = *it;
+                        m_handlers.erase(it);
+                        break;
+                    }
                 }
             }
+
+            if (!handler)
+                return;
+
+            deactivate_and_wait(handler);
         }
 
         /**
@@ -192,8 +207,15 @@ namespace horizon
          */
         void disconnect_all()
         {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            m_handlers.clear();
+            std::vector<std::shared_ptr<Handler>> handlers;
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                handlers = m_handlers;
+                m_handlers.clear();
+            }
+
+            for (auto &handler : handlers)
+                deactivate_and_wait(handler);
         }
 
         /**
@@ -203,7 +225,7 @@ namespace horizon
         void run(EventT &context)
         {
             // We use a copy of the handlers to allow disconnection during execution.
-            std::vector<Handler> current_handlers;
+            std::vector<std::shared_ptr<Handler>> current_handlers;
             {
                 std::lock_guard<std::mutex> lock(m_mutex);
                 current_handlers = m_handlers;
@@ -211,16 +233,46 @@ namespace horizon
 
             for (auto &handler : current_handlers)
             {
-                if (handler.callback)
+                Callback callback;
                 {
-                    handler.callback(context);
+                    std::lock_guard<std::mutex> handler_lock(handler->mutex);
+                    if (!handler->active || !handler->callback)
+                        continue;
 
-                    if constexpr (std::is_base_of_v<EventContext, EventT>)
+                    handler->running++;
+                    handler->running_threads[std::this_thread::get_id()]++;
+                    callback = handler->callback;
+                }
+
+                struct RunningGuard
+                {
+                    std::shared_ptr<Handler> handler;
+
+                    ~RunningGuard()
                     {
-                        if (context.stop_propagation)
+                        std::lock_guard<std::mutex> handler_lock(handler->mutex);
+                        handler->running--;
+
+                        auto thread_it = handler->running_threads.find(std::this_thread::get_id());
+                        if (thread_it != handler->running_threads.end())
                         {
-                            break;
+                            if (thread_it->second <= 1)
+                                handler->running_threads.erase(thread_it);
+                            else
+                                thread_it->second--;
                         }
+
+                        handler->idle.notify_all();
+                    }
+                } running_guard{handler};
+
+                callback(context);
+
+                if constexpr (std::is_base_of_v<EventContext, EventT>)
+                {
+                    if (context.stop_propagation)
+                    {
+                        break;
                     }
                 }
             }
@@ -231,12 +283,33 @@ namespace horizon
         {
             size_t id;
             Callback callback;
+            bool active{true};
+            size_t running{0};
+            std::map<std::thread::id, size_t> running_threads;
+            std::mutex mutex;
+            std::condition_variable idle;
         };
 
-        std::vector<Handler> m_handlers;
+        void deactivate_and_wait(const std::shared_ptr<Handler> &handler)
+        {
+            std::unique_lock<std::mutex> lock(handler->mutex);
+            handler->active = false;
+
+            const auto current_thread = std::this_thread::get_id();
+            handler->idle.wait(lock,
+                               [&]()
+                               {
+                                   auto self_it = handler->running_threads.find(current_thread);
+                                   size_t self_running = self_it == handler->running_threads.end() ? 0 : self_it->second;
+                                   return handler->running == self_running;
+                               });
+
+            handler->callback = nullptr;
+        }
+
+        std::vector<std::shared_ptr<Handler>> m_handlers;
         size_t m_next_id{0};
         mutable std::mutex m_mutex;
     };
 
 } // namespace horizon
-
