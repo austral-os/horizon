@@ -125,6 +125,8 @@ int TerminalController::screen_settermprop(VTermProp prop, VTermValue *val, void
             VTermRect rect = {0, rows, 0, cols};
             self->m_damage_cb(rect);
         }
+    } else if (prop == VTERM_PROP_MOUSE) {
+        self->m_mouse_mode = val->number;
     }
     return 1;
 }

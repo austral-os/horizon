@@ -59,6 +59,8 @@ public:
 
     int get_total_rows() const;
 
+    bool is_altscreen() const { return m_is_altscreen; }
+    int mouse_mode() const { return m_mouse_mode; }
 
 private:
     std::deque<ScrollbackLine> m_scrollback_buffer;
@@ -67,6 +69,7 @@ private:
     VTerm* m_vt;
     VTermScreen* m_screen;
     bool m_is_altscreen{false};
+    int m_mouse_mode{VTERM_PROP_MOUSE_NONE};
     bool m_is_resizing{false};
     std::mutex m_mutex;
 

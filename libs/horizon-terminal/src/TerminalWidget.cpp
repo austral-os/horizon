@@ -612,6 +612,56 @@ void TerminalWidget::flush_pending_pty_data() {
 
 
 void TerminalWidget::handle_mouse_wheel(MouseWheelEventContext &ctx) {
+    // Ignore zero vertical delta: treat as no scroll event.
+    // Prevents spurious wheel-down dispatch when the compositor
+    // delivers a wheel event with no vertical displacement
+    // (e.g. horizontal-only scroll or button-release artifacts).
+    if (ctx.dy == 0) return;
+
+    // Alt-screen: forward wheel to the active terminal application
+    if (m_controller->is_altscreen()) {
+        // Compute 1-based terminal coordinates, clamped to [1, cols] and [1, rows]
+        int col = 1;
+        int row = 1;
+        if (m_char_width > 0 && m_char_height > 0) {
+            col = std::clamp((int)((ctx.x - this->x()) / m_char_width) + 1, 1, m_cols);
+            row = std::clamp((int)((ctx.y - this->y()) / m_char_height) + 1, 1, m_rows);
+        }
+
+        if (m_controller->mouse_mode() != VTERM_PROP_MOUSE_NONE) {
+            // Mouse tracking enabled: use SGR extended mouse encoding.
+            // Wheel up = button 64, wheel down = button 65.
+            int button = ctx.dy < 0 ? 64 : 65;
+            uint32_t mods = ctx.modifiers;
+            if (mods & horizon::WaylandWindow::Modifier::SHIFT) button |= 4;
+            if (mods & horizon::WaylandWindow::Modifier::ALT)   button |= 8;
+            if (mods & horizon::WaylandWindow::Modifier::CTRL)  button |= 16;
+
+            int count = ctx.dy < 0 ? static_cast<int>(-ctx.dy) : static_cast<int>(ctx.dy);
+            if (count < 1) count = 1;
+
+            for (int i = 0; i < count; ++i) {
+                std::string seq = "\x1b[<" + std::to_string(button) + ";"
+                                + std::to_string(col) + ";"
+                                + std::to_string(row) + "M";
+                m_pty->write(seq.data(), seq.size());
+            }
+        } else {
+            // Mouse tracking not enabled: fall back to cursor arrow sequences.
+            const char* arrow = ctx.dy < 0 ? "\x1b[A" : "\x1b[B";
+            int count = ctx.dy < 0 ? static_cast<int>(-ctx.dy) : static_cast<int>(ctx.dy);
+            if (count < 1) count = 1;
+
+            for (int i = 0; i < count; ++i) {
+                m_pty->write(arrow, 3);
+            }
+        }
+
+        ctx.stop_propagation = true;
+        return;
+    }
+
+    // Normal (non-alt-screen) scrollback scrolling
     if (!m_config.show_scrollbar && !m_config.scroll_without_scrollbar) return;
     
     int size = m_controller->get_scrollback_size();
