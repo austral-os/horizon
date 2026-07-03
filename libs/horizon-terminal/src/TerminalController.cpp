@@ -72,6 +72,15 @@ TerminalController::~TerminalController() {
 void TerminalController::push_data(const char* data, size_t len) {
     std::lock_guard<std::mutex> lock(m_mutex);
     vterm_input_write(m_vt, data, len);
+
+    // If libvterm's primary buffer was corrupted by a resize during altscreen,
+    // we must clear it immediately after vterm_input_write finishes processing
+    // the exit sequence (ESC[?1049l).
+    if (m_needs_clear) {
+        m_needs_clear = false;
+        vterm_input_write(m_vt, "\x1b[2J\x1b[H", 7);
+    }
+
     vterm_screen_flush_damage(m_screen);
 }
 
@@ -84,6 +93,11 @@ void TerminalController::resize(int rows, int cols) {
     m_is_resizing = true;
     vterm_set_size(m_vt, rows, cols);
     m_is_resizing = false;
+
+    // libvterm <= 0.3.3 does not resize the saved primary grid when altscreen is active.
+    if (m_is_altscreen) {
+        m_resized_during_altscreen = true;
+    }
 }
 
 // Callbacks
@@ -117,7 +131,61 @@ int TerminalController::screen_movecursor(VTermPos pos, VTermPos oldpos, int vis
 int TerminalController::screen_settermprop(VTermProp prop, VTermValue *val, void *user) {
     auto self = static_cast<TerminalController*>(user);
     if (prop == VTERM_PROP_ALTSCREEN) {
-        self->m_is_altscreen = val->boolean;
+        bool entering = val->boolean;
+        self->m_is_altscreen = entering;
+        
+        if (entering) {
+            self->m_resized_during_altscreen = false;
+            
+            // Workaround for libvterm memory corruption bug during resize in altscreen:
+            // Since libvterm doesn't resize the saved primary buffer, returning to it
+            // will read out-of-bounds into the freed altscreen buffer (showing garbage).
+            // To prevent total loss of history, we MANUALLY dump the entire primary screen
+            // to our scrollback buffer BEFORE altscreen takes over.
+            int rows, cols;
+            vterm_get_size(self->m_vt, &rows, &cols);
+            
+            // Find the last row with actual content to avoid pushing empty bottom space
+            int last_content_row = -1;
+            for (int r = rows - 1; r >= 0; --r) {
+                for (int c = 0; c < cols; ++c) {
+                    VTermScreenCell cell;
+                    vterm_screen_get_cell(self->m_screen, {r, c}, &cell);
+                    if (cell.chars[0] != 0 && cell.chars[0] != ' ') {
+                        last_content_row = r;
+                        break;
+                    }
+                }
+                if (last_content_row != -1) break;
+            }
+
+            for (int r = 0; r <= last_content_row; ++r) {
+                ScrollbackLine line;
+                line.wrapped = false;
+                for (int c = 0; c < cols; ++c) {
+                    VTermScreenCell cell;
+                    vterm_screen_get_cell(self->m_screen, {r, c}, &cell);
+                    line.cells.push_back(cell);
+                }
+                self->m_scrollback_buffer.push_front(line);
+                while (self->m_scrollback_buffer.size() > self->m_scrollback_limit) {
+                    self->m_scrollback_buffer.pop_back();
+                }
+            }
+        } else {
+            // We just exited altscreen.
+            // Libvterm's primary buffer may be completely corrupted (e.g. wrong size)
+            // or the app might have leaked garbage into it.
+            // Schedule a clear screen + cursor home command to erase the garbage.
+            // The history is safely stored in the scrollback thanks to the dump above!
+            self->m_needs_clear = true;
+        }
+
+        // Notify the widget so it can reset viewport and cursor
+        if (self->m_altscreen_cb) {
+            self->m_altscreen_cb(entering);
+        }
+
         // Invalidate full screen when switching buffers
         if (self->m_damage_cb) {
             int rows, cols;
@@ -141,9 +209,13 @@ int TerminalController::screen_resize(int rows, int cols, void *user) {
 
 int TerminalController::screen_sb_pushline(int cols, const VTermScreenCell *cells, void *user) {
     auto self = static_cast<TerminalController*>(user);
-    
-    // Do not push to scrollback if we are in the alternative screen
-    if (self->m_is_altscreen) {
+
+    // Block lines from being pushed to the primary scrollback only when we are
+    // in the alternate screen AND responding to a user resize (m_is_resizing).
+    // If we are NOT resizing, it means libvterm is doing an internal operation
+    // (like restoring the primary screen grid on altscreen exit). We MUST allow
+    // these lines to be pushed so the primary screen doesn't lose its history!
+    if (self->m_is_altscreen && self->m_is_resizing) {
         return 1;
     }
 
@@ -166,7 +238,21 @@ int TerminalController::screen_sb_pushline(int cols, const VTermScreenCell *cell
 
 int TerminalController::screen_sb_popline(int cols, VTermScreenCell *cells, void *user) {
     auto self = static_cast<TerminalController*>(user);
-    
+
+    // Prevent the altscreen from consuming primary-screen scrollback during a
+    // user resize-grow. However, we MUST allow it if m_is_resizing is false,
+    // because that means libvterm is internally restoring the primary screen!
+    if (self->m_is_altscreen && self->m_is_resizing) {
+        // Still zero-initialise so libvterm never sees garbage.
+        for (int i = 0; i < cols; ++i) {
+            memset(&cells[i], 0, sizeof(VTermScreenCell));
+            cells[i].width = 1;
+            cells[i].bg.type = VTERM_COLOR_DEFAULT_BG;
+            cells[i].fg.type = VTERM_COLOR_DEFAULT_FG;
+        }
+        return 0;  // failure → libvterm uses blank row
+    }
+
     // Initialize the buffer to avoid artifacts from uninitialized memory
     for (int i = 0; i < cols; ++i) {
         memset(&cells[i], 0, sizeof(VTermScreenCell));

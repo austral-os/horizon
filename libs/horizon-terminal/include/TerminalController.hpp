@@ -44,6 +44,8 @@ public:
     // Callback for when the screen needs redrawing
     void set_damage_callback(std::function<void(VTermRect)> cb) { m_damage_cb = cb; }
     void set_move_cursor_callback(std::function<void(VTermPos)> cb) { m_move_cursor_cb = cb; }
+    // Called when the alternate screen is activated (true) or deactivated (false)
+    void set_altscreen_callback(std::function<void(bool)> cb) { m_altscreen_cb = cb; }
 
     // Scrollback buffer support
     void set_scrollback_limit(size_t limit) { m_scrollback_limit = limit; }
@@ -71,10 +73,13 @@ private:
     bool m_is_altscreen{false};
     int m_mouse_mode{VTERM_PROP_MOUSE_NONE};
     bool m_is_resizing{false};
+    bool m_resized_during_altscreen{false};
+    bool m_needs_clear{false};
     std::mutex m_mutex;
 
     std::function<void(VTermRect)> m_damage_cb;
     std::function<void(VTermPos)> m_move_cursor_cb;
+    std::function<void(bool)> m_altscreen_cb;
 
     static int screen_damage(VTermRect rect, void *user);
     static int screen_moverect(VTermRect dest, VTermRect src, void *user);

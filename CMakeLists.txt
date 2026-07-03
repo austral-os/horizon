@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(Horizon VERSION 0.5.72)
+project(Horizon VERSION 0.5.73)
 set(HORIZON_VERSION ${PROJECT_VERSION})
 
 # Default install prefix to /usr if not specified

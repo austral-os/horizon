@@ -41,6 +41,23 @@ TerminalWidget::TerminalWidget() {
         this->on_terminal_damage(rect);
     });
 
+    m_controller->set_altscreen_callback([this](bool entering) {
+        // When leaving the alternate screen, reset the scrollback viewport and
+        // clear any lingering selection so the primary screen is displayed cleanly.
+        //
+        // This callback is always invoked synchronously on the main thread
+        // (inside push_data → vterm_input_write → settermprop, called from
+        // flush_pending_pty_data which is a post_task).  So we can call
+        // invalidate() directly — no extra post_task needed, and doing so
+        // avoids a frame where the compositor could show a stale surface.
+        if (!entering) {
+            m_scroll_offset = 0;
+            m_sel_start = m_sel_end = m_normalized_start = m_normalized_end = {-1, -1};
+            m_is_selecting = false;
+            invalidate();
+        }
+    });
+
     m_controller->set_move_cursor_callback([this](VTermPos pos) {
         this->m_cursor_pos = pos;
         
