@@ -18,6 +18,9 @@ namespace text {
 
 // Implementations for width/layout - These work now as StbTexteditRow is defined
 static float get_width_func(TextDocument* str, int n, int i) {
+    if (n + i < str->get_length() && str->get_char(n + i) == '\n') {
+        return -1.0f;
+    }
     return str->m_char_width;
 }
 
@@ -166,6 +169,8 @@ static int move_to_word_left(TextDocument* str, int idx) {
 
 #define STB_TEXTEDIT_MOVEWORDRIGHT(obj, idx) (horizon::text::move_to_word_right(obj, idx))
 #define STB_TEXTEDIT_MOVEWORDLEFT(obj, idx) (horizon::text::move_to_word_left(obj, idx))
+
+#define STB_TEXTEDIT_GETWIDTH_NEWLINE (-1.0f)
 
 // 4. Include stb_textedit in implementation mode
 #define STB_TEXTEDIT_IMPLEMENTATION
