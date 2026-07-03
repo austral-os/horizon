@@ -25,13 +25,17 @@ static void layout_func(StbTexteditRow* row, TextDocument* str, int start_i) {
     int len = str->get_length();
     int i = start_i;
     int count = 0;
-    
-    // Calculate which line we are on
+
+    // O(1) lookup: use the pre-built line-start index instead of scanning from 0
+    const auto& line_starts = str->ensure_line_index();
+    // Binary search to find which logical line start_i belongs to
     int line_index = 0;
-    for (int j = 0; j < start_i && j < len; ++j) {
-        if (str->get_char(j) == '\n') line_index++;
+    if (!line_starts.empty()) {
+        auto it = std::upper_bound(line_starts.begin(), line_starts.end(), start_i);
+        line_index = (int)std::distance(line_starts.begin(), it) - 1;
+        if (line_index < 0) line_index = 0;
     }
-    
+
     while (i < len && str->get_char(i) != '\n') {
         i++;
         count++;
@@ -40,13 +44,12 @@ static void layout_func(StbTexteditRow* row, TextDocument* str, int start_i) {
 
     float y_offset = 0;
     float height = str->m_line_height;
-    
+
     const auto& metrics = str->get_line_metrics();
     if (line_index < (int)metrics.size()) {
         y_offset = metrics[line_index].y_offset;
         height = metrics[line_index].height;
     } else if (!metrics.empty()) {
-        // Fallback for lines beyond current metrics (should not happen if synchronized)
         y_offset = metrics.back().y_offset + metrics.back().height + (line_index - (int)metrics.size() + 1) * str->m_line_height;
     } else {
         y_offset = (float)line_index * str->m_line_height;
@@ -55,7 +58,7 @@ static void layout_func(StbTexteditRow* row, TextDocument* str, int start_i) {
     row->num_chars = count;
     row->x0 = 0;
     row->x1 = (float)count * str->m_char_width;
-    row->baseline_y_delta = str->m_line_height * 0.8f; // Reasonable estimate
+    row->baseline_y_delta = str->m_line_height * 0.8f;
     row->ymin = y_offset;
     row->ymax = y_offset + height;
 }
@@ -109,6 +112,22 @@ TextDocument::TextDocument() {
 }
 
 TextDocument::~TextDocument() {}
+
+const std::vector<int>& TextDocument::ensure_line_index() const {
+    // Rebuild only when the document version changed
+    if (m_line_index_version == m_version) {
+        return m_line_start_index;
+    }
+    m_line_start_index.clear();
+    m_line_start_index.push_back(0); // Line 0 starts at char 0
+    for (int i = 0; i < (int)m_data.size(); ++i) {
+        if (m_data[i] == U'\n') {
+            m_line_start_index.push_back(i + 1);
+        }
+    }
+    m_line_index_version = m_version;
+    return m_line_start_index;
+}
 
 void TextDocument::set_text(const std::string& text) {
     {
@@ -246,11 +265,15 @@ void TextDocument::handle_key(int key) {
     else if (key == (int)EditorKey::Undo) stb_key = STB_TEXTEDIT_K_UNDO;
     else if (key == (int)EditorKey::Redo) stb_key = STB_TEXTEDIT_K_REDO;
 
+    uint64_t prev_version = m_version;
     {
         std::lock_guard<std::recursive_mutex> lock(m_mutex);
         stb_textedit_key(this, m_state.get(), stb_key);
     }
-    if (on_changed) on_changed();
+    // Only fire on_changed when content actually changed (insert/delete happened).
+    // Cursor-only moves (Up/Down/Left/Right/Home/End) do NOT bump m_version,
+    // so we skip the expensive layout rebuild chain for those.
+    if (m_version != prev_version && on_changed) on_changed();
 }
 
 void TextDocument::handle_click(double x, double y) {
@@ -345,26 +368,59 @@ std::string TextDocument::get_selected_text() const {
 
 void TextDocument::get_cursor_row_col(int& row, int& col) const {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    row = 1;
-    col = 1;
+    ensure_line_index();
     int cursor = m_state->cursor;
-    for (int i = 0; i < cursor && i < (int)m_data.size(); ++i) {
-        if (m_data[i] == '\n') {
-            row++;
-            col = 1;
-        } else {
-            col++;
-        }
+
+    if (m_line_start_index.empty()) {
+        row = 1;
+        col = 1;
+        return;
     }
+
+    auto it = std::upper_bound(m_line_start_index.begin(), m_line_start_index.end(), cursor);
+    int line_idx = (int)std::distance(m_line_start_index.begin(), it) - 1;
+    if (line_idx < 0) line_idx = 0;
+
+    row = line_idx + 1;
+    col = cursor - m_line_start_index[line_idx] + 1;
+}
+
+void TextDocument::get_row_col_for_index(int index, int& row, int& col) const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    ensure_line_index();
+    if (m_line_start_index.empty()) {
+        row = 0; col = 0; return;
+    }
+    if (index < 0) index = 0;
+    if (index > (int)m_data.size()) index = (int)m_data.size();
+
+    auto it = std::upper_bound(m_line_start_index.begin(), m_line_start_index.end(), index);
+    int line_idx = (int)std::distance(m_line_start_index.begin(), it) - 1;
+    if (line_idx < 0) line_idx = 0;
+
+    row = line_idx;
+    col = index - m_line_start_index[line_idx];
 }
 
 int TextDocument::get_line_count() const {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    int count = 1;
-    for (char32_t c : m_data) {
-        if (c == '\n') count++;
+    ensure_line_index();
+    return (int)m_line_start_index.size();
+}
+
+int TextDocument::get_line_length(int line_idx) const {
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    ensure_line_index();
+    if (line_idx < 0 || line_idx >= (int)m_line_start_index.size()) return 0;
+    
+    int start = m_line_start_index[line_idx];
+    int end = (line_idx + 1 < (int)m_line_start_index.size()) ? m_line_start_index[line_idx + 1] : (int)m_data.size();
+    
+    int len = end - start;
+    if (len > 0 && m_data[end - 1] == U'\n') {
+        len--;
     }
-    return count;
+    return len;
 }
 
 void TextDocument::insert_text(const std::string& utf8_text) {

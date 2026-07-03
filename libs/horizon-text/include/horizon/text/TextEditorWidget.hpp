@@ -88,8 +88,28 @@ private:
     std::chrono::steady_clock::time_point m_last_blink;
     bool m_cursor_visible = true;
     bool m_needs_ensure_visible = false;
+    bool m_metrics_dirty = true;       // true = need to rebuild line metrics
     std::string m_clipboard_buffer;
     uint64_t m_last_layout_version = 0xFFFFFFFFFFFFFFFF;
+
+    // Cached byte-offset table: maps UTF-32 char index -> UTF-8 byte offset.
+    // Rebuilt lazily when m_byte_offsets_version != doc version.
+    std::vector<size_t> m_byte_offsets;
+    uint64_t m_byte_offsets_version = 0xFFFFFFFFFFFFFFFF;
+
+    void ensure_byte_offsets();
+
+    // Syntax highlighting cache: maps logical line number -> list of highlighted tokens
+    std::vector<std::vector<SyntaxHighlighter::HighlightedToken>> m_highlight_cache;
+    std::vector<bool> m_highlight_cache_valid;
+    uint64_t m_highlight_cache_version = 0xFFFFFFFFFFFFFFFF;
+    int m_last_scroll_y = -1;
+    int m_vis_first_line = 0;
+    int m_vis_last_line = 0;
+
+    void ensure_highlight_cache();
+    void measure_font_metrics();
+    int get_pixel_x_for_char(int line_num, int col);
 };
 
 } // namespace text

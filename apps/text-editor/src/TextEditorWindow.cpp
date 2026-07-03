@@ -215,7 +215,9 @@ void TextEditorWindow::create_tab(const std::string& title, std::shared_ptr<hori
 
     editor_ptr->when_cursor_moved.connect([this](EventContext&) { this->update_status_bar(); });
     doc->on_changed = [this, editor_ptr]() {
-        editor_ptr->calculate_layout();
+        // Do NOT call calculate_layout() here: it calls pango_layout_get_pixel_size()
+        // which is O(n_lines) and fires on every keystroke (including cursor-only moves).
+        // The widget handles layout rebuilding lazily via the version check in calculate_layout().
         editor_ptr->invalidate();
         this->update_status_bar();
     };

@@ -63,7 +63,9 @@ public:
     std::string get_selected_text() const;
 
     void get_cursor_row_col(int& row, int& col) const;
+    void get_row_col_for_index(int index, int& row, int& col) const;
     int get_line_count() const;
+    int get_line_length(int line_idx) const;
     
     // Callbacks helpers (used by the bridge)
     int get_length() const { return (int)m_data.size(); }
@@ -106,12 +108,20 @@ public:
         float height;
         size_t start_byte;
         size_t end_byte;
+        int logical_line;
     };
     void set_line_metrics(const std::vector<LineMetric>& metrics) { m_line_metrics = metrics; }
     const std::vector<LineMetric>& get_line_metrics() const { return m_line_metrics; }
 
     uint64_t get_version() const { return m_version; }
-    
+
+    /**
+     * @brief Returns the pre-built line-start index (char index of the first
+     *        character of each logical line). Rebuilt lazily on demand.
+     *        NOT thread-safe on its own — caller must hold m_mutex if needed.
+     */
+    const std::vector<int>& ensure_line_index() const;
+
     mutable std::recursive_mutex m_mutex;
     std::u32string m_data; // UTF-32 internal storage for easy indexing
     std::vector<LineMetric> m_line_metrics;
@@ -119,6 +129,11 @@ public:
     uint64_t m_version = 0;
     std::string m_path;
     bool m_is_dirty = false;
+
+private:
+    // Lazy line-start index: maps logical line number -> char index of first char
+    mutable std::vector<int> m_line_start_index;
+    mutable uint64_t m_line_index_version = 0xFFFFFFFFFFFFFFFF;
 };
 
 } // namespace text
