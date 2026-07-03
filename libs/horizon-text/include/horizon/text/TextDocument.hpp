@@ -24,6 +24,8 @@ enum class EditorKey {
     Delete = 0x100008,
     Undo = 0x100009,
     Redo = 0x10000A,
+    WordLeft = 0x10000D,
+    WordRight = 0x10000E,
     Shift = 0x200000,
     Control = 0x400000
 };

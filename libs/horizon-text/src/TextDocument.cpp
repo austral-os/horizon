@@ -63,6 +63,71 @@ static void layout_func(StbTexteditRow* row, TextDocument* str, int start_i) {
     row->ymax = y_offset + height;
 }
 
+enum class CharType {
+    Whitespace,
+    Newline,
+    Word,
+    Punctuation
+};
+
+static CharType get_char_type(char32_t c) {
+    if (c == '\n' || c == '\r') return CharType::Newline;
+    if (c == ' ' || c == '\t') return CharType::Whitespace;
+    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {
+        return CharType::Word;
+    }
+    return CharType::Punctuation;
+}
+
+static int move_to_word_right(TextDocument* str, int idx) {
+    int limit = str->get_length();
+    if (idx >= limit) return limit;
+
+    if (get_char_type(str->get_char(idx)) == CharType::Newline) {
+        return idx + 1;
+    }
+
+    CharType start_type = get_char_type(str->get_char(idx));
+
+    while (idx < limit && get_char_type(str->get_char(idx)) == start_type) {
+        idx++;
+    }
+
+    if (idx < limit && get_char_type(str->get_char(idx)) == CharType::Whitespace) {
+        while (idx < limit && get_char_type(str->get_char(idx)) == CharType::Whitespace) {
+            idx++;
+        }
+    }
+
+    return idx;
+}
+
+static int move_to_word_left(TextDocument* str, int idx) {
+    if (idx <= 0) return 0;
+
+    if (get_char_type(str->get_char(idx - 1)) == CharType::Newline) {
+        return idx - 1;
+    }
+
+    while (idx > 0 && get_char_type(str->get_char(idx - 1)) == CharType::Whitespace) {
+        idx--;
+    }
+
+    if (idx <= 0) return 0;
+
+    CharType target_type = get_char_type(str->get_char(idx - 1));
+
+    if (target_type == CharType::Newline) {
+        return idx;
+    }
+
+    while (idx > 0 && get_char_type(str->get_char(idx - 1)) == target_type) {
+        idx--;
+    }
+
+    return idx;
+}
+
 } // namespace text
 } // namespace horizon
 
@@ -98,6 +163,9 @@ static void layout_func(StbTexteditRow* row, TextDocument* str, int start_i) {
 
 #define STB_TEXTEDIT_IS_SPACE(ch) (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r')
 #define STB_TEXTEDIT_NEWLINE '\n'
+
+#define STB_TEXTEDIT_MOVEWORDRIGHT(obj, idx) (horizon::text::move_to_word_right(obj, idx))
+#define STB_TEXTEDIT_MOVEWORDLEFT(obj, idx) (horizon::text::move_to_word_left(obj, idx))
 
 // 4. Include stb_textedit in implementation mode
 #define STB_TEXTEDIT_IMPLEMENTATION
@@ -253,17 +321,22 @@ void TextDocument::redo() {
 
 void TextDocument::handle_key(int key) {
     // Map our EditorKey enum to STB_TEXTEDIT_K flags
-    int stb_key = key;
-    if (key == (int)EditorKey::Left) stb_key = STB_TEXTEDIT_K_LEFT;
-    else if (key == (int)EditorKey::Right) stb_key = STB_TEXTEDIT_K_RIGHT;
-    else if (key == (int)EditorKey::Up) stb_key = STB_TEXTEDIT_K_UP;
-    else if (key == (int)EditorKey::Down) stb_key = STB_TEXTEDIT_K_DOWN;
-    else if (key == (int)EditorKey::LineStart) stb_key = STB_TEXTEDIT_K_LINESTART;
-    else if (key == (int)EditorKey::LineEnd) stb_key = STB_TEXTEDIT_K_LINEEND;
-    else if (key == (int)EditorKey::BackSpace) stb_key = STB_TEXTEDIT_K_BACKSPACE;
-    else if (key == (int)EditorKey::Delete) stb_key = STB_TEXTEDIT_K_DELETE;
-    else if (key == (int)EditorKey::Undo) stb_key = STB_TEXTEDIT_K_UNDO;
-    else if (key == (int)EditorKey::Redo) stb_key = STB_TEXTEDIT_K_REDO;
+    int base_key = key & ~((int)EditorKey::Shift | (int)EditorKey::Control);
+    int stb_key = base_key;
+    if (base_key == (int)EditorKey::Left) stb_key = STB_TEXTEDIT_K_LEFT;
+    else if (base_key == (int)EditorKey::Right) stb_key = STB_TEXTEDIT_K_RIGHT;
+    else if (base_key == (int)EditorKey::Up) stb_key = STB_TEXTEDIT_K_UP;
+    else if (base_key == (int)EditorKey::Down) stb_key = STB_TEXTEDIT_K_DOWN;
+    else if (base_key == (int)EditorKey::LineStart) stb_key = STB_TEXTEDIT_K_LINESTART;
+    else if (base_key == (int)EditorKey::LineEnd) stb_key = STB_TEXTEDIT_K_LINEEND;
+    else if (base_key == (int)EditorKey::BackSpace) stb_key = STB_TEXTEDIT_K_BACKSPACE;
+    else if (base_key == (int)EditorKey::Delete) stb_key = STB_TEXTEDIT_K_DELETE;
+    else if (base_key == (int)EditorKey::Undo) stb_key = STB_TEXTEDIT_K_UNDO;
+    else if (base_key == (int)EditorKey::Redo) stb_key = STB_TEXTEDIT_K_REDO;
+    else if (base_key == (int)EditorKey::WordLeft) stb_key = STB_TEXTEDIT_K_WORDLEFT;
+    else if (base_key == (int)EditorKey::WordRight) stb_key = STB_TEXTEDIT_K_WORDRIGHT;
+
+    if (key & (int)EditorKey::Shift) stb_key |= STB_TEXTEDIT_K_SHIFT;
 
     uint64_t prev_version = m_version;
     {

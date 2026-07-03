@@ -336,8 +336,14 @@ void TextEditorWidget::handle_key_event(KeyEventContext& ev) {
     }
 
     switch (ev.keysym) {
-        case XKB_KEY_Left: key = (int)EditorKey::Left; break;
-        case XKB_KEY_Right: key = (int)EditorKey::Right; break;
+        case XKB_KEY_Left:
+            if (ctrl) key = (int)EditorKey::WordLeft;
+            else key = (int)EditorKey::Left;
+            break;
+        case XKB_KEY_Right:
+            if (ctrl) key = (int)EditorKey::WordRight;
+            else key = (int)EditorKey::Right;
+            break;
         case XKB_KEY_Up: key = (int)EditorKey::Up; break;
         case XKB_KEY_Down: key = (int)EditorKey::Down; break;
         case XKB_KEY_Home: key = (int)EditorKey::LineStart; break;
