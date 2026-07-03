@@ -226,7 +226,7 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
         m_doc->get_row_col_for_index(r_start, row_start, col_start);
         m_doc->get_row_col_for_index(r_end, row_end, col_end);
 
-        Color sel_bg = tm->get_color("selection_bg");
+        Color sel_bg = tm->get_color("menu_item_selected_bg1");
         cairo_set_source_rgba(cr, sel_bg.r, sel_bg.g, sel_bg.b, sel_bg.a);
 
         for (int row = std::max(vis_first_line, row_start); row <= std::min(vis_last_line, row_end); ++row) {
@@ -481,10 +481,16 @@ bool TextEditorWidget::update_pango_layout(cairo_t* cr) {
     m_vis_first_line = vis_first_line;
     m_vis_last_line = vis_last_line;
 
+    int sel_start = m_doc->get_selection_start();
+    int sel_end = m_doc->get_selection_end();
+
     static uint64_t last_ver = 0xFFFFFFFFFFFFFFFF;
     static int last_first = -1;
     static int last_last = -1;
-    if (current_version == last_ver && vis_first_line == last_first && vis_last_line == last_last) {
+    static int last_sel_start = -1;
+    static int last_sel_end = -1;
+    if (current_version == last_ver && vis_first_line == last_first && vis_last_line == last_last &&
+        sel_start == last_sel_start && sel_end == last_sel_end) {
         return false;
     }
 
@@ -579,12 +585,45 @@ bool TextEditorWidget::update_pango_layout(cairo_t* cr) {
             }
         }
     }
+    // Apply selection foreground attribute
+    if (sel_start != sel_end) {
+        size_t visible_start_char = line_starts_chars[vis_first_line];
+        size_t visible_end_char = (vis_last_line + 1 < (int)line_starts_chars.size()) 
+                                  ? line_starts_chars[vis_last_line + 1] 
+                                  : m_doc->get_length();
+
+        size_t s_char = std::min(sel_start, sel_end);
+        size_t e_char = std::max(sel_start, sel_end);
+
+        if (e_char > visible_start_char && s_char < visible_end_char) {
+            size_t s_layout = std::max((size_t)0, s_char - visible_start_char);
+            size_t e_layout = std::min(visible_u32.length(), e_char - visible_start_char);
+
+            if (s_layout < e_layout && s_layout < local_byte_offsets.size() && e_layout < local_byte_offsets.size()) {
+                auto* tm = theme_manager();
+                if (tm) {
+                    Color sel_fg = tm->get_color("menu_item_selected_fg");
+                    PangoAttribute* attr = pango_attr_foreground_new(
+                        sel_fg.r * 65535,
+                        sel_fg.g * 65535,
+                        sel_fg.b * 65535
+                    );
+                    attr->start_index = (int)local_byte_offsets[s_layout];
+                    attr->end_index   = (int)local_byte_offsets[e_layout];
+                    pango_attr_list_change(attrs, attr);
+                }
+            }
+        }
+    }
+
     pango_layout_set_attributes(m_layout, attrs);
     pango_attr_list_unref(attrs);
 
     last_ver = current_version;
     last_first = vis_first_line;
     last_last = vis_last_line;
+    last_sel_start = sel_start;
+    last_sel_end = sel_end;
     m_last_layout_version = current_version;
     m_last_scroll_y = current_scroll_y;
     return true;
