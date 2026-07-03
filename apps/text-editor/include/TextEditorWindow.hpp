@@ -25,6 +25,7 @@ public:
     void save_current_file();
     void update_status_bar();
     void load_settings();
+    void focus_active_editor();
 
     /**
      * @brief Reads the language preference from config and loads the

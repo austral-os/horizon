@@ -183,6 +183,7 @@ void TextEditorWindow::setup_ui() {
 
     m_tabs->when_tab_selected.connect([this](int) {
         this->update_status_bar();
+        this->focus_active_editor();
     });
 
     // 3. Status Bar
@@ -206,9 +207,7 @@ void TextEditorWindow::create_tab(const std::string& title, std::shared_ptr<hori
     m_tabs->add_tab(title, std::move(scroll));
     m_tabs->set_current_tab(m_tabs->tab_count() - 1);
     
-    if (application()) {
-        application()->set_focused_widget(editor_ptr);
-    }
+    focus_active_editor();
 
     // Apply current settings
     load_settings();
@@ -339,6 +338,17 @@ void TextEditorWindow::load_settings() {
         }
     } catch (...) {
         // Log error
+    }
+}
+
+void TextEditorWindow::focus_active_editor() {
+    if (!m_tabs) return;
+    auto* scroll = dynamic_cast<ScrollArea*>(m_tabs->current_tab_body());
+    if (scroll && !scroll->children().empty()) {
+        auto* editor = dynamic_cast<horizon::text::TextEditorWidget*>(scroll->children()[0].get());
+        if (editor && application()) {
+            application()->set_focused_widget(editor);
+        }
     }
 }
 

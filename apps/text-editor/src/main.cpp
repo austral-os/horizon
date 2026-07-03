@@ -62,6 +62,7 @@ int main(int argc, char** argv) {
     }
     
     app.set_root(std::move(window));
+    window_ptr->focus_active_editor();
     app.run();
     
     return 0;
