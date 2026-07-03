@@ -325,8 +325,65 @@ void TextDocument::redo() {
 }
 
 void TextDocument::handle_key(int key) {
-    // Map our EditorKey enum to STB_TEXTEDIT_K flags
+    bool shift = (key & (int)EditorKey::Shift) != 0;
     int base_key = key & ~((int)EditorKey::Shift | (int)EditorKey::Control);
+
+    if (base_key == (int)EditorKey::LineStart) {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        int pos = m_state->cursor;
+        int line_start = pos;
+        while (line_start > 0 && m_data[line_start - 1] != '\n') {
+            line_start--;
+        }
+        int line_end = pos;
+        while (line_end < (int)m_data.length() && m_data[line_end] != '\n') {
+            line_end++;
+        }
+        int first_word_start = line_start;
+        while (first_word_start < line_end && (m_data[first_word_start] == ' ' || m_data[first_word_start] == '\t')) {
+            first_word_start++;
+        }
+        
+        int target = first_word_start;
+        if (pos == first_word_start) {
+            target = line_start;
+        }
+        set_cursor_at_index(target, shift);
+        if (on_changed) on_changed();
+        return;
+    }
+    
+    if (base_key == (int)EditorKey::LineEnd) {
+        std::lock_guard<std::recursive_mutex> lock(m_mutex);
+        int pos = m_state->cursor;
+        int line_start = pos;
+        while (line_start > 0 && m_data[line_start - 1] != '\n') {
+            line_start--;
+        }
+        int line_end = pos;
+        while (line_end < (int)m_data.length() && m_data[line_end] != '\n') {
+            line_end++;
+        }
+        
+        int actual_line_end = line_end;
+        if (actual_line_end > line_start && m_data[actual_line_end - 1] == '\r') {
+            actual_line_end--;
+        }
+
+        int last_word_end = actual_line_end;
+        while (last_word_end > line_start && (m_data[last_word_end - 1] == ' ' || m_data[last_word_end - 1] == '\t')) {
+            last_word_end--;
+        }
+
+        int target = last_word_end;
+        if (pos == last_word_end) {
+            target = actual_line_end;
+        }
+        set_cursor_at_index(target, shift);
+        if (on_changed) on_changed();
+        return;
+    }
+
     int stb_key = base_key;
     if (base_key == (int)EditorKey::Left) stb_key = STB_TEXTEDIT_K_LEFT;
     else if (base_key == (int)EditorKey::Right) stb_key = STB_TEXTEDIT_K_RIGHT;
