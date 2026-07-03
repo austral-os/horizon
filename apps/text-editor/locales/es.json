@@ -14,6 +14,10 @@
             "language_default": "Predeterminado (Sistema)",
             "language_restart": "Los cambios de idioma se aplicarán después de reiniciar.",
             "color_scheme": "Tema de colores",
+            "tab_behavior": "Comportamiento de Tab",
+            "tab_character": "Carácter tabulador",
+            "tab_spaces": "Espacios",
+            "spaces_per_tab": "Espacios por Tab",
             "highlight_current_line": "Resaltar línea actual",
             "show_line_numbers": "Mostrar números de línea"
         },

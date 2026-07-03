@@ -31,13 +31,17 @@ int main(int argc, char** argv) {
     char *home = std::getenv("HOME");
     std::string config_path =
         home ? std::string(home) + "/.config/horizon/text-editor.json" : "text-editor.json";
+    text_editor::TextEditorWindow *active_window = nullptr;
 
     app.set_preferences_content(
-        [config_path]()
+        [config_path, &active_window]()
         {
             auto content = std::make_unique<PreferencesContent>(config_path);
             auto *content_ptr = content.get();
-            auto on_change = [content_ptr]() { content_ptr->save_config(); };
+            auto on_change = [content_ptr, &active_window]() {
+                content_ptr->save_config();
+                if (active_window) active_window->load_settings();
+            };
 
             content->add_section("General", "preferences-system",
                                  std::make_unique<text_editor::TextEditorGeneralSection>(on_change), "editor");
@@ -48,6 +52,7 @@ int main(int argc, char** argv) {
     
     auto window = std::make_unique<text_editor::TextEditorWindow>();
     auto* window_ptr = window.get();
+    active_window = window_ptr;
     
     // Check if a file was passed as argument
     if (argc > 1) {

@@ -14,6 +14,10 @@
             "language_default": "Standard (System)",
             "language_restart": "Sprachänderungen werden nach einem Neustart übernommen.",
             "color_scheme": "Farbschema",
+            "tab_behavior": "Tab-Verhalten",
+            "tab_character": "Tabulatorzeichen",
+            "tab_spaces": "Leerzeichen",
+            "spaces_per_tab": "Leerzeichen pro Tab",
             "highlight_current_line": "Aktuelle Zeile hervorheben",
             "show_line_numbers": "Zeilennummern anzeigen"
         },

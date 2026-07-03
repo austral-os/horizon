@@ -14,6 +14,10 @@
             "language_default": "Default (System)",
             "language_restart": "Language changes will take effect after restart.",
             "color_scheme": "Color Scheme",
+            "tab_behavior": "Tab behavior",
+            "tab_character": "Tab character",
+            "tab_spaces": "Spaces",
+            "spaces_per_tab": "Spaces per tab",
             "highlight_current_line": "Highlight current line",
             "show_line_numbers": "Show line numbers"
         },

@@ -14,6 +14,10 @@
             "language_default": "Predefinito (Sistema)",
             "language_restart": "Le modifiche alla lingua verranno applicate dopo il riavvio.",
             "color_scheme": "Schema colori",
+            "tab_behavior": "Comportamento di Tab",
+            "tab_character": "Carattere di tabulazione",
+            "tab_spaces": "Spazi",
+            "spaces_per_tab": "Spazi per Tab",
             "highlight_current_line": "Evidenzia riga corrente",
             "show_line_numbers": "Mostra numeri di riga"
         },

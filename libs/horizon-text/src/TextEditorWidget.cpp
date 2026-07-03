@@ -345,7 +345,18 @@ void TextEditorWidget::handle_key_event(KeyEventContext& ev) {
         case XKB_KEY_BackSpace: key = (int)EditorKey::BackSpace; break;
         case XKB_KEY_Delete: key = (int)EditorKey::Delete; break;
         case XKB_KEY_Return: key = '\n'; break;
-        case XKB_KEY_Tab: key = '\t'; break;
+        case XKB_KEY_Tab:
+            if (m_insert_spaces_for_tab) {
+                m_doc->insert_text(std::string(m_spaces_per_tab, ' '));
+                m_cursor_visible = true;
+                m_last_blink = std::chrono::steady_clock::now();
+                invalidate();
+                ev.stop_propagation = true;
+                m_needs_ensure_visible = true;
+                return;
+            }
+            key = '\t';
+            break;
         default: break;
     }
     
@@ -1003,6 +1014,14 @@ void TextEditorWidget::set_show_line_numbers(bool show) {
 void TextEditorWidget::set_highlight_current_line(bool highlight) {
     m_highlight_current_line = highlight;
     invalidate();
+}
+
+void TextEditorWidget::set_insert_spaces_for_tab(bool insert_spaces) {
+    m_insert_spaces_for_tab = insert_spaces;
+}
+
+void TextEditorWidget::set_spaces_per_tab(int spaces) {
+    m_spaces_per_tab = std::clamp(spaces, 1, 16);
 }
 
 static cairo_status_t cairo_pdf_write_func(void *closure, const unsigned char *data, unsigned int length) {
