@@ -20,7 +20,8 @@
             "spaces_per_tab": "Espaces par Tab",
             "highlight_current_line": "Surligner la ligne actuelle",
             "show_line_numbers": "Afficher les numéros de ligne",
-            "highlight_symbols": "Surligner les symboles/opérateurs"
+            "highlight_symbols": "Surligner les symboles/opérateurs",
+            "highlight_bracket_pairs": "Surligner les paires de parenthèses"
         },
         "save_check": {
             "tab_unsaved_title": "Onglet non sauvegardé",

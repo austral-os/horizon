@@ -38,6 +38,7 @@ public:
     void set_show_line_numbers(bool show);
     void set_highlight_current_line(bool highlight);
     void set_highlight_symbols(bool highlight);
+    void set_highlight_bracket_pairs(bool highlight);
     void set_insert_spaces_for_tab(bool insert_spaces);
     void set_spaces_per_tab(int spaces);
 
@@ -82,6 +83,7 @@ private:
     bool m_show_line_numbers = true;
     bool m_highlight_current_line = false;
     bool m_highlight_symbols = true;
+    bool m_highlight_bracket_pairs = true;
     bool m_insert_spaces_for_tab = false;
     int m_spaces_per_tab = 4;
     int m_line_number_margin = 40;
@@ -116,6 +118,9 @@ private:
     void ensure_highlight_cache();
     void measure_font_metrics();
     int get_pixel_x_for_char(int line_num, int col);
+
+    // Bracket pair highlighting
+    std::pair<int, int> find_bracket_pair(int cursor_pos) const;
 };
 
 } // namespace text

@@ -46,12 +46,13 @@ public:
         {
             auto settings_row = std::make_unique<Widget>();
             settings_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
-            settings_row->set_fixed_size(180);
+            settings_row->set_fixed_size(135);
             settings_row->set_spacing(110);
 
             auto left_settings_column = std::make_unique<Widget>();
+            //left_settings_column->set_debug_mode(true);
             left_settings_column->set_layout_type(WIDGET_LAYOUT_VERTICAL);
-            left_settings_column->set_fixed_size(320);
+            left_settings_column->set_fixed_size(280);
             left_settings_column->set_spacing(8);
 
             auto language_label = std::make_unique<Label>(i18n().tr("text_editor.preferences.language"));
@@ -169,6 +170,14 @@ public:
         m_highlight_symbols_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
         add_child(std::move(symbols_check));
 
+        // 5.5 Highlight Bracket Pairs
+        auto bracket_check = std::make_unique<Checkbox<AquaObject>>();
+        bracket_check->set_text(i18n().tr("text_editor.preferences.highlight_bracket_pairs"));
+        bracket_check->set_checked(true);
+        m_highlight_bracket_pairs_check = bracket_check.get();
+        m_highlight_bracket_pairs_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
+        add_child(std::move(bracket_check));
+
         // 6. Bottom spacer: absorbs extra space when the dialog is resized taller,
         //    keeping controls at the top.
         add_child(Spacer());
@@ -180,6 +189,7 @@ public:
             m_tab_mode_combo->set_selected_item_by_id("tab");
             m_spaces_per_tab_box->set_text("4");
             m_highlight_symbols_check->set_checked(true);
+            m_highlight_bracket_pairs_check->set_checked(true);
             m_loading = false;
             return;
         }
@@ -196,6 +206,7 @@ public:
         if (j.contains("highlight_line")) m_highlight_check->set_checked(j["highlight_line"].get<bool>());
         if (j.contains("show_line_numbers")) m_line_numbers_check->set_checked(j["show_line_numbers"].get<bool>());
         m_highlight_symbols_check->set_checked(j.value("highlight_symbols", true));
+        m_highlight_bracket_pairs_check->set_checked(j.value("highlight_bracket_pairs", true));
 
         m_loading = true;
 
@@ -226,6 +237,7 @@ public:
         j["highlight_line"] = m_highlight_check->is_checked();
         j["show_line_numbers"] = m_line_numbers_check->is_checked();
         j["highlight_symbols"] = m_highlight_symbols_check->is_checked();
+        j["highlight_bracket_pairs"] = m_highlight_bracket_pairs_check->is_checked();
         if (auto selected = m_language_combo->selected_item()) {
             j["language"] = selected->id;
         } else {
@@ -261,6 +273,7 @@ private:
     Checkbox<AquaObject> *m_highlight_check;
     Checkbox<AquaObject> *m_line_numbers_check;
     Checkbox<AquaObject> *m_highlight_symbols_check;
+    Checkbox<AquaObject> *m_highlight_bracket_pairs_check;
     bool m_loading = false;
     std::function<void()> m_on_change;
 };

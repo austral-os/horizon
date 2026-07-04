@@ -20,7 +20,8 @@
             "spaces_per_tab": "Leerzeichen pro Tab",
             "highlight_current_line": "Aktuelle Zeile hervorheben",
             "show_line_numbers": "Zeilennummern anzeigen",
-            "highlight_symbols": "Symbole/Operatoren hervorheben"
+            "highlight_symbols": "Symbole/Operatoren hervorheben",
+            "highlight_bracket_pairs": "Klammerpaare hervorheben"
         },
         "save_check": {
             "tab_unsaved_title": "Ungespeicherter Tab",

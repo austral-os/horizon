@@ -13,6 +13,10 @@
 #include <cairo/cairo-pdf.h>
 
 
+#include "BracketMatch.hpp"
+
+using namespace horizon::text::detail;
+
 namespace horizon {
 namespace text {
 
@@ -248,6 +252,59 @@ void TextEditorWidget::draw(GraphicsContext& gc) {
             if (rw < 5 && row < row_end) rw = 10;
             cairo_rectangle(cr, tx + x1, ly, rw, line_height);
             cairo_fill(cr);
+        }
+    }
+
+    // 8.5 Bracket pair highlighting
+    if (m_highlight_bracket_pairs) {
+        auto [bracket_idx, match_idx] = find_bracket_pair(cursor_pos);
+        if (bracket_idx >= 0) {
+            Color hl_color = tm->get_color("textbox_bg");
+            if (tm->is_dark()) {
+                hl_color = hl_color.lighter(32.0f);
+            } else {
+                hl_color = hl_color.darker(24.0f);
+            }
+            hl_color = hl_color.with_alpha(0.78f);
+
+            cairo_set_source_rgba(cr, hl_color.r, hl_color.g, hl_color.b, hl_color.a);
+
+            float char_w = m_doc->m_char_width;
+            if (char_w < 1.0f) char_w = static_cast<float>(m_font_size * 0.6);
+
+            // Compute visible viewport x-bounds for horizontal clipping.
+            // The widget is positioned by ScrollArea at (m_x, m_y). In a scroll
+            // context the visible viewport in the widget's coordinate space is:
+            //   [m_x + scroll_x,  m_x + scroll_x + scroll->width()]
+            int vp_left = m_x;
+            int vp_right = m_x + m_width;
+            {
+                auto* scroll = dynamic_cast<ScrollArea*>(m_parent);
+                if (scroll) {
+                    vp_left  = m_x + scroll->scroll_x();
+                    vp_right = m_x + scroll->scroll_x() + scroll->width();
+                }
+            }
+
+            const int bracket_positions[2] = {bracket_idx, match_idx};
+            for (int pos : bracket_positions) {
+                int row, col;
+                m_doc->get_row_col_for_index(pos, row, col);
+
+                if (row >= vis_first_line && row <= vis_last_line) {
+                    int px = get_pixel_x_for_char(row, col);
+                    int ly = ty + static_cast<int>(row * line_height);
+                    int bx = tx + px;
+
+                    // Horizontal bounds check: skip bracket rectangles that fall
+                    // entirely outside the visible viewport.
+                    if (bx + char_w <= vp_left || bx >= vp_right)
+                        continue;
+
+                    cairo_rectangle(cr, bx, ly, char_w, line_height);
+                    cairo_fill(cr);
+                }
+            }
         }
     }
 
@@ -777,6 +834,42 @@ int TextEditorWidget::get_pixel_x_for_char(int line_num, int col) {
     return w;
 }
 
+std::pair<int, int> TextEditorWidget::find_bracket_pair(int cursor_pos) const {
+    if (!m_doc) return {-1, -1};
+
+    constexpr size_t MAX_SEARCH = 200000;
+
+    std::lock_guard<std::recursive_mutex> lock(m_doc->m_mutex);
+    const std::u32string& text = m_doc->get_data();
+    int text_len = static_cast<int>(text.size());
+    if (text_len == 0 || cursor_pos < 0) return {-1, -1};
+
+    // Check positions in priority order: cursor, cursor-1, cursor+1
+    static const int offsets[] = {0, -1, 1};
+
+    for (int off : offsets) {
+        int check = cursor_pos + off;
+        if (check < 0 || check >= text_len) continue;
+
+        char32_t c = text[check];
+        char32_t match_char = matching_bracket(c);
+        if (match_char == 0) continue;
+
+        int match;
+        if (is_opening_bracket(c)) {
+            match = find_matching_forward(text, check, c, match_char, MAX_SEARCH);
+        } else {
+            match = find_matching_backward(text, check, match_char, c, MAX_SEARCH);
+        }
+
+        if (match >= 0) {
+            return {check, match};
+        }
+    }
+
+    return {-1, -1};
+}
+
 void TextEditorWidget::ensure_metrics() {
     if (!m_doc) return;
     
@@ -1056,6 +1149,12 @@ void TextEditorWidget::set_highlight_symbols(bool highlight) {
     if (m_highlight_symbols == highlight) return;
     m_highlight_symbols = highlight;
     invalidate_layout();
+    invalidate();
+}
+
+void TextEditorWidget::set_highlight_bracket_pairs(bool highlight) {
+    if (m_highlight_bracket_pairs == highlight) return;
+    m_highlight_bracket_pairs = highlight;
     invalidate();
 }
 
