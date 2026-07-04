@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.10)
 project(Horizon VERSION 0.5.75)
 set(HORIZON_VERSION ${PROJECT_VERSION})
 
-# Default install prefix to /usr if not specified
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+# Default install prefix to /usr if not specified (or if it is the CMake default /usr/local)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR CMAKE_INSTALL_PREFIX STREQUAL "/usr/local")
     set(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Default install prefix" FORCE)
 endif()
 
