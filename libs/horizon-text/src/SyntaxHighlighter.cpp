@@ -32,6 +32,10 @@ void SyntaxHighlighter::load_default_cpp_rules() {
     
     // Numbers
     m_rules.push_back({"number", std::regex("\\b\\d+(\\.\\d+)?\\b"), TokenType::Number});
+
+    // Operators / punctuation: individual special characters
+    // Characters: ( ) [ ] { } , ; . : / * < > = + ~ ! @ # $ % ^ & " ' -
+    m_rules.push_back({"operator", std::regex(R"([()\[\]{}.,;:/*<>=+~!@#$%^&"'\-])"), TokenType::Operator});
 }
 
 std::vector<SyntaxHighlighter::HighlightedToken> SyntaxHighlighter::highlight_line(const std::u32string& line) {
@@ -88,18 +92,60 @@ std::vector<SyntaxHighlighter::HighlightedToken> SyntaxHighlighter::highlight_li
         return a.start < b.start;
     });
     
-    return tokens;
+    // Filter out operator tokens that overlap with higher-priority spans
+    // (strings, comments, preprocessor) so operators inside those regions
+    // do not override their color.
+    // First collect all protected (non-operator) ranges.
+    struct Range { size_t start; size_t end; };
+    std::vector<Range> protected_ranges;
+    for (const auto& t : tokens) {
+        if (t.type != TokenType::Operator) {
+            protected_ranges.push_back({t.start, t.end});
+        }
+    }
+    
+    std::vector<HighlightedToken> filtered;
+    filtered.reserve(tokens.size());
+    for (const auto& t : tokens) {
+        if (t.type == TokenType::Operator) {
+            bool overlaps_protected = false;
+            for (const auto& pr : protected_ranges) {
+                if (t.start < pr.end && t.end > pr.start) {
+                    overlaps_protected = true;
+                    break;
+                }
+            }
+            if (overlaps_protected) continue;
+        }
+        filtered.push_back(t);
+    }
+    
+    return filtered;
+}
+
+std::string SyntaxHighlighter::get_token_color_role(TokenType type) {
+    switch (type) {
+        case TokenType::Keyword:      return "syntax_keyword";
+        case TokenType::Type:         return "syntax_type";
+        case TokenType::Comment:      return "syntax_comment";
+        case TokenType::String:       return "syntax_string";
+        case TokenType::Number:       return "syntax_number";
+        case TokenType::Preprocessor: return "syntax_preprocessor";
+        case TokenType::Operator:     return "syntax_operator";
+        default:                      return "window_fg";
+    }
 }
 
 Color SyntaxHighlighter::get_token_color(TokenType type) {
     switch (type) {
-        case TokenType::Keyword: return Color(0.1, 0.4, 0.8); // Blueish
-        case TokenType::Type: return Color(0.2, 0.6, 0.4);    // Greenish
-        case TokenType::Comment: return Color(0.5, 0.5, 0.5); // Grey
-        case TokenType::String: return Color(0.8, 0.4, 0.1);  // Orange
-        case TokenType::Number: return Color(0.5, 0.2, 0.6);  // Purple
-        case TokenType::Preprocessor: return Color(0.6, 0.1, 0.1); // Reddish
-        default: return Color(0.2, 0.2, 0.2); // Normal
+        case TokenType::Keyword:      return Color(0.1, 0.4, 0.8);
+        case TokenType::Type:         return Color(0.2, 0.6, 0.4);
+        case TokenType::Comment:      return Color(0.5, 0.5, 0.5);
+        case TokenType::String:       return Color(0.8, 0.4, 0.1);
+        case TokenType::Number:       return Color(0.5, 0.2, 0.6);
+        case TokenType::Preprocessor: return Color(0.6, 0.1, 0.1);
+        case TokenType::Operator:     return Color(0.5, 0.5, 0.6);
+        default:                      return Color(0.2, 0.2, 0.2);
     }
 }
 

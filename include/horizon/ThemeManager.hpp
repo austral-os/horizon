@@ -35,6 +35,7 @@ namespace horizon
         bool save();
 
         Color get_color(const std::string &role) const;
+        bool has_color(const std::string &role) const;
         void set_color(const std::string &role, const Color &value);
 
         std::string get_variant() const;

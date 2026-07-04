@@ -19,7 +19,8 @@
             "tab_spaces": "Espacios",
             "spaces_per_tab": "Espacios por Tab",
             "highlight_current_line": "Resaltar línea actual",
-            "show_line_numbers": "Mostrar números de línea"
+            "show_line_numbers": "Mostrar números de línea",
+            "highlight_symbols": "Resaltar símbolos/operadores"
         },
         "save_check": {
             "tab_unsaved_title": "Pestaña sin guardar",

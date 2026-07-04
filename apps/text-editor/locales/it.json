@@ -19,7 +19,8 @@
             "tab_spaces": "Spazi",
             "spaces_per_tab": "Spazi per Tab",
             "highlight_current_line": "Evidenzia riga corrente",
-            "show_line_numbers": "Mostra numeri di riga"
+            "show_line_numbers": "Mostra numeri di riga",
+            "highlight_symbols": "Evidenzia simboli/operatori"
         },
         "save_check": {
             "tab_unsaved_title": "Scheda non salvata",

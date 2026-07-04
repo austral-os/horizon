@@ -330,6 +330,7 @@ void TextEditorWindow::load_settings() {
                         if (config.contains("font_weight")) editor->set_font_weight(config["font_weight"]);
                         if (config.contains("highlight_line")) editor->set_highlight_current_line(config["highlight_line"]);
                         if (config.contains("show_line_numbers")) editor->set_show_line_numbers(config["show_line_numbers"]);
+                        editor->set_highlight_symbols(config.value("highlight_symbols", true));
                         editor->set_insert_spaces_for_tab(config.value("tab_mode", "tab") == "spaces");
                         editor->set_spaces_per_tab(config.value("spaces_per_tab", 4));
                     }

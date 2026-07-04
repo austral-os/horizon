@@ -19,7 +19,8 @@
             "tab_spaces": "Espaços",
             "spaces_per_tab": "Espaços por Tab",
             "highlight_current_line": "Destacar linha atual",
-            "show_line_numbers": "Mostrar números de linha"
+            "show_line_numbers": "Mostrar números de linha",
+            "highlight_symbols": "Destacar símbolos/operadores"
         },
         "save_check": {
             "tab_unsaved_title": "Guia não salva",

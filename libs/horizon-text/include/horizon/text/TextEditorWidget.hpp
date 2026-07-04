@@ -37,6 +37,7 @@ public:
     void set_line_spacing(double spacing);
     void set_show_line_numbers(bool show);
     void set_highlight_current_line(bool highlight);
+    void set_highlight_symbols(bool highlight);
     void set_insert_spaces_for_tab(bool insert_spaces);
     void set_spaces_per_tab(int spaces);
 
@@ -80,6 +81,7 @@ private:
     double m_line_spacing = 4.0;
     bool m_show_line_numbers = true;
     bool m_highlight_current_line = false;
+    bool m_highlight_symbols = true;
     bool m_insert_spaces_for_tab = false;
     int m_spaces_per_tab = 4;
     int m_line_number_margin = 40;

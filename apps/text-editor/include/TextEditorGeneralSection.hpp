@@ -161,7 +161,15 @@ public:
         m_line_numbers_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
         add_child(std::move(line_numbers_check));
 
-        // 5. Bottom spacer: absorbs extra space when the dialog is resized taller,
+        // 5. Highlight Symbols
+        auto symbols_check = std::make_unique<Checkbox<AquaObject>>();
+        symbols_check->set_text(i18n().tr("text_editor.preferences.highlight_symbols"));
+        symbols_check->set_checked(true);
+        m_highlight_symbols_check = symbols_check.get();
+        m_highlight_symbols_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
+        add_child(std::move(symbols_check));
+
+        // 6. Bottom spacer: absorbs extra space when the dialog is resized taller,
         //    keeping controls at the top.
         add_child(Spacer());
     }
@@ -171,6 +179,7 @@ public:
             m_loading = true;
             m_tab_mode_combo->set_selected_item_by_id("tab");
             m_spaces_per_tab_box->set_text("4");
+            m_highlight_symbols_check->set_checked(true);
             m_loading = false;
             return;
         }
@@ -186,6 +195,7 @@ public:
 
         if (j.contains("highlight_line")) m_highlight_check->set_checked(j["highlight_line"].get<bool>());
         if (j.contains("show_line_numbers")) m_line_numbers_check->set_checked(j["show_line_numbers"].get<bool>());
+        m_highlight_symbols_check->set_checked(j.value("highlight_symbols", true));
 
         m_loading = true;
 
@@ -215,6 +225,7 @@ public:
         j["font_weight"] = (sel.style.find("Bold") != std::string::npos || sel.style.find("bold") != std::string::npos) ? 1 : 0;
         j["highlight_line"] = m_highlight_check->is_checked();
         j["show_line_numbers"] = m_line_numbers_check->is_checked();
+        j["highlight_symbols"] = m_highlight_symbols_check->is_checked();
         if (auto selected = m_language_combo->selected_item()) {
             j["language"] = selected->id;
         } else {
@@ -249,6 +260,7 @@ private:
     TextBox<IntegerPolicy> *m_spaces_per_tab_box;
     Checkbox<AquaObject> *m_highlight_check;
     Checkbox<AquaObject> *m_line_numbers_check;
+    Checkbox<AquaObject> *m_highlight_symbols_check;
     bool m_loading = false;
     std::function<void()> m_on_change;
 };

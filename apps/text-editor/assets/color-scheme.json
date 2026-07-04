@@ -81,7 +81,14 @@
             "window_bg": "#1a1b26",
             "window_bg_alt": "#1f2233",
             "window_border": "#2f3346",
-            "window_fg": "#c0caf5"
+            "window_fg": "#c0caf5",
+            "syntax_comment": "#565f89",
+            "syntax_keyword": "#7aa2f7",
+            "syntax_number": "#bb9af7",
+            "syntax_operator": "#7dcfff",
+            "syntax_preprocessor": "#f7768e",
+            "syntax_string": "#e0af68",
+            "syntax_type": "#9ece6a"
         },
         "monokai": {
             "air_border": "#49483e",
@@ -164,7 +171,14 @@
             "window_bg": "#272822",
             "window_bg_alt": "#2c2d27",
             "window_border": "#49483e",
-            "window_fg": "#f8f8f2"
+            "window_fg": "#f8f8f2",
+            "syntax_comment": "#75715e",
+            "syntax_keyword": "#66d9ef",
+            "syntax_number": "#ae81ff",
+            "syntax_operator": "#f8f8f2",
+            "syntax_preprocessor": "#f92672",
+            "syntax_string": "#e6db74",
+            "syntax_type": "#a6e22e"
         },
         "solar-light": {
             "air_border": "#e0d8c8",
@@ -247,7 +261,14 @@
             "window_bg": "#fdf6e3",
             "window_bg_alt": "#f5edd7",
             "window_border": "#e0d8c8",
-            "window_fg": "#657b83"
+            "window_fg": "#657b83",
+            "syntax_comment": "#93a1a1",
+            "syntax_keyword": "#268bd2",
+            "syntax_number": "#6c71c4",
+            "syntax_operator": "#586e75",
+            "syntax_preprocessor": "#dc322f",
+            "syntax_string": "#b58900",
+            "syntax_type": "#859900"
         },
         "dracula": {
             "air_border": "#44475a",
@@ -330,7 +351,14 @@
             "window_bg": "#282a36",
             "window_bg_alt": "#2d2f3c",
             "window_border": "#44475a",
-            "window_fg": "#f8f8f2"
+            "window_fg": "#f8f8f2",
+            "syntax_comment": "#6272a4",
+            "syntax_keyword": "#bd93f9",
+            "syntax_number": "#8be9fd",
+            "syntax_operator": "#ff6e6e",
+            "syntax_preprocessor": "#ff5555",
+            "syntax_string": "#f1fa8c",
+            "syntax_type": "#50fa7b"
         },
         "nord": {
             "air_border": "#4c566a",
@@ -413,7 +441,14 @@
             "window_bg": "#2e3440",
             "window_bg_alt": "#323846",
             "window_border": "#4c566a",
-            "window_fg": "#d8dee9"
+            "window_fg": "#d8dee9",
+            "syntax_comment": "#616e88",
+            "syntax_keyword": "#88c0d0",
+            "syntax_number": "#81a1c1",
+            "syntax_operator": "#d8dee9",
+            "syntax_preprocessor": "#bf616a",
+            "syntax_string": "#ebcb8b",
+            "syntax_type": "#a3be8c"
         },
         "onedark": {
             "air_border": "#3e4452",
@@ -496,7 +531,14 @@
             "window_bg": "#282c34",
             "window_bg_alt": "#2d313a",
             "window_border": "#3e4452",
-            "window_fg": "#abb2bf"
+            "window_fg": "#abb2bf",
+            "syntax_comment": "#5c6370",
+            "syntax_keyword": "#61afef",
+            "syntax_number": "#c678dd",
+            "syntax_operator": "#56b6c2",
+            "syntax_preprocessor": "#e06c75",
+            "syntax_string": "#e5c07b",
+            "syntax_type": "#98c379"
         },
         "gruvbox": {
             "air_border": "#504945",
@@ -579,7 +621,14 @@
             "window_bg": "#282828",
             "window_bg_alt": "#2d2d2d",
             "window_border": "#504945",
-            "window_fg": "#ebdbb2"
+            "window_fg": "#ebdbb2",
+            "syntax_comment": "#7c6f64",
+            "syntax_keyword": "#458588",
+            "syntax_number": "#b16286",
+            "syntax_operator": "#689d6a",
+            "syntax_preprocessor": "#cc241d",
+            "syntax_string": "#d79921",
+            "syntax_type": "#98971a"
         }
     },
     "variant": "default"

@@ -450,6 +450,29 @@ namespace horizon
         return role_it->second;
     }
 
+    bool ThemeManager::has_color(const std::string &role) const
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+
+        if (!m_active_app_id.empty())
+        {
+            auto app_it = m_app_schemes.find(m_active_app_id);
+            if (app_it != m_app_schemes.end())
+            {
+                const auto &app_data = app_it->second;
+                if (app_data.active_variant != "default")
+                {
+                    auto var_it = app_data.variants.find(app_data.active_variant);
+                    if (var_it != app_data.variants.end() && var_it->second.find(role) != var_it->second.end())
+                        return true;
+                }
+            }
+        }
+
+        auto scheme_it = color_schemes.find(active_variant);
+        return scheme_it != color_schemes.end() && scheme_it->second.find(role) != scheme_it->second.end();
+    }
+
     void ThemeManager::set_color(const std::string &role, const Color &value)
     {
         {

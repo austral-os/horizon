@@ -44,6 +44,7 @@ public:
     std::vector<HighlightedToken> highlight_line(const std::u32string& line);
 
     static Color get_token_color(TokenType type);
+    static std::string get_token_color_role(TokenType type);
 
 private:
     std::vector<SyntaxRule> m_rules;

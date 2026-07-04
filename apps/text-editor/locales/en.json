@@ -19,7 +19,8 @@
             "tab_spaces": "Spaces",
             "spaces_per_tab": "Spaces per tab",
             "highlight_current_line": "Highlight current line",
-            "show_line_numbers": "Show line numbers"
+            "show_line_numbers": "Show line numbers",
+            "highlight_symbols": "Highlight symbols/operators"
         },
         "save_check": {
             "tab_unsaved_title": "Unsaved Tab",

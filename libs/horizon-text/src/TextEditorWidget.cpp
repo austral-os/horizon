@@ -9,6 +9,7 @@
 #include <climits>
 #include <codecvt>
 #include <locale>
+#include <unordered_map>
 #include <cairo/cairo-pdf.h>
 
 
@@ -506,8 +507,17 @@ bool TextEditorWidget::update_pango_layout(cairo_t* cr) {
     static int last_last = -1;
     static int last_sel_start = -1;
     static int last_sel_end = -1;
+    auto* tm = theme_manager();
+    std::string theme_key;
+    if (tm) {
+        std::string app_id = tm->active_app_id();
+        theme_key = tm->get_variant() + ":" + app_id + ":" + tm->get_app_color_scheme_variant(app_id);
+    }
+    static std::string last_theme_key;
+    static bool last_highlight_symbols = true;
     if (current_version == last_ver && vis_first_line == last_first && vis_last_line == last_last &&
-        sel_start == last_sel_start && sel_end == last_sel_end) {
+        sel_start == last_sel_start && sel_end == last_sel_end && theme_key == last_theme_key &&
+        m_highlight_symbols == last_highlight_symbols) {
         return false;
     }
 
@@ -582,15 +592,34 @@ bool TextEditorWidget::update_pango_layout(cairo_t* cr) {
                         m_highlight_cache_valid[line_number] = true;
                     }
                     
+                    static const std::unordered_map<std::string, std::string> s_syntax_fallback = {
+                        {"syntax_keyword", "primary1"},
+                        {"syntax_type", "success1"},
+                        {"syntax_comment", "window_fg"},
+                        {"syntax_string", "warning1"},
+                        {"syntax_number", "secondary1"},
+                        {"syntax_preprocessor", "error1"},
+                        {"syntax_operator", "secondary1"}
+                    };
+                    
                     const auto& tokens = m_highlight_cache[line_number];
                     for (const auto& token : tokens) {
+                        if (!m_highlight_symbols && token.type == TokenType::Operator) continue;
                         size_t s = line_start_char + token.start;
                         size_t e = line_start_char + token.end;
                         if (s < local_byte_offsets.size() && e < local_byte_offsets.size()) {
+                            std::string role = SyntaxHighlighter::get_token_color_role(token.type);
+                            Color token_color = tm->get_color(role);
+                            if (!tm->has_color(role)) {
+                                auto fit = s_syntax_fallback.find(role);
+                                if (fit != s_syntax_fallback.end()) {
+                                    token_color = tm->get_color(fit->second);
+                                }
+                            }
                             PangoAttribute* attr = pango_attr_foreground_new(
-                                SyntaxHighlighter::get_token_color(token.type).r * 65535,
-                                SyntaxHighlighter::get_token_color(token.type).g * 65535,
-                                SyntaxHighlighter::get_token_color(token.type).b * 65535);
+                                token_color.r * 65535,
+                                token_color.g * 65535,
+                                token_color.b * 65535);
                             attr->start_index = (int)local_byte_offsets[s];
                             attr->end_index   = (int)local_byte_offsets[e];
                             pango_attr_list_insert(attrs, attr);
@@ -617,7 +646,6 @@ bool TextEditorWidget::update_pango_layout(cairo_t* cr) {
             size_t e_layout = std::min(visible_u32.length(), e_char - visible_start_char);
 
             if (s_layout < e_layout && s_layout < local_byte_offsets.size() && e_layout < local_byte_offsets.size()) {
-                auto* tm = theme_manager();
                 if (tm) {
                     Color sel_fg = tm->get_color("menu_item_selected_fg");
                     PangoAttribute* attr = pango_attr_foreground_new(
@@ -641,6 +669,8 @@ bool TextEditorWidget::update_pango_layout(cairo_t* cr) {
     last_last = vis_last_line;
     last_sel_start = sel_start;
     last_sel_end = sel_end;
+    last_theme_key = theme_key;
+    last_highlight_symbols = m_highlight_symbols;
     m_last_layout_version = current_version;
     m_last_scroll_y = current_scroll_y;
     return true;
@@ -1019,6 +1049,13 @@ void TextEditorWidget::set_show_line_numbers(bool show) {
 
 void TextEditorWidget::set_highlight_current_line(bool highlight) {
     m_highlight_current_line = highlight;
+    invalidate();
+}
+
+void TextEditorWidget::set_highlight_symbols(bool highlight) {
+    if (m_highlight_symbols == highlight) return;
+    m_highlight_symbols = highlight;
+    invalidate_layout();
     invalidate();
 }
 
