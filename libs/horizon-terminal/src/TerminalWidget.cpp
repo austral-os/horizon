@@ -8,10 +8,39 @@
 #include "horizon/I18n.hpp"
 #include <linux/input-event-codes.h>
 #include <horizon/FileWatcher.hpp>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#include <algorithm>
+#include <cctype>
+#include <string>
+#include <vector>
 
 
 namespace horizon {
 namespace terminal {
+
+namespace {
+constexpr uint32_t kLeftButton = 0x110; // BTN_LEFT
+
+void close_non_stdio_file_descriptors() {
+    long max_fd = sysconf(_SC_OPEN_MAX);
+    if (max_fd < 0) max_fd = 1024;
+
+    for (int fd = 3; fd < max_fd; ++fd) {
+        close(fd);
+    }
+}
+
+bool is_url_terminator(char ch) {
+    return std::isspace(static_cast<unsigned char>(ch)) || ch == '<' || ch == '>' || ch == '"' || ch == '\'';
+}
+
+bool is_trailing_url_punctuation(char ch) {
+    return ch == '.' || ch == ',' || ch == ';' || ch == ':' || ch == '!' || ch == '?' || ch == ')' || ch == ']' || ch == '}';
+}
+} // namespace
 
 TerminalWidget::TerminalWidget() {
     set_focusable(true);
@@ -76,6 +105,14 @@ TerminalWidget::TerminalWidget() {
         this->handle_key_press(ctx);
     });
 
+    when_key_release.connect([this](KeyEventContext &ctx) {
+        if (m_has_last_mouse_position) {
+            update_link_hover(m_last_mouse_x, m_last_mouse_y, ctx.modifiers);
+        } else {
+            m_last_modifiers = ctx.modifiers;
+        }
+    });
+
     when_mouse_wheel.connect([this](MouseWheelEventContext &ctx) {
         this->handle_mouse_wheel(ctx);
     });
@@ -84,12 +121,33 @@ TerminalWidget::TerminalWidget() {
         this->handle_mouse_press(ctx);
     });
 
+    when_mouse_move.connect([this](MouseMoveEventContext &ctx) {
+        this->handle_mouse_move(ctx);
+    });
+
     when_mouse_drag.connect([this](MouseMoveEventContext &ctx) {
         this->handle_mouse_drag(ctx);
     });
 
     when_mouse_release.connect([this](MouseButtonEventContext &ctx) {
         this->handle_mouse_release(ctx);
+    });
+
+    when_right_click.connect([this](MouseButtonEventContext &ctx) {
+        std::string url = url_at_position(ctx.x, ctx.y);
+        if (url.empty()) {
+            set_context_menu(nullptr);
+            return;
+        }
+
+        m_link_context_menu = std::make_unique<horizon::Menu>();
+        auto* follow_link = m_link_context_menu->add_item(i18n().tr("terminal.menu.follow_link"));
+        follow_link->when_click.connect([this, url](MouseButtonEventContext&) {
+            open_url(url);
+            if (application()) application()->hide_context_menu();
+        });
+
+        set_context_menu(std::move(m_link_context_menu));
     });
 
     // Context menu is handled automatically by the toolkit as we implement ClipboardProvider
@@ -300,6 +358,7 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
 
 
     hb_buffer_t* hb_buf = hb_buffer_create();
+    const bool underline_hovered_url = !m_hovered_url.url.empty();
     
     for (int r = 0; r < m_rows; ++r) {
         for (int c = 0; c < m_cols; ) {
@@ -370,6 +429,18 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
     }
 
     hb_buffer_destroy(hb_buf);
+
+    if (underline_hovered_url && m_hovered_url.row >= 0 && m_hovered_url.row < m_rows &&
+        m_hovered_url.start_col >= 0 && m_hovered_url.end_col > m_hovered_url.start_col) {
+        double underline_x = x() + m_hovered_url.start_col * m_char_width;
+        double underline_y = y() + (m_hovered_url.row + 1) * m_char_height - 2.0;
+        double underline_w = (m_hovered_url.end_col - m_hovered_url.start_col) * m_char_width;
+
+        horizon::Color fg(m_color_scheme.primary.foreground.empty() ? "#f8f8f2" : m_color_scheme.primary.foreground);
+        cairo_set_source_rgba(cr, fg.r, fg.g, fg.b, 1.0);
+        cairo_rectangle(cr, underline_x, underline_y, underline_w, 1.0);
+        cairo_fill(cr);
+    }
 
     if (m_cursor_visible && has_focus()) {
         double cursor_x = x() + m_cursor_pos.col * m_char_width;
@@ -471,7 +542,11 @@ void TerminalWidget::draw(GraphicsContext &ctx) {
 }
 
 void TerminalWidget::handle_key_press(KeyEventContext &ctx) {
-    m_last_modifiers = ctx.modifiers;
+    if (m_has_last_mouse_position) {
+        update_link_hover(m_last_mouse_x, m_last_mouse_y, ctx.modifiers);
+    } else {
+        m_last_modifiers = ctx.modifiers;
+    }
     
     // 1. Prioritize Terminal Shortcuts (Ctrl+Shift+C/V)
     // We check this BEFORE sending text to PTY to avoid Ctrl+C cancellation
@@ -698,6 +773,15 @@ void TerminalWidget::handle_mouse_wheel(MouseWheelEventContext &ctx) {
 
 void TerminalWidget::handle_mouse_press(MouseButtonEventContext &ctx) {
     set_focus(true);
+    update_link_hover(ctx.x, ctx.y, ctx.modifiers);
+
+    if (ctx.button == kLeftButton && (ctx.modifiers & horizon::WaylandWindow::Modifier::CTRL)) {
+        std::string url = url_at_position(ctx.x, ctx.y);
+        if (!url.empty() && open_url(url)) {
+            ctx.stop_propagation = true;
+            return;
+        }
+    }
     
     int size = m_controller->get_scrollback_size();
     if (m_config.show_scrollbar && size > 0) {
@@ -719,7 +803,7 @@ void TerminalWidget::handle_mouse_press(MouseButtonEventContext &ctx) {
     }
 
     // Comienzo de selección (preparación)
-    if (ctx.button == 0x110) { // BTN_LEFT
+    if (ctx.button == kLeftButton) {
         m_sel_start = screen_to_buffer(ctx.x, ctx.y);
         m_sel_end = m_sel_start;
         
@@ -730,6 +814,106 @@ void TerminalWidget::handle_mouse_press(MouseButtonEventContext &ctx) {
         m_is_selecting = true;
         invalidate();
     }
+}
+
+std::string TerminalWidget::url_at_position(double px, double py) const {
+    return url_hit_at_position(px, py).url;
+}
+
+TerminalWidget::UrlHit TerminalWidget::url_hit_at_position(double px, double py) const {
+    if (!m_controller || m_char_width <= 0 || m_char_height <= 0 || m_cols <= 0) return {};
+
+    int col = static_cast<int>((px - this->x()) / m_char_width);
+    int row = static_cast<int>((py - this->y()) / m_char_height);
+    if (col < 0 || col >= m_cols || row < 0 || row >= m_rows) return {};
+
+    int abs_row = static_cast<int>(m_controller->get_scrollback_size()) - m_scroll_offset + row;
+    std::string line;
+    std::vector<int> byte_to_col;
+    line.reserve(m_cols);
+    byte_to_col.reserve(m_cols);
+
+    int total_rows = m_controller ? m_controller->get_total_rows() : 0;
+    if (abs_row < 0 || abs_row >= total_rows) return {};
+
+    for (int c = 0; c < m_cols; ++c) {
+        auto cell = m_controller->get_cell(abs_row, c);
+        if (cell.is_continuation) continue;
+
+        const std::string text = cell.text.empty() ? " " : cell.text;
+        line += text;
+        byte_to_col.insert(byte_to_col.end(), text.size(), c);
+    }
+
+    if (line.empty()) return {};
+
+    size_t search_pos = 0;
+    while (search_pos < line.size()) {
+        size_t http_pos = line.find("http://", search_pos);
+        size_t https_pos = line.find("https://", search_pos);
+        size_t start = std::min(http_pos == std::string::npos ? line.size() : http_pos,
+                                https_pos == std::string::npos ? line.size() : https_pos);
+        if (start == line.size()) break;
+
+        size_t end = start;
+        while (end < line.size() && !is_url_terminator(line[end])) ++end;
+        while (end > start && is_trailing_url_punctuation(line[end - 1])) --end;
+
+        int start_col = byte_to_col[start];
+        int end_col = byte_to_col[end - 1] + 1;
+        if (col >= start_col && col < end_col) {
+            return {line.substr(start, end - start), row, start_col, end_col};
+        }
+
+        search_pos = end + 1;
+    }
+
+    return {};
+}
+
+void TerminalWidget::update_link_hover(double px, double py, uint32_t modifiers) {
+    uint32_t previous_modifiers = m_last_modifiers;
+    m_last_mouse_x = px;
+    m_last_mouse_y = py;
+    m_has_last_mouse_position = true;
+    m_last_modifiers = modifiers;
+
+    UrlHit previous = m_hovered_url;
+    m_hovered_url = url_hit_at_position(px, py);
+
+    if (!m_hovered_url.url.empty() && (modifiers & horizon::WaylandWindow::Modifier::CTRL)) {
+        set_cursor_type(CursorType::Pointer);
+    } else {
+        set_cursor_type(CursorType::Default);
+    }
+
+    if (previous.url != m_hovered_url.url || previous.row != m_hovered_url.row ||
+        previous.start_col != m_hovered_url.start_col || previous.end_col != m_hovered_url.end_col ||
+        ((modifiers ^ previous_modifiers) & horizon::WaylandWindow::Modifier::CTRL)) {
+        invalidate();
+    }
+}
+
+bool TerminalWidget::open_url(const std::string& url) {
+    if (url.rfind("http://", 0) != 0 && url.rfind("https://", 0) != 0) return false;
+
+    pid_t pid = fork();
+    if (pid != 0) {
+        if (pid > 0) {
+            int status = 0;
+            waitpid(pid, &status, 0);
+            return true;
+        }
+        return false;
+    }
+
+    pid_t grandchild = fork();
+    if (grandchild != 0) _exit(grandchild > 0 ? 0 : 1);
+
+    setsid();
+    close_non_stdio_file_descriptors();
+    execlp("xdg-open", "xdg-open", url.c_str(), static_cast<char*>(nullptr));
+    _exit(127);
 }
 
 
@@ -767,6 +951,10 @@ void TerminalWidget::handle_mouse_drag(MouseMoveEventContext &ctx) {
     }
 
 
+}
+
+void TerminalWidget::handle_mouse_move(MouseMoveEventContext &ctx) {
+    update_link_hover(ctx.x, ctx.y, ctx.modifiers);
 }
 
 

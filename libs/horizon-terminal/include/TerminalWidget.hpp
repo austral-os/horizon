@@ -22,6 +22,8 @@
 #include <horizon/ClipboardProvider.hpp>
 
 namespace horizon {
+class Menu;
+
 namespace terminal {
 
 class TerminalWidget : public horizon::Widget, public horizon::DataSink, public horizon::FileWatcher {
@@ -39,6 +41,7 @@ public:
     void handle_key_press(horizon::KeyEventContext &ctx);
     void handle_mouse_wheel(horizon::MouseWheelEventContext &ctx);
     void handle_mouse_press(horizon::MouseButtonEventContext &ctx);
+    void handle_mouse_move(horizon::MouseMoveEventContext &ctx);
     void handle_mouse_drag(horizon::MouseMoveEventContext &ctx);
     void handle_mouse_release(horizon::MouseButtonEventContext &ctx);
 
@@ -81,6 +84,16 @@ private:
     bool init_fonts();
     void cleanup_fonts();
     void reload_config();
+    std::string url_at_position(double x, double y) const;
+    struct UrlHit {
+        std::string url;
+        int row{-1};
+        int start_col{-1};
+        int end_col{-1};
+    };
+    UrlHit url_hit_at_position(double x, double y) const;
+    void update_link_hover(double x, double y, uint32_t modifiers);
+    static bool open_url(const std::string& url);
 
     // FileWatcher overrides
     void on_file_changed() override;
@@ -108,6 +121,10 @@ private:
     size_t m_resize_timer = 0;
     VTermPos m_cursor_pos = {0, 0};
     uint32_t m_last_modifiers = 0;
+    double m_last_mouse_x = 0.0;
+    double m_last_mouse_y = 0.0;
+    bool m_has_last_mouse_position = false;
+    UrlHit m_hovered_url;
     
     // Scrollback
     int m_scroll_offset = 0;
@@ -124,6 +141,7 @@ private:
     // Scrollbar visuals
 
     std::unique_ptr<horizon::AquaPolygon> m_v_thumb;
+    std::unique_ptr<horizon::Menu> m_link_context_menu;
     bool m_dragging_scrollbar = false;
     int m_drag_start_y = 0;
     int m_drag_start_offset = 0;

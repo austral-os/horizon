@@ -3,6 +3,7 @@
         "title": "Terminal",
         "menu": {
             "copy": "Copiar",
+            "follow_link": "Seguir enlace",
             "paste": "Pegar"
         },
         "preferences": {
