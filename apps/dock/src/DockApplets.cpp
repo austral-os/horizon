@@ -30,6 +30,8 @@ TrashApplet::TrashApplet(DockApplication* app) : DockApplet(app, "Trash", "user-
         update_icon();
     }, true);
 
+    set_accept_drops(true);
+
     when_click.connect([this](auto&) {
         std::string trash_path = "trash:///";
         ApplicationLauncher::launch_binary("arkfm", {trash_path});
@@ -38,8 +40,52 @@ TrashApplet::TrashApplet(DockApplication* app) : DockApplet(app, "Trash", "user-
     when_drop.connect([this](auto& ctx) {
         std::string trash_path = std::string(getenv("HOME")) + "/.local/share/Trash/files";
         std::filesystem::create_directories(trash_path);
+        
         auto uri_list = ctx.get_data_as_string("text/uri-list");
-        LOG_INFO << "[TrashApplet] Drop received: " << uri_list;
+        if (uri_list.empty()) return;
+        
+        auto uri_decode = [](const std::string& encoded) {
+            std::string decoded;
+            decoded.reserve(encoded.size());
+            for (size_t i = 0; i < encoded.size(); ++i) {
+                if (encoded[i] == '%' && i + 2 < encoded.size()) {
+                    int value;
+                    std::istringstream is(encoded.substr(i + 1, 2));
+                    if (is >> std::hex >> value) {
+                        decoded += static_cast<char>(value);
+                        i += 2;
+                    } else {
+                        decoded += encoded[i];
+                    }
+                } else {
+                    decoded += encoded[i];
+                }
+            }
+            return decoded;
+        };
+
+        std::stringstream ss(uri_list);
+        std::string line;
+        while(std::getline(ss, line)) {
+            if (line.empty()) continue;
+            if (line.back() == '\r') line.pop_back();
+            
+            std::string path;
+            if (line.starts_with("file://")) {
+                path = uri_decode(line.substr(7));
+            } else {
+                path = line;
+            }
+            
+            try {
+                if (std::filesystem::exists(path)) {
+                    std::filesystem::rename(path, trash_path + "/" + std::filesystem::path(path).filename().string());
+                }
+            } catch(const std::exception& e) {
+                LOG_ERROR << "[TrashApplet] Error moving " << path << " to trash: " << e.what();
+            }
+        }
+        update_icon();
     });
 
     when_right_click.connect([this](auto& ctx) {
