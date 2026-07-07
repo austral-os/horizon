@@ -241,16 +241,34 @@ namespace horizon
                 horizon::files::FileContextMenuBuilder::Callbacks cb;
                 cb.on_refresh = [iv_ptr, desktop_path]() { iv_ptr->refresh(desktop_path); };
                 
-                cb.on_delete = [iv_ptr, desktop_path](const std::vector<std::string>& paths) {
-                    for (const auto& p : paths) {
-                        std::filesystem::remove_all(p);
+                cb.on_delete = [iv_ptr, desktop_path, f](const std::vector<std::string>& /*paths*/) {
+                    auto sel = iv_ptr->get_selected_items();
+                    bool in_selection = false;
+                    std::vector<std::string> p;
+                    for (const auto &item : sel) {
+                        p.push_back(item.path);
+                        if (item.path == f.path) in_selection = true;
+                    }
+                    if (!in_selection) p = {f.path};
+
+                    for (const auto& path_to_del : p) {
+                        std::filesystem::remove_all(path_to_del);
                     }
                     iv_ptr->refresh(desktop_path);
                 };
 
-                cb.on_trash = [iv_ptr, desktop_path](const std::vector<std::string>& paths) {
-                    for (const auto& p : paths) {
-                        std::system(("gio trash \"" + p + "\"").c_str());
+                cb.on_trash = [iv_ptr, desktop_path, f](const std::vector<std::string>& /*paths*/) {
+                    auto sel = iv_ptr->get_selected_items();
+                    bool in_selection = false;
+                    std::vector<std::string> p;
+                    for (const auto &item : sel) {
+                        p.push_back(item.path);
+                        if (item.path == f.path) in_selection = true;
+                    }
+                    if (!in_selection) p = {f.path};
+
+                    for (const auto& path_to_trash : p) {
+                        std::system(("gio trash \"" + path_to_trash + "\"").c_str());
                     }
                     iv_ptr->refresh(desktop_path);
                 };
