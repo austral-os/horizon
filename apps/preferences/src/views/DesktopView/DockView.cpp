@@ -109,7 +109,68 @@ namespace horizon::preferences
             });
 
         add_child(std::move(pos_combo));
-        add_child(horizon::Spacer());
+
+        // --- Downloads Group ---
+        auto dl_container = std::make_unique<horizon::Widget>();
+        dl_container->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
+        dl_container->set_spacing(10);
+        dl_container->set_fixed_size(35); // matches the children
+
+        // Downloads checkbox
+        auto dl_check = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
+        dl_check->set_text(i18n().tr("preferences.desktop.show_downloads"));
+        dl_check->set_fixed_size(350);
+        m_show_downloads_check = dl_check.get();
+        m_show_downloads_check->when_toggle.connect(
+            [this](const ToggleEventContext &ctx)
+            {
+                m_show_downloads = ctx.checked;
+                save_config();
+            });
+        dl_container->add_child(std::move(dl_check));
+
+        // Downloads count input
+        auto dl_count_label =
+            std::make_unique<horizon::Label>(i18n().tr("preferences.desktop.downloads_count"));
+
+        auto dl_count_input = std::make_unique<horizon::TextBox<horizon::IntegerPolicy>>();
+        dl_count_input->config.show_spin_buttons = true;
+        dl_count_input->config.min_int = 1;
+        dl_count_input->config.max_int = 30;
+        dl_count_input->set_fixed_size(80);
+        dl_count_input->set_width(150);
+        m_downloads_count_input = dl_count_input.get();
+        m_downloads_count_input->when_text_changed.connect(
+            [this](const horizon::KeyEventContext &)
+            {
+                if (m_downloads_count_input->text().empty())
+                    return;
+                try
+                {
+                    m_downloads_items_count = std::stoi(m_downloads_count_input->text());
+                    save_config();
+                }
+                catch (...)
+                {
+                }
+            });
+        dl_container->add_child(std::move(dl_count_input));
+        dl_container->add_child(std::move(dl_count_label));
+
+        add_child(std::move(dl_container));
+
+        // Trash checkbox
+        auto trash_check = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
+        trash_check->set_text(i18n().tr("preferences.desktop.show_trash"));
+        trash_check->set_fixed_size(35);
+        m_show_trash_check = trash_check.get();
+        m_show_trash_check->when_toggle.connect(
+            [this](const ToggleEventContext &ctx)
+            {
+                m_show_trash = ctx.checked;
+                save_config();
+            });
+        add_child(std::move(trash_check));
 
         add_child(horizon::Spacer());
 
@@ -127,6 +188,9 @@ namespace horizon::preferences
         m_magnification_enabled = j.value("magnification_enabled", j.value("magnification", true));
         m_autohide_enabled = j.value("autohide", false);
         m_position = j.value("position", "bottom");
+        m_show_trash = j.value("show_trash", true);
+        m_show_downloads = j.value("show_downloads", true);
+        m_downloads_items_count = j.value("downloads_items_count", 9);
 
         if (m_size_slider)
             m_size_slider->set_value(static_cast<float>(m_icon_size));
@@ -142,6 +206,15 @@ namespace horizon::preferences
 
         if (m_position_combo)
             m_position_combo->set_selected_item_by_id(m_position);
+
+        if (m_show_trash_check)
+            m_show_trash_check->set_checked(m_show_trash);
+
+        if (m_show_downloads_check)
+            m_show_downloads_check->set_checked(m_show_downloads);
+
+        if (m_downloads_count_input)
+            m_downloads_count_input->set_text(std::to_string(m_downloads_items_count));
     }
 
     nlohmann::json DockView::to_json() const
@@ -154,6 +227,9 @@ namespace horizon::preferences
         j["magnification_enabled"] = m_magnification_enabled;
         j["autohide"] = m_autohide_enabled;
         j["position"] = m_position;
+        j["show_trash"] = m_show_trash;
+        j["show_downloads"] = m_show_downloads;
+        j["downloads_items_count"] = m_downloads_items_count;
         if (!j.contains("autohide-time"))
         {
             j["autohide-time"] = 500;

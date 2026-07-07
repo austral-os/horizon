@@ -293,5 +293,8 @@
                 "other": "Minutos"
             }
         }
-    }
+    },
+    "preferences.desktop.show_trash": "Mostrar ícono de Papelera",
+    "preferences.desktop.show_downloads": "Mostrar ícono de Descargas",
+    "preferences.desktop.downloads_count": "Cantidad de elementos en Descargas"
 }

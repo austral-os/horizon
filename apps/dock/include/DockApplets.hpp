@@ -54,7 +54,7 @@ namespace horizon
 
     private:
         void show_parabola();
-        int m_max_items{5};
+        int m_max_items{9};
     };
 
 } // namespace horizon

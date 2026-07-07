@@ -115,7 +115,6 @@ public:
                 std::string icon_name = files::FileIconProvider::get_icon_name(info);
                 item.icon_path = IconThemeLookup::find_icon(icon_name, 48);
                 std::string fname = entry.path().filename().string();
-                if (fname.length() > 12) fname = fname.substr(0, 10) + "..";
                 item.label = fname;
                 m_items.push_back(std::move(item));
                 count++;
@@ -168,8 +167,8 @@ protected:
 
         double ease = double(m_progress) * (2.0 - double(m_progress)); // easeOutQuad
 
-        // Bottom-center anchor (where items fan out from)
-        double bx = m_x + m_vault_w / 2.0;
+        // Bottom-center anchor (shifted left to give space for labels on the right)
+        double bx = m_x + 150.0;
         double by = m_y + m_vault_h - 20.0;
 
         // macOS-style parabolic fan:
@@ -178,8 +177,9 @@ protected:
         // Fan starts directly above Downloads icon (t=0) and sweeps upper-right (t=1)
         for (int i = 0; i < n; ++i) {
             double t = (n > 1) ? (double)(n - 1 - i) / (n - 1) : 0.0;
-            double tx = bx + std::pow(t, 1.5) * 230.0;  // moves right faster initially
-            double ty = by - 20.0 - t * 330.0;           // taller linear rise to prevent vertical overlap
+            double tx = bx + std::pow(t, 2.5) * 100.0;  // steep initially, sweeps right later
+            // Dynamic vertical spread: exactly 40px per item to prevent overlap regardless of n
+            double ty = by - 20.0 - t * std::max(1, n - 1) * 40.0;
 
             // Animate from anchor toward target
             double cx = bx + (tx - bx) * ease;
@@ -201,15 +201,15 @@ protected:
                 gc.fillCircle((int)cx, (int)cy, m_icon_size/2);
             }
 
-            // Label below icon
+            // Label right of icon
             if (alpha > 0.3f) {
-                gc.setDrawFont("Inter", 10, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
-                auto tm = gc.getTextMetrics(m_items[i].label.c_str(), "Inter", 10, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
-                int lx = (int)(cx - tm.width / 2.0);
-                int ly = (int)(cy + m_icon_size/2 + 14);
+                gc.setDrawFont("Inter", 11, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+                auto tm = gc.getTextMetrics(m_items[i].label.c_str(), "Inter", 11, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+                int lx = (int)(cx + m_icon_size/2 + 12);
+                int ly = (int)(cy + 4);
                 // Label background
                 gc.setColor({0.0f, 0.0f, 0.0f, alpha * 0.55f});
-                gc.fillRect(lx - 3, ly - 11, tm.width + 6, 15, 4);
+                gc.fillRect(lx - 4, ly - 11, tm.width + 8, 15, 4);
                 gc.setColor({1.0f, 1.0f, 1.0f, alpha});
                 gc.drawText(lx, ly, m_items[i].label.c_str());
             }
@@ -228,13 +228,13 @@ private:
         int n = (int)m_items.size();
         if (n == 0 || m_progress < 0.8f) return;
 
-        double bx = m_x + m_vault_w / 2.0;
+        double bx = m_x + 150.0;
         double by = m_y + m_vault_h - 20.0;
 
         for (int i = 0; i < n; ++i) {
             double t = (n > 1) ? (double)(n - 1 - i) / (n - 1) : 0.0;
-            double tx = bx + std::pow(t, 1.5) * 230.0;
-            double ty = by - 20.0 - t * 330.0;
+            double tx = bx + std::pow(t, 2.5) * 100.0;
+            double ty = by - 20.0 - t * std::max(1, n - 1) * 40.0;
 
             double dx = mx - tx;
             double dy = my - ty;
@@ -251,9 +251,9 @@ private:
         }
     }
 
-    static constexpr int m_vault_w = 520;
-    static constexpr int m_vault_h = 400;
-    static constexpr int m_icon_size = 48;
+    static constexpr int m_vault_w = 600;
+    static constexpr int m_vault_h = 550;
+    static constexpr int m_icon_size = 24;
 
     WaylandWindow* m_window;
     std::vector<Item> m_items;
@@ -269,8 +269,8 @@ DownloadsApplet::DownloadsApplet(DockApplication* app) : DockApplet(app, "Downlo
 {
     when_click.connect([this](auto& ctx) {
         g_parabola_vault = std::make_unique<ParabolaVault>(m_max_items, m_app->window());
-        // Center vault horizontally over the Downloads icon (520px wide)
-        int vault_x = ctx.x - 260;
+        // Offset vault horizontally so the anchor (bx=150) aligns with the click (Downloads icon)
+        int vault_x = ctx.x - 150;
         m_app->window()->show_vault(g_parabola_vault.get(), vault_x, ctx.y, ctx.serial, this);
     });
 

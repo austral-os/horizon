@@ -293,5 +293,8 @@
                 "other": "Minutes"
             }
         }
-    }
+    },
+    "preferences.desktop.show_trash": "Show Trash Icon",
+    "preferences.desktop.show_downloads": "Show Downloads Icon",
+    "preferences.desktop.downloads_count": "Items in Downloads Vault"
 }
