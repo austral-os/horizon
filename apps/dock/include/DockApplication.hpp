@@ -76,6 +76,9 @@ namespace horizon
         int m_total_height = 160;
         std::string m_position = "bottom";
 
+        bool m_show_downloads = true;
+        int m_downloads_items_count = 5;
+        bool m_show_trash = true;
     };
 
 } // namespace horizon

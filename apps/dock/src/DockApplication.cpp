@@ -1,6 +1,7 @@
 #include "DockApplication.hpp"
 #include "DockItem.hpp"
 #include "DockShelf.hpp"
+#include "DockApplets.hpp"
 #include "horizon/EventsManager.hpp"
 #include <algorithm>
 #include <horizon/ApplicationLauncher.hpp>
@@ -422,6 +423,31 @@ namespace horizon
             _shelf_ptr->add_child(std::move(item));
         }
 
+        // 5. Add Applets
+        if (m_show_downloads || m_show_trash) {
+            auto separator = std::make_unique<Widget>();
+            separator->set_fixed_size(2);
+            separator->set_margin(10);
+            separator->set_background_color({1.0f, 1.0f, 1.0f, 0.3f});
+            separator->set_position_type(FREE);
+            _shelf_ptr->add_child(std::move(separator));
+            
+            if (m_show_downloads) {
+                auto downloads_applet = std::make_unique<DownloadsApplet>(this);
+                nlohmann::json cfg;
+                cfg["downloads_items_count"] = m_downloads_items_count;
+                downloads_applet->load_config(cfg);
+                downloads_applet->set_position_type(FREE);
+                _shelf_ptr->add_child(std::move(downloads_applet));
+            }
+            
+            if (m_show_trash) {
+                auto trash_applet = std::make_unique<TrashApplet>(this);
+                trash_applet->set_position_type(FREE);
+                _shelf_ptr->add_child(std::move(trash_applet));
+            }
+        }
+
         _shelf_ptr->calculate_layout();
         if (m_window->root())
             m_window->root()->calculate_layout();
@@ -529,6 +555,13 @@ namespace horizon
                     }
                     update_dock(m_last_apps);
                 }
+
+                if (dock_config.contains("applets")) {
+                    const auto& applets_config = dock_config["applets"];
+                    m_show_downloads = applets_config.value("show_downloads", true);
+                    m_downloads_items_count = applets_config.value("downloads_items_count", 5);
+                    m_show_trash = applets_config.value("show_trash", true);
+                }
             }
             else
             {
@@ -571,6 +604,12 @@ namespace horizon
                 pinned_json.push_back(p);
             }
             dock_config["pinned"] = pinned_json;
+
+            nlohmann::json applets_json;
+            applets_json["show_downloads"] = m_show_downloads;
+            applets_json["downloads_items_count"] = m_downloads_items_count;
+            applets_json["show_trash"] = m_show_trash;
+            dock_config["applets"] = applets_json;
 
             // Ensure directory exists
             std::filesystem::path p(m_config_path);

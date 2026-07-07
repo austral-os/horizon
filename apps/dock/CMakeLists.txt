@@ -3,6 +3,7 @@ add_executable(dock
     src/DockApplication.cpp
     src/DockItem.cpp
     src/DockShelf.cpp
+    src/DockApplets.cpp
 )
 
 target_include_directories(dock
@@ -17,6 +18,7 @@ target_compile_definitions(dock PRIVATE
 target_link_libraries(dock
     PRIVATE
         horizon
+        ${CAIRO_LIBRARIES}
 )
 
 add_custom_command(TARGET dock POST_BUILD
