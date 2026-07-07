@@ -2,6 +2,7 @@
 #include "DockItem.hpp"
 #include "DockShelf.hpp"
 #include "DockApplets.hpp"
+#include "DownloadsApplet.hpp"
 #include "horizon/EventsManager.hpp"
 #include <algorithm>
 #include <horizon/ApplicationLauncher.hpp>

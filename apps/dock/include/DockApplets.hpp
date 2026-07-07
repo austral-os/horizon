@@ -41,20 +41,6 @@ namespace horizon
         size_t m_timer_id{0};
     };
 
-    /**
-     * @brief Downloads folder applet with parabola fan popup
-     */
-    class DownloadsApplet : public DockApplet
-    {
-    public:
-        DownloadsApplet(DockApplication *app);
-        ~DownloadsApplet() override;
 
-        void load_config(const nlohmann::json &config) override;
-
-    private:
-        void show_parabola();
-        int m_max_items{9};
-    };
 
 } // namespace horizon

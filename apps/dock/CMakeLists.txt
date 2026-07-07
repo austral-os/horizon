@@ -4,6 +4,7 @@ add_executable(dock
     src/DockItem.cpp
     src/DockShelf.cpp
     src/DockApplets.cpp
+    src/DownloadsApplet.cpp
 )
 
 target_include_directories(dock
