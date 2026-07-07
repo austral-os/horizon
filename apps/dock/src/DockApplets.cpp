@@ -173,13 +173,13 @@ protected:
         double by = m_y + m_vault_h - 20.0;
 
         // macOS-style parabolic fan:
-        // X = t^2.5 (nearly vertical at bottom, sweeps right at top)
+        // X = t^1.5 (starts moving right sooner to avoid vertical overlap)
         // Y = linear (uniform vertical rise)
         // Fan starts directly above Downloads icon (t=0) and sweeps upper-right (t=1)
         for (int i = 0; i < n; ++i) {
             double t = (n > 1) ? (double)(n - 1 - i) / (n - 1) : 0.0;
-            double tx = bx + std::pow(t, 2.5) * 200.0;  // strong curve, opens to right
-            double ty = by - 20.0 - t * 260.0;           // linear rise
+            double tx = bx + std::pow(t, 1.5) * 230.0;  // moves right faster initially
+            double ty = by - 20.0 - t * 330.0;           // taller linear rise to prevent vertical overlap
 
             // Animate from anchor toward target
             double cx = bx + (tx - bx) * ease;
@@ -233,8 +233,8 @@ private:
 
         for (int i = 0; i < n; ++i) {
             double t = (n > 1) ? (double)(n - 1 - i) / (n - 1) : 0.0;
-            double tx = bx + std::pow(t, 2.5) * 200.0;
-            double ty = by - 20.0 - t * 260.0;
+            double tx = bx + std::pow(t, 1.5) * 230.0;
+            double ty = by - 20.0 - t * 330.0;
 
             double dx = mx - tx;
             double dy = my - ty;
@@ -251,8 +251,8 @@ private:
         }
     }
 
-    static constexpr int m_vault_w = 490;
-    static constexpr int m_vault_h = 360;
+    static constexpr int m_vault_w = 520;
+    static constexpr int m_vault_h = 400;
     static constexpr int m_icon_size = 48;
 
     WaylandWindow* m_window;
@@ -269,8 +269,8 @@ DownloadsApplet::DownloadsApplet(DockApplication* app) : DockApplet(app, "Downlo
 {
     when_click.connect([this](auto& ctx) {
         g_parabola_vault = std::make_unique<ParabolaVault>(m_max_items, m_app->window());
-        // Center vault horizontally over the Downloads icon, bottom of vault at click
-        int vault_x = ctx.x - 245;  // center vault (490px wide) over Downloads icon
+        // Center vault horizontally over the Downloads icon (520px wide)
+        int vault_x = ctx.x - 260;
         m_app->window()->show_vault(g_parabola_vault.get(), vault_x, ctx.y, ctx.serial, this);
     });
 
