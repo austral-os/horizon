@@ -1643,6 +1643,13 @@ namespace horizon
     {
         m_is_activated = active;
 
+        if (!active)
+        {
+            if (m_popup_menu) close_context_menu(false);
+            if (m_popup_vault) close_vault(false);
+            hide_tooltip();
+        }
+
         if (m_client_menu && m_is_running && m_use_global_menu)
         {
             if (active)
