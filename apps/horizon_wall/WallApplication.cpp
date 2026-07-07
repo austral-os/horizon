@@ -137,6 +137,11 @@ namespace horizon
                     nlohmann::json j;
                     file >> j;
                     
+                    if (j.contains("desktop") && j["desktop"].contains("group_icons"))
+                    {
+                        m_group_icons = j["desktop"]["group_icons"].get<bool>();
+                    }
+                    
                     if (j.contains("desktop") && j["desktop"].contains("backgrounds") && 
                         j["desktop"]["backgrounds"].contains("current"))
                     {
@@ -226,6 +231,7 @@ namespace horizon
             icon_view->set_position_type(FREE);
             icon_view->set_transparent(true);
             icon_view->set_layout_mode(horizon::IconViewLayoutMode::VerticalRightToLeft);
+            icon_view->set_grouped(m_group_icons);
             
             // Connect double click to open files
             icon_view->when_item_dbl_click.connect([](const IconViewItemMouseClickContext<arkutils::FileInfo>& ctx) {
@@ -307,6 +313,33 @@ namespace horizon
                 std::system("preferences --display &");
             });
             iv_menu->add_item(std::move(iv_disp_item));
+            
+            iv_menu->add_separator();
+            
+            auto group_item = std::make_unique<MenuItem>(m_group_icons ? "Desagrupar Stacks" : "Agrupar en Stacks");
+            group_item->set_icon(m_group_icons ? "view-grid" : "folder-saved-search");
+            group_item->when_click.connect([this](EventContext&) {
+                bool new_val = !m_group_icons;
+                m_group_icons = new_val;
+                
+                if (!m_config_path.empty() && std::filesystem::exists(m_config_path)) {
+                    try {
+                        std::ifstream file(m_config_path);
+                        nlohmann::json j;
+                        file >> j;
+                        j["desktop"]["group_icons"] = new_val;
+                        std::ofstream ofile(m_config_path);
+                        ofile << std::setw(4) << j << std::endl;
+                    } catch(...) {}
+                }
+                
+                for (auto* iv : m_icon_views) {
+                    iv->set_grouped(new_val);
+                }
+                
+                this->post_task([this]() { this->load_wallpaper(""); });
+            });
+            iv_menu->add_item(std::move(group_item));
             
             icon_view->set_context_menu(std::move(iv_menu));
 

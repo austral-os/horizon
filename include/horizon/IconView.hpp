@@ -102,10 +102,6 @@ namespace horizon
         T item_data;
     };
 
-    /**
-     * @class IconView
-     * @brief A generic widget that displays a grid of items from a given collection.
-     */
     template <typename T> class IconView : public IconViewBase
     {
     public:
@@ -118,7 +114,15 @@ namespace horizon
             when_key_press.connect([this](KeyEventContext &ev) {
                 if (m_data.empty()) return;
 
-                int current_idx = selected_index();
+                int data_idx = selected_index();
+                int current_idx = -1;
+                for (size_t v = 0; v < m_visual_to_data.size(); ++v) {
+                    if (m_visual_to_data[v] == data_idx) {
+                        current_idx = v;
+                        break;
+                    }
+                }
+
                 int new_idx = current_idx;
                 int cols = std::max(1, m_columns_count);
                 int rows = std::max(1, m_rows_count);
@@ -129,30 +133,36 @@ namespace horizon
                     if (ev.keysym == 0xff51) // Left arrow
                     {
                         this->set_focus(true);
-                        new_idx = (current_idx <= 0) ? 0 : current_idx - 1;
+                        new_idx = current_idx - 1;
+                        while (new_idx >= 0 && m_visual_to_data[new_idx] == -1) new_idx--;
+                        if (new_idx < 0) new_idx = current_idx;
                         ev.stop_propagation = true;
                         is_arrow = true;
                     }
                     else if (ev.keysym == 0xff53) // Right arrow
                     {
                         this->set_focus(true);
-                        new_idx = (current_idx < 0) ? 0 : std::min((int)m_data.size() - 1, current_idx + 1);
+                        new_idx = current_idx + 1;
+                        while (new_idx < (int)m_visual_to_data.size() && m_visual_to_data[new_idx] == -1) new_idx++;
+                        if (new_idx >= (int)m_visual_to_data.size()) new_idx = current_idx;
                         ev.stop_propagation = true;
                         is_arrow = true;
                     }
                     else if (ev.keysym == 0xff52) // Up arrow
                     {
                         this->set_focus(true);
-                        if (current_idx < 0) new_idx = 0;
-                        else new_idx = std::max(0, current_idx - cols);
+                        new_idx = current_idx - cols;
+                        while (new_idx >= 0 && m_visual_to_data[new_idx] == -1) new_idx--;
+                        if (new_idx < 0) new_idx = current_idx;
                         ev.stop_propagation = true;
                         is_arrow = true;
                     }
                     else if (ev.keysym == 0xff54) // Down arrow
                     {
                         this->set_focus(true);
-                        if (current_idx < 0) new_idx = 0;
-                        else new_idx = std::min((int)m_data.size() - 1, current_idx + cols);
+                        new_idx = current_idx + cols;
+                        while (new_idx < (int)m_visual_to_data.size() && m_visual_to_data[new_idx] == -1) new_idx++;
+                        if (new_idx >= (int)m_visual_to_data.size()) new_idx = current_idx;
                         ev.stop_propagation = true;
                         is_arrow = true;
                     }
@@ -160,14 +170,18 @@ namespace horizon
                     if (ev.keysym == 0xff52) // Up arrow
                     {
                         this->set_focus(true);
-                        new_idx = (current_idx <= 0) ? 0 : current_idx - 1;
+                        new_idx = current_idx - 1;
+                        while (new_idx >= 0 && m_visual_to_data[new_idx] == -1) new_idx--;
+                        if (new_idx < 0) new_idx = current_idx;
                         ev.stop_propagation = true;
                         is_arrow = true;
                     }
                     else if (ev.keysym == 0xff54) // Down arrow
                     {
                         this->set_focus(true);
-                        new_idx = (current_idx < 0) ? 0 : std::min((int)m_data.size() - 1, current_idx + 1);
+                        new_idx = current_idx + 1;
+                        while (new_idx < (int)m_visual_to_data.size() && m_visual_to_data[new_idx] == -1) new_idx++;
+                        if (new_idx >= (int)m_visual_to_data.size()) new_idx = current_idx;
                         ev.stop_propagation = true;
                         is_arrow = true;
                     }
@@ -184,7 +198,7 @@ namespace horizon
 
                             int min_dx = 1000000;
                             for (int i = 0; i < (int)m_content_pane->children().size(); ++i) {
-                                if (i == current_idx) continue;
+                                if (i == current_idx || m_visual_to_data[i] == -1) continue;
                                 int dx = m_content_pane->children()[i]->x() - cx;
                                 if ((move_left && dx < 0) || (!move_left && dx > 0)) {
                                     int abs_dx = std::abs(dx);
@@ -198,7 +212,7 @@ namespace horizon
                                 int min_dy = 1000000;
                                 int best_idx = current_idx;
                                 for (int i = 0; i < (int)m_content_pane->children().size(); ++i) {
-                                    if (i == current_idx) continue;
+                                    if (i == current_idx || m_visual_to_data[i] == -1) continue;
                                     int dx = m_content_pane->children()[i]->x() - cx;
                                     if ((move_left && dx < 0) || (!move_left && dx > 0)) {
                                         if (std::abs(dx) <= min_dx + 5) {
@@ -215,18 +229,22 @@ namespace horizon
                             }
                         } else if (current_idx < 0 && m_data.size() > 0) {
                             new_idx = 0;
+                            while (new_idx < (int)m_visual_to_data.size() && m_visual_to_data[new_idx] == -1) new_idx++;
                         }
                     }
                 }
 
-                if (new_idx != current_idx && new_idx >= 0 && new_idx < (int)m_data.size())
+                if (new_idx != current_idx && new_idx >= 0 && new_idx < (int)m_visual_to_data.size())
                 {
-                    bool shift_pressed = (ev.modifiers & WaylandWindow::Modifier::SHIFT);
-                    bool ctrl_pressed = (ev.modifiers & WaylandWindow::Modifier::CTRL);
-                    set_selected_index(new_idx, ctrl_pressed, shift_pressed);
-                    
-                    if (on_item_selected)
-                        on_item_selected(new_idx, m_data[new_idx]);
+                    int target_data_idx = m_visual_to_data[new_idx];
+                    if (target_data_idx != -1) {
+                        bool shift_pressed = (ev.modifiers & WaylandWindow::Modifier::SHIFT);
+                        bool ctrl_pressed = (ev.modifiers & WaylandWindow::Modifier::CTRL);
+                        set_selected_index(target_data_idx, ctrl_pressed, shift_pressed);
+                        
+                        if (on_item_selected)
+                            on_item_selected(target_data_idx, m_data[target_data_idx]);
+                    }
 
                     // Auto-scroll logic:
                     if (m_scroll_area && m_content_pane && new_idx < (int)m_content_pane->children().size()) {
@@ -294,6 +312,25 @@ namespace horizon
             rebuild_items();
         }
 
+        void set_grouped(bool grouped) {
+            if (m_is_grouped != grouped) {
+                m_is_grouped = grouped;
+                if (!grouped) m_expanded_group = "";
+                rebuild_items();
+            }
+        }
+        bool is_grouped() const { return m_is_grouped; }
+
+        void set_grouping_function(std::function<std::string(const T&)> func) {
+            m_grouping_function = func;
+            if (m_is_grouped) rebuild_items();
+        }
+
+        void set_group_header_factory(std::function<std::unique_ptr<Widget>(const std::string&, bool, float)> factory) {
+            m_group_header_factory = factory;
+            if (m_is_grouped) rebuild_items();
+        }
+
         void refresh()
         {
             rebuild_items();
@@ -306,12 +343,58 @@ namespace horizon
                 return;
 
             m_content_pane->clear_children();
+            m_visual_to_data.clear();
 
             if (!m_item_factory)
                 return;
 
-            for (int i = 0; i < (int)m_data.size(); ++i)
-            {
+            if (m_is_grouped && m_grouping_function && m_group_header_factory) {
+                std::map<std::string, std::vector<int>> groups;
+                for (int i = 0; i < (int)m_data.size(); ++i) {
+                    groups[m_grouping_function(m_data[i])].push_back(i);
+                }
+
+                for (const auto& pair : groups) {
+                    std::string group_name = pair.first;
+                    const auto& indices = pair.second;
+                    
+                    bool is_expanded = (m_expanded_group == group_name);
+                    auto header = m_group_header_factory(group_name, is_expanded, m_zoom);
+                    if (header) {
+                        header->when_mouse_press.connect([](MouseButtonEventContext &ctx) {
+                            ctx.stop_propagation = true;
+                        });
+                        std::string gname = group_name;
+                        header->when_click.connect([this, gname](MouseButtonEventContext &ctx) {
+                            if (m_expanded_group == gname) m_expanded_group = "";
+                            else m_expanded_group = gname;
+                            rebuild_items();
+                            ctx.stop_propagation = true;
+                        });
+                        header->set_position_type(FREE);
+                        m_content_pane->add_child(std::move(header));
+                        m_visual_to_data.push_back(-1);
+                    }
+
+                    if (is_expanded) {
+                        for (int i : indices) {
+                            add_item_widget(i);
+                        }
+                    }
+                }
+            } else {
+                for (int i = 0; i < (int)m_data.size(); ++i)
+                {
+                    add_item_widget(i);
+                }
+            }
+
+            invalidate();
+            calculate_layout();
+        }
+
+        void add_item_widget(int i)
+        {
                 bool is_selected = (m_selected_indices.count(i) > 0);
                 auto item_widget = m_item_factory(m_data[i], m_zoom, is_selected);
                 if (item_widget)
@@ -391,11 +474,8 @@ namespace horizon
 
                     item_widget->set_position_type(FREE);
                     m_content_pane->add_child(std::move(item_widget));
+                    m_visual_to_data.push_back(i);
                 }
-            }
-
-            invalidate();
-            calculate_layout();
         }
 
     private:
@@ -403,5 +483,11 @@ namespace horizon
         ItemFactory m_item_factory;
         std::function<std::unique_ptr<Menu>(const T &)> m_item_menu_factory;
         uint64_t m_rebuild_generation{0};
+        
+        bool m_is_grouped{false};
+        std::string m_expanded_group{""};
+        std::function<std::string(const T&)> m_grouping_function;
+        std::function<std::unique_ptr<Widget>(const std::string&, bool, float)> m_group_header_factory;
+        std::vector<int> m_visual_to_data;
     };
 } // namespace horizon

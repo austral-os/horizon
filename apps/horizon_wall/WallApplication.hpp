@@ -43,6 +43,7 @@ namespace horizon
 
         std::string m_wall_path;
         std::string m_config_path;
+        bool m_group_icons{false};
 
         int inotify_fd{-1};
         int watch_fd{-1};

@@ -415,6 +415,76 @@ namespace horizon::files
         Color m_default_text_color{0.0f, 0.0f, 0.0f, -1.0f};
     };
 
+    class StackHeaderItem : public Widget
+    {
+    public:
+        StackHeaderItem(bool transparent) : Widget()
+        {
+            auto icon = std::make_unique<Icon>();
+            icon->set_position_type(FREE);
+            m_icon_ptr = icon.get();
+            add_child(std::move(icon));
+
+            auto label = std::make_unique<Label>();
+            label->set_position_type(FREE);
+            label->set_alignment(TextAlignment::Center);
+            label->set_vertical_alignment(VerticalAlignment::Middle);
+            m_label_ptr = label.get();
+            add_child(std::move(label));
+
+            m_position_type = FREE;
+            
+            if (transparent) {
+                m_label_ptr->set_has_shadow(true);
+                m_label_ptr->set_text_color(Color(1.0f, 1.0f, 1.0f, 1.0f));
+            }
+        }
+
+        void set_data(const std::string& name, bool is_expanded, float zoom)
+        {
+            m_zoom = zoom;
+            m_icon_size = static_cast<int>(48 * zoom);
+            m_label_ptr->set_text(name);
+            m_label_ptr->set_font_size(10 * zoom);
+            
+            if (is_expanded) {
+                m_icon_ptr->set_icon_name("folder-open");
+            } else {
+                m_icon_ptr->set_icon_name("folder-saved-search"); // A nice visual for grouped stacks
+            }
+            m_icon_ptr->set_icon_size(m_icon_size);
+            invalidate();
+        }
+
+        int preferred_height(int width) const override
+        {
+            int padding = static_cast<int>(4 * m_zoom);
+            int gap = 4;
+            int label_h = m_label_ptr->preferred_height(width - 4);
+            return padding + m_icon_size + gap + label_h + padding;
+        }
+
+        void calculate_layout() override
+        {
+            int padding = static_cast<int>(4 * m_zoom);
+            int icon_y = padding;
+            int icon_x = m_x + (m_width - m_icon_size) / 2;
+
+            m_icon_ptr->set_position(icon_x, m_y + icon_y);
+            m_icon_ptr->set_size(m_icon_size, m_icon_size);
+
+            int label_y = icon_y + m_icon_size + 4;
+            m_label_ptr->set_position(m_x + 2, m_y + label_y);
+            m_label_ptr->set_size(m_width - 4, m_height - label_y - 2);
+        }
+
+    private:
+        Icon *m_icon_ptr{nullptr};
+        Label *m_label_ptr{nullptr};
+        float m_zoom{1.5f};
+        int m_icon_size{48};
+    };
+
     FileIconView::~FileIconView()
     {
         if (m_thumbnail_timer_id != 0 && application())
@@ -450,6 +520,29 @@ namespace horizon::files
                 });
                 return item;
             });
+
+        set_grouping_function([](const arkutils::FileInfo& f) -> std::string {
+            if (f.type == arkutils::FileType::Directory) return "Carpetas";
+            std::string ext = f.path;
+            size_t pos = ext.find_last_of('.');
+            if (pos != std::string::npos) {
+                ext = ext.substr(pos);
+                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+                if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".svg" || ext == ".webp") return "Imágenes";
+                if (ext == ".txt" || ext == ".pdf" || ext == ".doc" || ext == ".docx" || ext == ".odt") return "Documentos";
+                if (ext == ".mp4" || ext == ".mkv" || ext == ".avi" || ext == ".webm") return "Videos";
+                if (ext == ".mp3" || ext == ".wav" || ext == ".ogg" || ext == ".flac") return "Música";
+                if (ext == ".zip" || ext == ".tar" || ext == ".gz" || ext == ".rar" || ext == ".7z") return "Comprimidos";
+                if (ext == ".desktop") return "Aplicaciones";
+            }
+            return "Otros";
+        });
+
+        set_group_header_factory([this](const std::string& group_name, bool is_expanded, float zoom) -> std::unique_ptr<Widget> {
+            auto item = std::make_unique<StackHeaderItem>(m_transparent);
+            item->set_data(group_name, is_expanded, zoom);
+            return item;
+        });
 
         m_fs_model->signal_manager().connect(arkutils::FileSystemModel::SIGNAL_DIRECTORY_CHANGED,
                                              [this](SignalContext &ctx)
