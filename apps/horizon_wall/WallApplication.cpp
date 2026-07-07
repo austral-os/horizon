@@ -232,6 +232,7 @@ namespace horizon
             icon_view->set_transparent(true);
             icon_view->set_layout_mode(horizon::IconViewLayoutMode::VerticalRightToLeft);
             icon_view->set_grouped(m_group_icons);
+            icon_view->set_scroll_enabled(false);
             
             // Connect double click to open files
             icon_view->when_item_dbl_click.connect([](const IconViewItemMouseClickContext<arkutils::FileInfo>& ctx) {

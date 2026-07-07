@@ -48,6 +48,8 @@ namespace horizon
         void set_rubberband_selection_enabled(bool enabled);
         bool rubberband_selection_enabled() const;
 
+        void set_scroll_enabled(bool enabled);
+
         void draw(GraphicsContext &gc) override;
 
         void calculate_layout() override;

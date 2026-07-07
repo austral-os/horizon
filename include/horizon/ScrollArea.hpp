@@ -20,6 +20,9 @@ namespace horizon
         void set_content(std::unique_ptr<Widget> child);
         void set_scroll_position(int x, int y);
 
+        void set_scroll_enabled(bool enabled);
+        bool scroll_enabled() const { return m_scroll_enabled; }
+
         int scroll_x() const
         {
             return m_scroll_x;
@@ -64,6 +67,8 @@ namespace horizon
         bool m_dragging_h{false};
         int m_drag_start_pos{0};
         int m_drag_start_scroll{0};
+
+        bool m_scroll_enabled{true};
 
         static constexpr int SCROLLBAR_SIZE = 12;
     };

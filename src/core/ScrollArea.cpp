@@ -33,6 +33,8 @@ namespace horizon
         when_mouse_wheel.connect(
             [this](MouseWheelEventContext &ev)
             {
+                if (!m_scroll_enabled) return;
+
                 // Simple vertical scroll implementation
                 // Scroll multiplier: around 30-40 pixels per "notch" (usually dy is ~1.0 or 10.0)
                 int scroll_amount = (int)(ev.dy * 4.0f);
@@ -53,6 +55,15 @@ namespace horizon
     }
 
     ScrollArea::~ScrollArea() = default;
+
+    void ScrollArea::set_scroll_enabled(bool enabled)
+    {
+        m_scroll_enabled = enabled;
+        if (!enabled) {
+            set_scroll_position(0, 0);
+        }
+        invalidate();
+    }
 
     void ScrollArea::set_content(std::unique_ptr<Widget> child)
     {
@@ -198,8 +209,8 @@ namespace horizon
         }
 
         Widget *content = m_children[0].get();
-        m_show_h_scroll = content->width() > m_width;
-        m_show_v_scroll = content->height() > m_height;
+        m_show_h_scroll = m_scroll_enabled && (content->width() > m_width);
+        m_show_v_scroll = m_scroll_enabled && (content->height() > m_height);
 
         // Ensure scroll position is within valid bounds after content size changes
         set_scroll_position(m_scroll_x, m_scroll_y);

@@ -176,6 +176,13 @@ namespace horizon
         return m_rubberband_selection_enabled;
     }
 
+    void IconViewBase::set_scroll_enabled(bool enabled)
+    {
+        if (m_scroll_area) {
+            m_scroll_area->set_scroll_enabled(enabled);
+        }
+    }
+
     void IconViewBase::draw(GraphicsContext &gc)
     {
         Widget::draw(gc);
