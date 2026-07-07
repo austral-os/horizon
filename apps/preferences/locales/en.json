@@ -141,7 +141,10 @@
             "dock_position": "Position",
             "dock_position_left": "Left",
             "dock_position_bottom": "Bottom",
-            "dock_position_right": "Right"
+            "dock_position_right": "Right",
+            "show_trash": "Show Trash Icon",
+            "show_downloads": "Show Downloads Icon",
+            "downloads_count": "Items in Downloads Vault"
         },
         "display": {
             "resolution": "Resolution",
@@ -294,7 +297,4 @@
             }
         }
     },
-    "preferences.desktop.show_trash": "Show Trash Icon",
-    "preferences.desktop.show_downloads": "Show Downloads Icon",
-    "preferences.desktop.downloads_count": "Items in Downloads Vault"
 }

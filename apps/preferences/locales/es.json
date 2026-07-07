@@ -141,7 +141,10 @@
             "dock_position": "Posición",
             "dock_position_left": "Izquierda",
             "dock_position_bottom": "Abajo",
-            "dock_position_right": "Derecha"
+            "dock_position_right": "Derecha",
+            "show_trash": "Mostrar ícono de Papelera",
+            "show_downloads": "Mostrar ícono de Descargas",
+            "downloads_count": "Cantidad de elementos en Descargas"
         },
         "display": {
             "resolution": "Resolución",
@@ -294,7 +297,4 @@
             }
         }
     },
-    "preferences.desktop.show_trash": "Mostrar ícono de Papelera",
-    "preferences.desktop.show_downloads": "Mostrar ícono de Descargas",
-    "preferences.desktop.downloads_count": "Cantidad de elementos en Descargas"
 }
