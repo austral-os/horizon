@@ -171,29 +171,51 @@ namespace horizon
                         ev.stop_propagation = true;
                         is_arrow = true;
                     }
-                    else if (ev.keysym == 0xff51) // Left arrow
+                    else if (ev.keysym == 0xff51 || ev.keysym == 0xff53) // Left or Right arrow
                     {
                         this->set_focus(true);
-                        if (m_layout_mode == IconViewLayoutMode::VerticalRightToLeft) {
-                            new_idx = (current_idx < 0) ? 0 : std::min((int)m_data.size() - 1, current_idx + rows);
-                        } else {
-                            if (current_idx < 0) new_idx = 0;
-                            else new_idx = std::max(0, current_idx - rows);
-                        }
                         ev.stop_propagation = true;
                         is_arrow = true;
-                    }
-                    else if (ev.keysym == 0xff53) // Right arrow
-                    {
-                        this->set_focus(true);
-                        if (m_layout_mode == IconViewLayoutMode::VerticalRightToLeft) {
-                            if (current_idx < 0) new_idx = 0;
-                            else new_idx = std::max(0, current_idx - rows);
-                        } else {
-                            new_idx = (current_idx < 0) ? 0 : std::min((int)m_data.size() - 1, current_idx + rows);
+
+                        if (current_idx >= 0 && m_content_pane && current_idx < (int)m_content_pane->children().size()) {
+                            bool move_left = (ev.keysym == 0xff51);
+                            auto cx = m_content_pane->children()[current_idx]->x();
+                            auto cy = m_content_pane->children()[current_idx]->y() + m_content_pane->children()[current_idx]->height() / 2;
+
+                            int min_dx = 1000000;
+                            for (int i = 0; i < (int)m_content_pane->children().size(); ++i) {
+                                if (i == current_idx) continue;
+                                int dx = m_content_pane->children()[i]->x() - cx;
+                                if ((move_left && dx < 0) || (!move_left && dx > 0)) {
+                                    int abs_dx = std::abs(dx);
+                                    if (abs_dx < min_dx) {
+                                        min_dx = abs_dx;
+                                    }
+                                }
+                            }
+
+                            if (min_dx != 1000000) {
+                                int min_dy = 1000000;
+                                int best_idx = current_idx;
+                                for (int i = 0; i < (int)m_content_pane->children().size(); ++i) {
+                                    if (i == current_idx) continue;
+                                    int dx = m_content_pane->children()[i]->x() - cx;
+                                    if ((move_left && dx < 0) || (!move_left && dx > 0)) {
+                                        if (std::abs(dx) <= min_dx + 5) {
+                                            int child_cy = m_content_pane->children()[i]->y() + m_content_pane->children()[i]->height() / 2;
+                                            int dy = std::abs(child_cy - cy);
+                                            if (dy < min_dy) {
+                                                min_dy = dy;
+                                                best_idx = i;
+                                            }
+                                        }
+                                    }
+                                }
+                                new_idx = best_idx;
+                            }
+                        } else if (current_idx < 0 && m_data.size() > 0) {
+                            new_idx = 0;
                         }
-                        ev.stop_propagation = true;
-                        is_arrow = true;
                     }
                 }
 
