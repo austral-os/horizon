@@ -2,6 +2,7 @@
 #include "DockApplication.hpp"
 #include <horizon/Logger.hpp>
 #include <horizon/Vault.hpp>
+#include <horizon/Application.hpp>
 #include <horizon/ApplicationLauncher.hpp>
 #include <horizon/arkutils/FileInfo.hpp>
 #include <horizon/files/FileIconProvider.hpp>
@@ -71,9 +72,57 @@ public:
             invalidate();
         }, true);
 
-        // Handle clicks
         when_mouse_press.connect([this](auto& ctx) {
+            LOG_INFO << "[DownloadsApplet] when_mouse_press at " << ctx.x << ", " << ctx.y;
+            m_press_x = ctx.x;
+            m_press_y = ctx.y;
+        });
+
+        // Handle clicks
+        when_click.connect([this](auto& ctx) {
             handle_click(ctx.x, ctx.y);
+        });
+
+        // Handle drag start
+        set_draggable(true);
+        when_drag_start.connect([this](auto& ctx) {
+            LOG_INFO << "[DownloadsApplet] when_drag_start triggered. m_press=(" << m_press_x << "," << m_press_y << ")";
+            int mx = m_press_x;
+            int my = m_press_y;
+            
+            int n = (int)m_items.size();
+            if (n == 0 || m_progress < 0.8f) {
+                LOG_INFO << "[DownloadsApplet] Drag aborted: n=" << n << " progress=" << m_progress;
+                return;
+            }
+
+            double bx = m_x + 150.0;
+            double by = m_y + m_vault_h - 20.0;
+
+            for (int i = 0; i < n; ++i) {
+                double t = (n > 1) ? (double)(n - 1 - i) / (n - 1) : 0.0;
+                double tx = bx + std::pow(t, 2.5) * 100.0;
+                double ty = by - 20.0 - t * std::max(1, n - 1) * 40.0;
+
+                double dx = mx - tx;
+                double dy = my - ty;
+                if (dx*dx + dy*dy <= double((m_icon_size/2 + 8) * (m_icon_size/2 + 8))) {
+                    LOG_INFO << "[DownloadsApplet] Drag hit item " << i << ": " << m_items[i].path;
+                    if (m_items[i].path != "OPEN_IN_ARKFM") {
+                        std::string file_path = m_items[i].path;
+                        application()->start_drag(
+                            {"text/uri-list"},
+                            [file_path](const std::string &m) {
+                                std::string uri = "file://" + file_path + "\r\n";
+                                return std::vector<uint8_t>(uri.begin(), uri.end());
+                            },
+                            this
+                        );
+                        // m_window->close_vault(); // Do not close immediately, source widget must stay alive during drag
+                        // return;
+                    }
+                }
+            }
         });
     }
 
@@ -189,6 +238,8 @@ private:
     std::vector<Item> m_items;
     uint32_t m_animation_timer = 0;
     float m_progress = 0.0f;
+    int m_press_x = 0;
+    int m_press_y = 0;
 };
 
 

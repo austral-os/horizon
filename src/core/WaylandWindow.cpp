@@ -2050,6 +2050,8 @@ namespace horizon
         int target_x = under ? x : x + m_window->m_popup_x;
         int target_y = under ? y : y + m_window->m_popup_y;
 
+        LOG_INFO << "[POPUP_EV] Received event type: " << (int)event.type << " at (" << x << ", " << y << ")";
+
         // 0. Click-outside logic: If we are clicking on the main window (not the popup)
         // while a popup is active, we should close the popup and let the main window
         // handle the click normally.
@@ -2209,12 +2211,41 @@ namespace horizon
 
             if (event.type == PointerEvent::Type::Move || event.type == PointerEvent::Type::Enter)
             {
+                LOG_INFO << "[POPUP EVENT] Move/Enter. pressed_empty=" << m_pressed_buttons.empty() << " m_pressed=" << m_pressed;
                 MouseMoveEventContext mv;
                 mv.x = (double)target_x;
                 mv.y = (double)target_y;
                 mv.modifiers = m_window->m_modifiers;
 
                 if (!m_pressed_buttons.empty() && m_pressed) {
+                    if (!m_window->m_is_dragging) {
+                        double dx = target_x - m_window->m_drag_start_x;
+                        double dy = target_y - m_window->m_drag_start_y;
+                        double dist = std::sqrt(dx * dx + dy * dy);
+                        LOG_INFO << "[POPUP DRAG] Move while pressed. dist=" << dist;
+
+                        if (dist > 8.0) {
+                            LOG_INFO << "[POPUP DRAG] Distance > 8.0, finding draggable widget...";
+                            Widget *draggable_widget = m_pressed;
+                            while (draggable_widget && !draggable_widget->is_draggable()) {
+                                draggable_widget = draggable_widget->parent();
+                            }
+                            if (draggable_widget) {
+                                LOG_INFO << "[POPUP DRAG] Firing when_drag_start on draggable widget.";
+                                m_window->m_is_dragging = true;
+                                DragEventContext drag_ev;
+                                drag_ev.sender = draggable_widget;
+                                drag_ev.x = target_x;
+                                drag_ev.y = target_y;
+                                draggable_widget->when_drag_start.run(drag_ev);
+                                m_pressed = nullptr;
+                                return;
+                            } else {
+                                LOG_INFO << "[POPUP DRAG] No draggable widget found in hierarchy.";
+                            }
+                        }
+                    }
+
                     for (Widget *w : chain) {
                         mv.sender = w;
                         w->when_mouse_drag.run(mv);
@@ -2230,8 +2261,11 @@ namespace horizon
             }
             else if (event.type == PointerEvent::Type::Press)
             {
+                LOG_INFO << "[POPUP EVENT] Press event! button=" << event.button << " target_under=" << target_under;
                 m_pressed_buttons.insert(event.button);
                 m_pressed = target_under; // Capture the pressed widget for drag/release
+                m_window->m_drag_start_x = target_x;
+                m_window->m_drag_start_y = target_y;
                 
                 // Allow interactive widgets (like TextBox) inside Vaults to receive keyboard focus
                 m_window->set_focused_widget(target_under);
@@ -2261,6 +2295,7 @@ namespace horizon
             }
             else if (event.type == PointerEvent::Type::Release)
             {
+                LOG_INFO << "[POPUP EVENT] Release event! button=" << event.button;
                 auto it = m_pressed_buttons.find(event.button);
                 if (it == m_pressed_buttons.end())
                 {
@@ -4465,8 +4500,19 @@ namespace horizon
                 WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY | WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE);
         }
 
-        wl_data_device_start_drag(m_surface->data_device(), source, m_surface->surface(), icon_surf,
-                                  m_last_serial);
+        struct wl_surface *origin_surf = m_surface->surface();
+        uint32_t serial = m_surface->last_serial();
+
+        if (m_popup_surface) {
+            origin_surf = m_popup_surface->surface();
+            serial = m_popup_surface->last_serial();
+        } else {
+            // Fallback to m_last_serial if m_surface->last_serial is not updated properly
+            serial = m_last_serial;
+        }
+
+        wl_data_device_start_drag(m_surface->data_device(), source, origin_surf, icon_surf,
+                                  serial);
     }
 
     void WaylandWindow::cleanup_drag_icon()
