@@ -10,9 +10,26 @@
 #include <filesystem>
 #include <cmath>
 #include <algorithm>
+#include <cstdio>
 
 namespace horizon
 {
+
+static std::string get_downloads_path() {
+    std::string path = std::string(getenv("HOME")) + "/Downloads";
+    FILE* pipe = popen("xdg-user-dir DOWNLOAD 2>/dev/null", "r");
+    if (pipe) {
+        char buffer[512];
+        if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+            std::string res = buffer;
+            if (!res.empty() && res.back() == '\n') res.pop_back();
+            if (!res.empty()) path = res;
+        }
+        pclose(pipe);
+    }
+    return path;
+}
+
 
 class ParabolaVault : public Vault {
 public:
@@ -20,13 +37,17 @@ public:
         std::string path;       // file path or "OPEN_IN_ARKFM"
         std::string icon_path;  // resolved icon path
         std::string label;
+        int hit_x = 0;
+        int hit_y = 0;
+        int hit_w = 0;
+        int hit_h = 0;
     };
 
     ParabolaVault(int max_items, WaylandWindow* window) : m_window(window) {
         set_size(m_vault_w, m_vault_h);
 
         // Collect recent downloads
-        std::string dl_path = std::string(getenv("HOME")) + "/Downloads";
+        std::string dl_path = get_downloads_path();
         std::vector<std::filesystem::directory_entry> entries;
         if (std::filesystem::exists(dl_path)) {
             for (const auto& entry : std::filesystem::directory_iterator(dl_path)) {
@@ -45,6 +66,20 @@ public:
                 auto info = arkutils::FileInfo::from_path(item.path);
                 std::string icon_name = files::FileIconProvider::get_icon_name(info);
                 item.icon_path = IconThemeLookup::find_icon(icon_name, 48);
+                if (item.icon_path.empty()) {
+                    if (info.type == arkutils::FileType::Directory) {
+                        item.icon_path = IconThemeLookup::find_icon("folder", 48);
+                    } else if (info.type == arkutils::FileType::Symlink) {
+                        item.icon_path = IconThemeLookup::find_icon("emblem-symbolic-link", 48);
+                    } else if (info.permissions & 0111) { // executable
+                        item.icon_path = IconThemeLookup::find_icon("application-x-executable", 48);
+                    } else {
+                        item.icon_path = IconThemeLookup::find_icon("text-x-generic", 48);
+                    }
+                    if (item.icon_path.empty()) {
+                        item.icon_path = IconThemeLookup::find_icon("unknown", 48);
+                    }
+                }
                 std::string fname = entry.path().filename().string();
                 item.label = fname;
                 m_items.push_back(std::move(item));
@@ -58,7 +93,7 @@ public:
         open_item.icon_path = IconThemeLookup::find_icon("folder-downloads", 48);
         if (open_item.icon_path.empty())
             open_item.icon_path = IconThemeLookup::find_icon("folder", 48);
-        open_item.label = "Descargas";
+        open_item.label = std::filesystem::path(dl_path).filename().string();
         m_items.insert(m_items.begin(), std::move(open_item));
 
         // Start animation
@@ -96,17 +131,9 @@ public:
                 return;
             }
 
-            double bx = m_x + 150.0;
-            double by = m_y + m_vault_h - 20.0;
-
             for (int i = 0; i < n; ++i) {
-                double t = (n > 1) ? (double)(n - 1 - i) / (n - 1) : 0.0;
-                double tx = bx + std::pow(t, 2.5) * 100.0;
-                double ty = by - 20.0 - t * std::max(1, n - 1) * 40.0;
-
-                double dx = mx - tx;
-                double dy = my - ty;
-                if (dx*dx + dy*dy <= double((m_icon_size/2 + 8) * (m_icon_size/2 + 8))) {
+                if (mx >= m_items[i].hit_x && mx < m_items[i].hit_x + m_items[i].hit_w &&
+                    my >= m_items[i].hit_y && my < m_items[i].hit_y + m_items[i].hit_h) {
                     LOG_INFO << "[DownloadsApplet] Drag hit item " << i << ": " << m_items[i].path;
                     if (m_items[i].path != "OPEN_IN_ARKFM") {
                         std::string file_path = m_items[i].path;
@@ -118,9 +145,11 @@ public:
                             },
                             this
                         );
-                        // m_window->close_vault(); // Do not close immediately, source widget must stay alive during drag
-                        // return;
+                        m_window->post_task([window = m_window]() {
+                            window->close_vault();
+                        });
                     }
+                    return;
                 }
             }
         });
@@ -181,16 +210,39 @@ protected:
             }
 
             // Label right of icon
+            int label_x = -1, label_y = -1, label_w = 0, label_h = 0;
             if (alpha > 0.3f) {
-                gc.setDrawFont("Inter", 11, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
-                auto tm = gc.getTextMetrics(m_items[i].label.c_str(), "Inter", 11, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+                gc.setDrawFont("Inter", 13, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
+                auto tm = gc.getTextMetrics(m_items[i].label.c_str(), "Inter", 13, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
                 int lx = (int)(cx + m_icon_size/2 + 12);
-                int ly = (int)(cy + 4);
+                int ly = (int)(cy + 5);
                 // Label background
                 gc.setColor({0.0f, 0.0f, 0.0f, alpha * 0.55f});
-                gc.fillRect(lx - 4, ly - 11, tm.width + 8, 15, 4);
+                label_x = lx - 5;
+                label_y = ly - 13;
+                label_w = tm.width + 10;
+                label_h = 19;
+                gc.fillRect(label_x, label_y, label_w, label_h, 4);
                 gc.setColor({1.0f, 1.0f, 1.0f, alpha});
                 gc.drawText(lx, ly, m_items[i].label.c_str());
+            }
+
+            // Calculate and store total hit box (icon + label)
+            int icon_box_x = (int)(cx - m_icon_size/2 - 8);
+            int icon_box_y = (int)(cy - m_icon_size/2 - 8);
+            int icon_box_w = m_icon_size + 16;
+            int icon_box_h = m_icon_size + 16;
+
+            if (label_w > 0) {
+                m_items[i].hit_x = std::min(icon_box_x, label_x);
+                m_items[i].hit_y = std::min(icon_box_y, label_y);
+                m_items[i].hit_w = std::max(icon_box_x + icon_box_w, label_x + label_w) - m_items[i].hit_x;
+                m_items[i].hit_h = std::max(icon_box_y + icon_box_h, label_y + label_h) - m_items[i].hit_y;
+            } else {
+                m_items[i].hit_x = icon_box_x;
+                m_items[i].hit_y = icon_box_y;
+                m_items[i].hit_w = icon_box_w;
+                m_items[i].hit_h = icon_box_h;
             }
         }
     }
@@ -207,19 +259,11 @@ private:
         int n = (int)m_items.size();
         if (n == 0 || m_progress < 0.8f) return;
 
-        double bx = m_x + 150.0;
-        double by = m_y + m_vault_h - 20.0;
-
         for (int i = 0; i < n; ++i) {
-            double t = (n > 1) ? (double)(n - 1 - i) / (n - 1) : 0.0;
-            double tx = bx + std::pow(t, 2.5) * 100.0;
-            double ty = by - 20.0 - t * std::max(1, n - 1) * 40.0;
-
-            double dx = mx - tx;
-            double dy = my - ty;
-            if (dx*dx + dy*dy <= double((m_icon_size/2 + 8) * (m_icon_size/2 + 8))) {
+            if (mx >= m_items[i].hit_x && mx < m_items[i].hit_x + m_items[i].hit_w &&
+                my >= m_items[i].hit_y && my < m_items[i].hit_y + m_items[i].hit_h) {
                 if (m_items[i].path == "OPEN_IN_ARKFM") {
-                    std::string dl = std::string(getenv("HOME")) + "/Downloads";
+                    std::string dl = get_downloads_path();
                     ApplicationLauncher::launch_binary("arkfm", {dl});
                 } else {
                     ApplicationLauncher::launch_binary("xdg-open", {m_items[i].path});
@@ -228,6 +272,9 @@ private:
                 return;
             }
         }
+        
+        // If it clicked somewhere that wasn't an item, close vault
+        m_window->close_vault();
     }
 
     static constexpr int m_vault_w = 600;
@@ -248,6 +295,21 @@ static std::unique_ptr<ParabolaVault> g_parabola_vault;
 DownloadsApplet::DownloadsApplet(DockApplication* app) : DockApplet(app, "Downloads", "folder-downloads")
 {
     when_click.connect([this](auto& ctx) {
+        std::string dl_path = get_downloads_path();
+        bool has_files = false;
+        if (std::filesystem::exists(dl_path)) {
+            for (const auto& entry : std::filesystem::directory_iterator(dl_path)) {
+                if (entry.is_regular_file() || entry.is_directory()) {
+                    has_files = true;
+                    break;
+                }
+            }
+        }
+        if (!has_files) {
+            ApplicationLauncher::launch_binary("arkfm", {dl_path});
+            return;
+        }
+
         g_parabola_vault = std::make_unique<ParabolaVault>(m_max_items, m_app->window());
         // Offset vault horizontally so the anchor (bx=150) aligns with the click (Downloads icon)
         int vault_x = ctx.x - 150;
@@ -255,7 +317,7 @@ DownloadsApplet::DownloadsApplet(DockApplication* app) : DockApplet(app, "Downlo
     });
 
     when_drop.connect([this](auto& ctx) {
-        std::string dl_path = std::string(getenv("HOME")) + "/Downloads";
+        std::string dl_path = get_downloads_path();
         // Logic to move dropped files
         LOG_INFO << "[DownloadsApplet] Drop received";
     });
