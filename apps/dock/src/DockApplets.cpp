@@ -1,5 +1,6 @@
 #include "DockApplets.hpp"
 #include "DockApplication.hpp"
+#include "DockShelf.hpp"
 #include <horizon/ApplicationLauncher.hpp>
 #include <horizon/Logger.hpp>
 #include <horizon/WaylandLayerWindow.hpp>
@@ -9,8 +10,10 @@
 #include <horizon/IconThemeLookup.hpp>
 #include <horizon/files/FileIconProvider.hpp>
 #include <horizon/arkutils/FileInfo.hpp>
+#include <horizon/Matrix.hpp>
 #include <filesystem>
 #include <cmath>
+#include <cstring>
 
 namespace horizon {
 
@@ -18,6 +21,82 @@ DockApplet::DockApplet(DockApplication* app, const std::string& name, const std:
     : m_app(app), m_name(name)
 {
     set_icon_name(icon_name);
+}
+
+void DockApplet::draw(GraphicsContext& ctx)
+{
+    ctx.pushGroup();
+    
+    Icon::draw(ctx);
+    
+    uint32_t tex_id = 0;
+    ctx.popGroupToTexture(tex_id, m_start_draw_x, m_start_draw_y, m_available_draw_width, m_available_draw_height);
+
+    float mvp[16];
+    Matrix::identity(mvp);
+    
+    // Ortho projection: maps [0, W]x[H, 0] to NDC [-1, 1]
+    Matrix::ortho(mvp, 0, (float)m_app->window()->width(), (float)m_app->window()->height(), 0, -1, 1);
+    
+    float window_x = (float)m_start_draw_x;
+    float window_y = (float)m_start_draw_y;
+
+    float main_mvp[16];
+    std::memcpy(main_mvp, mvp, 16 * sizeof(float));
+    Matrix::translate(main_mvp, window_x + m_available_draw_width / 2.0f, 
+                      window_y + m_available_draw_height / 2.0f, 0);
+    Matrix::scale(main_mvp, m_available_draw_width / 2.0f, -m_available_draw_height / 2.0f, 1);
+    
+    float opacity = 1.0f;
+    ctx.drawTexture3D(tex_id, m_available_draw_width, m_available_draw_height, main_mvp, opacity, false);
+
+    std::string position = "bottom";
+    DockShelf* shelf = dynamic_cast<DockShelf*>(parent());
+    if (shelf) {
+        position = shelf->dock_position();
+    }
+
+    // Draw Reflection
+    float refl_mvp[16];
+    std::memcpy(refl_mvp, mvp, 16 * sizeof(float));
+    
+    WaylandWindow::GLDrawCall refl_call;
+    refl_call.texture_id = tex_id;
+    refl_call.opacity = 0.5f;
+    refl_call.delete_texture = true;
+    refl_call.use_scissor = false;
+    
+    if (position == "left") {
+        float refl_size = m_available_draw_width * 0.4f;
+        Matrix::translate(refl_mvp, window_x - refl_size / 2.0f, 
+                          window_y + m_available_draw_height / 2.0f, 0);
+        Matrix::scale(refl_mvp, -refl_size / 2.0f, -m_available_draw_height / 2.0f, 1);
+        
+        refl_call.gradient_horizontal = true;
+        refl_call.gradient_start = 1.0f; // Near icon
+        refl_call.gradient_end = 0.0f;   // Far edge
+    } else if (position == "right") {
+        float refl_size = m_available_draw_width * 0.4f;
+        Matrix::translate(refl_mvp, window_x + m_available_draw_width + refl_size / 2.0f, 
+                          window_y + m_available_draw_height / 2.0f, 0);
+        Matrix::scale(refl_mvp, -refl_size / 2.0f, -m_available_draw_height / 2.0f, 1);
+        
+        refl_call.gradient_horizontal = true;
+        refl_call.gradient_start = 0.0f; // Far edge
+        refl_call.gradient_end = 1.0f;   // Near icon
+    } else {
+        float refl_height = m_available_draw_height * 0.4f;
+        Matrix::translate(refl_mvp, window_x + m_available_draw_width / 2.0f, 
+                          window_y + m_available_draw_height + refl_height / 2.0f, 0);
+        Matrix::scale(refl_mvp, m_available_draw_width / 2.0f, refl_height / 2.0f, 1);
+        
+        refl_call.gradient_horizontal = false;
+        refl_call.gradient_start = 0.0f;
+        refl_call.gradient_end = 1.0f;
+    }
+    
+    std::memcpy(refl_call.mvp, refl_mvp, 16 * sizeof(float));
+    m_app->window()->queue_gl_draw(refl_call);
 }
 
 // --- TrashApplet ---

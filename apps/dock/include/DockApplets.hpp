@@ -19,6 +19,7 @@ namespace horizon
         virtual ~DockApplet() = default;
 
         virtual void load_config(const nlohmann::json &config) {}
+        void draw(GraphicsContext& ctx) override;
 
         const std::string &name() const { return m_name; }
 
