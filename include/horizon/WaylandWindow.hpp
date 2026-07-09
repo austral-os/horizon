@@ -121,6 +121,7 @@ namespace horizon
                         Widget *icon_widget = nullptr);
         
         void cleanup_drag_icon();
+        void set_drag_pending_close_popup(bool pending) { m_drag_pending_close_popup = pending; }
 
         /**
          * @return True if the window is maximized.
@@ -207,6 +208,7 @@ namespace horizon
         void show_vault(Vault *vault, int x = -1, int y = -1, uint32_t serial = 0, Widget *owner = nullptr);
         void hide_vault();
         void close_vault(bool emit_signal = true, uint32_t serial = 0);
+        bool has_vault() const { return m_popup_vault != nullptr; }
         void show_tooltip(Widget *owner, Notification *tooltip);
         void hide_tooltip();
         Widget *tooltip_owner() const

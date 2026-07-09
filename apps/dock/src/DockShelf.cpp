@@ -84,7 +84,8 @@ namespace horizon
                 if (icon_child)
                 {
                     int current_icon_size = m_base_size;
-                    if (m_magnification_enabled && m_mouse_over && !m_dragged_item)
+                    bool popup_open = m_dock_app && m_dock_app->window() && m_dock_app->window()->has_vault();
+                    if (m_magnification_enabled && m_mouse_over && !m_dragged_item && !popup_open)
                     {
                         float child_center = (float)total_children_length + child->fixed_size() / 2.0f;
                         float dist_primary = std::abs((child_center + margin()) - (is_vertical ? m_mouse_y : m_mouse_x));

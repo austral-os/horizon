@@ -157,7 +157,10 @@ public:
                         );
                         // We intentionally do not close the vault here so the origin surface
                         // remains alive during the drag-and-drop operation.
-                        // The vault will be closed when the drag finishes or the user clicks elsewhere.
+                        // Tell the window to close this popup when the drag finishes.
+                        if (m_window) {
+                            m_window->set_drag_pending_close_popup(true);
+                        }
                     }
                     return;
                 }
