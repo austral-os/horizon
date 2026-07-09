@@ -113,6 +113,19 @@ public:
             LOG_INFO << "[DownloadsApplet] when_mouse_press at " << ctx.x << ", " << ctx.y;
             m_press_x = ctx.x;
             m_press_y = ctx.y;
+            
+            bool hit_item = false;
+            for (const auto& item : m_items) {
+                if (!item.grabbed &&
+                    ctx.x >= item.hit_x && ctx.x < item.hit_x + item.hit_w &&
+                    ctx.y >= item.hit_y && ctx.y < item.hit_y + item.hit_h) {
+                    hit_item = true;
+                    break;
+                }
+            }
+            if (!hit_item) {
+                m_window->close_vault();
+            }
         });
 
         // Handle clicks

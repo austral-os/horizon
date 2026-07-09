@@ -3765,7 +3765,7 @@ namespace horizon
             m_surface->set_last_serial(serial);
         }
 
-        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, surface_w, surface_h, w, h, false);
+        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, surface_w, surface_h, w, h, true);
 
         invalidate();
     }
