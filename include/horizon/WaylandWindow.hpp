@@ -637,6 +637,7 @@ namespace horizon
         double m_drag_start_x{0.0};
         double m_drag_start_y{0.0};
         bool m_is_dragging{false};
+        bool m_drag_pending_close_popup{false};
         std::unique_ptr<WaylandSurface> m_drag_icon_surface;
         static WaylandWindow* s_active_drag_source;
         std::function<std::vector<uint8_t>(const std::string &)> m_current_fetcher;

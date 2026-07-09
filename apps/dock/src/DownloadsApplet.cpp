@@ -121,6 +121,16 @@ public:
         // Handle drag start
         set_draggable(true);
         when_drag_start.connect([this](auto& ctx) {
+            if (m_items.empty()) return;
+
+            // DEBUG LOG
+            FILE* f = fopen("/tmp/horizon_drag_debug.txt", "a");
+            if (f) {
+                fprintf(f, "DownloadsApplet: when_drag_start called with %zu items! time=%ld\n", m_items.size(), time(NULL));
+                fclose(f);
+            }
+
+            std::vector<std::string> uris;
             LOG_INFO << "[DownloadsApplet] when_drag_start triggered. m_press=(" << m_press_x << "," << m_press_y << ")";
             int mx = m_press_x;
             int my = m_press_y;
@@ -145,9 +155,9 @@ public:
                             },
                             this
                         );
-                        m_window->post_task([window = m_window]() {
-                            window->close_vault();
-                        });
+                        // We intentionally do not close the vault here so the origin surface
+                        // remains alive during the drag-and-drop operation.
+                        // The vault will be closed when the drag finishes or the user clicks elsewhere.
                     }
                     return;
                 }

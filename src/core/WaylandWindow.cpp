@@ -2266,6 +2266,7 @@ namespace horizon
                 m_pressed = target_under; // Capture the pressed widget for drag/release
                 m_window->m_drag_start_x = target_x;
                 m_window->m_drag_start_y = target_y;
+                m_window->m_last_serial = event.serial; // CRITICAL: Save serial for drag-and-drop!
                 
                 // Allow interactive widgets (like TextBox) inside Vaults to receive keyboard focus
                 m_window->set_focused_widget(target_under);
@@ -2372,6 +2373,13 @@ namespace horizon
     {
         if (m_window)
         {
+            if (m_window->m_is_dragging) {
+                // Defer closing the popup until the drag finishes so the origin surface is kept alive.
+                m_window->m_drag_pending_close_popup = true;
+                m_window = nullptr;
+                return;
+            }
+
             if (m_window->m_popup_menu)
                 m_window->close_context_menu();
             else if (m_window->m_popup_vault)
@@ -3757,7 +3765,7 @@ namespace horizon
             m_surface->set_last_serial(serial);
         }
 
-        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, surface_w, surface_h, w, h);
+        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, surface_w, surface_h, w, h, false);
 
         invalidate();
     }
@@ -4505,11 +4513,11 @@ namespace horizon
 
         if (m_popup_surface) {
             origin_surf = m_popup_surface->surface();
-            serial = m_popup_surface->last_serial();
-        } else {
-            // Fallback to m_last_serial if m_surface->last_serial is not updated properly
-            serial = m_last_serial;
         }
+        
+        // We MUST use m_last_serial (from handle_press) because wlroots strictly validates
+        // that the serial provided matches the serial of the button press that initiated the grab.
+        serial = m_last_serial;
 
         wl_data_device_start_drag(m_surface->data_device(), source, origin_surf, icon_surf,
                                   serial);
@@ -4519,6 +4527,14 @@ namespace horizon
     {
         m_drag_icon_surface.reset();
         s_active_drag_source = nullptr;
+        m_is_dragging = false;
+
+        if (m_drag_pending_close_popup)
+        {
+            m_drag_pending_close_popup = false;
+            if (m_popup_menu) close_context_menu();
+            else if (m_popup_vault) close_vault();
+        }
     }
 
 } // namespace horizon

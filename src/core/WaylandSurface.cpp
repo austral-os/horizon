@@ -1096,6 +1096,7 @@ namespace horizon
 
     static void data_device_handle_drop(void *data, struct wl_data_device *data_device)
     {
+
         auto *ws = static_cast<WaylandSurface *>(data);
         if (!ws->listener()) return;
 
