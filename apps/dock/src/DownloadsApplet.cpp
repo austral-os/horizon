@@ -230,7 +230,7 @@ protected:
             double t_curve = (n > 1) ? h_index / (double)(n - 1) : 0.0;
             t_curve = std::clamp(t_curve, 0.0, 1.0);
 
-            double tx = bx + std::pow(t_curve, 2.5) * 100.0;  // steep initially, sweeps right later
+            double tx = bx + std::pow(t_curve, 2.0) * 50.0;  // gentle curve, less horizontal spread
             double ty = by - 20.0 - h_index * 40.0;
 
             effective_i += m_items[i].grabbed ? m_items[i].grab_alpha : 1.0;
