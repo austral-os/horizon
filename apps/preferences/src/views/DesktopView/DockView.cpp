@@ -188,9 +188,16 @@ namespace horizon::preferences
         m_magnification_enabled = j.value("magnification_enabled", j.value("magnification", true));
         m_autohide_enabled = j.value("autohide", false);
         m_position = j.value("position", "bottom");
-        m_show_trash = j.value("show_trash", true);
-        m_show_downloads = j.value("show_downloads", true);
-        m_downloads_items_count = j.value("downloads_items_count", 9);
+        if (j.contains("applets")) {
+            auto applets = j["applets"];
+            m_show_trash = applets.value("show_trash", true);
+            m_show_downloads = applets.value("show_downloads", true);
+            m_downloads_items_count = applets.value("downloads_items_count", 9);
+        } else {
+            m_show_trash = j.value("show_trash", true);
+            m_show_downloads = j.value("show_downloads", true);
+            m_downloads_items_count = j.value("downloads_items_count", 9);
+        }
 
         if (m_size_slider)
             m_size_slider->set_value(static_cast<float>(m_icon_size));
@@ -227,9 +234,18 @@ namespace horizon::preferences
         j["magnification_enabled"] = m_magnification_enabled;
         j["autohide"] = m_autohide_enabled;
         j["position"] = m_position;
-        j["show_trash"] = m_show_trash;
-        j["show_downloads"] = m_show_downloads;
-        j["downloads_items_count"] = m_downloads_items_count;
+
+        nlohmann::json applets_json = j.value("applets", nlohmann::json::object());
+        applets_json["show_trash"] = m_show_trash;
+        applets_json["show_downloads"] = m_show_downloads;
+        applets_json["downloads_items_count"] = m_downloads_items_count;
+        j["applets"] = applets_json;
+
+        // Clean up legacy flat keys if they exist
+        j.erase("show_trash");
+        j.erase("show_downloads");
+        j.erase("downloads_items_count");
+
         if (!j.contains("autohide-time"))
         {
             j["autohide-time"] = 500;

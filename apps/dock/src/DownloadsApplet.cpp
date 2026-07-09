@@ -98,6 +98,9 @@ public:
         open_item.label = std::filesystem::path(dl_path).filename().string();
         m_items.insert(m_items.begin(), std::move(open_item));
 
+        int n = (int)m_items.size();
+        m_vault_h = std::clamp(80 + n * 40, 550, 1080);
+
         // Start animation
         m_animation_timer = m_window->add_timer(16, [this]() {
             m_progress += 0.06f;
@@ -343,8 +346,9 @@ private:
     }
 
     static constexpr int m_vault_w = 600;
-    static constexpr int m_vault_h = 550;
     static constexpr int m_icon_size = 24;
+
+    int m_vault_h = 550;
 
     WaylandWindow* m_window;
     std::vector<Item> m_items;
