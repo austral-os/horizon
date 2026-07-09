@@ -112,7 +112,7 @@ TrashApplet::TrashApplet(DockApplication* app) : DockApplet(app, "Trash", "user-
     set_accept_drops(true);
 
     when_click.connect([this](auto&) {
-        std::string trash_path = "trash:///";
+        std::string trash_path = std::string(getenv("HOME")) + "/.local/share/Trash/files";
         ApplicationLauncher::launch_binary("arkfm", {trash_path});
     });
 
