@@ -580,6 +580,51 @@ namespace horizon::files
         m_scroll_area->when_mouse_press.connect([this](MouseButtonEventContext &ctx) {
             set_focus(true);
         });
+
+        set_accept_drops(true);
+        when_drop.connect([this](DropEventContext &ctx) {
+            auto data = ctx.get_data("text/uri-list");
+            if (data.empty()) return;
+
+            std::string uris(data.begin(), data.end());
+            
+            // Simple parsing of text/uri-list
+            size_t start = 0;
+            while (start < uris.length()) {
+                size_t pos = uris.find("file://", start);
+                if (pos == std::string::npos) break;
+                
+                size_t end = uris.find("\r\n", pos);
+                std::string src = uris.substr(pos + 7, (end == std::string::npos) ? std::string::npos : end - (pos + 7));
+                
+                if (!src.empty()) {
+                    std::filesystem::path p(src);
+                    std::filesystem::path dst_dir(m_current_path);
+                    std::filesystem::path dest = dst_dir / p.filename();
+                    
+                    if (std::filesystem::exists(dest)) {
+                        std::string base = p.stem().string();
+                        std::string ext = p.extension().string();
+                        dest = dst_dir / ("Copia de " + base + ext);
+                        int counter = 1;
+                        while (std::filesystem::exists(dest)) {
+                            dest = dst_dir / ("Copia de " + base + " " + std::to_string(counter) + ext);
+                            counter++;
+                        }
+                    }
+                    
+                    if (src != dest.string()) {
+                        auto future = arkutils::FileOperations::copy(src, dest.string());
+                        std::thread([f = std::move(future)]() mutable {
+                            f.get();
+                        }).detach();
+                    }
+                }
+                
+                if (end == std::string::npos) break;
+                start = end + 2;
+            }
+        });
     }
 
     void FileIconView::set_application_recursive(WaylandWindow *app)
