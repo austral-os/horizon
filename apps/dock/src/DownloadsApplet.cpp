@@ -41,6 +41,8 @@ public:
         int hit_y = 0;
         int hit_w = 0;
         int hit_h = 0;
+        bool grabbed = false;
+        float grab_alpha = 1.0f;
     };
 
     ParabolaVault(int max_items, WaylandWindow* window) : m_window(window) {
@@ -161,6 +163,26 @@ public:
                         if (m_window) {
                             m_window->set_drag_pending_close_popup(true);
                         }
+                        
+                        // Animate item out of the list
+                        m_items[i].grabbed = true;
+                        if (!m_grab_timer && m_window) {
+                            m_grab_timer = m_window->add_timer(16, [this]() {
+                                bool still_animating = false;
+                                for (auto& item : m_items) {
+                                    if (item.grabbed && item.grab_alpha > 0.0f) {
+                                        item.grab_alpha -= 0.1f;
+                                        if (item.grab_alpha <= 0.0f) item.grab_alpha = 0.0f;
+                                        else still_animating = true;
+                                    }
+                                }
+                                invalidate();
+                                if (!still_animating && m_grab_timer) {
+                                    m_window->stop_timer(m_grab_timer);
+                                    m_grab_timer = 0;
+                                }
+                            }, true);
+                        }
                     }
                     return;
                 }
@@ -170,6 +192,7 @@ public:
 
     ~ParabolaVault() {
         if (m_animation_timer) m_window->stop_timer(m_animation_timer);
+        if (m_grab_timer) m_window->stop_timer(m_grab_timer);
     }
 
     int preferred_width() const override { return m_vault_w; }
@@ -192,34 +215,49 @@ protected:
         double bx = m_x + 150.0;
         double by = m_y + m_vault_h - 20.0;
 
+        double effective_n = 0.0;
+        for (const auto& item : m_items) {
+            effective_n += item.grabbed ? item.grab_alpha : 1.0;
+        }
+
+        double effective_i = 0.0;
+
         // macOS-style parabolic fan:
-        // X = t^1.5 (starts moving right sooner to avoid vertical overlap)
-        // Y = linear (uniform vertical rise)
-        // Fan starts directly above Downloads icon (t=0) and sweeps upper-right (t=1)
         for (int i = 0; i < n; ++i) {
-            double t = (n > 1) ? (double)(n - 1 - i) / (n - 1) : 0.0;
-            double tx = bx + std::pow(t, 2.5) * 100.0;  // steep initially, sweeps right later
-            // Dynamic vertical spread: exactly 40px per item to prevent overlap regardless of n
-            double ty = by - 20.0 - t * std::max(1, n - 1) * 40.0;
+            double h_index = std::max(0.0, effective_n - 1.0 - effective_i);
+            // Use the original 'n' to keep the parabola's curvature static during animation.
+            // This ensures items slide diagonally along the existing curve rather than dropping vertically.
+            double t_curve = (n > 1) ? h_index / (double)(n - 1) : 0.0;
+            t_curve = std::clamp(t_curve, 0.0, 1.0);
+
+            double tx = bx + std::pow(t_curve, 2.5) * 100.0;  // steep initially, sweeps right later
+            double ty = by - 20.0 - h_index * 40.0;
+
+            effective_i += m_items[i].grabbed ? m_items[i].grab_alpha : 1.0;
 
             // Animate from anchor toward target
             double cx = bx + (tx - bx) * ease;
             double cy = by + (ty - by) * ease;
 
-            float alpha = (float)ease;
-            int icon_x = (int)(cx - m_icon_size / 2.0);
-            int icon_y = (int)(cy - m_icon_size / 2.0);
+            float alpha = (float)ease * m_items[i].grab_alpha;
+            if (alpha <= 0.0f) continue;
+            
+            // Shrink slightly as it fades out when grabbed
+            float current_icon_size = m_icon_size * (0.5f + 0.5f * m_items[i].grab_alpha);
+
+            int icon_x = (int)(cx - current_icon_size / 2.0);
+            int icon_y = (int)(cy - current_icon_size / 2.0);
 
             // Shadow/bubble background
             gc.setColor({0.1f, 0.1f, 0.1f, alpha * 0.35f});
-            gc.fillCircle((int)cx, (int)cy, m_icon_size/2 + 4);
+            gc.fillCircle((int)cx, (int)cy, (int)(current_icon_size/2) + 4);
 
             // Draw icon
             if (!m_items[i].icon_path.empty()) {
-                gc.drawImage(m_items[i].icon_path, icon_x, icon_y, m_icon_size, m_icon_size, alpha);
+                gc.drawImage(m_items[i].icon_path, icon_x, icon_y, (int)current_icon_size, (int)current_icon_size, alpha);
             } else {
                 gc.setColor({0.5f, 0.7f, 1.0f, alpha});
-                gc.fillCircle((int)cx, (int)cy, m_icon_size/2);
+                gc.fillCircle((int)cx, (int)cy, (int)(current_icon_size/2));
             }
 
             // Label right of icon
@@ -227,7 +265,7 @@ protected:
             if (alpha > 0.3f) {
                 gc.setDrawFont("Inter", 13, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
                 auto tm = gc.getTextMetrics(m_items[i].label.c_str(), "Inter", 13, FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL);
-                int lx = (int)(cx + m_icon_size/2 + 12);
+                int lx = (int)(cx + current_icon_size/2 + 12);
                 int ly = (int)(cy + 5);
                 // Label background
                 gc.setColor({0.0f, 0.0f, 0.0f, alpha * 0.55f});
@@ -273,6 +311,7 @@ private:
         if (n == 0 || m_progress < 0.8f) return;
 
         for (int i = 0; i < n; ++i) {
+            if (m_items[i].grabbed) continue;
             if (mx >= m_items[i].hit_x && mx < m_items[i].hit_x + m_items[i].hit_w &&
                 my >= m_items[i].hit_y && my < m_items[i].hit_y + m_items[i].hit_h) {
                 if (m_items[i].path == "OPEN_IN_ARKFM") {
@@ -297,6 +336,7 @@ private:
     WaylandWindow* m_window;
     std::vector<Item> m_items;
     uint32_t m_animation_timer = 0;
+    uint32_t m_grab_timer = 0;
     float m_progress = 0.0f;
     int m_press_x = 0;
     int m_press_y = 0;
