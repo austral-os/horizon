@@ -1,0 +1,16 @@
+{
+    "language": {
+        "local_name": "Español"
+    },
+    "horizon_splash": {
+        "title": "Horizon Splash",
+        "description": "Pantalla de inicio de Horizon",
+        "loading": "Iniciando sesión...",
+        "status": {
+            "environment_detected": "Entorno detectado",
+            "loading_service": "Cargando {service}...",
+            "compositor_started": "Compositor iniciado",
+            "waiting_for_environment": "Esperando entorno..."
+        }
+    }
+}

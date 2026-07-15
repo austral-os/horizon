@@ -1,0 +1,16 @@
+{
+    "language": {
+        "local_name": "English"
+    },
+    "horizon_splash": {
+        "title": "Horizon Splash",
+        "description": "Horizon Splash Screen",
+        "loading": "Starting session...",
+        "status": {
+            "environment_detected": "Environment detected",
+            "loading_service": "Loading {service}...",
+            "compositor_started": "Compositor started",
+            "waiting_for_environment": "Waiting for environment..."
+        }
+    }
+}

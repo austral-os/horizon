@@ -2,6 +2,7 @@
 #include "horizon/Icon.hpp"
 #include <horizon/Logger.hpp>
 #include <horizon/Spacer.hpp>
+#include <horizon/I18n.hpp>
 
 namespace horizon
 {
@@ -46,7 +47,7 @@ namespace horizon
 
         add_child(Spacer(10));
 
-        auto label = std::make_unique<Label>("Iniciando sesión...");
+        auto label = std::make_unique<Label>(i18n().tr("horizon_splash.loading"));
         label->set_font_size(16);
         label->set_fixed_size(35);
         label->set_text_color(Color(1.0f, 1.0f, 1.0f));

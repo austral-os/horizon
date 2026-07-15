@@ -799,7 +799,7 @@ void HorizonSession::run_startup_services()
         }
         if (fs::exists("/tmp/horizon_splash.sock")) {
             splash_ipc = std::make_unique<horizon::IpcClient>("/tmp/horizon_splash.sock");
-            splash_ipc->send("{\"progress\": 0, \"text\": \"Entorno detectado\"}");
+            splash_ipc->send("{\"progress\": 0, \"text_key\": \"horizon_splash.status.environment_detected\"}");
         }
     }
 
@@ -810,7 +810,7 @@ void HorizonSession::run_startup_services()
         if (splash_ipc && !is_compositor) {
             int progress = (current_service_index * 100) / total_services;
             std::string svc_name = fs::path(svc_path).filename().string();
-            std::string msg = "{\"progress\": " + std::to_string(progress) + ", \"text\": \"Cargando " + svc_name + "\"}";
+            std::string msg = "{\"progress\": " + std::to_string(progress) + ", \"text_key\": \"horizon_splash.status.loading_service\", \"text_params\": {\"service\": \"" + svc_name + "\"}}";
             splash_ipc->send(msg);
         }
         current_service_index++;
@@ -864,7 +864,7 @@ void HorizonSession::run_startup_services()
                 
                 if (fs::exists("/tmp/horizon_splash.sock")) {
                     splash_ipc = std::make_unique<horizon::IpcClient>("/tmp/horizon_splash.sock");
-                    splash_ipc->send("{\"progress\": 0, \"text\": \"Compositor iniciado\"}");
+                    splash_ipc->send("{\"progress\": 0, \"text_key\": \"horizon_splash.status.compositor_started\"}");
                 }
             }
             else
@@ -898,7 +898,7 @@ void HorizonSession::run_startup_services()
     }
 
     if (splash_ipc) {
-        splash_ipc->send("{\"progress\": 99, \"text\": \"Esperando entorno...\"}");
+        splash_ipc->send("{\"progress\": 99, \"text_key\": \"horizon_splash.status.waiting_for_environment\"}");
         // We do NOT send "close" here. We wait for horizon_wall to send its "ready" message.
     }
 }

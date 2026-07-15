@@ -2,6 +2,7 @@
 #include "SplashWindow.hpp"
 #include <horizon/wlr-layer-shell-unstable-v1-client-protocol.h>
 #include <horizon/Logger.hpp>
+#include <horizon/I18n.hpp>
 #include <nlohmann/json.hpp>
 
 namespace horizon
@@ -11,9 +12,11 @@ namespace horizon
     {
         m_start_time = std::chrono::steady_clock::now();
 
+        i18n().load_app_locales("horizon-splash");
+
         auto &about = about_manager();
-        about.set_app_title("Horizon Splash");
-        about.set_app_description("Horizon Splash Screen");
+        about.set_app_title(i18n().tr("horizon_splash.title"));
+        about.set_app_description(i18n().tr("horizon_splash.description"));
         about.set_app_version("1.0.0");
         about.set_app_icon("emblem-austral");
 
@@ -77,7 +80,16 @@ namespace horizon
             std::string text = "";
             int progress = 0;
 
-            if (j.contains("text")) {
+            if (j.contains("text_key")) {
+                std::string key = j["text_key"].get<std::string>();
+                horizon::Params params;
+                if (j.contains("text_params") && j["text_params"].is_object()) {
+                    for (auto &[k, v] : j["text_params"].items()) {
+                        params[k] = v.get<std::string>();
+                    }
+                }
+                text = i18n().tr(key, params);
+            } else if (j.contains("text")) {
                 text = j["text"].get<std::string>();
             }
             if (j.contains("progress")) {
