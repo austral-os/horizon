@@ -370,7 +370,15 @@ namespace horizon
                         header->when_click.connect([this, gname](MouseButtonEventContext &ctx) {
                             if (m_expanded_group == gname) m_expanded_group = "";
                             else m_expanded_group = gname;
-                            rebuild_items();
+                            // Defer rebuild to avoid self-destruction during callback.
+                            // rebuild_items() → clear_children() would destroy this header
+                            // while its own when_click handler is still on the call stack.
+                            ++m_rebuild_generation;
+                            auto gen = m_rebuild_generation;
+                            application()->add_timer(0, [this, gen]() {
+                                if (gen == m_rebuild_generation)
+                                    rebuild_items();
+                            });
                             ctx.stop_propagation = true;
                         });
                         header->set_position_type(FREE);

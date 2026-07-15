@@ -160,6 +160,27 @@ namespace horizon
     public:
         using Callback = std::function<void(EventT &)>;
 
+        EventsManager() = default;
+
+        /**
+         * @brief Destructor ensures all handlers are deactivated before destruction.
+         *
+         * Without this, the default destructor destroys m_handlers directly,
+         * which can destroy Handler objects whose running_threads maps are still
+         * being accessed by concurrent run() calls — causing heap corruption
+         * in the map's red-black tree nodes.
+         */
+        ~EventsManager()
+        {
+            disconnect_all();
+        }
+
+        // Non-copyable, non-movable — handlers capture 'this' pointers
+        EventsManager(const EventsManager &) = delete;
+        EventsManager &operator=(const EventsManager &) = delete;
+        EventsManager(EventsManager &&) = delete;
+        EventsManager &operator=(EventsManager &&) = delete;
+
         /**
          * @brief Connects a callback to the event manager.
          * @param callback The function to execute when run() is called.
@@ -240,7 +261,21 @@ namespace horizon
                         continue;
 
                     handler->running++;
-                    handler->running_threads[std::this_thread::get_id()]++;
+                    // Track per-thread running count
+                    auto tid = std::this_thread::get_id();
+                    bool found = false;
+                    for (auto &entry : handler->running_entries)
+                    {
+                        if (entry.thread_id == tid)
+                        {
+                            entry.count++;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                        handler->running_entries.push_back({tid, 1});
+
                     callback = handler->callback;
                 }
 
@@ -253,13 +288,18 @@ namespace horizon
                         std::lock_guard<std::mutex> handler_lock(handler->mutex);
                         handler->running--;
 
-                        auto thread_it = handler->running_threads.find(std::this_thread::get_id());
-                        if (thread_it != handler->running_threads.end())
+                        auto tid = std::this_thread::get_id();
+                        for (auto it = handler->running_entries.begin();
+                             it != handler->running_entries.end(); ++it)
                         {
-                            if (thread_it->second <= 1)
-                                handler->running_threads.erase(thread_it);
-                            else
-                                thread_it->second--;
+                            if (it->thread_id == tid)
+                            {
+                                if (it->count <= 1)
+                                    handler->running_entries.erase(it);
+                                else
+                                    it->count--;
+                                break;
+                            }
                         }
 
                         handler->idle.notify_all();
@@ -279,13 +319,22 @@ namespace horizon
         }
 
     private:
+        // Per-thread running count entry. Using a vector instead of std::map
+        // because std::map's red-black tree has complex internal pointers that
+        // are fragile under heap corruption from rapid widget alloc/dealloc cycles.
+        struct RunningEntry
+        {
+            std::thread::id thread_id;
+            size_t count{0};
+        };
+
         struct Handler
         {
             size_t id;
             Callback callback;
             bool active{true};
             size_t running{0};
-            std::map<std::thread::id, size_t> running_threads;
+            std::vector<RunningEntry> running_entries;
             std::mutex mutex;
             std::condition_variable idle;
         };
@@ -299,8 +348,15 @@ namespace horizon
             handler->idle.wait(lock,
                                [&]()
                                {
-                                   auto self_it = handler->running_threads.find(current_thread);
-                                   size_t self_running = self_it == handler->running_threads.end() ? 0 : self_it->second;
+                                   size_t self_running = 0;
+                                   for (const auto &entry : handler->running_entries)
+                                   {
+                                       if (entry.thread_id == current_thread)
+                                       {
+                                           self_running = entry.count;
+                                           break;
+                                       }
+                                   }
                                    return handler->running == self_running;
                                });
 
