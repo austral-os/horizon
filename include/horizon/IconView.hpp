@@ -459,9 +459,9 @@ namespace horizon
                             if (m_selected_indices.count(i) == 0)
                                 set_selected_index(i, false, false);
                             
-                            this->set_context_menu(m_item_menu_factory(item_data));
-                            if (this->application() && this->context_menu()) {
-                                this->application()->show_context_menu(this->context_menu(), -1, -1, ctx.serial, this);
+                            this->m_active_item_menu = m_item_menu_factory(item_data);
+                            if (this->application() && this->m_active_item_menu) {
+                                this->application()->show_context_menu(this->m_active_item_menu.get(), -1, -1, ctx.serial, this);
                             }
                             ctx.stop_propagation = true;
                         });
@@ -491,5 +491,6 @@ namespace horizon
         std::function<std::string(const T&)> m_grouping_function;
         std::function<std::unique_ptr<Widget>(const std::string&, bool, float)> m_group_header_factory;
         std::vector<int> m_visual_to_data;
+        std::unique_ptr<Menu> m_active_item_menu;
     };
 } // namespace horizon
