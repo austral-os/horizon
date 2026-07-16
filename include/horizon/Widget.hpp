@@ -5,6 +5,7 @@
 #include "horizon/EventsManager.hpp"
 #include "horizon/ThemeManager.hpp"
 #include <chrono>
+#include <functional>
 #include <map>
 #include <memory>
 #include <vector>
@@ -344,6 +345,7 @@ namespace horizon
         virtual void add_child_at(int index, std::unique_ptr<Widget> child);
         void remove_child(Widget *child);
         void remove_child_at(int index);
+        void remove_children_if(const std::function<bool(const Widget *)> &predicate);
         Widget *parent() const;
         WaylandWindow *application() const;
 

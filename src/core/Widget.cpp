@@ -5,6 +5,7 @@
 #include <horizon/Vault.hpp>
 #include <horizon/ConfigManager.hpp>
 #include <horizon/MouseSettings.hpp>
+#include <algorithm>
 #include <linux/input-event-codes.h>
 
 namespace horizon
@@ -345,6 +346,19 @@ namespace horizon
             m_children.erase(m_children.begin() + index);
             invalidate();
         }
+    }
+
+    void Widget::remove_children_if(const std::function<bool(const Widget *)> &predicate)
+    {
+        auto old_size = m_children.size();
+        m_children.erase(
+            std::remove_if(m_children.begin(), m_children.end(),
+                           [&predicate](const std::unique_ptr<Widget> &child)
+                           { return predicate(child.get()); }),
+            m_children.end());
+
+        if (m_children.size() != old_size)
+            invalidate();
     }
 
     Widget *Widget::parent() const

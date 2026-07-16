@@ -428,9 +428,7 @@ namespace horizon
                     m_animating_group = "";
 
                     if (!m_is_group_animation_expanding) {
-                        m_collapsing_group = "";
-                        m_expanded_group = "";
-                        schedule_rebuild();
+                        finish_group_collapse();
                     } else {
                         m_collapsing_group = "";
                     }
@@ -440,6 +438,43 @@ namespace horizon
                 if (application())
                     start_group_animation_frame(gen, start);
             });
+        }
+
+        void finish_group_collapse()
+        {
+            if (!m_content_pane || m_collapsing_group.empty()) {
+                m_collapsing_group = "";
+                m_expanded_group = "";
+                return;
+            }
+
+            std::set<const Widget *> widgets_to_remove;
+            auto &children = m_content_pane->children();
+
+            for (size_t i = 0; i < children.size() && i < m_visual_to_group.size() && i < m_visual_to_data.size(); ++i) {
+                if (m_visual_to_group[i] == m_collapsing_group && m_visual_to_data[i] != -1) {
+                    widgets_to_remove.insert(children[i].get());
+                }
+            }
+
+            if (!widgets_to_remove.empty()) {
+                m_content_pane->remove_children_if([&widgets_to_remove](const Widget *child) {
+                    return widgets_to_remove.count(child) > 0;
+                });
+
+                for (int i = static_cast<int>(m_visual_to_data.size()) - 1; i >= 0; --i) {
+                    if (i < static_cast<int>(m_visual_to_group.size()) &&
+                        m_visual_to_group[i] == m_collapsing_group && m_visual_to_data[i] != -1) {
+                        m_visual_to_data.erase(m_visual_to_data.begin() + i);
+                        m_visual_to_group.erase(m_visual_to_group.begin() + i);
+                    }
+                }
+            }
+
+            m_collapsing_group = "";
+            m_expanded_group = "";
+            calculate_layout();
+            invalidate();
         }
 
         void apply_group_animation_layout()
