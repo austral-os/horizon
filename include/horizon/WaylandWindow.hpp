@@ -28,6 +28,8 @@ namespace horizon
     class PreferencesContent;
     class AboutManager;
     class Vault;
+    class Menu;
+    class MenuItem;
 
     class WaylandWindow : public WaylandEventListener
     {
@@ -35,6 +37,7 @@ namespace horizon
         class PopupEventListener : public WaylandEventListener
         {
             WaylandWindow *m_window;
+            Widget *m_target_root = nullptr;  // which Widget to route events to (Menu or Vault)
             Widget *m_hovered = nullptr;
             Widget *m_pressed = nullptr;
             uint32_t m_opening_serial = 0;
@@ -42,9 +45,11 @@ namespace horizon
 
         public:
             bool *m_destroyed = nullptr;
+            Menu *m_target_menu = nullptr;  // for submenu event dispatch
+            std::function<void()> on_close_callback;  // custom close handler for submenus
 
-            PopupEventListener(WaylandWindow *window, uint32_t opening_serial = 0)
-                : m_window(window), m_opening_serial(opening_serial)
+            PopupEventListener(WaylandWindow *window, Widget *target, uint32_t opening_serial = 0)
+                : m_window(window), m_target_root(target), m_opening_serial(opening_serial)
             {
             }
 
@@ -62,6 +67,7 @@ namespace horizon
             
             bool is_active() const { return m_window != nullptr; }
             void deactivate() { m_window = nullptr; }
+            Menu *target_menu() const { return m_target_menu; }
         };
 
         void on_drag_drop_event(const DragDropEvent &event) override;
@@ -204,6 +210,9 @@ namespace horizon
                                Widget *owner = nullptr);
         void hide_context_menu();
         void close_context_menu(bool emit_signal = true, uint32_t serial = 0);
+
+        void open_submenu_popup(MenuItem *item, Menu *submenu, Menu *parent_menu);
+        void close_submenu_popups_from_level(int level);
 
         void show_vault(Vault *vault, int x = -1, int y = -1, uint32_t serial = 0, Widget *owner = nullptr);
         void hide_vault();
@@ -705,6 +714,18 @@ namespace horizon
         Menu *m_popup_menu = nullptr;
         Vault *m_popup_vault = nullptr;
         std::unique_ptr<PopupEventListener> m_popup_listener;
+
+        // Submenu popup stack: each level is a separate WaylandSurface
+        // managed as a native xdg_popup child of the parent popup.
+        struct SubmenuPopup
+        {
+            std::unique_ptr<WaylandSurface> surface;
+            std::unique_ptr<PopupEventListener> listener;
+            Menu *menu = nullptr;
+            int level = 0;
+        };
+        std::vector<std::unique_ptr<SubmenuPopup>> m_submenu_popups;
+        uint32_t m_popup_opening_serial{0};
 
         std::unique_ptr<WaylandSurface> m_tooltip_surface;
         Notification *m_tooltip_widget = nullptr;

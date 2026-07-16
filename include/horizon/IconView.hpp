@@ -469,7 +469,7 @@ namespace horizon
                             
                             this->m_active_item_menu = m_item_menu_factory(item_data);
                             if (this->application() && this->m_active_item_menu) {
-                                this->application()->show_context_menu(this->m_active_item_menu.get(), -1, -1, ctx.serial, this);
+                                this->application()->show_context_menu(this->m_active_item_menu.get(), ctx.x, ctx.y, ctx.serial, this);
                             }
                             ctx.stop_propagation = true;
                         });

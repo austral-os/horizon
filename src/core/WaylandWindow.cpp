@@ -969,6 +969,70 @@ namespace horizon
                             render_gl_popup();
                         }
 
+                        // Render submenu popups
+                        for (auto &sp : m_submenu_popups)
+                        {
+                            if (sp->menu && sp->surface && sp->surface->data())
+                            {
+                                CairoGraphicContext sctx(this, sp->surface->data(),
+                                                         sp->surface->width(),
+                                                         sp->surface->height());
+                                sctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
+                                sctx.clearRect(0, 0, sp->surface->width(), sp->surface->height());
+
+                                sp->menu->render(sctx, 0, 0, sp->surface->width(),
+                                                  sp->surface->height(), true);
+                                sctx.flush();
+
+                                // GL render submenu surface
+                                eglMakeCurrent(sp->surface->egl_display(),
+                                               sp->surface->egl_surface(),
+                                               sp->surface->egl_surface(),
+                                               sp->surface->egl_context());
+                                init_gl_resources();
+                                glViewport(0, 0, sp->surface->width(), sp->surface->height());
+                                glClearColor(0, 0, 0, 0);
+                                glClear(GL_COLOR_BUFFER_BIT);
+                                glEnable(GL_BLEND);
+                                glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+                                glUseProgram(m_gl_program);
+
+                                float identity[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
+                                GLint mvp_loc = glGetUniformLocation(m_gl_program, "u_mvp");
+                                glUniformMatrix4fv(mvp_loc, 1, GL_FALSE, identity);
+                                GLint op_loc = glGetUniformLocation(m_gl_program, "u_opacity");
+                                glUniform1f(op_loc, 1.0f);
+                                GLint gs_loc = glGetUniformLocation(m_gl_program, "u_gradient_start");
+                                glUniform1f(gs_loc, 1.0f);
+                                GLint ge_loc = glGetUniformLocation(m_gl_program, "u_gradient_end");
+                                glUniform1f(ge_loc, 1.0f);
+                                GLint gh_loc = glGetUniformLocation(m_gl_program, "u_gradient_horizontal");
+                                glUniform1f(gh_loc, 0.0f);
+
+                                glActiveTexture(GL_TEXTURE0);
+                                glBindTexture(GL_TEXTURE_2D, m_gl_texture);
+                                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                                             sp->surface->width(), sp->surface->height(),
+                                             0, GL_RGBA, GL_UNSIGNED_BYTE, sp->surface->data());
+
+                                GLint pos_attr = glGetAttribLocation(m_gl_program, "position");
+                                GLint tex_attr = glGetAttribLocation(m_gl_program, "texcoord");
+                                glBindBuffer(GL_ARRAY_BUFFER, m_gl_vbo);
+                                glVertexAttribPointer(pos_attr, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0);
+                                glEnableVertexAttribArray(pos_attr);
+                                glVertexAttribPointer(tex_attr, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float),
+                                                      (void*)(3*sizeof(float)));
+                                glEnableVertexAttribArray(tex_attr);
+
+                                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                                sp->surface->swap_buffers();
+
+                                // Restore main surface context
+                                eglMakeCurrent(m_surface->egl_display(), m_surface->egl_surface(),
+                                               m_surface->egl_surface(), m_surface->egl_context());
+                            }
+                        }
+
                         if (m_popup_vault && m_popup_surface && m_popup_surface->data())
                         {
                             CairoGraphicContext pctx(this, m_popup_surface->data(),
@@ -2012,7 +2076,7 @@ namespace horizon
 
     void WaylandWindow::PopupEventListener::on_pointer_event(const PointerEvent &event)
     {
-        if (!m_window || (!m_window->m_popup_menu && !m_window->m_popup_vault))
+        if (!m_window || !m_target_root)
         {
             return;
         }
@@ -2020,7 +2084,7 @@ namespace horizon
         bool destroyed = false;
         m_destroyed = &destroyed;
 
-        Widget *popup_root = m_window->m_popup_menu ? (Widget*)m_window->m_popup_menu : (Widget*)m_window->m_popup_vault;
+        Widget *popup_root = m_target_root;
 
         // LOG_INFO << "[POPUP_EV] Type: " << (int)event.type << " at (" << event.x << ", " << event.y << ") serial: " << event.serial;
 
@@ -2374,13 +2438,16 @@ namespace horizon
         if (m_window)
         {
             if (m_window->m_is_dragging) {
-                // Defer closing the popup until the drag finishes so the origin surface is kept alive.
                 m_window->m_drag_pending_close_popup = true;
                 m_window = nullptr;
                 return;
             }
 
-            if (m_window->m_popup_menu)
+            if (on_close_callback)
+            {
+                on_close_callback();
+            }
+            else if (m_window->m_popup_menu)
                 m_window->close_context_menu();
             else if (m_window->m_popup_vault)
                 m_window->close_vault();
@@ -3574,49 +3641,136 @@ namespace horizon
         m_popup_menu->set_visible(true);
         m_popup_menu->set_position(0, 0);
 
-        // Determine the height of the monitor the window is currently on
+        // Store serial for child popup creation
+        m_popup_opening_serial = (serial > 0) ? serial : m_surface->last_serial();
+
+        // Determine monitor height for menu height capping
         int monitor_h = m_surface->monitor_height();
         if (monitor_h <= 0)
         {
-            // Fallback: Use the first monitor from SystemInfo if Wayland hasn't reported one yet
             auto monitors = SystemInfo::get_monitors();
             if (!monitors.empty())
                 monitor_h = monitors[0].height;
             else
-                monitor_h = 1080; // Safe default
+                monitor_h = 1080;
         }
 
-        // Cap the menu height to 80% of the active monitor's height
         m_popup_menu->set_max_menu_height((int)(monitor_h * 0.8));
-
         m_popup_menu->calculate_layout();
 
         int w = m_popup_menu->width();
         int h = m_popup_menu->height();
 
-        // Calculate total surface size needed dynamically based on the submenu tree.
-        // cascade_w accounts for all nested submenus at any depth.
-        int cascade_w = m_popup_menu->calculate_cascade_width();
-        if (cascade_w == 0) cascade_w = w; // Ensure at least one extra submenu can fit
-        int surface_w = w + cascade_w + 20; // +20 margin
-        int surface_h = std::max(h, monitor_h - y - 20);
-
-        m_popup_surface = std::make_unique<WaylandSurface>(surface_w, surface_h);
-
-        m_popup_listener = std::make_unique<PopupEventListener>(this, serial);
+        m_popup_surface = std::make_unique<WaylandSurface>(w, h);
+        m_popup_listener = std::make_unique<PopupEventListener>(this, m_popup_menu, serial);
         m_popup_surface->set_event_listener(m_popup_listener.get());
 
         if (serial > 0)
-        {
             m_surface->set_last_serial(serial);
-        }
 
-        // Pass real menu dimensions (w, h) as popup_w/popup_h.
-        // setup_xdg_popup will call xdg_surface_set_window_geometry(0,0,w,h) BEFORE
-        // the first commit, so the compositor anchors at the cursor correctly.
-        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, surface_w, surface_h, w, h);
+        m_popup_surface->setup_xdg_popup(m_surface.get(), x, y, w, h, w, h);
+
+        // Connect submenu open event — the popup manager creates child popups
+        m_popup_menu->when_submenu_open.connect(
+            [this](const SubmenuOpenEvent &ev)
+            {
+                open_submenu_popup(ev.item, ev.submenu, ev.parent_menu);
+            });
 
         invalidate();
+    }
+
+    void WaylandWindow::open_submenu_popup(MenuItem *item, Menu *submenu, Menu *parent_menu)
+    {
+        if (!m_popup_surface || !submenu) return;
+
+        // Find the popup level of the parent menu to determine child level
+        int parent_level = 0;
+        for (int i = 0; i < (int)m_submenu_popups.size(); ++i)
+        {
+            if (m_submenu_popups[i]->menu == parent_menu)
+            {
+                parent_level = i + 1;
+                break;
+            }
+        }
+
+        // Close any popups at this level or deeper (sibling was hovered)
+        close_submenu_popups_from_level(parent_level);
+
+        // Size the submenu
+        submenu->set_application_recursive(this);
+        submenu->calculate_layout();
+        int sub_w = submenu->width();
+        int sub_h = submenu->height();
+
+        // Item anchor rect in parent popup surface coordinates.
+        int anchor_x = item->x() + item->width() - 2;
+        int anchor_y = item->y() - (int)parent_menu->scroll_y();
+        int anchor_w = 2;
+        int anchor_h = item->height();
+
+        LOG_INFO << "[SUBMENU] anchor=(" << anchor_x << "," << anchor_y
+                 << " " << anchor_w << "x" << anchor_h
+                 << ") item=(" << item->x() << "," << item->y()
+                 << " " << item->width() << "x" << item->height()
+                 << ") sub=" << sub_w << "x" << sub_h
+                 << " parent_scroll=" << parent_menu->scroll_y()
+                 << " parent_pos=(" << parent_menu->x() << "," << parent_menu->y() << ")";
+
+        // Create child popup surface
+        auto surface = std::make_unique<WaylandSurface>(sub_w, sub_h);
+        auto listener = std::make_unique<PopupEventListener>(this, submenu, m_popup_opening_serial);
+        listener->m_target_menu = submenu;
+
+        // When compositor closes this popup, close from this level down
+        int child_level = parent_level;
+        listener->on_close_callback = [this, child_level]() {
+            close_submenu_popups_from_level(child_level);
+        };
+
+        surface->set_event_listener(listener.get());
+        surface->setup_xdg_popup_submenu(m_popup_surface.get(),
+                                          anchor_x, anchor_y,
+                                          anchor_w, anchor_h,
+                                          sub_w, sub_h,
+                                          true);
+
+        // Store in stack
+        auto entry = std::make_unique<SubmenuPopup>();
+        entry->surface = std::move(surface);
+        entry->listener = std::move(listener);
+        entry->menu = submenu;
+        entry->level = parent_level;
+
+        submenu->set_visible(true);
+        submenu->set_position(0, 0);
+
+        // Connect submenu's own when_submenu_open for nesting
+        submenu->when_submenu_open.connect(
+            [this](const SubmenuOpenEvent &ev)
+            {
+                open_submenu_popup(ev.item, ev.submenu, ev.parent_menu);
+            });
+
+        m_submenu_popups.push_back(std::move(entry));
+    }
+
+    void WaylandWindow::close_submenu_popups_from_level(int level)
+    {
+        auto it = std::remove_if(m_submenu_popups.begin(), m_submenu_popups.end(),
+            [level](const std::unique_ptr<SubmenuPopup> &entry)
+            {
+                return entry->level >= level;
+            });
+
+        for (auto rit = std::make_reverse_iterator(it); rit != m_submenu_popups.rend(); ++rit)
+        {
+            (*rit)->menu->set_visible(false);
+            (*rit)->menu = nullptr;
+        }
+
+        m_submenu_popups.erase(it, m_submenu_popups.end());
     }
 
     void WaylandWindow::hide_context_menu()
@@ -3630,6 +3784,9 @@ namespace horizon
 
     void WaylandWindow::close_context_menu(bool emit_signal, uint32_t serial)
     {
+        // Close all submenu popups first
+        close_submenu_popups_from_level(0);
+
         if (m_popup_menu)
         {
             m_popup_menu->set_visible(false);
@@ -3757,7 +3914,7 @@ namespace horizon
 
         m_popup_surface = std::make_unique<WaylandSurface>(surface_w, surface_h);
         m_popup_surface->set_blur(true);
-        m_popup_listener = std::make_unique<PopupEventListener>(this, serial);
+        m_popup_listener = std::make_unique<PopupEventListener>(this, m_popup_vault, serial);
         m_popup_surface->set_event_listener(m_popup_listener.get());
 
         if (serial > 0)

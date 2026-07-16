@@ -193,7 +193,25 @@ namespace horizon
         uint32_t layer_num() const { return m_layer_num; }
         const std::string &layer_namespace() const { return m_layer_namespace; }
         void setup_xdg_popup(WaylandSurface *parent, int x, int y, int w, int h,
-                              int popup_w = 0, int popup_h = 0, bool use_grab = true);
+                              int popup_w = 0, int popup_h = 0, bool use_grab = true,
+                              int geometry_x = 0, int geometry_y = 0);
+
+        /**
+         * Setup an xdg_popup as a child popup for submenus.
+         * @param parent     Parent popup surface
+         * @param anchor_x   Anchor rect x within parent (pre-scroll item coords)
+         * @param anchor_y   Anchor rect y within parent (pre-scroll item coords)
+         * @param anchor_w   Anchor rect width
+         * @param anchor_h   Anchor rect height
+         * @param popup_w    Desired popup width
+         * @param popup_h    Desired popup height
+         * @param gravity_right  true = open right, false = open left
+         */
+        void setup_xdg_popup_submenu(WaylandSurface *parent,
+                                      int anchor_x, int anchor_y,
+                                      int anchor_w, int anchor_h,
+                                      int popup_w, int popup_h,
+                                      bool gravity_right = true);
         void setup_drag_icon();
         void set_layer_anchor(uint32_t anchor);
         void set_layer_exclusive_zone(int32_t zone);

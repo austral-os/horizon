@@ -7,6 +7,16 @@
 
 namespace horizon
 {
+    struct SubmenuOpenEvent
+    {
+        MenuItem *item;      // item that owns the submenu
+        Menu *submenu;       // submenu to open
+        int item_x;          // item x in popup-local coords
+        int item_y;          // item y in popup-local coords
+        int item_w;          // item width
+        int item_h;          // item height
+        Menu *parent_menu;   // menu that owns the item
+    };
 
     class Menu : public Widget
     {
@@ -63,9 +73,6 @@ namespace horizon
         void calculate_layout() override;
         Widget *hit_test(int x, int y) override;
 
-        void close_submenus();
-        void set_active_submenu(Menu *menu);
-
         void set_max_width(int max_width)
         {
             m_max_width = max_width;
@@ -108,24 +115,21 @@ namespace horizon
             return m_id;
         }
 
-        /**
-         * @brief Calculates the total extra width needed for all nested submenus.
-         * Used to size the popup surface so submenus don't get clipped.
-         */
-        int calculate_cascade_width() const;
+        // Event emitted when a submenu needs to open as a native Wayland popup.
+        // Connected by WaylandWindow to create a child xdg_popup.
+        EventsManager<SubmenuOpenEvent> when_submenu_open;
 
     protected:
         void draw(GraphicsContext &gc) override;
 
     private:
-        Menu *m_active_submenu = nullptr;
         int m_item_height = 24;
         int m_min_width = 240;
-        int m_max_width = -1;       // -1 means no maximum
+        int m_max_width = -1;
         double m_scroll_y = 0;
         int m_max_menu_height = 500;
         double m_total_content_height = 0;
-        bool m_was_visible = false; // Track visibility transitions for clearing
+        bool m_was_visible = false;
         std::string m_title;
         std::string m_id;
         bool m_bold = false;

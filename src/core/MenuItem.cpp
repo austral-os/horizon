@@ -33,9 +33,19 @@ namespace horizon
             [this](EventContext &)
             {
                 set_selected(true);
-                if (auto *p = dynamic_cast<Menu *>(parent()))
+                if (!m_submenu) return;
+                auto *p = dynamic_cast<Menu *>(parent());
+                if (p)
                 {
-                    p->set_active_submenu(m_submenu.get());
+                    SubmenuOpenEvent ev;
+                    ev.item = this;
+                    ev.submenu = m_submenu.get();
+                    ev.item_x = m_x;
+                    ev.item_y = m_y;
+                    ev.item_w = m_width;
+                    ev.item_h = m_height;
+                    ev.parent_menu = p;
+                    p->when_submenu_open.run(ev);
                 }
             });
 

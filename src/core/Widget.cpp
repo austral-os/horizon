@@ -105,14 +105,14 @@ namespace horizon
                                 {
                                     if (m_context_menu)
                                     {
-                                        application()->show_context_menu(m_context_menu.get(), -1, -1,
+                                        application()->show_context_menu(m_context_menu.get(), (int)ev.x, (int)ev.y,
                                                                          ev.serial, this);
                                         ev.stop_propagation = true;
                                     }
                                     else if (supports_fullscreen())
                                     {
                                         auto temp_menu = std::make_unique<Menu>();
-                                        application()->show_context_menu(temp_menu.release(), -1, -1,
+                                        application()->show_context_menu(temp_menu.release(), (int)ev.x, (int)ev.y,
                                                                          ev.serial, this);
                                         ev.stop_propagation = true;
                                     }

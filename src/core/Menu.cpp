@@ -128,13 +128,6 @@ namespace horizon
 
     Widget *Menu::hit_test(int x, int y)
     {
-        // First check if we have an active submenu and if the hit is there
-        if (m_active_submenu && m_active_submenu->is_visible())
-        {
-            if (Widget *hit = m_active_submenu->hit_test(x, y))
-                return hit;
-        }
-
         if (x < m_x || y < m_y || x > m_x + m_width || y > m_y + m_height)
             return nullptr;
 
@@ -142,120 +135,10 @@ namespace horizon
 
         for (auto &child : m_children)
         {
-            // We want the direct child (the MenuItem) to be returned, 
-            // not its internal sub-widgets (like Labels), because the 
-            // selection handlers are connected to the MenuItem itself.
             if (child->hit_test(x, local_y))
                 return child.get();
         }
         return this;
-    }
-
-    int Menu::calculate_cascade_width() const
-    {
-        int max_sub_cascade = 0;
-        for (const auto &child : m_children)
-        {
-            if (auto *item = dynamic_cast<const MenuItem *>(child.get()))
-            {
-                if (item->submenu())
-                {
-                    Menu *sub = item->submenu();
-
-                    // Force a layout pass at (0,0) if the submenu hasn't been laid out
-                    // yet. This gives us accurate width without needing to open the submenu.
-                    if (sub->width() == 0)
-                    {
-                        sub->set_position(0, 0);
-                        const_cast<Menu *>(sub)->calculate_layout();
-                    }
-
-                    int sub_w = sub->width();
-                    if (sub_w < sub->m_min_width) sub_w = sub->m_min_width;
-                    int nested = sub->calculate_cascade_width();
-                    max_sub_cascade = std::max(max_sub_cascade, sub_w + nested);
-                }
-            }
-        }
-        return max_sub_cascade;
-    }
-
-    void Menu::close_submenus()
-    {
-        if (m_active_submenu)
-        {
-            m_active_submenu->close_submenus();
-            m_active_submenu->set_visible(false);
-            // Crucial: Unset parent before clearing pointer
-            if (m_active_submenu->m_parent == this) {
-                m_active_submenu->m_parent = nullptr;
-            }
-            m_active_submenu = nullptr;
-            invalidate(); // Ensure the area where the submenu was is repainted
-        }
-    }
-
-    void Menu::set_active_submenu(Menu *menu)
-    {
-        if (m_active_submenu == menu)
-            return;
-
-        close_submenus();
-
-        if (menu)
-        {
-            m_active_submenu = menu;
-            m_active_submenu->m_parent = this;
-            m_active_submenu->set_application_recursive(application());
-            m_active_submenu->set_visible(true);
-            m_active_submenu->invalidate();
-
-            for (const auto &child : m_children)
-            {
-                if (auto *item = dynamic_cast<MenuItem *>(child.get()))
-                {
-                    if (item->is_selected())
-                    {
-                        // Do a preliminary layout to know the submenu's dimensions
-                        m_active_submenu->set_position(item->x() + item->width() - 2, item->y());
-                        m_active_submenu->calculate_layout();
-
-                        // --- Edge detection & smart repositioning ---
-                        int sub_w = m_active_submenu->width();
-                        int sub_h = m_active_submenu->height();
-
-                        int pos_x = item->x() + item->width() - 2;
-                        int pos_y = item->y();
-
-                        // Get available surface space
-                        int surface_w = 0, surface_h = 0;
-                        if (application() && application()->w_surface())
-                        {
-                            surface_w = application()->w_surface()->width();
-                            surface_h = application()->w_surface()->height();
-                        }
-
-                        // Flip horizontally: if submenu right edge exceeds surface width, open to the left
-                        if (surface_w > 0 && pos_x + sub_w > surface_w)
-                        {
-                            pos_x = item->x() - sub_w + 2;
-                            if (pos_x < 0) pos_x = 0;
-                        }
-
-                        // Flip vertically: if submenu bottom exceeds surface height, push it up
-                        if (surface_h > 0 && pos_y + sub_h > surface_h)
-                        {
-                            pos_y = surface_h - sub_h;
-                            if (pos_y < 0) pos_y = 0;
-                        }
-
-                        m_active_submenu->set_position(pos_x, pos_y);
-                        m_active_submenu->calculate_layout();
-                        break;
-                    }
-                }
-            }
-        }
     }
 
     void Menu::render(GraphicsContext &ctx, int cx, int cy, int cw, int ch, bool force)
@@ -320,14 +203,6 @@ namespace horizon
 
         ctx.restore(); // Restore translation
         ctx.restore(); // Restore clipping
-
-        // 4. Draw active submenu (outside the parent's clipping and translation)
-        if (m_active_submenu && m_active_submenu->is_visible())
-        {
-            // Ensure the submenu is rendered into the same context but with its own absolute coordinates.
-            // We pass the same dirty region as the parent.
-            m_active_submenu->render(ctx, cx, cy, cw, ch, force || should_draw);
-        }
 
         m_dirty = false;
         m_child_dirty = false;

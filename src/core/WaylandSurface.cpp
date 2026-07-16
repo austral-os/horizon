@@ -369,7 +369,8 @@ namespace horizon
     }
 
     void WaylandSurface::setup_xdg_popup(WaylandSurface *parent, int x, int y, int w, int h,
-                                          int popup_w, int popup_h, bool use_grab)
+                                          int popup_w, int popup_h, bool use_grab,
+                                          int geometry_x, int geometry_y)
     {
         m_role = Role::XdgPopup;
         share_connection_from(parent);
@@ -438,7 +439,7 @@ namespace horizon
         // dimensions for screen-edge constraint checks and anchoring.
         if (m_xdg_surface && popup_w > 0 && popup_h > 0)
         {
-            xdg_surface_set_window_geometry(m_xdg_surface, 0, 0, popup_w, popup_h);
+            xdg_surface_set_window_geometry(m_xdg_surface, geometry_x, geometry_y, popup_w, popup_h);
         }
 
         if (m_shm) m_cursor_theme = wl_cursor_theme_load(nullptr, 24, m_shm);
@@ -448,6 +449,90 @@ namespace horizon
         wl_display_roundtrip(m_display);
         resize_buffer(m_width, m_height);
     }
+
+    void WaylandSurface::setup_xdg_popup_submenu(WaylandSurface *parent,
+                                                  int anchor_x, int anchor_y,
+                                                  int anchor_w, int anchor_h,
+                                                  int popup_w, int popup_h,
+                                                  bool gravity_right)
+    {
+        m_role = Role::XdgPopup;
+        share_connection_from(parent);
+        m_width = popup_w;
+        m_height = popup_h;
+        m_popup_full_w = popup_w;
+        m_popup_full_h = popup_h;
+
+        m_surface = wl_compositor_create_surface(m_compositor);
+        wl_surface_set_user_data(m_surface, this);
+        wl_surface_add_listener(m_surface, &surface_listener, this);
+        resize_buffer(popup_w, popup_h);
+
+        m_xdg_positioner = xdg_wm_base_create_positioner(m_xdg_wm_base);
+        xdg_positioner_set_size(m_xdg_positioner, popup_w, popup_h);
+        xdg_positioner_set_anchor_rect(m_xdg_positioner, anchor_x, anchor_y, anchor_w, anchor_h);
+
+        if (gravity_right)
+        {
+            xdg_positioner_set_anchor(m_xdg_positioner, XDG_POSITIONER_ANCHOR_TOP_RIGHT);
+            xdg_positioner_set_gravity(m_xdg_positioner, XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT);
+        }
+        else
+        {
+            xdg_positioner_set_anchor(m_xdg_positioner, XDG_POSITIONER_ANCHOR_TOP_LEFT);
+            xdg_positioner_set_gravity(m_xdg_positioner, XDG_POSITIONER_GRAVITY_BOTTOM_LEFT);
+        }
+
+        xdg_positioner_set_constraint_adjustment(m_xdg_positioner,
+            XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_X |
+            XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_X |
+            XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_FLIP_Y |
+            XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_Y);
+
+        if (parent->m_xdg_surface || parent->m_layer_surface)
+        {
+            m_xdg_surface = xdg_wm_base_get_xdg_surface(m_xdg_wm_base, m_surface);
+            static const struct xdg_surface_listener popup_xdg_surf_listener = {
+                .configure = [](void *data, struct xdg_surface *surf, uint32_t serial) {
+                    WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                    self->m_configured = true;
+                    xdg_surface_ack_configure(surf, serial);
+                }};
+            xdg_surface_add_listener(m_xdg_surface, &popup_xdg_surf_listener, this);
+
+            m_xdg_popup = xdg_surface_get_popup(m_xdg_surface, parent->m_xdg_surface, m_xdg_positioner);
+            if (parent->m_layer_surface) zwlr_layer_surface_v1_get_popup(parent->m_layer_surface, m_xdg_popup);
+        }
+
+        if (m_xdg_popup)
+        {
+            static const struct xdg_popup_listener popup_listener = {
+                .configure = [](void *data, struct xdg_popup *popup, int32_t, int32_t, int32_t width, int32_t height) {
+                    WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                    int actual_w = (width > 0) ? std::max(width, self->m_popup_full_w) : self->m_width;
+                    int actual_h = (height > 0) ? std::max(height, self->m_popup_full_h) : self->m_height;
+                    self->resize_buffer(actual_w, actual_h);
+                    if (self->m_listener) self->m_listener->on_resize(actual_w, actual_h);
+                },
+                .popup_done = [](void *data, struct xdg_popup *) {
+                    WaylandSurface *self = static_cast<WaylandSurface *>(data);
+                    if (self->m_listener) self->m_listener->on_close();
+                }};
+            xdg_popup_add_listener(m_xdg_popup, &popup_listener, this);
+            if (m_seat) xdg_popup_grab(m_xdg_popup, m_seat, parent->last_serial());
+        }
+
+        // Set window geometry so the compositor knows the actual content size
+        if (m_xdg_surface && popup_w > 0 && popup_h > 0)
+        {
+            xdg_surface_set_window_geometry(m_xdg_surface, 0, 0, popup_w, popup_h);
+        }
+
+        wl_surface_commit(m_surface);
+        wl_display_roundtrip(m_display);
+        resize_buffer(m_width, m_height);
+    }
+
     void WaylandSurface::setup_drag_icon()
     {
         m_role = Role::DragIcon;
