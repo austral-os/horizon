@@ -729,24 +729,14 @@ void TerminalWidget::handle_mouse_wheel(MouseWheelEventContext &ctx) {
             if (mods & horizon::WaylandWindow::Modifier::ALT)   button |= 8;
             if (mods & horizon::WaylandWindow::Modifier::CTRL)  button |= 16;
 
-            int count = ctx.dy < 0 ? static_cast<int>(-ctx.dy) : static_cast<int>(ctx.dy);
-            if (count < 1) count = 1;
-
-            for (int i = 0; i < count; ++i) {
-                std::string seq = "\x1b[<" + std::to_string(button) + ";"
-                                + std::to_string(col) + ";"
-                                + std::to_string(row) + "M";
-                m_pty->write(seq.data(), seq.size());
-            }
+            std::string seq = "\x1b[<" + std::to_string(button) + ";"
+                            + std::to_string(col) + ";"
+                            + std::to_string(row) + "M";
+            m_pty->write(seq.data(), seq.size());
         } else {
             // Mouse tracking not enabled: fall back to cursor arrow sequences.
             const char* arrow = ctx.dy < 0 ? "\x1b[A" : "\x1b[B";
-            int count = ctx.dy < 0 ? static_cast<int>(-ctx.dy) : static_cast<int>(ctx.dy);
-            if (count < 1) count = 1;
-
-            for (int i = 0; i < count; ++i) {
-                m_pty->write(arrow, 3);
-            }
+            m_pty->write(arrow, 3);
         }
 
         ctx.stop_propagation = true;
@@ -759,10 +749,11 @@ void TerminalWidget::handle_mouse_wheel(MouseWheelEventContext &ctx) {
     int size = m_controller->get_scrollback_size();
     if (size == 0) return;
     
+    constexpr int kWheelScrollLines = 1;
     if (ctx.dy < 0) {
-        m_scroll_offset += 3;
+        m_scroll_offset += kWheelScrollLines;
     } else if (ctx.dy > 0) {
-        m_scroll_offset -= 3;
+        m_scroll_offset -= kWheelScrollLines;
     }
 
     if (m_scroll_offset > size) m_scroll_offset = size;
