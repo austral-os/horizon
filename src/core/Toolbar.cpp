@@ -30,7 +30,6 @@ namespace horizon
         top_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
         top_row->set_position_type(FILL);
         top_row->set_fixed_size(TOOLBAR_TOP_HEIGHT);
-        top_row->set_margin(9); // Centra los botones de 16px en la fila de 34px
         top_row->set_spacing(8);
         m_top_row = top_row.get();
 
