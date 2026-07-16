@@ -144,7 +144,8 @@
             "dock_position_right": "Right",
             "show_trash": "Show Trash Icon",
             "show_downloads": "Show Downloads Icon",
-            "downloads_count": "Items in Downloads Vault"
+            "downloads_count": "Max items:",
+            "applets": "Applets"
         },
         "display": {
             "resolution": "Resolution",

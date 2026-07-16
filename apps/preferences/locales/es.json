@@ -144,7 +144,8 @@
             "dock_position_right": "Derecha",
             "show_trash": "Mostrar ícono de Papelera",
             "show_downloads": "Mostrar ícono de Descargas",
-            "downloads_count": "Cantidad de elementos en Descargas"
+            "downloads_count": "Máx. elementos:",
+            "applets": "Applets"
         },
         "display": {
             "resolution": "Resolución",

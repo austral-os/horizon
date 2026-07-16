@@ -12,28 +12,27 @@ namespace horizon::preferences
         m_config->load();
         set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
         set_position_type(horizon::WidgetPositionTypes::FILL);
-        set_margin(30);
-        set_spacing(20);
+        set_margin(10);
+        set_spacing(10);
 
         // --- Icon Size Section ---
         auto size_container = std::make_unique<horizon::Widget>();
         size_container->set_layout_type(horizon::WIDGET_LAYOUT_VERTICAL);
-        size_container->set_spacing(10);
-        size_container->set_fixed_size(120);
+        size_container->set_fixed_size(96);
+        size_container->set_spacing(8);
 
         auto size_title =
             std::make_unique<horizon::Label>(i18n().tr("preferences.desktop.icon_size"));
-        size_title->set_fixed_size(35);
+        size_title->set_fixed_size(25);
         size_container->add_child(std::move(size_title));
 
         auto slider = std::make_unique<horizon::Slider>();
-        slider->set_fixed_size(35);
-
         slider->set_orientation(horizon::SliderOrientation::Horizontal);
+        slider->set_fixed_size(30);
         slider->set_min(32.0f);
         slider->set_max(128.0f);
         slider->set_value(64.0f);
-        slider->set_width(300);
+
         m_size_slider = slider.get();
         m_size_slider->set_show_ticks(true);
         m_size_slider->add_custom_tick(48.0f);
@@ -55,15 +54,16 @@ namespace horizon::preferences
         size_container->add_child(std::move(slider));
 
         auto size_val_label = std::make_unique<horizon::Label>("64 px");
-        // size_val_label->set_fixed_size(35);
+        size_val_label->set_fixed_size(25);
         m_size_label = size_val_label.get();
         size_container->add_child(std::move(size_val_label));
 
         add_child(std::move(size_container));
 
+        // --- Behavior Section ---
         auto mag_check = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
         mag_check->set_text(i18n().tr("preferences.desktop.use_magnification"));
-        mag_check->set_fixed_size(35);
+        mag_check->set_fixed_size(30);
         m_magnification_check = mag_check.get();
 
         m_magnification_check->when_toggle.connect(
@@ -77,7 +77,7 @@ namespace horizon::preferences
 
         auto autohide_check = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
         autohide_check->set_text(i18n().tr("preferences.desktop.autohide_dock"));
-        autohide_check->set_fixed_size(35);
+        autohide_check->set_fixed_size(30);
         m_autohide_check = autohide_check.get();
 
         m_autohide_check->when_toggle.connect(
@@ -89,13 +89,19 @@ namespace horizon::preferences
 
         add_child(std::move(autohide_check));
 
+        // --- Position Section ---
+        auto pos_row = std::make_unique<horizon::Widget>();
+        pos_row->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
+        pos_row->set_fixed_size(30);
+        pos_row->set_spacing(10);
+
         auto pos_label =
             std::make_unique<horizon::Label>(i18n().tr("preferences.desktop.dock_position"));
-        pos_label->set_fixed_size(35);
-        add_child(std::move(pos_label));
+        pos_label->set_fixed_size(120);
+        pos_row->add_child(std::move(pos_label));
 
         auto pos_combo = std::make_unique<horizon::Combo>();
-        pos_combo->set_fixed_size(35);
+        pos_combo->set_fixed_size(250);
         pos_combo->add_item("left", i18n().tr("preferences.desktop.dock_position_left"));
         pos_combo->add_item("bottom", i18n().tr("preferences.desktop.dock_position_bottom"));
         pos_combo->add_item("right", i18n().tr("preferences.desktop.dock_position_right"));
@@ -108,15 +114,23 @@ namespace horizon::preferences
                 save_config();
             });
 
-        add_child(std::move(pos_combo));
+        pos_row->add_child(std::move(pos_combo));
+        pos_row->add_child(horizon::Spacer());
 
-        // --- Downloads Group ---
-        auto dl_container = std::make_unique<horizon::Widget>();
-        dl_container->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
-        dl_container->set_spacing(10);
-        dl_container->set_fixed_size(35); // matches the children
+        add_child(std::move(pos_row));
 
-        // Downloads checkbox
+        // --- Applets Section ---
+        auto applets_label =
+            std::make_unique<horizon::Label>(i18n().tr("preferences.desktop.applets"));
+        applets_label->set_fixed_size(25);
+        add_child(std::move(applets_label));
+
+        // Downloads: checkbox + count label + input in a row
+        auto dl_row = std::make_unique<horizon::Widget>();
+        dl_row->set_layout_type(horizon::WIDGET_LAYOUT_HORIZONTAL);
+        dl_row->set_fixed_size(30);
+        dl_row->set_spacing(10);
+
         auto dl_check = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
         dl_check->set_text(i18n().tr("preferences.desktop.show_downloads"));
         dl_check->set_fixed_size(350);
@@ -127,18 +141,18 @@ namespace horizon::preferences
                 m_show_downloads = ctx.checked;
                 save_config();
             });
-        dl_container->add_child(std::move(dl_check));
+        dl_row->add_child(std::move(dl_check));
 
-        // Downloads count input
         auto dl_count_label =
             std::make_unique<horizon::Label>(i18n().tr("preferences.desktop.downloads_count"));
+        dl_count_label->set_fixed_size(200);
+        dl_row->add_child(std::move(dl_count_label));
 
         auto dl_count_input = std::make_unique<horizon::TextBox<horizon::IntegerPolicy>>();
         dl_count_input->config.show_spin_buttons = true;
         dl_count_input->config.min_int = 1;
         dl_count_input->config.max_int = 30;
         dl_count_input->set_fixed_size(80);
-        dl_count_input->set_width(150);
         m_downloads_count_input = dl_count_input.get();
         m_downloads_count_input->when_text_changed.connect(
             [this](const horizon::KeyEventContext &)
@@ -154,15 +168,15 @@ namespace horizon::preferences
                 {
                 }
             });
-        dl_container->add_child(std::move(dl_count_input));
-        dl_container->add_child(std::move(dl_count_label));
+        dl_row->add_child(std::move(dl_count_input));
+        dl_row->add_child(horizon::Spacer());
 
-        add_child(std::move(dl_container));
+        add_child(std::move(dl_row));
 
         // Trash checkbox
         auto trash_check = std::make_unique<horizon::Checkbox<horizon::AquaObject>>();
         trash_check->set_text(i18n().tr("preferences.desktop.show_trash"));
-        trash_check->set_fixed_size(35);
+        trash_check->set_fixed_size(30);
         m_show_trash_check = trash_check.get();
         m_show_trash_check->when_toggle.connect(
             [this](const ToggleEventContext &ctx)
@@ -188,12 +202,15 @@ namespace horizon::preferences
         m_magnification_enabled = j.value("magnification_enabled", j.value("magnification", true));
         m_autohide_enabled = j.value("autohide", false);
         m_position = j.value("position", "bottom");
-        if (j.contains("applets")) {
+        if (j.contains("applets"))
+        {
             auto applets = j["applets"];
             m_show_trash = applets.value("show_trash", true);
             m_show_downloads = applets.value("show_downloads", true);
             m_downloads_items_count = applets.value("downloads_items_count", 9);
-        } else {
+        }
+        else
+        {
             m_show_trash = j.value("show_trash", true);
             m_show_downloads = j.value("show_downloads", true);
             m_downloads_items_count = j.value("downloads_items_count", 9);
