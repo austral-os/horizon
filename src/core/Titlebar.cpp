@@ -49,7 +49,7 @@ namespace horizon
         if (m_close_button)
         {
 
-            m_close_button->when_mouse_press.connect(
+            m_close_button->when_click.connect(
                 [this](MouseButtonEventContext &context)
                 {
                     if (application())
@@ -61,7 +61,7 @@ namespace horizon
 
         if (m_minimize_button)
         {
-            m_minimize_button->when_mouse_press.connect(
+            m_minimize_button->when_click.connect(
                 [this](MouseButtonEventContext &context)
                 {
                     if (application())
@@ -74,7 +74,7 @@ namespace horizon
         if (m_maximize_button)
         {
 
-            m_maximize_button->when_mouse_press.connect(
+            m_maximize_button->when_click.connect(
                 [this](MouseButtonEventContext &context)
                 {
                     if (application())

@@ -2,6 +2,7 @@
 #include "horizon/GraphicsContext.hpp"
 #include "horizon/Widget.hpp"
 #include <horizon/TitlebarCircleButton.hpp>
+#include <algorithm>
 
 namespace horizon
 {
@@ -23,7 +24,7 @@ namespace horizon
                             : tm->get_color("titlebar_border");
         Color border2 = dark ? border.lighter(20.0f) : border.lighter(90.0f);
 
-        int radius = m_width / 2;
+        int radius = std::max(1, std::min(m_width, m_height) / 2 - 1);
         int center_x = m_start_draw_x + m_width / 2;
         int center_y = m_start_draw_y + m_height / 2;
 
@@ -31,10 +32,10 @@ namespace horizon
         gc.drawCircle(center_x, center_y, radius, 1.0f);
 
         gc.setColor(border2);
-        gc.drawCircle(center_x, center_y, radius + 2, 1.0f);
+        gc.drawCircle(center_x, center_y, radius + 1, 1.0f);
 
         gc.setColor(m_bg_color);
-        gc.fillCircle(center_x, center_y, radius + 1);
+        gc.fillCircle(center_x, center_y, radius);
 
         // gc.fillGradientCircle(center_x, center_y, radius, m_bg_color, {0.0f, 0.0f, 0.0f, 0.5f});
     }
