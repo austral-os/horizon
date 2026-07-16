@@ -1,5 +1,6 @@
 #include "CroppableImageWidget.hpp"
 #include <horizon/WaylandWindow.hpp>
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
@@ -348,6 +349,29 @@ void CroppableImageWidget::screen_to_image(float sx, float sy, float& ix, float&
     
     ix = rx + image_width() / 2.0f;
     iy = ry + image_height() / 2.0f;
+}
+
+int CroppableImageWidget::centered_x_offset() const {
+    auto* p = parent();
+    if (!p) return 0;
+
+    constexpr int scrollbar_space = 14;
+    int viewport_w = p->width() - (height() > p->height() ? scrollbar_space : 0);
+    return std::max(0, (viewport_w - width()) / 2);
+}
+
+int CroppableImageWidget::centered_y_offset() const {
+    auto* p = parent();
+    if (!p) return 0;
+
+    constexpr int scrollbar_space = 14;
+    int viewport_h = p->height() - (width() > p->width() ? scrollbar_space : 0);
+    return std::max(0, (viewport_h - height()) / 2);
+}
+
+void CroppableImageWidget::render(GraphicsContext& ctx, int cx, int cy, int cw, int ch, bool force) {
+    set_position(x() + centered_x_offset(), y() + centered_y_offset());
+    ImageWidget::render(ctx, cx, cy, cw, ch, force);
 }
 
 void CroppableImageWidget::draw(GraphicsContext& ctx) {

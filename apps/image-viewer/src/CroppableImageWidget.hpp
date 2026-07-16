@@ -29,6 +29,7 @@ public:
     bool is_cropping() const { return m_is_cropping; }
 
 protected:
+    void render(GraphicsContext& ctx, int cx, int cy, int cw, int ch, bool force = false) override;
     void draw(GraphicsContext& ctx) override;
 
 private:
@@ -57,6 +58,8 @@ private:
 
     void screen_to_image(float sx, float sy, float& ix, float& iy);
     void reset_crop_rect();
+    int centered_x_offset() const;
+    int centered_y_offset() const;
 };
 
 } // namespace image
