@@ -8,6 +8,7 @@
 #include <deque>
 #include <vector>
 #include <string>
+#include <atomic>
 
 
 #include "TerminalColorScheme.hpp"
@@ -63,6 +64,7 @@ public:
 
     bool is_altscreen() const { return m_is_altscreen; }
     int mouse_mode() const { return m_mouse_mode; }
+    bool is_bracketed_paste() const { return m_bracketed_paste.load(); }
 
 private:
     std::deque<ScrollbackLine> m_scrollback_buffer;
@@ -72,10 +74,12 @@ private:
     VTermScreen* m_screen;
     bool m_is_altscreen{false};
     int m_mouse_mode{VTERM_PROP_MOUSE_NONE};
+    std::atomic<bool> m_bracketed_paste{false};
     bool m_is_resizing{false};
     bool m_resized_during_altscreen{false};
     bool m_needs_clear{false};
     std::mutex m_mutex;
+    std::vector<char> m_sequence_carry;
 
     std::function<void(VTermRect)> m_damage_cb;
     std::function<void(VTermPos)> m_move_cursor_cb;

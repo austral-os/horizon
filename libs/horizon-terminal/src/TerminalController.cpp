@@ -71,6 +71,56 @@ TerminalController::~TerminalController() {
 
 void TerminalController::push_data(const char* data, size_t len) {
     std::lock_guard<std::mutex> lock(m_mutex);
+
+    // Detect bracketed paste mode changes from the application.
+    // Apps send CSI ? 2004 h (enable) / CSI ? 2004 l (disable) to the terminal.
+    // libvterm 0.3.3 processes these internally but does not expose the state via
+    // screen_settermprop (VTERM_PROP_BRACKETEDPASTE is missing from the public
+    // enum), so we detect them here to know when to wrap pasted clipboard data.
+    //
+    // To handle sequences split across push_data() calls, we carry forward any
+    // trailing bytes that match a prefix of the common sequence ("\x1b[?2004").
+    static constexpr char kEnableSeq[]    = "\x1b[?2004h";
+    static constexpr char kDisableSeq[]   = "\x1b[?2004l";
+    static constexpr char kCommonPrefix[] = "\x1b[?2004";
+    static constexpr size_t kSeqLen    = 8;  // strlen("\x1b[?2004h")
+    static constexpr size_t kPrefixLen = 7;  // strlen("\x1b[?2004")
+
+    // Build a scan buffer from carry-over bytes + new data
+    std::vector<char> scan_buf;
+    scan_buf.reserve(m_sequence_carry.size() + len);
+    scan_buf.insert(scan_buf.end(), m_sequence_carry.begin(), m_sequence_carry.end());
+    scan_buf.insert(scan_buf.end(), data, data + len);
+
+    size_t scan_pos = 0;
+    while (scan_pos + kSeqLen <= scan_buf.size()) {
+        const char* p = scan_buf.data() + scan_pos;
+        if (std::memcmp(p, kEnableSeq, kSeqLen) == 0) {
+            m_bracketed_paste = true;
+            scan_pos += kSeqLen;
+        } else if (std::memcmp(p, kDisableSeq, kSeqLen) == 0) {
+            m_bracketed_paste = false;
+            scan_pos += kSeqLen;
+        } else {
+            ++scan_pos;
+        }
+    }
+
+    // Carry forward any trailing bytes that could be a partial sequence prefix.
+    // The two sequences share the first 7 bytes ("\x1b[?2004"); only the 8th
+    // byte differs ('h' vs 'l').  So a partial match can be at most 7 bytes.
+    size_t tail_len = scan_buf.size() - scan_pos;
+    m_sequence_carry.clear();
+    for (size_t try_len = std::min(kPrefixLen, tail_len); try_len > 0; --try_len) {
+        const char* tail = scan_buf.data() + scan_buf.size() - try_len;
+        if (tail_len >= try_len &&
+            std::memcmp(tail, kCommonPrefix, try_len) == 0) {
+            m_sequence_carry.assign(tail, tail + try_len);
+            break;
+        }
+    }
+
+    // Always forward the original data to libvterm unchanged
     vterm_input_write(m_vt, data, len);
 
     // If libvterm's primary buffer was corrupted by a resize during altscreen,

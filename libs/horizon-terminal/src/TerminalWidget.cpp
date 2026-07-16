@@ -1202,7 +1202,23 @@ void TerminalWidget::on_clipboard_data_received(const std::string& mime, const s
             write(result_vec);
         }
     } else if (mime == "text/plain" || mime == "text/plain;charset=utf-8") {
-        write(data);
+        if (m_controller && m_controller->is_bracketed_paste()) {
+            // Wrap clipboard data with bracketed paste sequences so the
+            // receiving application can treat it as an atomic paste operation.
+            // Without these markers, apps like OpenCode process each character
+            // individually, causing severe performance degradation on multiline
+            // pastes (>30 seconds) and preventing paste-summary UI.
+            static const std::vector<uint8_t> kPasteStart = {'\x1b', '[', '2', '0', '0', '~'};
+            static const std::vector<uint8_t> kPasteEnd   = {'\x1b', '[', '2', '0', '1', '~'};
+            std::vector<uint8_t> wrapped;
+            wrapped.reserve(kPasteStart.size() + data.size() + kPasteEnd.size());
+            wrapped.insert(wrapped.end(), kPasteStart.begin(), kPasteStart.end());
+            wrapped.insert(wrapped.end(), data.begin(), data.end());
+            wrapped.insert(wrapped.end(), kPasteEnd.begin(), kPasteEnd.end());
+            write(wrapped);
+        } else {
+            write(data);
+        }
     }
 }
 

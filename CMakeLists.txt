@@ -454,6 +454,14 @@ if(BUILD_TESTING)
     target_link_libraries(events_manager_test PRIVATE horizon)
     add_test(NAME events_manager_test COMMAND events_manager_test)
     set_tests_properties(events_manager_test PROPERTIES TIMEOUT 10)
+
+    add_executable(terminal_bracketed_paste_test tests/terminal_bracketed_paste_test.cpp)
+    target_link_libraries(terminal_bracketed_paste_test PRIVATE horizon-terminal)
+    target_include_directories(terminal_bracketed_paste_test PRIVATE
+        ${CMAKE_SOURCE_DIR}/libs/horizon-terminal/include
+    )
+    add_test(NAME terminal_bracketed_paste_test COMMAND terminal_bracketed_paste_test)
+    set_tests_properties(terminal_bracketed_paste_test PROPERTIES TIMEOUT 10)
 endif()
 
 # --- Packaging ---
