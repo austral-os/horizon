@@ -930,11 +930,14 @@ namespace horizon
                                            m_surface->egl_surface(), m_surface->egl_context());
                         }
 
-                        if (is_transparent_surface())
-                            glClearColor(0, 0, 0, 0);
-                        else
-                            glClearColor(0, 0, 0, 1);
-                        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                        if (full)
+                        {
+                            if (is_transparent_surface())
+                                glClearColor(0, 0, 0, 0);
+                            else
+                                glClearColor(0, 0, 0, 1);
+                            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                        }
                         m_gl_queue.clear();
 
                         if (m_surface->data())
@@ -943,14 +946,14 @@ namespace horizon
                                                     m_surface->height());
 
 
-                            if (is_transparent_surface())
+                            if (full && is_transparent_surface())
                             {
                                 ctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
                                 ctx.clearRect(0, 0, m_surface->width(), m_surface->height());
                             }
 
                             m_root->render(ctx, 0, 0, m_surface->width(), m_surface->height(),
-                                           full || true); // Force full for now to stabilize
+                                           full);
                             ctx.flush();
                         }
 
