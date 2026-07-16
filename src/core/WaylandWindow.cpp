@@ -946,14 +946,15 @@ namespace horizon
                                                     m_surface->height());
 
 
-                            if (full && is_transparent_surface())
+                            if (is_transparent_surface())
                             {
                                 ctx.setColor(Color(0.0f, 0.0f, 0.0f, 0.0f));
                                 ctx.clearRect(0, 0, m_surface->width(), m_surface->height());
                             }
 
+                            bool force_render = full || is_transparent_surface();
                             m_root->render(ctx, 0, 0, m_surface->width(), m_surface->height(),
-                                           full);
+                                           force_render);
                             ctx.flush();
                         }
 
