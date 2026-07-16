@@ -337,8 +337,6 @@ namespace horizon
                 for (auto* iv : m_icon_views) {
                     iv->set_grouped(new_val);
                 }
-                
-                this->post_task([this]() { this->load_wallpaper(""); });
             });
             iv_menu->add_item(std::move(group_item));
             

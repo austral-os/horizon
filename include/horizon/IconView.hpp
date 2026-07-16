@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cmath>
 #include <functional>
 #include <horizon/ScrollArea.hpp>
 #include <horizon/Widget.hpp>
@@ -317,8 +318,28 @@ namespace horizon
         void set_grouped(bool grouped) {
             if (m_is_grouped != grouped) {
                 m_is_grouped = grouped;
-                if (!grouped) m_expanded_group = "";
-                rebuild_items();
+                if (!grouped) {
+                    m_expanded_group = "";
+                    m_animating_group = "";
+                    m_collapsing_group = "";
+                    m_is_group_animation_active = false;
+                }
+                // Before the widget is attached to a window, there is no event
+                // loop to defer to. Initial setup can safely rebuild directly.
+                if (!application()) {
+                    rebuild_items();
+                    return;
+                }
+
+                // Defer rebuild to avoid use-after-free when called from
+                // popup menu event handlers — rebuild_items() → clear_children()
+                // would destroy the widget tree while the event chain is active.
+                ++m_rebuild_generation;
+                auto gen = m_rebuild_generation;
+                application()->add_timer(0, [this, gen]() {
+                    if (gen == m_rebuild_generation)
+                        rebuild_items();
+                });
             }
         }
         bool is_grouped() const { return m_is_grouped; }
@@ -338,7 +359,123 @@ namespace horizon
             rebuild_items();
         }
 
+        void calculate_layout() override
+        {
+            IconViewBase::calculate_layout();
+            apply_group_animation_layout();
+        }
+
     protected:
+        void schedule_rebuild()
+        {
+            ++m_rebuild_generation;
+            auto gen = m_rebuild_generation;
+
+            if (!application()) {
+                if (gen == m_rebuild_generation)
+                    rebuild_items();
+                return;
+            }
+
+            application()->add_timer(0, [this, gen]() {
+                if (gen == m_rebuild_generation)
+                    rebuild_items();
+            });
+        }
+
+        void start_group_animation(const std::string &group_name, bool expanding)
+        {
+            if (!application()) {
+                rebuild_items();
+                return;
+            }
+
+            ++m_group_animation_generation;
+            auto gen = m_group_animation_generation;
+
+            m_animating_group = group_name;
+            m_collapsing_group = expanding ? "" : group_name;
+            m_is_group_animation_expanding = expanding;
+            m_is_group_animation_active = true;
+            m_group_animation_progress = expanding ? 0.0f : 1.0f;
+
+            schedule_rebuild();
+
+            auto start = std::chrono::steady_clock::now();
+            start_group_animation_frame(gen, start);
+        }
+
+        void start_group_animation_frame(uint64_t gen, std::chrono::steady_clock::time_point start)
+        {
+            constexpr int duration_ms = 160;
+            constexpr int frame_ms = 16;
+
+            application()->add_timer(frame_ms, [this, gen, start]() {
+                if (gen != m_group_animation_generation)
+                    return;
+
+                auto now = std::chrono::steady_clock::now();
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+                float t = std::min(1.0f, static_cast<float>(elapsed) / static_cast<float>(duration_ms));
+                float eased = 1.0f - std::pow(1.0f - t, 3.0f);
+
+                m_group_animation_progress = m_is_group_animation_expanding ? eased : 1.0f - eased;
+                calculate_layout();
+                invalidate();
+
+                if (t >= 1.0f) {
+                    m_is_group_animation_active = false;
+                    m_animating_group = "";
+
+                    if (!m_is_group_animation_expanding) {
+                        m_collapsing_group = "";
+                        m_expanded_group = "";
+                        schedule_rebuild();
+                    } else {
+                        m_collapsing_group = "";
+                    }
+                    return;
+                }
+
+                if (application())
+                    start_group_animation_frame(gen, start);
+            });
+        }
+
+        void apply_group_animation_layout()
+        {
+            if (!m_is_group_animation_active || m_animating_group.empty() || !m_content_pane)
+                return;
+
+            auto &children = m_content_pane->children();
+            if (children.size() != m_visual_to_group.size() || children.size() != m_visual_to_data.size())
+                return;
+
+            int anchor_y = 0;
+            bool found_anchor = false;
+
+            for (size_t i = 0; i < children.size(); ++i) {
+                if (m_visual_to_group[i] == m_animating_group && m_visual_to_data[i] == -1) {
+                    anchor_y = children[i]->y();
+                    found_anchor = true;
+                    break;
+                }
+            }
+
+            if (!found_anchor)
+                return;
+
+            float progress = std::max(0.0f, std::min(1.0f, m_group_animation_progress));
+            for (size_t i = 0; i < children.size(); ++i) {
+                if (m_visual_to_group[i] != m_animating_group || m_visual_to_data[i] == -1)
+                    continue;
+
+                int target_y = children[i]->y();
+                int animated_y = anchor_y + static_cast<int>((target_y - anchor_y) * progress);
+                children[i]->set_position(children[i]->x(), animated_y);
+            }
+        }
+
         void rebuild_items() override
         {
             if (!m_content_pane)
@@ -346,6 +483,7 @@ namespace horizon
 
             m_content_pane->clear_children();
             m_visual_to_data.clear();
+            m_visual_to_group.clear();
 
             if (!m_item_factory)
                 return;
@@ -361,41 +499,38 @@ namespace horizon
                     const auto& indices = pair.second;
                     
                     bool is_expanded = (m_expanded_group == group_name);
-                    auto header = m_group_header_factory(group_name, is_expanded, m_zoom);
+                    bool is_collapsing = (m_collapsing_group == group_name);
+                    auto header = m_group_header_factory(group_name, is_expanded && !is_collapsing, m_zoom);
                     if (header) {
                         header->when_mouse_press.connect([](MouseButtonEventContext &ctx) {
                             ctx.stop_propagation = true;
                         });
                         std::string gname = group_name;
                         header->when_click.connect([this, gname](MouseButtonEventContext &ctx) {
-                            if (m_expanded_group == gname) m_expanded_group = "";
-                            else m_expanded_group = gname;
-                            // Defer rebuild to avoid self-destruction during callback.
-                            // rebuild_items() → clear_children() would destroy this header
-                            // while its own when_click handler is still on the call stack.
-                            ++m_rebuild_generation;
-                            auto gen = m_rebuild_generation;
-                            application()->add_timer(0, [this, gen]() {
-                                if (gen == m_rebuild_generation)
-                                    rebuild_items();
-                            });
+                            bool expanding = (m_expanded_group != gname);
+                            if (expanding)
+                                m_expanded_group = gname;
+
+                            // Defer and animate rebuild to avoid self-destruction during callback.
+                            start_group_animation(gname, expanding);
                             ctx.stop_propagation = true;
                         });
                         header->set_position_type(FREE);
                         m_content_pane->add_child(std::move(header));
                         m_visual_to_data.push_back(-1);
+                        m_visual_to_group.push_back(group_name);
                     }
 
-                    if (is_expanded) {
+                    if (is_expanded || is_collapsing) {
                         for (int i : indices) {
-                            add_item_widget(i);
+                            add_item_widget(i, group_name);
                         }
                     }
                 }
             } else {
                 for (int i = 0; i < (int)m_data.size(); ++i)
                 {
-                    add_item_widget(i);
+                    add_item_widget(i, "");
                 }
             }
 
@@ -403,7 +538,7 @@ namespace horizon
             calculate_layout();
         }
 
-        void add_item_widget(int i)
+        void add_item_widget(int i, const std::string &group_name)
         {
                 bool is_selected = (m_selected_indices.count(i) > 0);
                 auto item_widget = m_item_factory(m_data[i], m_zoom, is_selected);
@@ -485,6 +620,7 @@ namespace horizon
                     item_widget->set_position_type(FREE);
                     m_content_pane->add_child(std::move(item_widget));
                     m_visual_to_data.push_back(i);
+                    m_visual_to_group.push_back(group_name);
                 }
         }
 
@@ -499,6 +635,13 @@ namespace horizon
         std::function<std::string(const T&)> m_grouping_function;
         std::function<std::unique_ptr<Widget>(const std::string&, bool, float)> m_group_header_factory;
         std::vector<int> m_visual_to_data;
+        std::vector<std::string> m_visual_to_group;
+        uint64_t m_group_animation_generation{0};
+        bool m_is_group_animation_active{false};
+        bool m_is_group_animation_expanding{false};
+        float m_group_animation_progress{1.0f};
+        std::string m_animating_group;
+        std::string m_collapsing_group;
         std::unique_ptr<Menu> m_active_item_menu;
     };
 } // namespace horizon
