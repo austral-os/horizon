@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 
             return content;
         },
-        1390, 875);
+        820, 660);
 
     // Setup About info
     auto &about = app.about_manager();

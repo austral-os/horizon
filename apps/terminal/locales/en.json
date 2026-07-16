@@ -39,6 +39,9 @@
                 "normal_label": "Normal:",
                 "bright_label": "Bright:"
             },
+            "section_cursor": "Cursor",
+            "section_font": "Font",
+            "section_scrolling": "Scrolling",
             "general_tab": "General",
             "themes_tab": "Themes",
             "colors_tab": "Colors",

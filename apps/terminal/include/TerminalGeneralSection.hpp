@@ -2,12 +2,11 @@
 
 #include <horizon/Widget.hpp>
 #include <horizon/ConfigSection.hpp>
-#include <horizon/GraphicsContext.hpp>
 #include <horizon/Label.hpp>
 #include <horizon/TextBox.hpp>
 #include <horizon/Checkbox.hpp>
 #include <horizon/Combo.hpp>
-#include <horizon/VPanel.hpp>
+#include <horizon/Spacer.hpp>
 #include <horizon/TextBoxPolicies.hpp>
 #include <horizon/FontSelector.hpp>
 #include <horizon/I18n.hpp>
@@ -25,26 +24,37 @@ public:
         set_margin(30);
         set_spacing(15);
 
-        auto add_label = [this](const std::string &text) {
+        auto add_section_label = [this](const std::string &text) {
             auto label = std::make_unique<Label>(text);
             label->set_font_weight(FONT_WEIGHT_BOLD);
+            label->set_fixed_size(25);
             add_child(std::move(label));
         };
 
-        // 1. Cursor Style
-        add_label(i18n().tr("terminal.preferences.cursor_style"));
+        // --- Cursor ---
+        add_section_label(i18n().tr("terminal.preferences.section_cursor"));
+
         auto combo = std::make_unique<Combo>();
         combo->add_item("block", i18n().tr("terminal.preferences.cursor_type_block"));
         combo->add_item("underline", i18n().tr("terminal.preferences.cursor_type_underline"));
         combo->add_item("bar", i18n().tr("terminal.preferences.cursor_type_bar"));
-        combo->set_width(200);
+        combo->set_fixed_size(30);
         m_cursor_combo = combo.get();
         m_cursor_combo->when_item_selected.connect([this](const ComboItemSelectedContext &) { if (m_on_change) m_on_change(); });
         add_child(std::move(combo));
 
-        // 2. Font & Font Size
-        add_label(i18n().tr("core.dialog.font.type_label"));
+        auto blink_check = std::make_unique<Checkbox<AquaObject>>();
+        blink_check->set_text(i18n().tr("terminal.preferences.cursor_blink"));
+        blink_check->set_fixed_size(25);
+        m_cursor_blink_check = blink_check.get();
+        m_cursor_blink_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
+        add_child(std::move(blink_check));
+
+        // --- Font ---
+        add_section_label(i18n().tr("terminal.preferences.section_font"));
+
         auto font_selector = std::make_unique<FontSelector>();
+        font_selector->set_fixed_size(36);
         m_font_selector = font_selector.get();
         m_font_selector->when_font_changed.connect([this](const FontDialogAcceptedContext &) {
             LOG_INFO << "[TERMINAL] Font changed, triggering configuration update";
@@ -52,32 +62,42 @@ public:
         });
         add_child(std::move(font_selector));
 
-        // 4. Scrollback Lines
-        add_label(i18n().tr("terminal.preferences.scrollback_lines"));
+        // --- Scrolling ---
+        add_section_label(i18n().tr("terminal.preferences.section_scrolling"));
+
+        auto scrollback_row = std::make_unique<Widget>();
+        scrollback_row->set_layout_type(WIDGET_LAYOUT_HORIZONTAL);
+        scrollback_row->set_fixed_size(30);
+
+        auto scrollback_label = std::make_unique<Label>(i18n().tr("terminal.preferences.scrollback_lines"));
+        scrollback_label->set_fixed_size(150);
+        scrollback_row->add_child(std::move(scrollback_label));
+
         auto scrollback_box = std::make_unique<TextBox<IntegerPolicy>>();
-        scrollback_box->set_width(150);
+        scrollback_box->set_fixed_size(80);
         m_scrollback_lines_box = scrollback_box.get();
         m_scrollback_lines_box->when_text_changed.connect([this](const KeyEventContext &) { if (m_on_change) m_on_change(); });
-        add_child(std::move(scrollback_box));
+        scrollback_row->add_child(std::move(scrollback_box));
+        scrollback_row->add_child(Spacer());
 
-        // 5. Checkboxes (Scroll without scrollbar & Show scrollbar)
-        auto scroll_check = std::make_unique<Checkbox<AquaObject>>();
-        scroll_check->set_text(i18n().tr("terminal.preferences.scroll_without_scrollbar"));
-        m_scroll_without_bar_check = scroll_check.get();
-        m_scroll_without_bar_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
-        add_child(std::move(scroll_check));
+        add_child(std::move(scrollback_row));
 
         auto show_bar_check = std::make_unique<Checkbox<AquaObject>>();
         show_bar_check->set_text(i18n().tr("terminal.preferences.show_scrollbar"));
+        show_bar_check->set_fixed_size(25);
         m_show_scrollbar_check = show_bar_check.get();
         m_show_scrollbar_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
         add_child(std::move(show_bar_check));
 
-        auto blink_check = std::make_unique<Checkbox<AquaObject>>();
-        blink_check->set_text(i18n().tr("terminal.preferences.cursor_blink"));
-        m_cursor_blink_check = blink_check.get();
-        m_cursor_blink_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
-        add_child(std::move(blink_check));
+        auto scroll_check = std::make_unique<Checkbox<AquaObject>>();
+        scroll_check->set_text(i18n().tr("terminal.preferences.scroll_without_scrollbar"));
+        scroll_check->set_fixed_size(25);
+        m_scroll_without_bar_check = scroll_check.get();
+        m_scroll_without_bar_check->when_toggle.connect([this](ToggleEventContext &) { if (m_on_change) m_on_change(); });
+        add_child(std::move(scroll_check));
+
+        // Layout filler — absorbs remaining vertical space after fixed-size children
+        add_child(Spacer());
     }
 
     void from_json(const nlohmann::json &j) override {
