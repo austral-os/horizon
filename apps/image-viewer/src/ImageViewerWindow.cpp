@@ -31,6 +31,7 @@ ImageViewerTabContent::ImageViewerTabContent(const std::string& path) {
     
     auto widget = std::make_unique<CroppableImageWidget>();
     m_image_widget = widget.get();
+    widget->set_position_type(FREE);
     
     m_scroll_area->set_content(std::move(widget));
     add_child(std::move(scroll));
